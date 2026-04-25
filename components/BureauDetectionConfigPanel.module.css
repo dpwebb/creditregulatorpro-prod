@@ -1,0 +1,138 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-8);
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.bureauSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.bureauTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.monoCell {
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  color: var(--secondary);
+}
+
+.weightHead {
+  width: 100px;
+}
+
+.switchHead {
+  width: 80px;
+}
+
+.weightInput {
+  width: 80px;
+  height: 2rem;
+  padding: 0 var(--spacing-2);
+  text-align: center;
+}
+
+.addRow {
+  background: color-mix(in srgb, var(--surface) 40%, transparent);
+}
+
+.testSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  background: var(--card);
+  padding: var(--spacing-6);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  position: sticky;
+  top: var(--spacing-6);
+}
+
+.testHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.testTextarea {
+  min-height: 300px;
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+}
+
+.testResultCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.resultMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--spacing-4);
+}
+
+.resultLabel {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.resultBadge {
+  font-size: 1rem;
+  padding: var(--spacing-2) var(--spacing-4);
+}
+
+.scoreBars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.scoreRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.scoreLabel {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.scoreValue {
+  font-family: var(--font-family-monospace);
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--foreground);
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

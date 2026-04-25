@@ -1,0 +1,297 @@
+@layer base {
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+    width: 100%;
+  }
+
+  .header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+
+  .titleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+  }
+
+  .title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0;
+  }
+
+  .description {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .checklistGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-4);
+  }
+
+  @media (min-width: 768px) {
+    .checklistGrid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .checklistItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+    transition: all var(--animation-duration-fast) ease;
+  }
+
+  .itemComplete {
+    border-color: color-mix(in srgb, var(--success) 30%, transparent);
+    background-color: color-mix(in srgb, var(--success) 5%, var(--card));
+  }
+
+  .itemSelected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .itemHeader {
+    display: flex;
+    gap: var(--spacing-3);
+  }
+
+  .itemIcon {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .itemContent {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+
+  .itemLabel {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--foreground);
+  }
+
+  .requiredStar {
+    color: var(--error);
+    margin-left: var(--spacing-1);
+  }
+
+  .itemDescription {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+  }
+
+  .fileList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-2);
+    padding-top: var(--spacing-3);
+    border-top: 1px solid var(--border);
+  }
+
+  .fileItem {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2);
+    background-color: var(--muted);
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+  }
+
+  .fileIcon {
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+  }
+
+  .fileName {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .fileActions {
+    display: flex;
+    gap: var(--spacing-1);
+  }
+
+  .actionButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .actionButton:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--foreground);
+  }
+
+  .deleteButton:hover {
+    background-color: color-mix(in srgb, var(--error) 10%, transparent);
+    color: var(--error);
+  }
+
+  .uploadAction {
+    margin-top: auto;
+  }
+
+  .addButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .activeUploadArea {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .uploadHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .miniDropzone {
+    /* Override default dropzone styles for compact fit */
+    padding: var(--spacing-4) !important;
+    min-height: auto !important;
+  }
+
+  .miniDropzone :global(svg) {
+    width: 24px;
+    height: 24px;
+  }
+
+  .miniDropzone :global(span) {
+    font-size: 0.8125rem;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Dialog Styles */
+  .dialogOverlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(2px);
+  }
+
+  .dialogContent {
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 800px;
+    max-height: 85vh;
+    padding: var(--spacing-6);
+    z-index: var(--z-overlay);
+    animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+  }
+
+  .dialogHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dialogTitle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .previewContainer {
+    flex: 1;
+    min-height: 300px;
+    background-color: var(--muted);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .previewImage {
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+  }
+
+  .previewFrame {
+    width: 100%;
+    height: 60vh;
+    border: none;
+  }
+
+  @keyframes overlayShow {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes contentShow {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+}

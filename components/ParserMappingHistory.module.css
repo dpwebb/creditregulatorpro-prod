@@ -1,0 +1,133 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.emptyState {
+  padding: var(--spacing-12);
+  text-align: center;
+  color: var(--muted-foreground);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border);
+}
+
+.skeletonRow {
+  height: 4rem;
+  width: 100%;
+  margin-bottom: var(--spacing-3);
+  border-radius: var(--radius);
+}
+
+.accordionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.historyItem {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius) !important; /* Overriding accordion default borders */
+  margin-bottom: 0 !important;
+  box-shadow: none;
+}
+
+.trigger {
+  padding: var(--spacing-4);
+}
+
+.triggerContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  flex: 1;
+}
+
+.triggerMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.versionBadge {
+  font-family: var(--font-family-monospace);
+  font-weight: 600;
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.timestamp {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.triggerNotes {
+  font-size: 0.9375rem;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 800px;
+}
+
+.detailsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  margin-top: var(--spacing-2);
+  border: 1px solid var(--border);
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.diffGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+.diffCol {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.diffHeader {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: color-mix(in srgb, var(--surface) 80%, black);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  letter-spacing: 0.05em;
+}
+
+.diffPre {
+  margin: 0;
+  padding: var(--spacing-4);
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--foreground);
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .diffGrid {
+    grid-template-columns: 1fr;
+  }
+}

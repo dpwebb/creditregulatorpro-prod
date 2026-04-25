@@ -1,0 +1,27 @@
+.toggleButton {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+  z-index: var(--z-nav-sticky);
+}
+
+.toggleButton:hover {
+  background: var(--border);
+  transform: scale(1.05);
+  box-shadow: var(--shadow);
+}
+
+.toggleButton:active {
+  transform: scale(0.95);
+}

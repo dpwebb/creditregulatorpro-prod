@@ -1,0 +1,21 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.tabsListWrapper {
+  margin-bottom: var(--spacing-6);
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tabsList {
+  width: 100%;
+}

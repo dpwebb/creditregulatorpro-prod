@@ -1,0 +1,71 @@
+.dialogContent {
+  width: 100%;
+  max-width: 30rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-4);
+}
+
+.warningBox {
+  display: flex;
+  gap: var(--spacing-3);
+  background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  padding: var(--spacing-3);
+  border-radius: var(--radius);
+  color: var(--warning-foreground);
+  font-size: 0.875rem;
+  align-items: flex-start;
+}
+
+.warningIcon {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dateButton {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  font-weight: normal;
+}
+
+.mutedText {
+  color: var(--muted-foreground);
+}
+
+.calendarIcon {
+  margin-right: var(--spacing-2);
+  height: 1rem;
+  width: 1rem;
+  opacity: 0.5;
+}
+
+.calendarContent {
+  width: auto;
+  padding: 0;
+}
+
+.summaryBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-3);
+  background-color: var(--muted);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+.summaryLabel {
+  color: var(--muted-foreground);
+}
+
+.summaryValue {
+  font-weight: 600;
+  color: var(--foreground);
+}

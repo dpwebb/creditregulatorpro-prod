@@ -1,0 +1,128 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  padding-bottom: var(--spacing-12);
+}
+
+.error {
+  color: var(--error);
+  padding: var(--spacing-4);
+  border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+  background-color: color-mix(in srgb, var(--error) 5%, transparent);
+  border-radius: var(--radius);
+  margin-bottom: var(--spacing-6);
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.headerActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-2);
+}
+
+@media (min-width: 640px) {
+  .headerActions {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    gap: var(--spacing-4);
+  }
+}
+
+.legendContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+@media (min-width: 768px) {
+  .legendContainer {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-4);
+  }
+}
+
+.legendTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-right: var(--spacing-2);
+}
+
+.legendItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+}
+
+.statusNotDisputed {
+  background-color: var(--muted);
+  border-color: var(--border);
+}
+
+.statusPending {
+  background-color: var(--surface);
+  border-color: var(--muted-foreground);
+}
+
+.statusChallenged {
+  background-color: var(--info);
+}
+
+.statusNoResponse {
+  background-color: var(--warning);
+}
+
+.statusInsufficient {
+  background-color: var(--error);
+}
+
+.statusExhausted {
+  background-color: var(--success);
+}
+
+.statusViolationPending {
+  background-color: hsl(25 90% 50%);
+}

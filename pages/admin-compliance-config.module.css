@@ -1,0 +1,462 @@
+.container {
+  padding: var(--spacing-6);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.breadcrumbLink {
+  color: var(--muted-foreground);
+  text-decoration: none;
+  transition: color var(--animation-duration-fast);
+}
+
+.breadcrumbLink:hover {
+  color: var(--foreground);
+}
+
+.breadcrumbSeparator {
+  margin: 0 var(--spacing-2);
+  color: var(--border);
+}
+
+.breadcrumbCurrent {
+  color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.unsavedIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--warning);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-right: var(--spacing-2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.tabs {
+  margin-top: var(--spacing-6);
+}
+
+.tabContent {
+  margin-top: var(--spacing-6);
+  outline: none;
+}
+
+/* Grid Layout for Thresholds */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: all var(--animation-duration-normal) ease;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--border), var(--foreground) 10%);
+  box-shadow: var(--shadow-md);
+}
+
+.cardDisabled {
+  opacity: 0.7;
+  background-color: var(--muted);
+  border-style: dashed;
+}
+
+.cardDirty {
+  border-color: var(--warning);
+  background-color: color-mix(in srgb, var(--warning) 5%, var(--card));
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+}
+
+.cardTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--foreground);
+  line-height: 1.4;
+}
+
+.cardDescription {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin: 0;
+  flex-grow: 1;
+  line-height: 1.5;
+}
+
+.sliderContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-2);
+  border-top: 1px solid var(--border);
+}
+
+.sliderLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sliderValue {
+  font-family: var(--font-family-monospace);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.sliderMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/* Messaging Tab Styles */
+.messagingList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  max-width: 800px;
+}
+
+.infoBox {
+  display: flex;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  background-color: color-mix(in srgb, var(--info) 10%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--info) 30%, transparent);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.infoIcon {
+  color: var(--info);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infoBox p {
+  margin: 0;
+}
+
+.infoBox code {
+  font-family: var(--font-family-monospace);
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+.accordionItem {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--card);
+  overflow: hidden;
+  transition: all var(--animation-duration-normal) ease;
+}
+
+.accordionItemDirty {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 1px var(--warning);
+}
+
+.accordionTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-4);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  color: var(--foreground);
+  transition: background-color var(--animation-duration-fast);
+}
+
+.accordionTrigger:hover {
+  background-color: var(--muted);
+}
+
+.accordionTrigger[data-state="open"] {
+  background-color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.accordionTitle {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.dirtyBadge {
+  font-size: 0.75rem;
+  background-color: var(--warning);
+  color: var(--warning-foreground);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.accordionChevron {
+  color: var(--muted-foreground);
+  transition: transform var(--animation-duration-normal);
+}
+
+.accordionTrigger[data-state="open"] .accordionChevron {
+  transform: rotate(180deg);
+}
+
+.accordionContent {
+  overflow: hidden;
+  animation-duration: var(--animation-duration-normal);
+  animation-timing-function: var(--animation-easing);
+}
+
+.accordionContent[data-state="open"] {
+  animation-name: slideDown;
+}
+
+.accordionContent[data-state="closed"] {
+  animation-name: slideUp;
+}
+
+@keyframes slideDown {
+  from { height: 0; }
+  to { height: var(--radix-collapsible-content-height); }
+}
+
+@keyframes slideUp {
+  from { height: var(--radix-collapsible-content-height); }
+  to { height: 0; }
+}
+
+.accordionBody {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.fieldLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.fieldHelp {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+/* Pricing Tab Styles */
+.pricingGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .pricingGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.totalCostContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4);
+  background-color: var(--muted);
+  border-radius: var(--radius);
+  margin-top: var(--spacing-4);
+  border: 1px solid var(--border);
+}
+
+.totalCostLabel {
+  font-weight: 500;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+}
+
+.totalCostValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Stat Cards */
+.sectionHeader {
+  margin-top: var(--spacing-8);
+  margin-bottom: var(--spacing-4);
+  font-family: var(--font-family-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--border);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+@media (min-width: 640px) {
+  .statGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .statGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .statGrid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.statCard {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.statSubValue {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+/* Skeletons */
+.headerSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-8);
+}
+
+.gridSkeleton {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .gridSkeleton {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1200px) {
+  .gridSkeleton {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.cardSkeleton {
+  height: 200px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-4);
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .accordionTrigger {
+    padding: var(--spacing-3);
+  }
+}

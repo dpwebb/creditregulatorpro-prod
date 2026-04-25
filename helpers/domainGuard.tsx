@@ -1,0 +1,101 @@
+import { db } from "./db";
+import { getServerSessionOrThrow } from "./getSetServerSession";
+import CryptoJS from "crypto-js";
+
+const ALLOWLIST = [
+  "https://creditregulatorpro.com",
+  "https://www.creditregulatorpro.com",
+  "https://staging.creditregulatorpro.com",
+  "https://xapp.floot.app",
+  "https://xapp.compnd.systems",
+  "https://d7b7a121-ad3e-49cc-87b0-82af4360a550.sandbox.floot.app",
+];
+
+function getOriginOrReferer(request: Request): string | null {
+  const origin = request.headers.get("origin");
+  if (origin) {
+    return origin;
+  }
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      const url = new URL(referer);
+      return url.origin;
+    } catch {
+      return referer;
+    }
+  }
+  return null;
+}
+
+export interface DomainGuardResult {
+  valid: boolean;
+  origin: string;
+  mode: string;
+}
+
+/**
+ * Validates the Origin or Referer header of the request against an allowlist.
+ * If neither is present, it attempts to validate the request via an existing session.
+ * Logs violations to the suspiciousActivityLog.
+ */
+export async function validateOrigin(
+  request: Request
+): Promise<DomainGuardResult> {
+  const originStr = getOriginOrReferer(request);
+
+  let mode = "log_only";
+  try {
+    const setting = await db
+      .selectFrom("systemSettings")
+      .select("value")
+      .where("key", "=", "DOMAIN_GUARD_MODE")
+      .executeTakeFirst();
+    if (setting && setting.value) {
+      mode = setting.value;
+    }
+  } catch (error) {
+    console.error("Failed to fetch DOMAIN_GUARD_MODE setting", error);
+  }
+
+  let valid = false;
+
+  if (!originStr) {
+    try {
+      // Allow requests with no origin/referer if they have a valid session cookie
+      await getServerSessionOrThrow(request);
+      valid = true;
+    } catch (e) {
+      // Truly no-origin-no-session requests treated as violation
+      valid = false;
+    }
+  } else {
+    valid = ALLOWLIST.includes(originStr);
+  }
+
+  if (!valid) {
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+    const ua = request.headers.get("user-agent") || "unknown";
+    const fingerprint = CryptoJS.SHA256(ip + ua).toString(CryptoJS.enc.Hex);
+
+    try {
+      await db
+        .insertInto("suspiciousActivityLog")
+        .values({
+          fingerprintHash: fingerprint,
+          ipAddress: ip,
+          userAgent: ua,
+          reason: `ORIGIN_VIOLATION: ${originStr || "No Origin/Referer"}`,
+          blocked: mode === "enforce",
+        })
+        .execute();
+    } catch (error) {
+      console.error("Failed to log origin violation", error);
+    }
+  }
+
+  return { valid, origin: originStr || "", mode };
+}

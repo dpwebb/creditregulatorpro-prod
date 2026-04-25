@@ -1,0 +1,84 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  width: 100%;
+}
+
+.labelContainer {
+  display: flex;
+  align-items: center;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.trigger {
+  width: 100%;
+}
+
+.addressCard {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-3);
+  background-color: var(--muted);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 0.875rem;
+}
+
+.addressHeader {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  margin-bottom: var(--spacing-2);
+}
+
+.addressContent {
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+.recipientName {
+  font-weight: 600;
+}
+
+.department {
+  font-style: italic;
+  margin-bottom: var(--spacing-1);
+}
+
+.noAddressWarning {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-3);
+  background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  color: var(--warning-foreground); /* This might be white, check contrast */
+  color: color-mix(in srgb, var(--warning) 40%, var(--foreground)); /* Safer fallback for light mode */
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.875rem;
+}
+
+.labelSkeleton {
+  margin-bottom: var(--spacing-2);
+}
+
+.selectSkeleton {
+  height: 2.75rem; /* Match select trigger height */
+  width: 100%;
+}
+
+.addressSkeleton {
+  margin-top: var(--spacing-2);
+  height: 8rem;
+  width: 100%;
+}

@@ -1,0 +1,91 @@
+@layer base {
+  .dialogContent {
+    /* Base dialog styling handled by Dialog component */
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    min-height: 150px;
+  }
+
+  .loadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-4);
+    padding: 2.5rem 0;
+  }
+
+  .loadingText {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .errorState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-4);
+    padding: var(--spacing-8) 0;
+    text-align: center;
+  }
+
+  .errorMessage {
+    color: var(--error);
+    font-size: 0.9375rem;
+    font-weight: 500;
+  }
+
+  .successState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-8) 0;
+    text-align: center;
+    animation: fadeIn var(--animation-duration-normal) var(--animation-easing);
+  }
+
+  .successIcon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: var(--radius-full);
+    background-color: var(--success);
+    color: var(--success-foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: var(--spacing-2);
+  }
+
+  .successTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin: 0;
+  }
+
+  .successText {
+    color: var(--muted-foreground);
+    font-size: 0.9375rem;
+    margin: 0;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+}

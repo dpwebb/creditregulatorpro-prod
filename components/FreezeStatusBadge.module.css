@@ -1,0 +1,18 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  text-transform: capitalize;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.typeBadge {
+  font-size: 0.75rem;
+  padding: 0 var(--spacing-2);
+  height: 1.5rem;
+}

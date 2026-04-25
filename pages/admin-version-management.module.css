@@ -1,0 +1,43 @@
+.container {
+  padding: var(--spacing-6);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.tabsContainer {
+  margin-top: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.tabTrigger {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.tabIcon {
+  color: var(--muted-foreground);
+}
+
+.tabContent {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-4);
+  }
+}

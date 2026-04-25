@@ -1,0 +1,168 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.tabContent {
+  margin-top: var(--spacing-6);
+  outline: none;
+}
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.skeletonRow {
+  height: 4.5rem;
+  border-radius: var(--radius);
+}
+
+.emptyState {
+  padding: var(--spacing-8);
+  text-align: center;
+  color: var(--muted-foreground);
+  background-color: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.rowWrapper {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--animation-duration-fast);
+}
+
+.rowWrapper:hover {
+  border-color: color-mix(in srgb, var(--border), var(--foreground) 10%);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-4);
+  cursor: pointer;
+  user-select: none;
+}
+
+.rowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.rowLabel {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--foreground);
+}
+
+.rowDate {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.rowStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.editor {
+  border-top: 1px solid var(--border);
+  padding: 1.25rem;
+  background-color: color-mix(in srgb, var(--surface) 50%, var(--card));
+}
+
+.editorHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.editorTitle {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--foreground);
+}
+
+.editorToggles {
+  display: flex;
+  gap: var(--spacing-6);
+  align-items: center;
+}
+
+.toggleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.toggleGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.editorBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.fieldGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.editorActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-6);
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.actionGroup {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+@media (max-width: 768px) {
+  .editorHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .editorActions {
+    flex-direction: column-reverse;
+    gap: var(--spacing-4);
+    align-items: stretch;
+  }
+  .actionGroup {
+    flex-direction: column;
+  }
+}

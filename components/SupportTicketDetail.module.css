@@ -1,0 +1,305 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.headerSkeleton {
+  height: 100px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.bodySkeleton {
+  height: 400px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.header {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-3);
+}
+
+.subject {
+  font-family: var(--font-family-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.badges {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  flex-wrap: wrap;
+}
+
+.metaLabel {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.metaDivider {
+  opacity: 0.5;
+}
+
+.adminControls {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  background-color: color-mix(in srgb, var(--primary) 5%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 200px;
+  flex: 1;
+}
+
+.controlLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.controlSelect {
+  background-color: var(--surface);
+}
+
+.ticketBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.descriptionBlock {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.descriptionContent {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--foreground);
+  white-space: pre-wrap;
+  margin-top: var(--spacing-3);
+}
+
+.messageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.messageWrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+  gap: var(--spacing-1);
+}
+
+.messageWrapper.user {
+  align-self: flex-start;
+}
+
+.messageWrapper.agent {
+  align-self: flex-end;
+}
+
+.messageWrapper.internal {
+  align-self: flex-end;
+}
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  padding: 0 var(--spacing-1);
+}
+
+.messageWrapper.agent .messageHeader,
+.messageWrapper.internal .messageHeader {
+  flex-direction: row-reverse;
+}
+
+.messageAuthor {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.messageTime {
+  opacity: 0.8;
+}
+
+.lockIcon {
+  color: var(--warning);
+}
+
+.internalBadge {
+  background-color: color-mix(in srgb, var(--warning) 20%, transparent);
+  color: color-mix(in srgb, var(--warning) 80%, black);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.messageBox {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-lg);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow);
+}
+
+.messageWrapper.user .messageBox {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  border-bottom-left-radius: var(--spacing-1);
+}
+
+.messageWrapper.agent .messageBox {
+  background-color: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
+  color: var(--foreground);
+  border-bottom-right-radius: var(--spacing-1);
+}
+
+.messageWrapper.internal .messageBox {
+  background-color: color-mix(in srgb, var(--warning) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--warning) 30%, var(--border));
+  color: var(--foreground);
+  border-bottom-right-radius: var(--spacing-1);
+}
+
+.replySection {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  margin-top: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.closedNotice {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  margin-top: var(--spacing-4);
+  text-align: center;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.replyHeading {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 var(--spacing-4) 0;
+  color: var(--foreground);
+}
+
+.replyForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.replyItem {
+  margin-bottom: 0;
+}
+
+.replyTextarea {
+  min-height: 120px;
+}
+
+.replyActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--warning);
+  cursor: pointer;
+}
+
+.sendButton {
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .titleRow {
+    flex-direction: column;
+  }
+  
+  .messageWrapper {
+    max-width: 95%;
+  }
+}

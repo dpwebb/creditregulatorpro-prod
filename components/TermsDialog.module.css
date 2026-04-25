@@ -1,0 +1,54 @@
+@layer base {
+  .dialogContent {
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+  }
+
+  .scrollArea {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: var(--spacing-4);
+    margin-top: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
+    /* Custom scrollbar for better visual integration */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .scrollArea::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollArea::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollArea::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: var(--radius-full);
+  }
+
+  .section {
+    margin-bottom: var(--spacing-6);
+  }
+
+  .section:last-child {
+    margin-bottom: 0;
+  }
+
+  .heading {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin-bottom: var(--spacing-2);
+    font-family: var(--font-family-heading);
+  }
+
+  .text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+}

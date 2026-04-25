@@ -1,0 +1,73 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-4);
+}
+
+.statCard {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  transition: transform var(--animation-duration-fast);
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+}
+
+.statCritical {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.statCritical .statIcon {
+  color: var(--error);
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.statCritical .statValue {
+  color: var(--error);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+}
+
+.statIcon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  font-family: var(--font-family-monospace);
+}

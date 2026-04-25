@@ -1,0 +1,122 @@
+@layer base {
+  .dialogContent {
+    width: 32rem;
+    max-width: 95vw;
+  }
+
+  .valuePreview {
+    background-color: var(--muted);
+    padding: var(--spacing-4);
+    border-radius: var(--radius);
+    margin-bottom: var(--spacing-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    border: 1px solid var(--border);
+  }
+
+  .valueLabel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+    font-weight: 600;
+  }
+
+  .valueCode {
+    font-family: var(--font-family-monospace);
+    font-size: 0.9375rem;
+    color: var(--foreground);
+    word-break: break-all;
+  }
+
+  .section {
+    margin-bottom: var(--spacing-6);
+  }
+
+  .sectionTitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-4);
+    color: var(--foreground);
+  }
+
+  .radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+  }
+
+  .radioItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+
+  .radioHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+  }
+
+  .radioLabel {
+    font-weight: 500;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    color: var(--foreground);
+  }
+
+  .radioDescription {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    margin-left: 1.75rem; /* Align with text, accounting for radio width + gap */
+  }
+
+  .nestedOption {
+    margin-left: 1.75rem;
+    margin-top: var(--spacing-2);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+  }
+
+  .nestedOption label {
+    font-size: 0.875rem;
+    color: var(--foreground);
+    cursor: pointer;
+  }
+
+  .nestedInput {
+    margin-left: 1.75rem;
+    margin-top: var(--spacing-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+
+  .helperLink {
+    align-self: flex-start;
+    padding: 0;
+    height: auto;
+    font-size: 0.75rem;
+  }
+
+  .nestedRow {
+    margin-left: 1.75rem;
+    margin-top: var(--spacing-2);
+    display: flex;
+    gap: var(--spacing-4);
+  }
+
+  .inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+    flex: 1;
+  }
+
+  .inputGroup label {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+}

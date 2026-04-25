@@ -1,0 +1,89 @@
+@layer base {
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    padding-top: var(--spacing-2);
+  }
+
+  .row {
+    display: flex;
+    gap: var(--spacing-4);
+    width: 100%;
+  }
+
+  .halfWidth {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .textarea {
+    font-family: var(--font-family-base);
+    line-height: 1.5;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .highlightedInput {
+    background-color: color-mix(in srgb, var(--primary) 2%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+
+  .highlightedInput:focus {
+    background-color: var(--input);
+    border-color: var(--primary);
+  }
+
+  .crossBureauToggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: color-mix(in srgb, var(--info) 5%, transparent);
+    gap: var(--spacing-4);
+  }
+
+  .crossBureauToggleText {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+
+  .crossBureauLabel {
+    margin: 0;
+    color: var(--info);
+    font-weight: 600;
+  }
+
+  .formTitle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+  }
+
+  .backBtn {
+    margin-right: var(--spacing-1);
+  }
+
+  .readOnlyField {
+    padding: 0.5rem 0.75rem;
+    background-color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .createButton {
+    box-shadow: 0 0 15px rgba(236, 72, 153, 0.3);
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), black 20%));
+  }
+
+  .createButton:hover {
+    background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), white 10%));
+  }
+}

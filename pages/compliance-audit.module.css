@@ -1,0 +1,80 @@
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  width: 100%;
+  max-width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.iconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.title {
+  font-family: var(--font-family-heading);
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+}
+
+.titleHelp {
+  margin-left: var(--spacing-3);
+  color: var(--muted-foreground);
+}
+
+.tabHelp {
+  margin-left: var(--spacing-2);
+  opacity: 0.6;
+}
+
+.tabHelp:hover {
+  opacity: 1;
+}
+
+.description {
+  font-size: 1rem;
+  color: var(--muted-foreground);
+  margin: var(--spacing-1) 0 0 0;
+}
+
+.tabs {
+  width: 100%;
+}
+
+.tabContent {
+  margin-top: var(--spacing-6);
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 1.5rem;
+  }
+  .iconBox {
+    width: 40px;
+    height: 40px;
+  }
+}

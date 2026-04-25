@@ -1,0 +1,346 @@
+.container {
+  padding: var(--spacing-6);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  background: var(--card);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+@media (min-width: 1024px) {
+  .filters {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.searchContainer {
+  position: relative;
+  flex: 1;
+  max-width: 300px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchInput {
+  padding-left: 2.5rem;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 768px) {
+  .filterGroup {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.selectTrigger {
+  width: 180px;
+}
+
+.dateInputWrapper {
+  position: relative;
+  width: 160px;
+}
+
+.inputIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dateInput {
+  padding-left: 2.5rem;
+}
+
+.dateSeparator {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.logCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--animation-duration-fast), opacity var(--animation-duration-fast);
+}
+
+.logCard:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.logCardFetching {
+  opacity: 0.6;
+}
+
+.cardHeader {
+  padding: var(--spacing-4);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background-color: var(--card);
+  transition: background-color var(--animation-duration-fast);
+}
+
+.cardHeader:hover {
+  background-color: var(--muted);
+}
+
+.cardTopRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.cardBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.timestamp {
+  font-family: var(--font-family-monospace);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 150px;
+}
+
+.userEmail {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.userName {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.actionBadge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ipAddress {
+  font-family: var(--font-family-monospace);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.expandIcon {
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+}
+
+.loadingState,
+.errorState,
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+}
+
+.loadingText {
+  color: var(--muted-foreground);
+}
+
+.cardDetails {
+  padding: 1.25rem;
+  background-color: color-mix(in srgb, var(--muted) 30%, transparent);
+  border-top: 1px solid var(--border);
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .detailsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.detailItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.detailItemFull {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.detailLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.detailValue {
+  font-family: var(--font-family-monospace);
+  font-size: 0.875rem;
+  color: var(--foreground);
+  word-break: break-all;
+}
+
+.jsonBlock {
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--spacing-3);
+  border-radius: var(--radius);
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  overflow-x: auto;
+  margin: 0;
+}
+
+.errorText {
+  color: var(--error);
+  font-weight: 500;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-6);
+  padding: var(--spacing-4);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.paginationPage {
+  font-size: 0.875rem;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.paginationBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-family: var(--font-family-base);
+  cursor: pointer;
+  transition: background-color var(--animation-duration-fast), border-color var(--animation-duration-fast);
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background-color: var(--muted);
+  border-color: var(--muted-foreground);
+}
+
+.paginationBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-4);
+  }
+  .searchContainer {
+    max-width: 100%;
+  }
+  .selectTrigger {
+    width: 100%;
+  }
+  .dateInputWrapper {
+    width: 100%;
+  }
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

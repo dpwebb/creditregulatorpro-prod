@@ -1,0 +1,154 @@
+.container {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+  padding: var(--spacing-5);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-4);
+}
+
+.titleWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--foreground);
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.urlSection {
+  margin-bottom: var(--spacing-5);
+}
+
+.label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-1);
+  padding-left: var(--spacing-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.urlDisplay {
+  flex: 1;
+  font-family: var(--font-family-monospace);
+  font-size: 0.875rem;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: var(--spacing-2);
+}
+
+.copyButton {
+  flex-shrink: 0;
+}
+
+.successIcon {
+  color: var(--success);
+}
+
+.helperText {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  margin-top: var(--spacing-2);
+}
+
+.accordion {
+  border-top: 1px solid var(--border);
+}
+
+.instructions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  padding-top: var(--spacing-2);
+}
+
+.step {
+  display: flex;
+  gap: var(--spacing-4);
+}
+
+.stepNumber {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.stepContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.stepTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-1);
+}
+
+.stepText {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin: 0 0 var(--spacing-2);
+  line-height: 1.5;
+}
+
+.codeBlock {
+  background: #1e293b; /* Dark slate */
+  color: #e2e8f0;
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.warningBox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--warning-foreground); /* Actually usually dark/light, using foreground text */
+  font-size: 0.8125rem;
+  color: var(--muted-foreground); /* Overriding for readability if warning-foreground is white */
+}
+
+/* Adjust warning text color if it's too light on light mode */
+:global(.light) .warningBox {
+  color: hsl(40 90% 30%);
+}

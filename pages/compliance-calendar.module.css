@@ -1,0 +1,189 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  height: 100%;
+  animation: fadeIn var(--animation-duration-normal) ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.helpAction {
+  display: flex;
+  align-items: center;
+  margin-right: var(--spacing-2);
+}
+
+.helpLabel {
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--foreground);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  font-size: 0.875rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--muted-foreground);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Overdue List Drill-down */
+.overdueListContainer {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  animation: slideDown var(--animation-duration-normal) ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.overdueListHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-3);
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.overdueListTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--error);
+  margin: 0;
+}
+
+.closeListBtn {
+  padding: var(--spacing-2);
+}
+
+.overdueListContent {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.emptyState {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  padding: var(--spacing-4) 0;
+  text-align: center;
+}
+
+.overdueListItems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.overdueItemCard {
+  border-left: 4px solid var(--error);
+  background-color: var(--muted);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.overdueItemMeta {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--error);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.overdueItemTitle {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.overdueItemDetail {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+
+.calendarPlaceholder {
+  height: 700px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 768px) {
+  .headerActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .helpAction {
+    display: none;
+  }
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+  }
+  .legend {
+    flex-wrap: wrap;
+    margin-top: var(--spacing-2);
+  }
+  .calendarPlaceholder {
+    height: 500px;
+  }
+}
