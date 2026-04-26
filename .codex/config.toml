@@ -1,9 +1,0 @@
-model = "gpt-5.5"
-project_doc_fallback_filenames = ["AGENTS.md"]
-project_doc_max_bytes = 65536
-
-[profiles.default]
-model = "gpt-5.5"
-
-[profiles.fast]
-model = "gpt-5.4-mini"
