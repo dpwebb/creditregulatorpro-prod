@@ -118,7 +118,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const violations = useMemo(() => {
     if (!violationsData?.obligationTests) return [];
     // Sort by: 1) Severity (ERROR first), 2) Strategic priority, 3) Recency
-        return violationsData.obligationTests.sort((a, b) => {
+    return [...violationsData.obligationTests].sort((a, b) => {
       // Severity: ERROR < WARNING (ascending puts ERROR first)
       const severityOrder = { 'ERROR': 1, 'WARNING': 2, 'INFO': 3 };
       const sevA = severityOrder[a.severity as keyof typeof severityOrder] ?? 99;

@@ -84,7 +84,6 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
       };
 
       const result = await postRegister(requestData);
-      console.log("Registration successful for:", data.email);
       onLogin(result.user);
 
       if (result.claimedArtifactId) {
@@ -208,7 +207,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
                 onChange={(e) =>
                   form.setValues((prev) => ({
                     ...prev,
-                    termsAccepted: e.target.checked ? true : (undefined as unknown as true),
+                    termsAccepted: e.target.checked,
                   }))
                 }
               />
@@ -235,7 +234,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
                 onChange={(e) =>
                   form.setValues((prev) => ({
                     ...prev,
-                    dataConsentAccepted: e.target.checked ? true : (undefined as unknown as true),
+                    dataConsentAccepted: e.target.checked,
                   }))
                 }
               />
