@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import Joyride, { CallBackProps, STATUS, Step, Styles } from "react-joyride";
+import { Joyride, CallBackProps, STATUS, Step, Styles } from "react-joyride";
 import { useOnboarding } from "../helpers/useOnboarding";
 import { useAuth } from "../helpers/useAuth";
 import { 
