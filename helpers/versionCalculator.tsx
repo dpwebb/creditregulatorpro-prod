@@ -7,6 +7,8 @@
 
 export type SemVerLevel = 'MAJOR' | 'MINOR' | 'PATCH';
 
+const SEMVER_CORE_REGEX = /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+
 export const TRACKED_ENTITY_TYPES = [
   'SYSTEM',
   'BUREAU',
@@ -59,14 +61,14 @@ export function determineHighestLevel(operations: {entityType: string, actionTyp
 }
 
 export function calculateNextSemVer(currentVersion: string, highestLevel: SemVerLevel): string {
-  const parts = currentVersion.split(".");
-  let major = parseInt(parts[0], 10);
-  let minor = parseInt(parts[1], 10);
-  let patch = parseInt(parts[2], 10);
+  const match = currentVersion.trim().match(SEMVER_CORE_REGEX);
+  if (!match) {
+    throw new Error(`Invalid semantic version: "${currentVersion}"`);
+  }
 
-  if (isNaN(major)) major = 1;
-  if (isNaN(minor)) minor = 0;
-  if (isNaN(patch)) patch = 0;
+  const major = parseInt(match[1], 10);
+  const minor = parseInt(match[2], 10);
+  const patch = parseInt(match[3], 10);
 
   if (highestLevel === 'MAJOR') {
     return `${major + 1}.0.0`;
@@ -75,6 +77,10 @@ export function calculateNextSemVer(currentVersion: string, highestLevel: SemVer
   } else {
     return `${major}.${minor}.${patch + 1}`;
   }
+}
+
+export function bumpPatchVersion(currentVersion: string): string {
+  return calculateNextSemVer(currentVersion, "PATCH");
 }
 
 /**

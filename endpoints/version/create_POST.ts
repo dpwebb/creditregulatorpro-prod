@@ -5,6 +5,7 @@ import {
   TRACKED_ENTITY_TYPES,
   determineHighestLevel,
   calculateNextSemVer,
+  bumpPatchVersion,
   SemVerLevel,
 } from "../../helpers/versionCalculator";
 import { schema, OutputType } from "./create_POST.schema";
@@ -35,11 +36,7 @@ async function findAvailableVersion(candidate: string): Promise<{ version: strin
     }
 
     // Released or locked — bump patch
-    const parts = current.split(".");
-    const major = parseInt(parts[0], 10);
-    const minor = parseInt(parts[1], 10);
-    const patch = parseInt(parts[2], 10);
-    const next = `${major}.${minor}.${patch + 1}`;
+    const next = bumpPatchVersion(current);
     console.log(`Auto-versioning: version ${current} is taken (status=${existing.status}, locked=${existing.locked}), trying ${next}`);
     current = next;
   }

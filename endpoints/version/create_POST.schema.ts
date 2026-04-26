@@ -6,7 +6,11 @@ import { SoftwareVersion } from "../../helpers/schema";
 export const schema = z.object({
   codeLineCount: z.number().int().min(1).optional(),
   codename: z.string().optional(),
-  version: z.string().regex(/^\d+\.\d+\.\d+/).optional(),
+  version: z
+    .string()
+    .trim()
+    .regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/)
+    .optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
