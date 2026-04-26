@@ -31,3 +31,29 @@
 ## Browser/testing workflow
 - Use the normal browser for authenticated staging pages
 - Do not rely on the Codex in-app browser for login-protected flows
+
+## Live staging diagnostics
+
+This repo is the staging app at:
+
+/opt/creditregulatorpro-staging/app
+
+Codex may read staging logs and run diagnostics:
+
+- docker logs --tail=500 creditregulatorpro-staging
+- docker ps -a
+- curl -k -I https://staging.creditregulatorpro.com
+- npm run check
+- npm run build
+
+Allowed:
+- modify app source files in this repo
+- run install/check/build commands
+- suggest Docker or server commands
+
+Forbidden:
+- edit /opt/creditregulatorpro/app
+- edit .env or .env.*
+- modify production containers
+- modify Traefik or Postgres config
+- expose secrets in output
