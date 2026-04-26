@@ -44,6 +44,10 @@ export async function handle(request: Request) {
       .execute();
 
     const verifyUrl = `${getAppBaseUrl(request)}/verify-email?token=${token}`;
+    const appBaseUrl =
+      process.env.APP_BASE_URL?.replace(/\/+$/, "") ??
+      new URL(request.url).origin;
+    const verifyUrl = `${appBaseUrl}/verify-email?token=${token}`;
 
     const emailHtml = `
       <h1>Verify your email</h1>
