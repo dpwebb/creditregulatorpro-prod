@@ -40,10 +40,12 @@ If it's an Equifax report, the HTML MUST follow this structure:
 - Inquiries table: Date, Member Name, Phone, May Affect Scores`;
 
 type OpenAiResponse = {
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
+  output_text?: string;
+  output?: Array<{
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
   }>;
 };
 
@@ -78,7 +80,8 @@ function stripMarkdownFences(text: string): string {
 }
 
 /**
- * Sends PDF to OpenAI gpt-5-mini using native file format.
+ * Sends PDF to OpenAI Responses API using native file format.
+ * Tries OPENAI_FALLBACK_MODEL first (if set), then compatible defaults.
  */
 export async function extractHtmlWithOpenAI(base64Pdf: string): Promise<string | null> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -90,54 +93,70 @@ export async function extractHtmlWithOpenAI(base64Pdf: string): Promise<string |
   try {
     const cleanBase64 = cleanBase64Data(base64Pdf);
     const pdfDataUri = `data:application/pdf;base64,${cleanBase64}`;
+    const configuredModel = process.env.OPENAI_FALLBACK_MODEL?.trim();
+    const candidateModels = Array.from(
+      new Set(
+        [configuredModel, "gpt-4o-mini", "gpt-4.1-mini", "gpt-5-mini"].filter(
+          (value): value is string => Boolean(value)
+        )
+      )
+    );
 
-    console.log("[Fallback-OpenAI] Sending PDF to OpenAI gpt-5-mini...");
+    console.log(`[Fallback-OpenAI] Sending PDF to OpenAI with ${candidateModels.length} model candidate(s)...`);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-5-mini",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: EXTRACTION_PROMPT,
-              },
-              {
-                type: "file",
-                file: {
+    for (const model of candidateModels) {
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          input: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text: EXTRACTION_PROMPT,
+                },
+                {
+                  type: "input_file",
                   filename: "credit-report.pdf",
                   file_data: pdfDataUri,
                 },
-              },
-            ],
-          },
-        ],
-      }),
-    });
+              ],
+            },
+          ],
+        }),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Fallback-OpenAI] API Error: ${response.status} ${response.statusText}`, errorText);
-      return null;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `[Fallback-OpenAI] API Error (${model}): ${response.status} ${response.statusText}`,
+          errorText
+        );
+        continue;
+      }
+
+      const data = (await response.json()) as OpenAiResponse;
+      const content =
+        data.output_text ||
+        data.output?.flatMap((item) => item.content ?? []).find((part) => part.type === "output_text")?.text;
+
+      if (!content) {
+        console.error(`[Fallback-OpenAI] Received empty content from model ${model}.`);
+        continue;
+      }
+
+      console.log(`[Fallback-OpenAI] Successfully extracted HTML with ${model}.`);
+      return stripMarkdownFences(content);
     }
 
-    const data = (await response.json()) as OpenAiResponse;
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      console.error("[Fallback-OpenAI] Received empty content from OpenAI.");
-      return null;
-    }
-
-    console.log("[Fallback-OpenAI] Successfully extracted HTML.");
-    return stripMarkdownFences(content);
+    console.error("[Fallback-OpenAI] All model candidates failed.");
+    return null;
   } catch (error) {
     console.error("[Fallback-OpenAI] Unexpected error during extraction:", error instanceof Error ? error.message : String(error));
     return null;
@@ -148,9 +167,16 @@ export async function extractHtmlWithOpenAI(base64Pdf: string): Promise<string |
  * Sends PDF to Gemini gemini-2.5-flash using inlineData.
  */
 export async function extractHtmlWithGemini(base64Pdf: string): Promise<string | null> {
-  const apiKey = process.env.GOOGLE_GEMINI_SA_KEY;
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY?.trim() || process.env.GOOGLE_GEMINI_SA_KEY?.trim();
   if (!apiKey) {
-    console.error("[Fallback-Gemini] Missing GOOGLE_GEMINI_SA_KEY environment variable.");
+    console.error("[Fallback-Gemini] Missing GOOGLE_GEMINI_API_KEY / GOOGLE_GEMINI_SA_KEY environment variable.");
+    return null;
+  }
+
+  if (apiKey.startsWith("{") || apiKey.includes("\"type\": \"service_account\"")) {
+    console.error(
+      "[Fallback-Gemini] Gemini key appears to be a service account JSON payload. Use a plain API key string."
+    );
     return null;
   }
 
