@@ -27,13 +27,29 @@ export const AdminVersionCreateDialog = () => {
   const { data: summary, isLoading: isSummaryLoading } = useChangeSummary({ enabled: open });
   const { showSuccess, showError } = useToast();
 
+  const bumpPatch = (version: string): string => {
+    const match = version.trim().match(/^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/);
+    if (!match) return version;
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    const patch = Number(match[3]);
+    return `${major}.${minor}.${patch + 1}`;
+  };
+
   const handleCreate = async () => {
     if (!summary && !manualVersion) return;
     
     try {
+      const automaticFallbackVersion =
+        !showManualOverride &&
+        summary?.highestLevel === "none" &&
+        summary.lastReleasedVersion
+          ? bumpPatch(summary.lastReleasedVersion)
+          : undefined;
+
       await createMutation.mutateAsync({
         codename: codename || undefined,
-        version: showManualOverride && manualVersion ? manualVersion : undefined,
+        version: showManualOverride && manualVersion ? manualVersion : automaticFallbackVersion,
       });
       showSuccess("Version created successfully");
       setOpen(false);
@@ -45,8 +61,10 @@ export const AdminVersionCreateDialog = () => {
     }
   };
 
-  const hasChanges = summary && summary.highestLevel !== 'none';
-  const isCreateDisabled = createMutation.isPending || (!hasChanges && (!showManualOverride || !manualVersion));
+  const isCreateDisabled =
+    createMutation.isPending ||
+    !summary ||
+    (showManualOverride && !manualVersion);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -75,7 +93,7 @@ export const AdminVersionCreateDialog = () => {
             <div className={styles.noChanges}>Failed to load change summary.</div>
           ) : summary.highestLevel === 'none' ? (
             <div className={styles.noChanges}>
-              No changes detected since last release. Changes are automatically tracked when admin operations occur.
+              No changes detected since last release. Creating a version now will auto-bump the patch version unless you set a manual override.
             </div>
           ) : (
             <div className={styles.previewBox}>
