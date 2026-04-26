@@ -98,7 +98,9 @@ export async function handle(request: Request) {
     const fallbackResult = await extractHtmlWithFallbackChain(input.bytesBase64);
 
     if (fallbackResult === null) {
-      throw new Error("AI extraction failed. All extraction methods were unable to process the document.");
+      throw new Error(
+        "AI extraction is temporarily unavailable. Please verify Gemini API key configuration and OpenAI model access."
+      );
     }
 
     console.log(`[Anonymous Upload] AI extraction succeeded via ${fallbackResult.source}.`);
