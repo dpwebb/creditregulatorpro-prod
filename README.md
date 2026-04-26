@@ -94,3 +94,22 @@ pnpm install
 pnpm vite build
 pnpm tsx server.ts
 ```
+
+## Staging service prerequisites check
+
+When diagnosing staging on a VPS, run:
+
+```bash
+npm run check:staging-services
+```
+
+This verifies:
+- `docker` is installed and daemon is reachable (`docker ps -a`)
+- `curl` is installed
+- `https://staging.creditregulatorpro.com` is reachable (proxied and direct attempts)
+
+If Docker is installed but unavailable, enable it with:
+
+```bash
+sudo systemctl enable --now docker
+```
