@@ -4,10 +4,13 @@ import { checkRateLimit } from "../../helpers/rateLimiter";
 import { db } from "../../helpers/db";
 import { sendGridEmail } from "../../helpers/sendGridEmail";
 import crypto from "crypto";
+import { getAppBaseUrl } from "../../helpers/getAppBaseUrl";
+import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
 
 
 export async function handle(request: Request) {
   try {
+    await assertOriginAllowed(request);
     const json = JSON.parse(await request.text());
     const result = schema.parse(json);
 
@@ -37,7 +40,7 @@ export async function handle(request: Request) {
         })
         .execute();
 
-      const resetLink = `https://www.creditregulatorpro.com/reset-password?token=${token}`;
+      const resetLink = `${getAppBaseUrl(request)}/reset-password?token=${token}`;
       
       const html = `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

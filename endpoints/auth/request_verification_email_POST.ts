@@ -5,9 +5,13 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { randomUUID } from "crypto";
 import { sendGridEmail } from "../../helpers/sendGridEmail";
+import { getAppBaseUrl } from "../../helpers/getAppBaseUrl";
+import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
+import { logger } from "../../helpers/logger";
 
 export async function handle(request: Request) {
   try {
+    await assertOriginAllowed(request);
     const { user } = await getServerUserSession(request);
 
     // Rate limiting: 3 requests per hour
@@ -39,7 +43,7 @@ export async function handle(request: Request) {
       })
       .execute();
 
-        const verifyUrl = `https://www.creditregulatorpro.com/verify-email?token=${token}`;
+    const verifyUrl = `${getAppBaseUrl(request)}/verify-email?token=${token}`;
 
     const emailHtml = `
       <h1>Verify your email</h1>
@@ -54,7 +58,7 @@ export async function handle(request: Request) {
     });
 
     if (!emailResult.success) {
-      console.error("Failed to send verification email:", emailResult.error);
+      logger.error("Failed to send verification email", { userId: user.id });
       return new Response(
         JSON.stringify({ error: "Failed to send verification email" }),
         { status: 500 }

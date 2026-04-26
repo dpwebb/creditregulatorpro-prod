@@ -11,8 +11,8 @@ import {
 } from "../../helpers/getSetServerSession";
 import { User } from "../../helpers/User";
 import { logLogin, logLoginFailed } from "../../helpers/auditLogger";
-import { validateOrigin } from "../../helpers/domainGuard";
-import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
+import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
+import { logger } from "../../helpers/logger";
 
 // Configuration constants
 const RATE_LIMIT_CONFIG = {
@@ -40,10 +40,7 @@ function safeToDate(
 
 export async function handle(request: Request) {
   try {
-    const guardResult = await validateOrigin(request);
-    if (!guardResult.valid && guardResult.mode === "enforce") {
-      throw new OriginNotAllowedError();
-    }
+    await assertOriginAllowed(request);
 
     const json = await request.json();
     const { email, password } = schema.parse(json);
@@ -211,7 +208,7 @@ export async function handle(request: Request) {
         .executeTakeFirst();
 
       if (!existingUserAccount) {
-        console.log("Backfilling userAccount for user:", user.id);
+        logger.info("Backfilling userAccount for password login", { userId: user.id });
         await trx
           .insertInto("userAccount")
           .values({

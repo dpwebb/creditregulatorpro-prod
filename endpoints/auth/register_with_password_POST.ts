@@ -10,15 +10,13 @@ import { generatePasswordHash } from "../../helpers/generatePasswordHash";
 import { sendGridEmail } from "../../helpers/sendGridEmail";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { getSubscriptionDefaults } from "../../helpers/getSubscriptionDefaults";
-import { validateOrigin } from "../../helpers/domainGuard";
-import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
+import { getAppBaseUrl } from "../../helpers/getAppBaseUrl";
+import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
+import { logger } from "../../helpers/logger";
 
 export async function handle(request: Request) {
   try {
-    const guardResult = await validateOrigin(request);
-    if (!guardResult.valid && guardResult.mode === "enforce") {
-      throw new OriginNotAllowedError();
-    }
+    await assertOriginAllowed(request);
 
     const json = await request.json();
     const { email, password, displayName, legalNameSignature, tempArtifactId, claimToken } = schema.parse(json);
@@ -81,7 +79,11 @@ export async function handle(request: Request) {
     // Determine subscription parameters based on production_mode system setting
     const { plan: subscriptionPlan, status: subscriptionStatus, trialStart, trialEnd } =
       await getSubscriptionDefaults(now);
-    console.log(`Registration: subscriptionPlan=${subscriptionPlan}, subscriptionStatus=${subscriptionStatus}, trialEnd=${trialEnd.toISOString()}`);
+    logger.info("Registration defaults resolved", {
+      subscriptionPlan,
+      subscriptionStatus,
+      trialEnd: trialEnd.toISOString(),
+    });
 
     // Create new user
     const newUser = await db.transaction().execute(async (trx) => {
@@ -213,7 +215,10 @@ export async function handle(request: Request) {
               .execute();
 
             claimedArtifactId = tempArtifactId;
-            console.log(`Claim-after-signup: artifact ${tempArtifactId} claimed by new user ${newUser.id}`);
+            logger.info("Claim-after-signup succeeded", {
+              artifactId: tempArtifactId,
+              userId: newUser.id,
+            });
           }
         }
       } catch (claimError) {
@@ -267,7 +272,7 @@ export async function handle(request: Request) {
         })
         .execute();
 
-      const verifyUrl = `https://www.creditregulatorpro.com/verify-email?token=${verificationToken}`;
+      const verifyUrl = `${getAppBaseUrl(request)}/verify-email?token=${verificationToken}`;
 
       const emailHtml = `
         <h1>Verify your email</h1>
@@ -287,9 +292,9 @@ export async function handle(request: Request) {
           emailResult.error
         );
       } else {
-        console.log(
-          `Post-registration verification email sent to ${newUser.email}`
-        );
+        logger.info("Post-registration verification email sent", {
+          userId: newUser.id,
+        });
       }
     } catch (emailError) {
       console.error(
