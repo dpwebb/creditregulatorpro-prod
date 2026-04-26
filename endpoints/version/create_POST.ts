@@ -85,10 +85,11 @@ async function resolveVersion(manualVersion: string | undefined): Promise<string
   const highestLevel = determineHighestLevel(operations);
 
   if (highestLevel === "none") {
-    throw new BusinessRuleError(
-      "No changes logged since the last release. Log at least one change before creating a new version, or provide a manual version override.",
-      400
+    const fallbackVersion = bumpPatchVersion(lastVersionString);
+    console.log(
+      `Auto-versioning fallback: no tracked audit-log changes found since ${cutoffDate.toISOString()}, bumping patch ${lastVersionString} -> ${fallbackVersion}`
     );
+    return fallbackVersion;
   }
 
   const nextVersion = calculateNextSemVer(lastVersionString, highestLevel as SemVerLevel);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
 
@@ -44,7 +44,6 @@ import { calculateTerminalLabel, TerminalLabelPhase } from "../helpers/terminalL
 import { usePacketReadiness } from "../helpers/usePacketReadiness";
 import { ProfileCompletionDialog } from "../components/ProfileCompletionDialog";
 import { DeliveryWizard } from "../components/DeliveryWizard";
-import { PacketViewer } from "../components/PacketViewer";
 import { SourceReportViewer } from "../components/SourceReportViewer";
 import { useTradelinePackets } from "../helpers/packetQueries";
 import { CreatePacketDialog } from "../components/CreatePacketDialog";
@@ -55,6 +54,8 @@ import { ComplianceRescanButton } from "../components/ComplianceRescanButton";
 import { RelatedCollectionAccounts } from "../components/RelatedCollectionAccounts";
 import { FundamentalChallenges } from "../components/FundamentalChallenges";
 import styles from "./tradelines.$id.module.css";
+
+const PacketViewer = React.lazy(() => import("../components/PacketViewer").then((m) => ({ default: m.PacketViewer })));
 
 export default function TradelineDetailPage() {
   const { isAdmin } = useAuth();
@@ -400,21 +401,23 @@ export default function TradelineDetailPage() {
         }}
       />
 
-      <PacketViewer 
-        packetId={viewingPacketId}
-        previewData={previewPacketData}
-        open={!!viewingPacketId || !!previewPacketData}
-        onOpenChange={(open) => {
-          if (!open) {
-            setViewingPacketId(null);
+      <Suspense fallback={<Skeleton className="h-24 w-full" />}>
+        <PacketViewer 
+          packetId={viewingPacketId}
+          previewData={previewPacketData}
+          open={!!viewingPacketId || !!previewPacketData}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewingPacketId(null);
+              setPreviewPacketData(null);
+            }
+          }}
+          onSaved={(newId) => {
             setPreviewPacketData(null);
-          }
-        }}
-        onSaved={(newId) => {
-          setPreviewPacketData(null);
-          setViewingPacketId(newId);
-        }}
-      />
+            setViewingPacketId(newId);
+          }}
+        />
+      </Suspense>
 
       <SourceReportViewer
         reportArtifactId={tradeline.reportArtifactId ?? null}
