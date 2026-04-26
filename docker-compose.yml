@@ -1,20 +1,20 @@
 services:
-  creditregulatorpro:
+  creditregulatorpro-staging:
     build:
       context: .
       dockerfile: Dockerfile
-    image: app-creditregulatorpro
-    container_name: creditregulatorpro-app
+    image: app-creditregulatorpro-staging
+    container_name: creditregulatorpro-staging
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.staging
     extra_hosts:
       - "host.docker.internal:host-gateway"
     network_mode: host
     labels:
       - traefik.enable=true
-      - traefik.http.routers.creditregulatorpro.rule=Host(`creditregulatorpro.com`)
-      - traefik.http.routers.creditregulatorpro.entrypoints=websecure
-      - traefik.http.routers.creditregulatorpro.tls=true
-      - traefik.http.routers.creditregulatorpro.tls.certresolver=letsencrypt
-      - traefik.http.services.creditregulatorpro.loadbalancer.server.port=3333
+      - traefik.http.routers.creditregulatorpro-staging.rule=Host(`staging.creditregulatorpro.com`)
+      - traefik.http.routers.creditregulatorpro-staging.entrypoints=websecure
+      - traefik.http.routers.creditregulatorpro-staging.tls=true
+      - traefik.http.routers.creditregulatorpro-staging.tls.certresolver=letsencrypt
+      - traefik.http.services.creditregulatorpro-staging.loadbalancer.server.port=3334
