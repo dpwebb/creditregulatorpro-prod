@@ -39,7 +39,7 @@ export function LandingHero() {
               </Button>
             </div>
             <p className={styles.subtext}>
-              No charge for 7 days. Cancel anytime. Staging test is live.
+              No charge for 7 days. Cancel anytime.
             </p>
             <Link to="/try-upload?guide=true" className={styles.guideLink}>
               Don't have your credit report yet? We'll show you how to get it free →
