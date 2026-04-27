@@ -1,0 +1,61 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.list {
+  padding-left: var(--spacing-5);
+  margin-bottom: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.list li {
+  margin-bottom: var(--spacing-2);
+}
+
+.codeList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.codeList li {
+  margin-bottom: var(--spacing-2);
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+}
+
+.codeList code {
+  background-color: var(--muted);
+  padding: 0.2em 0.4em;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-monospace);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-right: var(--spacing-2);
+}
+
+.actionButton {
+  margin-top: var(--spacing-2);
+}
+
+.driftExample {
+  background-color: var(--muted);
+  border-left: 3px solid var(--warning);
+  padding: var(--spacing-4);
+  margin-top: var(--spacing-4);
+  border-radius: var(--radius-sm);
+}
+
+.driftExample h4 {
+  margin: 0 0 var(--spacing-2) 0;
+  color: var(--warning);
+  font-size: 0.95rem;
+}
+
+.driftExample p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+}

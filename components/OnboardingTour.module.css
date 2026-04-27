@@ -1,0 +1,33 @@
+.tourWrapper {
+  /* Ensure the tour container doesn't interfere with layout */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.stepTitleWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-2);
+}
+
+.stepIcon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.stepSubtitle {
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: var(--spacing-2);
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}

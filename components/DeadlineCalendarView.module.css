@@ -1,0 +1,161 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  height: 100%;
+}
+
+.calendarWrapper {
+  flex: 1;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Override react-big-calendar styles for dark mode/glassmorphism */
+.calendarWrapper :global(.rbc-calendar) {
+  font-family: var(--font-family-base);
+  color: var(--foreground);
+}
+
+.calendarWrapper :global(.rbc-header) {
+  padding: var(--spacing-2);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendarWrapper :global(.rbc-month-view), 
+.calendarWrapper :global(.rbc-time-view), 
+.calendarWrapper :global(.rbc-agenda-view) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.calendarWrapper :global(.rbc-day-bg + .rbc-day-bg) {
+  border-left: 1px solid var(--border);
+}
+
+.calendarWrapper :global(.rbc-month-row + .rbc-month-row) {
+  border-top: 1px solid var(--border);
+}
+
+.calendarWrapper :global(.rbc-off-range-bg) {
+  background: var(--muted);
+  opacity: 0.3;
+}
+
+.calendarWrapper :global(.rbc-today) {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.calendarWrapper :global(.rbc-toolbar button) {
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+.calendarWrapper :global(.rbc-toolbar button:active), 
+.calendarWrapper :global(.rbc-toolbar button.rbc-active) {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Event Styles */
+.eventNormal {
+  background-color: var(--success) !important;
+  border: 1px solid color-mix(in srgb, var(--success) 50%, black) !important;
+  color: var(--success-foreground) !important;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.eventWarning {
+  background-color: var(--warning) !important;
+  border: 1px solid color-mix(in srgb, var(--warning) 50%, black) !important;
+  color: var(--warning-foreground) !important;
+}
+
+.eventUrgent {
+  background-color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, black) !important;
+  color: var(--accent-foreground) !important;
+}
+
+.eventOverdue {
+  background-color: var(--error) !important;
+  border: 1px solid color-mix(in srgb, var(--error) 50%, black) !important;
+  color: var(--error-foreground) !important;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+.legend {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: var(--spacing-2);
+  background: var(--muted);
+  border-radius: var(--radius);
+  width: fit-content;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dotNormal { background: var(--success); }
+.dotWarning { background: var(--warning); }
+.dotUrgent { background: var(--accent); }
+.dotOverdue { background: var(--error); }
+
+.skeletonCalendar {
+  height: 600px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.dialogTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.iconOverdue {
+  color: var(--error);
+}
+
+.eventDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin: var(--spacing-4) 0;
+  padding: var(--spacing-4);
+  background: var(--muted);
+  border-radius: var(--radius);
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.9rem;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--muted-foreground);
+}

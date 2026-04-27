@@ -1,0 +1,52 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.highlightNotice {
+  background-color: var(--info);
+  color: var(--info-foreground);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: 0.8rem;
+  text-align: center;
+  font-weight: 500;
+  z-index: 10;
+}
+
+.viewerContainer {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  overflow: hidden;
+}
+
+.viewerContainer :global(.rpv-core__viewer) {
+  height: 100%;
+}
+
+.loadingState,
+.errorState,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.errorState {
+  color: var(--error);
+}
+
+.pdfSkeleton {
+  width: 100%;
+  height: 100%;
+}

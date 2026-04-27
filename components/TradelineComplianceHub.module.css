@@ -1,0 +1,687 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  width: 100%;
+}
+
+/* Province warning banner */
+.provinceWarningBanner {
+  background-color: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4) 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.provinceWarningIcon {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.provinceWarningTitle {
+  margin: 0 0 var(--spacing-1) 0;
+  font-weight: 700;
+  color: var(--warning);
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.provinceWarningButton {
+  flex-shrink: 0;
+  background-color: var(--warning);
+  color: var(--warning-foreground);
+}
+
+.provinceWarningButton:hover {
+  background-color: color-mix(in srgb, var(--warning) 80%, black);
+}
+
+.primaryViolationBanner {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4) 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.bannerContent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.bannerIcon {
+  color: var(--error);
+  flex-shrink: 0;
+}
+
+.bannerTitle {
+  margin: 0 0 var(--spacing-1) 0;
+  font-weight: 700;
+  color: var(--error);
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.bannerText {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.9375rem;
+}
+
+.bannerButton {
+  flex-shrink: 0;
+  background-color: var(--error);
+  color: var(--error-foreground);
+}
+
+.bannerButton:hover {
+  background-color: color-mix(in srgb, var(--error) 80%, black);
+}
+
+.primaryViolationBannerSent {
+  background-color: color-mix(in srgb, var(--success) 10%, transparent);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4) 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.bannerIconSent {
+  color: var(--success);
+  flex-shrink: 0;
+}
+
+.bannerTitleSent {
+  margin: 0 0 var(--spacing-1) 0;
+  font-weight: 700;
+  color: var(--success);
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.bannerButtonSent {
+  flex-shrink: 0;
+  background-color: var(--success);
+  color: var(--success-foreground);
+}
+
+.bannerButtonSent:hover {
+  background-color: color-mix(in srgb, var(--success) 80%, black);
+}
+
+/* Summary Bar */
+.summaryBar {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.summaryItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+}
+
+.summaryIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+}
+
+.summaryIconWrapper[data-type="issues"] {
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error);
+}
+
+.summaryIconWrapper[data-type="challenges"] {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+
+.summaryIconWrapper[data-type="responses"] {
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+}
+
+.summaryText {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.summaryValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-family-monospace);
+  color: var(--foreground);
+  line-height: 1.2;
+}
+
+.summaryDivider {
+  width: 1px;
+  height: 40px;
+  background: var(--border);
+}
+
+.contentSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-2);
+}
+
+.sectionTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-1) 0;
+}
+
+.sectionDescription {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.federalBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  background-color: var(--muted);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.federalBannerIcon {
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.federalBannerText {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.federalBannerText strong {
+  color: var(--foreground);
+}
+
+.approachingCard {
+  background: color-mix(in srgb, var(--warning) 5%, var(--card));
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.approachingHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.approachingIcon {
+  color: var(--warning);
+}
+
+.approachingTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--warning) 70%, black);
+}
+
+.approachingContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.approachingText {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+.approachingProgressContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  background: var(--surface);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.approachingProgressLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.approachingProgress {
+  --progress-color: var(--warning);
+  height: 0.75rem;
+}
+
+.approachingAdvice {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--warning);
+}
+
+.violationList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* Empty States */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-12);
+  background: var(--muted);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+.successIcon {
+  color: var(--success);
+  margin-bottom: var(--spacing-4);
+  opacity: 0.8;
+}
+
+.emptyIcon {
+  color: var(--muted-foreground);
+  margin-bottom: var(--spacing-4);
+  opacity: 0.5;
+}
+
+.emptyState h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.dismissedTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--animation-duration-fast) ease;
+}
+
+.dismissedTrigger:hover {
+  background: color-mix(in srgb, var(--surface) 80%, var(--background));
+}
+
+.dismissedTrigger svg {
+  transition: transform var(--animation-duration-fast) ease;
+}
+
+.dismissedTrigger[data-state="open"] svg {
+  transform: rotate(180deg);
+}
+
+.dismissedContent {
+  margin-top: var(--spacing-4);
+}
+
+/* Skeletons */
+.summarySkeleton {
+  height: 80px;
+  width: 100%;
+}
+
+.contentSkeleton {
+  height: 400px;
+  width: 100%;
+}
+
+/* Non-Admin Layout */
+.nonAdminViolations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.fightCard {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.fightCard::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.fightCard[data-status="none"]::before {
+  background-color: var(--error);
+}
+
+.fightCard[data-status="created"]::before {
+  background-color: var(--primary);
+}
+
+.fightCard[data-status="sent"]::before {
+  background-color: var(--success);
+}
+
+.fightCard[data-status="linked"]::before {
+  background-color: var(--info);
+}
+
+.fightCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.fightCardHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.fightCard[data-status="none"] .fightCardIcon {
+  color: var(--error);
+}
+.fightCard[data-status="created"] .fightCardIcon {
+  color: var(--primary);
+}
+.fightCard[data-status="sent"] .fightCardIcon {
+  color: var(--success);
+}
+.fightCard[data-status="linked"] .fightCardIcon {
+  color: var(--info);
+}
+
+.fightCardTitle {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.entityBadgeOutline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.entityBadgeOutlineSmall {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+.fightCardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.fightCardExplanation {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+.fightCardFooter {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-2);
+}
+
+.otherIssuesSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.otherIssuesHeader {
+  margin: 0 0 var(--spacing-1) 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.simpleViolationList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.simpleViolationItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.simpleViolationItem::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.simpleViolationItem[data-status="sent"]::before {
+  background-color: var(--success);
+}
+.simpleViolationItem[data-status="linked"]::before {
+  background-color: var(--info);
+}
+.simpleViolationItem[data-status="none"][data-severity="ERROR"]::before {
+  background-color: var(--error);
+}
+.simpleViolationItem[data-status="none"][data-severity="WARNING"]::before {
+  background-color: var(--warning);
+}
+.simpleViolationItem[data-status="none"][data-severity="INFO"]::before {
+  background-color: var(--info);
+}
+
+.simpleViolationInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.simpleViolationHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.simpleViolationLabel {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--foreground);
+}
+
+.simpleViolationExplanation {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  word-break: break-word;
+}
+
+.linkedNoticeText {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+  margin: 0;
+}
+
+.linkedNoticeTextSmall {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+  text-align: right;
+}
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .provinceWarningBanner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .provinceWarningButton {
+    width: 100%;
+  }
+
+  .primaryViolationBanner,
+  .primaryViolationBannerSent {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .bannerButton,
+  .bannerButtonSent {
+    width: 100%;
+  }
+
+  .summaryBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-4);
+  }
+
+  .summaryDivider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .summaryItem {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .fightCardFooter button {
+    width: 100%;
+  }
+
+  .simpleViolationItem {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+  .simpleViolationItem button {
+    width: 100%;
+  }
+
+  .simpleViolationInfo {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .approachingProgressLabels {
+    flex-direction: column;
+    gap: var(--spacing-1);
+    align-items: flex-start;
+  }
+}

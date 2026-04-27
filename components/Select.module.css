@@ -1,0 +1,179 @@
+@layer base {
+  /* Trigger styling matching Input */
+  .selectTrigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-family-base);
+    font-size: 0.9375rem;
+    height: 2.75rem;
+    line-height: 1.5;
+    color: var(--foreground);
+    
+    background-color: var(--input, rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--spacing-2) var(--spacing-3);
+    
+    transition:
+      border-color var(--animation-duration-normal) ease,
+      background-color var(--animation-duration-normal) ease,
+      box-shadow var(--animation-duration-normal) ease;
+    
+    outline: none;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .selectTrigger:hover {
+    border-color: color-mix(in srgb, var(--border), var(--foreground) 10%);
+    background-color: color-mix(in srgb, var(--input, rgba(255, 255, 255, 0.05)), var(--foreground) 2%);
+  }
+
+  .selectTrigger:focus {
+    border-color: var(--primary);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-focus);
+  }
+
+  .selectTrigger[data-placeholder] {
+    color: var(--muted-foreground);
+    opacity: 0.7;
+  }
+
+  .selectTrigger[data-disabled] {
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+  }
+
+  .selectIcon {
+    height: 1rem;
+    width: 1rem;
+    color: var(--muted-foreground);
+    margin-left: var(--spacing-2);
+    opacity: 0.7;
+    transition: transform var(--animation-duration-normal) ease;
+  }
+
+  .selectTrigger[data-state="open"] .selectIcon {
+    transform: rotate(180deg);
+    opacity: 1;
+  }
+
+  /* Content - Dropdown */
+  .selectContent {
+    z-index: var(--z-overlay);
+    max-height: var(--radix-select-content-available-height);
+    min-width: 8rem; /* Smaller min-width allows more flexible usage */
+    max-width: 24rem;
+    overflow: hidden;
+    
+    background-color: var(--popup);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    
+    color: var(--popup-foreground);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    
+    animation: scaleIn var(--animation-duration-normal) var(--animation-easing);
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .selectViewport {
+    padding: var(--spacing-1);
+  }
+
+  .scrollButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--spacing-6);
+    background-color: transparent;
+    color: var(--muted-foreground);
+    cursor: default;
+  }
+
+  .scrollIcon {
+    height: 1rem;
+    width: 1rem;
+  }
+
+  .selectLabel {
+    padding: var(--spacing-2) var(--spacing-2);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+  }
+
+  .selectItem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-2) var(--spacing-2);
+    padding-left: var(--spacing-8); /* Space for checkmark */
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    border-radius: var(--radius-sm);
+    color: var(--foreground);
+    user-select: none;
+    outline: none;
+    cursor: pointer;
+    transition: all var(--animation-duration-fast) ease;
+  }
+
+  /* Modern hover style - soft background instead of solid primary */
+  .selectItem:hover,
+  .selectItem:focus-visible {
+    background-color: var(--muted);
+    color: var(--foreground);
+  }
+
+  /* Selected item style can be differentiated if needed, but checkmark does the job */
+
+  .selectItem[data-disabled] {
+    color: var(--muted-foreground);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .selectItemIndicator {
+    position: absolute;
+    left: var(--spacing-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .checkIcon {
+    height: 1rem;
+    width: 1rem;
+    color: var(--primary);
+  }
+
+  .selectSeparator {
+    height: 1px;
+    background-color: var(--border);
+    margin: var(--spacing-1) 0;
+  }
+}

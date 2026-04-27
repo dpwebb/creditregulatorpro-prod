@@ -1,0 +1,41 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding-top: var(--spacing-2);
+}
+
+.formRow {
+  display: flex;
+  gap: var(--spacing-4);
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .formRow {
+    flex-direction: row;
+  }
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.inputWithIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.hashInput {
+  padding-left: 32px;
+  font-family: var(--font-family-monospace);
+  font-size: 0.8rem;
+}

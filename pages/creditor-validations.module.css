@@ -1,0 +1,160 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 640px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.statCard {
+  pointer-events: none; /* Make non-clickable as they are summary stats */
+}
+
+.infoPanel {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: 1.25rem;
+  background-color: color-mix(in srgb, var(--info) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--info) 15%, transparent);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  align-items: flex-start;
+}
+
+.infoPanel h4 {
+  font-family: var(--font-family-heading);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-2) 0;
+  font-size: 1rem;
+  color: var(--info-active);
+}
+
+.infoPanel p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.infoIcon {
+  color: var(--info);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.bureauGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.bureauGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.bureauHeading {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+  padding-bottom: var(--spacing-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.tradelineGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .tradelineGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .tradelineGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.cardSkeleton {
+  height: 240px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-12);
+  background-color: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.emptyStateIcon {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+  margin-bottom: var(--spacing-4);
+}
+
+.emptyState h3 {
+  font-family: var(--font-family-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--spacing-2) 0;
+  color: var(--foreground);
+}
+
+.emptyState p {
+  color: var(--muted-foreground);
+  margin: 0;
+  max-width: 400px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

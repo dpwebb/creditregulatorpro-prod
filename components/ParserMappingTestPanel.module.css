@@ -1,0 +1,166 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  width: 100%;
+}
+
+.inputSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background: var(--card);
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.htmlTextarea {
+  min-height: 200px;
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  background-color: color-mix(in srgb, var(--input) 50%, black);
+}
+
+.resultsSection {
+  min-height: 400px;
+}
+
+.loadingGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+}
+
+.loadingCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.skeletonTitle {
+  height: 2rem;
+  width: 150px;
+}
+
+.skeletonBlock {
+  height: 400px;
+  width: 100%;
+  border-radius: var(--radius);
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.resultsContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4);
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.bureauBadge {
+  font-size: 0.9375rem;
+  padding: var(--spacing-2) var(--spacing-4);
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.statLabel {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.statValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.diffGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+}
+
+.diffColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.columnHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) 1.25rem;
+  background: color-mix(in srgb, var(--surface) 80%, black);
+  border-bottom: 1px solid var(--border);
+}
+
+.columnHeader h4 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.jsonViewer {
+  margin: 0;
+  padding: 1.25rem;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .diffGrid, .loadingGrid {
+    grid-template-columns: 1fr;
+  }
+}

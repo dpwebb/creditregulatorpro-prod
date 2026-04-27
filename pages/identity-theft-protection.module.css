@@ -1,0 +1,66 @@
+.pageContainer {
+  padding: var(--spacing-6);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.stats {
+  margin-bottom: var(--spacing-2);
+}
+
+.helpSection {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-6);
+  margin-top: var(--spacing-4);
+}
+
+.helpHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+  color: var(--foreground);
+}
+
+.helpHeader h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.helpIcon {
+  color: var(--primary);
+}
+
+.accordionContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.accordion {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: var(--spacing-4);
+  }
+  .helpSection {
+    padding: var(--spacing-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .helpHeader h2 {
+    font-size: 1.125rem;
+  }
+}

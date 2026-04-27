@@ -1,0 +1,556 @@
+/* Responsive visibility classes */
+@media (max-width: 767px) {
+  .desktopOnly {
+    display: none;
+  }
+}
+@media (min-width: 768px) {
+  .mobileOnly {
+    display: none !important;
+  }
+}
+@media (max-width: 1279px) {
+  .hideOnMedium {
+    display: none !important;
+  }
+}
+
+/* Container styling - merging header and table */
+.container {
+  /* This is applied to TableContainer */
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  overflow-x: auto; /* Allow horizontal scroll */
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Resetting inherited styles */
+  position: relative;
+}
+
+/* Header Styling */
+.sortableHead {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s;
+  background-color: var(--surface);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  padding-top: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.sortableHead:hover {
+  color: var(--primary);
+  background-color: color-mix(in srgb, var(--surface) 95%, var(--foreground));
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.headerRight {
+  justify-content: flex-end;
+}
+
+.sortIcon {
+  color: var(--primary);
+  opacity: 0;
+  transform: translateY(2px);
+  transition: all 0.2s ease;
+}
+
+.sortableHead:hover .sortIcon {
+  opacity: 0.5;
+  transform: translateY(0);
+}
+
+/* Row Styling */
+.row {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+
+/* Zebra striping - subtle */
+.row:nth-child(even) {
+  background-color: color-mix(in srgb, var(--foreground) 2%, transparent);
+}
+
+.row:hover {
+  background-color: color-mix(in srgb, var(--foreground) 4%, var(--surface)) !important;
+  transform: scale(1.001) translateY(-1px);
+  box-shadow: 
+    0 4px 12px -2px rgba(0, 0, 0, 0.2),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  position: relative;
+  border-bottom-color: transparent;
+}
+
+/* Custom Table Adjustments for density */
+.customTable th,
+.customTable td {
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+
+/* Ensure table has minimum width to prevent squeezing */
+.container table {
+  min-width: 700px;
+}
+
+/* Cell Styles */
+.accountCell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.iconWrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 80%, var(--border));
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.row:hover .iconWrapper {
+  color: var(--primary);
+  background: var(--surface);
+  border-color: color-mix(in srgb, var(--primary) 20%, var(--border));
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.accountInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.creditorLink {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  color: var(--primary);
+  text-decoration: none;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.creditorLink:hover .creditorName {
+  text-decoration: underline;
+}
+
+.creditorLink:hover .creditorIcon {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.creditorName {
+  font-weight: 600;
+  font-size: 1rem;
+  text-transform: uppercase;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.creditorIcon {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.compactCell {
+  white-space: nowrap;
+}
+
+.userEmail {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-family-base);
+}
+
+.typeTooltipContent p {
+  margin: 0;
+  margin-bottom: var(--spacing-1);
+}
+
+.typeTooltipContent p:last-child {
+  margin-bottom: 0;
+}
+
+.noRole {
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  opacity: 0.5;
+}
+
+.typeText {
+  color: var(--muted-foreground);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.statusCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  align-items: flex-start;
+}
+
+.statusBadge {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow);
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  padding: var(--spacing-1) var(--spacing-2);
+}
+
+.progressStats {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-top: var(--spacing-1);
+}
+
+.noProblemsText {
+  font-size: 0.75rem;
+  color: var(--success);
+  margin-top: var(--spacing-1);
+  font-weight: 500;
+}
+
+.deadlineLine, .removalLine {
+  font-size: 0.75rem;
+  margin-top: var(--spacing-1);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.deadlineLine {
+  color: var(--warning);
+}
+
+.removalLine {
+  color: var(--info);
+  background-color: color-mix(in srgb, var(--info) 10%, transparent);
+  padding: 2px var(--spacing-1);
+  border-radius: var(--radius-sm);
+  width: fit-content;
+}
+
+.mobileStatsRow {
+  display: flex;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-1);
+}
+
+.mobileStatItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.mobileStatLabel {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.statusNotDisputed {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border-color: var(--border);
+}
+
+.statusPending {
+  background-color: transparent;
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.statusChallenged {
+  background-color: color-mix(in srgb, var(--info) 15%, transparent);
+  color: var(--info);
+  border-color: color-mix(in srgb, var(--info) 30%, transparent);
+}
+
+.statusNoResponse {
+  background-color: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.statusInsufficient {
+  background-color: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 30%, transparent);
+}
+
+.statusExhausted {
+  background-color: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.statusViolationPending {
+  background-color: color-mix(in srgb, hsl(25 90% 50%) 15%, transparent);
+  color: hsl(25 90% 60%);
+  border-color: color-mix(in srgb, hsl(25 90% 50%) 35%, transparent);
+}
+
+.balanceText {
+  font-family: var(--font-family-monospace);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--foreground);
+  font-feature-settings: "tnum";
+}
+
+.bureauCell,
+.dateCell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  white-space: nowrap;
+}
+
+.cellIcon {
+  opacity: 0.5;
+}
+
+.crossBureauBadge {
+  font-size: 0.65rem;
+  padding: 0 var(--spacing-2);
+  height: 1.25rem;
+  cursor: help;
+}
+
+.bothBureausBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  padding: 0 var(--spacing-3);
+  height: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning) 25%, var(--card)) 0%, color-mix(in srgb, var(--info) 25%, var(--card)) 100%);
+  color: var(--foreground);
+  border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
+  transition: all var(--animation-duration-fast) ease;
+}
+
+.bothBureausBadge:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--warning) 35%, var(--card)) 0%, color-mix(in srgb, var(--info) 35%, var(--card)) 100%);
+  transform: translateY(-1px);
+}
+
+.groupHeaderRow {
+  background-color: color-mix(in srgb, var(--surface) 50%, var(--background));
+}
+
+.groupHeaderCell {
+  padding: var(--spacing-3) var(--spacing-4) !important;
+}
+
+.groupHeaderContent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.groupCount {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.mobileGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) 0;
+  margin-top: var(--spacing-2);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-20) var(--spacing-4);
+  color: var(--muted-foreground);
+  text-align: center;
+  gap: 1.25rem;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--surface) 80%, transparent), transparent);
+}
+
+.emptyState svg {
+  color: var(--muted-foreground);
+  opacity: 0.2;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+}
+
+.emptyState h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.emptyState p {
+  font-size: 0.9375rem;
+  margin: 0 0 var(--spacing-2) 0;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.emptyStateTooltip {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+/* Skeletons */
+.skeletonCell {
+  height: 1.5rem;
+  width: 80%;
+  border-radius: var(--radius-sm);
+  opacity: 0.6;
+}
+
+/* Mobile List Layout */
+.mobileListContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) 0;
+}
+
+.mobileCardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.mobileCard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobileCard:hover, .mobileCard:active {
+  background-color: color-mix(in srgb, var(--foreground) 4%, var(--surface));
+  transform: scale(1.01) translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 20%, var(--border));
+  box-shadow: 
+    0 4px 12px -2px rgba(0, 0, 0, 0.2),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+.mobileCard:hover .creditorName {
+  text-decoration: underline;
+}
+
+.mobileCard:hover .creditorIcon {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.mobileCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.mobileCardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.mobileCardMiddle {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  background: color-mix(in srgb, var(--muted) 50%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3);
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.mobileCardDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.mobileCardLabel {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.mobileCardBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border);
+}
+
+.skeletonMobileCard {
+  height: 140px;
+  border-radius: var(--radius-lg);
+  width: 100%;
+}

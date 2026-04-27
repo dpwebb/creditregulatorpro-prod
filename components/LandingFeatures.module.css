@@ -1,0 +1,94 @@
+.section {
+  padding: var(--spacing-20) 0;
+  background-color: var(--background);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--foreground);
+  text-align: center;
+  margin-bottom: var(--spacing-12);
+  letter-spacing: -0.01em;
+}
+
+.howItWorksWrapper {
+  width: 100%;
+}
+
+.stepsFlow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0 auto;
+  gap: var(--spacing-4);
+}
+
+.stepItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.stepNumber {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: var(--spacing-4);
+  box-shadow: var(--shadow);
+}
+
+.stepText {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  margin: 0;
+  max-width: 160px;
+}
+
+.stepConnector {
+  flex: 1;
+  height: 2px;
+  background-color: var(--border);
+  margin-top: 1.5rem;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.reveal[data-revealed="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .stepsFlow {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-8);
+  }
+
+  .stepConnector {
+    display: none;
+  }
+}

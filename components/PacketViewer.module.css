@@ -1,0 +1,208 @@
+.dialogContent {
+  width: 90vw;
+  max-width: 1000px;
+  height: 90vh;
+  max-height: 900px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.dialogContent > button[class*="close"] {
+  display: none;
+}
+
+.header {
+  padding: var(--spacing-6);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-6);
+}
+
+.titleGroup {
+  display: flex;
+  gap: var(--spacing-4);
+  align-items: center;
+}
+
+.iconWrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: var(--muted);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.metadataGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  background-color: var(--muted);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.metadataItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.valueMono {
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--foreground);
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.contentArea {
+  flex: 1;
+  background-color: var(--muted);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.viewerContainer {
+  width: 100%;
+  height: 100%;
+  background-color: white;
+}
+
+.viewerContainer :global(.rpv-core__viewer) {
+  height: 100%;
+}
+
+.footer {
+  padding: var(--spacing-4) var(--spacing-6);
+  border-top: 1px solid var(--border);
+  background-color: var(--surface);
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.footerLeft {
+  margin-right: auto;
+}
+
+.deleteButtonGhost {
+  color: var(--error);
+}
+
+.deleteButtonGhost:hover {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error);
+}
+
+/* Loading & Empty States */
+.loadingState,
+.errorState,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  gap: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.errorState {
+  color: var(--error);
+}
+
+.metadataSkeleton {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  background-color: var(--muted);
+  border-radius: var(--radius-md);
+}
+
+.skeletonBadge {
+  width: 80px;
+  height: 24px;
+  border-radius: var(--radius-full);
+}
+
+.skeletonText {
+  width: 120px;
+  height: 24px;
+}
+
+.pdfSkeleton {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .dialogContent {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .header {
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: var(--spacing-4);
+  }
+  
+  .headerTop {
+    flex-direction: column;
+    gap: var(--spacing-4);
+  }
+  
+  .actions {
+    flex-wrap: wrap;
+    width: 100%;
+    gap: var(--spacing-2);
+  }
+  
+  .metadataGrid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: var(--spacing-3);
+    gap: var(--spacing-3);
+  }
+}

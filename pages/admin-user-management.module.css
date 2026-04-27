@@ -1,0 +1,354 @@
+.container {
+  padding: var(--spacing-6);
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.headerIcon {
+  color: var(--primary);
+}
+
+.headerContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  align-items: flex-start;
+}
+
+@media (min-width: 768px) {
+  .headerContainer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.addAgentBtn {
+  margin-bottom: var(--spacing-6);
+}
+
+@media (min-width: 768px) {
+  .addAgentBtn {
+    margin-bottom: 0;
+    margin-top: var(--spacing-2);
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
+.formGroup label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+  background: var(--card);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+@media (min-width: 1024px) {
+  .filters {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.searchContainer {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchInput {
+  padding-left: 2.5rem;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 768px) {
+  .filterGroup {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.selectTrigger {
+  width: 200px;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.displayNameLink {
+  text-decoration: none;
+}
+
+.displayNameLink:hover .displayName {
+  text-decoration: underline;
+  color: var(--primary);
+}
+
+.displayName {
+  font-weight: 600;
+  color: var(--foreground);
+  transition: color var(--animation-duration-fast);
+}
+
+.email {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.roleBadge {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  gap: var(--spacing-1);
+}
+
+.orgInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.noOrg {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+.verifiedIcon {
+  color: var(--success);
+}
+
+.unverifiedIcon {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+.dateCell {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+/* Card Layout Styles */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.userCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  transition: border-color var(--animation-duration-fast);
+}
+
+.userCard:hover {
+  border-color: var(--primary);
+}
+
+.cardTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.cardTopLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.cardTopRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.cardBottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border);
+}
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  flex-wrap: wrap;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.statValue {
+  font-family: var(--font-family-monospace);
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.statIcon {
+  color: var(--muted-foreground);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.loadingState,
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+  gap: var(--spacing-4);
+}
+
+.actionsCell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.noAction {
+  color: var(--muted-foreground);
+  padding: var(--spacing-2) var(--spacing-4);
+  display: inline-block;
+}
+
+.dangerDescription {
+  color: var(--error);
+  font-weight: 500;
+  margin-top: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
+.resetDialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.resetUserInfo {
+  background: var(--muted);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.resetUserInfo strong {
+  color: var(--foreground);
+}
+
+.resetUserInfo span {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.confirmSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.confirmSection label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.destructiveMenuItem {
+  color: var(--error);
+}
+
+.destructiveMenuItem:hover,
+.destructiveMenuItem:focus-visible {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent) !important;
+  color: var(--error) !important;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-4);
+  }
+  .searchContainer {
+    max-width: 100%;
+  }
+  .selectTrigger {
+    width: 100%;
+  }
+  .cardTop {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .cardBottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

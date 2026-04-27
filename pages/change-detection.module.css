@@ -1,0 +1,305 @@
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding: var(--spacing-6);
+  background-color: var(--background);
+}
+
+.contentWrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-8);
+}
+
+@media (min-width: 640px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.statsCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--animation-duration-fast) ease;
+}
+
+.statsCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.statsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.statsTitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.statsIcon {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+.statsValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--foreground);
+  font-family: var(--font-family-heading);
+}
+
+.statsTrend {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/* Stats Variants */
+.statsCard.error .statsValue { color: var(--error); }
+.statsCard.error .statsIcon { color: var(--error); }
+
+.statsCard.warning .statsValue { color: var(--warning); }
+.statsCard.warning .statsIcon { color: var(--warning); }
+
+.statsCard.info .statsValue { color: var(--info); }
+.statsCard.info .statsIcon { color: var(--info); }
+
+.statsSkeleton {
+  height: 120px;
+  border-radius: var(--radius-lg);
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+@media (min-width: 768px) {
+  .controls {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchInput {
+  padding-left: 2.5rem;
+}
+
+.filters {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  min-width: 160px;
+}
+
+/* Card List Styles */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.driftCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4) 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--animation-duration-fast) ease, box-shadow var(--animation-duration-fast) ease, border-color var(--animation-duration-fast) ease;
+}
+
+.driftCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--border), var(--primary) 20%);
+}
+
+.cardTopRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--spacing-3);
+}
+
+.accountInfo {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.accountNumber {
+  font-weight: 600;
+  font-family: var(--font-family-monospace);
+  color: var(--foreground);
+  font-size: 1rem;
+}
+
+.creditorName {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.topRowBadges {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.detectedDate {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-family-monospace);
+}
+
+.cardBottomRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.changeDetails {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.fieldCode {
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  background: var(--muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--foreground);
+}
+
+.valueOld {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+  font-size: 0.875rem;
+}
+
+.arrowIcon {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+.valueNew {
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.driftBadge {
+  font-family: var(--font-family-monospace);
+}
+
+.packetBadge {
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.packetBadge:hover {
+  opacity: 0.8;
+}
+
+.viewLink {
+  margin-left: auto;
+  gap: var(--spacing-1);
+}
+
+.cardSkeleton {
+  height: 80px;
+  border-radius: var(--radius-lg);
+  width: 100%;
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-12) !important;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.emptyContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-3);
+  color: var(--muted-foreground);
+}
+
+.emptyIcon {
+  opacity: 0.3;
+  margin-bottom: var(--spacing-2);
+}
+
+.emptyContent h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.emptyContent p {
+  margin: 0;
+  font-size: 0.9375rem;
+}

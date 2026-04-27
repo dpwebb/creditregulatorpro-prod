@@ -1,0 +1,137 @@
+import { db } from "../../helpers/db";
+import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { schema, OutputType } from "./run_POST.schema";
+
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { isAdmin } from "../../helpers/userRoleUtils";
+import { parseReport, ParsedTradeline } from "../../helpers/reportParser";
+import { ExtractedConsumerInfo } from "../../helpers/consumerInfoExtractorTypes";
+import { compareConsumerInfo, compareTradelines, ComparisonSummary, hasAnyExpectations, hasUnapprovedData } from "../../helpers/parserPatternAnalyzer";
+import { Json } from "../../helpers/schema";
+
+export async function handle(request: Request) {
+  try {
+    const { user } = await getServerUserSession(request);
+    if (!isAdmin(user)) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 403 }
+      );
+    }
+
+    const json = JSON.parse(await request.text());
+    const input = schema.parse(json);
+
+    // 1. Fetch test case
+    const testCase = await db
+      .selectFrom("parserTestCase")
+      .selectAll()
+      .where("id", "=", input.testCaseId)
+      .executeTakeFirstOrThrow();
+
+    // 2. Run parser
+    const parseResult = await parseReport(testCase.pdfBase64, "application/pdf");
+
+    // 3. Check if expectations are defined
+    const hasExpectations = hasAnyExpectations(
+      testCase.expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
+      testCase.expectedTradelines as unknown as ParsedTradeline[]
+    );
+
+    // 4. Compare results
+    const consumerInfoResults = compareConsumerInfo(
+      testCase.expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
+      parseResult.consumerInfo,
+      testCase.rawExtractedText || ""
+    );
+
+    const tradelineResults = compareTradelines(
+      testCase.expectedTradelines as unknown as ParsedTradeline[],
+      parseResult.tradelines,
+      testCase.rawExtractedText || ""
+    );
+
+    // Determine overall pass/fail
+    // Test cannot pass if no expectations are defined
+    const consumerInfoPassed = consumerInfoResults.every(r => r.passed);
+    const tradelinesPassed = tradelineResults.every(r => r.passed);
+    const passed = hasExpectations && consumerInfoPassed && tradelinesPassed;
+
+    // Check if there's extracted data without expectations
+    const needsReview = hasUnapprovedData(
+      testCase.expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
+      parseResult.consumerInfo,
+      testCase.expectedTradelines as unknown as ParsedTradeline[],
+      parseResult.tradelines
+    );
+
+    // Collect suggestions
+    const patternSuggestions: Record<string, string[]> = {};
+    
+    consumerInfoResults.forEach(r => {
+        if (r.suggestion) {
+            if (!patternSuggestions[r.fieldName]) patternSuggestions[r.fieldName] = [];
+            patternSuggestions[r.fieldName].push(r.suggestion);
+        }
+    });
+
+    tradelineResults.forEach(tl => {
+        tl.fieldResults.forEach(r => {
+            if (r.suggestion) {
+                const key = `${tl.accountNumber} - ${r.fieldName}`;
+                if (!patternSuggestions[key]) patternSuggestions[key] = [];
+                patternSuggestions[key].push(r.suggestion);
+            }
+        });
+    });
+
+    const fieldResults = {
+        consumerInfo: consumerInfoResults,
+        tradelines: tradelineResults
+    };
+
+    // 5. Store run results
+    await db
+      .insertInto("parserTestRun")
+      .values({
+        testCaseId: testCase.id,
+        runAt: new Date(),
+        passed: passed,
+        actualConsumerInfo: parseResult.consumerInfo as unknown as Json,
+        actualTradelines: parseResult.tradelines as unknown as Json,
+        fieldResults: fieldResults as unknown as Json,
+        patternSuggestions: patternSuggestions as unknown as Json,
+      })
+      .execute();
+
+    // 6. Update test case last run status
+    await db
+      .updateTable("parserTestCase")
+      .set({
+        lastRunAt: new Date(),
+        lastRunPassed: passed,
+      })
+      .where("id", "=", testCase.id)
+      .execute();
+
+    const output: OutputType = {
+      testCaseId: testCase.id,
+      passed,
+      needsReview,
+      summary: {
+        passed,
+        hasExpectations,
+        needsReview,
+        consumerInfoResults,
+        tradelineResults,
+        patternSuggestions
+      },
+      actualConsumerInfo: parseResult.consumerInfo,
+      actualTradelines: parseResult.tradelines
+    };
+
+    return new Response(JSON.stringify(output));
+  } catch (error) {
+    return handleEndpointError(error);
+  }
+}

@@ -1,0 +1,56 @@
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  backdrop-filter: blur(var(--backdrop-blur));
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.skeletonChart {
+  height: 200px;
+  width: 100%;
+}
+
+.skeletonTable {
+  height: 150px;
+  width: 100%;
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  color: var(--error);
+}
+
+.errorIcon {
+  width: 32px;
+  height: 32px;
+}

@@ -1,0 +1,20 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.accordion {
+  margin-top: var(--spacing-4);
+}
+
+.list {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.list li {
+  margin-bottom: var(--spacing-2);
+}

@@ -1,0 +1,400 @@
+import { differenceInDays, parseISO, isValid, isAfter } from "./dateUtils";
+import type { Selectable } from "kysely";
+import { db } from "./db";
+import type { Tradeline, ObligationInstance, ReportArtifact, CanadianProvince } from "./schema";
+import type { DetectedViolation } from "./complianceDetectorTypes";
+import { isEffectivelyCollectionAccount } from "./complianceDetectorTypes";
+import { StandardizedCreditData } from "./changeDetector";
+import { validateCollectionAgencyName, getRegistryLookupUrl } from "./collectionAgencyRegistry";
+import { resolveTradelineProvince } from "./resolveTradelineProvince";
+import { findLicensedAgency } from "./licensedAgencyQueries";
+import { regulationRegistry } from "./regulationRegistry";
+
+/**
+ * Checks collection agency name validity without requiring province context.
+ * Used as a fallback when province cannot be determined.
+ */
+function validateAgencyNameBasic(agencyName: string): string[] {
+  const flags: string[] = [];
+
+  if (!agencyName || agencyName.trim() === "" || agencyName.toLowerCase() === "unknown") {
+    flags.push("Agency name is missing or unknown. Anonymous collection reporting is a severe violation.");
+    return flags;
+  }
+
+  const nameUpper = agencyName.toUpperCase();
+
+  // Check for proper corporate suffixes
+  const hasCorporateSuffix = /\b(INC|LTD|CORP|LLC|ULC|INCORPORATED|LIMITED|CORPORATION)\b/.test(nameUpper);
+  if (!hasCorporateSuffix) {
+    flags.push("Missing corporate suffix (Inc, Ltd, Corp). Legitimate licensed collection agencies usually operate as registered corporations.");
+  }
+
+  // Check for generic, non-specific names that obscure identity
+  const genericNames = ["COLLECTION DEPT", "RECOVERY DEPT", "CREDIT SERVICES", "ACCOUNTS RECEIVABLE"];
+  for (const generic of genericNames) {
+    if (nameUpper.includes(generic) && nameUpper.length < generic.length + 8) {
+      flags.push(`Uses generic or internal-sounding name ("${generic}"). Collections must be reported under the exact registered agency name.`);
+      break;
+    }
+  }
+
+  // Suspicious formatting (e.g., masking in the name)
+  if (/[*X]{3,}/.test(nameUpper)) {
+    flags.push("Name contains masking characters. The identity of a debt collector cannot be hidden from the consumer.");
+  }
+
+  return flags;
+}
+
+/**
+ * Placeholder: Collection agency not licensed in province.
+ * Severity: ERROR.
+ */
+export async function detectCollectorLicenseFailure(
+  tradeline: Selectable<Tradeline>
+): Promise<DetectedViolation[]> {
+  const violations: DetectedViolation[] = [];
+
+  const isCollection = isEffectivelyCollectionAccount(tradeline);
+  
+  if (!isCollection) return violations;
+
+  const resolvedName = tradeline.collectionAgencyName || "";
+
+  if (!resolvedName || resolvedName.trim() === "") {
+    if (tradeline.creditorId && tradeline.originalCreditorName) {
+      const creditor = await db
+        .selectFrom("creditor")
+        .select("name")
+        .where("id", "=", tradeline.creditorId)
+        .executeTakeFirst();
+      
+      if (creditor && creditor.name) {
+        const cName = creditor.name.toUpperCase();
+        const ocName = tradeline.originalCreditorName.toUpperCase();
+        if (
+          (cName.length > 3 && cName.includes(ocName)) ||
+          (ocName.length > 3 && ocName.includes(cName))
+        ) {
+          return violations;
+        }
+      }
+    }
+  }
+
+  const provinceStr = await resolveTradelineProvince(tradeline);
+  let dbCheckResult: any = { checked: false };
+    
+  if (provinceStr) {
+    const province = provinceStr as CanadianProvince;
+
+    // DB lookup step
+    const dbAgency = await findLicensedAgency(resolvedName, province);
+    if (dbAgency) {
+      dbCheckResult = { checked: true, found: true, status: dbAgency.licenseStatus };
+      if (dbAgency.licenseStatus === "active") {
+        return violations;
+      }
+    } else {
+      dbCheckResult = { checked: true, found: false };
+    }
+
+    const validation = validateCollectionAgencyName(resolvedName, province);
+      
+    if (!validation.isLikelyLicensed && validation.flags.length > 0) {
+      const lookupUrl = getRegistryLookupUrl(province);
+      const urlText = lookupUrl ? ` You can verify their status here: ${lookupUrl}` : "";
+        
+      violations.push({
+        violationCategory: "COLLECTOR_LICENSE_FAILURE",
+        severity: "ERROR",
+        confidenceScore: validation.confidence,
+        userExplanation: `This COLLECTION AGENCY may not be licensed in your province.`,
+        technicalDetails: {
+          tradelineId: tradeline.id,
+          agencyName: resolvedName,
+          province,
+          flags: validation.flags,
+          detectedValue: resolvedName,
+          registryUrl: lookupUrl || null,
+          dbCheckResult,
+          regulationIds: [`${province}_COLLECTION_ACT`],
+        },
+        recommendedAction: `Dispute this account and demand proof of their collection license in ${province}.${urlText}`,
+        tradelineId: tradeline.id,
+        responsibleEntity: "COLLECTOR",
+      });
+    }
+  } else {
+    // Province unknown — still validate the agency name using basic heuristics
+    const flags = validateAgencyNameBasic(resolvedName);
+
+    if (flags.length > 0) {
+      violations.push({
+        violationCategory: "COLLECTOR_LICENSE_FAILURE",
+        severity: "ERROR",
+        confidenceScore: 70,
+        userExplanation: `There are concerns regarding the identity of this COLLECTION AGENCY${resolvedName ? ` ("${resolvedName}")` : ""}.`,
+        technicalDetails: {
+          tradelineId: tradeline.id,
+          agencyName: resolvedName || null,
+          province: null,
+          flags,
+          detectedValue: resolvedName || null,
+          registryUrl: null,
+          dbCheckResult,
+          regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_LICENSE_FAILURE"] || [],
+        },
+        recommendedAction: "Dispute this account and demand written proof of the collection agency's identity and authorization to collect this debt.",
+        tradelineId: tradeline.id,
+        responsibleEntity: "COLLECTOR",
+      });
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * Checks if there are multiple collection agencies reporting the same debt at the same time.
+ * If the current tradeline is older, flag it for removal.
+ */
+export async function detectDuplicateCollectionAssignment(
+  tradeline: Selectable<Tradeline>
+): Promise<DetectedViolation[]> {
+  const violations: DetectedViolation[] = [];
+
+  const isCollection = isEffectivelyCollectionAccount(tradeline);
+  if (!isCollection) return violations;
+
+  const duplicates = await db
+    .selectFrom("tradeline")
+    .selectAll()
+    .where("userId", "=", tradeline.userId as number)
+    .where("id", "!=", tradeline.id as number)
+    .execute();
+
+  for (const dup of duplicates) {
+    const isDupCollection = isEffectivelyCollectionAccount(dup);
+    if (!isDupCollection) continue;
+
+    const match1 = Boolean(
+      tradeline.accountNumber &&
+      tradeline.dateOfFirstDelinquency &&
+      dup.accountNumber === tradeline.accountNumber &&
+      dup.dateOfFirstDelinquency === tradeline.dateOfFirstDelinquency
+    );
+
+    const match2 = Boolean(
+      tradeline.originalCreditorName &&
+      tradeline.bureauId &&
+      dup.originalCreditorName === tradeline.originalCreditorName &&
+      dup.bureauId === tradeline.bureauId &&
+      dup.creditorId !== tradeline.creditorId
+    );
+
+    if (match1 || match2) {
+      const tradelineDate = tradeline.dateAssignedToCollection || tradeline.openedDate;
+      const dupDate = dup.dateAssignedToCollection || dup.openedDate;
+
+      let isOlder = false;
+
+      if (tradelineDate && dupDate) {
+        const tTime = new Date(tradelineDate as string | number | Date).getTime();
+        const dTime = new Date(dupDate as string | number | Date).getTime();
+
+        if (!isNaN(tTime) && !isNaN(dTime) && dTime > tTime) {
+          isOlder = true;
+        }
+      }
+
+      const userExplanation = isOlder
+        ? "The older collector should stop reporting when the debt is reassigned."
+        : "This debt is already being reported by another collection agency. Having two collectors report the same debt at the same time is not allowed.";
+
+      violations.push({
+        violationCategory: "MULTIPLE_COLLECTOR_VIOLATION",
+        severity: "ERROR",
+        confidenceScore: 90,
+        userExplanation,
+        technicalDetails: {
+          duplicateTradelineId: dup.id,
+          otherAgencyName: dup.collectionAgencyName,
+          otherBalance: Number(dup.balance || (dup as any).currentBalance || 0),
+          otherDateAssigned: dupDate,
+          matchedOn: match1 ? "accountNumber_dofd" : "originalCreditor_bureauId",
+          regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["MULTIPLE_COLLECTOR_VIOLATION"] || [],
+        },
+        recommendedAction: "Dispute this duplicate listing. Only one collector should be reporting this debt.",
+        tradelineId: tradeline.id,
+        responsibleEntity: "COLLECTOR",
+      });
+      break;
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * Checks if Fees/interest added beyond original debt without authorization.
+ * Severity: ERROR.
+ */
+export async function detectCollectorUnauthorizedFees(
+  tradeline: Selectable<Tradeline>,
+  reportArtifacts: Selectable<ReportArtifact>[]
+): Promise<DetectedViolation[]> {
+  const violations: DetectedViolation[] = [];
+  
+  const balance = Number(tradeline.balance || (tradeline as any).currentBalance || 0);
+  // Only use highCredit because creditLimit is typically inherited from the original account
+  // and doesn't represent the actual debt amount assigned to collections.
+  const originalAmount = Number(tradeline.highCredit || 0);
+
+  // If balance is significantly higher than original, and it's a collection account.
+  const isCollection = isEffectivelyCollectionAccount(tradeline);
+  
+  if (isCollection && originalAmount > 0 && balance > originalAmount * 1.25) {
+    // 25% buffer for legitimate pre-judgment interest if allowed, but usually collection fees are restricted.
+    violations.push({
+      violationCategory: "COLLECTOR_UNAUTHORIZED_FEES",
+      severity: "ERROR",
+      confidenceScore: 80,
+      userExplanation: "The CURRENT BALANCE is significantly higher than the original debt.",
+      technicalDetails: {
+        tradelineId: tradeline.id,
+        currentBalance: balance,
+        originalAmount: originalAmount,
+        difference: balance - originalAmount,
+        detectedValue: balance - originalAmount,
+        regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_UNAUTHORIZED_FEES"] || [],
+      },
+      recommendedAction: "Ask the collection agency to prove why the balance went up and show you a breakdown of the fees.",
+      tradelineId: tradeline.id,
+      responsibleEntity: "COLLECTOR",
+    });
+  }
+
+  return violations;
+}
+
+/**
+ * Checks if Same debt reported under multiple account numbers by same collector.
+ * Severity: ERROR.
+ */
+export async function detectCollectorDuplicateReporting(
+  tradeline: Selectable<Tradeline>
+): Promise<DetectedViolation[]> {
+  if (!tradeline.creditorId || !tradeline.originalCreditorName) return [];
+
+  // Query for other tradelines with same creditor (collector) and same original creditor
+  const duplicates = await db
+    .selectFrom("tradeline")
+    .selectAll()
+    .where("creditorId", "=", tradeline.creditorId)
+    .where("originalCreditorName", "=", tradeline.originalCreditorName)
+    .where("bureauId", "=", tradeline.bureauId as number)
+    .where("userId", "=", tradeline.userId as number)
+    .where("id", "!=", tradeline.id as number)
+    .execute();
+
+  const violations: DetectedViolation[] = [];
+
+  for (const dup of duplicates) {
+    const bal1 = Number(tradeline.balance || (tradeline as any).currentBalance || 0);
+    const bal2 = Number(dup.balance || (dup as any).currentBalance || 0);
+    
+    const diff = Math.abs(bal1 - bal2);
+    const maxBal = Math.max(bal1, bal2);
+
+    if (diff < 50 || (maxBal > 0 && diff / maxBal <= 0.15)) {
+      violations.push({
+        violationCategory: "COLLECTOR_DUPLICATE_REPORTING",
+        severity: "ERROR",
+        confidenceScore: 95,
+        userExplanation: "This debt is reported as multiple DUPLICATE ACCOUNTS by the same collection agency.",
+        technicalDetails: {
+          tradelineId: tradeline.id,
+          duplicateTradelineId: dup.id,
+          collectorId: tradeline.creditorId,
+          originalCreditor: tradeline.originalCreditorName,
+          detectedValue: dup.id,
+          regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_DUPLICATE_REPORTING"] || [],
+        },
+        recommendedAction: "Dispute the extra accounts so this debt is only listed once.",
+        tradelineId: tradeline.id,
+        responsibleEntity: "COLLECTOR",
+      });
+      // Break after finding one to avoid spamming violations for the same issue
+      break;
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * Checks if Collector trying to restart limitation clock (Statute Revival).
+ * Detect if DOFD advanced forward (reset) after activity.
+ * Severity: WARNING.
+ */
+export async function detectCollectorStatuteRevivalAttempt(
+  tradeline: Selectable<Tradeline>,
+  reportArtifacts: Selectable<ReportArtifact>[]
+): Promise<DetectedViolation[]> {
+  const violations: DetectedViolation[] = [];
+  
+  if (reportArtifacts.length < 2) return violations;
+
+  // Sort artifacts
+  const sortedArtifacts = [...reportArtifacts].sort((a, b) =>
+    new Date(a.reportDate!).getTime() - new Date(b.reportDate!).getTime()
+  );
+
+  // Similar to re-aging, but specifically looking for it in the context of a Collection account
+  // and potentially correlated with a recent payment or contact (which we might not know, but we see the date shift).
+  
+  const isCollection = isEffectivelyCollectionAccount(tradeline);
+  if (!isCollection) return [];
+
+  for (let i = 0; i < sortedArtifacts.length - 1; i++) {
+    const prevArtifact = sortedArtifacts[i];
+    const currArtifact = sortedArtifacts[i + 1];
+
+    const prevData = prevArtifact.data as StandardizedCreditData | null;
+    const currData = currArtifact.data as StandardizedCreditData | null;
+
+    // Each artifact contains data for a single tradeline
+    if (prevData?.dateOfFirstDelinquency && currData?.dateOfFirstDelinquency) {
+      const prevDate = parseISO(prevData.dateOfFirstDelinquency);
+      const currDate = parseISO(currData.dateOfFirstDelinquency);
+
+      if (isValid(prevDate) && isValid(currDate) && isAfter(currDate, prevDate)) {
+        const diff = differenceInDays(currDate, prevDate);
+        
+        if (diff > 30) { // Significant shift
+           violations.push({
+            violationCategory: "COLLECTOR_STATUTE_REVIVAL_ATTEMPT",
+            severity: "WARNING",
+            confidenceScore: 90,
+            userExplanation: `The DATE OF FIRST DELINQUENCY was moved forward by ${diff} days.`,
+            technicalDetails: {
+              tradelineId: tradeline.id,
+              oldDOFD: prevDate.toISOString(),
+              newDOFD: currDate.toISOString(),
+              shiftDays: diff,
+              detectedValue: diff,
+              regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["COLLECTOR_STATUTE_REVIVAL_ATTEMPT"] || [],
+            },
+            recommendedAction: "Dispute the date change and ask for the original date to be put back.",
+            tradelineId: tradeline.id,
+            responsibleEntity: "COLLECTOR",
+          });
+        }
+      }
+    }
+  }
+
+  return violations;
+}

@@ -1,0 +1,343 @@
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-bottom: var(--spacing-16);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-8);
+  gap: var(--spacing-6);
+}
+
+.headerContent {
+  flex: 1;
+}
+
+.title {
+  font-family: var(--font-family-heading);
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 var(--spacing-2) 0;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-family: var(--font-family-base);
+  font-size: 1rem;
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+.tooltip {
+  margin-left: var(--spacing-2);
+}
+
+.headerActions {
+  display: flex;
+  gap: var(--spacing-3);
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) 1.25rem;
+  background: linear-gradient(135deg, var(--primary), hsl(230 80% 70%));
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-family-base);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+  box-shadow: 0 4px 12px hsla(230, 80%, 60%, 0.3);
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px hsla(230, 80%, 60%, 0.4);
+}
+
+.primaryButton:active {
+  transform: translateY(0);
+}
+
+.quickActions {
+  display: flex;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-8);
+  flex-wrap: wrap;
+}
+
+.quickActions > * {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.hiddenRiskSection {
+  margin-bottom: var(--spacing-8);
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.userDashboardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.sectionCard {
+  background: var(--card);
+  backdrop-filter: blur(var(--backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--backdrop-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  margin-bottom: var(--spacing-8);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem var(--spacing-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.cardHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.cardIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+}
+
+.cardTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.statsGridContainer {
+  padding: var(--spacing-6);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--spacing-6);
+}
+
+.ctaSection {
+  margin-bottom: var(--spacing-8);
+}
+
+.pendingIssuesSection {
+  margin-bottom: var(--spacing-8);
+}
+
+.metricsTooltip p {
+  margin: 0 0 var(--spacing-2) 0;
+}
+.metricsTooltip p:last-child {
+  margin-bottom: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.errorContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2.5rem;
+}
+
+.errorContent {
+  text-align: center;
+  max-width: 400px;
+}
+
+.errorTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--error);
+  margin: 0 0 var(--spacing-3) 0;
+}
+
+.errorMessage {
+  font-family: var(--font-family-base);
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-4);
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-4);
+  }
+
+  .primaryButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sectionTitle, .cardTitle {
+    font-size: 1rem;
+  }
+
+  .cardHeader {
+    padding: var(--spacing-4);
+  }
+  
+  .statsGridContainer {
+    padding: var(--spacing-4);
+  }
+}
+
+.supportDashboardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.supportMainGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+}
+
+.chatSection, .recentTicketsSection {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  height: 600px;
+}
+
+.viewAllLink {
+  font-size: 0.875rem;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.viewAllLink:hover {
+  text-decoration: underline;
+}
+
+.ticketList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  overflow-y: auto;
+}
+
+.ticketCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--animation-duration-fast);
+}
+
+.ticketCard:hover {
+  border-color: var(--primary);
+}
+
+.ticketHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+}
+
+.ticketSubject {
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--foreground);
+}
+
+.ticketFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.loadingText, .emptyText {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: var(--spacing-4) 0;
+}
+
+@media (max-width: 900px) {
+  .supportMainGrid {
+    grid-template-columns: 1fr;
+  }
+  .chatSection, .recentTicketsSection {
+    height: 500px;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}

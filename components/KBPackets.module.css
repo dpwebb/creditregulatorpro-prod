@@ -1,0 +1,121 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.accordion {
+  margin-top: var(--spacing-4);
+}
+
+.list {
+  padding-left: 1.25rem;
+  margin-bottom: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.list li {
+  margin-bottom: var(--spacing-2);
+}
+
+.progressionContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin: var(--spacing-4) 0;
+}
+
+.phaseItem {
+  background-color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+}
+
+.phaseHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.phaseLabel {
+  font-family: var(--font-family-monospace);
+  font-size: 0.85rem;
+  background-color: var(--surface);
+  padding: var(--spacing-2);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  margin-bottom: var(--spacing-2);
+  color: var(--primary);
+}
+
+.phaseConnector {
+  display: flex;
+  justify-content: center;
+  color: var(--muted-foreground);
+  font-weight: bold;
+}
+
+.terminalLabel {
+  font-family: var(--font-family-monospace);
+  font-weight: bold;
+  background-color: var(--foreground);
+  color: var(--background);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  margin: var(--spacing-2) 0;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.actionButton {
+  margin-top: var(--spacing-2);
+}
+
+.jurisdictionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-4);
+}
+
+.jurisdictionCard {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+}
+
+.jurisdictionCard h4 {
+  margin: 0 0 var(--spacing-1) 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.jurisdictionCard p {
+  margin: 0 0 var(--spacing-2) 0;
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.jurisdictionCard code {
+  display: block;
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--primary);
+  background-color: var(--muted);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+}
+
+.note {
+  margin-top: var(--spacing-4);
+  padding: var(--spacing-3);
+  background-color: var(--muted);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+}

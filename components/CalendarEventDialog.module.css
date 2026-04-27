@@ -1,0 +1,54 @@
+.dialogTitle {
+  margin-bottom: var(--spacing-2);
+}
+
+.eventDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin: var(--spacing-6) 0;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.detailLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+
+.detailValue {
+  font-size: 1rem;
+  color: var(--foreground);
+}
+
+.overdueValue {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.descriptionText {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+  background-color: var(--muted);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+}
+
+.overdueAlert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}

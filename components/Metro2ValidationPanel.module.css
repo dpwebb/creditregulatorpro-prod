@@ -1,0 +1,137 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  
+  @media (min-width: 640px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.title {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.filters {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filterIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.select {
+  appearance: none;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  padding: var(--spacing-2) var(--spacing-8) var(--spacing-2) var(--spacing-9);
+  min-width: 140px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  
+  /* Custom arrow */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--shadow-focus);
+}
+
+.loadingState,
+.errorState,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-12);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  gap: var(--spacing-4);
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.errorIcon {
+  color: var(--error);
+  width: 2rem;
+  height: 2rem;
+}
+
+.emptyIcon {
+  color: var(--success);
+  width: 2rem;
+  height: 2rem;
+  opacity: 0.5;
+}
+
+.cellContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ruleName {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.fieldName {
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.message {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+}
+
+.expected {
+  color: var(--success);
+}
+
+.actual {
+  color: var(--error);
+}

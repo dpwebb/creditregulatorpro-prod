@@ -1,0 +1,140 @@
+.card, .cardLink {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: all var(--animation-duration-fast) var(--animation-easing);
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.cardLink:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-4);
+}
+
+.title {
+  font-family: var(--font-family-base);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.iconWrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Accent Colors */
+.primary {
+  background-color: color-mix(in srgb, var(--primary), transparent 90%);
+  color: var(--primary);
+}
+
+.secondary {
+  background-color: color-mix(in srgb, var(--secondary), transparent 90%);
+  color: var(--secondary);
+}
+
+.accent {
+  background-color: color-mix(in srgb, var(--accent), transparent 90%);
+  color: var(--accent);
+}
+
+.info {
+  background-color: color-mix(in srgb, var(--info), transparent 90%);
+  color: var(--info);
+}
+
+.warning {
+  background-color: color-mix(in srgb, var(--warning), transparent 90%);
+  color: var(--warning);
+}
+
+.error {
+  background-color: color-mix(in srgb, var(--error), transparent 90%);
+  color: var(--error);
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.value {
+  font-family: var(--font-family-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+}
+
+.valueSkeleton {
+  height: 2rem;
+  width: 60%;
+  margin-bottom: var(--spacing-1);
+}
+
+.trendSkeleton {
+  height: 1rem;
+  width: 40%;
+}
+
+.trend {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.up {
+  color: var(--success);
+}
+
+.down {
+  color: var(--error);
+}
+
+.neutral {
+  color: var(--muted-foreground);
+}
+
+.trendValue {
+  font-weight: 600;
+}
+
+.trendLabel {
+  color: var(--muted-foreground);
+  font-weight: 400;
+  margin-left: var(--spacing-1);
+}
+
+@media (max-width: 480px) {
+  .card, .cardLink {
+    padding: var(--spacing-4);
+  }
+
+  .value {
+    font-size: 1.5rem;
+  }
+}

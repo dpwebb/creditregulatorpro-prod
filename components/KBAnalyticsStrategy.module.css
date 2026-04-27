@@ -1,0 +1,30 @@
+.strategyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-4);
+}
+
+.strategyCard {
+  background-color: var(--muted);
+  padding: var(--spacing-5);
+  border-radius: var(--radius);
+}
+
+.strategyIcon {
+  color: var(--primary);
+  margin-bottom: var(--spacing-3);
+}
+
+.strategyCard h3 {
+  margin: 0 0 var(--spacing-2) 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.strategyCard p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

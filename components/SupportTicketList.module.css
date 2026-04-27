@@ -1,0 +1,102 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  color: var(--muted-foreground);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  padding-left: calc(var(--spacing-3) * 2 + 1rem);
+}
+
+.filters {
+  display: flex;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  width: 200px;
+}
+
+@media (max-width: 640px) {
+  .filterSelect {
+    width: 100%;
+  }
+}
+
+.skeleton {
+  height: 1.5rem;
+  width: 100%;
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-8) !important;
+  color: var(--muted-foreground);
+}
+
+.row {
+  cursor: pointer;
+}
+
+.subjectCell {
+  min-width: 200px;
+}
+
+.subjectText {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.userName {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-top: 2px;
+}
+
+.agentCell {
+  color: var(--foreground);
+}
+
+.unassigned {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.dateCell {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--spacing-4);
+  padding: 0 var(--spacing-2);
+}
+
+.paginationText {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.paginationControls {
+  display: flex;
+  gap: var(--spacing-2);
+}

@@ -1,0 +1,163 @@
+.dialogContent {
+  width: 90vw;
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: 100%;
+}
+
+.leftPanel {
+  flex: 1;
+  border-right: 1px solid var(--border);
+  background-color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.uploadContainer {
+  padding: var(--spacing-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.textPreview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panelHeader {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.textContent {
+  flex: 1;
+  overflow: auto;
+  padding: var(--spacing-4);
+  background-color: #f8f9fa; /* Light gray for text background */
+}
+
+.pre {
+  white-space: pre-wrap;
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.placeholderText {
+  color: var(--muted-foreground);
+  text-align: center;
+  margin-top: var(--spacing-8);
+  font-style: italic;
+}
+
+.rightPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface);
+  overflow: hidden;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.formHeader {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tabsList {
+  padding: 0 var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-4);
+}
+
+.fieldsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+.tradelinesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.tradelineCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+  background-color: var(--card);
+}
+
+.tradelineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-3);
+}
+
+.tradelineIndex {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.removeBtn {
+  color: var(--destructive);
+}
+
+.addBtn {
+  align-self: center;
+  width: 100%;
+}
+
+.footer {
+  padding: var(--spacing-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+  background-color: var(--surface);
+}

@@ -1,0 +1,125 @@
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.sectionTitle {
+  font-family: var(--font-family-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--foreground);
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+}
+
+.flagInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.flagKey {
+  font-family: var(--font-family-monospace);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.flagLabel {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.scopeBadge {
+  text-transform: capitalize;
+}
+
+.versionRange {
+  font-family: var(--font-family-monospace);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-1);
+}
+
+.dangerBtn {
+  color: var(--error);
+}
+
+.dangerBtn:hover {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  flex: 1;
+}
+
+.formRow {
+  display: flex;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
+
+.formRow .formGroup {
+  margin-bottom: 0;
+}
+
+.formGroupToggle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  justify-content: center;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+@media (max-width: 768px) {
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hideMobile {
+    display: none;
+  }
+}

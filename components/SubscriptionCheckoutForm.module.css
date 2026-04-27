@@ -1,0 +1,87 @@
+@layer base {
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+    margin-top: var(--spacing-4);
+  }
+
+  .breakdown {
+    background-color: var(--muted);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+
+  .planHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: var(--spacing-3);
+  }
+
+  .planLabel {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .planPrice {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--foreground);
+  }
+
+  .interval {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .trialNotice {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+  }
+
+  .trialBadge {
+    background-color: color-mix(in srgb, var(--success) 15%, transparent);
+    color: var(--success);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .trialText {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+
+  .paymentElementContainer {
+    min-height: 200px;
+    width: 100%;
+  }
+
+  .error {
+    color: var(--error);
+    font-size: 0.875rem;
+    background-color: color-mix(in srgb, var(--error) 10%, transparent);
+    padding: var(--spacing-3);
+    border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
+    line-height: 1.25rem;
+  }
+
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-3);
+    margin-top: var(--spacing-2);
+  }
+}

@@ -1,0 +1,421 @@
+.container {
+  padding: var(--spacing-6);
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+}
+
+.backButton {
+  margin-left: calc(var(--spacing-4) * -1);
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-6);
+}
+
+@media (min-width: 1024px) {
+  .cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardHeader {
+  padding: var(--spacing-4) 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+}
+
+.cardIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+}
+
+.cardIcon {
+  flex-shrink: 0;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.cardContent {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.profileMain {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  margin-bottom: 1.25rem;
+}
+
+.avatar,
+.avatarPlaceholder {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.avatar {
+  object-fit: cover;
+  border: 2px solid var(--border);
+}
+
+.avatarPlaceholder {
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 60%, black));
+  color: var(--primary-foreground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  border: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.profileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.displayName {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--foreground);
+  line-height: 1.2;
+}
+
+.email {
+  font-size: 0.9375rem;
+  color: var(--muted-foreground);
+}
+
+.profileDetails,
+.subscriptionDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background: var(--background);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  border: 1px solid var(--border);
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detailLabel {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.detailValue {
+  font-size: 0.875rem;
+  color: var(--foreground);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.detailIcon {
+  color: var(--muted-foreground);
+}
+
+.statusWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.verifiedIcon {
+  color: var(--success);
+}
+
+.unverifiedIcon {
+  color: var(--muted-foreground);
+}
+
+.roleBadge {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  gap: var(--spacing-1);
+}
+
+.planBadge {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.emptyCardState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+  color: var(--muted-foreground);
+  text-align: center;
+  flex-grow: 1;
+}
+
+.emptyIcon {
+  opacity: 0.5;
+}
+
+.tabsSection {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.tabIcon {
+  margin-right: var(--spacing-2);
+  opacity: 0.7;
+}
+
+.tabContent {
+  margin-top: 0;
+  outline: none;
+}
+
+/* Card Lists Styles */
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-2);
+}
+
+.listCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  transition: background-color var(--animation-duration-fast);
+}
+
+.listCard:hover {
+  background-color: var(--muted);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.cardHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.cardBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.boldText {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.statusText {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.terminalLabel {
+  font-family: var(--font-family-monospace);
+  font-size: 0.875rem;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--muted) 50%, transparent);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+}
+
+.monoText {
+  font-family: var(--font-family-monospace);
+  font-size: 0.875rem;
+}
+
+.emptyCard {
+  text-align: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+  font-style: italic;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.mutedText {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+.actionBadge {
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+/* Loading & Error States */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.cardSkeleton {
+  height: 300px;
+  border-radius: var(--radius-lg);
+}
+
+.tabsSkeleton {
+  height: 400px;
+  border-radius: var(--radius-lg);
+}
+
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-12);
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.errorIcon {
+  color: var(--error);
+}
+
+.errorTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--foreground);
+}
+
+.errorDescription {
+  color: var(--muted-foreground);
+  max-width: 500px;
+  margin: 0;
+}
+
+.dangerZone {
+  margin-top: var(--spacing-8);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  background: color-mix(in srgb, var(--error) 5%, transparent);
+}
+
+@media (min-width: 768px) {
+  .dangerZone {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.dangerZoneHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.dangerZoneTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--error);
+}
+
+.dangerZoneDescription {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+}
+
+.deleteDialogContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-6);
+}
+
+.deleteDialogContent p {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.9375rem;
+}

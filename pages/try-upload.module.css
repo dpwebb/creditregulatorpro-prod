@@ -1,0 +1,169 @@
+@layer base {
+  .pageContainer {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background);
+    padding: var(--spacing-6) var(--spacing-4);
+  }
+
+  .header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--spacing-12);
+  }
+
+  .logoLink {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    color: var(--foreground);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.25rem;
+    transition: opacity var(--animation-duration-fast) ease;
+  }
+
+  .logoLink:hover {
+    opacity: 0.8;
+  }
+
+  .shieldIcon {
+    color: var(--primary);
+  }
+
+  .mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .heroText {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--foreground);
+    margin-bottom: var(--spacing-4);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+    color: var(--muted-foreground);
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .tabsContainer {
+    display: inline-flex;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-8);
+    background-color: var(--surface);
+    padding: var(--spacing-1);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+  }
+
+  .tabButton {
+    padding: var(--spacing-2) var(--spacing-6);
+    border: none;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-family: var(--font-family-base);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all var(--animation-duration-fast) ease;
+  }
+
+  .tabButton:hover {
+    color: var(--foreground);
+  }
+
+  .activeTab {
+    background-color: var(--card);
+    color: var(--foreground);
+    box-shadow: var(--shadow);
+  }
+
+  .uploadSection {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-6);
+  }
+
+  .helpTextContainer {
+    text-align: center;
+    margin-top: var(--spacing-2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    align-items: center;
+  }
+
+  .helpText {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+
+  .helpLink {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    font-family: inherit;
+    transition: opacity var(--animation-duration-fast) ease;
+  }
+
+  .helpLink:hover {
+    opacity: 0.8;
+  }
+
+  .guideSection {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-6);
+  }
+
+  .loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-6);
+    padding: var(--spacing-16) var(--spacing-4);
+    text-align: center;
+  }
+
+  .loadingText {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .loadingSubText {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    max-width: 300px;
+  }
+}

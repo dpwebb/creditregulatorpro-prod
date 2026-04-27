@@ -1,0 +1,262 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: var(--spacing-2);
+}
+
+/* Summary Card */
+.summaryCard {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+}
+
+.summaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.confidenceWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.confidenceLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  letter-spacing: 0.025em;
+}
+
+.confidenceValue {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+}
+
+.confidenceValue span:first-child {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.confidenceSub {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.textSuccess { color: var(--success); }
+.textWarning { color: var(--warning); }
+.textError { color: var(--error); }
+
+.badgeGroup {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* Grid Layout */
+.gridContainer {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+  .gridContainer {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+/* Cards */
+.card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  height: 100%;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+  padding-bottom: var(--spacing-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.sectionIcon {
+  color: var(--primary);
+}
+
+.sectionTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0;
+}
+
+/* Fields */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+.grid1 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.fieldLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--muted-foreground);
+}
+
+.fieldValue {
+  font-size: 0.9rem;
+  color: var(--foreground);
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  word-break: break-word;
+}
+
+.monospace {
+  font-family: var(--font-family-monospace);
+  font-size: 0.85rem;
+}
+
+.highlight {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.empty {
+  color: var(--muted-foreground);
+  opacity: 0.5;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+/* Payment Pattern */
+.paymentHistoryContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.paymentPatternRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.patternVisual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.patternChar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  cursor: default;
+}
+
+/* Payment Status Colors */
+.patternChar[data-status="1"], 
+.patternChar[data-status="C"] {
+  background-color: color-mix(in srgb, var(--success) 15%, transparent);
+  color: var(--success);
+}
+
+.patternChar[data-status="2"], 
+.patternChar[data-status="3"], 
+.patternChar[data-status="4"] {
+  background-color: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning-foreground); /* Note: warning-foreground might be white, if so check constrast */
+}
+
+/* Fallback if warning-foreground is light and bg is light */
+@media (prefers-color-scheme: light) {
+    .patternChar[data-status="2"], 
+    .patternChar[data-status="3"], 
+    .patternChar[data-status="4"] {
+        color: hsl(40 90% 40%); /* Darker orange for text */
+    }
+}
+
+
+.patternChar[data-status="5"],
+.patternChar[data-status="7"],
+.patternChar[data-status="8"],
+.patternChar[data-status="9"] {
+  background-color: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+
+.patternLegend {
+  display: flex;
+  gap: var(--spacing-4);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.emptyState {
+  font-style: italic;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  padding: var(--spacing-2) 0;
+}

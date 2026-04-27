@@ -1,0 +1,134 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.toolbar {
+  display: flex;
+  gap: var(--spacing-4);
+  align-items: center;
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: var(--spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 2.5rem;
+  padding-left: 2.25rem;
+  padding-right: var(--spacing-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font-family: var(--font-family-base);
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+.fileNameCell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.contextCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.accountLink {
+  font-family: var(--font-family-monospace);
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.accountLink:hover {
+  text-decoration: underline;
+}
+
+.fileIcon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fileName {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.fileDesc {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.typeBadge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+}
+
+.emptyContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.emptyIcon {
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .container {
+    gap: var(--spacing-4);
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .searchWrapper {
+    max-width: 100%;
+  }
+}

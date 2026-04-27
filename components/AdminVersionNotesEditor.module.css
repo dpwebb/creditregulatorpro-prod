@@ -1,0 +1,100 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-2);
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  background: var(--muted);
+  padding: var(--spacing-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.emptyState {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  text-align: center;
+  padding: var(--spacing-4) 0;
+}
+
+.categoryBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  background: var(--card);
+  padding: var(--spacing-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.catHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.catInput {
+  flex: 1;
+  font-weight: 600;
+}
+
+.dangerBtn {
+  color: var(--muted-foreground);
+}
+
+.dangerBtn:hover {
+  color: var(--error);
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding-left: var(--spacing-2);
+  margin-top: var(--spacing-1);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.bullet {
+  color: var(--muted-foreground);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.itemInput {
+  flex: 1;
+  font-size: 0.875rem;
+}
+
+.addItemBtn {
+  align-self: flex-start;
+  margin-top: var(--spacing-1);
+  color: var(--muted-foreground);
+}
+
+.addCatBtn {
+  align-self: center;
+}

@@ -1,0 +1,129 @@
+.rulesContent {
+  margin-top: var(--spacing-6);
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: var(--spacing-4);
+}
+
+.ruleCard {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow);
+}
+
+.ruleHeader {
+  padding: var(--spacing-4);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.ruleTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.ruleBody {
+  padding: var(--spacing-4);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.ruleDescription {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.ruleLinkedUpdate {
+  font-size: 0.875rem;
+  color: var(--foreground);
+  background-color: var(--muted);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-sm);
+}
+
+.ruleMeta {
+  display: flex;
+  gap: var(--spacing-4);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  flex-wrap: wrap;
+}
+
+.ruleMeta strong {
+  color: var(--foreground);
+}
+
+.ruleCode {
+  margin-top: var(--spacing-2);
+  background-color: var(--muted);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-3);
+  overflow-x: auto;
+}
+
+.ruleCode pre {
+  margin: 0;
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--foreground);
+}
+
+.ruleFooter {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border);
+  background-color: color-mix(in srgb, var(--muted) 30%, var(--card));
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+.ruleActions {
+  display: flex;
+  gap: var(--spacing-2);
+  justify-content: flex-end;
+}
+
+.deleteRuleBtn {
+  color: var(--error);
+}
+.deleteRuleBtn:hover {
+  background-color: color-mix(in srgb, var(--error) 10%, transparent);
+  color: var(--error);
+}
+
+.loading {
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.skeletonRow {
+  height: 48px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-12);
+  color: var(--muted-foreground);
+  gap: var(--spacing-4);
+  background-color: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
