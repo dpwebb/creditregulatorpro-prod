@@ -113,3 +113,15 @@ If Docker is installed but unavailable, enable it with:
 ```bash
 sudo systemctl enable --now docker
 ```
+
+## GitHub source of truth
+
+GitHub is the canonical copy of this app's code. Staging and production should only run code that exists in GitHub at a known commit.
+
+Before deploying, run:
+
+```bash
+npm run check:source-of-truth
+```
+
+See `docs/github-source-of-truth.md` for the full workflow.

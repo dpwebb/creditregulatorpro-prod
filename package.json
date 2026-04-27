@@ -5,6 +5,7 @@
     "build": "vite build",
     "start": "tsx server.ts",
     "check": "pnpm run build",
+    "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh"
   },
   "dependencies": {
