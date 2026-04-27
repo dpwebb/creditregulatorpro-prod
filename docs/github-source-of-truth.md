@@ -41,3 +41,28 @@ The check passes only when:
 - local `HEAD` exactly matches the upstream GitHub branch.
 
 If the check fails, commit and push intended changes or pull the latest GitHub state before deploying.
+
+## Automatic Staging Deploys
+
+The staging site is deployed by `.github/workflows/deploy-staging.yml`.
+
+When a commit is pushed to the `staging` branch:
+
+1. GitHub Actions checks out the commit.
+2. GitHub Actions installs dependencies and builds the app.
+3. If the build passes, GitHub Actions connects to the staging server.
+4. The staging server checks out the exact pushed commit.
+5. The staging server installs dependencies, builds, and restarts the staging container.
+
+Required GitHub environment secrets for `staging`:
+
+- `STAGING_HOST`
+- `STAGING_USER`
+- `STAGING_SSH_PRIVATE_KEY`
+- `STAGING_SSH_PORT` optional, defaults to `22`
+
+## Rollback
+
+Use the `Deploy staging` GitHub Actions workflow manually and enter a previous commit SHA in `rollback_sha`.
+
+That redeploys the selected commit to `/opt/creditregulatorpro-staging/app` and restarts the staging container.

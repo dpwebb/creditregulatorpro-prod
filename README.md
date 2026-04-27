@@ -125,3 +125,5 @@ npm run check:source-of-truth
 ```
 
 See `docs/github-source-of-truth.md` for the full workflow.
+
+Pushing to the `staging` branch can deploy the staging site automatically through GitHub Actions after the required staging environment secrets are configured.
