@@ -91,6 +91,8 @@ jobs:
             cd /opt/creditregulatorpro-staging/app
             git fetch --prune origin
             git checkout "$TARGET_SHA"
+            corepack enable
+            corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
             pnpm run build
             docker restart creditregulatorpro-staging
