@@ -55,6 +55,7 @@ export async function cleanupFailedIngest(artifactId: number, tradelineIds?: num
       await db.deleteFrom("metro2ValidationLog").where("tradelineId", "in", tradelineIds).execute();
       await db.deleteFrom("tradelineSnapshot").where("tradelineId", "in", tradelineIds).execute();
       await db.deleteFrom("tradelineArtifactPresence").where("tradelineId", "in", tradelineIds).execute();
+      await db.deleteFrom("tradelinePaymentHistoryDetail").where("tradelineId", "in", tradelineIds).execute();
       await db.deleteFrom("tradelinePaymentHistory").where("tradelineId", "in", tradelineIds).execute();
 
       // 5. Delete the tradelines themselves
@@ -88,6 +89,9 @@ export async function cleanupArtifactOnly(artifactId: number) {
     await db.deleteFrom("reportPublicRecord").where("reportArtifactId", "=", artifactId).execute();
     await db.deleteFrom("reportConsumerStatement").where("reportArtifactId", "=", artifactId).execute();
     await db.deleteFrom("reportEmploymentInfo").where("reportArtifactId", "=", artifactId).execute();
+    await db.deleteFrom("tradelineArtifactPresence").where("reportArtifactId", "=", artifactId).execute();
+    await db.deleteFrom("tradelinePaymentHistoryDetail").where("reportArtifactId", "=", artifactId).execute();
+    await db.deleteFrom("tradelinePaymentHistory").where("reportArtifactId", "=", artifactId).execute();
     await db.deleteFrom("passAEditLog").where("reportArtifactId", "=", artifactId).execute();
 
     await db.deleteFrom("reportArtifact").where("id", "=", artifactId).execute();

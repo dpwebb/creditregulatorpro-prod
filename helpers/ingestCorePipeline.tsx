@@ -38,7 +38,7 @@ export interface PipelineParams {
   fileName: string;
   rawHtml: string;
   send: (event: SSEEvent) => void;
-  context: { tradelineIds: number[] };
+  context: { tradelineIds: number[]; createdTradelineIds: number[]; updatedTradelineIds: number[] };
 }
 
 export async function executeIngestPipeline({
@@ -200,6 +200,8 @@ export async function executeIngestPipeline({
       detectedBureauId
     );
     context.tradelineIds = persistResult.tradelineIds;
+    context.createdTradelineIds = persistResult.createdTradelineIds;
+    context.updatedTradelineIds = persistResult.updatedTradelineIds;
 
     const artifactForUpdate = await db
       .selectFrom("reportArtifact")

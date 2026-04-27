@@ -154,7 +154,11 @@ export async function handleIngestProcess(
     return;
   }
 
-  const context = { tradelineIds: [] as number[] };
+  const context = {
+    tradelineIds: [] as number[],
+    createdTradelineIds: [] as number[],
+    updatedTradelineIds: [] as number[],
+  };
 
   try {
     await executeIngestPipeline({
@@ -183,8 +187,9 @@ export async function handleIngestProcess(
       console.error(`[Ingest] Failed to cleanup evidence events for artifact ${artifactId}:`, cleanupErr);
     }
 
-    // Call cleanupFailedIngest to cascade-delete all orphaned data
-    await cleanupFailedIngest(artifactId, context.tradelineIds);
+    // Only newly created tradelines are safe to delete. Existing tradelines may
+    // have been updated during this ingest and must not be cascade-deleted.
+    await cleanupFailedIngest(artifactId, context.createdTradelineIds);
     
     send({
       type: "error",

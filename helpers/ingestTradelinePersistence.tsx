@@ -115,8 +115,10 @@ export async function persistTradelines(
   reportArtifactId: number,
   parsedTradelines: ParsedTradeline[],
   detectedBureauId: number | null
-): Promise<{ tradelineIds: number[] }> {
+): Promise<{ tradelineIds: number[]; createdTradelineIds: number[]; updatedTradelineIds: number[] }> {
   const tradelineIds: number[] = [];
+  const createdTradelineIds: number[] = [];
+  const updatedTradelineIds: number[] = [];
   const matchedTradelineIds = new Set<number>(); // Track matched tradelines to prevent double-matching
 
   console.log(`[Ingest] Persisting ${parsedTradelines.length} tradelines to database for user ${userId}`);
@@ -253,6 +255,7 @@ export async function persistTradelines(
           .execute();
 
         tradelineIds.push(existingTradeline.id);
+        updatedTradelineIds.push(existingTradeline.id);
         matchedTradelineIds.add(existingTradeline.id); // Mark this tradeline as matched
       } else {
         // Insert new tradeline
@@ -270,6 +273,7 @@ export async function persistTradelines(
           .executeTakeFirstOrThrow();
 
         tradelineIds.push(newTradeline.id);
+        createdTradelineIds.push(newTradeline.id);
         matchedTradelineIds.add(newTradeline.id); // Mark new tradeline as matched
       }
     });
@@ -289,5 +293,5 @@ export async function persistTradelines(
       .execute();
   }
 
-  return { tradelineIds };
+  return { tradelineIds, createdTradelineIds, updatedTradelineIds };
 }
