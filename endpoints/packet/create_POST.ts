@@ -4,7 +4,7 @@ import { handleEndpointError, BusinessRuleError, OriginNotAllowedError } from ".
 import { validateOrigin } from "../../helpers/domainGuard";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { generatePDF } from "../../helpers/pdfGenerator";
-import { uploadPdf } from "../../helpers/gcsStorage";
+import { uploadPdf } from "../../helpers/documentStorage";
 import { packetDataResolver } from "../../helpers/packetDataResolver";
 import { packetLetterBuilder } from "../../helpers/packetLetterBuilder";
 import { packetEvidenceCreator } from "../../helpers/packetEvidenceCreator";
@@ -343,25 +343,25 @@ export async function handle(request: Request) {
       console.log(`Generating PDF for packet ${newPacket.id} with terminal label: ${terminalLabel}`);
       const pdfBase64WithId = await generatePDF(letterContent, user.id.toString(), newPacket.id.toString());
 
-      // Step 3: Mark as 'uploading' before GCS upload
+      // Step 3: Mark as 'uploading' before PDF storage
       await db
         .updateTable('packet')
         .set({ processingStatus: 'uploading' })
         .where('id', '=', newPacket.id)
         .execute();
 
-      const gcsObjectName = `packets/${newPacket.id}.pdf`;
-      const gcsStorageUrl = await uploadPdf(pdfBase64WithId, gcsObjectName);
-      console.log(`PDF uploaded to GCS: ${gcsStorageUrl}`);
+      const storageObjectName = `packets/${newPacket.id}.pdf`;
+      const pdfStorageUrl = await uploadPdf(pdfBase64WithId, storageObjectName);
+      console.log(`PDF stored for packet ${newPacket.id}`);
 
-      // Update the packet record with the GCS path
+      // Update the packet record with the storage path
       await db
         .updateTable('packet')
-        .set({ pdfStorageUrl: gcsStorageUrl })
+        .set({ pdfStorageUrl })
         .where('id', '=', newPacket.id)
         .execute();
 
-      console.log(`Packet ${newPacket.id} PDF storage updated to GCS`);
+      console.log(`Packet ${newPacket.id} PDF storage updated`);
 
       // Create evidence events and compliance audit via helper
       await packetEvidenceCreator({
@@ -440,8 +440,8 @@ export async function handle(request: Request) {
 
       console.log(`Packet ${newPacket.id} processing completed successfully`);
 
-      const newPacketWithGcs = { ...newPacket, pdfStorageUrl: gcsStorageUrl, processingStatus: 'completed' as const };
-      return new Response(JSON.stringify({ packet: newPacketWithGcs } satisfies OutputType));
+      const newPacketWithStorage = { ...newPacket, pdfStorageUrl, processingStatus: 'completed' as const };
+      return new Response(JSON.stringify({ packet: newPacketWithStorage } satisfies OutputType));
 
     } catch (postInsertError) {
       // Step 5: Mark as 'failed' so the ghost packet is identifiable and can be cleaned up

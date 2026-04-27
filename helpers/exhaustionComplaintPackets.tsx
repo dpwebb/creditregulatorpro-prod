@@ -3,7 +3,7 @@ import { db } from "./db";
 import { ObligationInstance, CanadianProvince, CanadianProvinceArrayValues } from "./schema";
 import { generateFCACComplaint, generateProvincialComplaint, ComplaintParams } from "./fcacComplaintGenerator";
 import { generatePDF } from "./pdfGenerator";
-import { uploadPdf } from "./gcsStorage";
+import { uploadPdf } from "./documentStorage";
 
 /**
  * Generates FCAC and provincial complaint packets when an obligation instance
@@ -120,7 +120,7 @@ export async function generateExhaustionComplaintPackets(
   const fcacPdfBase64 = await generatePDF(fcacContent);
   const provincialPdfBase64 = await generatePDF(provincialContent);
 
-  // 7. Insert the two packet rows in a transaction (without pdfStorageUrl — GCS uploads happen after)
+  // 7. Insert the two packet rows in a transaction (without pdfStorageUrl — file storage happens after)
   const [fcacPacket, provincialPacket] = await db
     .transaction()
     .execute(async (trx) => {
@@ -157,25 +157,25 @@ export async function generateExhaustionComplaintPackets(
       return [fcac, prov];
     });
 
-  // 8. Upload PDFs to GCS after the transaction completes (GCS ops should not be inside DB transactions)
-  const fcacGcsObjectName = `packets/${fcacPacket.id}.pdf`;
-  const fcacGcsUrl = await uploadPdf(fcacPdfBase64, fcacGcsObjectName);
-  console.log(`FCAC complaint PDF uploaded to GCS: ${fcacGcsUrl}`);
+  // 8. Store PDFs after the transaction completes
+  const fcacStorageObjectName = `packets/${fcacPacket.id}.pdf`;
+  const fcacPdfStorageUrl = await uploadPdf(fcacPdfBase64, fcacStorageObjectName);
+  console.log(`FCAC complaint PDF stored for packet ${fcacPacket.id}`);
 
-  const provincialGcsObjectName = `packets/${provincialPacket.id}.pdf`;
-  const provincialGcsUrl = await uploadPdf(provincialPdfBase64, provincialGcsObjectName);
-  console.log(`Provincial complaint PDF uploaded to GCS: ${provincialGcsUrl}`);
+  const provincialStorageObjectName = `packets/${provincialPacket.id}.pdf`;
+  const provincialPdfStorageUrl = await uploadPdf(provincialPdfBase64, provincialStorageObjectName);
+  console.log(`Provincial complaint PDF stored for packet ${provincialPacket.id}`);
 
-  // 9. Update both packet records with their GCS paths
+  // 9. Update both packet records with their storage paths
   await db
     .updateTable("packet")
-    .set({ pdfStorageUrl: fcacGcsUrl })
+    .set({ pdfStorageUrl: fcacPdfStorageUrl })
     .where("id", "=", fcacPacket.id)
     .execute();
 
   await db
     .updateTable("packet")
-    .set({ pdfStorageUrl: provincialGcsUrl })
+    .set({ pdfStorageUrl: provincialPdfStorageUrl })
     .where("id", "=", provincialPacket.id)
     .execute();
 

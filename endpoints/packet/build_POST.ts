@@ -22,14 +22,14 @@ import { buildEquifaxDispute, type EquifaxDisputeContext } from "../../helpers/e
 import { buildTransUnionDispute, type TransUnionDisputeContext } from "../../helpers/transunionDisputeTemplate";
 import { mapViolationToDisputeReason } from "../../helpers/equifaxDisputeReasons";
 import { generatePDF, type LetterContent } from "../../helpers/pdfGenerator";
-import { uploadPdf } from "../../helpers/gcsStorage";
+import { uploadPdf } from "../../helpers/documentStorage";
 import { chain } from "../../helpers/hashChain";
 import { calculateTerminalLabel } from "../../helpers/terminalLabelProgression";
 import { logPacketGenerated } from "../../helpers/auditLogger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { getLatestTwoSnapshots } from "../../helpers/tradelineSnapshotManager";
 import { ensureUserSignature } from "../../helpers/signatureGenerator";
-import { buildPacketGcsObjectName } from "../../helpers/packetFileNaming";
+import { buildPacketStorageObjectName } from "../../helpers/packetFileNaming";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 
 export async function handle(request: Request) {
@@ -445,27 +445,27 @@ export async function handle(request: Request) {
 
       const now = new Date();
 
-      // Mark as 'uploading' then upload to GCS
+      // Mark as 'uploading' then store PDF
       await db
         .updateTable("packet")
         .set({ processingStatus: 'uploading' })
         .where("id", "=", packetResult.id)
         .execute();
 
-      const gcsObjectName = buildPacketGcsObjectName(
+      const storageObjectName = buildPacketStorageObjectName(
         packetResult.id,
         consumerName,
         recipientName,
         resolvedCreditorName,
         now
       );
-      const gcsStorageUrl = await uploadPdf(pdfBase64, gcsObjectName);
-      console.log(`PDF uploaded to GCS: ${gcsStorageUrl}`);
+      const pdfStorageUrl = await uploadPdf(pdfBase64, storageObjectName);
+      console.log(`PDF stored for packet ${packetResult.id}`);
 
-      // 15. Update the packet record with the GCS path
+      // 15. Update the packet record with the storage path
       await db
         .updateTable("packet")
-        .set({ pdfStorageUrl: gcsStorageUrl })
+        .set({ pdfStorageUrl })
         .where("id", "=", packetResult.id)
         .execute();
 

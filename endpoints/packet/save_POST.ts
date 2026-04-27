@@ -3,7 +3,7 @@ import { schema, OutputType } from "./save_POST.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { uploadPdf } from "../../helpers/gcsStorage";
+import { uploadPdf } from "../../helpers/documentStorage";
 
 export async function handle(request: Request) {
   try {
@@ -62,19 +62,19 @@ export async function handle(request: Request) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    // Upload the preview base64 PDF to GCS now that we have the packet ID
-    const gcsObjectName = `packets/${newPacket.id}.pdf`;
-    const gcsStorageUrl = await uploadPdf(input.pdfStorageUrl, gcsObjectName);
-    console.log(`PDF uploaded to GCS for saved packet ${newPacket.id}: ${gcsStorageUrl}`);
+    // Store the preview PDF now that we have the packet ID
+    const storageObjectName = `packets/${newPacket.id}.pdf`;
+    const pdfStorageUrl = await uploadPdf(input.pdfStorageUrl, storageObjectName);
+    console.log(`PDF stored for saved packet ${newPacket.id}`);
 
-    // Update the packet record with the GCS path
+    // Update the packet record with the storage path
     await db
       .updateTable("packet")
-      .set({ pdfStorageUrl: gcsStorageUrl })
+      .set({ pdfStorageUrl })
       .where("id", "=", newPacket.id)
       .execute();
 
-    const savedPacket = { ...newPacket, pdfStorageUrl: gcsStorageUrl };
+    const savedPacket = { ...newPacket, pdfStorageUrl };
 
     return new Response(
       JSON.stringify({ packet: savedPacket } satisfies OutputType)

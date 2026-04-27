@@ -3,7 +3,7 @@ import { schema, OutputType } from "./get_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { resolvePdfStorageUrl } from "../../helpers/gcsStorage";
+import { resolvePdfStorageUrl } from "../../helpers/documentStorage";
 
 export async function handle(request: Request) {
   try {
@@ -53,7 +53,7 @@ export async function handle(request: Request) {
     // Remove userId from output to match OutputType and avoid leaking internal IDs if not needed
     const { userId, ...safePacket } = packet;
 
-    // Resolve pdfStorageUrl: converts gcs: paths to signed URLs, passes through legacy base64 unchanged
+    // Keep storage details behind the packet PDF endpoint.
     const resolvedPdfStorageUrl = await resolvePdfStorageUrl(safePacket.pdfStorageUrl ?? null);
 
     return new Response(JSON.stringify({ packet: { ...safePacket, pdfStorageUrl: resolvedPdfStorageUrl } } satisfies OutputType));

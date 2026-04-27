@@ -16,8 +16,8 @@ export function sanitizeFilenameSegment(value: string): string {
 }
 
 /**
- * Sanitizes a string for safe use in GCS object names.
- * GCS allows most characters, but we avoid ones that cause URL/shell issues.
+ * Sanitizes a string for safe use in stored document object names.
+ * We avoid characters that cause URL/shell issues.
  */
 export function sanitizeGcsSegment(value: string): string {
   return value
@@ -64,11 +64,11 @@ export function buildPacketPdfFilename(
 }
 
 /**
- * Builds a descriptive GCS object name for a packet PDF.
+ * Builds a descriptive storage object name for a packet PDF.
  * Format: `packets/{packetId}_{FullName}_to_{BureauName}_{CreditorName}_{YYYY-MM-DD_HHmm}.pdf`
  * The packetId prefix ensures uniqueness; descriptive segments aid human readability.
  */
-export function buildPacketGcsObjectName(
+export function buildPacketStorageObjectName(
   packetId: number,
   consumerName: string,
   bureauName: string,
