@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.git/
+.github/
+*.bak
+npm-debug.log*
+pnpm-debug.log*
