@@ -19,7 +19,7 @@
     max-width: 960px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: var(--spacing-4);
   }
 
@@ -39,6 +39,10 @@
   }
 
   .homeButton {
+    position: fixed;
+    top: var(--spacing-4);
+    right: var(--spacing-4);
+    z-index: 20;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -47,8 +51,8 @@
     padding: 0 var(--spacing-4);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    background-color: var(--card);
-    color: var(--foreground);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
     text-decoration: none;
     font-size: 0.9375rem;
     font-weight: 600;
@@ -61,8 +65,9 @@
   }
 
   .homeButton:hover {
-    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
-    color: var(--primary);
+    border-color: var(--primary);
+    background-color: color-mix(in srgb, var(--primary) 88%, black);
+    color: var(--primary-foreground);
   }
 
   .shieldIcon {
@@ -217,6 +222,8 @@
     }
 
     .homeButton {
+      top: var(--spacing-3);
+      right: var(--spacing-3);
       min-height: 2.25rem;
       padding: 0 var(--spacing-3);
       font-size: 0.875rem;
