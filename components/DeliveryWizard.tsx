@@ -37,6 +37,7 @@ import { useSendFirstClass } from "../helpers/useSendFirstClass";
 import { usePostalPricing } from "../helpers/postalBillingQueries";
 import { useUpdatePacketStatus } from "../helpers/useUpdatePacketStatus";
 import { getBureauDisputeAddress } from "../helpers/bureauDisputeAddresses";
+import { PDF_WORKER_URL } from "../helpers/pdfWorker";
 
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import styles from "./DeliveryWizard.module.css";
@@ -352,7 +353,7 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
                     </Button>
                   </div>
                   <div className={styles.pdfContainer}>
-                    <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                    <Worker workerUrl={PDF_WORKER_URL}>
                       <Viewer 
                         key={`pdf-zoom-${zoomLevel}`}
                         fileUrl={getPacketPdfUrl({ packetId })} 

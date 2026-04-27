@@ -23,6 +23,7 @@ import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { useUpdatePacketStatus } from "../helpers/useUpdatePacketStatus";
 import { PacketDetail } from "../endpoints/packet/get_GET.schema";
 import { getPacketPdfUrl } from "../endpoints/packet/pdf_GET.schema";
+import { PDF_WORKER_URL } from "../helpers/pdfWorker";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import styles from "./PacketViewer.module.css";
@@ -445,7 +446,7 @@ export function PacketViewer({
               </div>
             ) : pdfBlobUrl ? (
               <div className={styles.viewerContainer}>
-                <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                <Worker workerUrl={PDF_WORKER_URL}>
                   <Viewer
                     fileUrl={pdfBlobUrl}
                     plugins={[defaultLayoutPluginInstance]}

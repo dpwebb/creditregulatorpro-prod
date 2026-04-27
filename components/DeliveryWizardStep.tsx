@@ -4,6 +4,7 @@ import { Button } from './Button';
 import { Worker, Viewer } from '@react-pdf-viewer/core';
 import { getPacketPdfUrl } from '../endpoints/packet/pdf_GET.schema';
 import { getBureauDisputeAddress } from '../helpers/bureauDisputeAddresses';
+import { PDF_WORKER_URL } from '../helpers/pdfWorker';
 import styles from './DeliveryWizard.module.css';
 
 interface DeliveryWizardStepProps {
@@ -59,7 +60,7 @@ export const DeliveryWizardStep: React.FC<DeliveryWizardStepProps> = ({
                     </Button>
                 </div>
                 <div className={styles.pdfContainer}>
-                    <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                    <Worker workerUrl={PDF_WORKER_URL}>
                         <Viewer key={`pdf-zoom-${zoomLevel}`} fileUrl={getPacketPdfUrl({ packetId })} defaultScale={zoomLevel} />
                     </Worker>
                 </div>
