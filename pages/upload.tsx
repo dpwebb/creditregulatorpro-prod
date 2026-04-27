@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadCloud, FileUp, AlertCircle, Info, ChevronDown, ShieldCheck, Phone } from "lucide-react";
 import { Button } from "../components/Button";
@@ -44,6 +44,48 @@ const getFriendlyStageName = (stage: string) => {
   }
 };
 
+const getEstimatedProgressCap = (stage: string, actualPercent: number) => {
+  if (actualPercent >= 100) return 100;
+  if (stage === "submitting") return 32;
+  if (stage === "submitted" || stage === "retrying_phase2") return 38;
+  if (stage.startsWith("pass_a_")) return 58;
+  if (stage.startsWith("full_")) return 78;
+
+  switch (stage) {
+    case "initializing": return 12;
+    case "docstrange_connecting": return 22;
+    case "docstrange_uploading": return 36;
+    case "docstrange_processing": return 66;
+    case "docstrange_parsing": return 78;
+    case "docstrange_validating": return 86;
+    case "docstrange_complete": return 90;
+    case "user_setup": return 18;
+    case "creating_artifact": return 28;
+    case "extracting_text": return 42;
+    case "unified_extraction": return 74;
+    case "unified_extraction_completed": return 78;
+    case "parsing_tradelines": return 84;
+    case "persisting_tradelines": return 88;
+    case "storing_comprehensive_data": return 90;
+    case "validation": return 92;
+    case "snapshotting": return 93;
+    case "missing_tradeline_check": return 94;
+    case "compliance_scanning": return 96;
+    case "auto_drift_detection": return 97;
+    case "silent_correction_detection": return 98;
+    case "packet_impact_assessment": return 98.5;
+    case "finalizing": return 99;
+    default: return Math.min(96, Math.max(actualPercent + 18, actualPercent));
+  }
+};
+
+const getProgressIncrement = (currentPercent: number) => {
+  if (currentPercent < 35) return 1.2;
+  if (currentPercent < 70) return 0.8;
+  if (currentPercent < 90) return 0.45;
+  return 0.2;
+};
+
 export default function UploadPage() {
   
   const [file, setFile] = useState<File | null>(null);
@@ -58,12 +100,39 @@ export default function UploadPage() {
   
   // Progress state
   const [uploadProgress, setUploadProgress] = useState<{ stage: string; percent: number; message?: string } | null>(null);
+  const [displayedProgress, setDisplayedProgress] = useState(0);
 
   const navigate = useNavigate();
   const { authState } = useAuth();
   const { mutate: uploadReport, isPending, error } = useUploadReport((stage, percent, message) => {
     setUploadProgress({ stage, percent, message });
   });
+
+  useEffect(() => {
+    if (!isPending || !uploadProgress) {
+      setDisplayedProgress(uploadProgress?.percent ?? 0);
+      return;
+    }
+
+    setDisplayedProgress((current) => Math.max(current, uploadProgress.percent));
+
+    const intervalId = window.setInterval(() => {
+      setDisplayedProgress((current) => {
+        if (uploadProgress.percent >= 100) return 100;
+
+        const cap = getEstimatedProgressCap(uploadProgress.stage, uploadProgress.percent);
+        const floor = Math.max(current, uploadProgress.percent);
+
+        if (floor >= cap) {
+          return floor;
+        }
+
+        return Math.min(cap, floor + getProgressIncrement(floor));
+      });
+    }, 700);
+
+    return () => window.clearInterval(intervalId);
+  }, [isPending, uploadProgress]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -102,6 +171,7 @@ export default function UploadPage() {
       const mimeType = file.type || "application/pdf";
 
       setUploadProgress({ stage: "initializing", percent: 0, message: "Preparing upload..." });
+      setDisplayedProgress(0);
 
       uploadReport(
         {
@@ -451,9 +521,9 @@ export default function UploadPage() {
                 <span className={styles.progressStage}>
                   {getFriendlyStageName(uploadProgress.stage)}
                 </span>
-                <span>{Math.round(uploadProgress.percent)}%</span>
+                <span>{Math.round(displayedProgress)}%</span>
               </div>
-              <Progress value={uploadProgress.percent} />
+              <Progress value={displayedProgress} />
               {uploadProgress.message && (
                 <div className={styles.progressMessage}>{uploadProgress.message}</div>
               )}
