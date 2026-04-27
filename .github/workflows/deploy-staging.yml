@@ -95,6 +95,6 @@ jobs:
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
             pnpm run build
-            docker restart creditregulatorpro-staging
+            docker compose up -d --build creditregulatorpro-staging
             git log -1 --oneline
           REMOTE
