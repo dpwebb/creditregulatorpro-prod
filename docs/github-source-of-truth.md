@@ -5,7 +5,7 @@ Staging and production should only run code that exists in GitHub at a known com
 
 ## Repository
 
-- Local staging repo: `C:\Users\webbd\My Drive\Projects\creditregulatorpro-staging`
+- Local staging repo: `C:\Users\webbd\Projects\creditregulatorpro-staging`
 - GitHub remote: `https://github.com/dpwebb/creditregulatorpro-staging.git`
 - Default staging branch: `staging`
 

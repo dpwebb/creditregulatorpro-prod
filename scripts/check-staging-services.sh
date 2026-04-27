@@ -6,18 +6,18 @@ STAGING_HOST="https://staging.creditregulatorpro.com"
 check_cmd() {
   local cmd="$1"
   if command -v "$cmd" >/dev/null 2>&1; then
-    echo "✅ $cmd is installed"
+    echo "[OK] $cmd is installed"
   else
-    echo "❌ $cmd is missing"
+    echo "[ERROR] $cmd is missing"
     return 1
   fi
 }
 
 check_docker() {
   if docker ps -a >/dev/null 2>&1; then
-    echo "✅ docker daemon is reachable"
+    echo "[OK] docker daemon is reachable"
   else
-    echo "⚠️ docker is installed but daemon is unavailable/unreachable"
+    echo "[WARN] docker is installed but daemon is unavailable/unreachable"
     echo "   Try: sudo systemctl enable --now docker"
     return 1
   fi
@@ -25,16 +25,16 @@ check_docker() {
 
 check_staging_http() {
   if curl -k -I "$STAGING_HOST" >/dev/null 2>&1; then
-    echo "✅ staging endpoint reachable via current proxy settings"
+    echo "[OK] staging endpoint reachable via current proxy settings"
     return 0
   fi
 
   if curl --noproxy '*' -k -I "$STAGING_HOST" >/dev/null 2>&1; then
-    echo "✅ staging endpoint reachable directly (bypassing proxy)"
+    echo "[OK] staging endpoint reachable directly (bypassing proxy)"
     return 0
   fi
 
-  echo "⚠️ unable to reach $STAGING_HOST (both proxied and direct attempts failed)"
+  echo "[WARN] unable to reach $STAGING_HOST (both proxied and direct attempts failed)"
   return 1
 }
 

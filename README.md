@@ -1,40 +1,40 @@
 # Credit Regulator Pro
-        
-Create a new app “Credit Regulator Pro”
+
+Create a new app "Credit Regulator Pro"
 TARGET AUDIENCE: Grade 8 education level. All user-facing text must use plain, everyday language. No jargon. Short sentences. Encouraging tone.
 
-POLICY Canada only 
+POLICY Canada only
 * Region = CA only no cross border storage
 * Evidence retention = 1 year
-* Terminal labels follow a 4-phase progression system; any phase can be the current terminal state. The old PROCEDURALLY EXHAUSTED — CURRENTLY label has been retired.
+* Terminal labels follow a 4-phase progression system; any phase can be the current terminal state. The old PROCEDURALLY EXHAUSTED - CURRENTLY label has been retired.
 
-Tables 
-* user_account 
-* report_artifact 
-* bureau 
-* furnisher 
-* tradeline 
-* statute 
-* obligation 
-* obligation_instance 
-* packet 
-* evidence_event 
-Indexes 
-* evidence_event region at 
+Tables
+* user_account
+* report_artifact
+* bureau
+* furnisher
+* tradeline
+* statute
+* obligation
+* obligation_instance
+* packet
+* evidence_event
+Indexes
+* evidence_event region at
 * obligation_instance tradeline_id state
 
 ROLES & SUBSCRIPTIONS
 * Three roles: "admin" (internal staff), "user" (all consumers), and "support" (CS agent)
-* No "enterprise" role — it has been removed
+* No "enterprise" role - it has been removed
 * Subscription plans: beta (free), monthly ($19 CAD, primary plan), annual ($49.99 CAD)
-* Beta users have full feature access — same as paid users
+* Beta users have full feature access - same as paid users
 * The system is now in PRODUCTION MODE (production_mode = true)
 * Beta users can now upgrade to paid subscription plans via Stripe
 * New registrations receive a 7-day free trial (plan: "beta", status: "trialing")
 * After the 7-day trial, users must subscribe to monthly or annual plan or account is locked
 * After trial, users must subscribe or account is locked
 * The anonymous upload flow (try-upload page) exists for conversion
-* Billing via Stripe (integration deferred — subscription tracking is in place)
+* Billing via Stripe (integration deferred - subscription tracking is in place)
 * Subscription table: subscriptions (one per user)
 
 SUPPORT ROLE & CUSTOMER SERVICE
@@ -52,13 +52,13 @@ REPORT INGESTION PIPELINE
 * DocStrange HTML extraction returns creditor names correctly in the parsed HTML response
 * htmlReportParser.parseAccount() extracts creditorName from HTML tables and tags
 * Creditor names are stored in the `creditor` table (via creditor_id FK) and also denormalized into `tradeline.originalCreditorName` for all tradelines (not just collection accounts)
-* The `packet/build_POST` endpoint joins with the creditor table and resolves creditor name with fallback chain: creditor.name → originalCreditorName → "Unknown Creditor"
+* The `packet/build_POST` endpoint joins with the creditor table and resolves creditor name with fallback chain: creditor.name -> originalCreditorName -> "Unknown Creditor"
 
 REPORT INGESTION PIPELINE - PARSER ARCHITECTURE:
 * Bureau-specific parsing is compartmentalized into separate modules
 * HTML Path (primary - DocStrange reports): bureauDetectionRouter routes HTML to transunionHtmlParser or equifaxReportParser based on bureau detection
 * TransUnion HTML: transunionHtmlParser + transunionAccountParser handle TU-specific HTML table structures
-* Equifax HTML: equifaxReportParser + equifaxAccountParser handle EQ-specific h1/h2 section structures  
+* Equifax HTML: equifaxReportParser + equifaxAccountParser handle EQ-specific h1/h2 section structures
 * PDF Text Path (fallback): reportParser delegates to transunionPdfExtractor (TU) or equifaxPdfExtractor (EQ)
 * Shared infrastructure: _htmlParserUtils (table parsing), tradelineBasicInfoExtractors, tradelineAmountExtractors, tradelineDateExtractors (PDF text path)
 * docstrangeParser uses routeHtmlToLLMResponse from bureauDetectionRouter (NOT hardcoded TransUnion)
@@ -70,29 +70,29 @@ Made with Floot.
 
 # Instructions
 
-For security reasons, the `env.json` file is not pre-populated — you will need to generate or retrieve the values yourself.  
+For security reasons, the `env.json` file is not pre-populated - you will need to generate or retrieve the values yourself.
 
-For **JWT secrets**, generate a value with:  
+For **JWT secrets**, generate a value with:
 
 ```
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Then paste the generated value into the appropriate field.  
+Then paste the generated value into the appropriate field.
 
-For the **Floot Database**, download your database content as a pg_dump from the cog icon in the database view (right pane -> data -> floot data base -> cog icon on the left of the name), upload it to your own PostgreSQL database, and then fill in the connection string value.  
+For the **Floot Database**, download your database content as a pg_dump from the cog icon in the database view (right pane -> data -> floot data base -> cog icon on the left of the name), upload it to your own PostgreSQL database, and then fill in the connection string value.
 
-**Note:** Floot OAuth will not work in self-hosted environments.  
+**Note:** Floot OAuth will not work in self-hosted environments.
 
-For other external services, retrieve your API keys and fill in the corresponding values.  
+For other external services, retrieve your API keys and fill in the corresponding values.
 
-Once everything is configured, you can build and start the service with:  
+Once everything is configured, you can build and start the service with:
 
 ```
 npm install -g pnpm
 pnpm install
-pnpm vite build
-pnpm tsx server.ts
+pnpm run build
+pnpm start
 ```
 
 ## Staging service prerequisites check
@@ -104,9 +104,9 @@ npm run check:staging-services
 ```
 
 This verifies:
-- `docker` is installed and daemon is reachable (`docker ps -a`)
-- `curl` is installed
-- `https://staging.creditregulatorpro.com` is reachable (proxied and direct attempts)
+* `docker` is installed and daemon is reachable (`docker ps -a`)
+* `curl` is installed
+* `https://staging.creditregulatorpro.com` is reachable (proxied and direct attempts)
 
 If Docker is installed but unavailable, enable it with:
 
