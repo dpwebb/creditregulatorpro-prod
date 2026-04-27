@@ -128,6 +128,9 @@ importers:
       hono:
         specifier: ^4.7.5
         version: 4.12.15
+      jose:
+        specifier: 6.1.3
+        version: 6.1.3
       jpeg-js:
         specifier: 0.4.4
         version: 0.4.4
@@ -2165,6 +2168,9 @@ packages:
   isomorphic-timers-promises@1.0.1:
     resolution: {integrity: sha512-u4sej9B1LPSxTGKB/HiuzvEQnXH0ECYkSVQU39koSwmFAxhlEAFl9RdTvLv4TOTQUgBS5O3O5fwUxk6byBZ+IQ==}
     engines: {node: '>=10'}
+
+  jose@6.1.3:
+    resolution: {integrity: sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ==}
 
   jpeg-exif@1.1.4:
     resolution: {integrity: sha512-a+bKEcCjtuW5WTdgeXFzswSrdqi0jk4XlEtZlx5A94wCoBpFjfFTbo/Tra5SpNCl/YFZPvcV1dJc+TAYeg6ROQ==}
@@ -4809,6 +4815,8 @@ snapshots:
   isarray@2.0.5: {}
 
   isomorphic-timers-promises@1.0.1: {}
+
+  jose@6.1.3: {}
 
   jpeg-exif@1.1.4: {}
 
