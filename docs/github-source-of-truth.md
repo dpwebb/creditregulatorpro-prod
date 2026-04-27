@@ -59,7 +59,10 @@ Required GitHub environment secrets for `staging`:
 - `STAGING_HOST`
 - `STAGING_USER`
 - `STAGING_SSH_PRIVATE_KEY`
-- `STAGING_SSH_PORT` optional, defaults to `22`
+
+Optional GitHub environment secret:
+
+- `STAGING_SSH_PORT` defaults to `22` when omitted
 
 ## Rollback
 

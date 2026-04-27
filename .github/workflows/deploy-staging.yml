@@ -58,22 +58,22 @@ jobs:
         env:
           STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
-          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$STAGING_SSH_PRIVATE_KEY" > ~/.ssh/staging_deploy_key
           chmod 600 ~/.ssh/staging_deploy_key
-          ssh-keyscan -p "${STAGING_SSH_PORT:-22}" "$STAGING_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -p "$STAGING_SSH_PORT" "$STAGING_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy selected commit
         env:
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
           STAGING_USER: ${{ secrets.STAGING_USER }}
-          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
           TARGET_SHA: ${{ steps.target.outputs.sha }}
         run: |
-          ssh -i ~/.ssh/staging_deploy_key -p "${STAGING_SSH_PORT:-22}" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' bash -s" <<'REMOTE'
+          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' bash -s" <<'REMOTE'
             set -euo pipefail
 
             cd /opt/creditregulatorpro-staging/app
