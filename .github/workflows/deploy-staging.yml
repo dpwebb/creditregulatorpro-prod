@@ -62,8 +62,20 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "$STAGING_SSH_PRIVATE_KEY" > ~/.ssh/staging_deploy_key
+          printf '%s\n' "$STAGING_SSH_PRIVATE_KEY" > ~/.ssh/staging_deploy_key.raw
+          python3 - <<'PY'
+          from pathlib import Path
+
+          raw_path = Path.home() / ".ssh" / "staging_deploy_key.raw"
+          key_path = Path.home() / ".ssh" / "staging_deploy_key"
+          key = raw_path.read_text()
+          key = key.replace("\\n", "\n")
+          key = key.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+          key_path.write_text(key)
+          raw_path.unlink()
+          PY
           chmod 600 ~/.ssh/staging_deploy_key
+          ssh-keygen -y -f ~/.ssh/staging_deploy_key >/dev/null
           ssh-keyscan -p "$STAGING_SSH_PORT" "$STAGING_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy selected commit
