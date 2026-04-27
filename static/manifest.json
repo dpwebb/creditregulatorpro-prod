@@ -9,13 +9,13 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "https://assets.floot.app/e11b9956-edbd-4f31-b22c-500fa8dbcb00/edd6402e-07ca-4985-905b-b4df57b0f847.png",
+      "src": "/brand/app-icon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://assets.floot.app/e11b9956-edbd-4f31-b22c-500fa8dbcb00/e2f23651-78a9-4478-b619-f30939d8e4fe.png",
+      "src": "/brand/app-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

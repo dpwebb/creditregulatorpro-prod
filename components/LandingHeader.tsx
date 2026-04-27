@@ -20,7 +20,7 @@ export function LandingHeader() {
       <div className={styles.container}>
         <Link to="/" className={styles.logoLink}>
           <img 
-            src="https://assets.floot.app/e11b9956-edbd-4f31-b22c-500fa8dbcb00/66d4938f-4adf-4d8c-ada1-ab0b511a2dce.png" 
+            src="/brand/logo-horizontal.png"
             alt="Credit Regulator Pro" 
             className={styles.logoImg} 
           />

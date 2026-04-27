@@ -207,14 +207,14 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         <div className={styles.logoContainer}>
           {isMinimized ? (
             <img 
-              src="https://assets.floot.app/e11b9956-edbd-4f31-b22c-500fa8dbcb00/6c01a6f6-e4b0-4e16-a059-bc8e0eeb041b.png" 
+              src="/brand/favicon.png"
               alt="CRP Logo" 
               className={styles.minimizedLogo} 
             />
           ) : (
             <div className={styles.htmlLogoWrapper}>
               <img 
-                src="https://assets.floot.app/e11b9956-edbd-4f31-b22c-500fa8dbcb00/6c01a6f6-e4b0-4e16-a059-bc8e0eeb041b.png" 
+                src="/brand/favicon.png"
                 alt="CRP Shield" 
                 className={styles.htmlLogoIcon} 
               />

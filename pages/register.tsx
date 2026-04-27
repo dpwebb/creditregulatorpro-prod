@@ -30,7 +30,7 @@ export default function RegisterPage() {
         <div className={styles.contentWrapper}>
           <div className={styles.logoWrapper}>
             <img 
-              src="https://assets.floot.app/e11b9956-edbd-4f31-b22c-500fa8dbcb00/6c01a6f6-e4b0-4e16-a059-bc8e0eeb041b.png" 
+              src="/brand/app-icon.png"
               alt="Credit Regulator Pro Shield"
               className={styles.logoIcon}
             />
