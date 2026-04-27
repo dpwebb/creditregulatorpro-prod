@@ -1,17 +1,19 @@
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install --legacy-peer-deps
+RUN corepack enable && corepack prepare pnpm@10 --activate
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN npx vite build
+RUN pnpm run build
 
 ENV NODE_ENV=production
-ENV PORT=3333
+ENV PORT=3334
 
-EXPOSE 3333
+EXPOSE 3334
 
-CMD ["npx", "tsx", "server.ts"]
+CMD ["pnpm", "tsx", "server.ts"]
