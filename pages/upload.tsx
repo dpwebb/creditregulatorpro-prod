@@ -44,39 +44,9 @@ const getFriendlyStageName = (stage: string) => {
   }
 };
 
-const getEstimatedProgressCap = (stage: string, actualPercent: number) => {
+const getEstimatedProgressCap = (_stage: string, actualPercent: number) => {
   if (actualPercent >= 100) return 100;
-  if (stage === "submitting") return 32;
-  if (stage === "submitted" || stage === "retrying_phase2") return 38;
-  if (stage.startsWith("pass_a_")) return 58;
-  if (stage.startsWith("full_")) return 78;
-
-  switch (stage) {
-    case "initializing": return 12;
-    case "docstrange_connecting": return 22;
-    case "docstrange_uploading": return 36;
-    case "docstrange_processing": return 66;
-    case "docstrange_parsing": return 78;
-    case "docstrange_validating": return 86;
-    case "docstrange_complete": return 90;
-    case "user_setup": return 18;
-    case "creating_artifact": return 28;
-    case "extracting_text": return 42;
-    case "unified_extraction": return 74;
-    case "unified_extraction_completed": return 78;
-    case "parsing_tradelines": return 84;
-    case "persisting_tradelines": return 88;
-    case "storing_comprehensive_data": return 90;
-    case "validation": return 92;
-    case "snapshotting": return 93;
-    case "missing_tradeline_check": return 94;
-    case "compliance_scanning": return 96;
-    case "auto_drift_detection": return 97;
-    case "silent_correction_detection": return 98;
-    case "packet_impact_assessment": return 98.5;
-    case "finalizing": return 99;
-    default: return Math.min(96, Math.max(actualPercent + 18, actualPercent));
-  }
+  return 99;
 };
 
 const getProgressIncrement = (currentPercent: number) => {
@@ -101,6 +71,7 @@ export default function UploadPage() {
   // Progress state
   const [uploadProgress, setUploadProgress] = useState<{ stage: string; percent: number; message?: string } | null>(null);
   const [displayedProgress, setDisplayedProgress] = useState(0);
+  const slowProgressTickRef = useRef<number | null>(null);
 
   const navigate = useNavigate();
   const { authState } = useAuth();
@@ -111,6 +82,7 @@ export default function UploadPage() {
   useEffect(() => {
     if (!isPending || !uploadProgress) {
       setDisplayedProgress(uploadProgress?.percent ?? 0);
+      slowProgressTickRef.current = null;
       return;
     }
 
@@ -127,7 +99,23 @@ export default function UploadPage() {
           return floor;
         }
 
-        return Math.min(cap, floor + getProgressIncrement(floor));
+        if (floor < 90) {
+          slowProgressTickRef.current = null;
+          return Math.min(90, floor + getProgressIncrement(floor));
+        }
+
+        const now = Date.now();
+        if (slowProgressTickRef.current === null) {
+          slowProgressTickRef.current = now;
+          return floor;
+        }
+
+        if (now - slowProgressTickRef.current >= 10_000) {
+          slowProgressTickRef.current = now;
+          return Math.min(cap, floor + 1);
+        }
+
+        return floor;
       });
     }, 700);
 
@@ -172,6 +160,7 @@ export default function UploadPage() {
 
       setUploadProgress({ stage: "initializing", percent: 0, message: "Preparing upload..." });
       setDisplayedProgress(0);
+      slowProgressTickRef.current = null;
 
       uploadReport(
         {
