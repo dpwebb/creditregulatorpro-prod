@@ -14,6 +14,15 @@
     margin-bottom: var(--spacing-12);
   }
 
+  .headerInner {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+  }
+
   .logoLink {
     display: inline-flex;
     align-items: center;
@@ -27,6 +36,33 @@
 
   .logoLink:hover {
     opacity: 0.8;
+  }
+
+  .homeButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    min-height: 2.5rem;
+    padding: 0 var(--spacing-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+    color: var(--foreground);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+    transition:
+      background-color var(--animation-duration-fast) ease,
+      border-color var(--animation-duration-fast) ease,
+      color var(--animation-duration-fast) ease;
+  }
+
+  .homeButton:hover {
+    border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+    color: var(--primary);
   }
 
   .shieldIcon {
@@ -165,5 +201,25 @@
     font-size: 0.875rem;
     color: var(--muted-foreground);
     max-width: 300px;
+  }
+
+  @media (max-width: 480px) {
+    .pageContainer {
+      padding: var(--spacing-4);
+    }
+
+    .header {
+      margin-bottom: var(--spacing-8);
+    }
+
+    .logoLink {
+      font-size: 1rem;
+    }
+
+    .homeButton {
+      min-height: 2.25rem;
+      padding: 0 var(--spacing-3);
+      font-size: 0.875rem;
+    }
   }
 }
