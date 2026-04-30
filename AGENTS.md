@@ -23,9 +23,13 @@
 - If uncertain, inspect first and summarize before editing
 
 ## Git workflow
+- Treat this local directory as the working copy for Codex chat changes
+- GitHub remains the source of truth for deployment after commits are pushed
 - Make changes in staging only
 - Do not commit automatically unless explicitly asked
 - Do not push automatically unless explicitly asked
+- When publishing is requested, commit and push to `staging`; the existing GitHub Actions and Hostinger path handle deployment
+- Do not add or require new secrets, tokens, deploy keys, Hostinger authentication, or GitHub authentication
 - Suggest a commit message after each task
 
 ## Browser/testing workflow
