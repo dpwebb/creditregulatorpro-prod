@@ -1,7 +1,7 @@
 # CreditRegulatorPro Staging Repo Rules
 
 ## Scope
-- Work only in this repository: C:\Users\webbd\My Drive\Projects\creditregulatorpro-staging
+- Work only in this repository: C:\Users\webbd\Projects\creditregulatorpro-staging
 - Never edit production paths
 - Treat this repo as the only writable codebase
 
