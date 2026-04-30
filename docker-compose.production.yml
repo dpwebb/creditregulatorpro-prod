@@ -1,0 +1,20 @@
+services:
+  creditregulatorpro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app-creditregulatorpro
+    container_name: creditregulatorpro-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    network_mode: host
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.creditregulatorpro.rule=Host(`creditregulatorpro.com`)
+      - traefik.http.routers.creditregulatorpro.entrypoints=websecure
+      - traefik.http.routers.creditregulatorpro.tls=true
+      - traefik.http.routers.creditregulatorpro.tls.certresolver=letsencrypt
+      - traefik.http.services.creditregulatorpro.loadbalancer.server.port=3333
