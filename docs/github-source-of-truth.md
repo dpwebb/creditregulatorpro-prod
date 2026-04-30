@@ -64,6 +64,44 @@ Optional GitHub environment secret:
 
 - `STAGING_SSH_PORT` defaults to `22` when omitted
 
+## Production Promotion
+
+Production promotion uses the same local command in every Codex project:
+
+```bash
+pnpm run promote:production
+```
+
+The command is a dry run by default. It verifies:
+
+- the current branch is `staging`,
+- the local branch is clean,
+- local `HEAD` matches `origin/staging`,
+- `pnpm run check` passes,
+- the production repository is reachable,
+- the production branch has not moved unexpectedly.
+
+To promote the exact approved staging commit to production:
+
+```bash
+pnpm run promote:production -- --confirm
+```
+
+Default production target:
+
+- Repository: `https://github.com/dpwebb/creditregulatorpro-prod.git`
+- Branch: `main`
+
+If production history is not an ancestor of the approved staging commit, the command stops. After reviewing the history, a one-time replacement can be made explicitly:
+
+```bash
+pnpm run promote:production -- --confirm --allow-non-fast-forward
+```
+
+This uses `--force-with-lease` against the production branch's last observed commit, so it will fail if someone else updates production between the check and the push.
+
+No GitHub secrets, deploy keys, server credentials, or production environment variables are added or changed by this workflow. It uses the Git credentials already available on the machine running the command.
+
 ## Rollback
 
 Use the `Deploy staging` GitHub Actions workflow manually and enter a previous commit SHA in `rollback_sha`.

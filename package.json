@@ -6,7 +6,8 @@
     "start": "tsx server.ts",
     "check": "pnpm run build",
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
-    "check:staging-services": "bash scripts/check-staging-services.sh"
+    "check:staging-services": "bash scripts/check-staging-services.sh",
+    "promote:production": "node scripts/promote-production.mjs"
   },
   "dependencies": {
     "jose": "6.1.3",
