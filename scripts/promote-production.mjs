@@ -80,8 +80,11 @@ if (localHead !== upstreamHead) {
 }
 
 console.log("Running build check...");
-const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-run(pnpmCommand, ["run", "check"], { stdio: "inherit" });
+if (process.platform === "win32") {
+  run("cmd.exe", ["/d", "/s", "/c", "pnpm run check"], { stdio: "inherit" });
+} else {
+  run("pnpm", ["run", "check"], { stdio: "inherit" });
+}
 
 console.log("Fetching production branch for comparison...");
 cleanupTempRef();
