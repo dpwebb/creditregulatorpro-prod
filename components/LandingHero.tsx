@@ -20,7 +20,7 @@ export function LandingHero() {
           style={{ transitionDelay: "100ms" }}
         >
           <p className={styles.subhead}>
-            We check your credit report and show you what might be wrong.
+            We check your Canadian credit report and show you what might be wrong.
           </p>
         </div>
 
