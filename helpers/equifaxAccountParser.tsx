@@ -7,6 +7,20 @@ function parseNumericAmount(val: string | null | undefined): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
+function earliestDateString(dates: string[]): string | null {
+  let earliest: { value: string; time: number } | null = null;
+
+  for (const value of dates) {
+    const time = new Date(value.replace(/\//g, "-")).getTime();
+    if (Number.isNaN(time)) continue;
+    if (!earliest || time < earliest.time) {
+      earliest = { value, time };
+    }
+  }
+
+  return earliest?.value ?? null;
+}
+
 export function getEquifaxSection(html: string, sectionH1Regex: RegExp): string | null {
   const match = html.match(sectionH1Regex);
   if (!match) return null;
@@ -446,6 +460,8 @@ export function parseSingleEqAccount(creditorName: string, html: string, account
     }
   }
 
+  const firstDelinquencyDate = earliestDateString(delinquencyDates);
+
   return {
     creditorName,
     sourceText: rawText,
@@ -468,6 +484,8 @@ export function parseSingleEqAccount(creditorName: string, html: string, account
     ratingCodeDescription,
     amountWrittenOff,
     delinquencyDates,
+    firstDelinquencyDate,
+    dateOfFirstDelinquency: firstDelinquencyDate,
     chargeOffDate,
     terms,
     responsibilityCode,

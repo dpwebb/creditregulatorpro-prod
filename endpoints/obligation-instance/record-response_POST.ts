@@ -48,6 +48,7 @@ export async function handle(request: Request) {
   try {
     const session = await getServerUserSession(request);
     const userId = session.user.id;
+    const isAdmin = session.user.role === "admin";
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
@@ -79,7 +80,7 @@ export async function handle(request: Request) {
       );
     }
 
-    if (existingInstance.userId !== userId) {
+    if (!isAdmin && existingInstance.userId !== userId) {
       return new Response(
         JSON.stringify({ error: "Unauthorized access to this record" }),
         { status: 403 }

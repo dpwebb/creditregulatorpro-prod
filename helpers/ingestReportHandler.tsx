@@ -58,7 +58,9 @@ export async function handleIngestSubmit(
 
   const artifactId = artifactResult.artifactId;
 
-  if (input.mimeType === "application/pdf") {
+  const isPdfUpload = input.mimeType === "application/pdf" || input.fileName.toLowerCase().endsWith(".pdf");
+
+  if (isPdfUpload) {
     console.log("[Ingest] Attempting AI extraction...");
     const fallbackResult = await extractHtmlWithFallbackChain(input.bytesBase64);
 
@@ -78,6 +80,12 @@ export async function handleIngestSubmit(
             docstrangeRawHtml: fallbackResult.html,
             extractionStatus: "extracted",
             extractionSource: fallbackResult.source,
+            extractionProvenance: {
+              source: fallbackResult.source,
+              normalizedByAi: true,
+              sourceEvidence: "ai_generated_html",
+              extractedAt: new Date().toISOString(),
+            },
           })) as Json
         })
         .where("id", "=", artifactId)
@@ -141,6 +149,7 @@ export async function handleIngestProcess(
   const fileName = artifactData.fileName as string;
   const rawHtml = artifactData.docstrangeRawHtml as string | undefined;
   const extractionStatus = artifactData.extractionStatus as string | undefined;
+  const extractionSource = artifactData.extractionSource as string | undefined;
 
   if (extractionStatus === "failed") {
     await cleanupFailedIngest(artifactId, []);
@@ -168,6 +177,7 @@ export async function handleIngestProcess(
       region,
       fileName,
       rawHtml,
+      extractionSource: extractionSource ?? null,
       send,
       context
     });

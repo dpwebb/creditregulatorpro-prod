@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ChallengeAccessPoint } from "../../helpers/challengeAccessPointGenerator";
+import { ParserQualityAssessment } from "../../helpers/parserQuality";
 
 export const schema = z.object({
   artifactId: z.number(),
@@ -85,6 +86,7 @@ export type OutputType = {
   };
   topFindings: TopFinding[];
   challengeAccessPoints: ChallengeAccessPoint[];
+  parserQuality?: ParserQualityAssessment;
   crossReference?: CrossReference;
   disputeOutcomeSummary?: DisputeOutcomeSummary;
 };

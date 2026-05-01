@@ -6,6 +6,45 @@ import { parseEquifaxHtmlToLLMResponse } from "./equifaxReportParser";
 import { mapDocStrangeResponseToResult } from "./docstrangeParser";
 import { loadActiveMappings, loadBureauDetectionConfig, applyOverrides } from "./parserMappingEngine";
 
+type BureauMarker = { marker: string; weight: number };
+
+const DEFAULT_TU_MARKERS: BureauMarker[] = [
+  { marker: "TRANSUNION", weight: 50 },
+  { marker: "TU CASE ID", weight: 60 },
+  { marker: "TRANSUNION CANADA", weight: 50 },
+];
+
+const DEFAULT_EQ_MARKERS: BureauMarker[] = [
+  { marker: "EQUIFAX", weight: 50 },
+  { marker: "EQUIFAX CREDIT SCORE", weight: 40 },
+  { marker: "ECRS", weight: 30 },
+  { marker: "H1S 2Z2", weight: 40 },
+  { marker: "1-800-465-7166", weight: 60 },
+];
+
+const MIN_BUREAU_SCORE = 30;
+const MIN_BUREAU_SCORE_MARGIN = 15;
+
+function scoreMarkers(upperHtml: string, markers: BureauMarker[]): number {
+  return markers.reduce((score, { marker, weight }) => {
+    return upperHtml.includes(marker.toUpperCase()) ? score + weight : score;
+  }, 0);
+}
+
+function resolveBureauFromScores(tuScore: number, eqScore: number): "TransUnion" | "Equifax" {
+  if (tuScore < MIN_BUREAU_SCORE && eqScore < MIN_BUREAU_SCORE) {
+    throw new Error("Unsupported credit bureau format. Only TransUnion and Equifax Canada reports are accepted.");
+  }
+
+  if (Math.abs(tuScore - eqScore) < MIN_BUREAU_SCORE_MARGIN) {
+    throw new Error(
+      `Ambiguous credit bureau format. TransUnion score ${tuScore}, Equifax score ${eqScore}. Please upload a clearer TransUnion or Equifax Canada report.`
+    );
+  }
+
+  return tuScore > eqScore ? "TransUnion" : "Equifax";
+}
+
 /**
  * Detects whether the provided HTML represents a TransUnion or Equifax report
  * by looking for specific markers.
@@ -17,40 +56,10 @@ export function detectBureau(html: string): "TransUnion" | "Equifax" {
   if (!html) throw new Error("Unsupported credit bureau format. Only TransUnion and Equifax Canada reports are accepted.");
 
   const upperHtml = html.toUpperCase();
+  const tuScore = scoreMarkers(upperHtml, DEFAULT_TU_MARKERS);
+  const eqScore = scoreMarkers(upperHtml, DEFAULT_EQ_MARKERS);
 
-  const tuMarkers = [
-    { marker: "TRANSUNION", weight: 50 },
-    { marker: "TU CASE ID", weight: 60 },
-    { marker: "TRANSUNION CANADA", weight: 50 }
-  ];
-
-  const eqMarkers = [
-    { marker: "EQUIFAX", weight: 50 },
-    { marker: "EQUIFAX CREDIT SCORE", weight: 40 },
-    { marker: "ECRS", weight: 30 },
-    { marker: "H1S 2Z2", weight: 40 },
-    { marker: "1-800-465-7166", weight: 60 }
-  ];
-
-  let tuScore = 0;
-  for (const { marker, weight } of tuMarkers) {
-    if (upperHtml.includes(marker)) {
-      tuScore += weight;
-    }
-  }
-
-  let eqScore = 0;
-  for (const { marker, weight } of eqMarkers) {
-    if (upperHtml.includes(marker)) {
-      eqScore += weight;
-    }
-  }
-
-  if (tuScore < 30 && eqScore < 30) {
-    throw new Error("Unsupported credit bureau format. Only TransUnion and Equifax Canada reports are accepted.");
-  }
-
-  return tuScore > eqScore ? "TransUnion" : "Equifax";
+  return resolveBureauFromScores(tuScore, eqScore);
 }
 
 /**
@@ -66,28 +75,23 @@ export async function detectBureauWithConfig(html: string): Promise<"TransUnion"
   const upperHtml = html.toUpperCase();
   const configMarkers = await loadBureauDetectionConfig();
 
-  let tuScore = 0;
-  let eqScore = 0;
+  const tuMarkers: BureauMarker[] = [...DEFAULT_TU_MARKERS];
+  const eqMarkers: BureauMarker[] = [...DEFAULT_EQ_MARKERS];
 
   if (configMarkers && configMarkers.length > 0) {
     for (const config of configMarkers) {
-      if (upperHtml.includes(config.marker.toUpperCase())) {
-        if (config.bureau === "TransUnion") {
-          tuScore += config.weight;
-        } else if (config.bureau === "Equifax") {
-          eqScore += config.weight;
-        }
+      if (config.bureau === "TransUnion") {
+        tuMarkers.push({ marker: config.marker, weight: config.weight });
+      } else if (config.bureau === "Equifax") {
+        eqMarkers.push({ marker: config.marker, weight: config.weight });
       }
     }
-  } else {
-    return detectBureau(html);
   }
 
-  if (tuScore < 30 && eqScore < 30) {
-    throw new Error("Unsupported credit bureau format. Only TransUnion and Equifax Canada reports are accepted.");
-  }
+  const tuScore = scoreMarkers(upperHtml, tuMarkers);
+  const eqScore = scoreMarkers(upperHtml, eqMarkers);
 
-  return tuScore > eqScore ? "TransUnion" : "Equifax";
+  return resolveBureauFromScores(tuScore, eqScore);
 }
 
 /**

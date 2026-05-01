@@ -27,17 +27,22 @@ export interface UnifiedExtractionResult {
  * Creates an ExtractedValue stub for AI Vision extraction pipeline mapping.
  * Avoids generating undefined records if val is null or empty string.
  */
+const evidenceSnippet = (val: unknown): string => {
+  const text = String(val ?? "").replace(/\s+/g, " ").trim();
+  return text ? text.split(/\s+/).slice(0, 25).join(" ") : "Value mapped from parser output";
+};
+
 const createEv = <T,>(
   val: T | null | undefined
 ): ExtractedValue<T> | undefined => {
   if (val === undefined || val === null || val === "") return undefined;
   return {
     value: val as T,
-    confidence: 0.9,
+    confidence: 0.75,
     evidence: {
       page_number: 1,
       source_method: "ai_vision",
-      snippet: "Extracted via Unified Pipeline",
+      snippet: evidenceSnippet(val),
     },
   };
 };
@@ -77,11 +82,11 @@ export function unifiedExtract(
       raw_evidence.push({
         path,
         value: val,
-        confidence: 0.9,
+        confidence: 0.75,
         evidence: {
           page_number: 1,
           source_method: "ai_vision",
-          snippet: "Extracted via Unified Pipeline",
+          snippet: evidenceSnippet(val),
         },
       });
     }

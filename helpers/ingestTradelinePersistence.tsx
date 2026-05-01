@@ -5,6 +5,11 @@ import { resolveCreditorEntity } from "./creditorEntityResolver";
 import { ensureInitialSnapshot } from "./tradelineSnapshotManager";
 
 type TradelineMatchType = "account_number" | "corroborated";
+type TradelineScoreResult = {
+  score: number;
+  matchType: TradelineMatchType;
+  strongAnchors: string[];
+};
 
 type TradelineCandidate = {
   id: number;
@@ -22,7 +27,9 @@ type TradelineCandidate = {
   isCollectionAccount: boolean | null;
 };
 
-const MIN_CORROBORATED_MATCH_SCORE = 25;
+const MIN_ACCOUNT_NUMBER_MATCH_SCORE = 40;
+const MIN_CORROBORATED_MATCH_SCORE = 45;
+const AMBIGUOUS_MATCH_SCORE_MARGIN = 15;
 
 function normalizeAccountNumber(value: string | null | undefined): string | null {
   const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -71,6 +78,11 @@ function amountsClose(a: string | number | null | undefined, b: string | number 
   return Math.abs(left - right) / max <= tolerance;
 }
 
+function hasComparableAmount(value: string | number | null | undefined): boolean {
+  const amount = toNumber(value);
+  return amount !== null && amount > 0;
+}
+
 function daysApart(a: Date | string | null | undefined, b: Date | string | null | undefined): number | null {
   if (!a || !b) return null;
   const left = new Date(a).getTime();
@@ -89,23 +101,29 @@ function textLooksSimilar(a: string | null | undefined, b: string | null | undef
 function scoreTradelineCandidate(
   candidate: TradelineCandidate,
   parsedData: ParsedTradeline
-): { score: number; matchType: TradelineMatchType } | null {
+): TradelineScoreResult | null {
   if (accountNumbersConflict(candidate.accountNumber, parsedData.accountNumber)) {
     return null;
   }
 
   let score = 0;
   let matchType: TradelineMatchType = "corroborated";
+  const strongAnchors: string[] = [];
 
   if (accountNumbersMatch(candidate.accountNumber, parsedData.accountNumber)) {
     score += 40;
     matchType = "account_number";
+    strongAnchors.push("account_number");
   }
 
   const openedDiff = daysApart(candidate.openedDate, parsedData.dates.opened);
   if (openedDiff !== null) {
-    if (openedDiff <= 31) score += 25;
-    else if (openedDiff <= 90) score += 12;
+    if (openedDiff <= 31) {
+      score += 25;
+      strongAnchors.push("opened_date");
+    } else if (openedDiff <= 90) {
+      score += 12;
+    }
   }
 
   const reportedDiff = daysApart(candidate.lastReportedDate, parsedData.dates.reported);
@@ -114,17 +132,33 @@ function scoreTradelineCandidate(
   if (textLooksSimilar(candidate.accountType, parsedData.accountType)) score += 12;
   if (textLooksSimilar(candidate.status, parsedData.status)) score += 6;
   if (textLooksSimilar(candidate.responsibilityCode, parsedData.responsibilityCode)) score += 5;
-  if (textLooksSimilar(candidate.originalCreditorName, parsedData.originalCreditorName)) score += 8;
-  if (textLooksSimilar(candidate.collectionAgencyName, parsedData.collectionAgencyName)) score += 8;
+  if (textLooksSimilar(candidate.originalCreditorName, parsedData.originalCreditorName)) {
+    score += 8;
+    if (parsedData.isCollectionAccount) strongAnchors.push("original_creditor");
+  }
+  if (textLooksSimilar(candidate.collectionAgencyName, parsedData.collectionAgencyName)) {
+    score += 8;
+    if (parsedData.isCollectionAccount) strongAnchors.push("collection_agency");
+  }
 
-  if (amountsClose(candidate.highCredit, parsedData.amounts.high, 0.05)) score += 15;
-  if (amountsClose(candidate.creditLimit, parsedData.creditLimit, 0.05)) score += 12;
+  if (amountsClose(candidate.highCredit, parsedData.amounts.high, 0.05)) {
+    score += 15;
+    if (hasComparableAmount(candidate.highCredit) && hasComparableAmount(parsedData.amounts.high)) {
+      strongAnchors.push("high_credit");
+    }
+  }
+  if (amountsClose(candidate.creditLimit, parsedData.creditLimit, 0.05)) {
+    score += 12;
+    if (hasComparableAmount(candidate.creditLimit) && hasComparableAmount(parsedData.creditLimit)) {
+      strongAnchors.push("credit_limit");
+    }
+  }
   if (amountsClose(candidate.currentBalance, parsedData.balance, 0.1)) score += 8;
 
   const parsedIsCollection = parsedData.isCollectionAccount ?? false;
   if ((candidate.isCollectionAccount ?? false) === parsedIsCollection) score += 4;
 
-  return { score, matchType };
+  return { score, matchType, strongAnchors };
 }
 
 /**
@@ -179,35 +213,74 @@ async function findExistingTradeline(
     return null;
   }
 
-  let bestCandidate = null;
-  let bestScore = -1;
-  let bestMatchType: TradelineMatchType = "corroborated";
+  const scoredCandidates: Array<{
+    candidate: typeof candidates[number];
+    score: number;
+    matchType: TradelineMatchType;
+    strongAnchors: string[];
+  }> = [];
 
   for (const candidate of candidates) {
     const scored = scoreTradelineCandidate(candidate as TradelineCandidate, parsedData);
     if (!scored) continue;
 
-    if (scored.score > bestScore) {
-      bestScore = scored.score;
-      bestCandidate = candidate;
-      bestMatchType = scored.matchType;
-    }
+    scoredCandidates.push({
+      candidate,
+      score: scored.score,
+      matchType: scored.matchType,
+      strongAnchors: scored.strongAnchors,
+    });
   }
 
-  if (bestCandidate && bestScore >= MIN_CORROBORATED_MATCH_SCORE) {
+  scoredCandidates.sort((a, b) => b.score - a.score);
+
+  const accountNumberMatch = scoredCandidates.find(
+    (entry) => entry.matchType === "account_number" && entry.score >= MIN_ACCOUNT_NUMBER_MATCH_SCORE
+  );
+
+  if (accountNumberMatch) {
     console.log(
-      `[Ingest] Matched existing tradeline ${bestCandidate.id} by ${bestMatchType} evidence (score ${bestScore})`
+      `[Ingest] Matched existing tradeline ${accountNumberMatch.candidate.id} by account number evidence (score ${accountNumberMatch.score})`
     );
     return {
-      id: bestCandidate.id,
-      accountNumber: bestCandidate.accountNumber,
-      matchType: bestMatchType,
-      matchScore: bestScore,
+      id: accountNumberMatch.candidate.id,
+      accountNumber: accountNumberMatch.candidate.accountNumber,
+      matchType: accountNumberMatch.matchType,
+      matchScore: accountNumberMatch.score,
+    };
+  }
+
+  const corroboratedCandidates = scoredCandidates.filter(
+    (entry) =>
+      entry.matchType === "corroborated" &&
+      entry.score >= MIN_CORROBORATED_MATCH_SCORE &&
+      entry.strongAnchors.length > 0
+  );
+
+  const bestCandidate = corroboratedCandidates[0];
+  const secondCandidate = corroboratedCandidates[1];
+
+  if (bestCandidate && secondCandidate && secondCandidate.score >= bestCandidate.score - AMBIGUOUS_MATCH_SCORE_MARGIN) {
+    console.warn(
+      `[Ingest] Ambiguous same-creditor match for creditorId ${creditorId}. Best candidates ${bestCandidate.candidate.id}/${secondCandidate.candidate.id} scored ${bestCandidate.score}/${secondCandidate.score}; inserting new tradeline instead of updating.`
+    );
+    return null;
+  }
+
+  if (bestCandidate) {
+    console.log(
+      `[Ingest] Matched existing tradeline ${bestCandidate.candidate.id} by corroborated evidence (score ${bestCandidate.score}, anchors ${bestCandidate.strongAnchors.join(", ")})`
+    );
+    return {
+      id: bestCandidate.candidate.id,
+      accountNumber: bestCandidate.candidate.accountNumber,
+      matchType: bestCandidate.matchType,
+      matchScore: bestCandidate.score,
     };
   }
 
   console.log(
-    `[Ingest] No sufficiently corroborated match found for creditorId ${creditorId}. Best score: ${bestScore}`
+    `[Ingest] No sufficiently corroborated match found for creditorId ${creditorId}. Best score: ${scoredCandidates[0]?.score ?? -1}`
   );
   return null;
 }
@@ -220,7 +293,21 @@ function mergeTradelineData(
   newAccountNumber: string,
   newData: Record<string, any>
 ): { accountNumber?: string; updatedFields: Record<string, any> } {
-  return { updatedFields: { ...newData } };
+  const updatedFields: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(newData)) {
+    if (value === null || value === undefined || value === "") continue;
+    updatedFields[key] = value;
+  }
+
+  const existingNormalized = normalizeAccountNumber(existingAccountNumber);
+  const newNormalized = normalizeAccountNumber(newAccountNumber);
+  const accountNumber =
+    newNormalized && (!existingNormalized || accountNumbersMatch(existingAccountNumber, newAccountNumber))
+      ? newAccountNumber
+      : undefined;
+
+  return { accountNumber, updatedFields };
 }
 
 /**

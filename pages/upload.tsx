@@ -133,10 +133,10 @@ export default function UploadPage() {
       }
       
       // Validate file type
-      const allowedExtensions = ['.pdf', '.csv', '.txt', '.json', '.xml'];
+      const allowedExtensions = ['.pdf'];
       const fileExtension = '.' + selectedFile.name.split('.').pop()?.toLowerCase();
       if (!allowedExtensions.includes(fileExtension)) {
-         toast.error("Unsupported file format. Please upload a credit report in one of the supported formats.");
+         toast.error("Unsupported file format. Please upload a PDF credit report.");
          if (fileInputRef.current) fileInputRef.current.value = "";
          return;
       }
@@ -156,7 +156,7 @@ export default function UploadPage() {
     reader.onload = () => {
       const base64String = reader.result as string;
       const base64Content = base64String.split(",")[1];
-      const mimeType = file.type || "application/pdf";
+      const mimeType = file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : file.type || "application/pdf";
 
       setUploadProgress({ stage: "initializing", percent: 0, message: "Preparing upload..." });
       setDisplayedProgress(0);
@@ -474,12 +474,12 @@ export default function UploadPage() {
                 type="file"
                 onChange={handleFileChange}
                 className={styles.fileInput}
-                accept=".pdf,.html,.htm"
+                accept=".pdf,application/pdf"
               />
             </label>
             <HelpTooltip 
               title="What You Can Upload"
-              content="You can upload PDF, CSV, TXT, JSON, or XML files. Maximum size: 15MB."
+              content="You can upload a PDF credit report. Maximum size: 15MB."
             />
           </div>
           

@@ -5,6 +5,8 @@
 
 const EXTRACTION_PROMPT = `Detect whether the provided PDF is a TransUnion or Equifax Canadian credit report and extract ALL its data into a raw HTML format that matches our internal parsers exactly. Output ONLY raw HTML, no markdown fences, and no explanation text. Extract ALL pages completely without truncation.
 
+Do not infer, summarize, repair, or invent missing account values. If a field is not visible in the PDF, leave that field blank. Preserve the bureau's visible wording for source text and account sections so downstream review can compare parser output against the original report.
+
 If it's a TransUnion report, the HTML MUST follow this structure:
 - Report date: "as of Month Day, Year" inside a <p> or text block
 - TU Case ID: "TU Case ID: XXXXX"

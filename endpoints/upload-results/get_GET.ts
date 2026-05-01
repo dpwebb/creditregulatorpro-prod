@@ -63,6 +63,9 @@ export async function handle(request: Request) {
     }
 
     const artifactData = artifact.data as Record<string, unknown> | null;
+    const parserQuality = artifactData?.parserQuality as OutputType["parserQuality"] | undefined;
+    const parserRequiresReview = Boolean(parserQuality?.requiresManualReview);
+
     if (artifactData?.tradelineIds && Array.isArray(artifactData.tradelineIds)) {
       tradelineIds = [...new Set([...tradelineIds, ...(artifactData.tradelineIds as number[])])];
     }
@@ -74,23 +77,24 @@ export async function handle(request: Request) {
           fileName: (artifactData?.fileName as string) || "Unknown File",
           uploadDate: artifact.createdAt ? new Date(artifact.createdAt) : new Date(),
           region: artifact.region || "CA",
-          bureauName: "Unknown",
+          bureauName: parserQuality?.sourceBureauName || "Unknown",
         },
         stats: {
           totalTradelines: 0,
-          highSeverity: 0,
+          highSeverity: parserRequiresReview ? 1 : 0,
           mediumSeverity: 0,
           lowSeverity: 0,
-          bureauViolations: 0,
+          bureauViolations: parserRequiresReview ? 1 : 0,
           creditorViolations: 0,
           collectorViolations: 0,
-          actionableCount: 0,
-                    threatScore: 0,
+          actionableCount: parserRequiresReview ? 1 : 0,
+          threatScore: parserRequiresReview ? Math.max(60, 100 - (parserQuality?.confidenceScore ?? 0)) : 0,
           equifaxViolations: 0,
           transunionViolations: 0,
         },
         topFindings: [],
         challengeAccessPoints: generateAccessPointsWhenNoViolations(0),
+        ...(parserQuality ? { parserQuality } : {}),
       } satisfies OutputType));
     }
 
@@ -161,7 +165,14 @@ export async function handle(request: Request) {
 
     // Threat Score Calculation
     // Formula: (HIGH * 20 + MEDIUM * 10 + LOW * 3) capped at 100
-    const rawScore = (highSeverity * 20) + (mediumSeverity * 10) + (lowSeverity * 3);
+    if (parserRequiresReview) {
+      mediumSeverity++;
+      bureauViolations++;
+      actionableCount++;
+    }
+
+    const parserThreatScore = parserRequiresReview ? Math.max(40, 100 - (parserQuality?.confidenceScore ?? 0)) : 0;
+    const rawScore = (highSeverity * 20) + (mediumSeverity * 10) + (lowSeverity * 3) + parserThreatScore;
     const threatScore = Math.min(rawScore, 100);
 
     // Top 5 Findings (Prioritize High Severity)
@@ -295,6 +306,7 @@ export async function handle(request: Request) {
       },
       topFindings: top5,
       challengeAccessPoints,
+      ...(parserQuality ? { parserQuality } : {}),
       ...(crossReference ? { crossReference } : {}),
       ...(disputeOutcomeSummary ? { disputeOutcomeSummary } : {}),
     };

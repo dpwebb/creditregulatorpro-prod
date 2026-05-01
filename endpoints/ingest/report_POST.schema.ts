@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { UploadReportInput } from "../../helpers/schemas";
 import { ParsedTradeline } from "../../helpers/reportParser";
+import { ParserQualityAssessment } from "../../helpers/parserQuality";
 
 
 export const schema = UploadReportInput;
@@ -72,6 +73,7 @@ export type OutputType = {
       phone: string | null;
     };
   };
+  parserQuality?: ParserQualityAssessment;
 };
 
 /**

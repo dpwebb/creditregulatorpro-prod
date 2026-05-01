@@ -1,6 +1,7 @@
 import { ParsedTradeline } from "./reportParser";
 import { PassADraftExtraction } from "./passAExtractorTypes";
 import { ConsumerInfoComparison } from "./fuzzyMatcher";
+import { ParserQualityAssessment } from "./parserQuality";
 
 export interface BuildResponseInput {
   artifactId: number;
@@ -31,6 +32,7 @@ export interface BuildResponseInput {
     paymentHistories: any[];
   } | null;
   consumerInfoComparison: ConsumerInfoComparison | null;
+  parserQuality?: ParserQualityAssessment | null;
 }
 
 export interface IngestResponseData {
@@ -86,6 +88,7 @@ export interface IngestResponseData {
       phone: string | null;
     };
   };
+  parserQuality?: ParserQualityAssessment;
 }
 
 /**
@@ -106,6 +109,7 @@ export function buildIngestResponse(
     fullExtractionResult,
     parseResult,
     consumerInfoComparison,
+    parserQuality,
   } = input;
 
   const responseData: IngestResponseData = {
@@ -177,6 +181,10 @@ export function buildIngestResponse(
         phone: consumerInfoComparison.profileInfo.phone,
       },
     };
+  }
+
+  if (parserQuality) {
+    responseData.parserQuality = parserQuality;
   }
 
   return responseData;

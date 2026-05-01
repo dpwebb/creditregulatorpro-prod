@@ -39,6 +39,7 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
   const hasViolations = stats.highSeverity + stats.mediumSeverity + stats.lowSeverity > 0;
   const hasProceduralPoints = challengeAccessPoints && challengeAccessPoints.length > 0;
   const isFollowUp = !!data.crossReference;
+  const hasParserReview = Boolean(data.parserQuality?.requiresManualReview);
 
   // Determine gauge color based on threat score
   const getScoreColor = (score: number) => {
@@ -50,14 +51,43 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
   const scoreColor = getScoreColor(stats.threatScore);
 
   const getGaugeDescription = () => {
+    if (hasParserReview) return "This report needs parser review before relying on the scan.";
     if (stats.threatScore > 60) return "We found serious problems. You should act now.";
     if (stats.threatScore > 30) return "We found some problems.";
     if (!hasViolations && hasProceduralPoints) return "No mistakes in the data, but you can still challenge how they reported it.";
     return "Things look good! Keep checking back.";
   };
 
+  const renderParserQualityNotice = () => {
+    if (!data.parserQuality?.requiresManualReview) return null;
+
+    return (
+      <div className={styles.bannerCard}>
+        <div className={styles.bannerHeader}>
+          <h3 className={styles.bannerTitle}>Report Parser Review Needed</h3>
+          <p className={styles.bannerSubtitle}>
+            Parser confidence: {data.parserQuality.confidenceScore}/100. Review the original PDF before using these results in a dispute packet.
+          </p>
+        </div>
+        <div className={styles.bannerStats}>
+          {data.parserQuality.issues.slice(0, 4).map((issue) => (
+            <div
+              key={issue.code}
+              className={`${styles.bannerStatItem} ${issue.severity === "ERROR" ? styles.statWarning : styles.statMuted}`}
+            >
+              <AlertTriangle size={16} />
+              <span>{issue.message}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderCurrentScan = () => (
     <>
+      {renderParserQualityNotice()}
+
       {/* Top Section: Gauge & Key Stats */}
       <div className={styles.topSection}>
         <div className={styles.gaugeCard}>
@@ -183,7 +213,11 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
           <div className={styles.actionableContent}>
             <div className={styles.actionableHeader}>
               <h3 className={styles.cardTitle}>What You Can Do</h3>
-              {stats.actionableCount > 0 ? (
+              {hasParserReview ? (
+                <Badge variant="warning" className={styles.pulseBadge}>
+                  Review Needed
+                </Badge>
+              ) : stats.actionableCount > 0 ? (
                 <Badge variant="error" className={styles.pulseBadge}>
                   {stats.actionableCount} Issues
                 </Badge>
@@ -194,21 +228,38 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
               ) : null}
             </div>
             <p className={styles.actionableText}>
-              {stats.actionableCount > 0 
+              {hasParserReview
+                ? "The parser could not fully trust this upload. Check the source PDF before creating letters."
+                : stats.actionableCount > 0 
                 ? "We found serious problems you can dispute right now."
                 : !hasViolations && hasProceduralPoints
                   ? "No data mistakes found, but you can still challenge how they handled things."
                   : "Nothing urgent right now. Keep checking."}
             </p>
             <div className={styles.actionButtons}>
-              <Button asChild variant="primary" size="lg" className={styles.primaryActionBtn}>
-                <Link to={`/upload-review/${artifactId}`}>
-                  Write a Dispute Letter Now <ArrowRight size={16} />
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/my-accounts">See Your Accounts</Link>
-              </Button>
+              {hasParserReview && stats.totalTradelines === 0 ? (
+                <>
+                  <Button asChild variant="primary" size="lg" className={styles.primaryActionBtn}>
+                    <Link to="/upload">
+                      Upload a Cleaner PDF <ArrowRight size={16} />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/report-artifacts">View Report</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild variant="primary" size="lg" className={styles.primaryActionBtn}>
+                    <Link to={`/upload-review/${artifactId}`}>
+                      Write a Dispute Letter Now <ArrowRight size={16} />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to="/my-accounts">See Your Accounts</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

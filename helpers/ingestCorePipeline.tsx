@@ -22,6 +22,7 @@ import { unifiedExtract } from "./unifiedExtractor";
 import { parseHtmlToRawText } from "./_htmlParserUtils";
 import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
 import { ResolvedUserSession } from "./ingestSessionResolver";
+import { assessParserQuality, ParserQualityAssessment } from "./parserQuality";
 
 export class IngestPipelineError extends Error {
   constructor(message: string, public code: string) {
@@ -37,6 +38,7 @@ export interface PipelineParams {
   region: string;
   fileName: string;
   rawHtml: string;
+  extractionSource?: string | null;
   send: (event: SSEEvent) => void;
   context: { tradelineIds: number[]; createdTradelineIds: number[]; updatedTradelineIds: number[] };
 }
@@ -48,6 +50,7 @@ export async function executeIngestPipeline({
   region,
   fileName,
   rawHtml,
+  extractionSource = null,
   send,
   context
 }: PipelineParams): Promise<void> {
@@ -60,6 +63,7 @@ export async function executeIngestPipeline({
   let profileFieldsPopulated: string[] = [];
   let passAExtraction: PassADraftExtraction | null = null;
   let fullExtractionResult: any = { success: false };
+  let parserQuality: ParserQualityAssessment | null = null;
 
   // ============================================================
   // UNIFIED EXTRACTION
@@ -87,6 +91,62 @@ export async function executeIngestPipeline({
   parseResult = comprehensive;
   parsedTradelines = comprehensive.tradelines || [];
   detectedBureauInfo = comprehensive.sourceBureau || null;
+  parserQuality = assessParserQuality({
+    rawHtml: rawHtml || "",
+    llmData,
+    parseResult: comprehensive,
+    parsedTradelines,
+    extractionSource,
+  });
+
+  if (parserQuality.issues.length > 0) {
+    console.warn(
+      `[Ingest] Parser quality for artifact ${artifactId}: score=${parserQuality.confidenceScore}, issues=${parserQuality.issues.map((issue) => issue.code).join(", ")}`
+    );
+  }
+
+  const artifactForQuality = await db
+    .selectFrom("reportArtifact")
+    .select("data")
+    .where("id", "=", artifactId)
+    .executeTakeFirst();
+
+  const currentQualityData = (artifactForQuality?.data ?? {}) as Record<string, unknown>;
+  await db
+    .updateTable("reportArtifact")
+    .set({
+      data: JSON.parse(JSON.stringify({
+        ...currentQualityData,
+        parserQuality,
+        extractionConfidence: parserQuality.confidenceScore,
+        parseConfidence: parserQuality.confidenceScore,
+        bureauName: parserQuality.sourceBureauName,
+      })) as Json,
+    })
+    .where("id", "=", artifactId)
+    .execute();
+
+  if (parserQuality.requiresManualReview) {
+    const existingParserEvent = await db
+      .selectFrom("evidenceEvent")
+      .select("id")
+      .where("eventType", "=", "PARSER_REVIEW_REQUIRED")
+      .where("description", "like", `%artifact ${artifactId}%`)
+      .executeTakeFirst();
+
+    if (!existingParserEvent) {
+      await db
+        .insertInto("evidenceEvent")
+        .values({
+          eventType: "PARSER_REVIEW_REQUIRED",
+          description: `Parser quality review required for artifact ${artifactId}: ${parserQuality.issues.map((issue) => issue.message).join(" ")}`,
+          region,
+          at: new Date(),
+        })
+        .execute();
+    }
+  }
+
   fullExtractionResult = {
     success: true,
     extraction: fullExtraction
@@ -547,6 +607,7 @@ export async function executeIngestPipeline({
     fullExtractionResult,
     parseResult,
     consumerInfoComparison,
+    parserQuality,
   });
 
   if (silentResults && silentResults.totalDetected > 0) {
