@@ -1,5 +1,5 @@
 import type { Selectable } from "kysely";
-import { routeHtmlToLLMResponse } from "./bureauDetectionRouter";
+import { routeHtmlToLLMResponseWithOverrides } from "./bureauDetectionRouter";
 import { db } from "./db";
 import type { Tradeline } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
@@ -36,7 +36,7 @@ export async function detectMetro2FieldViolations(
       
       let accountsToSearch: any[] = [];
       if (data?.docstrangeRawHtml) {
-        const parsedData = routeHtmlToLLMResponse(data.docstrangeRawHtml);
+        const parsedData = await routeHtmlToLLMResponseWithOverrides(data.docstrangeRawHtml);
         if (parsedData?.tradelines && Array.isArray(parsedData.tradelines)) {
           accountsToSearch = parsedData.tradelines;
         }

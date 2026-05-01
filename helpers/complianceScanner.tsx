@@ -62,6 +62,7 @@ import {
 } from "./complianceDetectors";
 import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { executeActiveRules } from "./dynamicRuleExecutor";
+import { mapViolationToDisputeVector } from "./violationToDisputeVector";
 
 // Re-export types for convenience
 export type { DetectedViolation };
@@ -121,8 +122,9 @@ export async function scanForViolations(
   }
 
   if (!tradeline.openedDate && !tradeline.lastReportedDate && !tradeline.dateOfFirstDelinquency) {
-    console.warn(`Tradeline ${tradelineId} has no core dates. Skipping detectors.`);
-    return [];
+    console.warn(
+      `Tradeline ${tradelineId} has no core dates. Running non-date and documentation detectors anyway.`
+    );
   }
 
   if (tradeline.reportArtifactId) {
@@ -385,6 +387,47 @@ export function mapViolationToObligationType(
   }
 }
 
+async function createPendingObligationInstanceForViolation(
+  tradelineId: number,
+  userId: number | null,
+  violation: DetectedViolation,
+  violationId: number
+): Promise<boolean> {
+  if (!userId) return false;
+
+  const technicalDetails = violation.technicalDetails as { fieldName?: string } | null | undefined;
+  const disputeVector =
+    mapViolationToDisputeVector(violation.violationCategory, technicalDetails) ??
+    "AUTHORITY_TO_REPORT";
+
+  const existing = await db
+    .selectFrom("obligationInstance")
+    .select("id")
+    .where("tradelineId", "=", tradelineId)
+    .where("userId", "=", userId)
+    .where("state", "=", "OBLIGATION_PENDING")
+    .where("disputeVector", "=", disputeVector)
+    .executeTakeFirst();
+
+  if (existing) {
+    return false;
+  }
+
+  await db
+    .insertInto("obligationInstance")
+    .values({
+      tradelineId,
+      userId,
+      state: "OBLIGATION_PENDING",
+      disputeVector,
+      notes: `Auto-created from compliance violation #${violationId}`,
+      createdAt: new Date(),
+    })
+    .execute();
+
+  return true;
+}
+
 /**
  * Persists detected violations to the creditor_obligation_test table.
  * Automatically deduplicates based on signature (category + obligationType + userExplanation).
@@ -403,6 +446,12 @@ export async function persistViolations(
   }
 
   console.log(`Processing ${violations.length} violations for tradeline ${tradelineId}`);
+
+  const tradelineForWorkflow = await db
+    .selectFrom("tradeline")
+    .select("userId")
+    .where("id", "=", tradelineId)
+    .executeTakeFirst();
 
   // 0. Fetch existing non-active violations (dismissed/verified) to preserve them
   const preservedViolations = await db
@@ -469,7 +518,22 @@ export async function persistViolations(
         .executeTakeFirst();
 
       if (result?.id) {
-        insertedIds.push(Number(result.id));
+        const violationId = Number(result.id);
+        insertedIds.push(violationId);
+
+        try {
+          await createPendingObligationInstanceForViolation(
+            tradelineId,
+            tradelineForWorkflow?.userId ?? null,
+            violation,
+            violationId
+          );
+        } catch (workflowError) {
+          console.error(
+            `Failed to create pending obligation instance for violation ${violationId}:`,
+            workflowError
+          );
+        }
       }
     } catch (error) {
       console.error(`Failed to persist violation ${violation.violationCategory}:`, error);

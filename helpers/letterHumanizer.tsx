@@ -1,6 +1,176 @@
 import type { LetterContent } from "./pdfGenerator";
 
+const NARRATIVE_KEYS = [
+  "introduction",
+  "disputedItems",
+  "statutoryGrounds",
+  "supportingDocumentation",
+  "requestedAction",
+  "statutoryTimeframe",
+  "consumerStatementRight",
+  "deliveryConfirmation",
+  "certification",
+] as const;
 
+type NarrativeKey = typeof NARRATIVE_KEYS[number];
+
+function compactWhitespace(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function normalizeForComparison(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function wordSet(text: string): Set<string> {
+  return new Set(
+    normalizeForComparison(text)
+      .split(" ")
+      .filter((word) => word.length > 3)
+  );
+}
+
+function similarity(a: string, b: string): number {
+  const left = wordSet(a);
+  const right = wordSet(b);
+  if (left.size === 0 || right.size === 0) return 0;
+
+  let overlap = 0;
+  for (const word of left) {
+    if (right.has(word)) overlap++;
+  }
+
+  return overlap / Math.min(left.size, right.size);
+}
+
+function splitParagraphs(text: string): string[] {
+  return compactWhitespace(text)
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+}
+
+function removeRepeatedSentences(text: string): string {
+  if (/\n\s*\d+\./.test(text) || /\b[A-Z]\.(?:[A-Z]\.)+/.test(text)) {
+    return text;
+  }
+
+  const seen = new Set<string>();
+  const sentences = text.match(/[^.!?]+[.!?]*/g);
+  if (!sentences) return text;
+
+  return sentences
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => {
+      if (!sentence) return false;
+      const normalized = normalizeForComparison(sentence);
+      if (!normalized) return false;
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    })
+    .join(" ");
+}
+
+function stripEmbeddedSectionLabels(text: string, key: NarrativeKey): string {
+  let output = text.trim();
+
+  if (key === "disputedItems") {
+    output = output.replace(/^(Basis of Dispute|Disputed Items|Items Disputed):\s*/i, "");
+  }
+
+  return output;
+}
+
+function humanizeTemplateLanguage(text: string): string {
+  return text
+    .replace(
+      /I am writing to formally dispute information contained in my consumer report maintained by your agency\./g,
+      "I'm writing because I found information in my credit report that I believe is inaccurate or incomplete."
+    )
+    .replace(
+      /I am writing to formally dispute personal information contained in my consumer report maintained by your organization\./g,
+      "I'm writing because I found personal information in my credit report that I believe is inaccurate or incomplete."
+    )
+    .replace(
+      /This dispute is submitted pursuant to (.*?), and I request that you conduct a reasonable investigation as required by statute\./g,
+      "I am relying on $1 and ask that you investigate this carefully."
+    )
+    .replace(
+      /This dispute is submitted pursuant to (.*?), and I request correction of inaccurate information as provided by statute\./g,
+      "I am relying on $1 and ask that you correct the inaccurate information."
+    )
+    .replace(
+      /I assert that the disputed items do not meet this statutory standard and request immediate investigation\./g,
+      "I believe the disputed information does not meet that standard, and I am asking for a prompt investigation."
+    )
+    .replace(
+      /I assert that the disputed items are inaccurate and request immediate correction or deletion\./g,
+      "I believe the disputed information is inaccurate, and I am asking that it be corrected or deleted."
+    )
+    .replace(/I request that you:/g, "Please:")
+    .replace(
+      /I certify under penalty of law that the information provided in this letter is true and accurate to the best of my knowledge\./g,
+      "I confirm that the information in this letter is true and accurate to the best of my knowledge."
+    )
+    .replace(
+      /I certify that the information provided in this letter is true and accurate to the best of my knowledge\./g,
+      "I confirm that the information in this letter is true and accurate to the best of my knowledge."
+    )
+    .replace(
+      /Should the investigation not resolve this matter to my satisfaction, I reserve my right under .*? to have a consumer statement included in my file\./g,
+      "If this is not resolved, I reserve my right to add a consumer statement to my file."
+    );
+}
+
+function cleanNarrativeSection(
+  text: string,
+  key: NarrativeKey,
+  seenParagraphs: string[]
+): string {
+  const paragraphs = splitParagraphs(stripEmbeddedSectionLabels(text, key));
+  const kept: string[] = [];
+
+  for (const paragraph of paragraphs) {
+    const cleaned = removeRepeatedSentences(humanizeTemplateLanguage(paragraph));
+    const normalized = normalizeForComparison(cleaned);
+    if (!normalized) continue;
+
+    const isDuplicate = seenParagraphs.some((seen) => {
+      if (seen === normalized) return true;
+      return similarity(seen, normalized) > 0.9;
+    });
+
+    if (!isDuplicate) {
+      kept.push(cleaned);
+      seenParagraphs.push(normalized);
+    }
+  }
+
+  return kept.join("\n\n") || compactWhitespace(text);
+}
+
+export function streamlineLetterContent(letterContent: LetterContent): LetterContent {
+  const streamlined: LetterContent = { ...letterContent };
+  const seenParagraphs: string[] = [];
+
+  for (const key of NARRATIVE_KEYS) {
+    const value = streamlined[key];
+    if (typeof value === "string" && value.trim()) {
+      (streamlined as Record<string, unknown>)[key] = cleanNarrativeSection(value, key, seenParagraphs);
+    }
+  }
+
+  return streamlined;
+}
 
 /**
  * A backend-only helper that uses OpenAI to rewrite the narrative sections 
@@ -12,20 +182,26 @@ import type { LetterContent } from "./pdfGenerator";
 export async function letterHumanizer(
   letterContent: LetterContent
 ): Promise<LetterContent> {
+  const locallyStreamlined = streamlineLetterContent(letterContent);
+
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return locallyStreamlined;
+    }
+
     // 1. Extract the narrative sections that need humanizing
     const sectionsToHumanize: Record<string, string> = {};
 
-    if (letterContent.introduction) sectionsToHumanize.introduction = letterContent.introduction;
-    if (letterContent.disputedItems) sectionsToHumanize.disputedItems = letterContent.disputedItems;
-    if (letterContent.statutoryGrounds) sectionsToHumanize.statutoryGrounds = letterContent.statutoryGrounds;
-    if (letterContent.requestedAction) sectionsToHumanize.requestedAction = letterContent.requestedAction;
-    if (letterContent.statutoryTimeframe) sectionsToHumanize.statutoryTimeframe = letterContent.statutoryTimeframe;
-    if (letterContent.certification) sectionsToHumanize.certification = letterContent.certification;
+    if (locallyStreamlined.introduction) sectionsToHumanize.introduction = locallyStreamlined.introduction;
+    if (locallyStreamlined.disputedItems) sectionsToHumanize.disputedItems = locallyStreamlined.disputedItems;
+    if (locallyStreamlined.statutoryGrounds) sectionsToHumanize.statutoryGrounds = locallyStreamlined.statutoryGrounds;
+    if (locallyStreamlined.requestedAction) sectionsToHumanize.requestedAction = locallyStreamlined.requestedAction;
+    if (locallyStreamlined.statutoryTimeframe) sectionsToHumanize.statutoryTimeframe = locallyStreamlined.statutoryTimeframe;
+    if (locallyStreamlined.certification) sectionsToHumanize.certification = locallyStreamlined.certification;
 
     // If there's nothing to humanize, just return the original
     if (Object.keys(sectionsToHumanize).length === 0) {
-      return letterContent;
+      return locallyStreamlined;
     }
 
     // 2. Define the system prompt
@@ -41,7 +217,8 @@ Rules:
 7. Avoid overly formal legalese — a normal person wouldn't write "I am formally disputing the accuracy and completeness of personal information".
 8. Do NOT add any new facts, claims, or context not present in the original text.
 9. If any value looks like an internal system code, character count, technical metric, or database ID rather than actual account data (e.g. '28 chars', 'Max 24 chars', 'Non-zero rating'), rephrase it naturally using the surrounding context or omit it entirely.
-10. Output a JSON object containing the EXACT SAME keys as the input object, with the rewritten text as the values.`;
+10. Remove duplicated sentences or paragraphs if the same point appears in more than one section.
+11. Output a JSON object containing the EXACT SAME keys as the input object, with the rewritten text as the values.`;
 
     // 3. Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -77,19 +254,19 @@ Rules:
     const rewrittenSections = JSON.parse(rewrittenTextRaw) as Record<string, string>;
 
     const mergedContent = {
-      ...letterContent,
-      introduction: rewrittenSections.introduction ?? letterContent.introduction,
-      disputedItems: rewrittenSections.disputedItems ?? letterContent.disputedItems,
-      statutoryGrounds: rewrittenSections.statutoryGrounds ?? letterContent.statutoryGrounds,
-      requestedAction: rewrittenSections.requestedAction ?? letterContent.requestedAction,
-      statutoryTimeframe: rewrittenSections.statutoryTimeframe ?? letterContent.statutoryTimeframe,
-      certification: rewrittenSections.certification ?? letterContent.certification,
+      ...locallyStreamlined,
+      introduction: rewrittenSections.introduction ?? locallyStreamlined.introduction,
+      disputedItems: rewrittenSections.disputedItems ?? locallyStreamlined.disputedItems,
+      statutoryGrounds: rewrittenSections.statutoryGrounds ?? locallyStreamlined.statutoryGrounds,
+      requestedAction: rewrittenSections.requestedAction ?? locallyStreamlined.requestedAction,
+      statutoryTimeframe: rewrittenSections.statutoryTimeframe ?? locallyStreamlined.statutoryTimeframe,
+      certification: rewrittenSections.certification ?? locallyStreamlined.certification,
     };
 
-        return mergedContent;
+    return streamlineLetterContent(mergedContent);
   } catch (error) {
     // 5. Fallback on any error
     console.error("Failed to humanize letter content. Falling back to original template.", error instanceof Error ? error.message : error);
-    return letterContent;
+    return locallyStreamlined;
   }
 }

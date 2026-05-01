@@ -107,6 +107,27 @@ export function routeHtmlToLLMResponse(html: string): LLMResponse {
 }
 
 /**
+ * Routes HTML through configured bureau detection and parser field mappings.
+ * This is the production-safe entry point when database-backed parser overrides
+ * should affect parsed upload results.
+ */
+export async function routeHtmlToLLMResponseWithOverrides(html: string): Promise<LLMResponse> {
+  const bureau = await detectBureauWithConfig(html);
+
+  const llmResponse =
+    bureau === "TransUnion"
+      ? parseHtmlToLLMResponse(html)
+      : parseEquifaxHtmlToLLMResponse(html);
+
+  const mappings = await loadActiveMappings(bureau);
+  if (!mappings || mappings.length === 0) {
+    return llmResponse;
+  }
+
+  return applyOverrides(llmResponse, mappings);
+}
+
+/**
  * High-level orchestrator that determines bureau format, parses to LLMResponse,
  * and maps the result to the final ComprehensiveParseResult output.
  * 
@@ -128,23 +149,8 @@ export function routeHtmlToComprehensiveResult(html: string): ComprehensiveParse
  * @returns ComprehensiveParseResult
  */
 export async function routeHtmlToComprehensiveResultWithOverrides(html: string): Promise<ComprehensiveParseResult> {
-  const bureau = await detectBureauWithConfig(html);
-  
-  let llmResponse: LLMResponse;
-  if (bureau === "TransUnion") {
-    llmResponse = parseHtmlToLLMResponse(html);
-  } else {
-    llmResponse = parseEquifaxHtmlToLLMResponse(html);
-  }
-
+  const llmResponse = await routeHtmlToLLMResponseWithOverrides(html);
   const rawText = parseHtmlToRawText(html);
-  
-  const mappings = await loadActiveMappings(bureau);
-  let overriddenLLMData: LLMResponse | undefined = undefined;
-  
-  if (mappings && mappings.length > 0) {
-    overriddenLLMData = applyOverrides(llmResponse, mappings);
-  }
 
-  return mapDocStrangeResponseToResult(llmResponse, rawText, overriddenLLMData);
+  return mapDocStrangeResponseToResult(llmResponse, rawText);
 }

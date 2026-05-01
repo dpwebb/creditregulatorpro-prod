@@ -6,7 +6,7 @@ import { Tradeline } from "../../helpers/schema";
 export const schema = z.object({
   bureauId: z.number().nullable().optional(),
   creditorId: z.number().nullable().optional(),
-  accountNumber: z.string().min(1, "Account number is required"),
+  accountNumber: z.string().optional().default("Not reported"),
   accountType: z.string().nullable().optional(),
   status: z.string().nullable().optional(),
   balance: z.number().nullable().optional(),

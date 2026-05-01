@@ -48,7 +48,7 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
   const bureauNameNormalized = (params.bureauNameRaw ?? "").toLowerCase();
 
   const UNKNOWN_CREDITOR = "Not identified in consumer disclosure";
-  const UNKNOWN_ACCOUNT = "Not provided in consumer disclosure";
+  const UNKNOWN_ACCOUNT = "Not reported by bureau";
 
   const displayCreditorName =
     params.creditorName && params.creditorName.trim()

@@ -44,8 +44,34 @@ export interface TemplateContext {
  * Helper to format disputed items list
  */
 export function formatDisputedItems(items: TemplateContext["disputedItems"]): string {
+  const vectorLabels: Record<string, string> = {
+    AUTHORITY_TO_REPORT: "Authority to report this account",
+    PERMISSIBLE_PURPOSE: "Permissible purpose for reporting or accessing this account",
+    VERIFICATION_METHOD: "How the disputed information was verified",
+    COMPLETENESS_ATTESTATION: "Completeness of the account information",
+    ACCURACY_ATTESTATION: "Accuracy of the account information",
+    TIMING_COMPLIANCE: "Compliance with investigation and response timelines",
+    INVESTIGATION_PROCEDURE: "The procedure used to investigate this dispute",
+  };
+
+  const humanizeCode = (value: string): string => {
+    const trimmed = value.trim();
+    if (vectorLabels[trimmed]) return vectorLabels[trimmed];
+    if (/^[A-Z0-9_]+$/.test(trimmed)) {
+      const words = trimmed.toLowerCase().replace(/_/g, " ");
+      return words.charAt(0).toUpperCase() + words.slice(1);
+    }
+    return trimmed;
+  };
+
   return items
-    .map((item, index) => `${index + 1}. ${item.description}\n   Reason: ${item.reason}`)
+    .map((item, index) => {
+      const description = humanizeCode(item.description);
+      const reason = item.reason?.trim();
+      return reason
+        ? `${index + 1}. ${description}\n   Why I am disputing it: ${reason}`
+        : `${index + 1}. ${description}`;
+    })
     .join("\n\n");
 }
 
@@ -58,7 +84,14 @@ export function formatAccountIdentification(ctx: TemplateContext): string {
     parts.push(`Creditor: ${ctx.creditorName}`);
   }
   if (ctx.accountNumber) {
-    parts.push(`Account Number: ${ctx.accountNumber}`);
+    const normalized = ctx.accountNumber.trim().toLowerCase();
+    const displayAccountNumber =
+      normalized === "unknown" ||
+      normalized === "not reported" ||
+      normalized === "not provided in consumer disclosure"
+        ? "Not reported by bureau"
+        : ctx.accountNumber;
+    parts.push(`Account Number: ${displayAccountNumber}`);
   }
   return parts.join("\n");
 }

@@ -5,7 +5,7 @@ import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { validateOrigin } from "../../helpers/domainGuard";
 import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { extractHtmlWithFallbackChain } from "../../helpers/fallbackPdfExtractor";
-import { routeHtmlToComprehensiveResult } from "../../helpers/bureauDetectionRouter";
+import { routeHtmlToComprehensiveResultWithOverrides } from "../../helpers/bureauDetectionRouter";
 import { generateAnonymousPreview } from "../../helpers/anonymousCompliancePreview";
 import { cleanupArtifactOnly } from "../../helpers/ingestCleanup";
 import crypto from "crypto";
@@ -120,7 +120,7 @@ export async function handle(request: Request) {
       .execute();
 
     // 4. Parse the comprehensive result and run compliance preview
-    const parseResult = routeHtmlToComprehensiveResult(rawHtml);
+    const parseResult = await routeHtmlToComprehensiveResultWithOverrides(rawHtml);
     const previewProblems = generateAnonymousPreview(parseResult);
 
     const sampleProblems: SampleProblem[] = previewProblems.map((p) => ({

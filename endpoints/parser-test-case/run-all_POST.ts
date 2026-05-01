@@ -4,10 +4,11 @@ import { schema, OutputType } from "./run-all_POST.schema";
 
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
-import { parseReport, ParsedTradeline } from "../../helpers/reportParser";
+import { ParsedTradeline } from "../../helpers/reportParser";
 import { ExtractedConsumerInfo } from "../../helpers/consumerInfoExtractorTypes";
 import { compareConsumerInfo, compareTradelines, hasAnyExpectations } from "../../helpers/parserPatternAnalyzer";
 import { Json } from "../../helpers/schema";
+import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
 
 export async function handle(request: Request) {
   try {
@@ -32,7 +33,7 @@ export async function handle(request: Request) {
     // Run tests sequentially to avoid overwhelming the server
     for (const testCase of testCases) {
       try {
-        const parseResult = await parseReport(testCase.pdfBase64, "application/pdf");
+        const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(testCase.pdfBase64);
 
         // Check expectations
         const hasExpectations = hasAnyExpectations(
@@ -43,13 +44,13 @@ export async function handle(request: Request) {
         const consumerInfoResults = compareConsumerInfo(
           testCase.expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
           parseResult.consumerInfo,
-          testCase.rawExtractedText || ""
+          rawExtractedText
         );
 
         const tradelineResults = compareTradelines(
           testCase.expectedTradelines as unknown as ParsedTradeline[],
           parseResult.tradelines,
-          testCase.rawExtractedText || ""
+          rawExtractedText
         );
 
         const consumerInfoPassed = consumerInfoResults.every(r => r.passed);
@@ -87,7 +88,7 @@ export async function handle(request: Request) {
         tradelineResults.forEach(tl => {
             tl.fieldResults.forEach(r => {
                 if (r.suggestion) {
-                    const key = `${tl.accountNumber} - ${r.fieldName}`;
+                    const key = `${tl.accountNumber || "Tradeline"} - ${r.fieldName}`;
                     if (!patternSuggestions[key]) patternSuggestions[key] = [];
                     patternSuggestions[key].push(r.suggestion);
                 }

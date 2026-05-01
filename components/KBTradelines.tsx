@@ -96,7 +96,7 @@ export const KBTradelines = () => {
                 The system checks many rules, like:
               </p>
               <ul>
-                <li><strong>Required Fields:</strong> Missing account numbers, statuses, or dates.</li>
+                <li><strong>Required Fields:</strong> Missing statuses, dates, balances, or creditor details.</li>
                 <li><strong>Date Math:</strong> The first late date must make sense.</li>
                 <li><strong>Balance Math:</strong> You cannot owe more past due than your total balance.</li>
                 <li><strong>Status and Balance Match:</strong> Paid or closed accounts must show a zero balance.</li>
@@ -113,10 +113,10 @@ export const KBTradelines = () => {
             <AccordionTrigger>Account Number Formats</AccordionTrigger>
             <AccordionContent>
               <p>
-                Account numbers are very important. When disputing, make sure the account number matches your report perfectly.
+                Account numbers help identify an account when the bureau reports one. Some reports hide or omit them, so we also use the creditor, account type, dates, balances, and bureau to match accounts.
               </p>
               <p>
-                <strong>Note:</strong> Some reports hide parts of the number (e.g., XXXX-1234). We can handle this, but full numbers are best.
+                <strong>Note:</strong> If your report only shows a partial number or no number, use exactly what appears on the report and leave it blank when it is not shown.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -248,7 +248,7 @@ export const KBTradelines = () => {
                 need to provide:
               </p>
               <ul className={styles.list}>
-                <li><strong>Account Number:</strong> The full or partial number as it appears on the report.</li>
+                <li><strong>Account Number:</strong> The full or partial number as it appears on the report, if one is shown.</li>
               <li><strong>Bureau:</strong> The credit bureau reporting this item (Equifax, TransUnion).</li>
             <li><strong>Creditor:</strong> The creditor providing information to the bureau.</li>
             <li><strong>Balance:</strong> The current reported balance.</li>

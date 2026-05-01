@@ -11,6 +11,19 @@ import { getRulesByYear } from "../../helpers/metro2ValidationRules";
 import { logAudit, logUpload } from "../../helpers/auditLogger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 
+function normalizeAccountNumberForLookup(accountNumber: string | null | undefined): string | null {
+  const normalized = (accountNumber || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  if (
+    !normalized ||
+    normalized === "UNKNOWN" ||
+    normalized === "NA" ||
+    normalized === "NOTREPORTED"
+  ) {
+    return null;
+  }
+  return normalized;
+}
+
 export async function handle(request: Request) {
   try {
     const json = JSON.parse(await request.text());
@@ -107,18 +120,24 @@ export async function handle(request: Request) {
       
       for (const parsedTradeline of parsedTradelines) {
         const creditorId = await findOrCreateCreditor(parsedTradeline.creditorName);
+        const accountNumberForDb = parsedTradeline.accountNumber?.trim() || "Not reported";
+        const searchableAccountNumber = normalizeAccountNumberForLookup(accountNumberForDb);
 
-        // Check if tradeline already exists for this user and account number
+        // Check if tradeline already exists for this user and account number.
+        // Some bureau reports omit account numbers, so blank/Unknown values must not
+        // merge unrelated same-user accounts.
         // Use users.id (not userAccount.id) because tradeline.userId FK points to users table
-        const existingTradeline = await db
-          .selectFrom("tradeline")
-          .select("id")
-          .where("userId", "=", user.id)
-          .where("accountNumber", "=", parsedTradeline.accountNumber)
-          .executeTakeFirst();
+        const existingTradeline = searchableAccountNumber
+          ? await db
+              .selectFrom("tradeline")
+              .select("id")
+              .where("userId", "=", user.id)
+              .where("accountNumber", "=", accountNumberForDb)
+              .executeTakeFirst()
+          : null;
 
         if (existingTradeline) {
-          console.log(`[Review/Approve] Updating existing tradeline ${existingTradeline.id} for account ${parsedTradeline.accountNumber}`);
+          console.log(`[Review/Approve] Updating existing tradeline ${existingTradeline.id} for account ${accountNumberForDb}`);
           
           await db
             .updateTable("tradeline")
@@ -139,13 +158,13 @@ export async function handle(request: Request) {
           tradelineIds.push(existingTradeline.id);
         } else {
           // Insert new tradeline - use users.id for userId
-          console.log(`[Review/Approve] Inserting new tradeline for account ${parsedTradeline.accountNumber}`);
+          console.log(`[Review/Approve] Inserting new tradeline for account ${accountNumberForDb}`);
           
           const newTradeline = await db
             .insertInto("tradeline")
             .values({
               userId: user.id,
-              accountNumber: parsedTradeline.accountNumber,
+              accountNumber: accountNumberForDb,
               accountType: parsedTradeline.accountType,
               status: parsedTradeline.status,
               currentBalance: parsedTradeline.balance,
@@ -175,7 +194,7 @@ export async function handle(request: Request) {
     const expiresAt = new Date(now);
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-    const crrgYear = 2024;
+    const crrgYear = new Date().getFullYear();
     const ruleSet = getRulesByYear(crrgYear);
     const validationRulesApplied = ruleSet.rules.map(rule => rule.ruleName);
 
@@ -199,7 +218,7 @@ export async function handle(request: Request) {
         artifactType: input.mimeType,
         validationRulesApplied: JSON.stringify(validationRulesApplied),
         metro2Version: "2.0",
-        crrgYear: 2024
+        crrgYear
       })
       .returning("id")
       .executeTakeFirstOrThrow();
@@ -227,7 +246,7 @@ export async function handle(request: Request) {
           payment: { scheduledMonthly: 0 },
         };
         
-        const validationResults = validateTradeline(tl, "2024");
+        const validationResults = validateTradeline(tl, String(crrgYear));
         
         for (const result of validationResults) {
           if (!result.valid) {

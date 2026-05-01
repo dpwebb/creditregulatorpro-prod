@@ -94,8 +94,7 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
   });
   let basisOfDisputeText = basisOfDisputeParagraphs.join("\n\n");
 
-    // Build the full disputed items text using TransUnion labels
-  const disputedItemsText = `Basis of Dispute:\n\n${basisOfDisputeText}`;
+  const disputedItemsText = basisOfDisputeText;
 
   const introduction = deduplicateLetterSections(framing.introduction, disputedItemsText);
 

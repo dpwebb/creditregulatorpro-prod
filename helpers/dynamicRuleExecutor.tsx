@@ -69,6 +69,29 @@ function processTemplate(template: string, tradeline: Selectable<Tradeline>, mat
   return output;
 }
 
+function normalizeRuleSeverity(severity: string | null | undefined): ValidationSeverity {
+  switch ((severity || "").toUpperCase()) {
+    case "HIGH":
+    case "ERROR":
+      return "ERROR";
+    case "MEDIUM":
+    case "WARNING":
+      return "WARNING";
+    case "LOW":
+    case "INFO":
+      return "INFO";
+    default:
+      return "WARNING";
+  }
+}
+
+function normalizeRuleConfidence(confidenceScore: unknown): number {
+  const parsed = parseFloat(String(confidenceScore ?? ""));
+  if (!Number.isFinite(parsed)) return 50;
+  const normalized = parsed <= 1 ? parsed * 100 : parsed;
+  return Math.max(0, Math.min(100, normalized));
+}
+
 /**
  * Loads all active dynamic scanning rules from the database and executes them against a single tradeline.
  * Produces DetectedViolations for any rules that match.
@@ -129,8 +152,8 @@ export async function executeActiveRules(
     if (isMatch) {
       violations.push({
         violationCategory: rule.violationCategory as any,
-        severity: rule.severity as ValidationSeverity,
-        confidenceScore: parseFloat(String(rule.confidenceScore)) || 0.8,
+        severity: normalizeRuleSeverity(rule.severity),
+        confidenceScore: normalizeRuleConfidence(rule.confidenceScore),
         userExplanation: processTemplate(rule.userExplanationTemplate, tradeline, primaryMatchedField, primaryMatchedValue),
         recommendedAction: processTemplate(rule.recommendedActionTemplate, tradeline, primaryMatchedField, primaryMatchedValue),
         technicalDetails: {

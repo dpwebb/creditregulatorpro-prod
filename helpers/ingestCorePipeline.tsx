@@ -13,7 +13,7 @@ import { validateTradelines } from "./ingestTradelineValidator";
 import { buildIngestResponse } from "./ingestResponseBuilder";
 import { ComprehensiveParseResult, ExtractedPaymentHistory } from "./reportParserTypes";
 
-import { routeHtmlToLLMResponse } from "./bureauDetectionRouter";
+import { routeHtmlToLLMResponseWithOverrides } from "./bureauDetectionRouter";
 import { snapshotDisputedTradelines, detectAndRecordSilentCorrections } from "./silentCorrectionDetector";
 import { getLatestTwoSnapshots, createSnapshotsForBatch } from "./tradelineSnapshotManager";
 import { detectSnapshotChanges } from "./changeDetector";
@@ -69,7 +69,7 @@ export async function executeIngestPipeline({
 
   let llmData;
   try {
-    llmData = routeHtmlToLLMResponse(rawHtml || "");
+    llmData = await routeHtmlToLLMResponseWithOverrides(rawHtml || "");
   } catch (error: unknown) {
     console.error(`[Ingest] Unsupported bureau:`, error);
     throw new IngestPipelineError(

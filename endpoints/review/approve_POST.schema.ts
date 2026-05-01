@@ -2,7 +2,7 @@ import { z } from "zod";
 
 
 const TradelineSchema = z.object({
-  accountNumber: z.string(),
+  accountNumber: z.string().optional().default("Not reported"),
   creditorName: z.string(),
   accountType: z.string(),
   balance: z.number(),

@@ -121,7 +121,7 @@ export const section3 = (): Content[] => [
   ]),
 
   subHeader("Account Number Formats & Status Codes"),
-  body("Account numbers are parsed and often partially masked. Key Canadian status codes are strictly monitored:"),
+  body("Account numbers are parsed when reported and often partially masked. Some bureau reports omit them, so account identity also uses creditor, bureau, dates, account type, and balance data. Key Canadian status codes are strictly monitored:"),
   bulletList([
     "11: Current / Paid as agreed.",
     "71: 30 Days Past Due.",
@@ -146,7 +146,7 @@ export const section3 = (): Content[] => [
   body("Tradelines can be managed in two ways:"),
   numberedList([
     "Importing from Reports (5-step process): Upload -> Parse -> OCR Review -> Scan -> Persist.",
-    "Creating Manually: Users can manually add a tradeline by filling out required fields (Account Number, Creditor Name, Balance, Status)."
+    "Creating Manually: Users can manually add a tradeline by filling out the details shown on the report. Account number is included only when the bureau reports one."
   ]),
 
   subHeader("Creditor Validation Workflow"),

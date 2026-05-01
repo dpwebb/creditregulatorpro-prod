@@ -23,19 +23,43 @@ export const RuleDefinitionSchema = z.object({
   logic: z.enum(["AND", "OR"]),
 });
 
+const GeneratedSeveritySchema = z.enum(["ERROR", "WARNING", "INFO", "HIGH", "MEDIUM", "LOW"]);
+
 export const GeneratedRuleSchema = z.object({
   title: z.string(),
   description: z.string(),
   ruleDefinition: RuleDefinitionSchema,
   violationCategory: z.enum(ViolationCategoryArrayValues),
-  severity: z.enum(["HIGH", "MEDIUM", "LOW"]),
-  confidenceScore: z.number().min(0).max(1),
+  severity: GeneratedSeveritySchema,
+  confidenceScore: z.number().min(0).max(100),
   userExplanationTemplate: z.string(),
   recommendedActionTemplate: z.string(),
   statutoryBasis: z.string(),
 });
 
-export type GeneratedRule = z.infer<typeof GeneratedRuleSchema>;
+type RawGeneratedRule = z.infer<typeof GeneratedRuleSchema>;
+export type GeneratedRule = Omit<RawGeneratedRule, "severity"> & {
+  severity: "ERROR" | "WARNING" | "INFO";
+  confidenceScore: number;
+};
+
+function normalizeGeneratedSeverity(severity: RawGeneratedRule["severity"]): GeneratedRule["severity"] {
+  switch (severity) {
+    case "HIGH":
+      return "ERROR";
+    case "MEDIUM":
+      return "WARNING";
+    case "LOW":
+      return "INFO";
+    default:
+      return severity;
+  }
+}
+
+function normalizeGeneratedConfidence(confidenceScore: number): number {
+  const normalized = confidenceScore <= 1 ? confidenceScore * 100 : confidenceScore;
+  return Math.max(0, Math.min(100, normalized));
+}
 
 export interface RegulatoryUpdateInput {
   title: string;
@@ -109,8 +133,8 @@ export async function generateRuleFromUpdate(
         ]
       },
       "violationCategory": "MUST be exactly one of: ${ViolationCategoryArrayValues.join(', ')}",
-      "severity": "HIGH" | "MEDIUM" | "LOW",
-      "confidenceScore": float between 0.0 and 1.0 (e.g., 0.85),
+      "severity": "ERROR" | "WARNING" | "INFO",
+      "confidenceScore": integer or float between 0 and 100 (e.g., 85),
       "userExplanationTemplate": "A user-friendly explanation of the violation. Can use placeholders like {creditorName}, {accountNumber}, {field}, {value}.",
       "recommendedActionTemplate": "Actionable advice for the consumer.",
       "statutoryBasis": "The legal or statutory reference (e.g., FCAC Guideline, Provincial Act section)."
@@ -183,5 +207,9 @@ export async function generateRuleFromUpdate(
     throw new Error("Generated rule failed schema validation.");
   }
 
-  return result.data;
+  return {
+    ...result.data,
+    severity: normalizeGeneratedSeverity(result.data.severity),
+    confidenceScore: normalizeGeneratedConfidence(result.data.confidenceScore),
+  };
 }

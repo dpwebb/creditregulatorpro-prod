@@ -115,7 +115,14 @@ export function buildViolationAwareAccountId(
   violationDetails?: ViolationDetails
 ): string {
   const displayCreditor = (creditorName || "").trim() || "Not identified in consumer disclosure";
-  const displayAccount = (accountNumber || "").trim() || "Not provided in consumer disclosure";
+  const normalizedAccount = (accountNumber || "").trim().toLowerCase();
+  const displayAccount =
+    !normalizedAccount ||
+    normalizedAccount === "unknown" ||
+    normalizedAccount === "not reported" ||
+    normalizedAccount === "not provided in consumer disclosure"
+      ? "Not reported by bureau"
+      : accountNumber.trim();
 
   const lines: string[] = [
     `${furnisherLabel}: ${displayCreditor}`,

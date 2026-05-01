@@ -210,7 +210,7 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
       <div className={styles.card}>
         <SectionHeader icon={CreditCard} title="Account Details" />
         <div className={styles.grid3}>
-          <Field label="Account Number" value={tradeline.accountNumber ? tradeline.accountNumber : <Badge variant="error">VIOLATION</Badge>} monospace highlight />
+          <Field label="Account Number" value={tradeline.accountNumber} monospace highlight emptyText="Not reported" />
           <Field label="Creditor Name" value={tradeline.creditorName} />
           <Field label="Account Type" value={tradeline.accountType} />
           <Field label="Responsibility" value={tradeline.responsibilityCode ? tradeline.responsibilityCode.charAt(0).toUpperCase() + tradeline.responsibilityCode.slice(1).replace(/_/g, ' ') : null} />

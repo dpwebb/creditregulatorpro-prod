@@ -32,8 +32,9 @@ export async function validateTradelines(
     };
   }
 
-  // Get validation rules for the current year
-  const crrgYear = 2024;
+  // Get validation rules for the current year. getRulesByYear falls back to the
+  // latest supported ruleset for future years.
+  const crrgYear = new Date().getFullYear();
   const ruleSet = getRulesByYear(crrgYear);
   const validationRulesApplied = ruleSet.rules.map(rule => rule.ruleName);
   
@@ -67,7 +68,7 @@ export async function validateTradelines(
       isCollectionAccount: parsedTradeline.isCollectionAccount ?? false,
     };
     
-    const validationResults = validateTradeline(tl, "2024");
+    const validationResults = validateTradeline(tl, String(crrgYear));
     
     for (const result of validationResults) {
       if (!result.valid) {

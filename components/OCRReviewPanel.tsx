@@ -232,10 +232,10 @@ export const OCRReviewPanel: React.FC<OCRReviewPanelProps> = ({
                         <div className={styles.inputWrapper}>
                           <Hash size={14} className={styles.inputIcon} />
                           <Input
-                            value={tl.accountNumber}
+                            value={tl.accountNumber || ""}
                             onChange={(e) => handleFieldChange(idx, "accountNumber", e.target.value)}
                             className={styles.input}
-                            placeholder="Account Number"
+                            placeholder="Account Number (if reported)"
                           />
                           <ConfidenceBadge score={tl.confidence?.accountNumber || 0} />
                         </div>

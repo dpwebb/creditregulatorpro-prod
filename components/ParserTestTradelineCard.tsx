@@ -35,7 +35,7 @@ export function TradelineResultCard({
         <Collapsible.Trigger className={styles.tlHeader}>
           <div className={styles.tlTitle}>
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            <span>Account: {result.accountNumber}</span>
+            <span>Account: {result.accountNumber || "Not reported"}</span>
           </div>
           <div className={styles.tlStatus}>
             {result.passed ? (

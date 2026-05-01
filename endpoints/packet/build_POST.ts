@@ -31,6 +31,7 @@ import { getLatestTwoSnapshots } from "../../helpers/tradelineSnapshotManager";
 import { ensureUserSignature } from "../../helpers/signatureGenerator";
 import { buildPacketStorageObjectName } from "../../helpers/packetFileNaming";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
+import { letterHumanizer } from "../../helpers/letterHumanizer";
 
 export async function handle(request: Request) {
   try {
@@ -372,6 +373,9 @@ export async function handle(request: Request) {
       console.warn(`No specific template found for jurisdiction "${jurisdiction}" with statute code "${code}". Defaulting to Ontario CRA template.`);
       letterContent = await ontarioCRA(templateContext);
     }
+
+    // Keep the legacy obligation-instance path aligned with packet/create letter cleanup.
+    letterContent = await letterHumanizer(letterContent);
 
     // 11. Attach user's digital signature to the letter
     const signatureImage = await ensureUserSignature(user.id);

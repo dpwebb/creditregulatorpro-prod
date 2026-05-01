@@ -15,7 +15,7 @@ import styles from "./ParserTestCaseEditor.module.css";
 
 // Define schema for the form
 const tradelineSchema = z.object({
-  accountNumber: z.string().min(1, "Account number is required"),
+  accountNumber: z.string().optional(),
   creditorName: z.string().optional(),
   accountType: z.string().optional(),
   balance: z.string().optional(), // Using string to allow flexible input, can be parsed later
@@ -147,7 +147,7 @@ export function ParserTestCaseEditor({
       ...prev,
       expectedTradelines: [
         ...(prev.expectedTradelines || []),
-        { accountNumber: "" } // Initialize with empty required field
+        { accountNumber: "" }
       ]
     }));
   };
@@ -347,7 +347,7 @@ export function ParserTestCaseEditor({
                           </div>
                           <div className={styles.fieldsGrid}>
                             <FormItem name={`expectedTradelines.${index}.accountNumber`}>
-                              <FormLabel>Account Number</FormLabel>
+                              <FormLabel>Account Number (if reported)</FormLabel>
                               <FormControl>
                                 <Input 
                                   value={tl.accountNumber || ""} 

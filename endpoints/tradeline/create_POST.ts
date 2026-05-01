@@ -16,7 +16,7 @@ export async function handle(request: Request) {
       .values({
         bureauId: input.bureauId,
         creditorId: input.creditorId,
-        accountNumber: input.accountNumber,
+        accountNumber: input.accountNumber?.trim() || "Not reported",
         accountType: input.accountType,
         status: input.status,
         balance: input.balance?.toString(), // Convert number to string for Numeric column

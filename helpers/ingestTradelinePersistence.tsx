@@ -4,11 +4,134 @@ import { findOrCreateCreditor } from "./creditorMatcher";
 import { resolveCreditorEntity } from "./creditorEntityResolver";
 import { ensureInitialSnapshot } from "./tradelineSnapshotManager";
 
+type TradelineMatchType = "account_number" | "corroborated";
+
+type TradelineCandidate = {
+  id: number;
+  accountNumber: string;
+  currentBalance: string | number | null;
+  status: string | null;
+  openedDate: Date | string | null;
+  accountType: string | null;
+  highCredit: string | number | null;
+  creditLimit: string | number | null;
+  lastReportedDate: Date | string | null;
+  responsibilityCode: string | null;
+  originalCreditorName: string | null;
+  collectionAgencyName: string | null;
+  isCollectionAccount: boolean | null;
+};
+
+const MIN_CORROBORATED_MATCH_SCORE = 25;
+
+function normalizeAccountNumber(value: string | null | undefined): string | null {
+  const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  if (
+    !normalized ||
+    normalized === "UNKNOWN" ||
+    normalized === "NA" ||
+    normalized === "NOTREPORTED" ||
+    normalized === "NOTPROVIDED" ||
+    normalized === "NOTAVAILABLE"
+  ) {
+    return null;
+  }
+  return normalized;
+}
+
+function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = normalizeAccountNumber(a);
+  const right = normalizeAccountNumber(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const minLength = Math.min(left.length, right.length);
+  return minLength >= 4 && (left.endsWith(right) || right.endsWith(left));
+}
+
+function accountNumbersConflict(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = normalizeAccountNumber(a);
+  const right = normalizeAccountNumber(b);
+  if (!left || !right) return false;
+  if (accountNumbersMatch(left, right)) return false;
+  return left.length >= 4 && right.length >= 4;
+}
+
+function toNumber(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function amountsClose(a: string | number | null | undefined, b: string | number | null | undefined, tolerance = 0.1): boolean {
+  const left = toNumber(a);
+  const right = toNumber(b);
+  if (left === null || right === null) return false;
+  const max = Math.max(Math.abs(left), Math.abs(right));
+  if (max === 0) return true;
+  return Math.abs(left - right) / max <= tolerance;
+}
+
+function daysApart(a: Date | string | null | undefined, b: Date | string | null | undefined): number | null {
+  if (!a || !b) return null;
+  const left = new Date(a).getTime();
+  const right = new Date(b).getTime();
+  if (Number.isNaN(left) || Number.isNaN(right)) return null;
+  return Math.abs(left - right) / (1000 * 60 * 60 * 24);
+}
+
+function textLooksSimilar(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = (a || "").trim().toLowerCase();
+  const right = (b || "").trim().toLowerCase();
+  if (!left || !right) return false;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function scoreTradelineCandidate(
+  candidate: TradelineCandidate,
+  parsedData: ParsedTradeline
+): { score: number; matchType: TradelineMatchType } | null {
+  if (accountNumbersConflict(candidate.accountNumber, parsedData.accountNumber)) {
+    return null;
+  }
+
+  let score = 0;
+  let matchType: TradelineMatchType = "corroborated";
+
+  if (accountNumbersMatch(candidate.accountNumber, parsedData.accountNumber)) {
+    score += 40;
+    matchType = "account_number";
+  }
+
+  const openedDiff = daysApart(candidate.openedDate, parsedData.dates.opened);
+  if (openedDiff !== null) {
+    if (openedDiff <= 31) score += 25;
+    else if (openedDiff <= 90) score += 12;
+  }
+
+  const reportedDiff = daysApart(candidate.lastReportedDate, parsedData.dates.reported);
+  if (reportedDiff !== null && reportedDiff <= 45) score += 5;
+
+  if (textLooksSimilar(candidate.accountType, parsedData.accountType)) score += 12;
+  if (textLooksSimilar(candidate.status, parsedData.status)) score += 6;
+  if (textLooksSimilar(candidate.responsibilityCode, parsedData.responsibilityCode)) score += 5;
+  if (textLooksSimilar(candidate.originalCreditorName, parsedData.originalCreditorName)) score += 8;
+  if (textLooksSimilar(candidate.collectionAgencyName, parsedData.collectionAgencyName)) score += 8;
+
+  if (amountsClose(candidate.highCredit, parsedData.amounts.high, 0.05)) score += 15;
+  if (amountsClose(candidate.creditLimit, parsedData.creditLimit, 0.05)) score += 12;
+  if (amountsClose(candidate.currentBalance, parsedData.balance, 0.1)) score += 8;
+
+  const parsedIsCollection = parsedData.isCollectionAccount ?? false;
+  if ((candidate.isCollectionAccount ?? false) === parsedIsCollection) score += 4;
+
+  return { score, matchType };
+}
+
 /**
  * Finds an existing tradeline for the given user and parsed tradeline data.
- * Uses a two-tier matching strategy:
- * 1. Exact match: userId + accountNumber (when accountNumber is not "Unknown" or empty)
- * 2. Fallback match: userId + creditorId (for tradelines with Unknown/empty account numbers or when exact match fails)
+ * Account numbers are optional evidence because some bureau reports omit them.
+ * A same-creditor candidate must still meet a corroboration threshold before
+ * it can be updated.
  * 
  * @param excludeIds Set of tradeline IDs to exclude from matching (already matched in this batch)
  */
@@ -19,10 +142,24 @@ async function findExistingTradeline(
   bureauId: number | null,
   parsedData: ParsedTradeline,
   excludeIds: Set<number>
-): Promise<{ id: number; accountNumber: string; matchType: 'fallback' } | null> {
+): Promise<{ id: number; accountNumber: string; matchType: TradelineMatchType; matchScore: number } | null> {
   let query = trx
     .selectFrom("tradeline")
-    .select(["id", "accountNumber", "currentBalance", "status", "openedDate"])
+    .select([
+      "id",
+      "accountNumber",
+      "currentBalance",
+      "status",
+      "openedDate",
+      "accountType",
+      "highCredit",
+      "creditLimit",
+      "lastReportedDate",
+      "responsibilityCode",
+      "originalCreditorName",
+      "collectionAgencyName",
+      "isCollectionAccount",
+    ])
     .where("userId", "=", userId)
     .where("creditorId", "=", creditorId)
     .forUpdate();
@@ -42,55 +179,36 @@ async function findExistingTradeline(
     return null;
   }
 
-  if (candidates.length === 1) {
-    console.log(`[Ingest] Found single match by creditorId for tradeline ID: ${candidates[0].id}`);
-    return { id: candidates[0].id, accountNumber: candidates[0].accountNumber, matchType: 'fallback' };
-  }
-
-  // Multiple candidates: disambiguate
   let bestCandidate = null;
   let bestScore = -1;
+  let bestMatchType: TradelineMatchType = "corroborated";
 
   for (const candidate of candidates) {
-    let score = 0;
-    
-    // Balance tolerance (10%)
-    if (candidate.currentBalance != null && parsedData.balance != null) {
-      const minBal = Math.min(Number(candidate.currentBalance), parsedData.balance);
-      const maxBal = Math.max(Number(candidate.currentBalance), parsedData.balance);
-      if (maxBal === 0 || (maxBal - minBal) / maxBal <= 0.1) {
-        score += 10;
-      }
-    }
+    const scored = scoreTradelineCandidate(candidate as TradelineCandidate, parsedData);
+    if (!scored) continue;
 
-    // Status string similarity
-    if (candidate.status && parsedData.status) {
-      const s1 = candidate.status.toLowerCase();
-      const s2 = parsedData.status.toLowerCase();
-      if (s1 === s2) score += 5;
-      else if (s1.includes(s2) || s2.includes(s1)) score += 3;
-    }
-
-    // Date overlap (openedDate)
-    if (candidate.openedDate && parsedData.dates.opened) {
-      const d1 = new Date(candidate.openedDate).getTime();
-      const d2 = new Date(parsedData.dates.opened).getTime();
-      const diffDays = Math.abs(d1 - d2) / (1000 * 60 * 60 * 24);
-      if (diffDays <= 31) score += 10;
-      else if (diffDays <= 90) score += 5;
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
+    if (scored.score > bestScore) {
+      bestScore = scored.score;
       bestCandidate = candidate;
+      bestMatchType = scored.matchType;
     }
   }
 
-  if (bestCandidate) {
-    console.log(`[Ingest] Found closest match among multiple candidates for creditorId ${creditorId} (tradeline ID: ${bestCandidate.id})`);
-    return { id: bestCandidate.id, accountNumber: bestCandidate.accountNumber, matchType: 'fallback' };
+  if (bestCandidate && bestScore >= MIN_CORROBORATED_MATCH_SCORE) {
+    console.log(
+      `[Ingest] Matched existing tradeline ${bestCandidate.id} by ${bestMatchType} evidence (score ${bestScore})`
+    );
+    return {
+      id: bestCandidate.id,
+      accountNumber: bestCandidate.accountNumber,
+      matchType: bestMatchType,
+      matchScore: bestScore,
+    };
   }
 
+  console.log(
+    `[Ingest] No sufficiently corroborated match found for creditorId ${creditorId}. Best score: ${bestScore}`
+  );
   return null;
 }
 
@@ -239,7 +357,7 @@ export async function persistTradelines(
         );
 
         console.log(
-          `[Ingest] Updating existing tradeline ${existingTradeline.id} (${existingTradeline.matchType} match) for account ${parsedTradeline.accountNumber}`
+          `[Ingest] Updating existing tradeline ${existingTradeline.id} (${existingTradeline.matchType} match, score ${existingTradeline.matchScore}) for account ${parsedTradeline.accountNumber || "not reported"}`
         );
 
         // Build the update object

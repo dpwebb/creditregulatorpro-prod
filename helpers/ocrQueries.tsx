@@ -7,7 +7,7 @@ import { toast } from "sonner";
 // Re-defining types locally since we don't have access to the helper files in this context
 // In a real scenario, these would be imported from helpers/reportParser and helpers/confidenceScorer
 export interface ParsedTradeline {
-  accountNumber: string;
+  accountNumber?: string;
   creditorName: string;
   accountType: string;
   balance: number;

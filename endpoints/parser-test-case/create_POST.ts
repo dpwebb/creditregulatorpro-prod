@@ -4,9 +4,8 @@ import { schema, OutputType } from "./create_POST.schema";
 
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
-import { parseReport } from "../../helpers/reportParser";
-import { extractTextFromPdf } from "../../helpers/pdfTextExtractor";
 import { Json } from "../../helpers/schema";
+import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
 
 export async function handle(request: Request) {
   try {
@@ -21,12 +20,8 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
-    // 1. Extract text from PDF
-    const rawText = await extractTextFromPdf(input.pdfBase64);
-
-    // 2. Run initial parse to get baseline expected values
-    // Assuming PDF mime type for now as per requirements
-    const parseResult = await parseReport(input.pdfBase64, "application/pdf");
+    // Run the same PDF -> AI HTML -> bureau router path used by production ingestion.
+    const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(input.pdfBase64);
 
     // 3. Create test case
     const newTestCase = await db
@@ -35,7 +30,7 @@ export async function handle(request: Request) {
         name: input.name,
         description: input.description,
         pdfBase64: input.pdfBase64,
-        rawExtractedText: rawText,
+        rawExtractedText,
         expectedConsumerInfo: parseResult.consumerInfo as unknown as Json,
         expectedTradelines: parseResult.tradelines as unknown as Json,
         createdBy: user.id,

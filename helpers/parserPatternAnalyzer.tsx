@@ -36,6 +36,99 @@ function isFieldExpectation(value: any): value is FieldExpectation {
   return value !== null && typeof value === 'object' && 'mode' in value;
 }
 
+function unwrapExpectedValue(value: any): any {
+  return isFieldExpectation(value) ? value.value : value;
+}
+
+function normalizeAccountNumber(value: string | null | undefined): string | null {
+  const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+  if (
+    !normalized ||
+    normalized === "UNKNOWN" ||
+    normalized === "NA" ||
+    normalized === "NOTREPORTED" ||
+    normalized === "NOTPROVIDED" ||
+    normalized === "NOTAVAILABLE"
+  ) return null;
+  return normalized;
+}
+
+function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = normalizeAccountNumber(a);
+  const right = normalizeAccountNumber(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const minLength = Math.min(left.length, right.length);
+  return minLength >= 4 && (left.endsWith(right) || right.endsWith(left));
+}
+
+function textLooksSimilar(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = String(a || "").trim().toLowerCase();
+  const right = String(b || "").trim().toLowerCase();
+  if (!left || !right) return false;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function amountsClose(a: unknown, b: unknown, tolerance = 0.1): boolean {
+  const left = Number(String(a ?? "").replace(/[^0-9.-]/g, ""));
+  const right = Number(String(b ?? "").replace(/[^0-9.-]/g, ""));
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return false;
+  const max = Math.max(Math.abs(left), Math.abs(right));
+  if (max === 0) return true;
+  return Math.abs(left - right) / max <= tolerance;
+}
+
+function daysApart(a: unknown, b: unknown): number | null {
+  if (!a || !b) return null;
+  const left = new Date(a as any).getTime();
+  const right = new Date(b as any).getTime();
+  if (Number.isNaN(left) || Number.isNaN(right)) return null;
+  return Math.abs(left - right) / (1000 * 60 * 60 * 24);
+}
+
+function scoreTradelineIdentity(expected: ParsedTradeline, actual: ParsedTradeline): number {
+  let score = 0;
+
+  if (accountNumbersMatch(expected.accountNumber, actual.accountNumber)) score += 40;
+  if (textLooksSimilar(unwrapExpectedValue(expected.creditorName), actual.creditorName)) score += 25;
+  if (textLooksSimilar(unwrapExpectedValue(expected.accountType), actual.accountType)) score += 10;
+  if (textLooksSimilar(unwrapExpectedValue(expected.status), actual.status)) score += 5;
+  if (amountsClose(unwrapExpectedValue(expected.balance), actual.balance, 0.1)) score += 8;
+  if (amountsClose(unwrapExpectedValue(expected.amounts?.high), actual.amounts?.high, 0.05)) score += 8;
+  if (amountsClose(unwrapExpectedValue(expected.amounts?.pastDue), actual.amounts?.pastDue, 0.05)) score += 5;
+
+  const openedDiff = daysApart(unwrapExpectedValue(expected.dates?.opened), actual.dates?.opened);
+  if (openedDiff !== null) {
+    if (openedDiff <= 31) score += 15;
+    else if (openedDiff <= 90) score += 7;
+  }
+
+  return score;
+}
+
+function findBestTradelineMatch(
+  expected: ParsedTradeline,
+  actual: ParsedTradeline[],
+  usedIndexes: Set<number>
+): { tradeline: ParsedTradeline; index: number } | null {
+  let best: { tradeline: ParsedTradeline; index: number; score: number } | null = null;
+
+  actual.forEach((candidate, index) => {
+    if (usedIndexes.has(index)) return;
+    const score = scoreTradelineIdentity(expected, candidate);
+    if (!best || score > best.score) {
+      best = { tradeline: candidate, index, score };
+    }
+  });
+
+  if (!best || best.score < 25) {
+    return null;
+  }
+
+  usedIndexes.add(best.index);
+  return { tradeline: best.tradeline, index: best.index };
+}
+
 /**
  * Checks if there is extracted data that doesn't have corresponding expected values.
  * Returns true when:
@@ -258,7 +351,8 @@ export function compareConsumerInfo(
 
 /**
  * Compares expected vs actual tradelines.
- * Matches tradelines by account number.
+ * Matches by account number when present, with fallback to creditor/type/date/amount
+ * identity signals for bureau reports that omit account numbers.
  * Supports both legacy plain values and new FieldExpectation format.
  */
 export function compareTradelines(
@@ -269,9 +363,11 @@ export function compareTradelines(
   const results: TradelineComparisonResult[] = [];
   if (!expected || expected.length === 0) return results;
 
+  const usedActualIndexes = new Set<number>();
+
   for (const expTl of expected) {
-    // Find matching actual tradeline by account number
-    const actTl = actual.find((t) => t.accountNumber === expTl.accountNumber);
+    const match = findBestTradelineMatch(expTl, actual, usedActualIndexes);
+    const actTl = match?.tradeline ?? null;
 
     const fieldResults: FieldComparisonResult[] = [];
     let tlPassed = true;
@@ -284,7 +380,7 @@ export function compareTradelines(
         actual: "Not Found",
         passed: false,
         mode: 'exact',
-        suggestion: "Check tradeline splitting logic or account number extraction",
+        suggestion: "Check tradeline splitting or identity matching fields",
       });
     } else {
       // Compare specific fields
@@ -424,7 +520,7 @@ export function compareTradelines(
     }
 
     results.push({
-      accountNumber: expTl.accountNumber,
+      accountNumber: expTl.accountNumber || expTl.creditorName || "Expected tradeline",
       passed: tlPassed,
       fieldResults,
     });
