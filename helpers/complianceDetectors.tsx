@@ -222,7 +222,7 @@ export async function runAllTradelineDetectors(
   violations.push(...detectBureauNotificationFailure(obligationInstances));
   violations.push(...detectBureauReinvestigationFailure(tradeline, reportArtifacts));
   violations.push(...(await detectBureauAccessViolation(tradeline)));
-  violations.push(...detectBureauDisputeMarkingFailure(obligationInstances));
+  violations.push(...detectBureauDisputeMarkingFailure(obligationInstances, tradeline));
 
   // 9. Furnisher Violations
   violations.push(...detectFurnisherReagingViolation(tradeline, reportArtifacts));

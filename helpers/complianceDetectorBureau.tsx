@@ -108,33 +108,38 @@ export function detectBureauReinvestigationFailure(
   
   if (reportArtifacts.length < 2) return violations;
 
+  const artifactContainsTradeline = (artifact: Selectable<ReportArtifact>) => {
+    if (artifact.tradelineId === tradeline.id && artifact.data !== null) {
+      return true;
+    }
+
+    const data = artifact.data as Record<string, any> | null;
+    const tradelineIds = Array.isArray(data?.tradelineIds) ? data.tradelineIds : [];
+    return tradelineIds.map((id) => Number(id)).includes(Number(tradeline.id));
+  };
+
   // Sort artifacts chronologically
   const sortedArtifacts = [...reportArtifacts].sort((a, b) =>
-    new Date(a.reportDate!).getTime() - new Date(b.reportDate!).getTime()
+    new Date(a.reportDate ?? a.createdAt ?? 0).getTime() -
+    new Date(b.reportDate ?? b.createdAt ?? 0).getTime()
   );
-
-  // Each artifact stores data for a SINGLE tradeline, not a collection.
-  // Check if artifacts are present (has data) or absent (null/no artifact) for this specific tradeline.
-  // Strategy: Track if artifact data exists across the timeline.
-  // If we have artifacts A, B, C and see: Present -> Absent -> Present, that's reinsertion.
 
   let disappearedAt: Date | null = null;
   let reappearedAt: Date | null = null;
   let wasPresent = false;
 
   for (const artifact of sortedArtifacts) {
-    // Check if this artifact is associated with the tradeline and has data
-    const isPresent = artifact.tradelineId === tradeline.id && artifact.data !== null;
+    const isPresent = artifactContainsTradeline(artifact);
 
     if (isPresent) {
       if (disappearedAt) {
-        reappearedAt = new Date(artifact.reportDate!);
+        reappearedAt = new Date(artifact.reportDate ?? artifact.createdAt ?? new Date());
         break; // Found the pattern: Present -> Absent -> Present
       }
       wasPresent = true;
     } else {
       if (wasPresent) {
-        disappearedAt = new Date(artifact.reportDate!);
+        disappearedAt = new Date(artifact.reportDate ?? artifact.createdAt ?? new Date());
       }
     }
   }
@@ -258,7 +263,8 @@ export async function detectBureauAccessViolation(
  * References: Provincial CRA reinvestigation provisions, Provincial Consumer Reporting Acts (Accuracy).
  */
 export function detectBureauDisputeMarkingFailure(
-  obligationInstances: Selectable<ObligationInstance>[]
+  obligationInstances: Selectable<ObligationInstance>[],
+  tradeline?: Selectable<Tradeline>
 ): DetectedViolation[] {
   const violations: DetectedViolation[] = [];
 
@@ -274,19 +280,18 @@ export function detectBureauDisputeMarkingFailure(
 
   if (activeDisputes.length === 0) return [];
 
-  // If we have active disputes, we need to check the TRADELINE status.
-  // However, this function only takes obligationInstances. 
-  // We need the tradeline object to check the 'remark_code' or 'status'.
-  // The signature requested was `detectBureauDisputeMarkingFailure(obligationInstances)`.
-  // This implies we might need to fetch the tradeline or rely on data inside obligationInstance if it snapshots the tradeline.
-  
-  // LIMITATION: Without the current tradeline state passed in, we can't verify if the remark code is present.
-  // We will assume for this implementation that we can't fully verify it without the tradeline object.
-  // However, if the user request implies we should check this, we might need to assume the caller
-  // might pass enriched instances or we just return a warning to "Check manually".
-  
-  // Let's try to be helpful. If we have an active dispute > 15 days, and we assume the UI calls this.
-  // We'll return a violation that says "Verify this is marked".
+  if (!tradeline) return [];
+
+  const tradelineDisputeText = [
+    tradeline.status,
+    tradeline.sourceText,
+    (tradeline as any).notes,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const hasDisputeMarking = /\b(dispute|disputed|under investigation|consumer statement)\b/.test(tradelineDisputeText);
+  if (hasDisputeMarking) return [];
   
   activeDisputes.forEach(instance => {
     const sentDate = parseISO(instance.challengeSentDate!.toString());
@@ -294,12 +299,14 @@ export function detectBureauDisputeMarkingFailure(
        violations.push({
         violationCategory: "BUREAU_DISPUTE_MARKING_FAILURE",
         severity: "WARNING",
-        confidenceScore: 60, // Lower confidence because we aren't checking the actual remark code here
+        confidenceScore: 80,
         userExplanation: "This account is missing the required IN DISPUTE marking while under active investigation.",
         technicalDetails: {
           obligationInstanceId: instance.id,
+          tradelineId: tradeline.id,
           disputeDate: sentDate.toISOString(),
           status: "Active Dispute",
+          fieldsChecked: ["status", "sourceText", "notes"],
           detectedValue: "Active Dispute",
           regulationIds: ["PIPEDA_4_6_1"],
         },

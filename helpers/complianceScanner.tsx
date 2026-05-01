@@ -91,6 +91,52 @@ export interface ScanContext {
   obligationInstances?: Selectable<ObligationInstance>[];
 }
 
+function normalizeExtractionConfidence(confidence: unknown): number | null {
+  if (typeof confidence !== "number" || !Number.isFinite(confidence)) return null;
+  return confidence <= 1 ? confidence * 100 : confidence;
+}
+
+function mergeArtifactsById(
+  primary: Selectable<ReportArtifact>[],
+  secondary: Selectable<ReportArtifact>[]
+): Selectable<ReportArtifact>[] {
+  const map = new Map<number, Selectable<ReportArtifact>>();
+  for (const artifact of [...primary, ...secondary]) {
+    map.set(artifact.id, artifact);
+  }
+  return [...map.values()].sort((a, b) => {
+    const left = new Date(a.reportDate ?? a.createdAt ?? 0).getTime();
+    const right = new Date(b.reportDate ?? b.createdAt ?? 0).getTime();
+    return right - left;
+  });
+}
+
+async function loadSameBureauArtifactTimeline(
+  tradeline: Selectable<Tradeline>
+): Promise<Selectable<ReportArtifact>[]> {
+  if (!tradeline.userId || !tradeline.bureauId) return [];
+
+  const artifactIds = await db
+    .selectFrom("tradelineArtifactPresence")
+    .innerJoin("tradeline", "tradeline.id", "tradelineArtifactPresence.tradelineId")
+    .select("tradelineArtifactPresence.reportArtifactId as reportArtifactId")
+    .distinct()
+    .where("tradeline.userId", "=", tradeline.userId)
+    .where("tradeline.bureauId", "=", tradeline.bureauId)
+    .execute();
+
+  const ids = artifactIds.map((row) => row.reportArtifactId);
+  if (ids.length === 0) return [];
+
+  return await db
+    .selectFrom("reportArtifact")
+    .selectAll()
+    .where("id", "in", ids)
+    .orderBy("reportDate", "desc")
+    .orderBy("createdAt", "desc")
+    .execute();
+}
+
 /**
  * Scans a specific tradeline for regulatory compliance violations.
  * Orchestrates 35 specialized detection modules from helpers/complianceDetectors.
@@ -135,10 +181,32 @@ export async function scanForViolations(
       
     if (artifact?.data) {
       const data = artifact.data as Record<string, any>;
-      const confidence = data.extractionConfidence ?? data.parseConfidence ?? data.ocrConfidence;
-      if (typeof confidence === "number" && confidence < 50) {
-        console.warn(`Tradeline ${tradelineId} has low extraction confidence (${confidence}). Skipping detectors.`);
-        return [];
+      const rawConfidence = data.extractionConfidence ?? data.parseConfidence ?? data.ocrConfidence;
+      const confidence = normalizeExtractionConfidence(rawConfidence);
+      if (confidence !== null && confidence < 50) {
+        console.warn(
+          `Tradeline ${tradelineId} has low extraction confidence (${confidence}). Flagging for review and continuing scan.`
+        );
+        violations.push({
+          violationCategory: "DISCLOSURE_DEFICIENCY",
+          severity: "WARNING",
+          confidenceScore: 95,
+          userExplanation:
+            "The credit report extraction was low confidence, so this account needs manual review before the bureau's reporting can be trusted.",
+          technicalDetails: {
+            tradelineId,
+            reportArtifactId: tradeline.reportArtifactId,
+            issue: "LOW_EXTRACTION_CONFIDENCE",
+            rawConfidence,
+            normalizedConfidence: confidence,
+            detectedValue: confidence,
+            regulationIds: ["PIPEDA_4_6", "PIPEDA_4_9"],
+          },
+          recommendedAction:
+            "Review the original report and ask the credit bureau to provide a clearer, complete disclosure if the account details cannot be verified.",
+          tradelineId,
+          responsibleEntity: "BUREAU",
+        });
       }
     }
   }
@@ -169,6 +237,14 @@ export async function scanForViolations(
 
       console.log(`JSONB query searching for tradelineId ${tradelineId} found ${jsonbArtifacts.length} artifacts`);
       artifacts = jsonbArtifacts;
+    }
+
+    const sameBureauTimeline = await loadSameBureauArtifactTimeline(tradeline);
+    if (sameBureauTimeline.length > 0) {
+      artifacts = mergeArtifactsById(artifacts, sameBureauTimeline);
+      console.log(
+        `Expanded artifact timeline for tradeline ${tradelineId} to ${artifacts.length} same-bureau artifacts`
+      );
     }
   }
   console.log(`Found ${artifacts.length} artifacts for tradeline ${tradelineId}`);
@@ -222,7 +298,7 @@ export async function scanForViolations(
       ...detectInvestigationRubberStamp(disputes),
       ...detectBureauNotificationFailure(disputes),
       ...detectBureauReinvestigationFailure(tradeline, artifacts),
-      ...detectBureauDisputeMarkingFailure(disputes),
+      ...detectBureauDisputeMarkingFailure(disputes, tradeline),
       ...detectFurnisherReagingViolation(tradeline, artifacts),
       ...detectFurnisherStatusCodeMismatch(tradeline),
       ...detectFurnisherJointAccountViolation(tradeline),

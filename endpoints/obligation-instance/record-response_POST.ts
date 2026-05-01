@@ -156,7 +156,17 @@ export async function handle(request: Request) {
       updateData.responseAuditCompletedAt = new Date();
     }
 
-    // 3.5. Analyze and Escalate (non-blocking — failure must not prevent response recording)
+    // 4. Perform Update
+    let updatedInstance = await db
+      .updateTable("obligationInstance")
+      .set(updateData)
+      .where("id", "=", input.obligationInstanceId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // 4.5. Analyze and Escalate after the response fields are persisted.
+    // The analysis pipeline reloads this row, so running it before the update
+    // classifies the stale pre-response state.
     let analysisResult: AnalysisResult = null;
     try {
       const escalationOutput = await analyzeAndEscalate(
@@ -173,20 +183,18 @@ export async function handle(request: Request) {
       console.log(
         `[record-response] analyzeAndEscalate succeeded for obligationInstanceId=${input.obligationInstanceId}, recommendedPath=${analysisResult.recommendedPath}`
       );
+
+      updatedInstance = await db
+        .selectFrom("obligationInstance")
+        .selectAll()
+        .where("id", "=", input.obligationInstanceId)
+        .executeTakeFirstOrThrow();
     } catch (analysisError) {
       console.error(
         `[record-response] analyzeAndEscalate failed for obligationInstanceId=${input.obligationInstanceId} (non-fatal):`,
         analysisError instanceof Error ? analysisError.message : analysisError
       );
     }
-
-    // 4. Perform Update
-    const updatedInstance = await db
-      .updateTable("obligationInstance")
-      .set(updateData)
-      .where("id", "=", input.obligationInstanceId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
 
     // 5. Log Audit Action
     await logAudit({

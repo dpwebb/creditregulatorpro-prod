@@ -1,12 +1,126 @@
-import { schema, OutputType } from "./bureau-communication_POST.schema";
-import { ObligationState } from "../../helpers/schema";
+import { schema } from "./bureau-communication_POST.schema";
+import type { InputType, OutputType } from "./bureau-communication_POST.schema";
+import type { Json, ObligationState } from "../../helpers/schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { checkRateLimit } from "../../helpers/rateLimiter";
 import { logAudit } from "../../helpers/auditLogger";
 import { chain } from "../../helpers/hashChain";
+import { runAllResponseAuditDetectors } from "../../helpers/complianceDetectorResponse";
 import CryptoJS from "crypto-js";
+
+const stateMapping: Record<InputType["communicationType"], ObligationState> = {
+  "BUREAU_DENIAL": "INSUFFICIENT_RESPONSE",
+  "BUREAU_VERIFICATION_REQUEST": "CHALLENGED",
+  "BUREAU_CORRECTION_NOTICE": "INSUFFICIENT_RESPONSE",
+  "BUREAU_RESPONSE_RECEIVED": "INSUFFICIENT_RESPONSE",
+  "BUREAU_ACKNOWLEDGMENT": "CHALLENGED",
+  "BUREAU_OTHER": "INSUFFICIENT_RESPONSE",
+};
+
+const responseStatusMapping: Record<InputType["communicationType"], string> = {
+  "BUREAU_DENIAL": "denied",
+  "BUREAU_VERIFICATION_REQUEST": "verification requested",
+  "BUREAU_CORRECTION_NOTICE": "correction notice received",
+  "BUREAU_RESPONSE_RECEIVED": "response received",
+  "BUREAU_ACKNOWLEDGMENT": "acknowledged",
+  "BUREAU_OTHER": "other bureau response",
+};
+
+const substantiveResponseTypes = new Set<InputType["communicationType"]>([
+  "BUREAU_DENIAL",
+  "BUREAU_CORRECTION_NOTICE",
+  "BUREAU_RESPONSE_RECEIVED",
+  "BUREAU_OTHER",
+]);
+
+function isSubstantiveResponse(type: InputType["communicationType"]) {
+  return substantiveResponseTypes.has(type);
+}
+
+function toJsonArray(value: string[] | undefined): Json | undefined {
+  return value === undefined ? undefined : (JSON.parse(JSON.stringify(value)) as Json);
+}
+
+function hasResponseMetadata(input: InputType) {
+  return [
+    input.responseStatus,
+    input.responseLetterContent,
+    input.responseMovDisclosed,
+    input.responseMovDescription,
+    input.responseItemsDisputed,
+    input.responseItemsAddressed,
+    input.responseDocumentationProvided,
+    input.responseDocumentationTypes,
+    input.responseSenderAddress,
+    input.responseAuthorizedSignature,
+    input.responseSignatoryName,
+    input.responseSignatoryTitle,
+  ].some((value) => value !== undefined);
+}
+
+function buildObligationUpdate(
+  input: InputType,
+  timestamp: Date,
+  currentInstance: Record<string, any> | null
+): Record<string, any> {
+  const newState = stateMapping[input.communicationType];
+  const updateData: Record<string, any> = { state: newState };
+  const substantive = isSubstantiveResponse(input.communicationType);
+
+  if (substantive) {
+    updateData.responseReceivedDate = timestamp;
+    updateData.responseStatus = input.responseStatus ?? responseStatusMapping[input.communicationType];
+    if (input.responseLetterContent !== undefined || input.description) {
+      updateData.responseLetterContent = input.responseLetterContent ?? input.description ?? null;
+    }
+  } else if (input.responseStatus !== undefined) {
+    updateData.responseStatus = input.responseStatus;
+  }
+
+  const optionalFields: Array<[string, unknown]> = [
+    ["responseMovDisclosed", input.responseMovDisclosed],
+    ["responseMovDescription", input.responseMovDescription],
+    ["responseDocumentationProvided", input.responseDocumentationProvided],
+    ["responseSenderAddress", input.responseSenderAddress],
+    ["responseAuthorizedSignature", input.responseAuthorizedSignature],
+    ["responseSignatoryName", input.responseSignatoryName],
+    ["responseSignatoryTitle", input.responseSignatoryTitle],
+  ];
+
+  for (const [key, value] of optionalFields) {
+    if (value !== undefined) updateData[key] = value;
+  }
+
+  const disputed = toJsonArray(input.responseItemsDisputed);
+  if (disputed !== undefined) updateData.responseItemsDisputed = disputed;
+
+  const addressed = toJsonArray(input.responseItemsAddressed);
+  if (addressed !== undefined) updateData.responseItemsAddressed = addressed;
+
+  const docTypes = toJsonArray(input.responseDocumentationTypes);
+  if (docTypes !== undefined) updateData.responseDocumentationTypes = docTypes;
+
+  const shouldAudit =
+    input.runAudit === true ||
+    (input.runAudit !== false && substantive && (hasResponseMetadata(input) || input.description));
+
+  if (shouldAudit && currentInstance) {
+    const instanceForAudit = {
+      ...currentInstance,
+      ...updateData,
+      responseItemsDisputed: input.responseItemsDisputed ?? currentInstance.responseItemsDisputed,
+      responseItemsAddressed: input.responseItemsAddressed ?? currentInstance.responseItemsAddressed,
+      responseDocumentationTypes: input.responseDocumentationTypes ?? currentInstance.responseDocumentationTypes,
+    };
+    const auditFindings = runAllResponseAuditDetectors([instanceForAudit as any]);
+    updateData.responseAuditFindings = JSON.parse(JSON.stringify(auditFindings)) as Json;
+    updateData.responseAuditCompletedAt = timestamp;
+  }
+
+  return updateData;
+}
 
 export async function handle(request: Request) {
   try {
@@ -21,19 +135,75 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
-    // Validate existence of linked entities
+    const isAdmin = user.role === "admin";
+    const linkedTradelineIds: number[] = [];
+    let packetTradelineId: number | null = null;
+    let obligationTradelineId: number | null = null;
+
+    // Validate existence and ownership of linked entities
     if (input.tradelineId) {
-      const tradeline = await db.selectFrom("tradeline").select("id").where("id", "=", input.tradelineId).executeTakeFirst();
+      const tradeline = await db
+        .selectFrom("tradeline")
+        .select(["id", "userId", "organizationId"])
+        .where("id", "=", input.tradelineId)
+        .executeTakeFirst();
       if (!tradeline) throw new Error(`Tradeline with ID ${input.tradelineId} not found`);
+      if (!isAdmin && tradeline.userId !== user.id) {
+        return new Response(JSON.stringify({ error: "Access denied: this tradeline does not belong to you." }), { status: 403 });
+      }
+      linkedTradelineIds.push(tradeline.id);
     }
     if (input.packetId) {
-      const packet = await db.selectFrom("packet").select("id").where("id", "=", input.packetId).executeTakeFirst();
+      const packet = await db
+        .selectFrom("packet")
+        .leftJoin("tradeline", "tradeline.id", "packet.tradelineId")
+        .select([
+          "packet.id",
+          "packet.userId",
+          "packet.organizationId",
+          "packet.tradelineId",
+          "tradeline.userId as tradelineUserId",
+        ])
+        .where("packet.id", "=", input.packetId)
+        .executeTakeFirst();
       if (!packet) throw new Error(`Packet with ID ${input.packetId} not found`);
+      const packetOwnerId = packet.userId ?? packet.tradelineUserId;
+      if (!isAdmin && packetOwnerId !== user.id) {
+        return new Response(JSON.stringify({ error: "Access denied: this packet does not belong to you." }), { status: 403 });
+      }
+      packetTradelineId = packet.tradelineId;
+      if (packet.tradelineId !== null) linkedTradelineIds.push(packet.tradelineId);
     }
     if (input.obligationInstanceId) {
-      const obligation = await db.selectFrom("obligationInstance").select("id").where("id", "=", input.obligationInstanceId).executeTakeFirst();
+      const obligation = await db
+        .selectFrom("obligationInstance")
+        .leftJoin("tradeline", "tradeline.id", "obligationInstance.tradelineId")
+        .select([
+          "obligationInstance.id",
+          "obligationInstance.userId",
+          "obligationInstance.organizationId",
+          "obligationInstance.tradelineId",
+          "tradeline.userId as tradelineUserId",
+        ])
+        .where("obligationInstance.id", "=", input.obligationInstanceId)
+        .executeTakeFirst();
       if (!obligation) throw new Error(`Obligation Instance with ID ${input.obligationInstanceId} not found`);
+      const obligationOwnerId = obligation.userId ?? obligation.tradelineUserId;
+      if (!isAdmin && obligationOwnerId !== user.id) {
+        return new Response(JSON.stringify({ error: "Access denied: this obligation instance does not belong to you." }), { status: 403 });
+      }
+      obligationTradelineId = obligation.tradelineId;
+      if (obligation.tradelineId !== null) linkedTradelineIds.push(obligation.tradelineId);
     }
+
+    const uniqueLinkedTradelineIds = new Set(linkedTradelineIds);
+    if (uniqueLinkedTradelineIds.size > 1) {
+      return new Response(
+        JSON.stringify({ error: "Linked packet, tradeline, and obligation instance must refer to the same tradeline." }),
+        { status: 400 }
+      );
+    }
+    const effectiveTradelineId = input.tradelineId ?? packetTradelineId ?? obligationTradelineId;
 
     // Compute SHA-256 hash of the file content
     const fileHash = CryptoJS.SHA256(input.fileDataBase64).toString(CryptoJS.enc.Hex);
@@ -64,6 +234,7 @@ export async function handle(request: Request) {
         packetId: input.packetId,
         obligationInstanceId: input.obligationInstanceId,
         tradelineId: input.tradelineId
+          ?? effectiveTradelineId
       });
 
       // 3. Create evidence_event record
@@ -106,65 +277,48 @@ export async function handle(request: Request) {
       
       if (input.obligationInstanceId) {
         // Direct obligation instance provided
-        const stateMapping: Record<string, ObligationState> = {
-          "BUREAU_DENIAL": "INSUFFICIENT_RESPONSE",
-          "BUREAU_VERIFICATION_REQUEST": "CHALLENGED",
-          "BUREAU_CORRECTION_NOTICE": "INSUFFICIENT_RESPONSE",
-          "BUREAU_RESPONSE_RECEIVED": "INSUFFICIENT_RESPONSE",
-          "BUREAU_ACKNOWLEDGMENT": "CHALLENGED",
-          "BUREAU_OTHER": "INSUFFICIENT_RESPONSE",
-        };
-
-        const newState = stateMapping[input.communicationType];
+        const currentObligation = await trx
+          .selectFrom("obligationInstance")
+          .selectAll()
+          .where("id", "=", input.obligationInstanceId)
+          .executeTakeFirst();
+        const updateData = buildObligationUpdate(input, timestamp, currentObligation ?? null);
+        const newState = updateData.state;
         
         updatedObligationInstance = await trx
           .updateTable("obligationInstance")
-          .set({
-            responseReceivedDate: timestamp,
-            state: newState,
-          })
+          .set(updateData)
           .where("id", "=", input.obligationInstanceId)
           .returningAll()
           .executeTakeFirst();
 
         console.log(`Updated obligation instance ${input.obligationInstanceId} to state ${newState} due to ${input.communicationType}`);
         
-      } else if (input.tradelineId) {
+      } else if (effectiveTradelineId) {
         // No direct obligation instance, find most recent challenged one for the tradeline
         const pendingObligation = await trx
           .selectFrom("obligationInstance")
           .selectAll()
-          .where("tradelineId", "=", input.tradelineId)
+          .where("tradelineId", "=", effectiveTradelineId)
           .where("state", "=", "CHALLENGED")
           .orderBy("createdAt", "desc")
           .limit(1)
           .executeTakeFirst();
 
         if (pendingObligation) {
-          const stateMapping: Record<string, ObligationState> = {
-            "BUREAU_DENIAL": "INSUFFICIENT_RESPONSE",
-            "BUREAU_VERIFICATION_REQUEST": "CHALLENGED",
-            "BUREAU_CORRECTION_NOTICE": "INSUFFICIENT_RESPONSE",
-            "BUREAU_RESPONSE_RECEIVED": "INSUFFICIENT_RESPONSE",
-            "BUREAU_ACKNOWLEDGMENT": "CHALLENGED",
-            "BUREAU_OTHER": "INSUFFICIENT_RESPONSE",
-          };
-
-          const newState = stateMapping[input.communicationType];
+          const updateData = buildObligationUpdate(input, timestamp, pendingObligation);
+          const newState = updateData.state;
           
           updatedObligationInstance = await trx
             .updateTable("obligationInstance")
-            .set({
-              responseReceivedDate: timestamp,
-              state: newState,
-            })
+            .set(updateData)
             .where("id", "=", pendingObligation.id)
             .returningAll()
             .executeTakeFirst();
 
-          console.log(`Auto-linked and updated obligation instance ${pendingObligation.id} for tradeline ${input.tradelineId} to state ${newState} due to ${input.communicationType}`);
+          console.log(`Auto-linked and updated obligation instance ${pendingObligation.id} for tradeline ${effectiveTradelineId} to state ${newState} due to ${input.communicationType}`);
         } else {
-          console.log(`No pending obligation instance found for tradeline ${input.tradelineId}`);
+          console.log(`No pending obligation instance found for tradeline ${effectiveTradelineId}`);
         }
       }
 
@@ -182,7 +336,7 @@ export async function handle(request: Request) {
         communicationType: input.communicationType,
         fileName: input.fileName,
         linkedTo: {
-          tradelineId: input.tradelineId,
+          tradelineId: effectiveTradelineId,
           packetId: input.packetId,
           obligationInstanceId: input.obligationInstanceId
         }
