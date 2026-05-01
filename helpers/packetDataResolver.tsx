@@ -56,6 +56,40 @@ function isThirdPartyRecipientComplete(
   );
 }
 
+function inferViolationFieldName(input: {
+  ruleName?: string;
+  ruleCategory?: string;
+  message?: string;
+  expectedValue?: string;
+  userExplanation?: string;
+}): string | undefined {
+  const ruleName = input.ruleName ?? "";
+  const combined = [
+    input.ruleName,
+    input.ruleCategory,
+    input.message,
+    input.expectedValue,
+    input.userExplanation,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (ruleName === "DATE_CLOSED_REQUIRED" || combined.includes("closing date") || combined.includes("closed date") || combined.includes("valid closed date")) {
+    return "dateClosed";
+  }
+
+  if (ruleName === "DATE_DOFD_LOGIC" || combined.includes("date of first delinquency") || combined.includes("dofd") || combined.includes("first went delinquent")) {
+    return "dateOfFirstDelinquency";
+  }
+
+  if (ruleName === "REPORT_DATE_REQUIRED" || ruleName === "DATE_REPORTED_LOGIC" || combined.includes("reported date")) {
+    return "lastReportedDate";
+  }
+
+  return undefined;
+}
+
 export async function packetDataResolver(
   params: PacketDataResolverParams
 ): Promise<PacketDataResolverResult> {
@@ -160,25 +194,39 @@ export async function packetDataResolver(
   let violationDetails: ViolationDetails | undefined;
 
   if (params.creditorObligationTestId) {
-    const obligationTest = await db
-      .selectFrom("creditorObligationTest")
-      .select([
-        "violationCategory",
-        "detectedAt",
-        "disputeVector",
-        "obligationType",
-        "severity",
-        "statutoryBasis",
-        "notes",
-        "omissions",
-        "userExplanation",
-        "recommendedAction",
-        "technicalDetails",
-      ])
-      .where("id", "=", params.creditorObligationTestId)
-      .executeTakeFirst();
+    if (!params.tradelineId) {
+      throw new BusinessRuleError("tradelineId is required to resolve this violation.", 400);
+    }
 
-    if (obligationTest) {
+    let obligationTestQuery = db
+      .selectFrom("creditorObligationTest")
+      .innerJoin("tradeline", "tradeline.id", "creditorObligationTest.tradelineId")
+      .select([
+        "creditorObligationTest.violationCategory",
+        "creditorObligationTest.detectedAt",
+        "creditorObligationTest.disputeVector",
+        "creditorObligationTest.obligationType",
+        "creditorObligationTest.severity",
+        "creditorObligationTest.statutoryBasis",
+        "creditorObligationTest.notes",
+        "creditorObligationTest.omissions",
+        "creditorObligationTest.userExplanation",
+        "creditorObligationTest.recommendedAction",
+        "creditorObligationTest.technicalDetails",
+      ])
+      .where("creditorObligationTest.id", "=", params.creditorObligationTestId)
+      .where("creditorObligationTest.tradelineId", "=", params.tradelineId);
+
+    if (!params.isAdmin) {
+      obligationTestQuery = obligationTestQuery.where("tradeline.userId", "=", params.user.id);
+    }
+
+    const obligationTest = await obligationTestQuery.executeTakeFirst();
+
+    if (!obligationTest) {
+      throw new BusinessRuleError("Violation not found or not linked to this tradeline.", 404);
+    }
+
       const techDetails = obligationTest.technicalDetails as Record<string, unknown> | null;
       const detectedValue =
         (techDetails?.detectedValue ?? techDetails?.actualValue) != null
@@ -186,7 +234,17 @@ export async function packetDataResolver(
           : undefined;
       const expectedValue =
         techDetails?.expectedValue != null ? String(techDetails.expectedValue) : undefined;
-      const fieldName = techDetails?.fieldName != null ? String(techDetails.fieldName) : undefined;
+      const ruleName = techDetails?.ruleName != null ? String(techDetails.ruleName) : undefined;
+      const ruleCategory = techDetails?.ruleCategory != null ? String(techDetails.ruleCategory) : undefined;
+      const message = techDetails?.message != null ? String(techDetails.message) : undefined;
+      const rawFieldName = techDetails?.fieldName != null ? String(techDetails.fieldName) : undefined;
+      const fieldName = rawFieldName ?? inferViolationFieldName({
+        ruleName,
+        ruleCategory,
+        message,
+        expectedValue,
+        userExplanation: obligationTest.userExplanation ?? undefined,
+      });
       
       const duplicateTradelineId = techDetails?.duplicateTradelineId != null ? Number(techDetails.duplicateTradelineId) : undefined;
       const otherAgencyName = techDetails?.otherAgencyName != null ? String(techDetails.otherAgencyName) : undefined;
@@ -247,12 +305,12 @@ export async function packetDataResolver(
         assignmentDocsFound,
         validationReceived,
         daysElapsed,
+        technicalDetails: techDetails,
       };
 
       console.log(
         `Fetched violation details for obligation test ID ${params.creditorObligationTestId}: category=${obligationTest.violationCategory}, severity=${obligationTest.severity}`
       );
-    }
   }
 
   // 3. Resolve recipient name and address.

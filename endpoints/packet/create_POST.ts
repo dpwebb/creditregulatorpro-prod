@@ -215,11 +215,24 @@ export async function handle(request: Request) {
 
     // Determine the dispute reason code: prefer explicit input, fall back to mapping from violationCategory
     const effectiveViolationCategory = input.violationCategory ?? violationDetails?.violationCategory ?? null;
+    const violationTechnicalDetails = violationDetails?.technicalDetails ?? {};
     const resolvedDisputeReasonCode: EquifaxDisputeReasonCode =
       (input.disputeReasonCode as EquifaxDisputeReasonCode | null | undefined) ||
       mapViolationToDisputeReason(
         effectiveViolationCategory,
-        violationDetails ? { fieldName: violationDetails.fieldName ?? undefined } : undefined
+        violationDetails
+          ? {
+              fieldName: violationDetails.fieldName ?? undefined,
+              ruleName:
+                violationTechnicalDetails.ruleName != null
+                  ? String(violationTechnicalDetails.ruleName)
+                  : undefined,
+              ruleCategory:
+                violationTechnicalDetails.ruleCategory != null
+                  ? String(violationTechnicalDetails.ruleCategory)
+                  : undefined,
+            }
+          : undefined
       );
 
     console.log(`Resolved dispute reason code: ${resolvedDisputeReasonCode} (explicit: ${input.disputeReasonCode ?? 'none'}, violation: ${effectiveViolationCategory ?? 'none'})`);
@@ -390,6 +403,7 @@ export async function handle(request: Request) {
             .selectFrom("creditorObligationTest")
             .select("technicalDetails")
             .where("id", "=", input.creditorObligationTestId)
+            .where("tradelineId", "=", input.tradelineId)
             .executeTakeFirst();
 
           const techDetails = obligationTest?.technicalDetails as Record<string, unknown> | null;
@@ -399,24 +413,37 @@ export async function handle(request: Request) {
               : null;
 
           if (duplicateTradelineId) {
-            const updateResult = await db
-              .updateTable("creditorObligationTest")
-              .set({ obligationState: "ADDRESSED_VIA_LINKED_DISPUTE" })
-              .where("tradelineId", "=", duplicateTradelineId)
-              .where("violationCategory", "in", [
-                "MULTIPLE_COLLECTOR_VIOLATION",
-                "COLLECTOR_DUPLICATE_REPORTING",
-              ])
-              .where("obligationState", "not in", [
-                "PROCEDURALLY_EXHAUSTED",
-                "ADDRESSED_VIA_LINKED_DISPUTE",
-              ])
+            const duplicateOwnerCheck = await db
+              .selectFrom("tradeline")
+              .select("id")
+              .where("id", "=", duplicateTradelineId)
+              .$if(!isAdmin, (qb) => qb.where("userId", "=", user.id))
               .executeTakeFirst();
 
-            const numUpdated = Number(updateResult?.numUpdatedRows ?? 0);
-            console.log(
-              `Linked duplicate violation handling: marked ${numUpdated} creditorObligationTest record(s) on duplicate tradeline ${duplicateTradelineId} as ADDRESSED_VIA_LINKED_DISPUTE`
-            );
+            if (!duplicateOwnerCheck) {
+              console.warn(
+                `Linked duplicate violation handling skipped: duplicate tradeline ${duplicateTradelineId} is not accessible to user ${user.id}`
+              );
+            } else {
+              const updateResult = await db
+                .updateTable("creditorObligationTest")
+                .set({ obligationState: "ADDRESSED_VIA_LINKED_DISPUTE" })
+                .where("tradelineId", "=", duplicateTradelineId)
+                .where("violationCategory", "in", [
+                  "MULTIPLE_COLLECTOR_VIOLATION",
+                  "COLLECTOR_DUPLICATE_REPORTING",
+                ])
+                .where("obligationState", "not in", [
+                  "PROCEDURALLY_EXHAUSTED",
+                  "ADDRESSED_VIA_LINKED_DISPUTE",
+                ])
+                .executeTakeFirst();
+
+              const numUpdated = Number(updateResult?.numUpdatedRows ?? 0);
+              console.log(
+                `Linked duplicate violation handling: marked ${numUpdated} creditorObligationTest record(s) on duplicate tradeline ${duplicateTradelineId} as ADDRESSED_VIA_LINKED_DISPUTE`
+              );
+            }
           } else {
             console.log(
               `Linked duplicate violation handling: no duplicateTradelineId found in technicalDetails for creditorObligationTestId ${input.creditorObligationTestId}`

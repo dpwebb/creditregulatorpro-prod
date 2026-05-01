@@ -1,13 +1,12 @@
 import { schema, OutputType } from "./select_POST.schema";
 import { db } from "../../helpers/db";
-import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import {
   getDataDrivenVectorRecommendation,
   enhancedPressureScore,
 } from "../../helpers/strategyFeedback";
 import { calculateDeadline, createDeadlineEvent } from "../../helpers/deadlineCalculator";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { NotAuthenticatedError } from "../../helpers/getSetServerSession";
 
 
 export async function handle(request: Request) {
@@ -27,12 +26,18 @@ export async function handle(request: Request) {
         "accountNumber",
         "bureauId",
         "creditorId",
+        "userId",
       ])
       .where("id", "=", input.tradelineId)
       .executeTakeFirst();
 
     if (!tradeline) {
-      throw new Error(`Tradeline with id ${input.tradelineId} not found`);
+      throw new BusinessRuleError("Tradeline not found.", 404);
+    }
+
+    const isAdmin = user.role === "admin";
+    if (!isAdmin && tradeline.userId !== user.id) {
+      throw new BusinessRuleError("You do not have access to this tradeline.", 403);
     }
 
     // Parse lastDisputeVectors from JSONB (initialize as empty array if null/undefined)
@@ -76,15 +81,25 @@ export async function handle(request: Request) {
     }
 
     // 4. Query all NEW obligation instances for the tradeline
-    const instances = await db
+    let instancesQuery = db
       .selectFrom("obligationInstance")
       .selectAll()
       .where("tradelineId", "=", input.tradelineId)
-      .where("state", "=", "OBLIGATION_PENDING")
-      .execute();
+      .where("state", "=", "OBLIGATION_PENDING");
+
+    if (!isAdmin) {
+      instancesQuery = instancesQuery.where((eb) =>
+        eb.or([
+          eb("userId", "=", user.id),
+          eb("userId", "is", null),
+        ])
+      );
+    }
+
+    const instances = await instancesQuery.execute();
 
     if (instances.length === 0) {
-      throw new Error("No OBLIGATION_PENDING obligation instances found for this tradeline");
+      throw new BusinessRuleError("No pending obligation instances found for this tradeline.", 404);
     }
 
     // 5. Filter out instances whose disputeVector matches the most recently used vector
@@ -105,8 +120,9 @@ export async function handle(request: Request) {
       console.warn(
         `[planner/select] All ${instances.length} NEW instances filtered out due to rotation rules`
       );
-      throw new Error(
-        "No eligible obligation instances after applying rotation strategy. All instances use the most recently used dispute vector."
+      throw new BusinessRuleError(
+        "No eligible obligation instances after applying rotation strategy. All instances use the most recently used dispute vector.",
+        409
       );
     }
 

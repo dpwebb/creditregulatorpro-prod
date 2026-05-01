@@ -1,6 +1,6 @@
 import { schema, OutputType } from "./build_POST.schema";
 import { db } from "../../helpers/db";
-import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
+import { handleEndpointError, OriginNotAllowedError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import { validateOrigin } from "../../helpers/domainGuard";
 import { 
   ontarioCRA, 
@@ -32,6 +32,24 @@ import { ensureUserSignature } from "../../helpers/signatureGenerator";
 import { buildPacketStorageObjectName } from "../../helpers/packetFileNaming";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { letterHumanizer } from "../../helpers/letterHumanizer";
+import { packetDataResolver } from "../../helpers/packetDataResolver";
+
+function extractComplianceViolationId(notes: string | null): number | null {
+  const match = notes?.match(/compliance violation #(\d+)/i);
+  if (!match) return null;
+
+  const id = Number(match[1]);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function getReasonTechnicalDetails(violationDetails: Awaited<ReturnType<typeof packetDataResolver>>["violationDetails"]) {
+  const technicalDetails = violationDetails?.technicalDetails ?? {};
+  return {
+    fieldName: violationDetails?.fieldName ?? undefined,
+    ruleName: technicalDetails.ruleName != null ? String(technicalDetails.ruleName) : undefined,
+    ruleCategory: technicalDetails.ruleCategory != null ? String(technicalDetails.ruleCategory) : undefined,
+  };
+}
 
 export async function handle(request: Request) {
   try {
@@ -42,6 +60,7 @@ export async function handle(request: Request) {
 
     // Get user session for audit logging
     const { user } = await getServerUserSession(request);
+    const isAdmin = user.role === "admin";
 
     const rateLimitResult = await checkRateLimit(
       user.id.toString(),
@@ -68,12 +87,14 @@ export async function handle(request: Request) {
       .leftJoin("creditor", "creditor.id", "tradeline.creditorId")
       .select([
         "obligationInstance.id as instanceId",
+        "obligationInstance.userId as obligationInstanceUserId",
         "obligationInstance.notes",
         "obligationInstance.disputeVector",
         "obligation.id as obligationId",
         "obligation.obligationType",
         "tradeline.accountNumber",
         "tradeline.id as tradelineId",
+        "tradeline.userId as tradelineUserId",
         "tradeline.accountType",
         "tradeline.openedDate",
         "tradeline.originalCreditorName",
@@ -87,7 +108,11 @@ export async function handle(request: Request) {
       .executeTakeFirst();
 
     if (!instance) {
-      throw new Error("Obligation instance not found");
+      throw new BusinessRuleError("Obligation instance not found.", 404);
+    }
+
+    if (!isAdmin && instance.tradelineUserId !== user.id) {
+      throw new BusinessRuleError("You do not have access to this obligation instance.", 403);
     }
 
     console.log(`Building packet for obligation instance ${input.obligationInstanceId}:`, {
@@ -246,11 +271,30 @@ export async function handle(request: Request) {
       sectionReference: statuteVersion.sectionReference
     });
 
+    const linkedCreditorObligationTestId = extractComplianceViolationId(instance.notes);
+    const resolvedData = await packetDataResolver({
+      user,
+      tradelineId: instance.tradelineId,
+      bureauId: instance.bureauId,
+      creditorObligationTestId: linkedCreditorObligationTestId,
+      isAdmin,
+    });
+
+    const tradelineDetails = resolvedData.tradelineDetails;
+    const violationDetails = resolvedData.violationDetails;
+    const effectiveViolationCategory = violationDetails?.violationCategory ?? null;
+    const disputeReasonCode = mapViolationToDisputeReason(
+      effectiveViolationCategory ?? instance.obligationType,
+      violationDetails ? getReasonTechnicalDetails(violationDetails) : undefined
+    );
+
     // 8.5 Resolve the authoritative creditor name from joined creditor record or original name
     const resolvedCreditorName =
+      resolvedData.creditorName?.trim() ||
       instance.creditorJoinedName?.trim() ||
       instance.originalCreditorName?.trim() ||
       "Unknown Creditor";
+    const resolvedAccountNumber = resolvedData.accountNumber || instance.accountNumber || undefined;
 
     // 9. Build complete TemplateContext with statute information
     const templateContext: TemplateContext = {
@@ -263,7 +307,7 @@ export async function handle(request: Request) {
       recipientName: recipientName,
       recipientAddress: recipientAddress,
       
-      accountNumber: instance.accountNumber || undefined,
+      accountNumber: resolvedAccountNumber,
       creditorName: resolvedCreditorName,
       
       disputedItems: disputedItems,
@@ -280,7 +324,12 @@ export async function handle(request: Request) {
     const code = statuteVersion.code;
     const bureauNameNormalized = (instance.bureauName ?? "").toLowerCase();
 
-    const disputeReasonCode = mapViolationToDisputeReason(instance.obligationType);
+    const statuteInfo = {
+      code: statuteVersion.code ?? code,
+      sectionReference: statuteVersion.sectionReference ?? "",
+      description: statuteVersion.description ?? "",
+      sourceUrl: statuteVersion.sourceUrl ?? undefined,
+    };
 
     let letterContent: LetterContent;
 
@@ -293,9 +342,13 @@ export async function handle(request: Request) {
         consumerPhone: input.consumerPhone ?? userAccount.phone ?? undefined,
         consumerEmail: input.consumerEmail ?? userAccount.email ?? undefined,
         creditorName: resolvedCreditorName,
-        accountNumber: instance.accountNumber ?? "",
+        accountNumber: resolvedAccountNumber ?? "",
         disputeReasonCode: disputeReasonCode,
         additionalNotes: instance.notes ?? undefined,
+        tradelineDetails,
+        violationDetails,
+        violationCategory: effectiveViolationCategory ?? undefined,
+        statuteInfo,
       };
       letterContent = await buildEquifaxDispute(equifaxCtx, consumerProvince);
 
@@ -308,9 +361,13 @@ export async function handle(request: Request) {
         consumerPhone: input.consumerPhone ?? userAccount.phone ?? undefined,
         consumerEmail: input.consumerEmail ?? userAccount.email ?? undefined,
         creditorName: resolvedCreditorName,
-        accountNumber: instance.accountNumber ?? "",
+        accountNumber: resolvedAccountNumber ?? "",
         disputeReasonCode: disputeReasonCode,
         additionalNotes: instance.notes ?? undefined,
+        tradelineDetails,
+        violationDetails,
+        violationCategory: effectiveViolationCategory ?? undefined,
+        statuteInfo,
       };
       letterContent = await buildTransUnionDispute(transunionCtx, consumerProvince);
 
@@ -400,6 +457,7 @@ export async function handle(request: Request) {
         signatureMode: "DIGITAL",
         region: "CA",
         pdfStorageUrl: null,
+        creditorObligationTestId: linkedCreditorObligationTestId,
         status: "GENERATED",
         content: JSON.stringify(letterContent),
         terminalLabel: calculatedTerminalLabel,

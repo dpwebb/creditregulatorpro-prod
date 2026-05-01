@@ -159,6 +159,72 @@ export function checkDofdSolObstruction(
   return isDofdSolObstructionViolation(violationDetails, tradelineDetails);
 }
 
+function humanizeMissingFieldName(fieldName: string | null | undefined): string | null {
+  if (!fieldName) return null;
+  switch (fieldName) {
+    case "dateClosed":
+      return "closing date";
+    case "dateOfFirstDelinquency":
+      return "Date of First Delinquency";
+    case "lastReportedDate":
+      return "reported date";
+    default:
+      return fieldName
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/_/g, " ")
+        .toLowerCase();
+  }
+}
+
+function inferRequestedMissingField(
+  violationDetails?: ViolationDetails,
+  tradelineDetails?: TradelineDetails
+): string {
+  const explicitField = humanizeMissingFieldName(violationDetails?.fieldName);
+  if (explicitField) return explicitField;
+
+  const technicalDetails = violationDetails?.technicalDetails ?? {};
+  const combined = [
+    technicalDetails.ruleName,
+    technicalDetails.ruleCategory,
+    technicalDetails.message,
+    violationDetails?.expectedValue,
+    violationDetails?.userExplanation,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (combined.includes("closing date") || combined.includes("closed date") || combined.includes("valid closed date")) {
+    return "closing date";
+  }
+
+  if (combined.includes("date of first delinquency") || combined.includes("dofd") || combined.includes("first went delinquent")) {
+    return "Date of First Delinquency";
+  }
+
+  const detectedValue = violationDetails?.detectedValue;
+  if (detectedValue?.startsWith("Missing: ")) {
+    const rawField = detectedValue.slice("Missing: ".length).trim();
+    const missingField = humanizeMissingFieldName(rawField);
+    if (missingField) return missingField;
+  }
+
+  if (detectedValue === "0 or null" && violationDetails?.expectedValue?.toLowerCase().includes("credit limit")) {
+    return "Credit Limit";
+  }
+
+  if (
+    violationDetails?.violationCategory === "DOFD_REPORTING" ||
+    violationDetails?.obligationType === "DOFD_REPORTING" ||
+    (tradelineDetails?.dateOfFirstDelinquency == null && combined.includes("delinquen"))
+  ) {
+    return "Date of First Delinquency";
+  }
+
+  return "required data";
+}
+
 /**
  * Generates a bureau-directed requestedAction based on the violation category.
  * Used by Equifax, TransUnion, and generic fallback dispute-building code paths.
@@ -186,20 +252,7 @@ export async function buildBureauRequestedAction(
     ];
 
     if (documentationViolations.includes(violationCategory)) {
-      let missingField = "required data";
-      if (violationDetails?.detectedValue) {
-        const detectedValue = violationDetails.detectedValue;
-        if (detectedValue.startsWith("Missing: ")) {
-          const rawField = detectedValue.slice("Missing: ".length).trim();
-          missingField = rawField.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-        } else if (detectedValue === "0 or null" && violationDetails.expectedValue?.toLowerCase().includes("credit limit")) {
-          missingField = "Credit Limit";
-        } else if (tradelineDetails && tradelineDetails.dateOfFirstDelinquency == null) {
-          missingField = "Date of First Delinquency";
-        }
-      } else if (tradelineDetails && tradelineDetails.dateOfFirstDelinquency == null) {
-        missingField = "Date of First Delinquency";
-      }
+      const missingField = inferRequestedMissingField(violationDetails, tradelineDetails);
       action = `Please obtain the missing ${missingField} to correct this tradeline, or remove it if unverified.`;
     } else {
       const accuracyViolations = [

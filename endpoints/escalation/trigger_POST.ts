@@ -1,10 +1,11 @@
 import { schema, OutputType } from "./trigger_POST.schema";
 
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { db } from "../../helpers/db";
 import { triggerEscalation } from "../../helpers/autoEscalation";
 import { checkRateLimit } from "../../helpers/rateLimiter";
 import { generateExhaustionComplaintPackets } from "../../helpers/exhaustionComplaintPackets";
-import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 
 export async function handle(request: Request) {
   try {
@@ -18,6 +19,27 @@ export async function handle(request: Request) {
 
     const json = JSON.parse(await request.text());
     const { obligationInstanceId } = schema.parse(json);
+
+    const ownerCheck = await db
+      .selectFrom("obligationInstance")
+      .innerJoin("tradeline", "tradeline.id", "obligationInstance.tradelineId")
+      .select([
+        "tradeline.userId as tradelineUserId",
+        "obligationInstance.userId as obligationUserId",
+      ])
+      .where("obligationInstance.id", "=", obligationInstanceId)
+      .executeTakeFirst();
+
+    if (!ownerCheck) {
+      throw new BusinessRuleError("Obligation instance not found.", 404);
+    }
+
+    const isAdmin = user.role === "admin";
+    const ownsTradeline = ownerCheck.tradelineUserId === user.id;
+    const ownsObligation = ownerCheck.obligationUserId == null || ownerCheck.obligationUserId === user.id;
+    if (!isAdmin && (!ownsTradeline || !ownsObligation)) {
+      throw new BusinessRuleError("You do not have access to this obligation instance.", 403);
+    }
 
     // Note: triggerEscalation handles audit logging internally
     const newInstance = await triggerEscalation(obligationInstanceId, request);
