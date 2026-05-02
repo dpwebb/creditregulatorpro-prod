@@ -200,6 +200,28 @@
     color: var(--foreground);
   }
 
+  .progressGroup {
+    width: min(100%, 22rem);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+
+  .progressHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-4);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  .analysisProgress {
+    --progress-color: var(--primary);
+    height: 0.625rem;
+  }
+
   .loadingSubText {
     font-size: 0.875rem;
     color: var(--muted-foreground);

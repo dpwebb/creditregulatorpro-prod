@@ -1,15 +1,20 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { Link, useSearchParams } from "react-router-dom";
 import { Home } from "lucide-react";
 import { FileDropzone } from "../components/FileDropzone";
 import { CreditReportGuide } from "../components/CreditReportGuide";
 import { Spinner } from "../components/Spinner";
+import { Progress } from "../components/Progress";
 import { AnonymousUploadPreview } from "../components/AnonymousUploadPreview";
 import { useAnonymousUpload } from "../helpers/useAnonymousUpload";
 import { storeAnonymousReportForSignup } from "../helpers/anonymousReportHandoff";
 import { toast } from "sonner";
 import styles from "./try-upload.module.css";
+
+const ESTIMATED_ANALYSIS_DURATION_MS = 90_000;
+const MIN_ANALYSIS_PROGRESS = 8;
+const MAX_ANALYSIS_PROGRESS = 95;
 
 // Helper function to read file as base64 safely
 const readFileAsBase64 = (file: File): Promise<string> => {
@@ -32,12 +37,34 @@ export default function TryUploadPage() {
   const [searchParams] = useSearchParams();
   const defaultIsGuide = searchParams.get("guide") === "true";
   const [activeTab, setActiveTab] = useState<"upload" | "guide">(defaultIsGuide ? "guide" : "upload");
+  const [analysisProgress, setAnalysisProgress] = useState(0);
 
   // Local state to store successful result payload
   const [resultData, setResultData] = useState<{
     problemCount: number;
     sampleProblems: { type: string; title: string; detail: string; solution?: string; urgency?: string }[];
   } | null>(null);
+
+  useEffect(() => {
+    if (!uploadMutation.isPending) {
+      setAnalysisProgress(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    setAnalysisProgress(MIN_ANALYSIS_PROGRESS);
+
+    const intervalId = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const progressRange = MAX_ANALYSIS_PROGRESS - MIN_ANALYSIS_PROGRESS;
+      const estimatedProgress =
+        MIN_ANALYSIS_PROGRESS + (elapsed / ESTIMATED_ANALYSIS_DURATION_MS) * progressRange;
+
+      setAnalysisProgress(Math.min(MAX_ANALYSIS_PROGRESS, Math.round(estimatedProgress)));
+    }, 500);
+
+    return () => window.clearInterval(intervalId);
+  }, [uploadMutation.isPending]);
 
   const handleErrorMessage = useCallback((files: File[], errorType: 'type' | 'size' | 'count') => {
     if (errorType === 'type' && files.length > 0) {
@@ -189,6 +216,13 @@ export default function TryUploadPage() {
           <div className={styles.loadingContainer}>
             <Spinner size="lg" />
             <div className={styles.loadingText}>Reading Your Report...</div>
+            <div className={styles.progressGroup}>
+              <div className={styles.progressHeader}>
+                <span>Estimated progress</span>
+                <span>{analysisProgress}%</span>
+              </div>
+              <Progress value={analysisProgress} className={styles.analysisProgress} />
+            </div>
             <div className={styles.loadingSubText}>
               Checking your report for problems. This usually takes 30–90 seconds.
             </div>
