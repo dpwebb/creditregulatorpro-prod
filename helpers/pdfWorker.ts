@@ -1,2 +1,2 @@
 export const PDF_WORKER_URL =
-  "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  "https://unpkg.com/pdfjs-dist@4.2.67/build/pdf.worker.min.mjs";

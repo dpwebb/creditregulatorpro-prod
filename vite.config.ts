@@ -39,7 +39,17 @@ export default defineConfig(() => ({
     react(),
   ],
   build: {
+    target: "esnext",
     assetsDir: "_assets",
     chunkSizeWarningLimit: 4000,
+  },
+  server: {
+    host: "127.0.0.1",
+    port: 4175,
+    strictPort: true,
+    proxy: {
+      "/_api": "http://localhost:3333",
+      "/api": "http://localhost:3333",
+    },
   },
 }));
