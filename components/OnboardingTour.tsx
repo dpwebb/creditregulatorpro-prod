@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Joyride, CallBackProps, STATUS, Step, Styles } from "react-joyride";
+import { Joyride, EVENTS, EventData, Options, STATUS, Step, Styles } from "react-joyride";
 import { useOnboarding } from "../helpers/useOnboarding";
 import { useAuth } from "../helpers/useAuth";
 import { 
@@ -49,7 +49,7 @@ export const OnboardingTour: React.FC = () => {
             </p>
           </div>
         ),
-        disableBeacon: true,
+        skipBeacon: true,
       },
       {
         target: "body",
@@ -132,13 +132,13 @@ export const OnboardingTour: React.FC = () => {
     return [...baseSteps, finalStep];
   }, [isAuthenticated, completeTour]);
 
-  const handleJoyrideCallback = (data: CallBackProps) => {
+  const handleJoyrideCallback = (data: EventData) => {
     const { status, type, index, action } = data;
 
     if (([STATUS.FINISHED, STATUS.SKIPPED] as string[]).includes(status)) {
       // Tour is finished or skipped
       completeTour();
-    } else if (type === "step:after") {
+    } else if (type === EVENTS.STEP_AFTER) {
       // Handle navigation based on which button was clicked
       if (action === "prev") {
         setStepIndex(index - 1);
@@ -148,17 +148,20 @@ export const OnboardingTour: React.FC = () => {
     }
   };
 
+  const tourOptions: Partial<Options> = {
+    arrowColor: "var(--popup)",
+    backgroundColor: "var(--popup)",
+    buttons: ["back", "skip", "close", "primary"],
+    overlayColor: "rgba(0, 0, 0, 0.6)",
+    primaryColor: "var(--primary)",
+    showProgress: true,
+    textColor: "var(--popup-foreground)",
+    width: 480,
+    zIndex: 10000,
+  };
+
   // Custom styles to match Credit Regulator Pro Horizon design system
   const tourStyles: Partial<Styles> = {
-    options: {
-      arrowColor: "var(--popup)",
-      backgroundColor: "var(--popup)",
-      overlayColor: "rgba(0, 0, 0, 0.6)", // Slightly darker for focus
-      primaryColor: "var(--primary)",
-      textColor: "var(--popup-foreground)",
-      width: 480, // Wider for better readability of text-heavy content
-      zIndex: 10000, 
-    },
     tooltip: {
       borderRadius: "var(--radius-lg)",
       fontFamily: "var(--font-family-base)",
@@ -181,7 +184,7 @@ export const OnboardingTour: React.FC = () => {
       color: "var(--muted-foreground)",
       lineHeight: "1.6",
     },
-    buttonNext: {
+    buttonPrimary: {
       backgroundColor: "var(--primary)",
       color: "var(--primary-foreground)",
       borderRadius: "var(--radius)",
@@ -209,14 +212,10 @@ export const OnboardingTour: React.FC = () => {
         run={run}
         stepIndex={stepIndex}
         continuous
-        showProgress
-        showSkipButton
-        hideCloseButton={false}
         scrollToFirstStep
-        disableOverlayClose={false}
-        spotlightClicks={false}
+        options={tourOptions}
         styles={tourStyles}
-        callback={handleJoyrideCallback}
+        onEvent={handleJoyrideCallback}
         locale={{
           last: "Done",
           next: "Next",

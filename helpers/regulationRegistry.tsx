@@ -548,6 +548,10 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     ...getProvKeys("CRA_REINSERTION"),
   ],
   CLOSED_ACCOUNT_BALANCE_INFLATION: ["PIPEDA_4_6"],
+  COLLECTION_LIMITATION_EXCEEDED: [
+    ...getProvKeys("COLLECTION_ACT"),
+    ...getProvKeys("LIMITATIONS_ACT"),
+  ],
   COLLECTOR_DUPLICATE_REPORTING: [
     "PIPEDA_4_6",
     ...getProvKeys("COLLECTION_ACT"),
@@ -561,6 +565,7 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     ...getProvKeys("LIMITATIONS_ACT"),
   ],
   COLLECTOR_UNAUTHORIZED_FEES: ["PIPEDA_4_6", ...getProvKeys("COLLECTION_ACT")],
+  CONSENT_WITHDRAWAL_NOT_HONORED: ["PIPEDA_4_3"],
   CONSUMER_STATEMENT_SUPPRESSION: [
     "PIPEDA_4_6_1",
     "PIPEDA_4_9",
@@ -577,6 +582,7 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     "METRO2_BASE_SEGMENT",
     ...getProvKeys("CRA_ACCURACY"),
   ],
+  FREEZE_PERIOD_VIOLATION: ["PIPEDA_4_7"],
   FURNISHER_AUTHORIZED_USER_MISREPRESENTATION: [
     "PIPEDA_4_3",
     "METRO2_J2_SEGMENT",
@@ -598,6 +604,7 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     "PIPEDA_4_6",
     ...getProvKeys("CRA_REPORTING_LIMIT"),
   ],
+  MIXED_FILE_PERSONAL_INFO_MISMATCH: ["PIPEDA_4_6", ...getProvKeys("CRA_ACCURACY")],
   MULTIPLE_COLLECTOR_VIOLATION: [
     "PIPEDA_4_6",
     ...getProvKeys("COLLECTION_ACT"),

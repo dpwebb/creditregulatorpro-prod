@@ -54,7 +54,12 @@ export async function handle(request: Request) {
       request,
     });
 
-    return new Response(pdfBuffer, {
+    const pdfBody = pdfBuffer.buffer.slice(
+      pdfBuffer.byteOffset,
+      pdfBuffer.byteOffset + pdfBuffer.byteLength
+    ) as ArrayBuffer;
+
+    return new Response(pdfBody, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${fileName}"`,

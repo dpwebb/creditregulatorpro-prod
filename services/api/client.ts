@@ -1,99 +1,78 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+type RequestConfig = Omit<RequestInit, "body" | "method">;
 
-/**
- * Custom error types for API service.
- */
 class ApiError extends Error {
-    public status: number;
-    public data: any;
-    
-    constructor(message: string, status: number, data: any) {
-        super(message);
-        this.status = status;
-        this.data = data;
-    }
+  public status: number;
+  public data: unknown;
+
+  constructor(message: string, status: number, data: unknown) {
+    super(message);
+    this.status = status;
+    this.data = data;
+  }
 }
 
-/**
- * Base API service class.
- */
 class ApiService {
-    private axiosInstance: AxiosInstance;
+  private async request<T>(
+    method: string,
+    url: string,
+    data?: unknown,
+    config?: RequestConfig
+  ): Promise<T> {
+    const headers = new Headers(config?.headers);
+    headers.set("Content-Type", "application/json");
 
-    constructor() {
-        // 1) Base axios instance with timeout and default headers
-        this.axiosInstance = axios.create({
-            timeout: 10000, // 10 seconds timeout
-            headers: {
-                'Content-Type': 'application/json',
-                // Add other headers if necessary
-            }
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await fetch(url, {
+          ...config,
+          method,
+          headers,
+          body: data === undefined ? undefined : JSON.stringify(data),
         });
 
-        // 2) Request interceptor for auth tokens and logging
-        this.axiosInstance.interceptors.request.use(
-            (config: AxiosRequestConfig) => {
-                // Add auth token logic here
-                const token = localStorage.getItem('authToken');
-                if (token) {
-                    config.headers['Authorization'] = `Bearer ${token}`;
-                }
-                console.log(`Request: ${config.method?.toUpperCase()} ${config.url}`);
-                return config;
-            },
-            (error) => {
-                return Promise.reject(error);
-            }
-        );
+        const responseText = await response.text();
+        const responseData = responseText ? JSON.parse(responseText) : null;
 
-        // 3) Response interceptor for error handling and retry logic
-        this.axiosInstance.interceptors.response.use(
-            (response: AxiosResponse) => {
-                return response;
-            },
-            async (error) => {
-                const originalRequest = error.config;
-                const maxRetries = 3;
-                let retryCount = 0;
+        if (!response.ok) {
+          throw new ApiError("API call failed", response.status, responseData);
+        }
 
-                while (retryCount < maxRetries) {
-                    retryCount++;
-                    const backoff = Math.pow(2, retryCount) * 1000; // Exponential backoff
-                    await new Promise(resolve => setTimeout(resolve, backoff));
-                    try {
-                        const response = await this.axiosInstance(originalRequest);
-                        return response;
-                    } catch (err) {
-                        if (retryCount === maxRetries) {
-                            throw new ApiError('Max retries reached', 500, err);
-                        }
-                    }
-                }
-                return Promise.reject(new ApiError('API call failed', error.response?.status || 500, error.response?.data));
-            }
-        );
+        return responseData as T;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 3 || error instanceof ApiError) {
+          throw error;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 2 ** attempt * 1000));
+      }
     }
 
-    // 5) Helper methods for common HTTP methods
-    public async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-        const response = await this.axiosInstance.get<T>(url, config);
-        return response.data;
-    }
+    throw new ApiError("Max retries reached", 500, lastError);
+  }
 
-    public async post<T>(url: string, data: any, config?: AxiosRequestConfig): Promise<T> {
-        const response = await this.axiosInstance.post<T>(url, data, config);
-        return response.data;
-    }
+  public get<T>(url: string, config?: RequestConfig): Promise<T> {
+    return this.request<T>("GET", url, undefined, config);
+  }
 
-    public async put<T>(url: string, data: any, config?: AxiosRequestConfig): Promise<T> {
-        const response = await this.axiosInstance.put<T>(url, data, config);
-        return response.data;
-    }
+  public post<T>(url: string, data: unknown, config?: RequestConfig): Promise<T> {
+    return this.request<T>("POST", url, data, config);
+  }
 
-    public async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-        const response = await this.axiosInstance.delete<T>(url, config);
-        return response.data;
-    }
+  public put<T>(url: string, data: unknown, config?: RequestConfig): Promise<T> {
+    return this.request<T>("PUT", url, data, config);
+  }
+
+  public delete<T>(url: string, config?: RequestConfig): Promise<T> {
+    return this.request<T>("DELETE", url, undefined, config);
+  }
 }
 
 export default new ApiService();

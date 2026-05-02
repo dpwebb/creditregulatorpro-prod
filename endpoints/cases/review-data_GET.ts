@@ -13,7 +13,7 @@ export async function handle(request: Request) {
 
     // 1. Ensure Pass A is completed
     const gating = await requirePassA(artifactId);
-    if (!gating.success) {
+    if (gating.success === false) {
       return new Response(
         JSON.stringify({ 
           ok: false, 

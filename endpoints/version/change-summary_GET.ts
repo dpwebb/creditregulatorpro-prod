@@ -66,7 +66,7 @@ export async function handle(request: Request) {
 
     // 5. Build snapshot diff-based changes
     const [currentSnapshot] = await Promise.all([buildCurrentSnapshot()]);
-    const previousSnapshot = lastReleasedVersion?.systemSnapshot as DetailedSnapshot | null ?? null;
+    const previousSnapshot = (lastReleasedVersion?.systemSnapshot as unknown as DetailedSnapshot | null) ?? null;
     const snapshotDiff = computeSnapshotDiff(previousSnapshot, currentSnapshot);
 
     console.log(

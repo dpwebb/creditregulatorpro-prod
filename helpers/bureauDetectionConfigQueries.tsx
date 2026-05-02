@@ -18,7 +18,7 @@ export function useBureauDetectionConfigs() {
 export function useUpdateBureauDetectionConfig() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateBureauDetectionConfig,
+    mutationFn: (input: Parameters<typeof updateBureauDetectionConfig>[0]) => updateBureauDetectionConfig(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BUREAU_DETECTION_CONFIG_KEYS.lists() });
     },
@@ -28,7 +28,7 @@ export function useUpdateBureauDetectionConfig() {
 export function useUpsertBureauDetectionConfig() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: upsertBureauDetectionConfig,
+    mutationFn: (input: Parameters<typeof upsertBureauDetectionConfig>[0]) => upsertBureauDetectionConfig(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BUREAU_DETECTION_CONFIG_KEYS.lists() });
     },

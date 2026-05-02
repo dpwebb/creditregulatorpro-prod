@@ -5,7 +5,7 @@ export const useAdminResetUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation<OutputType, Error, InputType>({
-    mutationFn: postAdminResetUser,
+    mutationFn: (input: Parameters<typeof postAdminResetUser>[0]) => postAdminResetUser(input),
     onSuccess: (data, variables) => {
       // Invalidate relevant queries when a user gets reset
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });

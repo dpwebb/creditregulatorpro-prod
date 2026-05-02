@@ -115,10 +115,10 @@ export async function handle(request: Request) {
     });
 
     // Breakdown Sections
-    content.push(createMetricTable("Performance by Dispute Vector", data.byVector));
-    content.push(createMetricTable("Performance by Violation", data.byViolation));
-    content.push(createMetricTable("Creditor Performance", data.byCreditor));
-    content.push(createMetricTable("Bureau Performance", data.byBureau));
+    content.push(createMetricTable("Performance by Dispute Vector", data.byVector as AnalyticsMetric[]));
+    content.push(createMetricTable("Performance by Violation", data.byViolation as AnalyticsMetric[]));
+    content.push(createMetricTable("Creditor Performance", data.byCreditor as AnalyticsMetric[]));
+    content.push(createMetricTable("Bureau Performance", data.byBureau as AnalyticsMetric[]));
 
     const styles: StyleDictionary = {
       reportTitle: { fontSize: 22, bold: true, color: "#111827" },

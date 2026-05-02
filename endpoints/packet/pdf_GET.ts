@@ -68,7 +68,12 @@ export async function handle(request: Request) {
 
     const bytes = await readStoredPdf(packet.pdfStorageUrl);
 
-    return new Response(bytes, {
+    const pdfBody = bytes.buffer.slice(
+      bytes.byteOffset,
+      bytes.byteOffset + bytes.byteLength
+    ) as ArrayBuffer;
+
+    return new Response(pdfBody, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${filename}"`,

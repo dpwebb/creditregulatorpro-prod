@@ -99,7 +99,7 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
               <p className={styles.recCardSub}>{topRec.bureauName}</p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {topRec.score !== undefined && <Badge variant="outline">Score: {topRec.score}</Badge>}
+              {topRec.score !== undefined && <Badge variant="default">Score: {topRec.score}</Badge>}
               {getConfidenceBadge(topRec.confidenceLevel)}
             </div>
           </div>
@@ -126,7 +126,7 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
                       <p className={styles.recCardSub}>{rec.bureauName}</p>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      {rec.score !== undefined && <Badge variant="outline">Score: {rec.score}</Badge>}
+                      {rec.score !== undefined && <Badge variant="default">Score: {rec.score}</Badge>}
                       {getConfidenceBadge(rec.confidenceLevel)}
                     </div>
                   </div>

@@ -5,7 +5,7 @@ export function useCreatePaymentIntent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: postCreatePaymentIntent,
+    mutationFn: (input: Parameters<typeof postCreatePaymentIntent>[0]) => postCreatePaymentIntent(input),
     onSuccess: () => {
       // Invalidate postal transactions or packet queries if relevant when a payment starts
       queryClient.invalidateQueries({ queryKey: ["postal-transactions"] });

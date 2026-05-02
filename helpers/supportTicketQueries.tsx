@@ -37,7 +37,7 @@ export function useSupportTicket(id: number) {
 export function useCreateSupportTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postCreateSupportTicket,
+    mutationFn: (input: Parameters<typeof postCreateSupportTicket>[0]) => postCreateSupportTicket(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUPPORT_TICKET_KEYS.all });
     },
@@ -47,7 +47,7 @@ export function useCreateSupportTicket() {
 export function useUpdateSupportTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postUpdateSupportTicket,
+    mutationFn: (input: Parameters<typeof postUpdateSupportTicket>[0]) => postUpdateSupportTicket(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUPPORT_TICKET_KEYS.all });
     },
@@ -57,7 +57,7 @@ export function useUpdateSupportTicket() {
 export function useReplySupportTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postReplySupportTicket,
+    mutationFn: (input: Parameters<typeof postReplySupportTicket>[0]) => postReplySupportTicket(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUPPORT_TICKET_KEYS.all });
     },
@@ -67,7 +67,7 @@ export function useReplySupportTicket() {
 export function useCreateSupportAgent() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postCreateSupportAgent,
+    mutationFn: (input: Parameters<typeof postCreateSupportAgent>[0]) => postCreateSupportAgent(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     },

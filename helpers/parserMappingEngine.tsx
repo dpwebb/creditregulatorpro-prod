@@ -3,30 +3,57 @@ import { Selectable } from "kysely";
 import { ParserFieldMapping, ParserBureauDetectionConfig } from "./schema";
 import { LLMResponse } from "./docstrangeLLM";
 
+function isMissingOptionalParserTableError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "42P01"
+  );
+}
+
 /**
  * Loads all active dynamic field overrides for a specific bureau from the database.
  * Mappings are applied in descending priority order.
  */
 export async function loadActiveMappings(bureau: string): Promise<Selectable<ParserFieldMapping>[]> {
-  return db
-    .selectFrom("parserFieldMapping")
-    .selectAll()
-    .where("bureau", "=", bureau)
-    .where("isActive", "=", true)
-    .orderBy("priority", "desc")
-    .execute();
+  try {
+    return await db
+      .selectFrom("parserFieldMapping")
+      .selectAll()
+      .where("bureau", "=", bureau)
+      .where("isActive", "=", true)
+      .orderBy("priority", "desc")
+      .execute();
+  } catch (error) {
+    if (isMissingOptionalParserTableError(error)) {
+      console.warn("[Parser Engine] parser_field_mapping table is unavailable. Continuing with built-in parser mappings.");
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 /**
  * Loads active bureau detection markers to augment or replace the hardcoded scoring system.
  */
 export async function loadBureauDetectionConfig(): Promise<Selectable<ParserBureauDetectionConfig>[]> {
-   return db
-     .selectFrom("parserBureauDetectionConfig")
-     .selectAll()
-     .where("isActive", "=", true)
-     .orderBy("weight", "desc")
-     .execute();
+  try {
+    return await db
+      .selectFrom("parserBureauDetectionConfig")
+      .selectAll()
+      .where("isActive", "=", true)
+      .orderBy("weight", "desc")
+      .execute();
+  } catch (error) {
+    if (isMissingOptionalParserTableError(error)) {
+      console.warn("[Parser Engine] parser_bureau_detection_config table is unavailable. Continuing with built-in bureau detection.");
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 /**

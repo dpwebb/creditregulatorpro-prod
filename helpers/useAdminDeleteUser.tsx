@@ -5,7 +5,7 @@ export const useAdminDeleteUser = () => {
   const queryClient = useQueryClient();
 
   return useMutation<OutputType, Error, InputType>({
-    mutationFn: postAdminDeleteUser,
+    mutationFn: (input: Parameters<typeof postAdminDeleteUser>[0]) => postAdminDeleteUser(input),
     onSuccess: (data, variables) => {
       // Invalidate users list to refresh UI
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });

@@ -44,7 +44,7 @@ export const useCreditorValidationList = (creditorId?: number, obligationState?:
 export const useCreateCreditorValidation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createCreditorValidation,
+    mutationFn: (input: Parameters<typeof createCreditorValidation>[0]) => createCreditorValidation(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["creditorValidations"] });
     },
@@ -54,7 +54,7 @@ export const useCreateCreditorValidation = () => {
 export const useUpdateCreditorValidation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateCreditorValidation,
+    mutationFn: (input: Parameters<typeof updateCreditorValidation>[0]) => updateCreditorValidation(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["creditorValidations"] });
     },
@@ -64,7 +64,7 @@ export const useUpdateCreditorValidation = () => {
 export const useDeleteCreditorValidation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteCreditorValidation,
+    mutationFn: (input: Parameters<typeof deleteCreditorValidation>[0]) => deleteCreditorValidation(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["creditorValidations"] });
     },

@@ -176,5 +176,5 @@ export async function scanForRegulatoryUpdates(existingTitles: string[]): Promis
     throw new Error("Gemini output failed schema validation");
   }
 
-  return result.data;
+  return result.data as ScannedUpdate[];
 }

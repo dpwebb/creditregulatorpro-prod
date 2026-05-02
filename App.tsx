@@ -116,7 +116,12 @@ import PageLayout_55 from "./pages/admin-user-management.$userId.pageLayout.tsx"
 
 if (!window.requestIdleCallback) {
   window.requestIdleCallback = (cb) => {
-    setTimeout(cb, 1);
+    return window.setTimeout(() => {
+      cb({
+        didTimeout: false,
+        timeRemaining: () => 0,
+      });
+    }, 1);
   };
 }
 

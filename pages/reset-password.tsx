@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
   });
 
   const requestMutation = useMutation({
-    mutationFn: postRequestPasswordReset,
+    mutationFn: (input: Parameters<typeof postRequestPasswordReset>[0]) => postRequestPasswordReset(input),
     onSuccess: (data) => {
       setRequestSent(true);
       toast.success(data.message);
@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
   });
 
   const resetMutation = useMutation({
-    mutationFn: postResetPassword,
+    mutationFn: (input: Parameters<typeof postResetPassword>[0]) => postResetPassword(input),
     onSuccess: () => {
       setResetSuccess(true);
       toast.success("Password has been reset successfully");

@@ -165,7 +165,7 @@ export function streamlineLetterContent(letterContent: LetterContent): LetterCon
   for (const key of NARRATIVE_KEYS) {
     const value = streamlined[key];
     if (typeof value === "string" && value.trim()) {
-      (streamlined as Record<string, unknown>)[key] = cleanNarrativeSection(value, key, seenParagraphs);
+      (streamlined as unknown as Record<string, unknown>)[key] = cleanNarrativeSection(value, key, seenParagraphs);
     }
   }
 

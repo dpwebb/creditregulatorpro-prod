@@ -231,7 +231,7 @@ export async function scanForViolations(
       const jsonbArtifacts = await db
         .selectFrom("reportArtifact")
         .selectAll()
-        .where(sql.raw(`data->'tradelineIds' @> '${jsonbParam}'::jsonb`))
+        .where(sql<boolean>`data->'tradelineIds' @> ${jsonbParam}::jsonb`)
         .orderBy("reportDate", "desc")
         .execute();
 

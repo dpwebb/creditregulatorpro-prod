@@ -210,7 +210,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
                 onChange={(e) =>
                   form.setValues((prev) => ({
                     ...prev,
-                    termsAccepted: e.target.checked,
+                    termsAccepted: e.target.checked ? true : undefined,
                   }))
                 }
               />
@@ -237,7 +237,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
                 onChange={(e) =>
                   form.setValues((prev) => ({
                     ...prev,
-                    dataConsentAccepted: e.target.checked,
+                    dataConsentAccepted: e.target.checked ? true : undefined,
                   }))
                 }
               />

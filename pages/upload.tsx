@@ -216,6 +216,7 @@ export default function UploadPage() {
                   province: cic.extractedInfo.province,
                   postalCode: cic.extractedInfo.postalCode,
                   dateOfBirth: extractedDob,
+                  dateOfBirthRaw: extractedDob ? extractedDob.toISOString().split("T")[0] : null,
                   phone: cic.extractedInfo.phone ?? null,
                   previousAddresses: [],
                   confidence: 0,

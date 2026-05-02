@@ -10,7 +10,7 @@ export function useCaseReviewData(artifactId: number) {
     queryKey: REVIEW_DATA_QUERY_KEY(artifactId),
     queryFn: async () => {
       const result = await getReviewData(artifactId);
-      if (!result.ok) {
+      if (result.ok === false) {
         throw new Error(result.error);
       }
       return result;
@@ -29,7 +29,7 @@ export function useCasePatch(artifactId: number) {
         patches,
       });
       
-      if (!result.ok) {
+      if (result.ok === false) {
         throw new Error(result.error);
       }
       return result;
@@ -38,7 +38,7 @@ export function useCasePatch(artifactId: number) {
       // Optimistically update or invalidate
       // Since the patch endpoint returns the new effective view, we can update the cache
       queryClient.setQueryData(REVIEW_DATA_QUERY_KEY(artifactId), (old: ReviewDataOutput | undefined) => {
-        if (!old || !old.ok) return old;
+        if (!old || old.ok === false) return old;
         
         return {
           ...old,

@@ -25,7 +25,7 @@ export function useParserTestCases() {
 export function useCreateParserTestCase() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createParserTestCase,
+    mutationFn: (input: Parameters<typeof createParserTestCase>[0]) => createParserTestCase(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
     },
@@ -35,7 +35,7 @@ export function useCreateParserTestCase() {
 export function useUpdateParserTestCase() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateParserTestCase,
+    mutationFn: (input: Parameters<typeof updateParserTestCase>[0]) => updateParserTestCase(input),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
       queryClient.invalidateQueries({
@@ -48,7 +48,7 @@ export function useUpdateParserTestCase() {
 export function useDeleteParserTestCase() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteParserTestCase,
+    mutationFn: (input: Parameters<typeof deleteParserTestCase>[0]) => deleteParserTestCase(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
     },
@@ -58,7 +58,7 @@ export function useDeleteParserTestCase() {
 export function useRunParserTest() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: runParserTest,
+    mutationFn: (input: Parameters<typeof runParserTest>[0]) => runParserTest(input),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
       queryClient.invalidateQueries({
@@ -80,14 +80,14 @@ export function useRunAllParserTests() {
 
 export function useExportParserTestCases() {
   return useMutation({
-    mutationFn: exportParserTestCases,
+    mutationFn: (input: Parameters<typeof exportParserTestCases>[0]) => exportParserTestCases(input),
   });
 }
 
 export function useImportParserTestCases() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: importParserTestCases,
+    mutationFn: (input: Parameters<typeof importParserTestCases>[0]) => importParserTestCases(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
     },

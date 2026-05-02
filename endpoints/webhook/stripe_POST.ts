@@ -3,7 +3,7 @@ import { OutputType } from "./stripe_POST.schema";
 import { logger } from "../../helpers/logger";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-03-31.basil",
+  apiVersion: "2024-06-20",
 });
 
 export async function handle(request: Request) {

@@ -18,7 +18,7 @@ export function useFeatureFlags() {
 export function useCreateFeatureFlag() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postCreateFeatureFlag,
+    mutationFn: (input: Parameters<typeof postCreateFeatureFlag>[0]) => postCreateFeatureFlag(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FF_KEYS.all });
     },
@@ -28,7 +28,7 @@ export function useCreateFeatureFlag() {
 export function useUpdateFeatureFlag() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postUpdateFeatureFlag,
+    mutationFn: (input: Parameters<typeof postUpdateFeatureFlag>[0]) => postUpdateFeatureFlag(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FF_KEYS.all });
     },
@@ -38,7 +38,7 @@ export function useUpdateFeatureFlag() {
 export function useDeleteFeatureFlag() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: postDeleteFeatureFlag,
+    mutationFn: (input: Parameters<typeof postDeleteFeatureFlag>[0]) => postDeleteFeatureFlag(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FF_KEYS.all });
     },

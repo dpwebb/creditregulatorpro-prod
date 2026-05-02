@@ -25,7 +25,7 @@ export function useParserMappings(bureau?: string, section?: string) {
 export function useCreateParserMapping() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createParserMapping,
+    mutationFn: (input: Parameters<typeof createParserMapping>[0]) => createParserMapping(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.lists() });
     },
@@ -35,7 +35,7 @@ export function useCreateParserMapping() {
 export function useUpdateParserMapping() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: updateParserMapping,
+    mutationFn: (input: Parameters<typeof updateParserMapping>[0]) => updateParserMapping(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.histories() });
@@ -46,7 +46,7 @@ export function useUpdateParserMapping() {
 export function useDeleteParserMapping() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: deleteParserMapping,
+    mutationFn: (input: Parameters<typeof deleteParserMapping>[0]) => deleteParserMapping(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.histories() });
@@ -56,7 +56,7 @@ export function useDeleteParserMapping() {
 
 export function useTestParserMapping() {
   return useMutation({
-    mutationFn: testParserMapping,
+    mutationFn: (input: Parameters<typeof testParserMapping>[0]) => testParserMapping(input),
     // Testing is stateless externally; no cache invalidation needed.
   });
 }
@@ -72,7 +72,7 @@ export function useParserMappingHistory(mappingId?: number) {
 export function useRollbackParserMapping() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: rollbackParserMapping,
+    mutationFn: (input: Parameters<typeof rollbackParserMapping>[0]) => rollbackParserMapping(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: PARSER_MAPPING_KEYS.histories() });

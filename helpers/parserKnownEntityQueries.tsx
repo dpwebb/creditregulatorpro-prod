@@ -19,7 +19,7 @@ export function useParserKnownEntities(entityType?: KnownEntityType) {
 export function useCreateParserKnownEntity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: createParserKnownEntity,
+    mutationFn: (input: Parameters<typeof createParserKnownEntity>[0]) => createParserKnownEntity(input),
     onSuccess: (_, variables) => {
       // Invalidate the specific list for this type and the general list
       queryClient.invalidateQueries({ 

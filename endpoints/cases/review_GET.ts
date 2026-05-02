@@ -3,7 +3,7 @@ import { getEffectiveExtraction, AnyDraftExtraction } from "../../helpers/passAE
 import { requirePassA, createPassAGatingResponse } from "../../helpers/passAGating";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 
-import { ExtractedValue, AddressEntry, PhoneEntry, EmploymentEntry } from "../../helpers/passAExtractorTypes";
+import { ExtractedValue, AddressEntry, PhoneEntry, EmploymentEntry, ConsumerProfile } from "../../helpers/passAExtractorTypes";
 import { AccountExtraction, InquiryExtraction, InsolvencyPublicRecords, PaymentHistoryEntry } from "../../helpers/fullExtractionTypes";
 
 // Helper to safely get nested value
@@ -216,7 +216,11 @@ export async function handle(request: Request) {
     // --- HTML Generation ---
     
     const bureauContext = effectiveView.bureau_context || {};
-    const consumerProfile = effectiveView.consumer_profile || {};
+    const consumerProfile = (effectiveView.consumer_profile || {
+      address_history: [],
+      phone_history: [],
+      employment_history: [],
+    }) as ConsumerProfile;
     const portalSummary = ('portal_summary' in effectiveView ? effectiveView.portal_summary : undefined) || bureauContext.portal_summary || {};
     const bureauContact = bureauContext.bureau_contact || {};
 
