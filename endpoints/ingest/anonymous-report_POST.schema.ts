@@ -21,8 +21,6 @@ export type SampleProblem = {
 export type OutputType = {
   problemCount: number;
   sampleProblems: SampleProblem[];
-  tempArtifactId: number;
-  claimToken: string;
 };
 
 export const postAnonymousReport = async (

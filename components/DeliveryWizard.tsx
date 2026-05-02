@@ -237,7 +237,7 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
               <>
                 <DialogTitle>How do you want to send this?</DialogTitle>
                 <DialogDescription>
-                  We will mail your letter to {displayName}. Choose an option below.
+                  You stay in control. If we mail it, we act only as a mailing service.
                 </DialogDescription>
               </>
             )}
@@ -278,7 +278,7 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
                   <div className={styles.optionContent}>
                     <h3 className={styles.optionTitle}>Let us mail it for you</h3>
                     <p className={styles.optionDesc}>
-                      We print, sign, and mail your letter. You don't have to do anything else.
+                      We print your approved letter, add your approved signature, and mail it as a service.
                     </p>
                   </div>
                 </button>
@@ -391,7 +391,7 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
               <div className={styles.stepContent}>
                 <div className={styles.summaryBox}>
                   <p className={styles.summaryText}>
-                    We will print and mail your letter to <strong>{displayName}</strong>.
+                    We will print and mail your approved letter to <strong>{displayName}</strong> as a mailing service.
                   </p>
                   <div className={styles.costBox}>
                     {isPricingLoading ? (
@@ -468,7 +468,7 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
                           onChange={(e) => setCrpApproved(e.target.checked)}
                         />
                         <label htmlFor="crp-approved">
-                          Everything in this letter is true.
+                          Everything in this letter is true, and I understand Credit Regulator Pro does not represent me.
                         </label>
                       </div>
                     </div>

@@ -3,7 +3,7 @@ import { db } from "./db";
 /**
  * Returns subscription default values based on the system's production_mode setting.
  * In production mode: trialing plan with 7-day trial end.
- * Outside production mode: active beta plan with 100-year trial end (for testing).
+ * Outside production mode: active Trial User plan with 100-year trial end (for testing).
  */
 export async function getSubscriptionDefaults(now: Date): Promise<{
   plan: "beta";

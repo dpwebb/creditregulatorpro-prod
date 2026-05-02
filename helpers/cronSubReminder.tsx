@@ -1,5 +1,9 @@
 import { db } from "./db";
 import { sendGridEmail } from "./sendGridEmail";
+import {
+  SUBSCRIPTION_ANNUAL_PRICE_CAD,
+  SUBSCRIPTION_MONTHLY_PRICE_CAD,
+} from "./subscriptionPricing";
 
 /**
  * Daily cron job that:
@@ -65,8 +69,8 @@ export async function cronSubReminder(): Promise<void> {
           const priceNum = sub.priceCad
             ? Number(sub.priceCad)
             : sub.plan === "annual"
-              ? 49.99
-              : 19.0;
+              ? SUBSCRIPTION_ANNUAL_PRICE_CAD
+              : SUBSCRIPTION_MONTHLY_PRICE_CAD;
 
           const formattedPrice = new Intl.NumberFormat("en-CA", {
             style: "currency",
@@ -78,7 +82,7 @@ export async function cronSubReminder(): Promise<void> {
               ? "Annual"
               : sub.plan === "monthly"
                 ? "Monthly"
-                : "Free Trial";
+                : "Trial User";
 
           const subject = "Your Credit Regulator Pro plan renews soon";
 

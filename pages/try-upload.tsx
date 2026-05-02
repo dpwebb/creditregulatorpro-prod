@@ -7,6 +7,7 @@ import { CreditReportGuide } from "../components/CreditReportGuide";
 import { Spinner } from "../components/Spinner";
 import { AnonymousUploadPreview } from "../components/AnonymousUploadPreview";
 import { useAnonymousUpload } from "../helpers/useAnonymousUpload";
+import { storeAnonymousReportForSignup } from "../helpers/anonymousReportHandoff";
 import { toast } from "sonner";
 import styles from "./try-upload.module.css";
 
@@ -76,9 +77,14 @@ export default function TryUploadPage() {
         },
         {
           onSuccess: (data) => {
-            // Persist securely to session storage so the registration flow can pick it up
-            sessionStorage.setItem("crp_anon_artifact_id", data.tempArtifactId.toString());
-            sessionStorage.setItem("crp_anon_claim_token", data.claimToken);
+            storeAnonymousReportForSignup({
+              bytesBase64: base64Data,
+              fileName: file.name,
+              mimeType: file.type,
+              region: "CA",
+            });
+            sessionStorage.removeItem("crp_anon_artifact_id");
+            sessionStorage.removeItem("crp_anon_claim_token");
             
             setResultData({
               problemCount: data.problemCount,

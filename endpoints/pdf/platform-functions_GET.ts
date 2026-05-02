@@ -134,7 +134,7 @@ export async function handle(request: Request) {
           "Flexible subscription plans and payment processing to support diverse user tiers.",
         items: [
           "7-day free trial for new registrations",
-          "Monthly plan ($19 CAD) and Annual plan ($49.99 CAD)",
+          "Monthly plan ($19.95 CAD) and Annual plan ($49.95 CAD)",
           "Stripe payment integration (PaymentElement checkout)",
           "Subscription status tracking (trialing, active, past_due, cancelled, expired)",
           "Plan upgrade/downgrade",

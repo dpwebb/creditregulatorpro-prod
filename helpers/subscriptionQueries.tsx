@@ -50,7 +50,7 @@ export function useUpdatePlan() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: postUpdatePlan,
+    mutationFn: (input: Parameters<typeof postUpdatePlan>[0]) => postUpdatePlan(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY });
     },
@@ -61,7 +61,7 @@ export function useCancelSubscription() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: postCancelSubscription,
+    mutationFn: (input: Parameters<typeof postCancelSubscription>[0]) => postCancelSubscription(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY });
     },

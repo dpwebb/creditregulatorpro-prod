@@ -12,14 +12,14 @@ interface TrialCountdownBannerProps {
 
 export const TrialCountdownBanner = ({ className }: TrialCountdownBannerProps) => {
   const { authState, userRole } = useAuth();
-  const { subscription, isTrialing, isBeta, daysLeftInTrial, isLoading } = useSubscription();
+  const { subscription, isTrialing, isBeta: isTrialUser, daysLeftInTrial, isLoading } = useSubscription();
 
   // Show only for authenticated users with 'user' role
   if (isLoading) return null;
   if (authState.type !== "authenticated" || userRole !== "user") return null;
 
-  // Show only if trialing on a beta plan and has a valid trial end date
-  if (!isTrialing || !isBeta || !subscription?.trialEnd) return null;
+  // Show only if trialing on the Trial User plan and has a valid trial end date
+  if (!isTrialing || !isTrialUser || !subscription?.trialEnd) return null;
   
   // Do not show if the trial has already expired
   if (daysLeftInTrial <= 0) return null;
@@ -27,9 +27,9 @@ export const TrialCountdownBanner = ({ className }: TrialCountdownBannerProps) =
   const trialStart = subscription.trialStart ? new Date(subscription.trialStart) : new Date();
   const trialEnd = new Date(subscription.trialEnd);
   
-  // Calculate duration, defaulting to 30 as per project spec if math yields a bad value
+  // Calculate duration, defaulting to the standard 7-day trial if math yields a bad value
   let totalDays = Math.round((trialEnd.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
-  if (totalDays <= 0 || isNaN(totalDays)) totalDays = 30;
+  if (totalDays <= 0 || isNaN(totalDays)) totalDays = 7;
   
   const daysPassed = Math.max(1, totalDays - daysLeftInTrial);
 

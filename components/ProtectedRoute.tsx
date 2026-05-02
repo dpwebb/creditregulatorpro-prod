@@ -34,6 +34,9 @@ const TermsAcceptanceBlock: React.FC = () => {
             <p className={styles.termsText}>
               The consumer acts as the sole disputing party. Credit Regulator Pro does not represent you in any capacity before credit bureaus, furnishers, or courts.
             </p>
+            <p className={styles.termsText}>
+              If you choose our print-and-mail option, we act only as a mailing service at your direction. Mailing a letter for you does not mean we represent you or speak for you.
+            </p>
           </section>
 
           <section className={styles.termsSection}>

@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { updateStripeSubscriptionPlan } from "../../helpers/stripeServer";
+import { resolveSubscriptionPriceCad } from "../../helpers/subscriptionPricing";
 
 
 export async function handle(request: Request) {
@@ -23,7 +24,7 @@ export async function handle(request: Request) {
     if (!isProductionMode) {
       return new Response(
         JSON.stringify({
-          error: "Subscription management is not available yet. The app is currently in beta mode.",
+          error: "Subscription management is not available yet. The app is currently in trial setup mode.",
         }),
         { status: 400 }
       );
@@ -44,7 +45,7 @@ export async function handle(request: Request) {
     if (subscription.plan === "beta") {
       return new Response(
         JSON.stringify({
-          error: "Beta users will be upgraded when the app enters production mode.",
+          error: "Trial User accounts should use the upgrade checkout to choose a paid plan.",
         }),
         { status: 400 }
       );
@@ -59,12 +60,8 @@ export async function handle(request: Request) {
     const monthlyPriceSetting = pricingSettings.find((s) => s.key === "subscription_monthly_price_cad");
     const annualPriceSetting = pricingSettings.find((s) => s.key === "subscription_annual_price_cad");
 
-    const monthlyPrice = monthlyPriceSetting && !isNaN(parseFloat(monthlyPriceSetting.value))
-            ? parseFloat(monthlyPriceSetting.value)
-      : 19.00;
-    const annualPrice = annualPriceSetting && !isNaN(parseFloat(annualPriceSetting.value))
-      ? parseFloat(annualPriceSetting.value)
-      : 49.99;
+    const monthlyPrice = resolveSubscriptionPriceCad(monthlyPriceSetting?.value, "monthly");
+    const annualPrice = resolveSubscriptionPriceCad(annualPriceSetting?.value, "annual");
 
     const price = plan === "monthly" ? monthlyPrice : annualPrice;
     const priceCad = price.toFixed(2);

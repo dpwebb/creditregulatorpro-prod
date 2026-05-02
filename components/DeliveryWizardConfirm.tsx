@@ -41,7 +41,7 @@ export const DeliveryWizardConfirm: React.FC<DeliveryWizardConfirmProps> = ({
         <div className={styles.stepContent}>
             <div className={styles.summaryBox}>
                 <p className={styles.summaryText}>
-                    We will print and mail your letter to <strong>{displayName}</strong>.
+                    We will print and mail your approved letter to <strong>{displayName}</strong> as a mailing service.
                 </p>
                 <div className={styles.costBox}>
                     {isPricingLoading ? (
@@ -87,7 +87,7 @@ export const DeliveryWizardConfirm: React.FC<DeliveryWizardConfirmProps> = ({
                         </div>
                         <div className={styles.checkboxRow}>
                             <Checkbox id="crp-approved" checked={crpApproved} onChange={(e) => onCrpApprovedChange(e.target.checked)} />
-                            <label htmlFor="crp-approved"> Everything in this letter is true.</label>
+                            <label htmlFor="crp-approved"> Everything in this letter is true, and I understand Credit Regulator Pro does not represent me.</label>
                         </div>
                     </div>
                     <Button size="lg" className={styles.primaryAction} disabled={!crpReviewed || !crpApproved || isPending} onClick={onPay}>

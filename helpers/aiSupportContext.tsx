@@ -28,7 +28,7 @@ Key features with how-to:
 
 Subscription plans:
 - 7-day free trial on registration.
-- Monthly ($19 CAD) or Annual ($49.99 CAD).
+- Monthly ($19.95 CAD) or Annual ($49.95 CAD).
 - Users can manage their billing in the My Info section.
 
 Violations:

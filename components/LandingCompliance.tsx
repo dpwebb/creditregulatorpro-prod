@@ -14,7 +14,7 @@ export function LandingCompliance() {
 
   const doNotDoList = [
     "We don't fix your credit",
-    "We don't contact companies for you",
+    "We don't represent you",
     "You stay in control",
   ];
 

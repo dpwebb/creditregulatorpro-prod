@@ -142,9 +142,9 @@ Rewrite the PDF content into exhaustive section builders that cover every detail
 
 **Section 14 — Account & Billing (expanded)**
 - Roles and subscriptions (User, Admin)
-- Subscription plans (Beta free, Monthly $29.95, Annual $199.95)
-- Beta access rules (full feature access, no upgrade until production)
-- 30-day free trial details and lockout rules
+- Subscription plans (Trial User free for 7 days, Monthly $19.95, Annual $49.95)
+- Trial User access rules (full feature access during trial, can upgrade anytime)
+- 7-day Trial User details and lockout rules
 - Profile requirements for dispute packets (legal name, Canadian address)
 - Authentication methods (email verification, password, OAuth)
 

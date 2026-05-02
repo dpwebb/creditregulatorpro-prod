@@ -61,7 +61,7 @@ export function LandingHowItWorks() {
             <Link to="/try-upload">Try It Now — Free</Link>
           </Button>
           <p className={styles.reassurance}>
-            No sign-up needed. Your data is never stored.
+            No sign-up needed. We only save your report if you create an account.
           </p>
         </div>
       </div>

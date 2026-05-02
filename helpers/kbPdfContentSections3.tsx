@@ -45,16 +45,16 @@ export const section13 = (): Content[] => [
 export const section14 = (): Content[] => [
   sectionHeader(14, "Account & Billing"),
   subHeader("Roles & Subscriptions"),
-  body("Two active roles: 'user' and 'admin'. The 'enterprise' role has been officially removed. Billing operates via Stripe."),
+  body("Three active roles: 'user', 'admin', and 'support'. The 'enterprise' role has been officially removed. Billing operates via Stripe."),
   createTable(
     ["Plan", "Pricing", "Features"],
     [
-      ["Beta", "Free", "Full access. Cannot upgrade until prod."],
-      ["Monthly", "$4.99 CAD", "Standard monthly billing."],
-      ["Annual", "$49.99 CAD", "Discounted yearly billing."]
+      ["Trial User", "Free for 7 days", "Full access during the trial. Can upgrade anytime."],
+      ["Monthly", "$19.95 CAD", "Standard monthly billing."],
+      ["Annual", "$49.95 CAD", "Discounted yearly billing."]
     ]
   ),
-  body("New paid subscriptions receive a 30-day free trial. If billing fails or the trial expires without subscription, the account faces immediate lockout."),
+  body("New registrations receive a 7-day Trial User period. If billing fails or the trial expires without subscription, the account is locked until payment is resolved."),
 
   subHeader("Profile Requirements & Auth"),
   body("A full legal name and Canadian address are strictly required. Missing profile data blocks packet generation. Authentication supports email verification, password hashing, and OAuth (Google).")

@@ -24,7 +24,7 @@ Currently `_index` is behind `UserRoute + AppLayout`, so unauthenticated users a
 - Sub: "XAPP automatically finds mistakes and compliance violations in your Canadian credit report — then helps you fight back with legally precise dispute letters."
 - Primary CTA: "Start Free — No Credit Card Needed" → /register
 - Secondary CTA: "Sign In" → /login
-- Trust badges row: 🇨🇦 Canada Only · 🔒 Bank-Level Security · 🆓 30-Day Free Trial
+- Trust badges row: Canada Only · Bank-Level Security · 7-Day Free Trial
 
 ### Stats/Social Proof Bar
 - "13 Provinces & Territories" · "Compliance Detection Modules" · "SHA-256 Secured Evidence"
@@ -44,9 +44,9 @@ Currently `_index` is behind `UserRoute + AppLayout`, so unauthenticated users a
 4. Mail them and track responses
 
 ### Pricing
-- **Free Trial** — 30 days, all features, no credit card
-- **Monthly** — $4.99 CAD/month
-- **Annual** — $49.99 CAD/year (save 17%)
+- **Trial User** - 7 days, all features
+- **Monthly** — $19.95 CAD/month
+- **Annual** — $49.95 CAD/year
 
 ### Final CTA
 - "Ready to take control?" + sign-up button

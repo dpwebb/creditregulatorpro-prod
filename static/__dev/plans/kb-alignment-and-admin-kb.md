@@ -13,8 +13,8 @@ Two-part KB alignment update:
 ### Part 1: User KB Fixes
 
 1. **components/KBAccountBilling.tsx**
-   - **Subscriptions section:** Remove "Beta users cannot upgrade until the application officially enters production mode." Replace with text reflecting production mode is active — beta/free users CAN upgrade now.
-   - **Beta Access section:** Remove "You will remain on this plan until the app enters full production." Replace with "You're on the free starter plan. Upgrade anytime to keep using all features." Rename section from "Beta Access & Free Trials" to "Free Plan & Trials".
+   - **Subscriptions section:** Remove "Trial User accounts cannot upgrade until the application officially enters production mode." Replace with text reflecting production mode is active - Trial User accounts CAN upgrade now.
+   - **Trial User Access section:** Remove "You will remain on this plan until the app enters full production." Replace with "You're on the Trial User plan. Upgrade anytime to keep using all features." Rename the old access section to "Trial User & Trials".
    - **Roles section:** Add "Support" as a third role alongside User and Admin. Describe it briefly (CS agent — manages tickets, replies, bypasses subscription checks).
    - **New section:** Add a "Support Tickets" KnowledgeBaseSection explaining that users can submit support tickets via /support-tickets, track status, and reply.
 

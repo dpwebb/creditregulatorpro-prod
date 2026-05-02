@@ -8,11 +8,12 @@ import { Skeleton } from "./Skeleton";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./Tooltip";
 import { useToast } from "../helpers/useToast";
 import { SubscriptionUpgradeDialog } from "./SubscriptionUpgradeDialog";
+import { getSubscriptionPlanLabel } from "../helpers/subscriptionPlanLabels";
 import styles from "./SubscriptionSection.module.css";
 
 export const SubscriptionSection = () => {
   const { authState } = useAuth();
-  const { subscription, isLoading, isBeta, isActive, isTrialing, daysLeftInTrial } = useSubscription();
+  const { subscription, isLoading, isBeta: isTrialUser, isActive, isTrialing, daysLeftInTrial } = useSubscription();
   const cancelMutation = useCancelSubscription();
   const { data: settings, isLoading: isSettingsLoading } = useSystemSettings();
   const { monthlyPrice, annualPrice, isLoading: isPricingLoading } = useSubscriptionPricing();
@@ -93,16 +94,16 @@ export const SubscriptionSection = () => {
         <h3 className={styles.title}>Subscription</h3>
         <div className={styles.badges}>
           <Badge variant="primary" className={styles.planBadge}>
-            {subscription.plan === "beta" ? "Free Trial" : subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)} Plan
+            {getSubscriptionPlanLabel(subscription.plan)} Plan
           </Badge>
           {getStatusBadge()}
         </div>
       </div>
 
       <div className={styles.content}>
-        {isBeta && (
+        {isTrialUser && (
           <p className={styles.message}>
-            You're on the Free Trial plan. Upgrade anytime to keep using all features.
+            You're on the Trial User plan. Upgrade anytime to keep using all features.
           </p>
         )}
 
@@ -112,7 +113,7 @@ export const SubscriptionSection = () => {
           </p>
         )}
 
-        {isActive && !isBeta && subscription.currentPeriodEnd && (
+        {isActive && !isTrialUser && subscription.currentPeriodEnd && (
           <p className={styles.message}>
             Your next billing date is <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong>.
           </p>
@@ -122,7 +123,7 @@ export const SubscriptionSection = () => {
           <div className={styles.planOption}>
             <div>
               <h4>Monthly</h4>
-              <p>$19.00 CAD / month</p>
+              <p>${monthlyPrice.toFixed(2)} CAD / month</p>
             </div>
             {renderUpgradeButton("monthly")}
           </div>
@@ -130,13 +131,13 @@ export const SubscriptionSection = () => {
           <div className={styles.planOption}>
             <div>
               <h4>Annual</h4>
-              <p>$190.00 CAD / year</p>
+              <p>${annualPrice.toFixed(2)} CAD / year</p>
             </div>
             {renderUpgradeButton("annual")}
           </div>
         </div>
 
-        {!isBeta && isActive && subscription.status !== "cancelled" && (
+        {!isTrialUser && isActive && subscription.status !== "cancelled" && (
           <div className={styles.actions}>
             <Button
               variant="destructive"

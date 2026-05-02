@@ -17,12 +17,18 @@ import { Checkbox } from "./Checkbox";
 import { TermsDialog } from "./TermsDialog";
 import { useAuth } from "../helpers/useAuth";
 import {
-  schema,
+  schema as registerSchema,
   postRegister,
 } from "../endpoints/auth/register_with_password_POST.schema";
+import { postReport } from "../endpoints/ingest/report_POST.schema";
+import {
+  clearAnonymousReportForSignup,
+  getAnonymousReportForSignup,
+} from "../helpers/anonymousReportHandoff";
+import { toast } from "sonner";
 import styles from "./PasswordRegisterForm.module.css";
 
-export type RegisterFormData = z.infer<typeof schema>;
+export type RegisterFormData = z.infer<typeof registerSchema>;
 
 interface PasswordRegisterFormProps {
   className?: string;
@@ -34,13 +40,14 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
   defaultValues,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isImportingReport, setIsImportingReport] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [termsDialogOpen, setTermsDialogOpen] = useState(false);
   const { onLogin } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm({
-    schema,
+    schema: registerSchema,
     defaultValues: defaultValues || {
       email: "",
       password: "",
@@ -60,36 +67,31 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
     !dataConsentChecked ||
     legalNameValue.trim().length < 2;
 
-  const handleSubmit = async (data: z.infer<typeof schema>) => {
+  const handleSubmit = async (data: z.infer<typeof registerSchema>) => {
     setError(null);
     setIsLoading(true);
+    setIsImportingReport(false);
 
     try {
-      const anonArtifactIdStr = sessionStorage.getItem("crp_anon_artifact_id");
-      const anonClaimToken = sessionStorage.getItem("crp_anon_claim_token");
-      let tempArtifactId: number | undefined;
+      const pendingAnonymousReport = getAnonymousReportForSignup();
+      sessionStorage.removeItem("crp_anon_artifact_id");
+      sessionStorage.removeItem("crp_anon_claim_token");
 
-      if (anonArtifactIdStr) {
-        const parsed = parseInt(anonArtifactIdStr, 10);
-        if (!isNaN(parsed)) {
-          tempArtifactId = parsed;
-        }
-      }
-
-      const requestData = {
-        ...data,
-        ...(tempArtifactId !== undefined && anonClaimToken
-          ? { tempArtifactId, claimToken: anonClaimToken }
-          : {}),
-      };
-
-      const result = await postRegister(requestData);
+      const result = await postRegister(data);
       onLogin(result.user);
 
-      if (result.claimedArtifactId) {
-        sessionStorage.removeItem("crp_anon_artifact_id");
-        sessionStorage.removeItem("crp_anon_claim_token");
-        navigate(`/upload-results/${result.claimedArtifactId}`);
+      if (pendingAnonymousReport) {
+        setIsImportingReport(true);
+        try {
+          const importResult = await postReport(pendingAnonymousReport);
+          clearAnonymousReportForSignup();
+          navigate(`/upload-results/${importResult.storageUrl}`);
+        } catch (importError) {
+          clearAnonymousReportForSignup();
+          toast.error("Your account was created, but we could not import that report. Please upload it again.");
+          console.error("Anonymous report import after registration failed:", importError);
+          navigate("/upload");
+        }
       } else {
         navigate("/");
       }
@@ -122,6 +124,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
       }
     } finally {
       setIsLoading(false);
+      setIsImportingReport(false);
     }
   };
 
@@ -132,7 +135,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
         {error && <div className={styles.errorMessage}>{error}</div>}
         <form
           onSubmit={form.handleSubmit((data) =>
-            handleSubmit(data as z.infer<typeof schema>)
+            handleSubmit(data as z.infer<typeof registerSchema>)
           )}
           className={`${styles.form} ${className || ""}`}
         >
@@ -220,7 +223,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
                 >
                   Terms of Use
                 </button>
-                . I understand Credit Regulator Pro helps me but does not act for me. I am sending these letters myself.
+                . I understand Credit Regulator Pro helps me but does not represent me. If I use the print-and-mail service, I am still responsible for my letter.
               </label>
             </div>
             <FormMessage />
@@ -270,7 +273,7 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
           >
             {isLoading ? (
               <>
-                <Spinner size="sm" /> Creating your account...
+                <Spinner size="sm" /> {isImportingReport ? "Importing your report..." : "Creating your account..."}
               </>
             ) : (
               "Create My Account"

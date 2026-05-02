@@ -69,7 +69,7 @@ export async function handle(request: Request) {
       required: false,
     });
 
-    // 5. Critical beta issues
+    // 5. Critical issue reports
     const criticalIssues = await db.selectFrom("betaIssueReport")
       .select(({ fn }) => fn.count<number>("id").as("count"))
       .where("status", "=", "OPEN")
@@ -78,9 +78,9 @@ export async function handle(request: Request) {
     const criticalIssuesCount = Number(criticalIssues?.count) || 0;
     checks.push({
       id: "critical_beta_issues",
-      label: "Critical Beta Issues",
+      label: "Critical Issue Reports",
       status: criticalIssuesCount === 0 ? "pass" : "warning",
-      message: criticalIssuesCount === 0 ? "No critical open beta issues." : `${criticalIssuesCount} critical open beta issue(s).`,
+      message: criticalIssuesCount === 0 ? "No critical open issue reports." : `${criticalIssuesCount} critical open issue report(s).`,
       required: false,
     });
 

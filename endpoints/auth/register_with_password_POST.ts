@@ -19,7 +19,7 @@ export async function handle(request: Request) {
     await assertOriginAllowed(request);
 
     const json = await request.json();
-    const { email, password, displayName, legalNameSignature, tempArtifactId, claimToken } = schema.parse(json);
+    const { email, password, displayName, legalNameSignature } = schema.parse(json);
 
     // Rate limit by email to prevent registration spam
     const rateLimitResult = await checkRateLimit(
@@ -178,58 +178,6 @@ export async function handle(request: Request) {
       })
       .execute();
 
-    // Attempt to claim anonymous artifact if tempArtifactId and claimToken are provided
-    let claimedArtifactId: number | undefined;
-    if (tempArtifactId !== undefined && claimToken !== undefined) {
-      try {
-        const artifact = await db
-          .selectFrom("reportArtifact")
-          .select(["id", "data", "userId"])
-          .where("id", "=", tempArtifactId)
-          .limit(1)
-          .executeTakeFirst();
-
-        if (!artifact) {
-          console.warn(`Claim-after-signup: artifact ${tempArtifactId} not found`);
-        } else if (artifact.userId !== null) {
-          console.warn(`Claim-after-signup: artifact ${tempArtifactId} already claimed by user ${artifact.userId}`);
-        } else {
-          const data = artifact.data as Record<string, unknown> | null;
-          const tokenMatches = data?.claimToken === claimToken;
-          const isAnonymous = data?.isAnonymous === true;
-
-          if (!tokenMatches || !isAnonymous) {
-            console.warn(
-              `Claim-after-signup: artifact ${tempArtifactId} failed validation — tokenMatches=${tokenMatches}, isAnonymous=${isAnonymous}`
-            );
-          } else {
-            // Remove isAnonymous and claimToken from data, assign userId
-            const { isAnonymous: _removed, claimToken: _removedToken, ...cleanedData } = data;
-            await db
-              .updateTable("reportArtifact")
-              .set({
-                userId: newUser.id,
-                data: JSON.parse(JSON.stringify(cleanedData)),
-              })
-              .where("id", "=", tempArtifactId)
-              .execute();
-
-            claimedArtifactId = tempArtifactId;
-            logger.info("Claim-after-signup succeeded", {
-              artifactId: tempArtifactId,
-              userId: newUser.id,
-            });
-          }
-        }
-      } catch (claimError) {
-        // Do not fail registration if claim fails
-        console.error(
-          "Claim-after-signup error:",
-          claimError instanceof Error ? claimError.message : claimError
-        );
-      }
-    }
-
     // Create response with user data
     const response = Response.json({
       user: {
@@ -244,7 +192,6 @@ export async function handle(request: Request) {
         termsAcceptedVersion: currentTermsVersion,
         currentTermsVersion,
       },
-      ...(claimedArtifactId !== undefined ? { claimedArtifactId } : {}),
     });
 
     // Set session cookie
@@ -273,10 +220,6 @@ export async function handle(request: Request) {
         .execute();
 
       const verifyUrl = `${getAppBaseUrl(request)}/verify-email?token=${verificationToken}`;
-      const appBaseUrl =
-        process.env.APP_BASE_URL?.replace(/\/+$/, "") ??
-        new URL(request.url).origin;
-      const verifyUrl = `${appBaseUrl}/verify-email?token=${verificationToken}`;
 
       const emailHtml = `
         <h1>Verify your email</h1>

@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "./Button";
 import { Spinner } from "./Spinner";
+import {
+  SUBSCRIPTION_ANNUAL_PRICE_CAD,
+  SUBSCRIPTION_MONTHLY_PRICE_CAD,
+} from "../helpers/subscriptionPricing";
 import styles from "./SubscriptionCheckoutForm.module.css";
 
 interface SubscriptionCheckoutFormProps {
@@ -14,12 +18,12 @@ interface SubscriptionCheckoutFormProps {
 const planDetails = {
   monthly: {
     label: "Monthly Plan",
-    price: 19.00,
+    price: SUBSCRIPTION_MONTHLY_PRICE_CAD,
     interval: "mo",
   },
   annual: {
     label: "Annual Plan",
-    price: 49.99,
+    price: SUBSCRIPTION_ANNUAL_PRICE_CAD,
     interval: "yr",
   },
 };

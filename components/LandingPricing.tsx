@@ -10,7 +10,7 @@ export function LandingPricing() {
   const revealRef = useScrollReveal();
 
   const monthlyFeatures = ["No charge today", "Cancel anytime", "No contracts"];
-  const annualFeatures = ["No charge today", "Saves ~$178 a year", "Cancel anytime"];
+  const annualFeatures = ["No charge today", "Saves ~$189 a year", "Cancel anytime"];
 
   return (
     <section id="pricing" className={styles.section}>
@@ -27,7 +27,7 @@ export function LandingPricing() {
             >
               <div className={styles.cardHeader}>
                 <h3 className={styles.planTitle}>7-Day Free Trial</h3>
-                <p className={styles.planSubtitle}>$19 CAD/month after trial</p>
+                <p className={styles.planSubtitle}>$19.95 CAD/month after trial</p>
               </div>
 
               <div className={styles.cardBody}>
@@ -57,7 +57,7 @@ export function LandingPricing() {
               </div>
               <div className={styles.cardHeader}>
                 <h3 className={styles.planTitle}>7-Day Free Trial</h3>
-                <p className={styles.planSubtitle}>$49.99 CAD/year after trial</p>
+                <p className={styles.planSubtitle}>$49.95 CAD/year after trial</p>
               </div>
 
               <div className={styles.cardBody}>
@@ -82,7 +82,7 @@ export function LandingPricing() {
           <div ref={revealRef} className={`${styles.billingDetails} ${styles.reveal}`}>
             <h4 className={styles.billingTitle}>Billing Details</h4>
             <p className={styles.billingText}>Your trial is free for 7 days.</p>
-            <p className={styles.billingText}>After 7 days, you will be charged either $19 CAD/month or $49.99 CAD/year depending on your choice.</p>
+            <p className={styles.billingText}>After 7 days, you will be charged either $19.95 CAD/month or $49.95 CAD/year depending on your choice.</p>
             <p className={styles.billingText}>Cancel before 7 days to avoid charges.</p>
           </div>
         </div>

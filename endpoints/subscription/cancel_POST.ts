@@ -23,7 +23,7 @@ export async function handle(request: Request) {
     }
 
     if (subscription.plan === "beta") {
-      return new Response(JSON.stringify({ error: "Beta subscriptions cannot be cancelled." }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Trial User accounts do not have a paid subscription to cancel." }), { status: 400 });
     }
 
     // Cancel on Stripe first if a Stripe subscription exists

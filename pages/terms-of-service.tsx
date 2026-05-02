@@ -62,9 +62,9 @@ export default function TermsOfServicePage() {
               We offer different plans for our service:
             </p>
             <ul className={styles.list}>
-              <li className={styles.listItem}><strong>Free Trial:</strong> New users get a 7-day free trial (Beta plan). This gives you full access to all features.</li>
-              <li className={styles.listItem}><strong>Monthly Plan:</strong> $19 CAD per month.</li>
-              <li className={styles.listItem}><strong>Annual Plan:</strong> $49.99 CAD per year.</li>
+              <li className={styles.listItem}><strong>Trial User:</strong> New users get a 7-day free trial. This gives you full access to all features.</li>
+              <li className={styles.listItem}><strong>Monthly Plan:</strong> $19.95 CAD per month.</li>
+              <li className={styles.listItem}><strong>Annual Plan:</strong> $49.95 CAD per year.</li>
             </ul>
             <p className={styles.paragraph}>
               After your 7-day trial ends, you must pick the Monthly or Annual plan to keep using the app. If you do not subscribe, your account will be locked.
@@ -81,7 +81,7 @@ export default function TermsOfServicePage() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>5. We Are Not Lawyers</h2>
             <p className={styles.paragraph}>
-              <strong>We do not give legal advice.</strong> Credit Regulator Pro is a software tool, not a law firm. The letters and advice we generate are based on standard rules, but they are not a promise of success. If you need serious legal help, you should hire a lawyer. We are not responsible for any damage or loss if a dispute fails.
+              <strong>We do not give legal advice or represent you.</strong> Credit Regulator Pro is a software and service business, not a law firm. You stay the person making the dispute. If you choose to have us print and mail a letter, we act only as a mailing service at your direction. That does not mean we represent you or speak for you.
             </p>
           </section>
 

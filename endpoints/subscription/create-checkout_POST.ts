@@ -4,6 +4,7 @@ import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpoi
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { getOrCreateStripeCustomer, createStripeSubscription, cancelStripeSubscription } from "../../helpers/stripeServer";
 import { validateOrigin } from "../../helpers/domainGuard";
+import { resolveSubscriptionPriceCad } from "../../helpers/subscriptionPricing";
 
 export async function handle(request: Request) {
   try {
@@ -24,7 +25,7 @@ export async function handle(request: Request) {
 
     if (prodModeSetting?.value === "false") {
       return new Response(
-        JSON.stringify({ error: "Upgrades are not yet available. The app is still in beta." }),
+        JSON.stringify({ error: "Upgrades are not yet available. The app is still in trial setup mode." }),
         { status: 400 }
       );
     }
@@ -74,12 +75,8 @@ export async function handle(request: Request) {
     const monthlyPriceSetting = pricingSettings.find((s) => s.key === "subscription_monthly_price_cad");
     const annualPriceSetting = pricingSettings.find((s) => s.key === "subscription_annual_price_cad");
 
-    const monthlyPrice = monthlyPriceSetting && !isNaN(parseFloat(monthlyPriceSetting.value))
-      ? parseFloat(monthlyPriceSetting.value)
-      : 19.00;
-    const annualPrice = annualPriceSetting && !isNaN(parseFloat(annualPriceSetting.value))
-            ? parseFloat(annualPriceSetting.value)
-      : 49.99;
+    const monthlyPrice = resolveSubscriptionPriceCad(monthlyPriceSetting?.value, "monthly");
+    const annualPrice = resolveSubscriptionPriceCad(annualPriceSetting?.value, "annual");
 
     const priceCad = plan === "monthly" ? monthlyPrice.toFixed(2) : annualPrice.toFixed(2);
     const amount = plan === "monthly" ? monthlyPrice : annualPrice;

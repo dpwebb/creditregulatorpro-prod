@@ -26,10 +26,10 @@ Indexes
 ROLES & SUBSCRIPTIONS
 * Three roles: "admin" (internal staff), "user" (all consumers), and "support" (CS agent)
 * No "enterprise" role - it has been removed
-* Subscription plans: beta (free), monthly ($19 CAD, primary plan), annual ($49.99 CAD)
-* Beta users have full feature access - same as paid users
+* Subscription plans: Trial User (internal plan key: "beta", free for 7 days), monthly ($19.95 CAD, primary plan), annual ($49.95 CAD)
+* Trial User accounts have full feature access during the trial - same feature set as paid users
 * The system is now in PRODUCTION MODE (production_mode = true)
-* Beta users can now upgrade to paid subscription plans via Stripe
+* Trial User accounts can upgrade to paid subscription plans via Stripe
 * New registrations receive a 7-day free trial (plan: "beta", status: "trialing")
 * After the 7-day trial, users must subscribe to monthly or annual plan or account is locked
 * After trial, users must subscribe or account is locked

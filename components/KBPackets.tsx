@@ -310,7 +310,7 @@ export const KBPackets = () => {
             <AccordionTrigger>Mail It Through Us</AccordionTrigger>
             <AccordionContent>
               <p>
-                We can print and mail your letter for you using Canada Post registered mail via PostGrid. You will automatically get a tracking number added to your record. There is a small mailing fee for this service.
+                We can print and mail your approved letter for you using Canada Post registered mail via PostGrid. This is only a mailing service at your direction. We do not represent you or speak for you.
               </p>
             </AccordionContent>
           </AccordionItem>

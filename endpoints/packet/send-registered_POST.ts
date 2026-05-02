@@ -210,11 +210,11 @@ export async function handle(request: Request) {
 
     const isBetaUser = subscription?.plan === "beta";
 
-    // 3. Payment verification for non-beta users
+    // 3. Payment verification for non-trial users
     if (!isBetaUser) {
       if (!input.paymentIntentId) {
         return new Response(
-          JSON.stringify({ error: "Payment required for non-beta users" }),
+          JSON.stringify({ error: "Payment required for paid users" }),
           { status: 402 }
         );
       }
@@ -373,7 +373,7 @@ export async function handle(request: Request) {
       const rawMsg = postgridError instanceof Error ? postgridError.message : "Unknown mailing error";
       const parsed = parsePostGridError(rawMsg);
 
-      // If a non-beta user already paid, issue a refund
+      // If a non-trial user already paid, issue a refund
       if (!isBetaUser && input.paymentIntentId) {
         try {
           await refundPaymentIntent(input.paymentIntentId);
@@ -501,7 +501,7 @@ export async function handle(request: Request) {
         })
         .execute();
 
-      // Create postal transaction record — include stripePaymentIntentId for non-beta users
+      // Create postal transaction record, including stripePaymentIntentId for non-trial users.
       await trx
         .insertInto("postalTransaction")
         .values({

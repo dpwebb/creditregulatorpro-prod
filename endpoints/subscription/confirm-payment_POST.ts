@@ -4,6 +4,7 @@ import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointEr
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { retrieveStripeSubscription } from "../../helpers/stripeServer";
 import { sendGridEmail } from "../../helpers/sendGridEmail";
+import { resolveSubscriptionPriceCad } from "../../helpers/subscriptionPricing";
 
 async function resolvePriceCad(plan: "monthly" | "annual"): Promise<string> {
   const pricingSettings = await db
@@ -15,14 +16,8 @@ async function resolvePriceCad(plan: "monthly" | "annual"): Promise<string> {
   const monthlyPriceSetting = pricingSettings.find((s) => s.key === "subscription_monthly_price_cad");
   const annualPriceSetting = pricingSettings.find((s) => s.key === "subscription_annual_price_cad");
 
-  const monthlyPrice =
-    monthlyPriceSetting && !isNaN(parseFloat(monthlyPriceSetting.value))
-      ? parseFloat(monthlyPriceSetting.value)
-      : 19.0;
-  const annualPrice =
-    annualPriceSetting && !isNaN(parseFloat(annualPriceSetting.value))
-      ? parseFloat(annualPriceSetting.value)
-      : 49.99;
+  const monthlyPrice = resolveSubscriptionPriceCad(monthlyPriceSetting?.value, "monthly");
+  const annualPrice = resolveSubscriptionPriceCad(annualPriceSetting?.value, "annual");
 
   return plan === "monthly" ? monthlyPrice.toFixed(2) : annualPrice.toFixed(2);
 }

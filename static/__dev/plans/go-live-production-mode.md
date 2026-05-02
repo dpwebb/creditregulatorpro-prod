@@ -8,7 +8,7 @@ updated: 2026-04-14T13:59:07.810Z
 ## Summary
 Switch XAPP-CA from beta to production live. This involves flipping the `production_mode` system setting to `true`, changing new-user registration from creating "beta" subscriptions (100-year trial) to "trialing" subscriptions (30-day trial), and updating all related endpoints and UI messaging.
 
-Existing beta users keep their beta plan but can now upgrade to paid plans via Stripe (the production_mode toggle already unlocks this in the subscription endpoints).
+Existing Trial User accounts keep the internal `beta` plan key but can now upgrade to paid plans via Stripe (the production_mode toggle already unlocks this in the subscription endpoints).
 
 ## Files to Modify
 
@@ -29,7 +29,7 @@ Existing beta users keep their beta plan but can now upgrade to paid plans via S
 - When backfilling a missing subscription: check production_mode to decide between beta (100-year) and trialing (30-day).
 
 ### 5. `components/SubscriptionSection.tsx`
-- Update messaging: when in production mode and user is on beta, show "You're on the original Beta plan — upgrade anytime to continue using XAPP-CA" instead of "When the application enters production mode..."
+- Update messaging: when in production mode and user is on the internal `beta` plan key, show "You're on the Trial User plan - upgrade anytime to continue using XAPP-CA" instead of "When the application enters production mode..."
 - When user is on trialing plan, ensure the trial days remaining message is clear about the need to subscribe after trial ends.
 
 ### 6. `static/__dev/system-prompt.md` (project system prompt)
@@ -48,6 +48,6 @@ None.
 
 ## Risks & Considerations
 - **Backward compatibility**: The native mobile app is deployed, so all endpoint changes must be backward-compatible. Adding the production_mode check internally doesn't change input/output shapes — safe.
-- **Existing beta users**: They remain on `plan: "beta"` and are unaffected. They can now upgrade since `production_mode = true`.
+- **Existing Trial User accounts**: They remain on `plan: "beta"` and are unaffected. They can now upgrade since `production_mode = true`.
 - **Trial enforcement**: The 30-day trial end needs enforcement — existing `subscription/update-plan_POST` and `create-checkout_POST` already handle plan upgrades. A user whose trial expires without upgrading will need a lock-out mechanism. This is already handled if the subscription status transitions to "expired" after trial end — verify this is in place or note it as a follow-up.
 - **Stripe integration**: The `create-checkout_POST` and `update-plan_POST` endpoints already gate on `production_mode` — flipping the flag enables them immediately. Ensure Stripe keys are properly configured before going live.

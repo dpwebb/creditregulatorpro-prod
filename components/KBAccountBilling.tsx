@@ -22,7 +22,7 @@ export const KBAccountBilling = () => {
         badgeVariant="primary"
       >
         <p>
-          Credit Regulator Pro supports two distinct user roles and offers structured subscription plans 
+          Credit Regulator Pro supports three user roles and offers structured subscription plans
           tailored for individual consumers.
         </p>
 
@@ -43,9 +43,9 @@ export const KBAccountBilling = () => {
             <AccordionTrigger>Subscription Plans</AccordionTrigger>
             <AccordionContent>
               <ul className={styles.list}>
-                <li><strong>Free Trial (7 Days):</strong> Free plan with full access for 7 days. You can upgrade anytime to monthly or annual.</li>
-                <li><strong>Monthly:</strong> $19 CAD / month. Ideal for short-term dispute management.</li>
-                <li><strong>Annual:</strong> $49.99 CAD / year. Best value for ongoing credit monitoring and maintenance.</li>
+                <li><strong>Trial User (7 Days):</strong> Free trial plan with full access for 7 days. You can upgrade anytime to monthly or annual.</li>
+                <li><strong>Monthly:</strong> $19.95 CAD / month. Ideal for short-term dispute management.</li>
+                <li><strong>Annual:</strong> $49.95 CAD / year. Best value for ongoing credit monitoring and maintenance.</li>
               </ul>
             </AccordionContent>
           </AccordionItem>
@@ -53,16 +53,16 @@ export const KBAccountBilling = () => {
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection
-        title="Free Trial"
+        title="Trial User"
         icon={Calendar}
         badge="IMPORTANT"
         badgeVariant="success"
       >
         <p>
-          We offer flexible onboarding through our Free Trial period.
+          We offer flexible onboarding through the Trial User period.
         </p>
         <ul className={styles.list}>
-          <li><strong>Free Trial Users:</strong> All new registrations begin with a 7-day free trial. You receive full feature access completely free to generate packets and run scans. Upgrade anytime to keep using all features.</li>
+          <li><strong>Trial Users:</strong> All new registrations begin with a 7-day free trial. You receive full feature access completely free to generate packets and run scans. Upgrade anytime to keep using all features.</li>
           <li><strong>Account Lockout:</strong> After a trial expires, you must subscribe to an active monthly or annual plan. If you fail to subscribe, your account access will be locked until payment is resolved.</li>
         </ul>
       </KnowledgeBaseSection>

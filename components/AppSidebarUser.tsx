@@ -5,6 +5,7 @@ import { RoleBadge } from "./RoleBadge";
 import { Badge } from "./Badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "./Tooltip";
 import { TourStartButton } from "./TourStartButton";
+import { getSubscriptionPlanLabel } from "../helpers/subscriptionPlanLabels";
 import styles from "./AppSidebarUser.module.css";
 
 interface AppSidebarUserProps {
@@ -63,7 +64,7 @@ export const AppSidebarUser: React.FC<AppSidebarUserProps> = ({
                   }
                   className={styles.planBadge}
                 >
-                  {user.subscriptionPlan.toLowerCase() === "beta" ? "Free Trial" : user.subscriptionPlan}
+                  {getSubscriptionPlanLabel(user.subscriptionPlan)}
                 </Badge>
               )}
             </div>

@@ -13,13 +13,10 @@ export const schema = z.object({
   termsAccepted: z.literal(true, { errorMap: () => ({ message: "You must accept the Terms of Use" }) }),
   dataConsentAccepted: z.literal(true, { errorMap: () => ({ message: "You must consent to data use" }) }),
   legalNameSignature: z.string().min(2, "Please type your full legal name"),
-  tempArtifactId: z.number().int().positive().optional(),
-  claimToken: z.string().min(1).optional(),
 });
 
 export type OutputType = {
   user: User;
-  claimedArtifactId?: number;
 };
 
 export const postRegister = async (

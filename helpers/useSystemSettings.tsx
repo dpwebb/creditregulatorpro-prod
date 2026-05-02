@@ -2,6 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSystemSettings } from "../endpoints/admin/settings_GET.schema";
 import { postSystemSettings, InputType } from "../endpoints/admin/settings_POST.schema";
 import { toast } from "sonner";
+import {
+  resolveSubscriptionPriceCad,
+  SUBSCRIPTION_ANNUAL_PRICE_CAD,
+  SUBSCRIPTION_MONTHLY_PRICE_CAD,
+} from "./subscriptionPricing";
 
 export const SYSTEM_SETTINGS_QUERY_KEY = ["system-settings"] as const;
 
@@ -30,8 +35,8 @@ export function useUpdateSystemSettings() {
 export function useSubscriptionPricing() {
   const { data: settings, isLoading } = useSystemSettings();
 
-  const defaultMonthlyPrice = 4.99;
-  const defaultAnnualPrice = 49.99;
+  const defaultMonthlyPrice = SUBSCRIPTION_MONTHLY_PRICE_CAD;
+  const defaultAnnualPrice = SUBSCRIPTION_ANNUAL_PRICE_CAD;
 
   if (isLoading || !settings) {
     return {
@@ -44,13 +49,8 @@ export function useSubscriptionPricing() {
   const monthlySetting = settings.find((s) => s.key === "subscription_monthly_price_cad");
   const annualSetting = settings.find((s) => s.key === "subscription_annual_price_cad");
 
-  const monthlyPrice = monthlySetting && !isNaN(parseFloat(monthlySetting.value))
-    ? parseFloat(monthlySetting.value)
-    : defaultMonthlyPrice;
-
-  const annualPrice = annualSetting && !isNaN(parseFloat(annualSetting.value))
-    ? parseFloat(annualSetting.value)
-    : defaultAnnualPrice;
+  const monthlyPrice = resolveSubscriptionPriceCad(monthlySetting?.value, "monthly");
+  const annualPrice = resolveSubscriptionPriceCad(annualSetting?.value, "annual");
 
   return {
     monthlyPrice,

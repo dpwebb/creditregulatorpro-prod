@@ -1,20 +1,14 @@
 import { schema, OutputType, SampleProblem } from "./anonymous-report_POST.schema";
 
-import { db } from "../../helpers/db";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { validateOrigin } from "../../helpers/domainGuard";
 import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { extractHtmlWithFallbackChain } from "../../helpers/fallbackPdfExtractor";
 import { routeHtmlToComprehensiveResultWithOverrides } from "../../helpers/bureauDetectionRouter";
 import { generateAnonymousPreview } from "../../helpers/anonymousCompliancePreview";
-import { cleanupArtifactOnly } from "../../helpers/ingestCleanup";
-import crypto from "crypto";
 import { ZodError } from "zod";
 
 export async function handle(request: Request) {
-  // Track artifact id so we can update processingStatus in catch block
-  let artifactId: number | null = null;
-
   try {
     const guardResult = await validateOrigin(request);
     if (!guardResult.valid && guardResult.mode === "enforce") {
@@ -66,34 +60,7 @@ export async function handle(request: Request) {
       );
     }
 
-    // 2. Insert temporary artifact into DB with claim token
-    const claimToken = crypto.randomUUID();
-    const initialData = {
-      fileName: input.fileName,
-      claimToken,
-      extractionStatus: "pending",
-      isAnonymous: true,
-    };
-
-    const artifact = await db
-      .insertInto("reportArtifact")
-      .values({
-        region: input.region,
-        data: JSON.stringify(initialData),
-        processingStatus: "pending",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
-
-    artifactId = artifact.id;
-
-    // 3. Extract HTML via AI fallback chain (Gemini → OpenAI)
-    await db
-      .updateTable("reportArtifact")
-      .set({ processingStatus: "extracting" })
-      .where("id", "=", artifactId)
-      .execute();
-
+    // 2. Extract HTML in memory. Anonymous uploads are not persisted here.
     console.log("[Anonymous Upload] Starting AI extraction...");
     const fallbackResult = await extractHtmlWithFallbackChain(input.bytesBase64);
 
@@ -106,20 +73,7 @@ export async function handle(request: Request) {
     console.log(`[Anonymous Upload] AI extraction succeeded via ${fallbackResult.source}.`);
     const rawHtml = fallbackResult.html;
 
-    await db
-      .updateTable("reportArtifact")
-      .set({
-        data: JSON.stringify({
-          ...initialData,
-          extractionStatus: "extracted",
-          extractionSource: fallbackResult.source,
-          docstrangeRawHtml: fallbackResult.html,
-        }),
-      })
-      .where("id", "=", artifactId)
-      .execute();
-
-    // 4. Parse the comprehensive result and run compliance preview
+    // 3. Parse the comprehensive result and run compliance preview
     const parseResult = await routeHtmlToComprehensiveResultWithOverrides(rawHtml);
     const previewProblems = generateAnonymousPreview(parseResult);
 
@@ -134,17 +88,9 @@ export async function handle(request: Request) {
     // Exclude the fallback info item from the problem count
     const problemCount = sampleProblems.filter((p) => p.urgency !== "info").length;
 
-    await db
-      .updateTable("reportArtifact")
-      .set({ processingStatus: "completed" })
-      .where("id", "=", artifactId)
-      .execute();
-
     const responseData: OutputType = {
       problemCount,
       sampleProblems,
-      tempArtifactId: artifactId,
-      claimToken,
     };
 
     return new Response(JSON.stringify(responseData), {
@@ -154,11 +100,6 @@ export async function handle(request: Request) {
   } catch (error: unknown) {
     console.error("[Anonymous Upload] Error:", error);
     const message = error instanceof Error ? error.message : "An unexpected error occurred during processing.";
-
-    // Best-effort: delete the artifact entirely so it doesn't linger in an incomplete state
-    if (artifactId !== null) {
-      await cleanupArtifactOnly(artifactId);
-    }
 
     return new Response(
       JSON.stringify({ error: message }),

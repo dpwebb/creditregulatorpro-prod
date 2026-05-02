@@ -6,7 +6,7 @@ updated: 2026-04-16T14:06:39.493Z
 # Conversion-Focused Redesign — Credit Regulator Pro
 
 ## Summary
-Complete redesign of the landing page, global color system, navigation, pricing model, and user onboarding flow — all optimized for trial-start conversion and paid retention. Includes a new anonymous upload → preview → paywall flow, in-app trial countdown, and clear billing transparency. Pricing changes from $4.99/month + $49.99/year + 30-day trial to **$19/month + 7-day trial**.
+Complete redesign of the landing page, global color system, navigation, pricing model, and user onboarding flow — all optimized for trial-start conversion and paid retention. Includes a new anonymous upload → preview → paywall flow, in-app trial countdown, and clear billing transparency. Pricing changes to **$19.95/month or $49.95/year with a 7-day trial**.
 
 ---
 
@@ -114,7 +114,7 @@ Using the brand sheet as reference, generate these individual assets with transp
 ### 1G. Pricing Section (Prompt 7 + 8)
 **What changes:**
 - Title: "Start Free"
-- Single plan focus: 7-Day Free Trial → $19/month after
+- Single plan focus: 7-Day Free Trial -> $19.95/month after
 - Include: "No charge today" / "Cancel anytime" / "No contracts"
 - Billing transparency block below: clear 3-line explanation of billing
 - Remove 3-card pricing grid; replace with single-plan clarity
@@ -170,7 +170,7 @@ Using the brand sheet as reference, generate these individual assets with transp
 ### 2A. Database Schema Update
 **What changes:**
 - The `subscriptions` table likely stores plan/pricing info. The trial period needs to change from 30 days to 7 days for new registrations.
-- Pricing: $19/month (no annual plan on landing page, but annual can remain in-app if desired)
+- Pricing: $19.95/month and $49.95/year
 
 ### 2B. Registration Endpoint
 **What changes:**
@@ -181,14 +181,14 @@ Using the brand sheet as reference, generate these individual assets with transp
 
 ### 2C. Stripe Integration
 **What changes:**
-- Update pricing to $19/month in Stripe checkout flow
-- May need new Stripe price ID for $19/month
+- Update pricing to $19.95/month in Stripe checkout flow
+- May need new Stripe price ID for $19.95/month
 - Keep annual as an option in-app but lead with monthly
 
 **Files to modify:** `endpoints/subscription/create-checkout_POST`, `helpers/subscriptionQueries`, `components/SubscriptionSection`, `components/SubscriptionCheckoutForm`
 
 ### 2D. Landing Page Pricing Constants
-- Update all hardcoded pricing references from $4.99 → $19 and 30-day → 7-day
+- Update all hardcoded pricing references from $4.99 -> $19.95 and 30-day -> 7-day
 
 ---
 
@@ -265,7 +265,7 @@ Using the brand sheet as reference, generate these individual assets with transp
 | `components/ProtectedRoute` | Update trial period references |
 | `components/AppSidebarUser` or `AppLayout` | Trial countdown |
 | `helpers/subscriptionQueries` | Update trial day calculations |
-| Subscription/registration endpoints | 7-day trial, $19/month |
+| Subscription/registration endpoints | 7-day trial, $19.95/month |
 | Project Metadata | Update iconUrl to new shield icon asset |
 
 ## Files to Create
@@ -295,7 +295,7 @@ Using the brand sheet as reference, generate these individual assets with transp
 ## Risks & Considerations
 
 ### Breaking Changes (Mobile App Backward Compatibility)
-- **Pricing change ($4.99 → $19)**: Existing subscribers must NOT be affected. Only new signups get $19/month. Existing beta/monthly/annual users keep their plans.
+- **Pricing change ($4.99 -> $19.95)**: Existing subscribers must NOT be affected. Only new signups get $19.95/month. Existing Trial User/monthly/annual users keep their plans.
 - **Trial period (30 → 7 days)**: Only applies to NEW registrations. Existing trialing users keep their 30-day window.
 - **No endpoint removal**: All existing endpoints remain. Anonymous upload is additive.
 - **Color scheme change**: The dark theme applies globally (both landing and in-app). This is a significant visual shift for existing users. All components use CSS variables so the change propagates automatically, but some components may need contrast adjustments.
@@ -303,13 +303,13 @@ Using the brand sheet as reference, generate these individual assets with transp
 ### Architecture Concerns
 - **Anonymous upload storage**: Temp artifacts need a cleanup strategy (e.g., delete after 24h if unclaimed). May need a scheduled job.
 - **Anonymous upload abuse**: Rate limiting needed to prevent spam uploads without auth.
-- **Stripe price ID**: A new $19/month price must be created in Stripe dashboard. The admin will need to update the price ID.
+- **Stripe price ID**: A new $19.95/month price must be created in Stripe dashboard. The admin will need to update the price ID.
 
 ### Compliance
 - "What We Do Not Do" section must remain on the landing page per project policy (no "fix credit" language).
 - Canada-only data residency policy unchanged.
 
 ### Existing Users
-- Current beta users (30-day free trial, full access) continue unchanged.
-- Current paid subscribers ($4.99/month, $49.99/year) continue at their existing rates.
-- Only NEW registrations after this change get the 7-day trial + $19/month pricing.
+- Current Trial User accounts (7-day free trial, full access) continue unchanged.
+- Existing paid subscribers continue at their existing rates.
+- Only NEW registrations after this change get the 7-day trial + $19.95/month pricing.

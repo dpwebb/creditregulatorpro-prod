@@ -23,7 +23,7 @@ Backend-only helper that builds the comprehensive system prompt for the AI suppo
 - Platform overview (what Credit Regulator Pro does, who it's for)
 - Feature guide: Upload reports, tradelines/accounts, compliance checks (35+ rules), dispute letters/packets, evidence management, compliance calendar, deadlines, auto-escalation, analytics/progress
 - Navigation guide: Key pages and what they do (/upload, /my-accounts, /packets, /evidence, /calendar, /progress, /my-info, /user-manual)
-- Subscription info: Beta (free), Monthly ($19 CAD), Annual ($49.99 CAD), 7-day free trial
+- Subscription info: Trial User (free for 7 days; internal plan key `beta`), Monthly ($19.95 CAD), Annual ($49.95 CAD)
 - Canadian regulation overview: PIPEDA principles (4.3, 4.5, 4.6, 4.6.1), Bankruptcy Act, Metro2 CRRG, provincial CRA acts
 - The 45 violation categories with plain-language labels (from getViolationLabel)
 - Common user tasks: how to upload a report, how to view violations, how to create a dispute letter, how to track deadlines, how to manage your profile/billing

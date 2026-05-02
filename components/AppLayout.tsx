@@ -268,7 +268,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         {authState.type === "authenticated" && authState.user.role === "user" && isDisclaimerPage && (
           <div className={styles.globalBanner}>
             <Info size={14} className={styles.globalBannerIcon} />
-            <span>You are sending these letters yourself. Credit Regulator Pro helps you but does not act for you.</span>
+            <span>You control each letter. Credit Regulator Pro helps you but does not represent you.</span>
           </div>
         )}
         {authState.type === "authenticated" && !authState.user.emailVerified && !isEmailBannerDismissed && (
