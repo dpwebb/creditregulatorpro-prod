@@ -26,12 +26,14 @@
   .logoLink {
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-2);
-    color: var(--foreground);
     text-decoration: none;
-    font-weight: 700;
-    font-size: 1.25rem;
     transition: opacity var(--animation-duration-fast) ease;
+  }
+
+  .logoImage {
+    display: block;
+    width: auto;
+    height: 4.25rem;
   }
 
   .logoLink:hover {
@@ -68,10 +70,6 @@
     border-color: var(--primary);
     background-color: color-mix(in srgb, var(--primary) 88%, black);
     color: var(--primary-foreground);
-  }
-
-  .shieldIcon {
-    color: var(--primary);
   }
 
   .mainContent {
@@ -217,8 +215,8 @@
       margin-bottom: var(--spacing-8);
     }
 
-    .logoLink {
-      font-size: 1rem;
+    .logoImage {
+      height: 3rem;
     }
 
     .homeButton {

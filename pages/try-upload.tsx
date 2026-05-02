@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Helmet } from "react-helmet";
 import { Link, useSearchParams } from "react-router-dom";
-import { Home, Shield } from "lucide-react";
+import { Home } from "lucide-react";
 import { FileDropzone } from "../components/FileDropzone";
 import { CreditReportGuide } from "../components/CreditReportGuide";
 import { Spinner } from "../components/Spinner";
@@ -116,8 +116,11 @@ export default function TryUploadPage() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link to="/" className={styles.logoLink}>
-            <Shield size={28} className={styles.shieldIcon} />
-            <span>Credit Regulator Pro</span>
+            <img
+              src="/brand/logo-horizontal.png"
+              alt="Credit Regulator Pro"
+              className={styles.logoImage}
+            />
           </Link>
           <Link to="/" className={styles.homeButton} aria-label="Go to homepage">
             <Home size={18} aria-hidden="true" />
