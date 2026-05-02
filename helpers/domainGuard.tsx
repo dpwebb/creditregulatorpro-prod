@@ -11,6 +11,21 @@ const ALLOWLIST = [
   "https://d7b7a121-ad3e-49cc-87b0-82af4360a550.sandbox.floot.app",
 ];
 
+const LOCAL_DEV_ALLOWLIST = [
+  "http://localhost:5175",
+  "http://127.0.0.1:5175",
+  "http://localhost:3333",
+  "http://127.0.0.1:3333",
+];
+
+function getAllowedOrigins(): string[] {
+  if (process.env.NODE_ENV === "development" && process.env.CRP_LOCAL_DEV === "true") {
+    return [...ALLOWLIST, ...LOCAL_DEV_ALLOWLIST];
+  }
+
+  return ALLOWLIST;
+}
+
 function getOriginOrReferer(request: Request): string | null {
   const origin = request.headers.get("origin");
   if (origin) {
@@ -70,7 +85,7 @@ export async function validateOrigin(
       valid = false;
     }
   } else {
-    valid = ALLOWLIST.includes(originStr);
+    valid = getAllowedOrigins().includes(originStr);
   }
 
   if (!valid) {

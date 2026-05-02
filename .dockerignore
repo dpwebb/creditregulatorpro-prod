@@ -3,5 +3,10 @@ dist/
 .git/
 .github/
 *.bak
+.env
+.env.*
+env.json
+global-secrets.env
+.local/
 npm-debug.log*
 pnpm-debug.log*

@@ -6,3 +6,4 @@ dist/
 env.json
 npm-debug.log*
 pnpm-debug.log*
+.env.codex-global

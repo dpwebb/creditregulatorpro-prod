@@ -95,6 +95,9 @@ pnpm run build
 pnpm start
 ```
 
+For local-only development with shared global secrets and a local Postgres
+database clone, see `docs/local-development.md`.
+
 ## Staging service prerequisites check
 
 When diagnosing staging on a VPS, run:
