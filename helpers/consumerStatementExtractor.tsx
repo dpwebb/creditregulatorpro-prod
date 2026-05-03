@@ -1,4 +1,5 @@
 import { parse } from "./dateUtils";
+import { extractTransUnionSection } from "./transunionTextParsing";
 
 export type ConsumerStatementType = 
   | "active_duty_alert" 
@@ -23,14 +24,28 @@ export type ExtractedConsumerStatement = {
  */
 export function extractConsumerStatements(text: string): ExtractedConsumerStatement[] {
   const statements: ExtractedConsumerStatement[] = [];
+
+  const transUnionStatementSection = extractTransUnionSection(text, [
+    /Consumer Statement\(s\)\s*:/i,
+    /Consumer Statement(?:s)?\s*:/i,
+    /Consumer Message(?:s)?\s*:/i,
+    /Special Message(?:s)?\s*:/i,
+  ]);
+
+  if (transUnionStatementSection) {
+    const section = transUnionStatementSection.trim();
+    if (section && !/^not applicable$/i.test(section)) {
+      processStatementBlock(["Consumer Statement(s):", section], statements);
+    }
+    console.log(`[ConsumerStatementExtractor] Found ${statements.length} TransUnion statement(s)`);
+    return statements;
+  }
   
   // Strategy: Find sections that look like statement blocks
   // We look for headers like "Consumer Statement", "Fraud Alert", etc.
   
   const statementHeaders = [
     "CONSUMER STATEMENT",
-    "STATEMENT",
-    "DISPUTE",
     "FRAUD ALERT",
     "SECURITY ALERT",
     "ACTIVE DUTY ALERT",
@@ -80,6 +95,10 @@ export function extractConsumerStatements(text: string): ExtractedConsumerStatem
 function processStatementBlock(lines: string[], results: ExtractedConsumerStatement[]) {
   const blockText = lines.join('\n');
   const headerLine = lines[0].toUpperCase();
+
+  if (isInstructionalOrBoilerplateBlock(blockText, headerLine)) {
+    return;
+  }
   
   // 1. Determine Statement Type
   let statementType: ConsumerStatementType = "general_statement";
@@ -158,4 +177,26 @@ function processStatementBlock(lines: string[], results: ExtractedConsumerStatem
     rawSectionText: blockText,
     confidence: 85 // Base confidence
   });
+}
+
+function isInstructionalOrBoilerplateBlock(blockText: string, headerLine: string): boolean {
+  const normalized = blockText.replace(/\s+/g, " ").trim();
+  if (!normalized || /^Consumer Statement\(s\):?\s*not applicable$/i.test(normalized)) {
+    return true;
+  }
+
+  const hasExplicitStatementHeader =
+    /CONSUMER STATEMENT|FRAUD ALERT|SECURITY ALERT|ACTIVE DUTY ALERT|IDENTITY THEFT|SECURITY FREEZE/i.test(headerLine);
+
+  const instructionalPatterns = [
+    /INVESTIGATION REQUEST FORM/i,
+    /Need to dispute/i,
+    /If you believe.*information.*inaccurate/i,
+    /mail this form/i,
+    /send your dispute/i,
+    /attach.*documents/i,
+    /instructions/i,
+  ];
+
+  return !hasExplicitStatementHeader && instructionalPatterns.some((pattern) => pattern.test(normalized));
 }

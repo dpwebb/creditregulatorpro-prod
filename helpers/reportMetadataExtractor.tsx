@@ -1,4 +1,5 @@
 import { parse } from "./dateUtils";
+import { findTransUnionDateString } from "./transunionTextParsing";
 
 export type ExtractedReportMetadata = {
   // Report Identification
@@ -71,6 +72,31 @@ function parseReportDate(dateStr: string): Date | null {
   return null;
 }
 
+function extractTransUnionReportDate(headerText: string): Date | null {
+  const contextPatterns = [
+    /file\s+as\s+of[\s\S]{0,80}/i,
+    /last\s+reviewed[\s\S]{0,160}\bon[\s\S]{0,80}/i,
+  ];
+
+  for (const pattern of contextPatterns) {
+    const context = headerText.match(pattern)?.[0];
+    const dateString = context ? findTransUnionDateString(context) : null;
+    if (dateString) {
+      const parsed = parseReportDate(dateString);
+      if (parsed) return parsed;
+    }
+  }
+
+  const headerDateMatch = headerText.match(
+    /\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})\b/i,
+  );
+  if (headerDateMatch) {
+    return parseReportDate(headerDateMatch[1]);
+  }
+
+  return null;
+}
+
 /**
  * Helper to extract currency or number values
  */
@@ -138,6 +164,10 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
       result.reportDate = parseReportDate(match[1]);
       if (result.reportDate) break;
     }
+  }
+
+  if (!result.reportDate && /TransUnion/i.test(headerText)) {
+    result.reportDate = extractTransUnionReportDate(headerText);
   }
 
   // File/Report Numbers

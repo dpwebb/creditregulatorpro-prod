@@ -3,6 +3,12 @@
  * Focuses on Canadian/US phone formats commonly found in credit reports.
  */
 
+import {
+  extractTransUnionSection,
+  formatNorthAmericanPhoneFromDigits,
+  isKnownBureauPhone,
+} from "./transunionTextParsing";
+
 export function extractPhone(
   text: string,
   lines: string[]
@@ -19,6 +25,25 @@ export function extractPhone(
   // +1 ...
   const phoneRegex =
     /(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9])\s*\)|([2-9]1[02-9]|[2-9][02-8]1|[2-9][02-8][02-9]))\s*(?:[.-]\s*)?)?([2-9]1[02-9]|[2-9][02-9]1|[2-9][02-9]{2})\s*(?:[.-]\s*)?([0-9]{4})(?:\s*(?:#|x\.?|ext\.?|extension)\s*(\d+))?/i;
+
+  // TransUnion Consumer Disclosure has a dedicated telephone table. Parse it
+  // before generic keyword matching so bureau contact numbers are not selected.
+  const transUnionTelephoneSection = extractTransUnionSection(text, [
+    /Telephone Number\(s\)\s*:/i,
+  ]);
+
+  if (transUnionTelephoneSection) {
+    const phoneCandidateRegex =
+      /(?:\+?1[\s.-]?)?(?:\(?[2-9]\d{2}\)?[\s.-]?\d{3}[\s.-]?\d{4}|[2-9]\d{9})/g;
+    const candidates = Array.from(transUnionTelephoneSection.matchAll(phoneCandidateRegex));
+
+    for (const candidate of candidates) {
+      const formatted = formatNorthAmericanPhoneFromDigits(candidate[0]);
+      if (formatted && !isKnownBureauPhone(formatted)) {
+        return { phone: formatted, confidence: 90 };
+      }
+    }
+  }
 
   // Strategy 1: Look for explicit labels in lines
   // This is usually the most accurate method

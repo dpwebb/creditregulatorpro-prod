@@ -1,8 +1,38 @@
 import { parse, isValid } from "./dateUtils";
+import { extractTransUnionSection, findTransUnionDateString } from "./transunionTextParsing";
 
 export function extractDateOfBirth(text: string, lines: string[]): { dob: Date | null; confidence: number } {
   let dateOfBirth: Date | null = null;
   let confidence = 0;
+
+  // TransUnion Consumer Disclosure text often collapses the personal-info
+  // table into a run like "Birth Date ... Jan 30, 1961" without separators.
+  const transUnionDobContext = text.match(/Birth\s*Date[\s\S]{0,180}/i);
+  if (transUnionDobContext) {
+    const dobString = findTransUnionDateString(transUnionDobContext[0]);
+    if (dobString) {
+      const parsedDate = parseDate(dobString);
+      if (parsedDate) {
+        dateOfBirth = parsedDate;
+        confidence += 30;
+      }
+    }
+  }
+
+  if (!dateOfBirth) {
+    const transUnionPersonalInfo = extractTransUnionSection(text, [
+      /Personal Information\s*:/i,
+      /Personal Info\s*:/i,
+    ]);
+    const dobString = transUnionPersonalInfo ? findTransUnionDateString(transUnionPersonalInfo) : null;
+    if (dobString) {
+      const parsedDate = parseDate(dobString);
+      if (parsedDate) {
+        dateOfBirth = parsedDate;
+        confidence += 25;
+      }
+    }
+  }
 
   // Additional patterns for DOB extraction with various formats
   const dobPatterns = [
@@ -15,16 +45,18 @@ export function extractDateOfBirth(text: string, lines: string[]): { dob: Date |
     /(?:DOB|Date\s+of\s+Birth|Birth\s+Date)[\s:=]+([A-Za-z]{3,9}\s+\d{1,2}[\s,]+\d{4})/i,
   ];
 
-  for (const pattern of dobPatterns) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      console.log(`[DOB Extractor] Pattern matched: "${match[1].trim()}"`);
-      const parsedDate = parseDate(match[1].trim());
-      if (parsedDate) {
-        console.log(`[DOB Extractor] Successfully parsed DOB: ${parsedDate.toISOString()}`);
-        dateOfBirth = parsedDate;
-        confidence += 20;
-        break;
+  if (!dateOfBirth) {
+    for (const pattern of dobPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        console.log(`[DOB Extractor] Pattern matched: "${match[1].trim()}"`);
+        const parsedDate = parseDate(match[1].trim());
+        if (parsedDate) {
+          console.log(`[DOB Extractor] Successfully parsed DOB: ${parsedDate.toISOString()}`);
+          dateOfBirth = parsedDate;
+          confidence += 20;
+          break;
+        }
       }
     }
   }

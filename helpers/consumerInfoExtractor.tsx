@@ -3,6 +3,7 @@ import { extractName } from "./consumerInfoExtractorName";
 import { extractCurrentAddress, extractPreviousAddresses } from "./consumerInfoExtractorAddress";
 import { extractDateOfBirth } from "./consumerInfoExtractorDob";
 import { extractPhone } from "./consumerInfoExtractorPhone";
+import { extractTransUnionSection, findTransUnionDateString } from "./transunionTextParsing";
 
 // Re-export types for backward compatibility
 export type { ExtractedConsumerInfo, ExtractedAddress } from "./consumerInfoExtractorTypes";
@@ -55,9 +56,24 @@ export function extractConsumerInfo(text: string): ExtractedConsumerInfo {
   info.confidence += dobResult.confidence;
 
   // Attempt to extract the raw string as well
-  const dobRawMatch = text.match(/(?:DOB|Date\s+of\s+Birth|Birth\s+Date|Date\s+de\s+naissance|D\.O\.B\.|Birth\s+Day|BIRTH\s*DATE)[\s:=]+([A-Za-z0-9,\s\/-]+?)(?:\s*(?:\n|$|[A-Z]{2,}|\s{2,}))/i);
-  if (dobRawMatch && dobRawMatch[1]) {
-    info.dateOfBirthRaw = dobRawMatch[1].trim();
+  const transUnionDobContext = text.match(/Birth\s*Date[\s\S]{0,180}/i);
+  const transUnionPersonalInfo = extractTransUnionSection(text, [
+    /Personal Information\s*:/i,
+    /Personal Info\s*:/i,
+  ]);
+  const transUnionDobRaw =
+    (transUnionDobContext ? findTransUnionDateString(transUnionDobContext[0]) : null) ||
+    (transUnionPersonalInfo ? findTransUnionDateString(transUnionPersonalInfo) : null);
+  const dobRawMatch = text.match(/(?:DOB|Date\s+of\s+Birth|Birth\s+Date|Date\s+de\s+naissance|D\.O\.B\.|Birth\s+Day|BIRTH\s*DATE)[\s:=]+([A-Za-z0-9,\s\/-]+?)(?:\s*(?:\n|$|\s{2,}))/i);
+  const genericDobRaw = dobRawMatch?.[1]?.trim() ?? null;
+  const genericDobLooksValid =
+    genericDobRaw &&
+    (findTransUnionDateString(genericDobRaw) || /\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}/.test(genericDobRaw));
+
+  if (transUnionDobRaw) {
+    info.dateOfBirthRaw = transUnionDobRaw;
+  } else if (genericDobLooksValid) {
+    info.dateOfBirthRaw = genericDobRaw;
   }
 
   // Extract phone number

@@ -18,6 +18,18 @@ export type ExtractedCreditScore = {
  */
 export function extractCreditScores(text: string): ExtractedCreditScore[] {
   const scores: ExtractedCreditScore[] = [];
+
+  // TransUnion Consumer Disclosure PDFs often include educational boilerplate
+  // mentioning scoring products from multiple bureaus. Do not treat that as an
+  // actual score unless the report has an explicit TransUnion score section.
+  if (
+    /TransUnion/i.test(text) &&
+    /Consumer Disclosure/i.test(text) &&
+    !/(CreditVision|Empirica|TransUnion\s+(?:Credit\s+)?Score|Your\s+Credit\s+Score\s*:?\s*[3-9]\d{2})/i.test(text)
+  ) {
+    console.log(`[CreditScoreExtractor] Found 0 scores`);
+    return scores;
+  }
   
   // Strategy: Find sections that look like score blocks
   // We look for keywords like "Score", "Beacon", "Risk", "CreditVision" followed by a 3-digit number

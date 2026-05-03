@@ -175,11 +175,11 @@ export function extractPaymentHistory(tradelineText: string): ExtractedPaymentHi
     return match ? parseDate(match[1]) : null;
   };
 
-  result.lastActivityDate = extractDate(/(?:Last\s+Activity|DLA|Date\s+of\s+Last\s+Activity):?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}|[A-Za-z]{3}\s+\d{1,2},?\s+\d{4})/i);
-  result.lastReportedDate = extractDate(/(?:Reported|Date\s+Reported):?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}|[A-Za-z]{3}\s+\d{1,2},?\s+\d{4})/i);
+  result.lastActivityDate = extractDate(/(?:Last\s+Activity|DLA|Date\s+of\s+Last\s+Activity)\s*(?:Date)?\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}|[A-Za-z]{3}\s+\d{1,2},?\s+\d{4})/i);
+  result.lastReportedDate = extractDate(/(?:Reported|Date\s+Reported|Reported\s+Date)\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|\d{2}[-/]\d{2}[-/]\d{4}|[A-Za-z]{3}\s+\d{1,2},?\s+\d{4})/i);
   
   // Try to extract last payment date from combined format "Last Payment: 2025-12-15 ($275)"
-  const combinedDateMatch = tradelineText.match(/Last\s+Payment[\s:]+(\d{4}[-/]\d{2}[-/]\d{2})/i);
+  const combinedDateMatch = tradelineText.match(/Last\s+Payment(?:\s+Date)?\s*:?\s*(\d{4}[-/]\d{2}[-/]\d{2}|[A-Za-z]{3}\s+\d{1,2},?\s+\d{4})/i);
   if (combinedDateMatch) {
     result.lastPaymentDate = parseDate(combinedDateMatch[1]);
   } else {

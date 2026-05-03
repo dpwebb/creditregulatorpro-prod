@@ -43,6 +43,8 @@ export function extractDateAssignedToCollection(text: string): Date | null {
  */
 export function extractLastActivityDate(text: string): Date | null {
   const patterns = [
+    // TransUnion concatenated format: "Last Activity DateOct 03, 2013"
+    /Last\s+Activity\s+Date([A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4})/i,
     // "Last Activity: MM/DD/YYYY"
     /Last\s+Activity[\s:]+([^\n]+)/i,
     // "Last Activity Date: ..."
@@ -74,6 +76,9 @@ export function extractLastActivityDate(text: string): Date | null {
  */
 export function extractLastPaymentDate(text: string): Date | null {
   const patterns = [
+    // TransUnion concatenated format: "Last Payment DateOct 03, 2013"
+    /Last\s+Payment\s+Date([A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4})/i,
+    /Last\s+Payment([A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4})/i,
     // "Last Payment: 2025-12-15 ($275)" - extract date part
     /Last\s+Payment[\s:]+(\d{4}[-/]\d{2}[-/]\d{2})/i,
     // "Last Payment Date: 2025-12-15"

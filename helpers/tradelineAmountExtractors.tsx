@@ -6,6 +6,10 @@
  */
 
 import { parsePaymentGridWithGemini } from "./geminiTableParser";
+import {
+  extractLatestTransUnionPaymentGridBalance,
+  extractTransUnionPaymentGridRows,
+} from "./transunionTextParsing";
 
 /**
  * Extracts the current balance from a tradeline section (sync, regex-based).
@@ -30,7 +34,8 @@ export function extractBalance(text: string): number {
     }
   }
 
-  return 0;
+  const transUnionGridBalance = extractLatestTransUnionPaymentGridBalance(text);
+  return transUnionGridBalance ?? 0;
 }
 
 /**
@@ -104,6 +109,11 @@ export function extractAmounts(text: string): {
         break;
       }
     }
+  }
+
+  const latestTransUnionGridRow = extractTransUnionPaymentGridRows(text)[0];
+  if (latestTransUnionGridRow?.pastDue !== null && latestTransUnionGridRow?.pastDue !== undefined) {
+    amounts.pastDue = latestTransUnionGridRow.pastDue;
   }
 
   return amounts;

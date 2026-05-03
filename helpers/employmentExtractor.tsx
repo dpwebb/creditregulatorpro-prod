@@ -17,11 +17,23 @@ export type ExtractedEmploymentInfo = {
   confidence: number; // 0-100
 };
 
+import {
+  extractTransUnionSection,
+  findTransUnionDateString,
+  parseTransUnionDate,
+} from "./transunionTextParsing";
+
 /**
  * Extracts employment information from credit report text.
  */
 export function extractEmploymentInfo(text: string): ExtractedEmploymentInfo[] {
   const employments: ExtractedEmploymentInfo[] = [];
+
+  const transUnionEmployments = extractTransUnionEmploymentInfo(text);
+  if (transUnionEmployments.length > 0) {
+    console.log(`[EmploymentExtractor] Found ${transUnionEmployments.length} TransUnion employment entries`);
+    return transUnionEmployments;
+  }
   
   // Strategy: Find the main Employment section, then split into individual entries
   
@@ -97,6 +109,59 @@ export function extractEmploymentInfo(text: string): ExtractedEmploymentInfo[] {
 
   console.log(`[EmploymentExtractor] Found ${employments.length} employment entries`);
   return employments;
+}
+
+function extractTransUnionEmploymentInfo(text: string): ExtractedEmploymentInfo[] {
+  const section = extractTransUnionSection(text, [/Employment\(s\)\s*:/i]);
+  if (!section || /^not applicable$/i.test(section.trim())) return [];
+
+  const rowPattern =
+    /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})([\s\S]*?)(?=(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|$)/gi;
+
+  const rows: ExtractedEmploymentInfo[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = rowPattern.exec(section)) !== null) {
+    const verifiedDate = parseTransUnionDate(match[1]);
+    let remainder = (match[2] ?? "").replace(/\s+/g, " ").trim();
+    if (!remainder || /^(date|employer|occupation|not applicable)$/i.test(remainder)) continue;
+
+    const startDateString = findTransUnionDateString(remainder);
+    const hireDate = startDateString ? parseTransUnionDate(startDateString) : null;
+    if (startDateString) {
+      remainder = remainder.replace(startDateString, "").trim();
+    }
+
+    let employerName = remainder;
+    let occupation: string | null = null;
+    const occupationMatch = remainder.match(/^(.*?)(SELF|SELF EMPLOYED|EMPLOYED|RETIRED|STUDENT|UNEMPLOYED)$/i);
+    if (occupationMatch) {
+      employerName = occupationMatch[1].trim();
+      occupation = occupationMatch[2].replace(/\s+/g, " ").trim();
+    }
+
+    if (!employerName || employerName.length < 2) continue;
+
+    rows.push({
+      employerName,
+      occupation,
+      employmentStatus: null,
+      salary: null,
+      salaryFrequency: null,
+      hireDate,
+      terminationDate: null,
+      verifiedDate,
+      employerAddress: null,
+      employerCity: null,
+      employerProvince: null,
+      employerPostalCode: null,
+      employerPhone: null,
+      isCurrent: null,
+      rawSectionText: `${match[1]} ${match[2]}`.trim(),
+      confidence: 90,
+    });
+  }
+
+  return rows;
 }
 
 function processEmployerBlock(lines: string[], results: ExtractedEmploymentInfo[]) {

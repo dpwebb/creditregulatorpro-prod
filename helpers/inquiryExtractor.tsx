@@ -13,6 +13,11 @@ export type ExtractedInquiry = {
   confidence: number;
 };
 
+import { extractTransUnionSection } from "./transunionTextParsing";
+
+const TEXT_DATE_PATTERN_SOURCE =
+  "(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\\s+\\d{1,2},?\\s+\\d{4}";
+
 /**
  * Extracts credit inquiries from Canadian credit report text.
  * Handles various Canadian report formats including numbered sections and different separators.
@@ -21,6 +26,12 @@ export function extractInquiries(text: string): ExtractedInquiry[] {
   console.log(`[InquiryExtractor] Starting inquiry extraction`);
   
   const inquiries: ExtractedInquiry[] = [];
+
+  const transUnionInquiries = extractTransUnionInquiries(text);
+  if (transUnionInquiries.length > 0) {
+    console.log(`[InquiryExtractor] Successfully extracted ${transUnionInquiries.length} TransUnion inquiries`);
+    return transUnionInquiries;
+  }
   
   // 1. Find the inquiries section
   const inquirySection = extractInquirySection(text);
@@ -63,6 +74,77 @@ export function extractInquiries(text: string): ExtractedInquiry[] {
 
   console.log(`[InquiryExtractor] Successfully extracted ${inquiries.length} inquiries`);
   return inquiries;
+}
+
+function extractTransUnionInquiries(text: string): ExtractedInquiry[] {
+  const sections: Array<{
+    startPatterns: RegExp[];
+    inquiryType: ExtractedInquiry["inquiryType"];
+  }> = [
+    { startPatterns: [/Credit Related Inquiries\s*:/i], inquiryType: "hard" },
+    { startPatterns: [/Non-?Credit Related Inquiries\s*:/i], inquiryType: "soft" },
+    { startPatterns: [/Account Review Inquiries\s*:/i], inquiryType: "soft" },
+  ];
+
+  const results: ExtractedInquiry[] = [];
+  for (const sectionConfig of sections) {
+    const section = extractTransUnionSection(text, sectionConfig.startPatterns);
+    if (!section) continue;
+    results.push(...parseTransUnionInquirySection(section, sectionConfig.inquiryType));
+  }
+
+  const unique = new Map<string, ExtractedInquiry>();
+  for (const inquiry of results) {
+    const key = `${inquiry.inquiryType}|${inquiry.creditorName.toUpperCase()}|${inquiry.inquiryDate?.getTime() ?? "unknown"}`;
+    if (!unique.has(key)) unique.set(key, inquiry);
+  }
+
+  return Array.from(unique.values());
+}
+
+function parseTransUnionInquirySection(
+  section: string,
+  inquiryType: ExtractedInquiry["inquiryType"],
+): ExtractedInquiry[] {
+  const results: ExtractedInquiry[] = [];
+  const rowPattern = new RegExp(
+    `(${TEXT_DATE_PATTERN_SOURCE})([\\s\\S]*?)(?=${TEXT_DATE_PATTERN_SOURCE}|$)`,
+    "gi",
+  );
+
+  let match: RegExpExecArray | null;
+  while ((match = rowPattern.exec(section)) !== null) {
+    const dateString = match[1].replace(/\s+/g, " ").trim();
+    const remainder = (match[2] ?? "").replace(/\s+/g, " ").trim();
+    const inquiryDate = parseInquiryDate(dateString);
+    if (!inquiryDate || remainder.length < 2) continue;
+
+    const phoneMatch = remainder.match(/(?:\+?1[\s.-]?)?(?:\(?[2-9]\d{2}\)?[\s.-]?\d{3}[\s.-]?\d{4}|[2-9]\d{9})/);
+    const withoutPhone = phoneMatch
+      ? `${remainder.slice(0, phoneMatch.index)} ${remainder.slice((phoneMatch.index ?? 0) + phoneMatch[0].length)}`
+      : remainder;
+    const creditorName = withoutPhone
+      .replace(/^(?:Date|Authorized User|Name|Telephone)\s*/i, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+    if (!creditorName || /^(date|authorized user|telephone|not applicable)$/i.test(creditorName)) {
+      continue;
+    }
+
+    results.push({
+      inquiryType,
+      creditorName,
+      inquiryDate,
+      inquiryPurpose: inquiryType === "hard" ? "Credit Related Inquiry" : "Non-credit/account review inquiry",
+      subscriberCode: null,
+      industryCode: null,
+      rawSectionText: `${dateString} ${remainder}`.trim(),
+      confidence: 90,
+    });
+  }
+
+  return results;
 }
 
 /**

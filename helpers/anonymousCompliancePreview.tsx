@@ -1,7 +1,7 @@
 import { calculateRetentionExpiry, AccountType } from "./provincialRetentionCalculator";
 import type { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import type { CanadianProvince } from "./schema";
-import { isBefore, differenceInMonths, isValid, parseISO } from "./dateUtils";
+import { isAfter, isBefore, differenceInMonths, isValid, parseISO } from "./dateUtils";
 
 export type PreviewProblemUrgency = "expired" | "approaching" | "violation" | "warning" | "info";
 
@@ -45,6 +45,7 @@ function getAccountType(tradeline: ParsedTradeline, statusText: string): Account
 export function generateAnonymousPreview(parseResult: ComprehensiveParseResult): PreviewProblem[] {
   const problems: PreviewProblem[] = [];
   const tradelineProblemsMap = new Map<string, PreviewProblem>();
+  const asOfDate = safeParseDate(parseResult.reportMetadata?.reportDate) || new Date();
 
   // 1. Resolve consumer province
   let province: CanadianProvince = "ON";
@@ -74,7 +75,17 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     const balance = Number(tradeline.balance || 0);
     const isDerogatory = 
       pastDue > 0 || 
-      ["charge", "bad debt", "derogatory", "write-off", "writeoff", "collection"].some(k => statusText.includes(k));
+      [
+        "charge",
+        "bad debt",
+        "derogatory",
+        "write-off",
+        "writeoff",
+        "collection",
+        "cancelled by credit grantor",
+        "cg",
+        "tc",
+      ].some(k => statusText.includes(k));
 
     // Extract Dates
     const dofd = safeParseDate(tradeline.dates?.dofd);
@@ -84,23 +95,26 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     const openedDate = safeParseDate(tradeline.dates?.opened);
 
     // a. Statute of Limitations
-    const referenceDate = dofd || lastActivityDate || lastPaymentDate || dateClosed || openedDate;
-    if (referenceDate) {
+    const referenceDate = dofd || lastActivityDate || lastPaymentDate || dateClosed;
+    const hasNegativeReportingEvidence = isDerogatory || pastDue > 0 || balance > 0 || tradeline.isCollectionAccount === true;
+    if (referenceDate && hasNegativeReportingEvidence) {
       const accountType = getAccountType(tradeline, statusText);
       const expiryResult = calculateRetentionExpiry(province, accountType, referenceDate);
       
       if (expiryResult) {
-        if (expiryResult.isExpired) {
+        const isExpiredAsOfReport = isAfter(asOfDate, expiryResult.expiryDate);
+
+        if (isExpiredAsOfReport) {
           addTradelineProblem(creditorName, {
             type: "sol_expired",
             title: `${creditorName} — Expired Debt`,
-            detail: `${creditorName} is past the legal reporting limit for ${province}. It should not be on your report.`,
+            detail: `${creditorName} appears to be past the legal reporting limit for ${province} based on the dates extracted from this report.`,
             solution: `This debt has expired under ${province} law (${expiryResult.statuteReference}). We can generate a legal removal letter demanding its deletion.`,
             urgency: "expired",
             severity: 100
           });
         } else {
-          const monthsRemaining = differenceInMonths(expiryResult.expiryDate, new Date());
+          const monthsRemaining = differenceInMonths(expiryResult.expiryDate, asOfDate);
           if (monthsRemaining >= 0 && monthsRemaining <= 6) {
             addTradelineProblem(creditorName, {
               type: "sol_approaching",
@@ -117,22 +131,18 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
 
     // b. Missing Critical Dates
     let missingCriticalDate = false;
-    if (isDerogatory && !dofd) {
-      missingCriticalDate = true;
-    } else if (!openedDate) {
-      missingCriticalDate = true;
-    } else if (!dateClosed && !lastActivityDate) {
+    if (hasNegativeReportingEvidence && !referenceDate) {
       missingCriticalDate = true;
     }
 
     if (missingCriticalDate) {
       addTradelineProblem(creditorName, {
         type: "missing_dates",
-        title: `${creditorName} — Missing Important Dates`,
-        detail: `A critical date is missing from ${creditorName}. The credit bureau is breaking reporting rules.`,
-        solution: "The bureau must report this date. We can file a compliance dispute to force correction or removal.",
-        urgency: "violation",
-        severity: 80
+        title: `${creditorName} — Unable to Verify Key Dates`,
+        detail: `${creditorName} has negative reporting indicators, but the parser could not extract the date needed to verify reporting-limit rules.`,
+        solution: "We can review the source report and use a compliance dispute if the bureau cannot support the reporting date.",
+        urgency: "warning",
+        severity: 55
       });
     }
 
