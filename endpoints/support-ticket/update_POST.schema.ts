@@ -8,6 +8,7 @@ export const schema = z.object({
   status: z.enum(["OPEN", "IN_PROGRESS", "WAITING_ON_USER", "RESOLVED", "CLOSED"]).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
   assignedAgentId: z.number().nullable().optional(),
+  resolutionNote: z.string().trim().min(5).max(2000).optional(),
 });
 
 export type InputType = z.infer<typeof schema>;

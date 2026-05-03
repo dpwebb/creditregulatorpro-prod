@@ -6,6 +6,14 @@ import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointEr
 import { notifyStatusChange, notifyTicketAssigned } from "../../helpers/supportTicketNotifications";
 import { SupportTicketStatus } from "../../helpers/schema";
 
+const ALLOWED_STATUS_TRANSITIONS: Record<SupportTicketStatus, SupportTicketStatus[]> = {
+  OPEN: ["IN_PROGRESS", "WAITING_ON_USER", "RESOLVED", "CLOSED"],
+  IN_PROGRESS: ["OPEN", "WAITING_ON_USER", "RESOLVED", "CLOSED"],
+  WAITING_ON_USER: ["IN_PROGRESS", "RESOLVED", "CLOSED"],
+  RESOLVED: ["IN_PROGRESS", "CLOSED"],
+  CLOSED: ["OPEN"],
+};
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -44,10 +52,32 @@ export async function handle(request: Request) {
       }
     }
 
+    if (result.status && result.status !== oldTicket.status) {
+      const allowed = ALLOWED_STATUS_TRANSITIONS[oldTicket.status as SupportTicketStatus] || [];
+      if (!allowed.includes(result.status)) {
+        throw new BusinessRuleError(
+          `Invalid status transition: ${oldTicket.status} -> ${result.status}`,
+          400
+        );
+      }
+    }
+
+    const requiresResolutionNote =
+      result.status !== undefined &&
+      result.status !== oldTicket.status &&
+      (result.status === "RESOLVED" || result.status === "CLOSED");
+
+    if (requiresResolutionNote && !result.resolutionNote) {
+      throw new BusinessRuleError(
+        "Resolution note is required when resolving or closing a ticket",
+        400
+      );
+    }
+
     const updateValues: {
       updatedAt: Date;
       status?: SupportTicketStatus;
-      resolvedAt?: Date;
+      resolvedAt?: Date | null;
       priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
       assignedAgentId?: number | null;
     } = { updatedAt: new Date() };
@@ -57,6 +87,9 @@ export async function handle(request: Request) {
       if (result.status === "RESOLVED" && oldTicket.status !== "RESOLVED") {
         updateValues.resolvedAt = new Date();
       }
+      if (result.status === "OPEN" || result.status === "IN_PROGRESS" || result.status === "WAITING_ON_USER") {
+        updateValues.resolvedAt = null;
+      }
     }
 
     if (result.priority) {
@@ -65,6 +98,14 @@ export async function handle(request: Request) {
 
     if (result.assignedAgentId !== undefined) {
       updateValues.assignedAgentId = result.assignedAgentId;
+    }
+
+    if (
+      result.status === "IN_PROGRESS" &&
+      oldTicket.assignedAgentId === null &&
+      result.assignedAgentId === undefined
+    ) {
+      updateValues.assignedAgentId = user.id;
     }
 
     const updatedTicket = await db
@@ -85,6 +126,16 @@ export async function handle(request: Request) {
       result.assignedAgentId !== oldTicket.assignedAgentId
     ) {
       notifyTicketAssigned(updatedTicket.id, result.assignedAgentId);
+    }
+
+    if (requiresResolutionNote && result.resolutionNote) {
+      await db.insertInto("supportTicketMessage").values({
+        ticketId: updatedTicket.id,
+        senderId: user.id,
+        senderRole: user.role,
+        message: `Resolution Note: ${result.resolutionNote}`,
+        isInternalNote: true,
+      }).execute();
     }
 
     return new Response(JSON.stringify({ ticket: updatedTicket } satisfies OutputType), {

@@ -77,12 +77,27 @@ Suggested accounts:
 
 1. Login as support account
 2. Open `/support-tickets`
-3. Open one ticket detail: `/support-tickets/:ticketId`
-4. Reply to ticket and update status/priority/assignment where allowed
-5. Expected:
+3. Validate list controls:
+   - Search by subject and by description keyword
+   - Assignment filter (`All`, `Mine`, `Unassigned`, `Assigned`)
+   - Presets (`Unassigned`, `High Priority`, `Waiting on User`, `Overdue`, `Clear`)
+4. Confirm list output behavior:
+   - Aging badge renders (`Active`/`Stale`)
+   - Latest message preview appears and is redacted for sensitive values (`token`, long secret-like strings, long digit sequences)
+5. Open one ticket detail: `/support-tickets/:ticketId`
+6. Update priority and assignment
+7. Try status update to `RESOLVED` or `CLOSED` without resolution note
+   - Expected: blocked with validation error
+8. Add resolution note (5+ chars) and set `RESOLVED` or `CLOSED`
+   - Expected: status updates and internal resolution note is added in thread
+9. Try invalid transition (example: `CLOSED` -> `RESOLVED`)
+   - Expected: blocked by status transition rule
+10. Reply to ticket (normal and internal note)
+11. Expected:
    - Queue loads and updates
    - Reply appears in thread
    - Access remains limited to support/admin boundaries
+   - Resolution-note requirement and transition enforcement are active
 
 ## 7) Admin Workflow Regression
 

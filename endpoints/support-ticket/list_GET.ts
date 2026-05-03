@@ -3,6 +3,7 @@ import { schema, OutputType } from "./list_GET.schema";
 import { db } from "../../helpers/db";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { sanitizeTicketPreview } from "../../helpers/ticketTextSanitizer";
 
 export async function handle(request: Request) {
   try {
@@ -10,72 +11,70 @@ export async function handle(request: Request) {
     const url = new URL(request.url);
     const params = Object.fromEntries(url.searchParams.entries());
     const query = schema.parse(params);
+    const staleBefore = query.staleHours
+      ? new Date(Date.now() - query.staleHours * 60 * 60 * 1000)
+      : undefined;
+
+    const applyCommonFilters = (baseQuery: any) => {
+      let next = baseQuery;
+
+      if (query.status) {
+        next = next.where("supportTicket.status", "=", query.status);
+      }
+      if (query.category) {
+        next = next.where("supportTicket.category", "=", query.category);
+      }
+      if (query.priority) {
+        next = next.where("supportTicket.priority", "=", query.priority);
+      }
+      if (query.search) {
+        next = next.where((eb: any) =>
+          eb.or([
+            eb("supportTicket.subject", "ilike", `%${query.search}%`),
+            eb("supportTicket.description", "ilike", `%${query.search}%`),
+          ])
+        );
+      }
+
+      if (user.role === "user") {
+        next = next.where("supportTicket.userId", "=", user.id);
+      } else if (user.role === "support") {
+        next = next.where((eb: any) =>
+          eb.or([
+            eb("supportTicket.assignedAgentId", "=", user.id),
+            eb.and([
+              eb("supportTicket.assignedAgentId", "is", null),
+              eb("supportTicket.status", "=", "OPEN"),
+            ]),
+          ])
+        );
+      }
+
+      if (query.assignment && user.role !== "user") {
+        if (query.assignment === "ASSIGNED") {
+          next = next.where("supportTicket.assignedAgentId", "is not", null);
+        } else if (query.assignment === "UNASSIGNED") {
+          next = next.where("supportTicket.assignedAgentId", "is", null);
+        } else if (query.assignment === "MINE") {
+          next = next.where("supportTicket.assignedAgentId", "=", user.id);
+        }
+      }
+
+      if (staleBefore) {
+        next = next.where("supportTicket.updatedAt", "<=", staleBefore);
+      }
+
+      return next;
+    };
 
     // Count query
-    let countQuery = db.selectFrom("supportTicket");
+    const countQuery = applyCommonFilters(db.selectFrom("supportTicket"))
+      .select((eb: any) => eb.fn.countAll().as("total"));
 
-    if (query.status) {
-      countQuery = countQuery.where("supportTicket.status", "=", query.status);
-    }
-    if (query.category) {
-      countQuery = countQuery.where("supportTicket.category", "=", query.category);
-    }
-    if (query.priority) {
-      countQuery = countQuery.where("supportTicket.priority", "=", query.priority);
-    }
-    if (query.search) {
-      countQuery = countQuery.where("supportTicket.subject", "ilike", `%${query.search}%`);
-    }
-
-    if (user.role === "user") {
-      countQuery = countQuery.where("supportTicket.userId", "=", user.id);
-    } else if (user.role === "support") {
-      countQuery = countQuery.where((eb) =>
-        eb.or([
-          eb("supportTicket.assignedAgentId", "=", user.id),
-          eb.and([
-            eb("supportTicket.assignedAgentId", "is", null),
-            eb("supportTicket.status", "=", "OPEN"),
-          ]),
-        ])
-      );
-    }
-
-    const countResult = countQuery
-      .select((eb) => eb.fn.countAll<number>().as("total"))
-      .executeTakeFirstOrThrow();
+    const countResult = countQuery.executeTakeFirstOrThrow();
 
     // Data query
-    let dataQuery = db.selectFrom("supportTicket");
-
-    if (query.status) {
-      dataQuery = dataQuery.where("supportTicket.status", "=", query.status);
-    }
-    if (query.category) {
-      dataQuery = dataQuery.where("supportTicket.category", "=", query.category);
-    }
-    if (query.priority) {
-      dataQuery = dataQuery.where("supportTicket.priority", "=", query.priority);
-    }
-    if (query.search) {
-      dataQuery = dataQuery.where("supportTicket.subject", "ilike", `%${query.search}%`);
-    }
-
-    if (user.role === "user") {
-      dataQuery = dataQuery.where("supportTicket.userId", "=", user.id);
-    } else if (user.role === "support") {
-      dataQuery = dataQuery.where((eb) =>
-        eb.or([
-          eb("supportTicket.assignedAgentId", "=", user.id),
-          eb.and([
-            eb("supportTicket.assignedAgentId", "is", null),
-            eb("supportTicket.status", "=", "OPEN"),
-          ]),
-        ])
-      );
-    }
-
-    const dataResult = dataQuery
+    const dataResult = applyCommonFilters(db.selectFrom("supportTicket"))
       .innerJoin("users as owner", "owner.id", "supportTicket.userId")
       .leftJoin("users as agent", "agent.id", "supportTicket.assignedAgentId")
       .select([
@@ -113,6 +112,7 @@ export async function handle(request: Request) {
       ...r,
       createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt),
       updatedAt: r.updatedAt instanceof Date ? r.updatedAt : new Date(r.updatedAt),
+      latestMessagePreview: sanitizeTicketPreview(r.latestMessagePreview),
     }));
 
     return new Response(

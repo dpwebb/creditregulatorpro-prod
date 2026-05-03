@@ -28,6 +28,12 @@
   flex-wrap: wrap;
 }
 
+.presetRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
 .filterSelect {
   width: 200px;
 }
@@ -60,6 +66,16 @@
 .subjectText {
   font-weight: 500;
   color: var(--foreground);
+}
+
+.previewText {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
 }
 
 .userName {

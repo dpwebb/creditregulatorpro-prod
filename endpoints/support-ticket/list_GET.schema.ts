@@ -6,7 +6,9 @@ export const schema = z.object({
   status: z.enum(["OPEN", "IN_PROGRESS", "WAITING_ON_USER", "RESOLVED", "CLOSED"]).optional(),
   category: z.enum(["ACCOUNT", "BILLING", "DISPUTE_HELP", "TECHNICAL", "OTHER"]).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
-  search: z.string().optional(),
+  assignment: z.enum(["ASSIGNED", "UNASSIGNED", "MINE"]).optional(),
+  staleHours: z.coerce.number().int().min(1).max(336).optional(),
+  search: z.string().trim().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -38,6 +40,8 @@ export const getSupportTickets = async (
   if (params.status) searchParams.append("status", params.status);
   if (params.category) searchParams.append("category", params.category);
   if (params.priority) searchParams.append("priority", params.priority);
+  if (params.assignment) searchParams.append("assignment", params.assignment);
+  if (params.staleHours !== undefined) searchParams.append("staleHours", String(params.staleHours));
   if (params.search) searchParams.append("search", params.search);
   searchParams.append("limit", String(params.limit));
   searchParams.append("offset", String(params.offset));

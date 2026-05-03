@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { z } from 'zod';
 import { useSupportTicket, useUpdateSupportTicket, useReplySupportTicket } from '../helpers/supportTicketQueries';
 import { useSupportAgents } from '../helpers/useSupportAgents';
@@ -18,7 +18,7 @@ import { SupportTicketStatus, SupportTicketPriority } from '../helpers/schema';
 import styles from './SupportTicketDetail.module.css';
 
 const replySchema = z.object({
-  message: z.string().min(1, "Message is required"),
+  message: z.string().min(1, 'Message is required'),
   isInternalNote: z.boolean().optional()
 });
 
@@ -30,13 +30,14 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
   const { data, isPending, refetch } = useSupportTicket(ticketId);
   const { mutate: updateTicket } = useUpdateSupportTicket();
   const { mutate: replyTicket, isPending: isReplying } = useReplySupportTicket();
-  
+
   const { data: agentsData } = useSupportAgents();
   const agents = agentsData?.agents || [];
 
   const { showSuccess, showError } = useToast();
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [resolutionNote, setResolutionNote] = useState('');
 
   const form = useForm({
     defaultValues: { message: '', isInternalNote: false },
@@ -46,7 +47,7 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
   const onSubmitReply = (values: z.infer<typeof replySchema>) => {
     replyTicket({ ticketId, message: values.message, isInternalNote: values.isInternalNote }, {
       onSuccess: () => {
-        showSuccess("Reply sent");
+        showSuccess('Reply sent');
         form.setValues({ message: '', isInternalNote: false });
         refetch();
         setTimeout(() => {
@@ -54,30 +55,51 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
         }, 100);
       },
       onError: (err) => {
-        showError(err instanceof Error ? err.message : "Failed to send reply");
+        showError(err instanceof Error ? err.message : 'Failed to send reply');
       }
     });
   };
 
   const handleStatusChange = (status: SupportTicketStatus) => {
-    updateTicket({ ticketId, status }, {
-      onSuccess: () => { showSuccess("Status updated"); refetch(); },
-      onError: (err) => showError(err instanceof Error ? err.message : "Failed to update status")
-    });
+    const statusNeedsResolutionNote = status === 'RESOLVED' || status === 'CLOSED';
+    const trimmedResolutionNote = resolutionNote.trim();
+
+    if (statusNeedsResolutionNote && trimmedResolutionNote.length < 5) {
+      showError('Add a resolution note (min 5 characters) before resolving or closing this ticket.');
+      return;
+    }
+
+    updateTicket(
+      {
+        ticketId,
+        status,
+        resolutionNote: statusNeedsResolutionNote ? trimmedResolutionNote : undefined,
+      },
+      {
+        onSuccess: () => {
+          showSuccess('Status updated');
+          if (statusNeedsResolutionNote) {
+            setResolutionNote('');
+          }
+          refetch();
+        },
+        onError: (err) => showError(err instanceof Error ? err.message : 'Failed to update status')
+      }
+    );
   };
 
   const handlePriorityChange = (priority: SupportTicketPriority) => {
     updateTicket({ ticketId, priority }, {
-      onSuccess: () => { showSuccess("Priority updated"); refetch(); },
-      onError: (err) => showError(err instanceof Error ? err.message : "Failed to update priority")
+      onSuccess: () => { showSuccess('Priority updated'); refetch(); },
+      onError: (err) => showError(err instanceof Error ? err.message : 'Failed to update priority')
     });
   };
 
   const handleAgentChange = (val: string) => {
-    const assignedAgentId = val === "__empty" ? null : Number(val);
+    const assignedAgentId = val === '__empty' ? null : Number(val);
     updateTicket({ ticketId, assignedAgentId }, {
-      onSuccess: () => { showSuccess("Agent assigned"); refetch(); },
-      onError: (err) => showError(err instanceof Error ? err.message : "Failed to assign agent")
+      onSuccess: () => { showSuccess('Agent assigned'); refetch(); },
+      onError: (err) => showError(err instanceof Error ? err.message : 'Failed to assign agent')
     });
   };
 
@@ -106,11 +128,11 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
           <span className={styles.metaItem}>
             <span className={styles.metaLabel}>Category:</span> {formatEnum(ticket.category)}
           </span>
-          <span className={styles.metaDivider}>•</span>
+          <span className={styles.metaDivider}>|</span>
           <span className={styles.metaItem}>
-            <span className={styles.metaLabel}>Created:</span> {format(ticket.createdAt, "MMM d, yyyy")}
+            <span className={styles.metaLabel}>Created:</span> {format(ticket.createdAt, 'MMM d, yyyy')}
           </span>
-          <span className={styles.metaDivider}>•</span>
+          <span className={styles.metaDivider}>|</span>
           <span className={styles.metaItem}>
             <span className={styles.metaLabel}>User:</span> {userDisplayName}
           </span>
@@ -121,7 +143,7 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
         <div className={styles.adminControls}>
           <div className={styles.controlGroup}>
             <label className={styles.controlLabel}>Status</label>
-            <Select value={ticket.status} onValueChange={v => handleStatusChange(v as SupportTicketStatus)}>
+            <Select value={ticket.status} onValueChange={(v) => handleStatusChange(v as SupportTicketStatus)}>
               <SelectTrigger className={styles.controlSelect}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="OPEN">Open</SelectItem>
@@ -135,7 +157,7 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
 
           <div className={styles.controlGroup}>
             <label className={styles.controlLabel}>Priority</label>
-            <Select value={ticket.priority} onValueChange={v => handlePriorityChange(v as SupportTicketPriority)}>
+            <Select value={ticket.priority} onValueChange={(v) => handlePriorityChange(v as SupportTicketPriority)}>
               <SelectTrigger className={styles.controlSelect}><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>
@@ -148,15 +170,26 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
 
           <div className={styles.controlGroup}>
             <label className={styles.controlLabel}>Assign To</label>
-            <Select value={ticket.assignedAgentId ? String(ticket.assignedAgentId) : "__empty"} onValueChange={handleAgentChange}>
+            <Select value={ticket.assignedAgentId ? String(ticket.assignedAgentId) : '__empty'} onValueChange={handleAgentChange}>
               <SelectTrigger className={styles.controlSelect}><SelectValue placeholder="Unassigned" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__empty">Unassigned</SelectItem>
-                {agents.map(a => (
+                {agents.map((a) => (
                   <SelectItem key={a.id} value={String(a.id)}>{a.displayName}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className={styles.controlGroupWide}>
+            <label className={styles.controlLabel}>Resolution Note</label>
+            <Textarea
+              value={resolutionNote}
+              onChange={(e) => setResolutionNote(e.target.value)}
+              rows={3}
+              placeholder="Required before setting status to Resolved or Closed"
+              className={styles.resolutionTextarea}
+            />
           </div>
         </div>
       )}
@@ -172,25 +205,22 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
         </div>
 
         <div className={styles.messageList}>
-          {messages.map(msg => {
+          {messages.map((msg) => {
             const isUser = msg.senderRole === 'user';
             const isInternal = msg.isInternalNote;
 
             return (
-              <div 
-                key={msg.id} 
+              <div
+                key={msg.id}
                 className={`
-                  ${styles.messageWrapper} 
-                  ${isUser ? styles.user : styles.agent} 
+                  ${styles.messageWrapper}
+                  ${isUser ? styles.user : styles.agent}
                   ${isInternal ? styles.internal : ''}
                 `}
               >
                 <div className={styles.messageHeader}>
                   {isInternal ? <Lock size={12} className={styles.lockIcon} /> : (isUser ? <User size={12} /> : <Headset size={12} />)}
-                  <span className={styles.messageAuthor}>
-                                        
-                    {msg.senderDisplayName}
-                  </span>
+                  <span className={styles.messageAuthor}>{msg.senderDisplayName}</span>
                   {isInternal && <span className={styles.internalBadge}>Staff Only</span>}
                   <span className={styles.messageTime}>{formatDistanceToNow(msg.createdAt, { addSuffix: true })}</span>
                 </div>
@@ -215,30 +245,30 @@ export const SupportTicketDetail = ({ ticketId }: { ticketId: number }) => {
             <form onSubmit={form.handleSubmit(onSubmitReply)} className={styles.replyForm}>
               <FormItem name="message" className={styles.replyItem}>
                 <FormControl>
-                  <Textarea 
-                    placeholder="Type your reply here..." 
+                  <Textarea
+                    placeholder="Type your reply here..."
                     value={form.values.message}
-                    onChange={(e) => form.setValues(prev => ({...prev, message: e.target.value}))}
+                    onChange={(e) => form.setValues((prev) => ({ ...prev, message: e.target.value }))}
                     rows={4}
                     className={styles.replyTextarea}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
-              
+
               <div className={styles.replyActions}>
                 {isStaff && (
                   <label className={styles.checkboxLabel}>
-                    <input 
-                      type="checkbox" 
-                      checked={form.values.isInternalNote} 
-                      onChange={e => form.setValues(prev => ({...prev, isInternalNote: e.target.checked}))}
+                    <input
+                      type="checkbox"
+                      checked={form.values.isInternalNote}
+                      onChange={(e) => form.setValues((prev) => ({ ...prev, isInternalNote: e.target.checked }))}
                       className={styles.checkbox}
                     />
                     <span>Internal Note (Staff only)</span>
                   </label>
                 )}
-                
+
                 <Button type="submit" disabled={isReplying} className={styles.sendButton}>
                   {isReplying ? <Spinner size="sm" /> : <><Send size={16} /> Send Reply</>}
                 </Button>
