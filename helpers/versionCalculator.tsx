@@ -60,6 +60,28 @@ export function determineHighestLevel(operations: {entityType: string, actionTyp
   return highest;
 }
 
+/**
+ * Determines the highest SemVer level from grouped operation counts without
+ * expanding each count into an in-memory operation list.
+ */
+export function determineHighestLevelFromCounts(
+  groupedOperations: { entityType: string; actionType: string; count: number }[]
+): SemVerLevel | "none" {
+  let highest: SemVerLevel | "none" = "none";
+
+  for (const op of groupedOperations) {
+    if (Number(op.count) <= 0) continue;
+    const level = getOperationLevel(op.entityType, op.actionType);
+    if (!level) continue;
+
+    if (level === "MAJOR") return "MAJOR";
+    if (level === "MINOR" && highest !== "MINOR") highest = "MINOR";
+    if (level === "PATCH" && highest === "none") highest = "PATCH";
+  }
+
+  return highest;
+}
+
 export function calculateNextSemVer(currentVersion: string, highestLevel: SemVerLevel): string {
   const match = currentVersion.trim().match(SEMVER_CORE_REGEX);
   if (!match) {

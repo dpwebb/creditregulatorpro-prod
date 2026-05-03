@@ -296,6 +296,12 @@
   margin-left: auto;
 }
 
+.prepareActionRow {
+  margin-top: var(--spacing-3);
+  display: flex;
+  justify-content: flex-end;
+}
+
 .label {
   font-size: 0.875rem;
   font-weight: 500;

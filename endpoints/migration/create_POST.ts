@@ -19,7 +19,7 @@ export async function handle(request: Request) {
       .executeTakeFirstOrThrow();
       
     if (version.locked) {
-      throw new Error("Cannot add migration to a locked version");
+      throw new BusinessRuleError("Cannot add migration to a locked version", 409);
     }
     
     const result = await db.insertInto('versionMigration')

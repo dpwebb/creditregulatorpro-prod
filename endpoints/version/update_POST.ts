@@ -3,6 +3,13 @@ import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointEr
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { schema, OutputType } from "./update_POST.schema";
 
+function hasReleaseNotes(value: unknown): value is Array<{ category: string; items: string[] }> {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((entry) => entry && typeof entry === "object")
+  );
+}
 
 export async function handle(request: Request) {
   try {
@@ -39,11 +46,19 @@ export async function handle(request: Request) {
         if (!allowed[version.status].includes(input.status)) {
           throw new BusinessRuleError(`Invalid status transition from ${version.status} to ${input.status}`, 400);
         }
-        
+
+        const finalReleaseNotes = input.releaseNotes !== undefined ? input.releaseNotes : version.releaseNotes;
+        const versionHasReleaseNotes = hasReleaseNotes(finalReleaseNotes);
+        const versionHasSnapshot = !!version.systemSnapshot;
+
+        if (input.status === 'staged') {
+           if (!versionHasReleaseNotes) throw new BusinessRuleError("Cannot stage without release notes", 400);
+           if (!versionHasSnapshot) throw new BusinessRuleError("Cannot stage without a system snapshot", 400);
+        }
+
         if (input.status === 'released') {
-           const finalReleaseNotes = input.releaseNotes !== undefined ? input.releaseNotes : version.releaseNotes;
-           if (!finalReleaseNotes) throw new BusinessRuleError("Cannot release without release notes", 400);
-           if (!version.systemSnapshot) throw new BusinessRuleError("Cannot release without a system snapshot", 400);
+           if (!versionHasReleaseNotes) throw new BusinessRuleError("Cannot release without release notes", 400);
+           if (!versionHasSnapshot) throw new BusinessRuleError("Cannot release without a system snapshot", 400);
            
            // Archive any currently released version
            await trx.updateTable('softwareVersion')

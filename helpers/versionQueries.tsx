@@ -79,6 +79,7 @@ export function useGenerateNotes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VERSION_KEYS.all });
       queryClient.invalidateQueries({ queryKey: VERSION_KEYS.current });
+      queryClient.invalidateQueries({ queryKey: VERSION_KEYS.changeSummary });
     },
   });
 }
@@ -89,6 +90,7 @@ export function useGenerateSnapshot() {
     mutationFn: (input: Parameters<typeof postSnapshotVersion>[0]) => postSnapshotVersion(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: VERSION_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: VERSION_KEYS.changeSummary });
     },
   });
 }
@@ -107,6 +109,8 @@ export function useCreateMigration() {
     mutationFn: (input: Parameters<typeof postCreateMigration>[0]) => postCreateMigration(input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: VERSION_KEYS.migrations(variables.versionId) });
+      queryClient.invalidateQueries({ queryKey: VERSION_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: VERSION_KEYS.changeSummary });
     },
   });
 }
@@ -115,9 +119,10 @@ export function useUpdateMigration() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Parameters<typeof postUpdateMigration>[0]) => postUpdateMigration(input),
-    onSuccess: () => {
-      // Invalidate all top-level versions, which cascades down logically to UI
+    onSuccess: (updatedMigration) => {
       queryClient.invalidateQueries({ queryKey: VERSION_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: VERSION_KEYS.migrations(updatedMigration.versionId) });
+      queryClient.invalidateQueries({ queryKey: VERSION_KEYS.changeSummary });
     },
   });
 }

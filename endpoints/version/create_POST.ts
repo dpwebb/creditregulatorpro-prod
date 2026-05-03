@@ -3,7 +3,7 @@ import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointEr
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import {
   TRACKED_ENTITY_TYPES,
-  determineHighestLevel,
+  determineHighestLevelFromCounts,
   calculateNextSemVer,
   bumpPatchVersion,
   SemVerLevel,
@@ -35,7 +35,7 @@ async function findAvailableVersion(candidate: string): Promise<{ version: strin
       return { version: current, existingDraftId: existing.id };
     }
 
-    // Released or locked — bump patch
+    // Released or locked - bump patch
     const next = bumpPatchVersion(current);
     console.log(`Auto-versioning: version ${current} is taken (status=${existing.status}, locked=${existing.locked}), trying ${next}`);
     current = next;
@@ -73,16 +73,14 @@ async function resolveVersion(manualVersion: string | undefined): Promise<string
     .groupBy(["actionType", "entityType"])
     .execute();
 
-  // Build operations list for determineHighestLevel
-  const operations: { entityType: string; actionType: string }[] = [];
-  for (const log of auditLogs) {
-    const count = Number(log.count);
-    for (let i = 0; i < count; i++) {
-      operations.push({ entityType: log.entityType, actionType: log.actionType });
-    }
-  }
-
-  const highestLevel = determineHighestLevel(operations);
+  const highestLevel = determineHighestLevelFromCounts(
+    auditLogs.map((log) => ({
+      entityType: log.entityType,
+      actionType: log.actionType,
+      count: Number(log.count),
+    }))
+  );
+  const totalOperations = auditLogs.reduce((sum, log) => sum + Number(log.count), 0);
 
   if (highestLevel === "none") {
     const fallbackVersion = bumpPatchVersion(lastVersionString);
@@ -95,7 +93,7 @@ async function resolveVersion(manualVersion: string | undefined): Promise<string
   const nextVersion = calculateNextSemVer(lastVersionString, highestLevel as SemVerLevel);
 
   console.log(
-    `Auto-versioning via SemVer: ${lastVersionString} -> ${nextVersion} (highestLevel=${highestLevel}, totalOperations=${operations.length})`
+    `Auto-versioning via SemVer: ${lastVersionString} -> ${nextVersion} (highestLevel=${highestLevel}, totalOperations=${totalOperations})`
   );
 
   return nextVersion;

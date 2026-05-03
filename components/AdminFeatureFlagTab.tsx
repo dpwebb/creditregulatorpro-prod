@@ -292,9 +292,9 @@ export const AdminFeatureFlagTab = () => {
                   </TableCell>
                   <TableCell className={styles.hideMobile}>
                     <div className={styles.versionRange}>
-                      {flag.minVersion ? `≥ ${flag.minVersion}` : "Any"}
+                      {flag.minVersion ? `>= ${flag.minVersion}` : "Any"}
                       {" - "}
-                      {flag.maxVersion ? `≤ ${flag.maxVersion}` : "Any"}
+                      {flag.maxVersion ? `<= ${flag.maxVersion}` : "Any"}
                     </div>
                   </TableCell>
                   <TableCell>

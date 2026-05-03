@@ -123,7 +123,7 @@ export const AdminVersionNotesEditor = ({ releaseNotesRaw, onChange }: Props) =>
               <div className={styles.itemsList}>
                 {cat.items.map((item, iIdx) => (
                   <div key={iIdx} className={styles.itemRow}>
-                    <div className={styles.bullet}>•</div>
+                    <div className={styles.bullet}>*</div>
                     <Input
                       value={item}
                       onChange={(e) => updateItem(cIdx, iIdx, e.target.value)}

@@ -6,7 +6,6 @@ import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointEr
 import {
   TRACKED_ENTITY_TYPES,
   getOperationLevel,
-  determineHighestLevel,
   calculateNextSemVer,
   SemVerLevel,
 } from "../../helpers/versionCalculator";
@@ -15,13 +14,11 @@ import { buildCurrentSnapshot, computeSnapshotDiff, DetailedSnapshot } from "../
 
 export async function handle(request: Request) {
   try {
-    // 1. Auth check — admin only
     const { user } = await getServerUserSession(request);
     if (user.role !== "admin") {
       throw new BusinessRuleError("Admin access required", 403);
     }
 
-    // 2. Find the last released version's releasedAt and systemSnapshot
     const lastReleasedVersion = await db
       .selectFrom("softwareVersion")
       .select(["version", "releasedAt", "systemSnapshot"])
@@ -32,7 +29,6 @@ export async function handle(request: Request) {
     const cutoffDate = lastReleasedVersion?.releasedAt ?? new Date(0);
     const lastVersionString = lastReleasedVersion?.version ?? "0.0.0";
 
-    // 3. Single query: select actionType, entityType, count grouped by both
     const trackedEntityTypes = TRACKED_ENTITY_TYPES as readonly AuditEntityType[];
     const auditLogs = await db
       .selectFrom("auditLog")
@@ -42,93 +38,84 @@ export async function handle(request: Request) {
       .groupBy(["actionType", "entityType"])
       .execute();
 
-    // 4. For each row, call getOperationLevel; skip if null
     const changes: ChangeSummaryItem[] = [];
-    const operations: { entityType: string; actionType: string }[] = [];
+    let highestLevel: SemVerLevel | "none" = "none";
+    let totalOperations = 0;
 
     for (const log of auditLogs) {
       const level = getOperationLevel(log.entityType, log.actionType);
       if (!level) continue;
 
       const count = Number(log.count);
+      if (count <= 0) continue;
+
       changes.push({
         entityType: log.entityType,
         actionType: log.actionType,
         count,
         level,
       });
-
-      // Expand operations so determineHighestLevel counts each occurrence
-      for (let i = 0; i < count; i++) {
-        operations.push({ entityType: log.entityType, actionType: log.actionType });
-      }
+      highestLevel = mergeHighestLevel(highestLevel, level);
+      totalOperations += count;
     }
 
-    // 5. Build snapshot diff-based changes
-    const [currentSnapshot] = await Promise.all([buildCurrentSnapshot()]);
     const previousSnapshot = (lastReleasedVersion?.systemSnapshot as unknown as DetailedSnapshot | null) ?? null;
+    const currentSnapshot = await buildCurrentSnapshot();
     const snapshotDiff = computeSnapshotDiff(previousSnapshot, currentSnapshot);
 
     console.log(
       `Snapshot diff summary: totalAdded=${snapshotDiff.summary.totalAdded}, totalRemoved=${snapshotDiff.summary.totalRemoved}, totalChanged=${snapshotDiff.summary.totalChanged}`
     );
 
-    // Map diff entity names to DIFF entity type keys
     for (const [diffCategory, diff] of Object.entries(snapshotDiff.entityDiffs)) {
       const diffEntityType = `${diffCategory.toUpperCase()}_DIFF`;
 
       if (diff.added.length > 0) {
+        const count = diff.added.length;
         changes.push({
           entityType: diffEntityType,
           actionType: "DIFF_ADDED",
-          count: diff.added.length,
+          count,
           level: "MINOR",
         });
-        for (let i = 0; i < diff.added.length; i++) {
-          operations.push({ entityType: diffEntityType, actionType: "DIFF_ADDED" });
-        }
+        highestLevel = mergeHighestLevel(highestLevel, "MINOR");
+        totalOperations += count;
       }
 
       if (diff.removed.length > 0) {
+        const count = diff.removed.length;
         changes.push({
           entityType: diffEntityType,
           actionType: "DIFF_REMOVED",
-          count: diff.removed.length,
+          count,
           level: "MAJOR",
         });
-        for (let i = 0; i < diff.removed.length; i++) {
-          operations.push({ entityType: diffEntityType, actionType: "DIFF_REMOVED" });
-        }
+        highestLevel = mergeHighestLevel(highestLevel, "MAJOR");
+        totalOperations += count;
       }
 
       if (diff.changed.length > 0) {
+        const count = diff.changed.length;
         changes.push({
           entityType: diffEntityType,
           actionType: "DIFF_CHANGED",
-          count: diff.changed.length,
+          count,
           level: "PATCH",
         });
-        for (let i = 0; i < diff.changed.length; i++) {
-          operations.push({ entityType: diffEntityType, actionType: "DIFF_CHANGED" });
-        }
+        highestLevel = mergeHighestLevel(highestLevel, "PATCH");
+        totalOperations += count;
       }
     }
 
-    // 6. Determine highestLevel from all operations (audit-log + diff-based)
-    //    We need a custom determineHighestLevel that understands DIFF operations too
-    const highestLevel = determineCombinedHighestLevel(operations);
     const suggestedVersion =
       highestLevel === "none"
         ? lastVersionString
-        : calculateNextSemVer(lastVersionString, highestLevel as SemVerLevel);
-
-    const totalOperations = operations.length;
+        : calculateNextSemVer(lastVersionString, highestLevel);
 
     console.log(
       `Change summary: lastVersion=${lastVersionString}, highestLevel=${highestLevel}, suggestedVersion=${suggestedVersion}, totalOperations=${totalOperations}, changeRows=${changes.length}`
     );
 
-    // 7. Return final output structure
     const output: ChangeSummaryOutput = {
       changes,
       highestLevel,
@@ -143,35 +130,11 @@ export async function handle(request: Request) {
   }
 }
 
-/**
- * Determines the highest SemVer level from a combined list of operations,
- * including diff-based operations (DIFF_ADDED = MINOR, DIFF_REMOVED = MAJOR, DIFF_CHANGED = PATCH).
- */
-function determineCombinedHighestLevel(
-  operations: { entityType: string; actionType: string }[]
-): SemVerLevel | "none" {
-  let highest: SemVerLevel | "none" = "none";
-
-  for (const op of operations) {
-    let level: SemVerLevel | null = null;
-
-    // Resolve diff-based operations directly
-    if (op.actionType === "DIFF_ADDED") {
-      level = "MINOR";
-    } else if (op.actionType === "DIFF_REMOVED") {
-      level = "MAJOR";
-    } else if (op.actionType === "DIFF_CHANGED") {
-      level = "PATCH";
-    } else {
-      level = getOperationLevel(op.entityType, op.actionType);
-    }
-
-    if (!level) continue;
-
-    if (level === "MAJOR") return "MAJOR"; // Highest possible, early exit
-    if (level === "MINOR" && highest !== "MINOR") highest = "MINOR";
-    if (level === "PATCH" && highest === "none") highest = "PATCH";
-  }
-
-  return highest;
+function mergeHighestLevel(
+  current: SemVerLevel | "none",
+  incoming: SemVerLevel
+): SemVerLevel {
+  if (current === "MAJOR" || incoming === "MAJOR") return "MAJOR";
+  if (current === "MINOR" || incoming === "MINOR") return "MINOR";
+  return "PATCH";
 }

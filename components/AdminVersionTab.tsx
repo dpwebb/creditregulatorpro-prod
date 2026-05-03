@@ -17,13 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  } from "./Dialog";
+} from "./Dialog";
 import { Input } from "./Input";
-import { Textarea } from "./Textarea";
 import { AdminVersionNotesEditor } from "./AdminVersionNotesEditor";
 import { PublishChecklistDialog } from "./PublishChecklistDialog";
 import { AdminVersionCreateDialog } from "./AdminVersionCreateDialog";
-
 import { Tooltip, TooltipTrigger, TooltipContent } from "./Tooltip";
 import {
   Lock,
@@ -36,7 +34,7 @@ import {
   Camera,
   Star,
   Info,
-    Sparkles,
+  Sparkles,
 } from "lucide-react";
 import styles from "./AdminVersionTab.module.css";
 
@@ -46,11 +44,11 @@ export interface VersionItem {
   codename: string | null;
   status: "draft" | "staged" | "released" | "archived";
   locked: boolean;
-  releaseNotes: any;
-  systemSnapshot: any;
-  releasedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  releaseNotes: unknown;
+  systemSnapshot: unknown;
+  releasedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   createdBy: number | null;
   codeLineCount?: number | null;
 }
@@ -66,9 +64,9 @@ const dateFormatter = new Intl.DateTimeFormat("en-CA", {
 export const AdminVersionTab = () => {
   const { data: rawVersions, isLoading: isVersionsLoading } = useVersions();
   const { data: rawCurrentVersion, isLoading: isCurrentLoading } = useCurrentVersion();
-  
-  const versions = rawVersions as unknown as VersionItem[];
-  const currentVersion = rawCurrentVersion as unknown as VersionItem;
+
+  const versions = (rawVersions ?? []) as VersionItem[];
+  const currentVersion = (rawCurrentVersion ?? null) as VersionItem | null;
 
   const updateMutation = useUpdateVersion();
   const deleteMutation = useDeleteVersion();
@@ -79,10 +77,21 @@ export const AdminVersionTab = () => {
 
   const [editingVersion, setEditingVersion] = useState<VersionItem | null>(null);
   const [releaseCandidate, setReleaseCandidate] = useState<VersionItem | null>(null);
+  const [preparingVersionId, setPreparingVersionId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{
     codename: string;
     releaseNotesRaw: string;
   }>({ codename: "", releaseNotesRaw: "" });
+
+  const hasReleaseNotes = (version: VersionItem) =>
+    Array.isArray(version.releaseNotes) && version.releaseNotes.length > 0;
+
+  const hasSystemSnapshot = (version: VersionItem) =>
+    version.systemSnapshot !== null && version.systemSnapshot !== undefined;
+
+  const isPreparingVersion = (versionId: number) =>
+    preparingVersionId === versionId &&
+    (snapshotMutation.isPending || generateNotesMutation.isPending || updateMutation.isPending);
 
   const handleOpenEdit = (v: VersionItem) => {
     setEditingVersion(v);
@@ -90,7 +99,7 @@ export const AdminVersionTab = () => {
     if (v.releaseNotes) {
       try {
         rawNotes = JSON.stringify(v.releaseNotes, null, 2);
-      } catch (e) {
+      } catch {
         rawNotes = "";
       }
     }
@@ -106,7 +115,7 @@ export const AdminVersionTab = () => {
       }
 
       await updateMutation.mutateAsync({
-        id: editingVersion.id as number,
+        id: editingVersion.id,
         codename: editForm.codename || null,
         releaseNotes: parsedNotes,
       });
@@ -117,9 +126,12 @@ export const AdminVersionTab = () => {
     }
   };
 
-  const handleStatusChange = async (v: VersionItem, newStatus: "draft" | "staged" | "released" | "archived") => {
+  const handleStatusChange = async (
+    v: VersionItem,
+    newStatus: "draft" | "staged" | "released" | "archived"
+  ) => {
     try {
-      await updateMutation.mutateAsync({ id: v.id as number, status: newStatus });
+      await updateMutation.mutateAsync({ id: v.id, status: newStatus });
       showSuccess(`Version marked as ${newStatus}`);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to update status");
@@ -128,7 +140,7 @@ export const AdminVersionTab = () => {
 
   const handleLockToggle = async (v: VersionItem) => {
     try {
-      await updateMutation.mutateAsync({ id: v.id as number, locked: !v.locked });
+      await updateMutation.mutateAsync({ id: v.id, locked: !v.locked });
       showSuccess(`Version ${v.locked ? "unlocked" : "locked"}`);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to toggle lock");
@@ -142,7 +154,7 @@ export const AdminVersionTab = () => {
     }
     if (!window.confirm(`Are you sure you want to delete version ${v.version}?`)) return;
     try {
-      await deleteMutation.mutateAsync({ id: v.id as number });
+      await deleteMutation.mutateAsync({ id: v.id });
       showSuccess("Version deleted successfully");
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to delete version");
@@ -151,7 +163,7 @@ export const AdminVersionTab = () => {
 
   const handleSnapshot = async (v: VersionItem) => {
     try {
-      await snapshotMutation.mutateAsync({ versionId: v.id as number });
+      await snapshotMutation.mutateAsync({ versionId: v.id });
       showSuccess("Snapshot generated successfully");
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to generate snapshot");
@@ -160,10 +172,32 @@ export const AdminVersionTab = () => {
 
   const handleGenerateNotes = async (v: VersionItem) => {
     try {
-      await generateNotesMutation.mutateAsync({ versionId: v.id as number });
+      await generateNotesMutation.mutateAsync({ versionId: v.id });
       showSuccess("Release notes generated");
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to generate notes");
+    }
+  };
+
+  const handlePrepareAndStage = async (v: VersionItem) => {
+    if (v.status !== "draft" || v.locked) return;
+
+    setPreparingVersionId(v.id);
+    try {
+      if (!hasReleaseNotes(v)) {
+        await generateNotesMutation.mutateAsync({ versionId: v.id });
+      }
+
+      if (!hasSystemSnapshot(v)) {
+        await snapshotMutation.mutateAsync({ versionId: v.id });
+      }
+
+      await updateMutation.mutateAsync({ id: v.id, status: "staged" });
+      showSuccess("Version prepared and staged for review");
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to prepare and stage version");
+    } finally {
+      setPreparingVersionId(null);
     }
   };
 
@@ -190,28 +224,27 @@ export const AdminVersionTab = () => {
     );
   }
 
-  // Ensure current version is excluded from standard list to prevent duplication
-  const otherVersions = versions?.filter((v) => v.id !== currentVersion?.id) || [];
+  const otherVersions = versions.filter((v) => v.id !== currentVersion?.id);
 
   const renderChecklist = (v: VersionItem) => {
     if (v.status !== "draft" && v.status !== "staged") return null;
 
-    const hasNotes = Array.isArray(v.releaseNotes) && v.releaseNotes.length > 0;
-    const hasSnapshot = !!v.systemSnapshot;
-        const isStaged = v.status === "staged";
-    const isReleased = false; // checklist only renders for draft/staged
+    const hasNotes = hasReleaseNotes(v);
+    const hasSnapshot = hasSystemSnapshot(v);
+    const isStaged = v.status === "staged";
     const prerequisitesMet = hasNotes && hasSnapshot;
+    const preparing = isPreparingVersion(v.id);
 
     return (
       <div className={styles.checklistSection}>
         <div className={styles.checklistHint}>Complete all steps to release this version</div>
         <div className={styles.stepper}>
           <div className={`${styles.step} ${styles.stepDone}`}>
-            <div className={styles.stepIcon}>✓</div>
+            <div className={styles.stepIcon}>OK</div>
             <div className={styles.stepLabel}>Version created</div>
           </div>
           <div className={`${styles.step} ${hasNotes ? styles.stepDone : ""}`}>
-            <div className={styles.stepIcon}>{hasNotes ? "✓" : "2"}</div>
+            <div className={styles.stepIcon}>{hasNotes ? "OK" : "2"}</div>
             <div className={styles.stepLabel}>Release notes added</div>
             {!hasNotes && v.status === "draft" && !v.locked && (
               <Button
@@ -226,7 +259,7 @@ export const AdminVersionTab = () => {
             )}
           </div>
           <div className={`${styles.step} ${hasSnapshot ? styles.stepDone : ""}`}>
-            <div className={styles.stepIcon}>{hasSnapshot ? "✓" : "3"}</div>
+            <div className={styles.stepIcon}>{hasSnapshot ? "OK" : "3"}</div>
             <div className={styles.stepLabel}>Snapshot generated</div>
             {!hasSnapshot && v.status === "draft" && !v.locked && (
               <Button
@@ -241,7 +274,7 @@ export const AdminVersionTab = () => {
             )}
           </div>
           <div className={`${styles.step} ${isStaged ? styles.stepDone : ""}`}>
-            <div className={styles.stepIcon}>{isStaged ? "✓" : "4"}</div>
+            <div className={styles.stepIcon}>{isStaged ? "OK" : "4"}</div>
             <div className={styles.stepLabel}>Staged for review</div>
             {!isStaged && v.status === "draft" && !v.locked && prerequisitesMet && (
               <Button
@@ -255,11 +288,25 @@ export const AdminVersionTab = () => {
               </Button>
             )}
           </div>
-          <div className={`${styles.step} ${isReleased ? styles.stepDone : ""}`}>
-            <div className={styles.stepIcon}>{isReleased ? "✓" : "5"}</div>
+          <div className={styles.step}>
+            <div className={styles.stepIcon}>5</div>
             <div className={styles.stepLabel}>Released</div>
           </div>
         </div>
+
+        {!isStaged && v.status === "draft" && !v.locked && !prerequisitesMet && (
+          <div className={styles.prepareActionRow}>
+            <Button
+              size="sm"
+              variant="secondary"
+              className={styles.inlineBtn}
+              onClick={() => handlePrepareAndStage(v)}
+              disabled={preparing}
+            >
+              {preparing ? "Preparing..." : "Prepare & Stage"}
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
@@ -293,35 +340,35 @@ export const AdminVersionTab = () => {
                     <Edit size={14} /> Edit
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Edit version details & notes</TooltipContent>
+                <TooltipContent>Edit version details and notes</TooltipContent>
               </Tooltip>
-              
+
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button size="sm" variant="outline" onClick={() => handleSnapshot(currentVersion)}>
                     <Camera size={14} /> Snapshot
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Capture System Snapshot</TooltipContent>
+                <TooltipContent>Capture system snapshot</TooltipContent>
               </Tooltip>
-              
+
               {!currentVersion.locked && (currentVersion.status === "draft" || currentVersion.status === "staged") && (
-                <>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={() => handleGenerateNotes(currentVersion)}
-                        disabled={generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === currentVersion.id}
-                      >
-                        <Sparkles size={14} />
-                        {generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === currentVersion.id ? "Generating..." : "Generate Notes"}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Generate AI Release Notes</TooltipContent>
-                  </Tooltip>
-                </>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleGenerateNotes(currentVersion)}
+                      disabled={generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === currentVersion.id}
+                    >
+                      <Sparkles size={14} />
+                      {generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === currentVersion.id
+                        ? "Generating..."
+                        : "Generate Notes"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Generate AI release notes</TooltipContent>
+                </Tooltip>
               )}
 
               {!currentVersion.locked && currentVersion.status === "staged" && (
@@ -331,7 +378,7 @@ export const AdminVersionTab = () => {
                       <Rocket size={14} /> Release
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Release to production</TooltipContent>
+                  <TooltipContent>Release this version</TooltipContent>
                 </Tooltip>
               )}
             </div>
@@ -352,11 +399,11 @@ export const AdminVersionTab = () => {
           {currentVersion.releaseNotes && (
             <div className={styles.releaseNotes}>
               <h4 className={styles.subTitle}>Release Notes</h4>
-              {(currentVersion.releaseNotes as Array<any>)?.map((note, idx) => (
+              {(currentVersion.releaseNotes as Array<{ category: string; items?: string[] }>).map((note, idx) => (
                 <div key={idx} className={styles.noteGroup}>
                   <strong>{note.category}</strong>
                   <ul>
-                    {note.items?.map((item: string, i: number) => (
+                    {note.items?.map((item, i) => (
                       <li key={i}>{item}</li>
                     ))}
                   </ul>
@@ -395,26 +442,24 @@ export const AdminVersionTab = () => {
                       <Edit size={16} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Edit version details & notes</TooltipContent>
+                  <TooltipContent>Edit version details and notes</TooltipContent>
                 </Tooltip>
 
                 {!v.locked && (v.status === "draft" || v.status === "staged") && (
-                  <>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          size={generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === v.id ? "sm" : "icon-sm"} 
-                          variant="ghost" 
-                          onClick={() => handleGenerateNotes(v)} 
-                          disabled={generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === v.id}
-                        >
-                          <Sparkles size={16} />
-                          {generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === v.id && "..."}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Generate AI Release Notes</TooltipContent>
-                    </Tooltip>
-                  </>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size={generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === v.id ? "sm" : "icon-sm"}
+                        variant="ghost"
+                        onClick={() => handleGenerateNotes(v)}
+                        disabled={generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === v.id}
+                      >
+                        <Sparkles size={16} />
+                        {generateNotesMutation.isPending && generateNotesMutation.variables?.versionId === v.id && "..."}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Generate AI release notes</TooltipContent>
+                  </Tooltip>
                 )}
 
                 <Tooltip>
@@ -423,33 +468,34 @@ export const AdminVersionTab = () => {
                       <Camera size={16} />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Capture System Snapshot</TooltipContent>
+                  <TooltipContent>Capture system snapshot</TooltipContent>
                 </Tooltip>
               </div>
 
               <div className={styles.actionGroup}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      onClick={() => handleLockToggle(v)}
-                    >
+                    <Button size="icon-sm" variant="ghost" onClick={() => handleLockToggle(v)}>
                       {v.locked ? <Unlock size={16} /> : <Lock size={16} />}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>{v.locked ? "Unlock version" : "Lock: Prevent content changes"}</TooltipContent>
+                  <TooltipContent>{v.locked ? "Unlock version" : "Lock version"}</TooltipContent>
                 </Tooltip>
 
                 {!v.locked && v.status === "draft" && (
                   <>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="sm" variant="secondary" onClick={() => handleStatusChange(v, "staged")} disabled={!(Array.isArray(v.releaseNotes) && v.releaseNotes.length > 0 && !!v.systemSnapshot)}>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleStatusChange(v, "staged")}
+                          disabled={!(hasReleaseNotes(v) && hasSystemSnapshot(v))}
+                        >
                           <Play size={14} /> Stage
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Stage: Freeze for final review before release</TooltipContent>
+                      <TooltipContent>Stage for final review</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -469,7 +515,7 @@ export const AdminVersionTab = () => {
                         <Rocket size={14} /> Release
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Release to production</TooltipContent>
+                    <TooltipContent>Release this version</TooltipContent>
                   </Tooltip>
                 )}
 
@@ -492,7 +538,7 @@ export const AdminVersionTab = () => {
                   <Info size={14} /> System Snapshot
                 </div>
                 <div className={styles.snapshotGrid}>
-                  {Object.entries(v.systemSnapshot as Record<string, any>).slice(0, 4).map(([key, val]) => (
+                  {Object.entries(v.systemSnapshot as Record<string, unknown>).slice(0, 4).map(([key, val]) => (
                     <div key={key} className={styles.snapshotItem}>
                       <span className={styles.snapshotKey}>{key}</span>
                       <span className={styles.snapshotVal}>{String(val)}</span>
@@ -505,7 +551,7 @@ export const AdminVersionTab = () => {
         ))}
       </div>
 
-      <Dialog open={!!editingVersion} onOpenChange={(o) => !o && setEditingVersion(null)}>
+      <Dialog open={!!editingVersion} onOpenChange={(open) => !open && setEditingVersion(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Version {editingVersion?.version}</DialogTitle>

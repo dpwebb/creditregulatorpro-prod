@@ -237,10 +237,10 @@ export const AdminMigrationTab = () => {
               migrations.map((m) => (
                 <TableRow key={m.id}>
                   <TableCell className={styles.monoCell}>{m.name}</TableCell>
-                  <TableCell>{m.description || "—"}</TableCell>
+                  <TableCell>{m.description || "-"}</TableCell>
                   <TableCell>{renderBadge(m.status)}</TableCell>
                   <TableCell>
-                    {m.appliedAt ? dateFormatter.format(new Date(m.appliedAt)) : "—"}
+                    {m.appliedAt ? dateFormatter.format(new Date(m.appliedAt)) : "-"}
                   </TableCell>
                   <TableCell>
                     <div className={styles.actions}>

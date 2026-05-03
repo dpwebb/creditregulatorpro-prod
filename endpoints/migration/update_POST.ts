@@ -18,7 +18,9 @@ export async function handle(request: Request) {
       .where('versionMigration.id', '=', input.id)
       .executeTakeFirstOrThrow();
       
-    if (migrationInfo.locked) throw new Error("Cannot modify migration of a locked version");
+    if (migrationInfo.locked) {
+      throw new BusinessRuleError("Cannot modify migration of a locked version", 409);
+    }
     
     const updateData: any = { status: input.status };
     if (input.status === 'applied') {

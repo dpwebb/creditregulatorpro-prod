@@ -110,7 +110,7 @@ export const AdminVersionCreateDialog = () => {
                             {change.entityType.toLowerCase().replace(/_/g, ' ')} / {change.actionType.toLowerCase().replace(/_/g, ' ')}
                           </span>
                           <span className={styles.changeDetails}>
-                            × <span className={styles.changeTotal}>{change.count}</span>
+                            x <span className={styles.changeTotal}>{change.count}</span>
                           </span>
                         </div>
                       ))}
