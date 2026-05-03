@@ -18,6 +18,84 @@ interface GeminiResponse {
   error?: { message: string };
 }
 
+type ReleaseNotes = z.infer<typeof ReleaseNoteCategorySchema>[];
+
+function titleCaseFromToken(value: string): string {
+  return value
+    .toLowerCase()
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function buildFallbackReleaseNotes(
+  auditLogs: Array<{
+    actionType: string;
+    entityType: string;
+  }>,
+  snapshotDiff: SnapshotDiffResult
+): ReleaseNotes {
+  const categories: ReleaseNotes = [];
+
+  if (auditLogs.length > 0) {
+    const grouped = new Map<string, number>();
+    for (const log of auditLogs) {
+      const key = `${log.entityType}::${log.actionType}`;
+      grouped.set(key, (grouped.get(key) ?? 0) + 1);
+    }
+
+    const items = Array.from(grouped.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, count]) => {
+        const [entityType, actionType] = key.split("::");
+        return `${titleCaseFromToken(entityType)} ${titleCaseFromToken(actionType)} (${count})`;
+      });
+
+    if (items.length > 0) {
+      categories.push({
+        category: "Audit Log Changes",
+        items,
+      });
+    }
+  }
+
+  const snapshotItems: string[] = [];
+  for (const [entityName, diff] of Object.entries(snapshotDiff.entityDiffs)) {
+    if (diff.added.length > 0) {
+      snapshotItems.push(
+        `${titleCaseFromToken(entityName)} added (${diff.added.length})`
+      );
+    }
+    if (diff.removed.length > 0) {
+      snapshotItems.push(
+        `${titleCaseFromToken(entityName)} removed (${diff.removed.length})`
+      );
+    }
+    if (diff.changed.length > 0) {
+      snapshotItems.push(
+        `${titleCaseFromToken(entityName)} changed (${diff.changed.length})`
+      );
+    }
+  }
+
+  if (snapshotItems.length > 0) {
+    categories.push({
+      category: "Snapshot Changes",
+      items: snapshotItems,
+    });
+  }
+
+  if (categories.length === 0) {
+    categories.push({
+      category: "No Changes",
+      items: ["No substantive changes found since the last release."],
+    });
+  }
+
+  return categories;
+}
+
 /**
  * Renders the snapshot diff result into a human-readable string for the Gemini prompt.
  */
@@ -156,12 +234,8 @@ export async function handle(request: Request) {
     // 8. Build snapshot diff summary section
     const snapshotDiffSummary = buildSnapshotDiffSummary(snapshotDiff);
 
-    // 9. Call Gemini 2.5 Flash API
+    // 9. Try Gemini 2.5 Flash API; fall back to deterministic notes when AI fails.
     const apiKey = process.env.GOOGLE_GEMINI_SA_KEY;
-    if (!apiKey) {
-      throw new Error("GOOGLE_GEMINI_SA_KEY is not set");
-    }
-
     const promptText = `
 You are an expert technical writer generating software release notes for a development team.
 You have two sources of information about what changed since the last release:
@@ -199,49 +273,56 @@ ${logSummaries}
 ${snapshotDiffSummary}
     `;
 
-    const requestBody = {
-      contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      },
-    };
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Gemini API failed with status ${response.status}: ${await response.text()}`);
-    }
-
-    const data = (await response.json()) as GeminiResponse;
-
-    if (data.error) {
-      throw new Error(`Gemini API error: ${data.error.message}`);
-    }
-
-    const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!outputText) {
-      throw new Error("Gemini API returned empty response");
-    }
-
-    // 10. Parse the JSON from the Gemini response
-    let parsedNotes;
+    let parsedNotes: ReleaseNotes | null = null;
     try {
-      parsedNotes = JSON.parse(outputText);
-      parsedNotes = z.array(ReleaseNoteCategorySchema).parse(parsedNotes);
-    } catch (e) {
-      console.error("Failed to parse Gemini output:", outputText);
-      throw new BusinessRuleError("Failed to parse generated release notes into expected format", 500);
+      if (!apiKey) {
+        throw new Error("GOOGLE_GEMINI_SA_KEY is not set");
+      }
+
+      const requestBody = {
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      };
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Gemini API failed with status ${response.status}: ${await response.text()}`
+        );
+      }
+
+      const data = (await response.json()) as GeminiResponse;
+      if (data.error) {
+        throw new Error(`Gemini API error: ${data.error.message}`);
+      }
+
+      const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!outputText) {
+        throw new Error("Gemini API returned empty response");
+      }
+
+      const parsed = JSON.parse(outputText);
+      parsedNotes = z.array(ReleaseNoteCategorySchema).parse(parsed);
+    } catch (aiError) {
+      console.error(
+        "[generate-notes] AI generation failed; using fallback notes:",
+        aiError
+      );
+      parsedNotes = buildFallbackReleaseNotes(auditLogs, snapshotDiff);
     }
 
-    // 11. Save the release notes to the software_version record
+    // 10. Save the release notes to the software_version record
     await db
       .updateTable("softwareVersion")
       .set({
@@ -251,7 +332,7 @@ ${snapshotDiffSummary}
       .where("id", "=", versionId)
       .execute();
 
-    // 12. Return the generated release notes
+    // 11. Return the generated release notes
     return new Response(JSON.stringify({ releaseNotes: parsedNotes } satisfies OutputType));
   } catch (error) {
     return handleEndpointError(error);

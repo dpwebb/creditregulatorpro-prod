@@ -4,21 +4,22 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { TRACKED_ENTITY_TYPES } from "../../helpers/versionCalculator";
 import { schema, OutputType, CheckItem } from "./validate-publish_POST.schema";
 import { AuditEntityType } from "../../helpers/schema";
-
+import { buildCurrentSnapshot, computeSnapshotDiff, DetailedSnapshot } from "../../helpers/versionSnapshotDiff";
 
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
     if (user.role !== "admin") throw new BusinessRuleError("Admin only endpoint", 403);
-    
+
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
-    
-    const version = await db.selectFrom("softwareVersion")
+
+    const version = await db
+      .selectFrom("softwareVersion")
       .selectAll()
       .where("id", "=", input.versionId)
       .executeTakeFirst();
-      
+
     if (!version) {
       throw new BusinessRuleError("Version not found", 404);
     }
@@ -50,12 +51,16 @@ export async function handle(request: Request) {
       id: "version_staged",
       label: "Version Status",
       status: version.status === "staged" ? "pass" : "fail",
-      message: version.status === "staged" ? "Version is staged." : `Version status is '${version.status}', must be 'staged'.`,
+      message:
+        version.status === "staged"
+          ? "Version is staged."
+          : `Version status is '${version.status}', must be 'staged'.`,
       required: true,
     });
 
     // 4. Pending migrations
-    const pendingMigrations = await db.selectFrom("versionMigration")
+    const pendingMigrations = await db
+      .selectFrom("versionMigration")
       .select(({ fn }) => fn.count<number>("id").as("count"))
       .where("versionId", "=", version.id)
       .where("status", "=", "pending")
@@ -65,12 +70,16 @@ export async function handle(request: Request) {
       id: "pending_migrations",
       label: "Pending Migrations",
       status: pendingMigrationsCount === 0 ? "pass" : "warning",
-      message: pendingMigrationsCount === 0 ? "No pending migrations." : `${pendingMigrationsCount} pending migration(s).`,
+      message:
+        pendingMigrationsCount === 0
+          ? "No pending migrations."
+          : `${pendingMigrationsCount} pending migration(s).`,
       required: false,
     });
 
     // 5. Critical issue reports
-    const criticalIssues = await db.selectFrom("betaIssueReport")
+    const criticalIssues = await db
+      .selectFrom("betaIssueReport")
       .select(({ fn }) => fn.count<number>("id").as("count"))
       .where("status", "=", "OPEN")
       .where("severity", "=", "CRITICAL")
@@ -80,33 +89,68 @@ export async function handle(request: Request) {
       id: "critical_beta_issues",
       label: "Critical Issue Reports",
       status: criticalIssuesCount === 0 ? "pass" : "warning",
-      message: criticalIssuesCount === 0 ? "No critical open issue reports." : `${criticalIssuesCount} critical open issue report(s).`,
+      message:
+        criticalIssuesCount === 0
+          ? "No critical open issue reports."
+          : `${criticalIssuesCount} critical open issue report(s).`,
       required: false,
     });
 
-    // 6. Change logs — query audit log for any tracked entity type changes since last release
-    const lastRelease = await db.selectFrom("softwareVersion")
-      .select("releasedAt")
+    // 6. Change logs
+    // Audit logs are primary, but snapshot diff is used as a secondary signal
+    // so the checklist reflects real config/data drift even when audit rows are sparse.
+    const lastRelease = await db
+      .selectFrom("softwareVersion")
+      .select(["releasedAt", "systemSnapshot"])
       .where("status", "=", "released")
       .orderBy("releasedAt", "desc")
       .executeTakeFirst();
 
     const trackedEntityTypes = TRACKED_ENTITY_TYPES as readonly AuditEntityType[];
-    let auditLogQuery = db.selectFrom("auditLog")
+    let auditLogQuery = db
+      .selectFrom("auditLog")
       .select(({ fn }) => fn.count<number>("id").as("count"))
       .where("entityType", "in", trackedEntityTypes);
-      
+
     if (lastRelease && lastRelease.releasedAt) {
       auditLogQuery = auditLogQuery.where("timestamp", ">", lastRelease.releasedAt);
     }
-    
+
     const auditLogs = await auditLogQuery.executeTakeFirst();
     const auditLogsCount = Number(auditLogs?.count) || 0;
+
+    const targetSnapshot =
+      ((version.systemSnapshot as unknown as DetailedSnapshot | null) ?? (await buildCurrentSnapshot()));
+    const previousSnapshot =
+      ((lastRelease?.systemSnapshot as unknown as DetailedSnapshot | null) ?? null);
+    const snapshotDiff = computeSnapshotDiff(previousSnapshot, targetSnapshot);
+    const snapshotChangesCount =
+      snapshotDiff.summary.totalAdded +
+      snapshotDiff.summary.totalRemoved +
+      snapshotDiff.summary.totalChanged;
+
+    const hasAuditChanges = auditLogsCount > 0;
+    const hasSnapshotChanges = snapshotChangesCount > 0;
+
+    let changeLogsStatus: "pass" | "warning" = "warning";
+    let changeLogsMessage = "No change logs found since last release.";
+
+    if (hasAuditChanges && hasSnapshotChanges) {
+      changeLogsStatus = "pass";
+      changeLogsMessage = `${auditLogsCount} audit change logs and ${snapshotChangesCount} snapshot changes found since last release.`;
+    } else if (hasAuditChanges) {
+      changeLogsStatus = "pass";
+      changeLogsMessage = `${auditLogsCount} change logs found since last release.`;
+    } else if (hasSnapshotChanges) {
+      changeLogsStatus = "pass";
+      changeLogsMessage = `No audit change logs found, but ${snapshotChangesCount} snapshot changes were detected since last release.`;
+    }
+
     checks.push({
       id: "change_logs",
       label: "Change Logs",
-      status: auditLogsCount > 0 ? "pass" : "warning",
-      message: auditLogsCount > 0 ? `${auditLogsCount} change logs found since last release.` : "No change logs found since last release.",
+      status: changeLogsStatus,
+      message: changeLogsMessage,
       required: false,
     });
 
@@ -119,7 +163,7 @@ export async function handle(request: Request) {
       required: true,
     });
 
-    const canRelease = checks.every(c => !c.required || c.status === "pass");
+    const canRelease = checks.every((c) => !c.required || c.status === "pass");
 
     return new Response(JSON.stringify({ checks, canRelease } satisfies OutputType));
   } catch (error) {
