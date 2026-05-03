@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.bak
+.local/
 .env
 .env.*
 env.json

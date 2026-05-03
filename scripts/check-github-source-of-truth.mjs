@@ -14,6 +14,20 @@ function fail(message) {
   process.exit(1);
 }
 
+function extractStatusPath(statusLine) {
+  const statusPayload = statusLine.slice(3).trim();
+  const renameSeparator = " -> ";
+  const candidatePath = statusPayload.includes(renameSeparator)
+    ? statusPayload.split(renameSeparator).at(-1)
+    : statusPayload;
+  return candidatePath.replace(/^"|"$/g, "");
+}
+
+function isOperationalArtifactStatus(statusLine) {
+  const normalizedPath = extractStatusPath(statusLine).replace(/\\/g, "/");
+  return normalizedPath === ".local" || normalizedPath.startsWith(".local/");
+}
+
 try {
   runGit(["rev-parse", "--is-inside-work-tree"]);
 } catch {
@@ -39,9 +53,11 @@ console.log(`Upstream: ${upstream}`);
 console.log(`Fetching latest state from ${remote}...`);
 runGit(["fetch", "--prune", remote], { stdio: "inherit" });
 
-const status = runGit(["status", "--porcelain"]);
-if (status) {
-  console.log(status);
+const status = runGit(["status", "--porcelain", "--untracked-files=all"]);
+const statusLines = status ? status.split(/\r?\n/).filter(Boolean) : [];
+const blockingStatusLines = statusLines.filter((line) => !isOperationalArtifactStatus(line));
+if (blockingStatusLines.length > 0) {
+  console.log(blockingStatusLines.join("\n"));
   fail("working tree has uncommitted changes");
 }
 
