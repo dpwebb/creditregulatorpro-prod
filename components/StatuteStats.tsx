@@ -26,11 +26,13 @@ export function StatuteStats({ className }: StatuteStatsProps) {
     return null;
   }
 
-  const totalStatutes = data.statutes.length;
-  const activeVersions = data.statutes.filter(s => s.lifecycleStatus === "ACTIVE").length;
-  const amendedVersions = data.statutes.filter(s => s.lifecycleStatus === "AMENDED").length;
-  const repealedVersions = data.statutes.filter(s => s.lifecycleStatus === "REPEALED").length;
-  const uniqueJurisdictions = new Set(data.statutes.map(s => s.jurisdiction)).size;
+  const statutes = Array.isArray(data.statutes) ? data.statutes : [];
+
+  const totalStatutes = statutes.length;
+  const activeVersions = statutes.filter((s) => s.lifecycleStatus === "ACTIVE").length;
+  const amendedVersions = statutes.filter((s) => s.lifecycleStatus === "AMENDED").length;
+  const repealedVersions = statutes.filter((s) => s.lifecycleStatus === "REPEALED").length;
+  const uniqueJurisdictions = new Set(statutes.map((s) => s.jurisdiction)).size;
 
   const stats = [
     {

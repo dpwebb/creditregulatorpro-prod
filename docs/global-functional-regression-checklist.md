@@ -193,25 +193,30 @@ Suggested accounts:
 
 ### F) Laws Registry (Localhost Reliability)
 
-1. Login as admin and open `/statutes`
-2. Confirm page resolves and table data loads (no blank unresolved state)
-3. Validate filter option sources:
-   - Jurisdictions dropdown loads values
-   - Codes dropdown loads values
-   - Topics dropdown loads values
-   - Status dropdown includes `ACTIVE`, `AMENDED`, `REPEALED`
-4. Click `View change history` on a law row
-5. Expected:
+1. Open a fresh tab to `http://localhost:5175/statutes` and hard refresh (`Ctrl+F5`)
+2. Confirm page resolves from a cold load (not only via in-app navigation)
+3. Confirm top stats cards render (Total/Active/Amended/Repealed/Jurisdictions) with no runtime crash
+4. Confirm no `Cannot read properties of undefined (reading 'map')` error in browser console
+5. Confirm no `Cannot read properties of undefined (reading 'replace')` error after export actions
+6. Validate filter option resiliency:
+   - Jurisdictions dropdown opens even when API returns empty/missing array
+   - Codes dropdown opens even when API returns empty/missing array
+   - Topics dropdown opens even when API returns empty/missing array
+   - Status dropdown still shows fallback values (`ACTIVE`, `AMENDED`, `REPEALED`) when options payload is partial
+7. Click `Export CSV`
+8. Click `Export PDF`
+9. Expected:
+   - Both export actions complete without blanking the page or throwing runtime exceptions
+10. Click `View change history` on a law row
+11. Expected:
    - History modal opens
    - Modal shows entries or a clean empty-state message
    - No route/API 404 for `/_api/statute/history`
-6. Force an error scenario (unauthenticated or expired session) and retry `/statutes`
-7. Expected:
+12. Force an error scenario (unauthenticated or expired session) and retry `/statutes`
+13. Expected:
    - UI displays concrete error text instead of hanging or unresolved state
    - No JSON parse crash when backend returns non-JSON error bodies
-8. Optional regression checks:
-   - Export CSV downloads with current filtered rows
-   - Export PDF opens print preview without runtime errors
+
 
 ## 8) Static/Reference Pages (Load Check)
 

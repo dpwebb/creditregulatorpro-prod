@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import { readStatuteRequestError } from "./requestError";
 
 export const schema = z.object({
   jurisdiction: z.string().trim().min(1, "Jurisdiction is required"),
@@ -43,8 +43,7 @@ export const postStatuteCreate = async (body: InputType, init?: RequestInit): Pr
     },
   });
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    throw new Error(await readStatuteRequestError(result));
   }
   return JSON.parse(await result.text());
 };

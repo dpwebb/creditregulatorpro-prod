@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readStatuteRequestError } from "./requestError";
 
 export const schema = z.object({
   versionId: z.coerce.number().int().positive(),
@@ -20,21 +21,6 @@ export type OutputType = {
   }>;
 };
 
-async function readErrorMessage(result: Response): Promise<string> {
-  const fallback = `Request failed (${result.status})`;
-  const text = await result.text();
-  if (!text) return fallback;
-  try {
-    const parsed = JSON.parse(text) as { error?: unknown };
-    if (typeof parsed.error === "string" && parsed.error.trim()) {
-      return parsed.error;
-    }
-  } catch {
-    // Non-JSON response body.
-  }
-  return text.trim() || fallback;
-}
-
 export const getStatuteHistory = async (
   input: InputType,
   init?: RequestInit
@@ -51,7 +37,7 @@ export const getStatuteHistory = async (
     },
   });
   if (!result.ok) {
-    throw new Error(await readErrorMessage(result));
+    throw new Error(await readStatuteRequestError(result));
   }
   return JSON.parse(await result.text());
 };

@@ -55,9 +55,14 @@ type SortField =
   | "lastReviewedAt";
 type SortDirection = "asc" | "desc";
 type LifecycleStatus = "ACTIVE" | "AMENDED" | "REPEALED";
+type DateSortField = "effectiveDate" | "createdAt" | "lastReviewedAt";
+type StatuteFormValues = Parameters<
+  React.ComponentProps<typeof StatuteFormDialog>["onSubmit"]
+>[0];
 
 const WATCHLIST_KEY = "statute-watchlist-v1";
 const WATCHLIST_SEEN_KEY = "statute-watchlist-seen-v1";
+const DEFAULT_LIFECYCLE_STATUSES: LifecycleStatus[] = ["ACTIVE", "AMENDED", "REPEALED"];
 
 function getLifecycleBadgeVariant(status: LifecycleStatus) {
   switch (status) {
@@ -72,13 +77,25 @@ function getLifecycleBadgeVariant(status: LifecycleStatus) {
   }
 }
 
-function escapeHtml(value: string): string {
-  return value
+function escapeHtml(value: unknown): string {
+  const safeValue = String(value ?? "");
+  return safeValue
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function isDateSortField(field: SortField): field is DateSortField {
+  return field === "effectiveDate" || field === "createdAt" || field === "lastReviewedAt";
+}
+
+function normalizeSortValue(value: unknown, field: SortField): string | number {
+  if (isDateSortField(field)) {
+    return value ? new Date(value as string | Date).getTime() : 0;
+  }
+  return typeof value === "number" ? value : String(value);
 }
 
 export default function StatutesPage() {
@@ -194,24 +211,19 @@ export default function StatutesPage() {
   };
 
   const filteredAndSortedStatutes = useMemo(() => {
-    if (!data?.statutes) return [];
+    const statutes = Array.isArray(data?.statutes) ? data.statutes : [];
+    if (statutes.length === 0) return [];
 
-    const filtered = [...data.statutes];
+    const filtered = [...statutes];
     filtered.sort((a, b) => {
-      let aVal: any = a[sortField];
-      let bVal: any = b[sortField];
+      const aRaw = a[sortField];
+      const bRaw = b[sortField];
 
-      if (aVal === null || aVal === undefined) return 1;
-      if (bVal === null || bVal === undefined) return -1;
+      if (aRaw === null || aRaw === undefined) return 1;
+      if (bRaw === null || bRaw === undefined) return -1;
 
-      if (
-        sortField === "effectiveDate" ||
-        sortField === "createdAt" ||
-        sortField === "lastReviewedAt"
-      ) {
-        aVal = aVal ? new Date(aVal).getTime() : 0;
-        bVal = bVal ? new Date(bVal).getTime() : 0;
-      }
+      const aVal = normalizeSortValue(aRaw, sortField);
+      const bVal = normalizeSortValue(bRaw, sortField);
 
       if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
       if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
@@ -235,6 +247,15 @@ export default function StatutesPage() {
     return filteredAndSortedStatutes.filter((statute) => hasWatchUpdate(statute));
   }, [filteredAndSortedStatutes, watchedVersionIds, seenReviewedAtByVersion]);
 
+  const jurisdictionOptions = Array.isArray(filterOptions?.jurisdictions)
+    ? filterOptions.jurisdictions
+    : [];
+  const codeOptions = Array.isArray(filterOptions?.codes) ? filterOptions.codes : [];
+  const topicOptions = Array.isArray(filterOptions?.topics) ? filterOptions.topics : [];
+  const lifecycleOptions = Array.isArray(filterOptions?.statuses)
+    ? filterOptions.statuses
+    : DEFAULT_LIFECYCLE_STATUSES;
+
   if (authState.type === "loading") {
     return (
       <div className={styles.container}>
@@ -248,7 +269,7 @@ export default function StatutesPage() {
     return null;
   }
 
-  const handleCreate = async (formData: any) => {
+  const handleCreate = async (formData: StatuteFormValues) => {
     try {
       await createMutation.mutateAsync({
         ...formData,
@@ -535,7 +556,7 @@ export default function StatutesPage() {
             <Filter size={16} className={styles.filterIcon} />
             <select className={styles.select} value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}>
               <option value="">All Jurisdictions</option>
-              {filterOptions?.jurisdictions.map((j) => (
+              {jurisdictionOptions.map((j) => (
                 <option key={j} value={j}>
                   {j}
                 </option>
@@ -547,7 +568,7 @@ export default function StatutesPage() {
             <Filter size={16} className={styles.filterIcon} />
             <select className={styles.select} value={code} onChange={(e) => setCode(e.target.value)}>
               <option value="">All Codes</option>
-              {filterOptions?.codes.map((c) => (
+              {codeOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -559,7 +580,7 @@ export default function StatutesPage() {
             <Filter size={16} className={styles.filterIcon} />
             <select className={styles.select} value={topic} onChange={(e) => setTopic(e.target.value)}>
               <option value="">All Topics</option>
-              {filterOptions?.topics.map((t) => (
+              {topicOptions.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -574,17 +595,11 @@ export default function StatutesPage() {
               value={status}
               onChange={(e) => setStatus(e.target.value as LifecycleStatus)}
             >
-              {filterOptions?.statuses.map((s) => (
+              {lifecycleOptions.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
-              )) || (
-                <>
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="AMENDED">AMENDED</option>
-                  <option value="REPEALED">REPEALED</option>
-                </>
-              )}
+              ))}
             </select>
           </div>
 

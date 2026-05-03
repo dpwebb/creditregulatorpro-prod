@@ -1,5 +1,5 @@
 import { z } from "zod";
-
+import { readStatuteRequestError } from "./requestError";
 
 export const schema = z.object({
   versionId: z.number(), // statute_version.id to delete
@@ -23,8 +23,7 @@ export const postStatuteDelete = async (body: InputType, init?: RequestInit): Pr
     },
   });
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    throw new Error(await readStatuteRequestError(result));
   }
   return JSON.parse(await result.text());
 };
