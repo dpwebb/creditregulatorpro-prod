@@ -71,24 +71,59 @@ jobs:
 
           raw_path = Path.home() / ".ssh" / "production_deploy_key.raw"
           key_path = Path.home() / ".ssh" / "production_deploy_key"
-          key = raw_path.read_text().strip()
+          raw = raw_path.read_text().strip()
 
-          if (key.startswith('"') and key.endswith('"')) or (key.startswith("'") and key.endswith("'")):
-              key = key[1:-1].strip()
+          if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
+              raw = raw[1:-1].strip()
 
-          key = key.replace("\\n", "\n")
-          key = key.replace("\r\n", "\n").replace("\r", "\n").strip()
+          def normalize_newlines(text: str) -> str:
+              return text.replace("\r\n", "\n").replace("\r", "\n").strip()
 
-          if "-----BEGIN " not in key:
-              try:
-                  decoded = base64.b64decode(key, validate=True).decode("utf-8").strip()
-                  if "-----BEGIN " in decoded:
-                      key = decoded
-              except (binascii.Error, UnicodeDecodeError):
-                  pass
+          def looks_like_private_key(text: str) -> bool:
+              return (
+                  "-----BEGIN " in text
+                  and "PRIVATE KEY-----" in text
+                  and "-----END " in text
+              )
 
-          if "-----BEGIN " not in key or "PRIVATE KEY-----" not in key:
-              raise SystemExit("PRODUCTION_SSH_PRIVATE_KEY must be an OpenSSH private key or base64-encoded OpenSSH private key.")
+          def base64_candidates(text: str):
+              compact = "".join(text.split())
+              if not compact:
+                  return
+
+              for decoder in (base64.b64decode, base64.urlsafe_b64decode):
+                  for candidate in (compact, compact + "=" * ((4 - len(compact) % 4) % 4)):
+                      try:
+                          decoded = decoder(candidate).decode("utf-8")
+                      except (binascii.Error, UnicodeDecodeError, ValueError):
+                          continue
+                      yield normalize_newlines(decoded)
+
+          key = None
+          direct_candidates = [
+              normalize_newlines(raw),
+              normalize_newlines(raw.replace("\\n", "\n")),
+          ]
+
+          for candidate in direct_candidates:
+              if looks_like_private_key(candidate):
+                  key = candidate
+                  break
+
+          if key is None:
+              for candidate in direct_candidates:
+                  for decoded in base64_candidates(candidate):
+                      if looks_like_private_key(decoded):
+                          key = decoded
+                          break
+                  if key is not None:
+                      break
+
+          if key is None:
+              raise SystemExit(
+                  "PRODUCTION_SSH_PRIVATE_KEY is invalid. Store a full SSH private key "
+                  "(BEGIN/END ... PRIVATE KEY) or base64 of that full text."
+              )
 
           key_path.write_text(key + "\n")
           raw_path.unlink()
