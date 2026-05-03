@@ -6,7 +6,7 @@ import { FileDropzone } from "../components/FileDropzone";
 import { CreditReportGuide } from "../components/CreditReportGuide";
 import { Spinner } from "../components/Spinner";
 import { Progress } from "../components/Progress";
-import { AnonymousUploadPreview } from "../components/AnonymousUploadPreview";
+import { AnonymousUploadPreview, ExtractedAccountSummary } from "../components/AnonymousUploadPreview";
 import { useAnonymousUpload } from "../helpers/useAnonymousUpload";
 import { storeAnonymousReportForSignup } from "../helpers/anonymousReportHandoff";
 import { toast } from "sonner";
@@ -43,6 +43,8 @@ export default function TryUploadPage() {
   const [resultData, setResultData] = useState<{
     problemCount: number;
     sampleProblems: { type: string; title: string; detail: string; solution?: string; urgency?: string }[];
+    tradelineCount: number;
+    extractedAccounts: ExtractedAccountSummary[];
   } | null>(null);
 
   useEffect(() => {
@@ -116,6 +118,8 @@ export default function TryUploadPage() {
             setResultData({
               problemCount: data.problemCount,
               sampleProblems: data.sampleProblems,
+              tradelineCount: data.tradelineCount,
+              extractedAccounts: data.extractedAccounts,
             });
             toast.success("Analysis complete!");
           },
@@ -233,6 +237,8 @@ export default function TryUploadPage() {
           <AnonymousUploadPreview
             problemCount={resultData.problemCount}
             sampleProblems={resultData.sampleProblems}
+            tradelineCount={resultData.tradelineCount}
+            extractedAccounts={resultData.extractedAccounts}
           />
         )}
       </main>

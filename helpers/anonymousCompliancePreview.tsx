@@ -42,9 +42,21 @@ function getAccountType(tradeline: ParsedTradeline, statusText: string): Account
   return "regular";
 }
 
+function includesAny(value: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => value.includes(keyword));
+}
+
+function formatEvidenceDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function sortProblemsBySeverity(problems: PreviewProblem[]): PreviewProblem[] {
+  return [...problems].sort((a, b) => b.severity - a.severity);
+}
+
 export function generateAnonymousPreview(parseResult: ComprehensiveParseResult): PreviewProblem[] {
-  const problems: PreviewProblem[] = [];
-  const tradelineProblemsMap = new Map<string, PreviewProblem>();
+  const verifiedProblems: PreviewProblem[] = [];
+  const supportingProblems: PreviewProblem[] = [];
   const asOfDate = safeParseDate(parseResult.reportMetadata?.reportDate) || new Date();
 
   // 1. Resolve consumer province
@@ -55,24 +67,27 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     province = rawProv as CanadianProvince;
   }
 
-  // Helper to add problems safely
-  const addProblem = (problem: PreviewProblem) => {
-    problems.push(problem);
-  };
-
-  const addTradelineProblem = (creditorName: string, problem: PreviewProblem) => {
-    const existing = tradelineProblemsMap.get(creditorName);
-    if (!existing || problem.severity > existing.severity) {
-      tradelineProblemsMap.set(creditorName, problem);
-    }
-  };
-
   // 2. Iterate tradelines
   for (const tradeline of parseResult.tradelines) {
+    const tradelineVerifiedProblems: PreviewProblem[] = [];
+    const tradelineSupportingProblems: PreviewProblem[] = [];
     const creditorName = tradeline.creditorName || "A creditor";
     const statusText = (tradeline.status || "").toLowerCase();
+    const statusTokens = statusText.split(/[^a-z0-9]+/).filter(Boolean);
+    const hasStatusCode = (code: string) => statusTokens.includes(code);
     const pastDue = Number(tradeline.amounts?.pastDue || 0);
     const balance = Number(tradeline.balance || 0);
+    const isClosedOrTerminal = includesAny(statusText, [
+      "account closed",
+      "closed",
+      "cancelled",
+      "canceled",
+      "charge",
+      "bad debt",
+      "write-off",
+      "writeoff",
+      "collection",
+    ]) || hasStatusCode("cg") || hasStatusCode("tc") || hasStatusCode("ac");
     const isDerogatory = 
       pastDue > 0 || 
       [
@@ -96,8 +111,14 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
 
     // a. Statute of Limitations
     const referenceDate = dofd || lastActivityDate || lastPaymentDate || dateClosed;
-    const hasNegativeReportingEvidence = isDerogatory || pastDue > 0 || balance > 0 || tradeline.isCollectionAccount === true;
-    if (referenceDate && hasNegativeReportingEvidence) {
+    const isRetentionBoundAccount =
+      isClosedOrTerminal ||
+      isDerogatory ||
+      pastDue > 0 ||
+      balance > 0 ||
+      tradeline.isCollectionAccount === true;
+
+    if (referenceDate && isRetentionBoundAccount) {
       const accountType = getAccountType(tradeline, statusText);
       const expiryResult = calculateRetentionExpiry(province, accountType, referenceDate);
       
@@ -105,10 +126,10 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         const isExpiredAsOfReport = isAfter(asOfDate, expiryResult.expiryDate);
 
         if (isExpiredAsOfReport) {
-          addTradelineProblem(creditorName, {
+          tradelineVerifiedProblems.push({
             type: "sol_expired",
             title: `${creditorName} — Expired Debt`,
-            detail: `${creditorName} appears to be past the legal reporting limit for ${province} based on the dates extracted from this report.`,
+            detail: `${creditorName} is past the legal reporting limit for ${province}. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
             solution: `This debt has expired under ${province} law (${expiryResult.statuteReference}). We can generate a legal removal letter demanding its deletion.`,
             urgency: "expired",
             severity: 100
@@ -116,10 +137,10 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         } else {
           const monthsRemaining = differenceInMonths(expiryResult.expiryDate, asOfDate);
           if (monthsRemaining >= 0 && monthsRemaining <= 6) {
-            addTradelineProblem(creditorName, {
+            tradelineSupportingProblems.push({
               type: "sol_approaching",
               title: `${creditorName} — Expiring Soon`,
-              detail: `${creditorName} is close to its legal reporting limit. It will expire soon.`,
+              detail: `${creditorName} is close to its legal reporting limit. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
               solution: `This expires in ${monthsRemaining} months. We'll track it and auto-generate removal paperwork when it's time.`,
               urgency: "approaching",
               severity: 90
@@ -131,12 +152,12 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
 
     // b. Missing Critical Dates
     let missingCriticalDate = false;
-    if (hasNegativeReportingEvidence && !referenceDate) {
+    if (isRetentionBoundAccount && !referenceDate) {
       missingCriticalDate = true;
     }
 
     if (missingCriticalDate) {
-      addTradelineProblem(creditorName, {
+      tradelineSupportingProblems.push({
         type: "missing_dates",
         title: `${creditorName} — Unable to Verify Key Dates`,
         detail: `${creditorName} has negative reporting indicators, but the parser could not extract the date needed to verify reporting-limit rules.`,
@@ -153,7 +174,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     if (lastPaymentDate && openedDate && isBefore(lastPaymentDate, openedDate)) dateLogicError = true;
 
     if (dateLogicError) {
-      addTradelineProblem(creditorName, {
+      tradelineVerifiedProblems.push({
         type: "date_logic",
         title: `${creditorName} — Impossible Dates`,
         detail: `The dates on ${creditorName} do not make sense (like closing before opening). This is illegal to report.`,
@@ -168,7 +189,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     const isWriteOffStatus = ["write-off", "writeoff", "bad debt", "charge off", "charge-off"].some(k => statusText.includes(k));
 
     if ((isPaidStatus && balance > 0) || (isWriteOffStatus && balance > 0)) {
-      addTradelineProblem(creditorName, {
+      tradelineVerifiedProblems.push({
         type: "status_inconsistency",
         title: `${creditorName} — Account Status Error`,
         detail: `${creditorName} shows it was paid or written off, but still shows a balance. This lowers your score.`,
@@ -180,7 +201,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
 
     // e. Collections
     if (tradeline.isCollectionAccount || statusText.includes("collection")) {
-      addTradelineProblem(creditorName, {
+      tradelineSupportingProblems.push({
         type: "collection_account",
         title: `${creditorName} — Collection Account Found`,
         detail: `${creditorName} is reporting this debt. They often lack the legal proof to do so.`,
@@ -192,7 +213,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
 
     // f. Past Due
     if (pastDue > 0) {
-      addTradelineProblem(creditorName, {
+      tradelineSupportingProblems.push({
         type: "past_due",
         title: `${creditorName} — Past Due Balance`,
         detail: `${creditorName} shows a past due amount of $${pastDue}. Even small errors here hurt your credit score.`,
@@ -204,7 +225,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
 
     // g. Derogatory Status
     if (isDerogatory) {
-      addTradelineProblem(creditorName, {
+      tradelineSupportingProblems.push({
         type: "derogatory_status",
         title: `${creditorName} — Negative Mark Found`,
         detail: `${creditorName} has a negative status. This is hurting your overall credit profile.`,
@@ -213,17 +234,18 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         severity: 65
       });
     }
-  }
 
-  // 3. Dump tradeline problems to main array
-  for (const problem of tradelineProblemsMap.values()) {
-    problems.push(problem);
+    if (tradelineVerifiedProblems.length > 0) {
+      verifiedProblems.push(...tradelineVerifiedProblems);
+    } else if (tradelineSupportingProblems.length > 0) {
+      supportingProblems.push(sortProblemsBySeverity(tradelineSupportingProblems)[0]);
+    }
   }
 
   // 4. Public Records
   if (parseResult.publicRecords && parseResult.publicRecords.length > 0) {
     for (const record of parseResult.publicRecords) {
-      addProblem({
+      verifiedProblems.push({
         type: "public_record",
         title: "Public Record Found",
         detail: `There is a negative public record (${record.recordType}) on your file. These cause major score drops.`,
@@ -234,12 +256,16 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     }
   }
 
-  // 5. Sort by severity descending, keep top 5
-  problems.sort((a, b) => b.severity - a.severity);
-  const topProblems = problems.slice(0, 5);
+  // 5. Always show every verified violation. Softer signals can fill remaining preview space.
+  const sortedVerifiedProblems = sortProblemsBySeverity(verifiedProblems);
+  const supportingSlots = Math.max(0, 5 - sortedVerifiedProblems.length);
+  const previewProblems = [
+    ...sortedVerifiedProblems,
+    ...sortProblemsBySeverity(supportingProblems).slice(0, supportingSlots),
+  ];
 
   // 6. Fallback if none found
-  if (topProblems.length === 0) {
+  if (previewProblems.length === 0) {
     return [{
       type: "info_deep_scan",
       title: "Ready for Deep Scan",
@@ -250,5 +276,5 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     }];
   }
 
-  return topProblems;
+  return previewProblems;
 }

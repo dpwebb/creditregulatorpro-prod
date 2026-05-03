@@ -194,6 +194,17 @@ function runPreviewRegression(): void {
         },
         lastPaymentDate: new Date("2020-08-09"),
       }),
+      tradeline({
+        creditorName: "ROGERS COMMUNICATIONS CANADA INC",
+        accountType: "OPEN",
+        status: "TC / CG",
+        balance: 0,
+        dates: {
+          opened: new Date("2017-05-12"),
+          reported: new Date("2019-11-30"),
+        },
+        lastPaymentDate: new Date("2018-03-15"),
+      }),
     ],
     creditScores: [],
     inquiries: [],
@@ -204,8 +215,43 @@ function runPreviewRegression(): void {
   };
 
   const preview = generateAnonymousPreview(parseResult);
-  assert(!preview.some((problem) => problem.title.includes("BANK OF NOVA SCOTIA") && problem.type === "sol_expired"), "Closed zero-balance accounts should not be marked expired from opened dates.");
+  assert(preview.some((problem) => problem.title.includes("BANK OF NOVA SCOTIA") && problem.type === "sol_expired"), "Closed zero-balance accounts with an old last-payment clock should be marked expired.");
+  assert(preview.some((problem) => problem.title.includes("ROGERS COMMUNICATIONS CANADA INC") && problem.type === "sol_expired"), "Terminal/derogatory accounts with an old last-payment clock should be marked expired.");
   assert(!preview.some((problem) => problem.type === "missing_dates" && problem.urgency === "violation"), "Missing parser dates should not be converted into violation claims.");
+
+  const manyExpiredPreview = generateAnonymousPreview({
+    ...parseResult,
+    tradelines: Array.from({ length: 6 }, (_, index) =>
+      tradeline({
+        creditorName: `EXPIRED ACCOUNT ${index + 1}`,
+        accountType: "INSTALLMENT",
+        status: "Account Closed",
+        balance: 0,
+        dates: {
+          opened: new Date("2010-01-01"),
+          reported: new Date("2014-01-01"),
+        },
+        lastPaymentDate: new Date("2013-01-01"),
+      })
+    ),
+  });
+  assert(manyExpiredPreview.filter((problem) => problem.type === "sol_expired").length === 6, "Anonymous preview should show every verified expired tradeline, not only the top five.");
+
+  const openedDateOnlyPreview = generateAnonymousPreview({
+    ...parseResult,
+    tradelines: [
+      tradeline({
+        creditorName: "OLD OPENED DATE ONLY",
+        accountType: "INSTALLMENT",
+        status: "Account Closed",
+        balance: 0,
+        dates: {
+          opened: new Date("2011-09-03"),
+        },
+      }),
+    ],
+  });
+  assert(!openedDateOnlyPreview.some((problem) => problem.title.includes("OLD OPENED DATE ONLY") && problem.type === "sol_expired"), "Opened date alone should not create an expired-reporting claim.");
 }
 
 runFieldExtractionRegression();

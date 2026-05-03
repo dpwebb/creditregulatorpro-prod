@@ -1,6 +1,7 @@
 import { LLMResponse } from "./docstrangeLLM";
 import { ParsedTradeline } from "./reportParser";
 import { ComprehensiveParseResult } from "./reportParserTypes";
+import { extractAccounts } from "./transunionAccountParser";
 
 export type ParserQualitySeverity = "INFO" | "WARNING" | "ERROR";
 
@@ -31,10 +32,6 @@ export interface ParserQualityAssessment {
 
 const AI_EXTRACTION_SOURCES = new Set(["openai", "gemini"]);
 
-function countMatches(text: string, regex: RegExp): number {
-  return (text.match(regex) ?? []).length;
-}
-
 function countEquifaxAccountHeadings(html: string): number {
   const sections = html.match(/<h1[^>]*>\s*(?:Accounts(?:\s*-\s*[^<]+)?|Collections)\s*<\/h1>[\s\S]*?(?=<h1|$)/gi) ?? [];
   let count = 0;
@@ -51,14 +48,25 @@ function countEquifaxAccountHeadings(html: string): number {
   return count;
 }
 
+function countTransUnionAccountBlocks(html: string): number {
+  if (!/Account\(s\)\s*:/i.test(html)) return 0;
+
+  try {
+    return extractAccounts(html).filter((account) =>
+      Boolean(account?.creditorName?.trim())
+    ).length;
+  } catch {
+    return 0;
+  }
+}
+
 function estimateExpectedAccountMarkers(html: string): number {
   if (!html) return 0;
 
-  const creditorNameMarkers = countMatches(html, /\bCreditor Name\b/gi);
-  const accountNumberMarkers = countMatches(html, /\bAccount Number\b/gi);
+  const transUnionAccountBlocks = countTransUnionAccountBlocks(html);
   const equifaxHeadings = countEquifaxAccountHeadings(html);
 
-  return Math.max(creditorNameMarkers, accountNumberMarkers, equifaxHeadings);
+  return Math.max(transUnionAccountBlocks, equifaxHeadings);
 }
 
 function hasMeaningfulCreditorName(tradeline: ParsedTradeline): boolean {

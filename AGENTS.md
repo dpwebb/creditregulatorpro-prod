@@ -35,6 +35,9 @@
 ## Browser/testing workflow
 - Use the normal browser for authenticated staging pages
 - Do not rely on the Codex in-app browser for login-protected flows
+- For CreditRegulatorPro localhost work, use `http://localhost:5175` for browser/frontend testing.
+- Treat `http://localhost:3333` as the local backend/API port only; do not use it as the browser URL for app flows.
+- Do not use `http://localhost:5174` for this repo. That port belongs to another local project.
 
 ## Live staging diagnostics
 

@@ -154,12 +154,6 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
     return parsed;
   });
 
-  // 4. Account count validation logging
-  const rawCreditorCount = (rawText.match(/Creditor Name/gi) || []).length;
-  if (rawCreditorCount > tradelines.length) {
-    console.warn(`[DocStrange Parser] Possible dropped accounts: raw text contains ${rawCreditorCount} 'Creditor Name' blocks, but only extracted ${tradelines.length} tradelines.`);
-  }
-
   // 2. Map Payment Histories (Extracted Payment History)
   const paymentHistories: ExtractedPaymentHistory[] = (docStrangeData.tradelines || []).map((t: any) => {
     let pattern = t.paymentHistoryProfile || t.paymentPattern || null;

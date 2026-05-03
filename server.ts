@@ -4,6 +4,30 @@ import { serveStatic } from '@hono/node-server/serve-static'
 import { serve } from '@hono/node-server';
 
 const app = new Hono();
+const LOCAL_DEV_FRONTEND_URL = "http://localhost:5175";
+const LOCAL_DEV_BACKEND_PORT = 3333;
+
+app.use("*", async (c, next) => {
+  const isLocalDevBackend =
+    process.env.CRP_LOCAL_DEV === "true" &&
+    Number(process.env.PORT || LOCAL_DEV_BACKEND_PORT) === LOCAL_DEV_BACKEND_PORT;
+
+  if (!isLocalDevBackend) {
+    return next();
+  }
+
+  const path = c.req.path;
+  const method = c.req.method.toUpperCase();
+  const acceptsHtml = c.req.header("accept")?.includes("text/html") ?? false;
+  const isApiRequest = path.startsWith("/_api") || path.startsWith("/api");
+
+  if ((method === "GET" || method === "HEAD") && acceptsHtml && !isApiRequest) {
+    const url = new URL(c.req.url);
+    return c.redirect(`${LOCAL_DEV_FRONTEND_URL}${path}${url.search}`, 302);
+  }
+
+  return next();
+});
 
 app.get('_api/audit/log',async c => {
   try {

@@ -73,3 +73,11 @@ Open:
 ```text
 http://localhost:5175/try-upload
 ```
+
+Do not use `http://localhost:3333` as the browser URL for local app flows. In
+local development, `3333` is the backend/API port and Vite on `5175` proxies API
+requests to it. The backend redirects direct HTML page requests to `5175` when
+`CRP_LOCAL_DEV=true` so localhost testing stays on the correct frontend port.
+
+Do not use `http://localhost:5174` for this repo. That port is reserved for a
+different local project.
