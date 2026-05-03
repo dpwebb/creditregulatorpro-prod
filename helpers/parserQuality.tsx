@@ -18,6 +18,13 @@ export interface ParserQualityAssessment {
   sourceBureauConfidence: number | null;
   sourceIsAiNormalized: boolean;
   extractionSource: string | null;
+  fieldCompleteness: {
+    averageScore: number;
+    lowCompletenessTradelines: number;
+    missingCoreDates: number;
+    missingReportedDates: number;
+    missingOpenedDates: number;
+  };
   requiresManualReview: boolean;
   issues: ParserQualityIssue[];
 }
@@ -59,13 +66,43 @@ function hasMeaningfulCreditorName(tradeline: ParsedTradeline): boolean {
   return Boolean(name && name !== "unknown" && name !== "unknown creditor");
 }
 
+function hasUsefulAccountNumber(tradeline: ParsedTradeline): boolean {
+  const accountNumber = (tradeline.accountNumber || "").trim().toLowerCase();
+  return Boolean(accountNumber && accountNumber !== "unknown" && accountNumber !== "not reported");
+}
+
+function hasCoreDate(tradeline: ParsedTradeline): boolean {
+  return Boolean(
+    tradeline.dates?.opened ||
+    tradeline.dates?.reported ||
+    tradeline.dates?.closed ||
+    tradeline.dates?.dofd ||
+    tradeline.lastActivityDate ||
+    tradeline.lastPaymentDate
+  );
+}
+
+function scoreTradelineCompleteness(tradeline: ParsedTradeline): number {
+  let score = 0;
+  if (hasMeaningfulCreditorName(tradeline)) score += 20;
+  if (hasUsefulAccountNumber(tradeline)) score += 10;
+  if (tradeline.accountType && tradeline.accountType.toLowerCase() !== "unknown") score += 10;
+  if (tradeline.status) score += 15;
+  if (typeof tradeline.balance === "number" && Number.isFinite(tradeline.balance)) score += 10;
+  if (tradeline.dates?.opened) score += 10;
+  if (tradeline.dates?.reported) score += 15;
+  if (hasCoreDate(tradeline)) score += 5;
+  if (tradeline.sourceText && tradeline.sourceText.trim().length > 20) score += 5;
+  return score;
+}
+
 function clampScore(score: number): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 export function assessParserQuality(input: {
   rawHtml: string;
-  llmData: LLMResponse;
+  llmData?: LLMResponse | null;
   parseResult: ComprehensiveParseResult;
   parsedTradelines: ParsedTradeline[];
   extractionSource?: string | null;
@@ -73,7 +110,7 @@ export function assessParserQuality(input: {
   const { rawHtml, llmData, parseResult, parsedTradelines, extractionSource = null } = input;
   const expectedAccountMarkers = estimateExpectedAccountMarkers(rawHtml);
   const parsedTradelineCount = parsedTradelines.length;
-  const sourceBureauName = parseResult.sourceBureau?.bureauName || llmData.bureau || null;
+  const sourceBureauName = parseResult.sourceBureau?.bureauName || llmData?.bureau || null;
   const sourceBureauConfidence = parseResult.sourceBureau?.confidence ?? null;
   const sourceIsAiNormalized = extractionSource ? AI_EXTRACTION_SOURCES.has(extractionSource.toLowerCase()) : false;
   const issues: ParserQualityIssue[] = [];
@@ -94,7 +131,7 @@ export function assessParserQuality(input: {
     });
   }
 
-  if (!parseResult.reportMetadata?.reportDate && !llmData.reportDate) {
+  if (!parseResult.reportMetadata?.reportDate && !llmData?.reportDate) {
     issues.push({
       severity: "WARNING",
       code: "REPORT_DATE_MISSING",
@@ -127,18 +164,46 @@ export function assessParserQuality(input: {
     });
   }
 
+  const completenessScores = parsedTradelines.map(scoreTradelineCompleteness);
+  const averageCompleteness = completenessScores.length
+    ? clampScore(completenessScores.reduce((sum, score) => sum + score, 0) / completenessScores.length)
+    : 0;
+  const lowCompletenessTradelines = completenessScores.filter((score) => score < 65).length;
+  const missingCoreDates = parsedTradelines.filter((tradeline) => !hasCoreDate(tradeline)).length;
+  const missingReportedDates = parsedTradelines.filter((tradeline) => !tradeline.dates?.reported).length;
+  const missingOpenedDates = parsedTradelines.filter((tradeline) => !tradeline.dates?.opened).length;
+
+  if (parsedTradelineCount > 0 && averageCompleteness < 65) {
+    issues.push({
+      severity: averageCompleteness < 45 ? "ERROR" : "WARNING",
+      code: "TRADELINE_FIELD_COMPLETENESS_LOW",
+      message: `Parsed tradelines averaged ${averageCompleteness}% field completeness.`,
+    });
+  }
+
+  if (parsedTradelineCount > 0 && missingCoreDates > 0) {
+    issues.push({
+      severity: "WARNING",
+      code: "CORE_DATE_COMPLETENESS_LOW",
+      message: `${missingCoreDates} parsed tradeline(s) have no usable account dates.`,
+    });
+  }
+
   let score = 100;
   if (sourceIsAiNormalized) score -= 10;
   if (!sourceBureauName) score -= 25;
-  if (!parseResult.reportMetadata?.reportDate && !llmData.reportDate) score -= 10;
+  if (!parseResult.reportMetadata?.reportDate && !llmData?.reportDate) score -= 10;
   if (parsedTradelineCount === 0) score -= 60;
   if (expectedAccountMarkers > 0 && parsedTradelineCount < expectedAccountMarkers) score -= 25;
   if (unknownCreditorCount > 0) score -= Math.min(20, unknownCreditorCount * 10);
+  if (parsedTradelineCount > 0 && averageCompleteness < 80) score -= Math.min(30, 80 - averageCompleteness);
+  if (missingCoreDates > 0) score -= Math.min(20, missingCoreDates * 5);
 
   const confidenceScore = clampScore(score);
   const requiresManualReview =
     confidenceScore < 50 ||
     parsedTradelineCount === 0 ||
+    averageCompleteness < 45 ||
     issues.some((issue) => issue.severity === "ERROR");
 
   return {
@@ -149,6 +214,13 @@ export function assessParserQuality(input: {
     sourceBureauConfidence,
     sourceIsAiNormalized,
     extractionSource,
+    fieldCompleteness: {
+      averageScore: averageCompleteness,
+      lowCompletenessTradelines,
+      missingCoreDates,
+      missingReportedDates,
+      missingOpenedDates,
+    },
     requiresManualReview,
     issues,
   };

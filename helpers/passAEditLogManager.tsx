@@ -173,7 +173,7 @@ export async function storeEdits(
     reportArtifactId,
     path: patch.path,
     op: patch.op,
-    value: patch.value === undefined ? null : JSON.stringify(patch.value),
+    value: patch.value === undefined ? null : JSON.parse(JSON.stringify(patch.value)),
     reason: patch.reason || null,
     sourceType: patch.source.type,
     sourceTimestamp: new Date(patch.source.timestamp),

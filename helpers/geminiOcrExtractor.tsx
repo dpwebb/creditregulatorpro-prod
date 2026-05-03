@@ -134,7 +134,9 @@ If the summary shows 4+ accounts, your output MUST contain details for ALL 4+ ac
       ],
       generationConfig: {
         maxOutputTokens: 8192, // Increased to ensure large PDFs aren't truncated
-        temperature: 0.2, // Lower temperature for more deterministic extraction
+        temperature: 0,
+        topK: 1,
+        topP: 0.1,
       },
     };
 

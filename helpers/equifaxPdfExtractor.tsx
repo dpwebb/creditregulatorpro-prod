@@ -1,38 +1,365 @@
 import type { ParsedTradeline } from "./reportParserTypes";
 
-/**
- * Extracts tradelines strictly from Equifax Canadian text formats (e.g. OCR PDF text).
- * Handles the tabular structure uniquely assigned to Equifax documents where values are aligned in distinct column widths.
- *
- * @param text The extracted text from a credit report PDF
- * @returns Array of parsed tradelines
- */
+type Line = { text: string; index: number };
+
+type AccountSection = {
+  accountType: "Revolving" | "Mortgage" | "Installment" | "Open";
+  lines: Line[];
+};
+
+const ACCOUNT_SECTION_REGEX = /^Accounts\s*-\s*(Revolving|Mortgage|Installment|Open)\b/i;
+
+function normalizeLines(text: string): Line[] {
+  return text
+    .split(/\r?\n/)
+    .map((line, index) => ({ text: line.replace(/\s+/g, " ").trim(), index }))
+    .filter((line) => line.text.length > 0);
+}
+
+function isPageNoise(line: string): boolean {
+  return (
+    /^Credit ReportRequest Date\b/i.test(line) ||
+    /^Page\s+\d+\s+of\s+\d+/i.test(line) ||
+    /^Equifax Canada Co\.?$/i.test(line) ||
+    /^www\.consumer\.equifax\.ca$/i.test(line)
+  );
+}
+
+function isMajorHeader(line: string): boolean {
+  return (
+    ACCOUNT_SECTION_REGEX.test(line) ||
+    /^(Collections|Public Records|Bank Information Reported|Inquiries|Consumer Statement|Alerts, Disclosures|Credit Score|Personal Information)\b/i.test(line)
+  );
+}
+
+function isNoAccountsLine(line: string): boolean {
+  return /You currently have no .*accounts on your credit file/i.test(line);
+}
+
+function isAccountAnchor(lines: Line[], position: number): boolean {
+  const current = lines[position]?.text ?? "";
+  const next = lines[position + 1]?.text ?? "";
+  return /^Account$/i.test(current) && /^Number$/i.test(next);
+}
+
+function isLabelOnly(line: string): boolean {
+  return /^(Account|Number|Phone|Highest|Balance|Notes|Member|Rating|Code|Rating Code Description|Status|Closed by|Balance And|Amounts|Account Dates|Last|Reported|Payment|Due|Date|Closed|Amount|Past Due|Payment Details|Payment Responsibility|Individual|Payment History|High|Credit|Limit)$/i.test(line);
+}
+
+function isLikelyDescription(line: string): boolean {
+  return (
+    /^You can view up to/i.test(line) ||
+    /^Revolving accounts are/i.test(line) ||
+    /^Mortgage accounts are/i.test(line) ||
+    /^Installment accounts are/i.test(line) ||
+    /^Open accounts are/i.test(line)
+  );
+}
+
+function findAccountSections(lines: Line[]): AccountSection[] {
+  const sections: AccountSection[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].text.match(ACCOUNT_SECTION_REGEX);
+    if (!match) continue;
+
+    const accountType = match[1] as AccountSection["accountType"];
+    let end = lines.length;
+    for (let j = i + 1; j < lines.length; j++) {
+      if (isMajorHeader(lines[j].text) && !isPageNoise(lines[j].text)) {
+        end = j;
+        break;
+      }
+    }
+
+    const sectionLines = lines.slice(i + 1, end).filter((line) => !isPageNoise(line.text));
+    if (sectionLines.some((line) => isNoAccountsLine(line.text))) continue;
+    sections.push({ accountType, lines: sectionLines });
+  }
+
+  return sections;
+}
+
+function findCollectionsSection(lines: Line[]): Line[] {
+  const start = lines.findIndex((line) => /^Collections$/i.test(line.text));
+  if (start === -1) return [];
+
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (isMajorHeader(lines[i].text) && !/^Collections$/i.test(lines[i].text) && !isPageNoise(lines[i].text)) {
+      end = i;
+      break;
+    }
+  }
+
+  return lines.slice(start + 1, end).filter((line) => !isPageNoise(line.text));
+}
+
+function findAccountNameStart(lines: Line[], anchor: number): number {
+  let start = anchor;
+  let collected = 0;
+
+  for (let i = anchor - 1; i >= 0; i--) {
+    const text = lines[i].text;
+    if (isPageNoise(text) || isMajorHeader(text) || isLabelOnly(text) || isLikelyDescription(text)) break;
+    if (/^\d+$/.test(text) || /^\d+\s+of\s+\d+$/i.test(text)) break;
+
+    start = i;
+    collected += 1;
+    if (collected >= 3) break;
+  }
+
+  return start;
+}
+
+function splitAccountBlocks(section: AccountSection): Line[][] {
+  const anchors: number[] = [];
+  for (let i = 0; i < section.lines.length; i++) {
+    if (isAccountAnchor(section.lines, i)) anchors.push(i);
+  }
+
+  if (anchors.length === 0) {
+    return section.lines.some((line) => /\*{2,}|Account Number/i.test(line.text)) ? [section.lines] : [];
+  }
+
+  const starts = anchors.map((anchor) => findAccountNameStart(section.lines, anchor));
+  return anchors.map((anchor, index) => {
+    const start = starts[index];
+    const end = index + 1 < starts.length ? starts[index + 1] : section.lines.length;
+    return section.lines.slice(start, end);
+  });
+}
+
+function firstDateAfter(rawText: string, label: RegExp): Date | null {
+  const inline = rawText.match(new RegExp(`${label.source}[\\s\\S]{0,80}?(\\d{4}[\\/-]\\d{2}[\\/-]\\d{2}|\\d{2}[\\/-]\\d{2}[\\/-]\\d{4})`, "i"));
+  return inline ? parseEquifaxDate(inline[1]) : null;
+}
+
+function numberFromString(value: string | null | undefined): number | null {
+  if (!value || /^N\/A$/i.test(value.trim())) return null;
+  const parsed = parseFloat(value.replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function firstAmountAfter(rawText: string, label: RegExp): number | null {
+  const match = rawText.match(new RegExp(`${label.source}\\s*\\$?(N\\/A|[\\d,]+(?:\\.\\d{2})?)`, "i"));
+  return match ? numberFromString(match[1]) : null;
+}
+
+function findNextDate(lines: Line[], labelRegex: RegExp): Date | null {
+  for (let i = 0; i < lines.length; i++) {
+    if (!labelRegex.test(lines[i].text)) continue;
+    const sameLine = lines[i].text.match(/(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/);
+    if (sameLine) return parseEquifaxDate(sameLine[1]);
+
+    for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
+      const match = lines[j].text.match(/(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/);
+      if (match) return parseEquifaxDate(match[1]);
+    }
+  }
+  return null;
+}
+
+function findNextAmount(lines: Line[], labelRegex: RegExp): number | null {
+  for (let i = 0; i < lines.length; i++) {
+    if (!labelRegex.test(lines[i].text)) continue;
+    const sameLine = lines[i].text.match(/\$?(N\/A|[\d,]+(?:\.\d{2})?)/i);
+    if (sameLine && !labelRegex.test(sameLine[0])) return numberFromString(sameLine[1]);
+
+    for (let j = i + 1; j < Math.min(lines.length, i + 4); j++) {
+      const match = lines[j].text.match(/^\$?(N\/A|[\d,]+(?:\.\d{2})?)$/i);
+      if (match) return numberFromString(match[1]);
+    }
+  }
+  return null;
+}
+
+function extractAccountNumber(rawText: string): string {
+  const accountNumberMatch = rawText.match(/Account\s*Number\s*([*Xx]{2,}[A-Z0-9-]*\d[A-Z0-9-]*)/i);
+  if (accountNumberMatch) return accountNumberMatch[1];
+
+  const maskedMatch = rawText.match(/\b([*Xx]{2,}[A-Z0-9-]*\d[A-Z0-9-]*)\b/);
+  return maskedMatch ? maskedMatch[1] : "Unknown";
+}
+
+function extractCreditorName(lines: Line[]): string {
+  const anchor = lines.findIndex((line, index) => isAccountAnchor(lines, index));
+  const candidateLines = (anchor === -1 ? lines.slice(0, 3) : lines.slice(0, anchor))
+    .map((line) => line.text)
+    .filter((line) => !isPageNoise(line) && !isMajorHeader(line) && !isLabelOnly(line) && !isLikelyDescription(line));
+
+  const candidate = candidateLines.join(" ").replace(/\s+/g, " ").trim();
+  return candidate || "Unknown Creditor";
+}
+
+function extractStatus(rawText: string, accountType: string): string {
+  const ratingCode = rawText.match(/\b([RIMO][1-9])\b/i)?.[1]?.toUpperCase();
+  const description = rawText.match(new RegExp(`${accountType}\\s*-\\s*([^\\n]+(?:\\n(?!Balance And|Payment Details|Payment History)[^\\n]+)?)`, "i"));
+  const closedBy = rawText.match(/Closed by[^\n]*/i)?.[0];
+  return description?.[0]?.replace(/\s+/g, " ").trim() || closedBy || ratingCode || "";
+}
+
+function parseAccountBlock(lines: Line[], accountType: AccountSection["accountType"]): ParsedTradeline | null {
+  const rawText = lines.map((line) => line.text).join("\n");
+  const accountNumber = extractAccountNumber(rawText);
+  const creditorName = extractCreditorName(lines);
+  if (accountNumber === "Unknown" && creditorName === "Unknown Creditor") return null;
+
+  const opened = firstDateAfter(rawText, /Opened/i) ?? findNextDate(lines, /^Opened$/i);
+  const reported = firstDateAfter(rawText, /(?:Last\s*)?Reported/i) ?? findNextDate(lines, /^(Last\s*)?Reported$/i);
+  const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment/i) ?? findNextDate(lines, /^Last$|^Last Payment$/i);
+  const closed = firstDateAfter(rawText, /(?:Date\s*)?Closed/i) ?? findNextDate(lines, /^Closed$/i);
+  const balance = firstAmountAfter(rawText, /Balance/i) ?? findNextAmount(lines, /^Balance$/i) ?? 0;
+  const high = firstAmountAfter(rawText, /(?:Highest\s*Balance|High\s*Credit)/i) ?? findNextAmount(lines, /^Highest$|^High$/i) ?? undefined;
+  const creditLimit = firstAmountAfter(rawText, /Credit\s*Limit/i) ?? findNextAmount(lines, /^Credit$|^Credit Limit$/i) ?? undefined;
+  const pastDue = firstAmountAfter(rawText, /Past\s*Due/i) ?? findNextAmount(lines, /^Past Due$/i) ?? undefined;
+  const amountWrittenOff = firstAmountAfter(rawText, /Amount\s*(?:Written\s*)?Off/i) ?? undefined;
+  const responsibilityCode =
+    rawText.match(/Payment\s*Responsibility\s*([A-Za-z][A-Za-z ]{1,40})/i)?.[1]?.trim() ||
+    (rawText.match(/\nIndividual\b/i) ? "Individual" : undefined);
+
+  const parsed: ParsedTradeline = {
+    accountNumber,
+    creditorName,
+    accountType,
+    balance,
+    status: extractStatus(rawText, accountType),
+    dates: {
+      opened,
+      reported,
+      closed,
+      dofd: null,
+    },
+    amounts: {
+      high,
+      pastDue,
+    },
+    creditLimit,
+    lastPaymentDate,
+    responsibilityCode,
+    remarkCodes: [],
+    sourceText: rawText,
+  };
+
+  (parsed as any).amountWrittenOff = amountWrittenOff ?? null;
+  return parsed;
+}
+
+function splitCollectionBlocks(lines: Line[]): Line[][] {
+  const starts: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^Date Assigned/i.test(lines[i].text)) {
+      let start = i;
+      for (let j = i - 1; j >= 0; j--) {
+        if (isPageNoise(lines[j].text) || isMajorHeader(lines[j].text) || /^Last Payment/i.test(lines[j].text)) break;
+        if (!isLabelOnly(lines[j].text)) start = j;
+        if (i - start >= 3) break;
+      }
+      starts.push(start);
+    }
+  }
+
+  return starts.map((start, index) => {
+    const end = index + 1 < starts.length ? starts[index + 1] : lines.length;
+    return lines.slice(start, end);
+  });
+}
+
+function valueAfterInlineLabel(rawText: string, label: RegExp): string | null {
+  const match = rawText.match(new RegExp(`${label.source}\\s*([^\\n]+)`, "i"));
+  return match?.[1]?.trim() || null;
+}
+
+function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
+  const rawText = lines.map((line) => line.text).join("\n");
+  const accountNumber = extractAccountNumber(rawText);
+  if (accountNumber === "Unknown") return null;
+
+  const collectionAgencyName = extractCreditorName(lines);
+  const memberName = valueAfterInlineLabel(rawText, /Member\s*Name/i) || undefined;
+  const dateAssigned = firstDateAfter(rawText, /Date\s*Assigned/i);
+  const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment\s*Date/i);
+  const dateVerified = firstDateAfter(rawText, /Date\s*Verified/i);
+  const amount = firstAmountAfter(rawText, /Amount/i) ?? 0;
+  const balance = firstAmountAfter(rawText, /Balance/i) ?? amount;
+  const status = valueAfterInlineLabel(rawText, /Status/i) || "Collection";
+
+  const parsed: ParsedTradeline = {
+    accountNumber,
+    creditorName: collectionAgencyName,
+    accountType: "Collection",
+    balance,
+    status,
+    dates: {
+      opened: dateAssigned,
+      reported: dateVerified,
+      closed: null,
+      dofd: null,
+    },
+    amounts: {
+      high: amount,
+      pastDue: balance,
+    },
+    isCollectionAccount: true,
+    collectionAgencyName,
+    originalCreditorName: memberName,
+    dateAssignedToCollection: dateAssigned,
+    lastPaymentDate,
+    remarkCodes: [],
+    sourceText: rawText,
+  };
+
+  (parsed as any).dateVerified = dateVerified;
+  (parsed as any).memberName = memberName ?? null;
+  (parsed as any).memberNumber = valueAfterInlineLabel(rawText, /Member\s*Number/i);
+  return parsed;
+}
+
+function dedupeTradelines(tradelines: ParsedTradeline[]): ParsedTradeline[] {
+  const seen = new Set<string>();
+  const results: ParsedTradeline[] = [];
+
+  for (const tradeline of tradelines) {
+    const key = [
+      tradeline.accountNumber || "",
+      tradeline.creditorName || "",
+      tradeline.accountType || "",
+      tradeline.dates?.opened?.toISOString?.() || "",
+    ].join("|").toUpperCase();
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(tradeline);
+  }
+
+  return results;
+}
+
 export function extractEquifaxTradelines(text: string): ParsedTradeline[] {
   console.log(`[Equifax PDF Extract] Processing ${text.length} characters of text`);
-  const sections = parseEquifaxSections(text);
+  const lines = normalizeLines(text);
   const tradelines: ParsedTradeline[] = [];
-  
-  // Extract from the sections explicitly known to contain tradelines
-  if (sections["credit"]) {
-    tradelines.push(...extractEquifaxTradelinesFromSection(sections["credit"]));
-  }
-  if (sections["collections"]) {
-    const colTradelines = extractEquifaxTradelinesFromSection(sections["collections"]);
-    for (const tl of colTradelines) {
-      tl.isCollectionAccount = true;
-      tl.accountType = "Collection";
+
+  for (const section of findAccountSections(lines)) {
+    for (const block of splitAccountBlocks(section)) {
+      const parsed = parseAccountBlock(block, section.accountType);
+      if (parsed) tradelines.push(parsed);
     }
-    tradelines.push(...colTradelines);
   }
 
-  // Fallback if structured sections were not correctly detected due to severe OCR drift
+  for (const block of splitCollectionBlocks(findCollectionsSection(lines))) {
+    const parsed = parseCollectionBlock(block);
+    if (parsed) tradelines.push(parsed);
+  }
+
   if (tradelines.length === 0) {
-     console.log(`[Equifax PDF Extract] Structured sections not found or empty. Using fallback global extraction.`);
-     return extractEquifaxTradelinesFromSection(text);
+    console.log("[Equifax PDF Extract] Structured section parsing found no tradelines. Using legacy fallback extraction.");
+    return extractEquifaxTradelinesFromSection(text);
   }
 
-  console.log(`[Equifax PDF Extract] Successfully parsed ${tradelines.length} tradelines`);
-  return tradelines;
+  const deduped = dedupeTradelines(tradelines);
+  console.log(`[Equifax PDF Extract] Successfully parsed ${deduped.length} tradelines`);
+  return deduped;
 }
 
 /**
@@ -40,29 +367,16 @@ export function extractEquifaxTradelines(text: string): ParsedTradeline[] {
  */
 export function parseEquifaxSections(text: string): Record<string, string> {
   const sections: Record<string, string> = {};
-  
-  // Typical Equifax Canada headers
-  const headers = [
-    { key: "personal", regex: /\b(?:PERSONAL|IDENTIFICATION) INFORMATION\b/i },
-    { key: "credit", regex: /\bCREDIT INFORMATION\b/i },
-    { key: "public", regex: /\bPUBLIC RECORDS\b/i },
-    { key: "inquiries", regex: /\bINQUIRIES\b/i },
-    { key: "collections", regex: /\bCOLLECTIONS\b/i },
-    { key: "statements", regex: /\bCONSUMER STATEMENT\b/i },
-  ];
+  const lines = normalizeLines(text);
 
-  let remainingText = text;
-  
-  // Simple chunking based on regex match indices
-  const indices = headers.map(h => {
-    const match = remainingText.match(h.regex);
-    return { key: h.key, index: match ? match.index! : -1 };
-  }).filter(h => h.index !== -1).sort((a, b) => a.index - b.index);
+  for (const section of findAccountSections(lines)) {
+    sections[section.accountType.toLowerCase()] = section.lines.map((line) => line.text).join("\n");
+    sections.credit = [sections.credit, sections[section.accountType.toLowerCase()]].filter(Boolean).join("\n\n");
+  }
 
-  for (let i = 0; i < indices.length; i++) {
-    const current = indices[i];
-    const nextIndex = i + 1 < indices.length ? indices[i+1].index : remainingText.length;
-    sections[current.key] = remainingText.substring(current.index, nextIndex).trim();
+  const collections = findCollectionsSection(lines);
+  if (collections.length > 0) {
+    sections.collections = collections.map((line) => line.text).join("\n");
   }
 
   return sections;
@@ -70,68 +384,43 @@ export function parseEquifaxSections(text: string): Record<string, string> {
 
 /**
  * Extracts multiple tradelines from a given text section by splitting blocks.
+ * Kept for compatibility with older callers.
  */
 export function extractEquifaxTradelinesFromSection(sectionText: string): ParsedTradeline[] {
-  // Heuristic: split by double newlines to separate discrete tabular blocks
-  const blocks = sectionText.split(/\n\s*\n+/);
-  const tradelines: ParsedTradeline[] = [];
-  
-  for (const block of blocks) {
-    const tl = extractEquifaxTradeline(block);
-    // Ignore empty/failed parses
-    if (tl && tl.accountNumber !== "Unknown") {
-      tradelines.push(tl);
-    }
-  }
-  return tradelines;
+  const lines = normalizeLines(sectionText);
+  const synthetic: AccountSection = { accountType: "Open", lines };
+  const tradelines = splitAccountBlocks(synthetic)
+    .map((block) => parseAccountBlock(block, "Open"))
+    .filter(Boolean) as ParsedTradeline[];
+
+  if (tradelines.length > 0) return tradelines;
+
+  return sectionText
+    .split(/\n\s*\n+/)
+    .map(extractEquifaxTradeline)
+    .filter(Boolean) as ParsedTradeline[];
 }
 
 /**
- * Extracts a single tradeline from an Equifax specific block of text.
- * Captures unique Canadian rating codes (R1-R9, I1-I9, M1-M9) and horizontal layout data.
+ * Extracts a single tradeline from an Equifax-specific block of text.
  */
 export function extractEquifaxTradeline(sectionText: string): ParsedTradeline | null {
-  if (!sectionText || sectionText.length < 10) return null;
+  const parsed = parseAccountBlock(normalizeLines(sectionText), "Open");
+  if (parsed) return parsed;
 
-  // Attempt to parse out standard Equifax rating codes (e.g., R1, I9, M1)
+  if (!sectionText || sectionText.length < 10) return null;
   const ratingMatch = sectionText.match(/\b([RIM][1-9])\b/i);
   const status = ratingMatch ? ratingMatch[1].toUpperCase() : "Unknown";
-
-  // Balance extraction
-  const balanceMatch = sectionText.match(/(?:Balance|Bal)[^\d]*\$?\s*([\d,]+\.\d{2})/i);
+  const balanceMatch = sectionText.match(/(?:Balance|Bal)[^\d]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
   const balance = balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, "")) : 0;
-
-  const pastDueMatch = sectionText.match(/(?:Past Due|Amount Past Due)[^\d]*\$?\s*([\d,]+\.\d{2})/i);
+  const pastDueMatch = sectionText.match(/(?:Past Due|Amount Past Due)[^\d]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
   const pastDue = pastDueMatch ? parseFloat(pastDueMatch[1].replace(/,/g, "")) : 0;
+  const accountNumber = extractAccountNumber(sectionText);
+  if (accountNumber === "Unknown") return null;
 
-  // Account number extraction
-  const accMatch = sectionText.match(/(?:Account|Acct|A\/C)(?:\s*(?:#|No\.?|Number))?\s*[:\-]?\s*([X\*0-9A-Z]{4,20})/i);
-  const accountNumber = accMatch ? accMatch[1] : "Unknown";
-
-  // Creditor name extraction - naive heuristic that it precedes the account number or is at the top of the tabular row
-  const lines = sectionText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const skipHeaders = ["CREDIT INFORMATION", "COLLECTIONS", "PUBLIC RECORDS", "INQUIRIES", "CONSUMER STATEMENT"];
-  
-  let creditorName = "Unknown";
-  for (const line of lines) {
-    if (!skipHeaders.includes(line.toUpperCase())) {
-      creditorName = line.replace(/[^a-zA-Z0-9\s&]/g, "").substring(0, 50).trim();
-      break;
-    }
-  }
-  if (!creditorName) creditorName = "Unknown";
-
-  // Equifax Date formats are typically DD/MM/YYYY or YYYY/MM/DD
-  const dateOpenedMatch = sectionText.match(/(?:Opened|Reported)[^\d]*(\d{2,4}[\/\-]\d{2}[\/\-]\d{2,4})/i);
-  const opened = dateOpenedMatch ? parseEquifaxDate(dateOpenedMatch[1]) : null;
-
-  // Identify Collections
-  let isCollectionAccount = false;
-  let collectionAgencyName = undefined;
-  if (sectionText.toUpperCase().includes("COLLECTION") || (ratingMatch && ratingMatch[1].toUpperCase() === "R9")) {
-      isCollectionAccount = true;
-      collectionAgencyName = creditorName !== "Unknown" ? creditorName : undefined;
-  }
+  const lines = normalizeLines(sectionText);
+  const creditorName = extractCreditorName(lines);
+  const opened = firstDateAfter(sectionText, /(?:Opened|Reported)/i);
 
   return {
     accountNumber,
@@ -147,29 +436,32 @@ export function extractEquifaxTradeline(sectionText: string): ParsedTradeline | 
     },
     remarkCodes: [],
     sourceText: sectionText,
-    isCollectionAccount,
-    collectionAgencyName
+    isCollectionAccount: sectionText.toUpperCase().includes("COLLECTION") || status === "R9",
+    collectionAgencyName: sectionText.toUpperCase().includes("COLLECTION") ? creditorName : undefined,
   };
 }
 
 /**
- * Resolves typical Equifax date strings into standard ISO dates.
- * Understands both YYYY-MM-DD and DD-MM-YYYY conventions commonly seen in CA PDFs.
+ * Resolves typical Equifax date strings into Date objects.
  */
 function parseEquifaxDate(dateStr: string): Date | null {
-  const parts = dateStr.split(/[\/\-]/);
-  if (parts.length === 3) {
-    if (parts[0].length === 4) {
-      // YYYY-MM-DD
-      return new Date(`${parts[0]}-${parts[1]}-${parts[2]}T00:00:00Z`);
-    } else if (parts[2].length === 4) {
-      // DD-MM-YYYY -> YYYY-MM-DD
-      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00Z`); 
-    } else {
-      // YY-MM-DD (assume 20xx for recent reports)
-      const year = parseInt(parts[0], 10) > 50 ? `19${parts[0]}` : `20${parts[0]}`;
-      return new Date(`${year}-${parts[1]}-${parts[2]}T00:00:00Z`);
-    }
+  const parts = dateStr.split(/[\/-]/);
+  if (parts.length !== 3) return null;
+
+  let year: string;
+  let month: string;
+  let day: string;
+
+  if (parts[0].length === 4) {
+    [year, month, day] = parts;
+  } else if (parts[2].length === 4) {
+    [day, month, year] = parts;
+  } else {
+    year = parseInt(parts[0], 10) > 50 ? `19${parts[0]}` : `20${parts[0]}`;
+    month = parts[1];
+    day = parts[2];
   }
-  return null;
+
+  const parsed = new Date(`${year}-${month}-${day}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

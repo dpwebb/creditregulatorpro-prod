@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { Json } from "./schema";
-import CryptoJS from "crypto-js";
 import { SSEEvent, createHeartbeat } from "./sseStreamBuilder";
+import { sha256HexOfBase64Payload } from "./reportBinaryUtils";
 
 export interface CreateArtifactInput {
   userId: number;
@@ -30,7 +30,7 @@ export async function createReportArtifact(
   input: CreateArtifactInput,
   sendSSE?: (event: SSEEvent) => void
 ): Promise<CreateArtifactResult> {
-    const sha256 = CryptoJS.SHA256(input.bytesBase64).toString(CryptoJS.enc.Hex);
+    const sha256 = sha256HexOfBase64Payload(input.bytesBase64);
 
   if (sendSSE) {
     sendSSE({

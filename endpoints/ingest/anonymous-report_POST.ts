@@ -3,9 +3,8 @@ import { schema, OutputType, SampleProblem } from "./anonymous-report_POST.schem
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { validateOrigin } from "../../helpers/domainGuard";
 import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
-import { extractHtmlWithFallbackChain } from "../../helpers/fallbackPdfExtractor";
-import { routeHtmlToComprehensiveResultWithOverrides } from "../../helpers/bureauDetectionRouter";
 import { generateAnonymousPreview } from "../../helpers/anonymousCompliancePreview";
+import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
 import { ZodError } from "zod";
 
 export async function handle(request: Request) {
@@ -60,21 +59,14 @@ export async function handle(request: Request) {
       );
     }
 
-    // 2. Extract HTML in memory. Anonymous uploads are not persisted here.
-    console.log("[Anonymous Upload] Starting AI extraction...");
-    const fallbackResult = await extractHtmlWithFallbackChain(input.bytesBase64);
+    // 2. Generate the preview from the same canonical extraction path used by authenticated ingest.
+    const extraction = await extractCanonicalCreditReport({
+      bytesBase64: input.bytesBase64,
+      mimeType: input.mimeType,
+      allowAiFallback: true,
+    });
+    const parseResult = extraction.parseResult;
 
-    if (fallbackResult === null) {
-      throw new Error(
-        "AI extraction is temporarily unavailable. Please verify Gemini API key configuration and OpenAI model access."
-      );
-    }
-
-    console.log(`[Anonymous Upload] AI extraction succeeded via ${fallbackResult.source}.`);
-    const rawHtml = fallbackResult.html;
-
-    // 3. Parse the comprehensive result and run compliance preview
-    const parseResult = await routeHtmlToComprehensiveResultWithOverrides(rawHtml);
     const previewProblems = generateAnonymousPreview(parseResult);
 
     const sampleProblems: SampleProblem[] = previewProblems.map((p) => ({

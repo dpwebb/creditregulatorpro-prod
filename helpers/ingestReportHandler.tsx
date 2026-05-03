@@ -7,15 +7,14 @@ import { ResolvedUserSession } from "./ingestSessionResolver";
 import { createReportArtifact } from "./ingestArtifactCreator";
 import { z } from "zod";
 import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
-import { extractHtmlWithFallbackChain } from "./fallbackPdfExtractor";
-import { cleanupFailedIngest, cleanupArtifactOnly } from "./ingestCleanup";
+import { cleanupFailedIngest } from "./ingestCleanup";
 import { executeIngestPipeline, IngestPipelineError } from "./ingestCorePipeline";
 
 type IngestInput = z.infer<typeof UploadReportInput>;
 
 /**
- * Phase 1: Submit Extraction Request
- * Handles rate limiting, artifact creation, and initial DocStrange submission.
+ * Phase 1: Submit Extraction Request.
+ * Stores the uploaded PDF and queues canonical parser-first extraction for Phase 2.
  */
 export async function handleIngestSubmit(
   resolvedSession: ResolvedUserSession,
@@ -43,7 +42,16 @@ export async function handleIngestSubmit(
     return {
       success: false,
       error: `Too many upload attempts. Please try again in ${remainingMinutes} minutes.`,
-      code: "RATE_LIMITED"
+      code: "RATE_LIMITED",
+    };
+  }
+
+  const isPdfUpload = input.mimeType === "application/pdf" || input.fileName.toLowerCase().endsWith(".pdf");
+  if (!isPdfUpload) {
+    return {
+      success: false,
+      error: "Unsupported file type. Please upload a PDF.",
+      code: "UNSUPPORTED_MIME_TYPE",
     };
   }
 
@@ -57,68 +65,42 @@ export async function handleIngestSubmit(
   });
 
   const artifactId = artifactResult.artifactId;
+  const currentArtifactData = (await db
+    .selectFrom("reportArtifact")
+    .select("data")
+    .where("id", "=", artifactId)
+    .executeTakeFirst())?.data as Record<string, unknown> ?? {};
 
-  const isPdfUpload = input.mimeType === "application/pdf" || input.fileName.toLowerCase().endsWith(".pdf");
+  await db
+    .updateTable("reportArtifact")
+    .set({
+      data: JSON.parse(JSON.stringify({
+        ...currentArtifactData,
+        extractionStatus: "ready",
+        extractionSource: "pending",
+        extractionProvenance: {
+          strategy: "pdf_text_first_ai_html_fallback",
+          source: "pending",
+          normalizedByAi: false,
+          sourceEvidence: "pdf_bytes",
+          artifactSha256: artifactResult.sha256,
+          queuedAt: new Date().toISOString(),
+        },
+      })) as Json,
+    })
+    .where("id", "=", artifactId)
+    .execute();
 
-  if (isPdfUpload) {
-    console.log("[Ingest] Attempting AI extraction...");
-    const fallbackResult = await extractHtmlWithFallbackChain(input.bytesBase64);
-
-    if (fallbackResult) {
-      console.log(`[Ingest] ✓ Extraction succeeded via ${fallbackResult.source}`);
-      const currentArtifactData = (await db
-        .selectFrom("reportArtifact")
-        .select("data")
-        .where("id", "=", artifactId)
-        .executeTakeFirst())?.data as Record<string, unknown> ?? {};
-
-      await db
-        .updateTable("reportArtifact")
-        .set({
-          data: JSON.parse(JSON.stringify({
-            ...currentArtifactData,
-            docstrangeRawHtml: fallbackResult.html,
-            extractionStatus: "extracted",
-            extractionSource: fallbackResult.source,
-            extractionProvenance: {
-              source: fallbackResult.source,
-              normalizedByAi: true,
-              sourceEvidence: "ai_generated_html",
-              extractedAt: new Date().toISOString(),
-            },
-          })) as Json
-        })
-        .where("id", "=", artifactId)
-        .execute();
-
-      return {
-        success: true,
-        artifactId,
-        extractionStatus: "extracted",
-      };
-    }
-
-    console.log("[Ingest] ✗ All extractors failed — cleaning up artifact");
-    // Delete the artifact entirely since extraction failed; no point keeping a broken record
-    await cleanupArtifactOnly(artifactId);
-
-    return {
-      success: false,
-      error: `Document processing failed. Please try again or contact support.`,
-      code: "EXTRACTION_FAILED",
-    };
-  } else {
-    return {
-      success: false,
-      error: "Unsupported file type. Please upload a PDF.",
-      code: "UNSUPPORTED_MIME_TYPE"
-    };
-  }
+  return {
+    success: true,
+    artifactId,
+    extractionStatus: "extracted",
+  };
 }
 
 /**
- * Phase 2: Process Extraction Request
- * Handles polling (if async) and runs the rest of the ingestion pipeline.
+ * Phase 2: Process Extraction Request.
+ * Runs canonical extraction from the stored PDF and continues ingestion.
  */
 export async function handleIngestProcess(
   resolvedSession: ResolvedUserSession,
@@ -132,7 +114,7 @@ export async function handleIngestProcess(
 
   const artifact = await db
     .selectFrom("reportArtifact")
-    .select(["data", "region"])
+    .select(["data", "region", "storageUrl"])
     .where("id", "=", artifactId)
     .executeTakeFirst();
 
@@ -141,15 +123,13 @@ export async function handleIngestProcess(
     return;
   }
 
-  // Mark artifact as actively processing
   await updateArtifactProcessingStatus(artifactId, "processing");
 
   const artifactData = (artifact.data ?? {}) as Record<string, unknown>;
   const region = artifact.region as string;
-  const fileName = artifactData.fileName as string;
-  const rawHtml = artifactData.docstrangeRawHtml as string | undefined;
+  const fileName = (artifactData.fileName as string | undefined) || "credit-report.pdf";
+  const mimeType = (artifactData.mimeType as string | undefined) || "application/pdf";
   const extractionStatus = artifactData.extractionStatus as string | undefined;
-  const extractionSource = artifactData.extractionSource as string | undefined;
 
   if (extractionStatus === "failed") {
     await cleanupFailedIngest(artifactId, []);
@@ -157,9 +137,9 @@ export async function handleIngestProcess(
     return;
   }
 
-  if (!rawHtml) {
+  if (!artifact.storageUrl) {
     await cleanupFailedIngest(artifactId, []);
-    send({ type: "error", error: "No extraction data found.", code: "EXTRACTION_FAILED" });
+    send({ type: "error", error: "No report PDF data found.", code: "EXTRACTION_FAILED" });
     return;
   }
 
@@ -176,18 +156,16 @@ export async function handleIngestProcess(
       artifactId,
       region,
       fileName,
-      rawHtml,
-      extractionSource: extractionSource ?? null,
+      bytesBase64: artifact.storageUrl,
+      mimeType,
       send,
-      context
+      context,
     });
   } catch (error: unknown) {
     console.error(`[Ingest] Uncaught exception during pipeline for artifact ${artifactId}:`, error);
-    
-    // Mark the artifact processing status as "failed" before cleanup deletes it
+
     await updateArtifactProcessingStatus(artifactId, "failed");
 
-    // Cleanup evidence events created by the missing tradeline check
     try {
       await db
         .deleteFrom("evidenceEvent")
@@ -197,14 +175,12 @@ export async function handleIngestProcess(
       console.error(`[Ingest] Failed to cleanup evidence events for artifact ${artifactId}:`, cleanupErr);
     }
 
-    // Only newly created tradelines are safe to delete. Existing tradelines may
-    // have been updated during this ingest and must not be cascade-deleted.
     await cleanupFailedIngest(artifactId, context.createdTradelineIds);
-    
+
     send({
       type: "error",
       error: error instanceof Error ? error.message : "An unexpected error occurred during report processing.",
-      code: error instanceof IngestPipelineError ? error.code : "PROCESSING_FAILED"
+      code: error instanceof IngestPipelineError ? error.code : "PROCESSING_FAILED",
     });
     return;
   }
@@ -219,7 +195,7 @@ export async function handleIngestReport(
   send: (event: SSEEvent) => void
 ) {
   const submitResult = await handleIngestSubmit(resolvedSession, input);
-  
+
   if (!submitResult.success) {
     send({ type: "error", error: submitResult.error || "Unknown error", code: submitResult.code });
     return;

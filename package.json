@@ -6,6 +6,7 @@
     "start": "tsx server.ts",
     "typecheck": "tsc --noEmit",
     "check": "pnpm run build",
+    "test:credit-extraction": "tsx scripts/credit-report-extraction-smoke.ts",
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",
     "promote:production": "node scripts/promote-production.mjs"

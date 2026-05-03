@@ -206,6 +206,12 @@ export async function extractHtmlWithGemini(base64Pdf: string): Promise<string |
             ],
           },
         ],
+        generationConfig: {
+          temperature: 0,
+          topK: 1,
+          topP: 0.1,
+          candidateCount: 1,
+        },
       }),
     });
 

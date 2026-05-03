@@ -52,8 +52,11 @@ async function extractTextWithPdfParse(pdfData: Uint8Array): Promise<string> {
  */
 export async function extractTextFromPdf(
   base64Data: string,
+  options: { allowOcrFallback?: boolean } = {},
 ): Promise<string> {
   try {
+    const allowOcrFallback = options.allowOcrFallback ?? true;
+
     // Remove data URL prefix if present (e.g., "data:application/pdf;base64,")
     const base64Clean = base64Data.includes(",")
       ? base64Data.split(",")[1]
@@ -91,6 +94,13 @@ export async function extractTextFromPdf(
       console.warn(
         `[PDF Extract] ⚠️  Text quality insufficient: ${quality.invalidReason}`
       );
+      if (!allowOcrFallback) {
+        console.warn(
+          `[PDF Extract] OCR fallback disabled for this parse. Returning pdf-parse text.`
+        );
+        return textFromParse;
+      }
+
       console.log(
         `[PDF Extract] Attempting OCR fallback with Google Gemini...`
       );

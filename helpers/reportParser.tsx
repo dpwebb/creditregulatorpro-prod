@@ -52,6 +52,12 @@ import {
 // Re-export everything from types to maintain backward compatibility
 export * from "./reportParserTypes";
 
+export interface ParseReportOptions {
+  allowOcrFallback?: boolean;
+  enableAiAugmentation?: boolean;
+  logRawTextPreview?: boolean;
+}
+
 /**
  * Detects if a tradeline section contains a payment history grid.
  * Payment grids typically have month/year patterns followed by numeric values.
@@ -103,7 +109,12 @@ function hasPaymentHistoryGrid(text: string): boolean {
 export async function parseReport(
   base64Data: string,
   mimeType: string,
+  options: ParseReportOptions = {},
 ): Promise<ComprehensiveParseResult> {
+  const allowOcrFallback = options.allowOcrFallback ?? true;
+  const enableAiAugmentation = options.enableAiAugmentation ?? true;
+  const logRawTextPreview = options.logRawTextPreview ?? true;
+
   console.log(
     `[Report Parser] Starting comprehensive parse for ${mimeType} document (${base64Data.length} chars)`,
   );
@@ -158,7 +169,7 @@ export async function parseReport(
   try {
     // Step 1: Extract text from PDF using the pdfTextExtractor helper
     console.log("[Report Parser] Step 1: Extracting text from PDF...");
-    const text = await extractTextFromPdf(base64Data);
+    const text = await extractTextFromPdf(base64Data, { allowOcrFallback });
 
     if (!text || text.trim().length === 0) {
       console.warn("[Report Parser] No text extracted from PDF");
@@ -206,7 +217,9 @@ export async function parseReport(
 
     console.log(`[Report Parser] Extracted ${text.length} characters of text`);
     // Add debug log to capture the structure of Credit Monitoring PDFs
-    console.log(`[Report Parser] Raw Text Preview (first 3000 chars):\n${text.substring(0, 3000)}`);
+    if (logRawTextPreview) {
+      console.log(`[Report Parser] Raw Text Preview (first 3000 chars):\n${text.substring(0, 3000)}`);
+    }
 
     // Step 2: Detect the source bureau
     console.log("[Report Parser] Step 2: Detecting source bureau...");
@@ -314,7 +327,7 @@ export async function parseReport(
         console.log(`[Report Parser]   Creditor '${tradeline.creditorName}' resolved to canonical entity: ${resolvedEntity.canonicalName} (${resolvedEntity.entityType})`);
 
         // If payment grid detected, use Gemini-enhanced extraction for more accurate financial data
-        if (hasPaymentGrid) {
+        if (enableAiAugmentation && hasPaymentGrid) {
           console.log(
             `[Report Parser]   Tradeline "${tradeline.creditorName}" has payment grid - using Gemini-enhanced extraction`,
           );

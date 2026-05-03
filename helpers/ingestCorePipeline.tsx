@@ -13,16 +13,15 @@ import { validateTradelines } from "./ingestTradelineValidator";
 import { buildIngestResponse } from "./ingestResponseBuilder";
 import { ComprehensiveParseResult, ExtractedPaymentHistory } from "./reportParserTypes";
 
-import { routeHtmlToLLMResponseWithOverrides } from "./bureauDetectionRouter";
 import { snapshotDisputedTradelines, detectAndRecordSilentCorrections } from "./silentCorrectionDetector";
 import { getLatestTwoSnapshots, createSnapshotsForBatch } from "./tradelineSnapshotManager";
 import { detectSnapshotChanges } from "./changeDetector";
 import { assessPendingPacketImpacts } from "./packetImpactAssessor";
 import { unifiedExtract } from "./unifiedExtractor";
-import { parseHtmlToRawText } from "./_htmlParserUtils";
 import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
 import { ResolvedUserSession } from "./ingestSessionResolver";
-import { assessParserQuality, ParserQualityAssessment } from "./parserQuality";
+import { ParserQualityAssessment } from "./parserQuality";
+import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 
 export class IngestPipelineError extends Error {
   constructor(message: string, public code: string) {
@@ -37,8 +36,8 @@ export interface PipelineParams {
   artifactId: number;
   region: string;
   fileName: string;
-  rawHtml: string;
-  extractionSource?: string | null;
+  bytesBase64: string;
+  mimeType: string;
   send: (event: SSEEvent) => void;
   context: { tradelineIds: number[]; createdTradelineIds: number[]; updatedTradelineIds: number[] };
 }
@@ -49,8 +48,8 @@ export async function executeIngestPipeline({
   artifactId,
   region,
   fileName,
-  rawHtml,
-  extractionSource = null,
+  bytesBase64,
+  mimeType,
   send,
   context
 }: PipelineParams): Promise<void> {
@@ -72,32 +71,35 @@ export async function executeIngestPipeline({
   await Promise.resolve();
 
   let llmData;
+  let extractionProvenance: Record<string, unknown> | null = null;
+  let rawHtml: string | null = null;
   try {
-    llmData = await routeHtmlToLLMResponseWithOverrides(rawHtml || "");
+    const canonicalExtraction = await extractCanonicalCreditReport({
+      bytesBase64,
+      mimeType,
+      allowAiFallback: true,
+    });
+
+    llmData = canonicalExtraction.llmData;
+    parseResult = canonicalExtraction.parseResult;
+    parsedTradelines = canonicalExtraction.parseResult.tradelines || [];
+    detectedBureauInfo = canonicalExtraction.parseResult.sourceBureau || null;
+    parserQuality = canonicalExtraction.parserQuality;
+    extractionProvenance = canonicalExtraction.provenance as unknown as Record<string, unknown>;
+    rawHtml = canonicalExtraction.rawHtml;
   } catch (error: unknown) {
-    console.error(`[Ingest] Unsupported bureau:`, error);
+    console.error(`[Ingest] Canonical extraction failed:`, error);
     throw new IngestPipelineError(
-      error instanceof Error ? error.message : "Unsupported credit bureau format.",
-      "UNSUPPORTED_BUREAU"
+      error instanceof Error ? error.message : "Credit report extraction failed.",
+      "EXTRACTION_FAILED"
     );
   }
 
-  const rawText = parseHtmlToRawText(rawHtml || "");
-  const extractionResult = unifiedExtract(llmData, rawText, artifactId);
+  const extractionResult = unifiedExtract(llmData, parseResult.rawText, artifactId);
 
-  const { comprehensive, passA, fullExtraction } = extractionResult;
+  const { passA, fullExtraction } = extractionResult;
   
   passAExtraction = passA;
-  parseResult = comprehensive;
-  parsedTradelines = comprehensive.tradelines || [];
-  detectedBureauInfo = comprehensive.sourceBureau || null;
-  parserQuality = assessParserQuality({
-    rawHtml: rawHtml || "",
-    llmData,
-    parseResult: comprehensive,
-    parsedTradelines,
-    extractionSource,
-  });
 
   if (parserQuality.issues.length > 0) {
     console.warn(
@@ -117,6 +119,10 @@ export async function executeIngestPipeline({
     .set({
       data: JSON.parse(JSON.stringify({
         ...currentQualityData,
+        ...(rawHtml ? { docstrangeRawHtml: rawHtml } : {}),
+        extractionStatus: "extracted",
+        extractionSource: extractionProvenance?.selectedMethod ?? "pdf_text",
+        extractionProvenance,
         parserQuality,
         extractionConfidence: parserQuality.confidenceScore,
         parseConfidence: parserQuality.confidenceScore,
@@ -197,17 +203,17 @@ export async function executeIngestPipeline({
       status: "completed",
       completedAt: new Date(),
       channelGuess: fullExtraction.channel_guess,
-      bureauContext: JSON.stringify(fullExtraction.bureau_context),
-      consumerProfile: JSON.stringify(fullExtraction.consumer_profile),
-      portalSummary: JSON.stringify(fullExtraction.portal_summary),
-      accounts: JSON.stringify(fullExtraction.accounts),
-      inquiriesCreditRelated: JSON.stringify(fullExtraction.inquiries_credit_related),
-      inquiriesOther: JSON.stringify(fullExtraction.inquiries_other),
-      insolvencyPublicRecords: JSON.stringify(fullExtraction.insolvency_public_records),
-      rawEvidence: JSON.stringify(fullExtraction.raw_evidence),
-      conflicts: JSON.stringify(fullExtraction.conflicts),
-      missingRequiredFields: JSON.stringify(fullExtraction.missing_required_fields),
-      qualityNotes: JSON.stringify(fullExtraction.quality_notes),
+      bureauContext: JSON.parse(JSON.stringify(fullExtraction.bureau_context)) as Json,
+      consumerProfile: JSON.parse(JSON.stringify(fullExtraction.consumer_profile)) as Json,
+      portalSummary: JSON.parse(JSON.stringify(fullExtraction.portal_summary)) as Json,
+      accounts: JSON.parse(JSON.stringify(fullExtraction.accounts)) as Json,
+      inquiriesCreditRelated: JSON.parse(JSON.stringify(fullExtraction.inquiries_credit_related)) as Json,
+      inquiriesOther: JSON.parse(JSON.stringify(fullExtraction.inquiries_other)) as Json,
+      insolvencyPublicRecords: JSON.parse(JSON.stringify(fullExtraction.insolvency_public_records)) as Json,
+      rawEvidence: JSON.parse(JSON.stringify(fullExtraction.raw_evidence)) as Json,
+      conflicts: JSON.parse(JSON.stringify(fullExtraction.conflicts)) as Json,
+      missingRequiredFields: JSON.parse(JSON.stringify(fullExtraction.missing_required_fields)) as Json,
+      qualityNotes: JSON.parse(JSON.stringify(fullExtraction.quality_notes)) as Json,
     })
     .where("id", "=", fullRecord.id)
     .execute();
