@@ -400,13 +400,7 @@ export default function StatutesPage() {
       )
       .join("");
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      showError("Unable to open PDF preview window");
-      return;
-    }
-
-    printWindow.document.write(`
+    const htmlDocument = `
       <html>
         <head>
           <title>Laws Export</title>
@@ -439,10 +433,63 @@ export default function StatutesPage() {
           </table>
         </body>
       </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 300);
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(htmlDocument);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 300);
+      return;
+    }
+
+    // Fallback for popup-blocked environments (including in-app browsers).
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+      setTimeout(() => {
+        if (iframe.parentNode) {
+          iframe.parentNode.removeChild(iframe);
+        }
+      }, 1000);
+    };
+
+    const iframeDocument = iframe.contentDocument;
+    if (!iframeDocument) {
+      showError("Unable to render PDF preview");
+      cleanup();
+      return;
+    }
+
+    iframeDocument.open();
+    iframeDocument.write(htmlDocument);
+    iframeDocument.close();
+
+    const printFromFrame = () => {
+      const frameWindow = iframe.contentWindow;
+      if (!frameWindow) {
+        showError("Unable to render PDF preview");
+        cleanup();
+        return;
+      }
+      frameWindow.focus();
+      frameWindow.print();
+      cleanup();
+    };
+
+    if (iframeDocument.readyState === "complete") {
+      setTimeout(printFromFrame, 100);
+    } else {
+      iframe.onload = () => setTimeout(printFromFrame, 100);
+    }
   };
 
   const relatedLawsByVersionId = useMemo(() => {
