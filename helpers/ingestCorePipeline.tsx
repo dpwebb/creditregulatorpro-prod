@@ -4,7 +4,7 @@ import { SSEEvent } from "./sseStreamBuilder";
 import { ParsedTradeline } from "./reportParser";
 import { PassADraftExtraction } from "./passAExtractorTypes";
 import { logUpload } from "./auditLogger";
-import { scanAndPersistViolations } from "./complianceScanner";
+import { scanAndPersistViolations, type ScanContext } from "./complianceScanner";
 import { ConsumerInfoComparison } from "./fuzzyMatcher";
 import { updateUserProfileFromReport } from "./ingestProfileUpdater";
 import { storeComprehensiveReportData } from "./comprehensiveReportStorage";
@@ -40,6 +40,208 @@ export interface PipelineParams {
   mimeType: string;
   send: (event: SSEEvent) => void;
   context: { tradelineIds: number[]; createdTradelineIds: number[]; updatedTradelineIds: number[] };
+}
+
+const COMPLIANCE_SCAN_CONCURRENCY = 4;
+
+function artifactTimestamp(artifact: { reportDate: Date | string | null; createdAt: Date | string | null }): number {
+  return new Date(artifact.reportDate ?? artifact.createdAt ?? 0).getTime();
+}
+
+function mergeAndSortArtifacts<T extends { id: number; reportDate: Date | string | null; createdAt: Date | string | null }>(
+  ...artifactLists: T[][]
+): T[] {
+  const unique = new Map<number, T>();
+  for (const list of artifactLists) {
+    for (const artifact of list) {
+      unique.set(artifact.id, artifact);
+    }
+  }
+  return [...unique.values()].sort((a, b) => artifactTimestamp(b) - artifactTimestamp(a));
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  if (items.length === 0) return;
+
+  const maxWorkers = Math.max(1, Math.min(concurrency, items.length));
+  let cursor = 0;
+
+  await Promise.all(
+    Array.from({ length: maxWorkers }, async () => {
+      while (true) {
+        const index = cursor;
+        cursor += 1;
+        if (index >= items.length) break;
+        await worker(items[index]);
+      }
+    })
+  );
+}
+
+async function insertEvidenceEventIfMissing(params: {
+  packetId?: number | null;
+  eventType: string;
+  description: string;
+  region: string;
+}): Promise<boolean> {
+  let query = db
+    .selectFrom("evidenceEvent")
+    .select("id")
+    .where("eventType", "=", params.eventType)
+    .where("description", "=", params.description);
+
+  if (params.packetId == null) {
+    query = query.where("packetId", "is", null);
+  } else {
+    query = query.where("packetId", "=", params.packetId);
+  }
+
+  const existing = await query.executeTakeFirst();
+  if (existing) {
+    return false;
+  }
+
+  await db
+    .insertInto("evidenceEvent")
+    .values({
+      packetId: params.packetId ?? null,
+      eventType: params.eventType,
+      description: params.description,
+      region: params.region,
+      at: new Date(),
+    })
+    .execute();
+
+  return true;
+}
+
+async function buildComplianceScanContexts(
+  userId: number,
+  tradelineIds: number[]
+): Promise<Map<number, ScanContext>> {
+  const contextByTradelineId = new Map<number, ScanContext>();
+  if (tradelineIds.length === 0) return contextByTradelineId;
+
+  const tradelines = await db
+    .selectFrom("tradeline")
+    .selectAll()
+    .where("id", "in", tradelineIds)
+    .execute();
+
+  if (tradelines.length === 0) return contextByTradelineId;
+
+  const bankruptcies = await db
+    .selectFrom("bankruptcyRecord")
+    .selectAll()
+    .where("userId", "=", userId)
+    .execute();
+
+  const disputes = await db
+    .selectFrom("obligationInstance")
+    .selectAll()
+    .where("tradelineId", "in", tradelineIds)
+    .execute();
+
+  const disputesByTradelineId = new Map<number, typeof disputes>();
+  for (const dispute of disputes) {
+    if (!dispute.tradelineId) continue;
+    const existing = disputesByTradelineId.get(dispute.tradelineId) ?? [];
+    existing.push(dispute);
+    disputesByTradelineId.set(dispute.tradelineId, existing);
+  }
+
+  const directPresenceRows = await db
+    .selectFrom("tradelineArtifactPresence")
+    .select(["tradelineId", "reportArtifactId"])
+    .where("tradelineId", "in", tradelineIds)
+    .execute();
+
+  const directArtifactIdsByTradelineId = new Map<number, number[]>();
+  for (const row of directPresenceRows) {
+    const existing = directArtifactIdsByTradelineId.get(row.tradelineId) ?? [];
+    existing.push(row.reportArtifactId);
+    directArtifactIdsByTradelineId.set(row.tradelineId, existing);
+  }
+
+  const bureauIds = [...new Set(tradelines.map((tradeline) => tradeline.bureauId).filter((bureauId): bureauId is number => bureauId !== null))];
+  const timelineArtifactIdsByBureauId = new Map<number, number[]>();
+
+  if (bureauIds.length > 0) {
+    const timelineRows = await db
+      .selectFrom("tradelineArtifactPresence")
+      .innerJoin("tradeline", "tradeline.id", "tradelineArtifactPresence.tradelineId")
+      .select(["tradeline.bureauId as bureauId", "tradelineArtifactPresence.reportArtifactId as reportArtifactId"])
+      .distinct()
+      .where("tradeline.userId", "=", userId)
+      .where("tradeline.bureauId", "in", bureauIds)
+      .execute();
+
+    for (const row of timelineRows) {
+      if (row.bureauId == null) continue;
+      const existing = timelineArtifactIdsByBureauId.get(row.bureauId) ?? [];
+      existing.push(row.reportArtifactId);
+      timelineArtifactIdsByBureauId.set(row.bureauId, existing);
+    }
+  }
+
+  const allArtifactIds = new Set<number>();
+  for (const ids of directArtifactIdsByTradelineId.values()) {
+    for (const id of ids) allArtifactIds.add(id);
+  }
+  for (const ids of timelineArtifactIdsByBureauId.values()) {
+    for (const id of ids) allArtifactIds.add(id);
+  }
+  for (const tradeline of tradelines) {
+    if (tradeline.reportArtifactId) allArtifactIds.add(tradeline.reportArtifactId);
+  }
+
+  const artifacts = allArtifactIds.size > 0
+    ? await db
+        .selectFrom("reportArtifact")
+        .selectAll()
+        .where("id", "in", [...allArtifactIds])
+        .execute()
+    : [];
+
+  const artifactById = new Map<number, (typeof artifacts)[number]>();
+  for (const artifact of artifacts) {
+    artifactById.set(artifact.id, artifact);
+  }
+
+  for (const tradeline of tradelines) {
+    const directArtifacts = (directArtifactIdsByTradelineId.get(tradeline.id) ?? [])
+      .map((id) => artifactById.get(id))
+      .filter((artifact): artifact is NonNullable<typeof artifact> => Boolean(artifact));
+
+    if (tradeline.reportArtifactId) {
+      const reportArtifact = artifactById.get(tradeline.reportArtifactId);
+      if (reportArtifact) {
+        directArtifacts.push(reportArtifact);
+      }
+    }
+
+    const sameBureauArtifacts =
+      tradeline.bureauId != null
+        ? (timelineArtifactIdsByBureauId.get(tradeline.bureauId) ?? [])
+            .map((id) => artifactById.get(id))
+            .filter((artifact): artifact is NonNullable<typeof artifact> => Boolean(artifact))
+        : [];
+
+    const mergedArtifacts = mergeAndSortArtifacts(directArtifacts, sameBureauArtifacts);
+
+    contextByTradelineId.set(tradeline.id, {
+      tradeline,
+      reportArtifacts: mergedArtifacts,
+      bankruptcyRecords: bankruptcies,
+      obligationInstances: disputesByTradelineId.get(tradeline.id) ?? [],
+    });
+  }
+
+  return contextByTradelineId;
 }
 
 export async function executeIngestPipeline({
@@ -384,15 +586,11 @@ export async function executeIngestPipeline({
           .executeTakeFirst();
 
         if (priorPresence) {
-          await db
-            .insertInto("evidenceEvent")
-            .values({
-              eventType: "TRADELINE_ABSENT_FROM_REPORT",
-              description: `Account ${missing.creditorName || "Unknown"} (tradeline ID ${missing.id}) was not found in the subsequent ${detectedBureauInfo?.bureauName || "bureau"} report (artifact ${artifactId})`,
-              region: region,
-              at: new Date(),
-            })
-            .execute();
+          await insertEvidenceEventIfMissing({
+            eventType: "TRADELINE_ABSENT_FROM_REPORT",
+            description: `Account ${missing.creditorName || "Unknown"} (tradeline ID ${missing.id}) was not found in the subsequent ${detectedBureauInfo?.bureauName || "bureau"} report (artifact ${artifactId})`,
+            region,
+          });
         }
       }
     } catch (err) {
@@ -405,13 +603,16 @@ export async function executeIngestPipeline({
   await Promise.resolve();
   
   if (context.tradelineIds.length > 0) {
-    for (const tradelineId of context.tradelineIds) {
+    const scanContexts = await buildComplianceScanContexts(user.id, context.tradelineIds);
+
+    await runWithConcurrency(context.tradelineIds, COMPLIANCE_SCAN_CONCURRENCY, async (tradelineId) => {
       try {
-        await scanAndPersistViolations(tradelineId);
+        const scanContext = scanContexts.get(tradelineId);
+        await scanAndPersistViolations(tradelineId, scanContext ?? {});
       } catch (scanError) {
         console.error(`[Ingest] Compliance scan failed for tradeline ${tradelineId}:`, scanError);
       }
-    }
+    });
   }
 
   send({ type: "progress", stage: "auto_drift_detection", percent: 94 });
@@ -526,16 +727,12 @@ export async function executeIngestPipeline({
 
         for (const assessment of assessments) {
           if (assessment.favorableChanges && assessment.favorableChanges > 0) {
-            await db
-              .insertInto("evidenceEvent")
-              .values({
-                packetId: assessment.packetId,
-                eventType: "PACKET_IMPACT_ASSESSED",
-                description: `Packet impact assessed: ${assessment.favorableChanges} favorable changes detected. Score: ${assessment.impactScore}`,
-                region: region,
-                at: new Date()
-              })
-              .execute();
+            await insertEvidenceEventIfMissing({
+              packetId: assessment.packetId,
+              eventType: "PACKET_IMPACT_ASSESSED",
+              description: `Packet impact assessed: ${assessment.favorableChanges} favorable changes detected. Score: ${assessment.impactScore}`,
+              region,
+            });
           }
         }
       } catch (err) {
@@ -568,16 +765,12 @@ export async function executeIngestPipeline({
           const assessments = await assessPendingPacketImpacts(p.tradelineId, latestSnap.id);
           for (const assessment of assessments) {
             if (assessment.favorableChanges && assessment.favorableChanges > 0) {
-              await db
-                .insertInto("evidenceEvent")
-                .values({
-                  packetId: assessment.packetId,
-                  eventType: "PACKET_IMPACT_ASSESSED",
-                  description: `Packet impact assessed: ${assessment.favorableChanges} favorable changes detected. Score: ${assessment.impactScore}`,
-                  region: region,
-                  at: new Date()
-                })
-                .execute();
+              await insertEvidenceEventIfMissing({
+                packetId: assessment.packetId,
+                eventType: "PACKET_IMPACT_ASSESSED",
+                description: `Packet impact assessed: ${assessment.favorableChanges} favorable changes detected. Score: ${assessment.impactScore}`,
+                region,
+              });
             }
           }
         }

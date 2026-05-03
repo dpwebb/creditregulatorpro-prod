@@ -15,13 +15,21 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const { tradelineId } = schema.parse(json);
 
-    // 2. Query user_account table
-    // We link user_account via email since there is no direct userId FK in the provided schema for user_account
-    const userAccount = await db
+    // 2. Query user_account table.
+    // Prefer userId linkage; keep an email fallback for legacy rows where userId is null.
+    let userAccount = await db
       .selectFrom("userAccount")
-      .where("email", "=", user.email)
+      .where("userId", "=", user.id)
       .selectAll()
       .executeTakeFirst();
+
+    if (!userAccount) {
+      userAccount = await db
+        .selectFrom("userAccount")
+        .where("email", "=", user.email)
+        .selectAll()
+        .executeTakeFirst();
+    }
 
     const missingUserFields: string[] = [];
 

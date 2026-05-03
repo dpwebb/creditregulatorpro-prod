@@ -54,6 +54,40 @@ function getPlainLanguageDescription(category: string | null): string {
   }
 }
 
+function selectBundledTopRecommendations<T extends { tradelineId: number; score: number; violationId: number }>(
+  recommendations: T[],
+  limit: number
+): T[] {
+  if (recommendations.length <= limit) {
+    return [...recommendations].sort((a, b) => b.score - a.score);
+  }
+
+  const sorted = [...recommendations].sort((a, b) => b.score - a.score);
+  const selected: T[] = [];
+  const seenTradelineIds = new Set<number>();
+
+  // Pass 1: maximize tradeline coverage to avoid stacking all top slots on one tradeline.
+  for (const recommendation of sorted) {
+    if (selected.length >= limit) break;
+    if (seenTradelineIds.has(recommendation.tradelineId)) continue;
+    selected.push(recommendation);
+    seenTradelineIds.add(recommendation.tradelineId);
+  }
+
+  // Pass 2: fill any remaining slots with next-highest scores.
+  if (selected.length < limit) {
+    const selectedViolationIds = new Set(selected.map((item) => item.violationId));
+    for (const recommendation of sorted) {
+      if (selected.length >= limit) break;
+      if (selectedViolationIds.has(recommendation.violationId)) continue;
+      selected.push(recommendation);
+      selectedViolationIds.add(recommendation.violationId);
+    }
+  }
+
+  return selected;
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -203,9 +237,8 @@ export async function handle(request: Request) {
       });
     }
 
-    // 5. Sort by score descending and take the top 3
-    recommendations.sort((a, b) => b.score - a.score);
-    const top3 = recommendations.slice(0, 3);
+    // 5. Rank by score with tradeline bundling, then cap to top 3
+    const top3 = selectBundledTopRecommendations(recommendations, 3);
 
     // 6. If no valid violations, return procedural alternatives
     let proceduralOptions = null;

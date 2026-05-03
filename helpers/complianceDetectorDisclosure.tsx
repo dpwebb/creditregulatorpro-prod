@@ -5,6 +5,57 @@ import { db } from "./db";
 import { regulationRegistry } from "./regulationRegistry";
 import { resolveProvinceByIds } from "./resolveTradelineProvince";
 
+const REPORT_LEVEL_FIELD_PATHS = new Set([
+  "inquiries_credit_related",
+  "insolvency_public_records",
+  "bureau_context.bureau_name",
+  "bureau_context.report_generated_at",
+]);
+
+const COLLECTION_EXCLUDED_FIELD_PATHS = new Set([
+  "accounts[].status",
+  "accounts[].payment_history",
+  "accounts[].high_credit",
+  "accounts[].date_opened",
+]);
+
+// Account numbers are useful search anchors but not universally required in Canadian disclosures.
+// Bureaus may lawfully omit or mask them.
+const OPTIONAL_ACCOUNT_IDENTIFIER_PATHS = new Set([
+  "accounts[].account_number",
+  "accounts[].account_number_partial",
+  "accounts[].account_number_masked",
+]);
+
+function normalizeFieldPath(path: string): string {
+  return path.trim().toLowerCase();
+}
+
+function shouldSkipRequirementForTradeline(
+  fieldPath: string,
+  tradeline: Selectable<Tradeline>
+): boolean {
+  const normalizedPath = normalizeFieldPath(fieldPath);
+
+  if (normalizedPath.startsWith("consumer_profile.")) {
+    return true;
+  }
+
+  if (REPORT_LEVEL_FIELD_PATHS.has(normalizedPath)) {
+    return true;
+  }
+
+  if (OPTIONAL_ACCOUNT_IDENTIFIER_PATHS.has(normalizedPath)) {
+    return true;
+  }
+
+  if (isEffectivelyCollectionAccount(tradeline) && COLLECTION_EXCLUDED_FIELD_PATHS.has(normalizedPath)) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Safely parses a JSON field if it is a string.
  */
@@ -233,32 +284,8 @@ export async function detectDisclosureDeficiency(
       continue; // Skip procedural requirements without a data mapping
     }
 
-    // Skip report-level disclosures - these are evaluated at the report level, not per tradeline.
-    const reportLevelPaths = [
-      "inquiries_credit_related",
-      "insolvency_public_records",
-      "bureau_context.bureau_name",
-      "bureau_context.report_generated_at"
-    ];
-    if (reportLevelPaths.includes(req.fieldPath) || req.fieldPath.startsWith("consumer_profile.")) {
+    if (shouldSkipRequirementForTradeline(req.fieldPath, tradeline)) {
       continue;
-    }
-
-    // Collection accounts do not track certain fields applicable to standard tradelines:
-    // - status: often replaced by collection indicators
-    // - payment_history: month-by-month not tracked
-    // - high_credit: no credit limit or high credit amount
-    // - date_opened: uses "date assigned to collection"
-    if (isEffectivelyCollectionAccount(tradeline)) {
-      const excludedPaths = [
-        "accounts[].status",
-        "accounts[].payment_history",
-        "accounts[].high_credit",
-        "accounts[].date_opened",
-      ];
-      if (excludedPaths.includes(req.fieldPath)) {
-        continue;
-      }
     }
 
     let isPresent = checkFieldExists(extraction, req.fieldPath, tradeline);
