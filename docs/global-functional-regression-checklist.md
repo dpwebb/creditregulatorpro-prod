@@ -191,6 +191,28 @@ Suggested accounts:
    - Redaction is applied to sensitive detail fields
    - Error severity/fingerprint metadata appears consistently on failures
 
+### F) Laws Registry (Localhost Reliability)
+
+1. Login as admin and open `/statutes`
+2. Confirm page resolves and table data loads (no blank unresolved state)
+3. Validate filter option sources:
+   - Jurisdictions dropdown loads values
+   - Codes dropdown loads values
+   - Topics dropdown loads values
+   - Status dropdown includes `ACTIVE`, `AMENDED`, `REPEALED`
+4. Click `View change history` on a law row
+5. Expected:
+   - History modal opens
+   - Modal shows entries or a clean empty-state message
+   - No route/API 404 for `/_api/statute/history`
+6. Force an error scenario (unauthenticated or expired session) and retry `/statutes`
+7. Expected:
+   - UI displays concrete error text instead of hanging or unresolved state
+   - No JSON parse crash when backend returns non-JSON error bodies
+8. Optional regression checks:
+   - Export CSV downloads with current filtered rows
+   - Export PDF opens print preview without runtime errors
+
 ## 8) Static/Reference Pages (Load Check)
 
 Verify these pages render with no route error:

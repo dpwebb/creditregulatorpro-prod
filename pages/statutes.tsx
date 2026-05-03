@@ -609,7 +609,12 @@ export default function StatutesPage() {
         ) : error ? (
           <div className={styles.errorState}>
             <AlertTriangle size={32} />
-            <p>Failed to load laws. Please try again.</p>
+            <p>
+              Failed to load laws.
+              {error instanceof Error && error.message
+                ? ` ${error.message}`
+                : " Please try again."}
+            </p>
           </div>
         ) : Object.keys(groupedStatutes).length === 0 ? (
           <div className={styles.emptyState}>

@@ -267,6 +267,20 @@ app.get('_api/statute/list',async c => {
     return c.text("Error loading endpoint code " + e.message,  500)
   }
 })
+app.get('_api/statute/history',async c => {
+  try {
+    const { handle } = await import("./endpoints/statute/history_GET.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
 app.get('_api/user/profile',async c => {
   try {
     const { handle } = await import("./endpoints/user/profile_GET.js");

@@ -20,6 +20,21 @@ export type OutputType = {
   }>;
 };
 
+async function readErrorMessage(result: Response): Promise<string> {
+  const fallback = `Request failed (${result.status})`;
+  const text = await result.text();
+  if (!text) return fallback;
+  try {
+    const parsed = JSON.parse(text) as { error?: unknown };
+    if (typeof parsed.error === "string" && parsed.error.trim()) {
+      return parsed.error;
+    }
+  } catch {
+    // Non-JSON response body.
+  }
+  return text.trim() || fallback;
+}
+
 export const getStatuteHistory = async (
   input: InputType,
   init?: RequestInit
@@ -36,8 +51,7 @@ export const getStatuteHistory = async (
     },
   });
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    throw new Error(await readErrorMessage(result));
   }
   return JSON.parse(await result.text());
 };
