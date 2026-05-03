@@ -55,7 +55,7 @@ import { AppSidebarUser } from "./AppSidebarUser";
 import { AppSidebarToggle } from "./AppSidebarToggle";
 import { AppSidebarPlatformFunctionsButton } from "./AppSidebarPlatformFunctionsButton";
 import { TrialCountdownBanner } from "./TrialCountdownBanner";
-import { useCurrentVersion } from "../helpers/versionQueries";
+import { APP_DISPLAY_VERSION } from "../helpers/appVersion";
 import { AISupportChat } from "./AISupportChat";
 import styles from "./AppLayout.module.css";
 
@@ -66,7 +66,6 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { authState, logout } = useAuth();
   const isMobile = useIsMobile();
-  const { data: currentVersion } = useCurrentVersion();
   const [isEmailBannerDismissed, setIsEmailBannerDismissed] = useState(false);
   const { mutate: sendVerificationEmail, isPending: isSendingVerification } = useRequestVerificationEmail();
   const { showSuccess, showError } = useToast();
@@ -243,11 +242,9 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           {authState.type === "authenticated" && authState.user.role === "admin" && (
             <AppSidebarPlatformFunctionsButton isMinimized={isMinimized} />
           )}
-          {currentVersion && (
-            <div className={styles.versionBadge} data-minimized={isMinimized}>
-              v{currentVersion.version}
-            </div>
-          )}
+          <div className={styles.versionBadge} data-minimized={isMinimized}>
+            v{APP_DISPLAY_VERSION}
+          </div>
           {authState.type === "authenticated" && (
             <AppSidebarUser 
               user={authState.user} 

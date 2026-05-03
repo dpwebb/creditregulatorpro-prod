@@ -18,6 +18,7 @@ concurrency:
 jobs:
   check:
     name: Build check
+    if: github.repository == 'dpwebb/creditregulatorpro-prod'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -41,6 +42,7 @@ jobs:
 
   deploy:
     name: Deploy to production server
+    if: github.repository == 'dpwebb/creditregulatorpro-prod'
     runs-on: ubuntu-latest
     needs: check
     environment: production
