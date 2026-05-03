@@ -1,17 +1,24 @@
 import { z } from "zod";
 
-import { AuditActionType, AuditEntityType, AuditStatus } from "../../helpers/schema";
+import {
+  AuditActionType,
+  AuditActionTypeArrayValues,
+  AuditEntityType,
+  AuditEntityTypeArrayValues,
+  AuditStatus,
+  AuditStatusArrayValues,
+} from "../../helpers/schema";
 
 export const schema = z.object({
-  actionType: z.string().optional(),
-  entityType: z.string().optional(),
-  status: z.enum(["SUCCESS", "FAILURE"]).optional(),
+  actionType: z.enum(AuditActionTypeArrayValues).optional(),
+  entityType: z.enum(AuditEntityTypeArrayValues).optional(),
+  status: z.enum(AuditStatusArrayValues).optional(),
   userId: z.coerce.number().optional(),
-  email: z.string().optional(),
-  startDate: z.string().optional(), // ISO date string
-  endDate: z.string().optional(), // ISO date string
-  limit: z.coerce.number().optional().default(100),
-  offset: z.coerce.number().optional().default(0),
+  email: z.string().trim().max(200).optional(),
+  startDate: z.string().trim().max(40).optional(),
+  endDate: z.string().trim().max(40).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
 export type InputType = z.infer<typeof schema>;

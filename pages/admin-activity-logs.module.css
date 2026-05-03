@@ -85,6 +85,32 @@
   font-size: 0.875rem;
 }
 
+.presetGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.presetButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background-color var(--animation-duration-fast), border-color var(--animation-duration-fast);
+}
+
+.presetButton:hover {
+  background-color: var(--muted);
+  border-color: var(--muted-foreground);
+}
+
 .cardList {
   display: flex;
   flex-direction: column;
@@ -337,6 +363,9 @@
     width: 100%;
   }
   .dateInputWrapper {
+    width: 100%;
+  }
+  .presetGroup {
     width: 100%;
   }
   .pagination {

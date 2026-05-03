@@ -56,8 +56,8 @@ export default function AdminErrorLogsPage() {
 
   const { data, isFetching, isError } = useAuditLogs({
     status: "FAILURE",
-    actionType: actionType === "ALL" ? undefined : actionType,
-    entityType: entityType === "ALL" ? undefined : entityType,
+    actionType: actionType === "ALL" ? undefined : (actionType as any),
+    entityType: entityType === "ALL" ? undefined : (entityType as any),
     email: debouncedEmail || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,

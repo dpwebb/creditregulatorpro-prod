@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { format } from "../helpers/dateUtils";
 import { useAuth } from "../helpers/useAuth";
 import {
   Search,
@@ -25,7 +24,7 @@ import {
 import { Spinner } from "../components/Spinner";
 import { useAuditLogs } from "../helpers/adminQueries";
 import { useDebounce } from "../helpers/useDebounce";
-import { AuditActionTypeArrayValues } from "../helpers/schema";
+import { AuditActionTypeArrayValues, AuditStatusArrayValues } from "../helpers/schema";
 import styles from "./admin-activity-logs.module.css";
 
 const PAGE_SIZE = 100;
@@ -37,10 +36,24 @@ function humanizeActionType(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function formatTimestampLocal(value: Date): string {
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  }).format(value);
+}
+
 export default function AdminActivityLogsPage() {
   const { authState } = useAuth();
   const [emailSearch, setEmailSearch] = useState("");
   const [actionType, setActionType] = useState<string>("ALL");
+  const [status, setStatus] = useState<string>("ALL");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -49,7 +62,8 @@ export default function AdminActivityLogsPage() {
   const debouncedEmail = useDebounce(emailSearch, 500);
 
   const filters = {
-    actionType: actionType === "ALL" ? undefined : actionType,
+    actionType: actionType === "ALL" ? undefined : (actionType as any),
+    status: status === "ALL" ? undefined : (status as any),
     startDate: startDate || undefined,
     endDate: endDate || undefined,
     email: debouncedEmail || undefined,
@@ -78,6 +92,29 @@ export default function AdminActivityLogsPage() {
   const handleFilterChange = (fn: () => void) => {
     setPage(0);
     fn();
+  };
+
+  const applyPreset = (preset: "last24Hours" | "errorsOnly" | "clear") => {
+    setPage(0);
+
+    if (preset === "last24Hours") {
+      const now = new Date();
+      const previousDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      setStartDate(previousDay.toISOString().slice(0, 10));
+      setEndDate(now.toISOString().slice(0, 10));
+      return;
+    }
+
+    if (preset === "errorsOnly") {
+      setStatus("FAILURE");
+      return;
+    }
+
+    setEmailSearch("");
+    setActionType("ALL");
+    setStatus("ALL");
+    setStartDate("");
+    setEndDate("");
   };
 
   return (
@@ -118,6 +155,23 @@ export default function AdminActivityLogsPage() {
             </SelectContent>
           </Select>
 
+          <Select
+            value={status}
+            onValueChange={(val) => handleFilterChange(() => setStatus(val))}
+          >
+            <SelectTrigger className={styles.selectTrigger}>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              {AuditStatusArrayValues.map((auditStatus) => (
+                <SelectItem key={auditStatus} value={auditStatus}>
+                  {auditStatus.charAt(0) + auditStatus.slice(1).toLowerCase()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <div className={styles.dateInputWrapper}>
             <Calendar className={styles.inputIcon} size={16} />
             <Input
@@ -137,6 +191,30 @@ export default function AdminActivityLogsPage() {
               className={styles.dateInput}
             />
           </div>
+        </div>
+
+        <div className={styles.presetGroup}>
+          <button
+            type="button"
+            className={styles.presetButton}
+            onClick={() => applyPreset("last24Hours")}
+          >
+            Last 24h
+          </button>
+          <button
+            type="button"
+            className={styles.presetButton}
+            onClick={() => applyPreset("errorsOnly")}
+          >
+            Errors Only
+          </button>
+          <button
+            type="button"
+            className={styles.presetButton}
+            onClick={() => applyPreset("clear")}
+          >
+            Clear
+          </button>
         </div>
       </div>
 
@@ -171,7 +249,7 @@ export default function AdminActivityLogsPage() {
               >
                 <div className={styles.cardTopRow}>
                   <div className={styles.timestamp}>
-                    {format(new Date(log.timestamp), "MMM d, yyyy HH:mm:ss")}
+                    {formatTimestampLocal(new Date(log.timestamp))}
                   </div>
                   <div className={styles.userInfo}>
                     <span className={styles.userEmail}>
@@ -198,7 +276,7 @@ export default function AdminActivityLogsPage() {
                 </div>
                 <div className={styles.cardBottomRow}>
                   <div className={styles.ipAddress}>
-                    {log.ipAddress || "—"}
+                    {log.ipAddress || "-"}
                   </div>
                   <div className={styles.expandIcon}>
                     {expandedRows.has(log.id) ? (
@@ -227,6 +305,12 @@ export default function AdminActivityLogsPage() {
                       </span>
                       <span className={styles.detailValue}>
                         {log.region}
+                      </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>UTC Timestamp</span>
+                      <span className={styles.detailValue}>
+                        {new Date(log.timestamp).toISOString()}
                       </span>
                     </div>
                     {Boolean(log.details) && (
@@ -258,7 +342,7 @@ export default function AdminActivityLogsPage() {
       {total > 0 && (
         <div className={styles.pagination}>
           <span className={styles.paginationInfo}>
-            Showing {showingFrom}–{showingTo} of {total}
+            Showing {showingFrom}-{showingTo} of {total}
           </span>
           <div className={styles.paginationControls}>
             <button

@@ -2,7 +2,7 @@ import { schema, OutputType } from "./log_GET.schema";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
-
+import { sanitizeAuditLogDetails } from "../../helpers/auditLogSanitizer";
 
 export async function handle(request: Request) {
   try {
@@ -11,7 +11,7 @@ export async function handle(request: Request) {
     if (user.role !== "admin") {
       return new Response(
         JSON.stringify({ error: "Unauthorized: Admin access required" }),
-        { status: 403 }
+        { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
 
@@ -23,7 +23,7 @@ export async function handle(request: Request) {
     // 3. Build Query
     let query = db
       .selectFrom("auditLog")
-            .leftJoin("users", "auditLog.userId", "users.id")
+      .leftJoin("users", "auditLog.userId", "users.id")
       .select([
         "auditLog.id",
         "auditLog.actionType",
@@ -56,8 +56,17 @@ export async function handle(request: Request) {
     if (input.startDate) {
       query = query.where("auditLog.timestamp", ">=", input.startDate);
     }
-    if (input.endDate) {
-      query = query.where("auditLog.timestamp", "<=", input.endDate);
+    const endDateExclusive = input.endDate
+      ? new Date(
+          Date.UTC(
+            input.endDate.getUTCFullYear(),
+            input.endDate.getUTCMonth(),
+            input.endDate.getUTCDate() + 1
+          )
+        )
+      : undefined;
+    if (endDateExclusive) {
+      query = query.where("auditLog.timestamp", "<", endDateExclusive);
     }
 
     // Get total count (separate query for performance/simplicity with Kysely)
@@ -81,8 +90,8 @@ export async function handle(request: Request) {
     if (input.startDate) {
       countQuery = countQuery.where("timestamp", ">=", input.startDate);
     }
-    if (input.endDate) {
-      countQuery = countQuery.where("timestamp", "<=", input.endDate);
+    if (endDateExclusive) {
+      countQuery = countQuery.where("timestamp", "<", endDateExclusive);
     }
 
     const [logs, countResult] = await Promise.all([
@@ -95,15 +104,20 @@ export async function handle(request: Request) {
     ]);
 
     const total = Number(countResult?.count ?? 0);
+    const sanitizedLogs = logs.map((log) => ({
+      ...log,
+      details: sanitizeAuditLogDetails(log.details),
+    }));
 
     // 4. Return Response
     return new Response(
       JSON.stringify({
-        logs,
+        logs: sanitizedLogs,
         total,
-      } satisfies OutputType)
+      } satisfies OutputType),
+      { headers: { "Content-Type": "application/json" } }
     );
-    } catch (error) {
+  } catch (error) {
     return handleEndpointError(error);
   }
 }

@@ -136,11 +136,18 @@ Suggested accounts:
    - `/admin-activity-logs`
    - `/admin-error-logs`
    - `/admin-security`
-2. Perform one admin mutation (e.g., create support agent or reset user) and confirm audit visibility
-3. Expected:
+2. In `/admin-activity-logs`, verify:
+   - Status filter works (`All`, `Success`, `Failure`)
+   - Preset buttons work (`Last 24h`, `Errors Only`, `Clear`)
+   - Expanded row shows local timestamp in header and UTC timestamp in details
+3. In `/admin-error-logs`, verify failure-only filtering still works with action/entity/date filters
+4. Perform one admin mutation (e.g., create support agent or reset user) and confirm audit visibility
+5. Confirm sensitive keys are redacted in log details if present (e.g., `password`, `token`, `apiKey` => `[REDACTED]`)
+6. Expected:
    - Config saves work
    - Activity logs show recent admin actions
    - Error logs remain clean of new regressions
+   - Redaction is applied to sensitive detail fields
 
 ## 8) Static/Reference Pages (Load Check)
 
@@ -165,6 +172,7 @@ Mark release **PASS** only if all are true:
 3. Admin user-management mutations behave safely and refresh correctly
 4. Version management can produce release notes/changelog for a new version
 5. No new blocking errors in logs during test run
+6. Activity/error log filters, presets, and timestamp displays are correct
 
 If any critical item fails, mark **FAIL** and capture:
 
@@ -174,4 +182,3 @@ If any critical item fails, mark **FAIL** and capture:
 - screenshot
 - timestamp
 - browser console error (if any)
-
