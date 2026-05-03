@@ -1,4 +1,4 @@
-import { ExtractedAccountSummary, schema, OutputType, SampleProblem } from "./anonymous-report_POST.schema";
+import { schema, OutputType, SampleProblem } from "./anonymous-report_POST.schema";
 
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { validateOrigin } from "../../helpers/domainGuard";
@@ -79,22 +79,10 @@ export async function handle(request: Request) {
 
     // Exclude the fallback info item from the problem count
     const problemCount = sampleProblems.filter((p) => p.urgency !== "info").length;
-    const extractedAccounts: ExtractedAccountSummary[] = parseResult.tradelines.map((tradeline) => ({
-      creditorName: tradeline.creditorName || "Unknown creditor",
-      accountType: tradeline.accountType && tradeline.accountType !== "Unknown" ? tradeline.accountType : null,
-      status: tradeline.status && tradeline.status !== "Unknown" ? tradeline.status : null,
-      balance: Number.isFinite(tradeline.balance) ? tradeline.balance : null,
-      openedDate: formatDateForResponse(tradeline.dates?.opened),
-      reportedDate: formatDateForResponse(tradeline.dates?.reported),
-      closedDate: formatDateForResponse(tradeline.dates?.closed),
-      lastPaymentDate: formatDateForResponse(tradeline.lastPaymentDate),
-    }));
 
     const responseData: OutputType = {
       problemCount,
       sampleProblems,
-      tradelineCount: extractedAccounts.length,
-      extractedAccounts,
     };
 
     return new Response(JSON.stringify(responseData), {
@@ -110,12 +98,4 @@ export async function handle(request: Request) {
       { status: 500 }
     );
   }
-}
-
-function formatDateForResponse(value: Date | string | null | undefined): string | null {
-  if (!value) return null;
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value.toISOString();
-  }
-  return value;
 }

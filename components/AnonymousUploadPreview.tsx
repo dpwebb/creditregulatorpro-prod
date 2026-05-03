@@ -25,22 +25,9 @@ export type SampleProblem = {
     urgency?: string;
 };
 
-export type ExtractedAccountSummary = {
-  creditorName: string;
-  accountType: string | null;
-  status: string | null;
-  balance: number | null;
-  openedDate: string | null;
-  reportedDate: string | null;
-  closedDate: string | null;
-  lastPaymentDate: string | null;
-};
-
 interface AnonymousUploadPreviewProps {
   problemCount: number;
   sampleProblems: (string | SampleProblem)[];
-  tradelineCount?: number;
-  extractedAccounts?: ExtractedAccountSummary[];
 }
 
 const getProblemDetails = (problem: string | SampleProblem) => {
@@ -130,39 +117,10 @@ const getProblemDetails = (problem: string | SampleProblem) => {
   }
 };
 
-const formatCurrency = (value: number | null) => {
-  if (value === null || !Number.isFinite(value)) return "Balance not shown";
-  return new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency: "CAD",
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
-const formatDate = (value: string | null) => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-CA", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-};
-
-const normalizeCreditorName = (value: string) => value.trim().toUpperCase();
-
 export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
   problemCount,
   sampleProblems,
-  tradelineCount = 0,
-  extractedAccounts = [],
 }) => {
-  const problemCreditors = new Set(
-    sampleProblems
-      .filter((problem): problem is SampleProblem => typeof problem === "object")
-      .map((problem) => normalizeCreditorName(problem.title.split("—")[0] || "")),
-  );
 
   return (
     <div className={styles.container}>
@@ -185,49 +143,6 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
           Here's what we spotted in your report:
         </p>
       </div>
-
-      {extractedAccounts.length > 0 && (
-        <section className={styles.accountsSection} aria-label="Extracted accounts">
-          <div className={styles.sectionHeader}>
-            <div>
-              <h3 className={styles.sectionTitle}>Accounts extracted</h3>
-              <p className={styles.sectionSubtitle}>
-                {tradelineCount || extractedAccounts.length} tradeline{(tradelineCount || extractedAccounts.length) === 1 ? "" : "s"} found in the uploaded report.
-              </p>
-            </div>
-            <Badge variant="info">{tradelineCount || extractedAccounts.length} found</Badge>
-          </div>
-
-          <ul className={styles.accountList}>
-            {extractedAccounts.map((account, idx) => {
-              const hasPreviewProblem = problemCreditors.has(normalizeCreditorName(account.creditorName));
-              const reportedDate = formatDate(account.reportedDate);
-              const openedDate = formatDate(account.openedDate);
-              const lastPaymentDate = formatDate(account.lastPaymentDate);
-
-              return (
-                <li key={`${account.creditorName}-${idx}`} className={styles.accountItem}>
-                  <div className={styles.accountMain}>
-                    <div className={styles.accountName}>{account.creditorName}</div>
-                    <div className={styles.accountMeta}>
-                      {[account.accountType, account.status].filter(Boolean).join(" · ") || "Account details extracted"}
-                    </div>
-                  </div>
-                  <div className={styles.accountDetails}>
-                    <span>{formatCurrency(account.balance)}</span>
-                    {reportedDate && <span>Reported {reportedDate}</span>}
-                    {!reportedDate && openedDate && <span>Opened {openedDate}</span>}
-                    {lastPaymentDate && <span>Last paid {lastPaymentDate}</span>}
-                  </div>
-                  <Badge variant={hasPreviewProblem ? "warning" : "success"}>
-                    {hasPreviewProblem ? "Issue shown" : "Extracted"}
-                  </Badge>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
 
       {sampleProblems.length > 0 && (
         <ul className={styles.problemList}>

@@ -18,22 +18,9 @@ export type SampleProblem = {
   urgency: string;
 };
 
-export type ExtractedAccountSummary = {
-  creditorName: string;
-  accountType: string | null;
-  status: string | null;
-  balance: number | null;
-  openedDate: string | null;
-  reportedDate: string | null;
-  closedDate: string | null;
-  lastPaymentDate: string | null;
-};
-
 export type OutputType = {
   problemCount: number;
   sampleProblems: SampleProblem[];
-  tradelineCount: number;
-  extractedAccounts: ExtractedAccountSummary[];
 };
 
 export const postAnonymousReport = async (
