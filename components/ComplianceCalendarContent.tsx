@@ -1,4 +1,3 @@
-import React from "react";
 import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "../helpers/dateUtils";
 import { Skeleton } from "./Skeleton";

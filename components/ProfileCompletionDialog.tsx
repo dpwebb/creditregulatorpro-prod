@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2, AlertTriangle, Save } from "lucide-react";
 import { toast } from "sonner";

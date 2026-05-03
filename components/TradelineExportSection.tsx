@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Download, FileText, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";

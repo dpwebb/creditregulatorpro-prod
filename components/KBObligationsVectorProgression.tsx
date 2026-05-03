@@ -1,4 +1,3 @@
-import React from "react";
 import { ArrowDown } from "lucide-react";
 import { Badge } from "./Badge";
 import styles from "./KBObligationsVectorProgression.module.css";

@@ -1,4 +1,3 @@
-import React from "react";
 import { AlertTriangle, Clock, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
 import styles from "./ComplianceCalendarStats.module.css";
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './Dialog';
 import { Form, FormItem, FormLabel, FormControl, FormMessage, useForm } from './Form';
 import { Input } from './Input';

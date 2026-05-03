@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useSubscription, useCancelSubscription } from "../helpers/subscriptionQueries";
 import { useSystemSettings, useSubscriptionPricing } from "../helpers/useSystemSettings";
 import { useAuth } from "../helpers/useAuth";

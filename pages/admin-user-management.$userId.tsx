@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Shield, CreditCard, CheckCircle2, XCircle, Calendar, Headset, History, FileText, Activity as ActivityIcon, Mail } from "lucide-react";
 import { useAdminUserDetail } from "../helpers/useAdminUserDetail";

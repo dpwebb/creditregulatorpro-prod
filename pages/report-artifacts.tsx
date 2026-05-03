@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Helmet } from "react-helmet";
 import { z } from "zod";
 import { useReportArtifactList, useCreateReportArtifact, useDeleteReportArtifact } from "../helpers/reportArtifactQueries";

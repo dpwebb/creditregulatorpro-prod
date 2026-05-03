@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useFreezeList, useCancelFreeze, useUpdateFreeze } from "../helpers/freezeQueries";
 import { FreezeWithDetails } from "../endpoints/fraud-freeze/list_GET.schema";
 import { FreezeStatus, FreezeType } from "../helpers/schema";

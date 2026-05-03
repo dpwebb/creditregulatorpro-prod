@@ -1,4 +1,3 @@
-import React from "react";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 import { LayoutDashboard, Filter, Download, PieChart } from "lucide-react";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./Accordion";

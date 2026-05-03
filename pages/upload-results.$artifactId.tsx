@@ -1,4 +1,3 @@
-import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";

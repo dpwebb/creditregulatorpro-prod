@@ -1,4 +1,3 @@
-import React from "react";
 import { Helmet } from "react-helmet";
 import { ShieldCheck } from "lucide-react";
 import { ComplianceAuditViewer } from "../components/ComplianceAuditViewer";

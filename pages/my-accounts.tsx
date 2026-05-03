@@ -1,4 +1,3 @@
-import React from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/Tabs";

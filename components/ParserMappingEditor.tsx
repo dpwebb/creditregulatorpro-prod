@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Selectable } from "kysely";
 import { ParserFieldMapping } from "../helpers/schema";

@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Activity, ArrowRight, Package, FileText } from "lucide-react";
 import { formatRelativeTime, formatDate } from "../helpers/formatters";

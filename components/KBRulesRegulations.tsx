@@ -1,4 +1,3 @@
-import React from "react";
 import { Scale, ScanSearch, MapPin } from "lucide-react";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 import {

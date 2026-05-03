@@ -1,4 +1,3 @@
-import React from "react";
 import { format } from "../helpers/dateUtils";
 import { AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./Dialog";

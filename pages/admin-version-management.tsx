@@ -1,4 +1,3 @@
-import React from "react";
 import { PageHeader } from "../components/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/Tabs";
 import { AdminVersionTab } from "../components/AdminVersionTab";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import {
   Plus,
@@ -35,7 +35,6 @@ import {
   useUpdateObligation,
   useDeleteObligation,
 } from "../helpers/obligationQueries";
-
 
 import { Obligation, ObligationSection } from "../helpers/schema";
 import styles from "./creditor-obligations.module.css";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ArrowRight, FileText, FileSearch, Eye, ChevronDown } from "lucide-react";
 import { HelpTooltip } from "./HelpTooltip";
 import { Badge } from "./Badge";

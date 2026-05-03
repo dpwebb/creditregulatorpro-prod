@@ -1,4 +1,3 @@
-import React from "react";
 import { useStatutes } from "../helpers/statuteQueries";
 import { FileText, CheckCircle, Archive, Globe } from "lucide-react";
 import { Skeleton } from "./Skeleton";

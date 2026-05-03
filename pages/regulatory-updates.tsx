@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Helmet } from "react-helmet";
 import {
   Plus,
@@ -44,7 +44,6 @@ import {
   useUpdateRegulatoryUpdate,
   useDeleteRegulatoryUpdate,
 } from "../helpers/useRegulatoryUpdates";
-
 
 import { useAutoEscalateRegulatory } from "../helpers/useAutoEscalateRegulatory";
 import { useRegulatoryRollback } from "../helpers/useRegulatoryRollback";

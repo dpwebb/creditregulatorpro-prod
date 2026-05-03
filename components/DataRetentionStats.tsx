@@ -1,4 +1,3 @@
-import React from "react";
 import { Database, History, AlertTriangle, CheckCircle } from "lucide-react";
 import { format } from "../helpers/dateUtils";
 import { RetentionStats } from "../helpers/adminRetentionApi";

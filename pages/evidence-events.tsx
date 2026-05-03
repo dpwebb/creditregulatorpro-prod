@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useEvidenceList, useDeleteEvidenceEvent } from "../helpers/evidenceQueries";
 import { Button } from "../components/Button";
 import { PageHeader } from "../components/PageHeader";
-
 
 import { Plus, Upload } from "lucide-react";
 import { toast } from "sonner";

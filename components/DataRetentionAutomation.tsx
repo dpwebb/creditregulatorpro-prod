@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Copy, Check, Terminal, ExternalLink, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./Accordion";

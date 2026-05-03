@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Selectable } from "kysely";
 import { Edit2 } from "lucide-react";
 import { ParserFieldMapping } from "../helpers/schema";

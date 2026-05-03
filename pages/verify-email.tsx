@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import { useVerifyEmail, useRequestVerificationEmail } from "../helpers/useEmailVerification";

@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "./Badge";
 import { HelpTooltip } from "./HelpTooltip";
 import { BankruptcyStatus } from "../helpers/schema";

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Selectable } from "kysely";
 import { LetterTemplate, LetterTemplateCategory } from "../helpers/schema";

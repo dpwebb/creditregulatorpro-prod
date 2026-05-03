@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { z } from 'zod';
 import { useSupportTicket, useUpdateSupportTicket, useReplySupportTicket } from '../helpers/supportTicketQueries';
 import { useSupportAgents } from '../helpers/useSupportAgents';

@@ -1,4 +1,3 @@
-import React from "react";
 import { z } from "zod";
 import { Hash } from "lucide-react";
 import { Button } from "./Button";

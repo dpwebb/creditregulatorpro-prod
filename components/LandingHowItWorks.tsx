@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { Upload, Search, ShieldCheck } from "lucide-react";
 import { Button } from "./Button";

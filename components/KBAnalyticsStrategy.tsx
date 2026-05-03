@@ -1,4 +1,3 @@
-import React from "react";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 import { Lightbulb, Target, TrendingUp, ShieldCheck } from "lucide-react";
 import styles from "./KBAnalyticsStrategy.module.css";

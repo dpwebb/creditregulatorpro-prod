@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { Shield, Lock, Globe, UserCheck, History, Link as LinkIcon, Gauge } from "lucide-react";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";

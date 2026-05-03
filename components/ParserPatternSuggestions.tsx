@@ -1,4 +1,3 @@
-import React from "react";
 import { Copy, Lightbulb } from "lucide-react";
 import { Button } from "./Button";
 import { toast } from "sonner";

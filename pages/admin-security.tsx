@@ -1,4 +1,3 @@
-import React from "react";
 import { Helmet } from "react-helmet";
 import * as Tabs from "@radix-ui/react-tabs";
 import { ShieldAlert, FileClock, SearchCheck } from "lucide-react";

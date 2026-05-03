@@ -1,4 +1,3 @@
-import React from "react";
 import { Check } from "lucide-react";
 import { Button } from "./Button";
 import styles from "./ParserTestResultsPanel.module.css";

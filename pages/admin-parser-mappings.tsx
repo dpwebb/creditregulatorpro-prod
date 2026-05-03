@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { PageHeader } from "../components/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/Tabs";

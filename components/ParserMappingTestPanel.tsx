@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTestParserMapping } from "../helpers/parserMappingQueries";
 import { useToast } from "../helpers/useToast";
 import { Button } from "./Button";

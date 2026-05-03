@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Search, X } from "lucide-react";
 import { format } from "../helpers/dateUtils";
 import { Button } from "./Button";

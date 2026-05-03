@@ -1,4 +1,3 @@
-import React from "react";
 import { Info, FileCode, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./Tabs";
 import { SourceReportParsedView } from "./SourceReportParsedView";

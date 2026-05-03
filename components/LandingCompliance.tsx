@@ -1,4 +1,3 @@
-import React from "react";
 import { Check, X } from "lucide-react";
 import { useScrollReveal } from "../helpers/useScrollReveal";
 import styles from "./LandingCompliance.module.css";

@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { formatCurrency, formatDate } from "../helpers/formatters";
 import { Badge } from "./Badge";

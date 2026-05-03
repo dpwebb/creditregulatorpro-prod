@@ -1,4 +1,3 @@
-import React from "react";
 import { CheckCircle, XCircle, Check } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";

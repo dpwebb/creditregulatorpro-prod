@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { Scale, BookOpen, Gavel, ShieldAlert, ArrowDown, Target } from "lucide-react";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";

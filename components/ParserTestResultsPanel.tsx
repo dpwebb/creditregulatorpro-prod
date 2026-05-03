@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { format } from "../helpers/dateUtils";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import { Badge } from "./Badge";

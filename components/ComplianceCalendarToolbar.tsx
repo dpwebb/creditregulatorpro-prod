@@ -1,4 +1,3 @@
-import React from "react";
 import { format } from "../helpers/dateUtils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./Button";

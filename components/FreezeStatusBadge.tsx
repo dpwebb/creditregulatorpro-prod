@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "./Badge";
 import { Shield, ShieldAlert, ShieldCheck, Lock, Clock, Ban } from "lucide-react";
 import { FreezeStatus, FreezeType } from "../helpers/schema";

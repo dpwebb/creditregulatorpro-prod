@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { BarChart3, CheckCircle2, Zap } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./Accordion";

@@ -1,4 +1,3 @@
-import React from "react";
 import { RefreshCw } from "lucide-react";
 import { useRescanCompliance } from "../helpers/useRescanCompliance";
 import { Button } from "./Button";

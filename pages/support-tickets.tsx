@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { SupportTicketList } from "../components/SupportTicketList";
 import { CreateTicketDialog } from "../components/CreateTicketDialog";
 import { useAuth } from "../helpers/useAuth";

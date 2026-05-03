@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useSemanticAudit } from "../helpers/useSemanticAudit";
 import { Button } from "./Button";
 import { Input } from "./Input";

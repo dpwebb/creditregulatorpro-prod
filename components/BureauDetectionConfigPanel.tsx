@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Selectable } from "kysely";
 import { ParserBureauDetectionConfig } from "../helpers/schema";
 import {
