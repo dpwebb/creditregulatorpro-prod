@@ -140,14 +140,26 @@ Suggested accounts:
    - Status filter works (`All`, `Success`, `Failure`)
    - Preset buttons work (`Last 24h`, `Errors Only`, `Clear`)
    - Expanded row shows local timestamp in header and UTC timestamp in details
-3. In `/admin-error-logs`, verify failure-only filtering still works with action/entity/date filters
-4. Perform one admin mutation (e.g., create support agent or reset user) and confirm audit visibility
-5. Confirm sensitive keys are redacted in log details if present (e.g., `password`, `token`, `apiKey` => `[REDACTED]`)
-6. Expected:
+3. In `/admin-error-logs`, verify:
+   - Default date window starts at last 24h
+   - Failure-only filtering works with action/entity/date filters
+   - Severity filter works (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`)
+   - Severity summary badges render and update with filters
+   - `Hide Duplicates` toggle collapses repeated fingerprints on current page
+4. Expand one error row and verify metadata fields render:
+   - `Fingerprint`
+   - `Request ID`
+   - `Route`
+   - `IP`
+   - `User Agent`
+5. Perform one admin mutation (e.g., create support agent or reset user) and confirm audit visibility
+6. Confirm sensitive keys are redacted in log details if present (e.g., `password`, `token`, `apiKey` => `[REDACTED]`)
+7. Expected:
    - Config saves work
    - Activity logs show recent admin actions
    - Error logs remain clean of new regressions
    - Redaction is applied to sensitive detail fields
+   - Error severity/fingerprint metadata appears consistently on failures
 
 ## 8) Static/Reference Pages (Load Check)
 
@@ -173,6 +185,7 @@ Mark release **PASS** only if all are true:
 4. Version management can produce release notes/changelog for a new version
 5. No new blocking errors in logs during test run
 6. Activity/error log filters, presets, and timestamp displays are correct
+7. Error log severity classification, dedupe toggle, and metadata fields are functioning
 
 If any critical item fails, mark **FAIL** and capture:
 

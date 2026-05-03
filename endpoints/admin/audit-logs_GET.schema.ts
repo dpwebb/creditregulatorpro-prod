@@ -8,6 +8,7 @@ import {
   AuditStatus,
   AuditStatusArrayValues,
 } from "../../helpers/schema";
+import { ErrorSeverity, ErrorSeverityValues } from "../../helpers/errorSeverity";
 
 export const schema = z.object({
   actionType: z.enum(AuditActionTypeArrayValues).optional(),
@@ -17,6 +18,7 @@ export const schema = z.object({
   email: z.string().trim().max(200).optional(),
   startDate: z.string().trim().max(40).optional(),
   endDate: z.string().trim().max(40).optional(),
+  severity: z.enum(ErrorSeverityValues).optional(),
   limit: z.coerce.number().int().min(1).max(200).default(100),
   offset: z.coerce.number().int().min(0).default(0),
 });
@@ -38,6 +40,10 @@ export type AuditLogEntry = {
   timestamp: Date;
   userEmail: string | null;
   userDisplayName: string | null;
+  errorSeverity: ErrorSeverity | null;
+  errorFingerprint: string | null;
+  requestId: string | null;
+  routeContext: string | null;
 };
 
 export type OutputType = { logs: AuditLogEntry[]; total: number };
@@ -55,6 +61,7 @@ export const getAuditLogs = async (
   if (params.email) searchParams.append("email", params.email);
   if (params.startDate) searchParams.append("startDate", params.startDate);
   if (params.endDate) searchParams.append("endDate", params.endDate);
+  if (params.severity) searchParams.append("severity", params.severity);
   if (params.limit) searchParams.append("limit", params.limit.toString());
   if (params.offset) searchParams.append("offset", params.offset.toString());
 

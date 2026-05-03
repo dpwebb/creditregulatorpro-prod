@@ -5,6 +5,13 @@ import { db } from "../../helpers/db";
 import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { sql } from "kysely";
 import { sanitizeAuditLogDetails } from "../../helpers/auditLogSanitizer";
+import {
+  buildErrorFingerprint,
+  classifyErrorSeverity,
+  extractRequestId,
+  extractRouteContext,
+  sanitizeErrorMessage,
+} from "../../helpers/errorLogAnalysis";
 
 function parseDateFilter(value: string | undefined): Date | undefined {
   if (!value) return undefined;
@@ -112,9 +119,74 @@ export async function handle(request: Request) {
       countQuery = countQuery.where("auditLog.timestamp", "<", parsedEndDateExclusive);
     }
 
+    const enrichLog = (log: any) => {
+      const sanitizedDetails = sanitizeAuditLogDetails(log.details);
+      const sanitizedErrorMessage = sanitizeErrorMessage(log.errorMessage);
+      const hasErrorContext = log.status === "FAILURE" || Boolean(sanitizedErrorMessage);
+
+      return {
+        ...log,
+        details: sanitizedDetails,
+        errorMessage: sanitizedErrorMessage,
+        errorSeverity: hasErrorContext
+          ? classifyErrorSeverity({
+              actionType: log.actionType,
+              entityType: log.entityType,
+              errorMessage: sanitizedErrorMessage,
+            })
+          : null,
+        errorFingerprint: hasErrorContext
+          ? buildErrorFingerprint({
+              actionType: log.actionType,
+              entityType: log.entityType,
+              errorMessage: sanitizedErrorMessage,
+            })
+          : null,
+        requestId: extractRequestId(sanitizedDetails),
+        routeContext: extractRouteContext(sanitizedDetails),
+      };
+    };
+
     // 5. Pagination and Sorting (only for main query)
     const limit = input.limit ?? 100;
     const offset = input.offset ?? 0;
+
+    if (input.severity) {
+      const pageLogs: any[] = [];
+      let totalMatched = 0;
+      let scannedOffset = 0;
+      const chunkSize = Math.max(limit * 4, 200);
+
+      while (true) {
+        const chunk = await query
+          .orderBy("auditLog.timestamp", "desc")
+          .limit(chunkSize)
+          .offset(scannedOffset)
+          .execute();
+
+        if (chunk.length === 0) {
+          break;
+        }
+
+        const enrichedChunk = chunk.map(enrichLog).filter((log) => log.errorSeverity === input.severity);
+
+        for (const enrichedLog of enrichedChunk) {
+          if (totalMatched >= offset && pageLogs.length < limit) {
+            pageLogs.push(enrichedLog);
+          }
+          totalMatched++;
+        }
+
+        scannedOffset += chunk.length;
+        if (chunk.length < chunkSize) {
+          break;
+        }
+      }
+
+      return new Response(JSON.stringify({ logs: pageLogs, total: totalMatched } satisfies OutputType), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     const paginatedQuery = query
       .orderBy("auditLog.timestamp", "desc")
@@ -128,10 +200,7 @@ export async function handle(request: Request) {
     ]);
 
     const total = Number(countResult?.count ?? 0);
-    const sanitizedLogs = logs.map((log) => ({
-      ...log,
-      details: sanitizeAuditLogDetails(log.details),
-    }));
+    const sanitizedLogs = logs.map(enrichLog);
 
     // 7. Return Response
     return new Response(JSON.stringify({ logs: sanitizedLogs, total } satisfies OutputType), {

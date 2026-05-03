@@ -15,6 +15,13 @@
   color: var(--error);
 }
 
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
 .filters {
   display: flex;
   flex-direction: column;
@@ -100,14 +107,23 @@
   margin-top: var(--spacing-2);
 }
 
+.groupToggleBtn {
+  margin-top: var(--spacing-2);
+}
+
 @media (min-width: 768px) {
+  .groupToggleBtn {
+    margin-top: 0;
+  }
   .clearFiltersBtn {
     margin-top: 0;
-    margin-left: auto;
   }
 }
 
 @media (max-width: 640px) {
+  .groupToggleText {
+    display: none;
+  }
   .clearFiltersText {
     display: none;
   }
@@ -169,6 +185,15 @@
 .entityBadge {
   font-size: 0.7rem;
   letter-spacing: 0.05em;
+}
+
+.severityBadge {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.duplicateBadge {
+  font-size: 0.7rem;
 }
 
 .actionText {
