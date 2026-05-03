@@ -20,7 +20,15 @@ export async function handle(request: Request) {
     // Check if the statute version exists
     const statuteVersion = await db
       .selectFrom("statuteVersion")
-      .select(["id", "statuteId"])
+      .innerJoin("statute", "statute.id", "statuteVersion.statuteId")
+      .select([
+        "statuteVersion.id",
+        "statuteVersion.statuteId",
+        "statute.jurisdiction",
+        "statute.code",
+        "statuteVersion.version",
+        "statuteVersion.sectionReference",
+      ])
       .where("id", "=", input.versionId)
       .executeTakeFirst();
 
@@ -90,7 +98,16 @@ export async function handle(request: Request) {
       entityType: "STATUTE",
       entityId: input.versionId,
       userId: user.id,
-      details: { versionId: input.versionId },
+      details: {
+        component: "statute",
+        mode: "DELETE",
+        versionId: input.versionId,
+        statuteId: statuteVersion.statuteId,
+        jurisdiction: statuteVersion.jurisdiction,
+        code: statuteVersion.code,
+        version: statuteVersion.version,
+        citation: `${statuteVersion.code} ${statuteVersion.sectionReference || ""}`.trim(),
+      },
       status: "SUCCESS",
       request,
     });

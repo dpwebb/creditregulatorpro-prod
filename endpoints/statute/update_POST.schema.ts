@@ -3,12 +3,13 @@ import { z } from "zod";
 
 export const schema = z.object({
   versionId: z.number(), // statute_version.id
-  description: z.string().nullable().optional(),
+  description: z.string().trim().min(1).nullable().optional(),
   responseClockDays: z.number().positive().nullable().optional(),
   effectiveDate: z.coerce.date().nullable().optional(),
   supersededDate: z.coerce.date().nullable().optional(),
-  sourceUrl: z.string().url().nullable().optional(),
-  sectionReference: z.string().nullable().optional(),
+  sourceUrl: z.string().trim().url().nullable().optional(),
+  sectionReference: z.string().trim().min(1).nullable().optional(),
+  markReviewed: z.boolean().optional(),
 });
 
 export type InputType = z.infer<typeof schema>;

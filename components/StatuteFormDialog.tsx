@@ -37,7 +37,7 @@ const formSchema = z.object({
   description: z.string().min(1, "Description is required to identify this statute"),
   responseClockDays: z.coerce.number().positive("Response clock must be a positive number of days"),
   effectiveDate: z.string().min(1, "Effective date is required"),
-  sourceUrl: z.string().url("Must be a valid URL (e.g., https://example.com)").optional().or(z.literal("")),
+  sourceUrl: z.string().url("Must be a valid URL (e.g., https://example.com)"),
   sectionReference: z.string().min(1, "Section reference is required (e.g., Section 12(1)(a))"),
 });
 
@@ -74,7 +74,7 @@ export function StatuteFormDialog({
       code: "",
       description: "",
       responseClockDays: 30,
-      sourceUrl: "",
+      sourceUrl: "https://",
       sectionReference: "",
     },
   });
@@ -101,7 +101,7 @@ export function StatuteFormDialog({
           description: "",
           responseClockDays: 30,
           effectiveDate: new Date().toISOString().split("T")[0],
-          sourceUrl: "",
+          sourceUrl: "https://",
           sectionReference: "",
         });
       }
@@ -264,7 +264,7 @@ export function StatuteFormDialog({
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="sourceUrl">Source URL</label>
+              <label htmlFor="sourceUrl">Source URL *</label>
               <input
                 id="sourceUrl"
                 {...register("sourceUrl")}
@@ -275,7 +275,7 @@ export function StatuteFormDialog({
                 <span className={styles.error}>{errors.sourceUrl.message}</span>
               )}
               <span className={styles.helpText}>
-                Link to the official statute text (optional)
+                Link to the official statute text (required for publication)
               </span>
             </div>
 

@@ -4,6 +4,9 @@ import { z } from "zod";
 export const schema = z.object({
   jurisdiction: z.string().optional(),
   code: z.string().optional(),
+  status: z.enum(["ACTIVE", "AMENDED", "REPEALED"]).optional(),
+  topic: z.string().optional(),
+  citation: z.string().optional(),
   includeSuperseded: z.boolean().optional().default(false),
   searchText: z.string().optional(),
 });
@@ -27,6 +30,10 @@ export type OutputType = {
     createdAt: Date | null;
     packetCount: number;
     obligationCount: number;
+    lifecycleStatus: "ACTIVE" | "AMENDED" | "REPEALED";
+    topic: string;
+    citation: string;
+    lastReviewedAt: Date | null;
   }[];
 };
 
@@ -35,6 +42,9 @@ export const getStatuteList = async (filters?: InputType, init?: RequestInit): P
   const params = new URLSearchParams();
   if (filters?.jurisdiction) params.append("jurisdiction", filters.jurisdiction);
   if (filters?.code) params.append("code", filters.code);
+  if (filters?.status) params.append("status", filters.status);
+  if (filters?.topic) params.append("topic", filters.topic);
+  if (filters?.citation) params.append("citation", filters.citation);
   if (filters?.includeSuperseded) params.append("includeSuperseded", "true");
   if (filters?.searchText) params.append("searchText", filters.searchText);
 

@@ -27,8 +27,9 @@ export function StatuteStats({ className }: StatuteStatsProps) {
   }
 
   const totalStatutes = data.statutes.length;
-  const activeVersions = data.statutes.filter(s => !s.supersededDate).length;
-  const supersededVersions = data.statutes.filter(s => s.supersededDate).length;
+  const activeVersions = data.statutes.filter(s => s.lifecycleStatus === "ACTIVE").length;
+  const amendedVersions = data.statutes.filter(s => s.lifecycleStatus === "AMENDED").length;
+  const repealedVersions = data.statutes.filter(s => s.lifecycleStatus === "REPEALED").length;
   const uniqueJurisdictions = new Set(data.statutes.map(s => s.jurisdiction)).size;
 
   const stats = [
@@ -45,8 +46,14 @@ export function StatuteStats({ className }: StatuteStatsProps) {
       color: "var(--success)",
     },
     {
-      label: "Superseded",
-      value: supersededVersions,
+      label: "Amended",
+      value: amendedVersions,
+      icon: Archive,
+      color: "var(--warning)",
+    },
+    {
+      label: "Repealed",
+      value: repealedVersions,
       icon: Archive,
       color: "var(--muted-foreground)",
     },

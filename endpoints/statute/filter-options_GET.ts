@@ -2,6 +2,7 @@ import { OutputType } from "./filter-options_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { deriveTopic } from "../../helpers/statuteClassification";
 
 export async function handle(request: Request) {
   try {
@@ -28,7 +29,21 @@ export async function handle(request: Request) {
 
     const codes = codesResult.map(row => row.code);
 
-    return new Response(JSON.stringify({ jurisdictions, codes } satisfies OutputType));
+    const topicSource = await db
+      .selectFrom("statute")
+      .innerJoin("statuteVersion", "statute.id", "statuteVersion.statuteId")
+      .select(["statute.code", "statuteVersion.description"])
+      .execute();
+
+    const topicSet = new Set<string>();
+    for (const row of topicSource) {
+      topicSet.add(deriveTopic(row.code, row.description));
+    }
+
+    const topics = Array.from(topicSet).sort((a, b) => a.localeCompare(b));
+    const statuses: OutputType["statuses"] = ["ACTIVE", "AMENDED", "REPEALED"];
+
+    return new Response(JSON.stringify({ jurisdictions, codes, topics, statuses } satisfies OutputType));
   } catch (error) {
     return handleEndpointError(error);
   }

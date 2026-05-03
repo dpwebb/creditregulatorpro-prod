@@ -1,7 +1,7 @@
 import { schema, OutputType } from "./update_POST.schema";
 
 import { db } from "../../helpers/db";
-import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { logAudit } from "../../helpers/auditLogger";
 
@@ -17,14 +17,27 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
-    // Check if statute version exists
-    const existing = await db
+    // Check if statute version exists and load current row
+    const current = await db
       .selectFrom("statuteVersion")
-      .select("id")
-      .where("id", "=", input.versionId)
+      .innerJoin("statute", "statute.id", "statuteVersion.statuteId")
+      .select([
+        "statute.id",
+        "statute.jurisdiction",
+        "statute.code",
+        "statuteVersion.id as versionId",
+        "statuteVersion.version",
+        "statuteVersion.description",
+        "statuteVersion.effectiveDate",
+        "statuteVersion.supersededDate",
+        "statuteVersion.responseClockDays",
+        "statuteVersion.sourceUrl",
+        "statuteVersion.sectionReference",
+      ])
+      .where("statuteVersion.id", "=", input.versionId)
       .executeTakeFirst();
 
-    if (!existing) {
+    if (!current) {
       return new Response(JSON.stringify({ error: "Statute version not found" }), { status: 404 });
     }
 
@@ -38,35 +51,56 @@ export async function handle(request: Request) {
     if (input.sectionReference !== undefined) updateValues.sectionReference = input.sectionReference;
 
     if (Object.keys(updateValues).length === 0) {
-      // No updates requested, return existing with joined data
-      const current = await db
-        .selectFrom("statuteVersion")
-        .innerJoin("statute", "statute.id", "statuteVersion.statuteId")
-        .select([
-          "statute.id",
-          "statute.jurisdiction",
-          "statute.code",
-          "statuteVersion.id as versionId",
-          "statuteVersion.version",
-          "statuteVersion.description",
-          "statuteVersion.effectiveDate",
-          "statuteVersion.supersededDate",
-          "statuteVersion.responseClockDays",
-          "statuteVersion.sourceUrl",
-          "statuteVersion.sectionReference",
-        ])
-        .where("statuteVersion.id", "=", input.versionId)
-        .executeTakeFirstOrThrow();
-      
+      if (input.markReviewed) {
+        await logAudit({
+          action: "READ",
+          entityType: "STATUTE",
+          entityId: input.versionId,
+          userId: user.id,
+          details: {
+            component: "statute",
+            mode: "REVIEWED",
+            versionId: input.versionId,
+            statuteId: current.id,
+          },
+          status: "SUCCESS",
+          request,
+        });
+      }
       return new Response(JSON.stringify({ statute: current } satisfies OutputType));
     }
 
+    const nextSnapshot = {
+      description: updateValues.description !== undefined ? updateValues.description : current.description,
+      effectiveDate: updateValues.effectiveDate !== undefined ? updateValues.effectiveDate : current.effectiveDate,
+      sourceUrl: updateValues.sourceUrl !== undefined ? updateValues.sourceUrl : current.sourceUrl,
+      sectionReference:
+        updateValues.sectionReference !== undefined ? updateValues.sectionReference : current.sectionReference,
+      supersededDate:
+        updateValues.supersededDate !== undefined ? updateValues.supersededDate : current.supersededDate,
+    };
+
+    const isOrWillBeActive = !nextSnapshot.supersededDate;
+    if (isOrWillBeActive) {
+      if (!nextSnapshot.description || !nextSnapshot.description.trim()) {
+        throw new BusinessRuleError("Active law versions must include a description.");
+      }
+      if (!nextSnapshot.sourceUrl || !nextSnapshot.sourceUrl.trim()) {
+        throw new BusinessRuleError("Active law versions must include an official source URL.");
+      }
+      if (!nextSnapshot.sectionReference || !nextSnapshot.sectionReference.trim()) {
+        throw new BusinessRuleError("Active law versions must include a section reference/citation.");
+      }
+      if (!nextSnapshot.effectiveDate) {
+        throw new BusinessRuleError("Active law versions must include an effective date.");
+      }
+    }
+
     // Update statute_version table
-    const updatedVersion = await db
+    await db
       .updateTable("statuteVersion")
       .set(updateValues)
       .where("id", "=", input.versionId)
-      .returningAll()
       .executeTakeFirstOrThrow();
 
     // Get the combined data from both tables
@@ -96,7 +130,16 @@ export async function handle(request: Request) {
       entityType: "STATUTE",
       entityId: input.versionId,
       userId: user.id,
-      details: { versionId: input.versionId },
+      details: {
+        component: "statute",
+        mode: "UPDATE",
+        statuteId: result.id,
+        versionId: input.versionId,
+        citation: `${result.code} ${result.sectionReference || ""}`.trim(),
+        changedFields: Object.keys(updateValues),
+        before: current,
+        after: result,
+      },
       status: "SUCCESS",
       request,
     });

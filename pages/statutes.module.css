@@ -44,6 +44,19 @@
   gap: var(--spacing-4);
 }
 
+.watchAlert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  background: color-mix(in srgb, var(--warning) 10%, var(--card));
+  border-radius: var(--radius);
+  padding: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
 .filters {
   display: flex;
   align-items: center;
@@ -92,6 +105,15 @@
 
 .searchInput {
   min-width: 250px;
+  height: auto;
+  padding: var(--spacing-2);
+  font-size: 0.875rem;
+  background: transparent;
+  border: none;
+}
+
+.citationInput {
+  min-width: 220px;
   height: auto;
   padding: var(--spacing-2);
   font-size: 0.875rem;
@@ -217,6 +239,17 @@
   color: var(--secondary);
 }
 
+.citationBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.relatedLaws {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
 .descriptionCell {
   max-width: 300px;
   min-width: 200px;
@@ -246,11 +279,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 
   &:hover {
     background-color: var(--muted);
     color: var(--foreground);
   }
+}
+
+.actionActive {
+  color: var(--warning);
+}
+
+.updateDot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 7px;
+  height: 7px;
+  background: var(--error);
+  border-radius: 50%;
 }
 
 
@@ -278,6 +326,69 @@
 
 .errorState {
   color: var(--error);
+}
+
+.historyOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 60;
+}
+
+.historyDialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(860px, 95vw);
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-5);
+  z-index: 61;
+}
+
+.historyTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-4);
+}
+
+.historyBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.historyRow {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.historyMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.historyFields {
+  font-size: 0.8125rem;
+  color: var(--foreground);
+}
+
+.historyActions {
+  margin-top: var(--spacing-4);
+  display: flex;
+  justify-content: flex-end;
 }
 
 
@@ -314,6 +425,12 @@
   }
 
   .select {
+    width: 100%;
+  }
+
+  .searchInput,
+  .citationInput {
+    min-width: 0;
     width: 100%;
   }
 }

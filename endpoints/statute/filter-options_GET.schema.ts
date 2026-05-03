@@ -8,6 +8,8 @@ export type InputType = z.infer<typeof schema>;
 export type OutputType = {
   jurisdictions: string[];
   codes: string[];
+  topics: string[];
+  statuses: Array<"ACTIVE" | "AMENDED" | "REPEALED">;
 };
 
 export const getStatuteFilterOptions = async (init?: RequestInit): Promise<OutputType> => {

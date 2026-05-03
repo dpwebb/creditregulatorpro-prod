@@ -4,6 +4,7 @@ import { getStatuteFilterOptions } from "../endpoints/statute/filter-options_GET
 import { postStatuteCreate, InputType as CreateInput } from "../endpoints/statute/create_POST.schema";
 import { postStatuteUpdate, InputType as UpdateInput } from "../endpoints/statute/update_POST.schema";
 import { postStatuteDelete, InputType as DeleteInput } from "../endpoints/statute/delete_POST.schema";
+import { getStatuteHistory } from "../endpoints/statute/history_GET.schema";
 
 export const useStatutes = (filters?: ListInput) => {
   return useQuery({
@@ -50,5 +51,13 @@ export const useStatuteFilterOptions = () => {
     queryKey: ["statute-filter-options"],
     queryFn: () => getStatuteFilterOptions(),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+};
+
+export const useStatuteHistory = (versionId?: number) => {
+  return useQuery({
+    queryKey: ["statute-history", versionId],
+    queryFn: () => getStatuteHistory({ versionId: versionId as number }),
+    enabled: typeof versionId === "number" && Number.isFinite(versionId),
   });
 };

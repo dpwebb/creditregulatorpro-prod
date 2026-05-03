@@ -2,13 +2,13 @@ import { z } from "zod";
 
 
 export const schema = z.object({
-  jurisdiction: z.string().min(1, "Jurisdiction is required"),
-  code: z.string().min(1, "Code is required"),
-  description: z.string().nullable().optional(),
-  responseClockDays: z.number().positive("Response clock days must be positive").nullable().optional(),
-  effectiveDate: z.coerce.date().nullable().optional(),
-  sourceUrl: z.string().url().nullable().optional(),
-  sectionReference: z.string().nullable().optional(),
+  jurisdiction: z.string().trim().min(1, "Jurisdiction is required"),
+  code: z.string().trim().min(1, "Code is required"),
+  description: z.string().trim().min(1, "Description is required"),
+  responseClockDays: z.number().int().positive("Response clock days must be positive"),
+  effectiveDate: z.coerce.date(),
+  sourceUrl: z.string().trim().url("Source URL must be a valid URL"),
+  sectionReference: z.string().trim().min(1, "Section reference is required"),
   version: z.number().int().positive().optional(), // Optional, auto-increment if missing
 });
 

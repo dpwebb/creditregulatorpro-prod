@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
@@ -11,6 +11,12 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  History,
+  Star,
+  BellRing,
+  FileDown,
+  FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { format } from "../helpers/dateUtils";
 
@@ -19,6 +25,7 @@ import {
   useCreateStatute,
   useUpdateStatute,
   useStatuteFilterOptions,
+  useStatuteHistory,
 } from "../helpers/statuteQueries";
 import { useAuth } from "../helpers/useAuth";
 import { OutputType as ListOutputType } from "../endpoints/statute/list_GET.schema";
@@ -28,39 +35,93 @@ import { StatuteFormDialog } from "../components/StatuteFormDialog";
 import { StatuteStats } from "../components/StatuteStats";
 import { HelpTooltip } from "../components/HelpTooltip";
 import { PageHeader } from "../components/PageHeader";
-
+import { Button } from "../components/Button";
 
 import { useToast } from "../helpers/useToast";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Input } from "../components/Input";
 import styles from "./statutes.module.css";
 
-// Define the type for the combined statute data as returned by the list endpoint
 type StatuteData = ListOutputType["statutes"][number];
-
-type SortField = "jurisdiction" | "code" | "version" | "effectiveDate" | "responseClockDays" | "packetCount" | "obligationCount" | "createdAt";
+type SortField =
+  | "jurisdiction"
+  | "code"
+  | "version"
+  | "effectiveDate"
+  | "responseClockDays"
+  | "packetCount"
+  | "obligationCount"
+  | "createdAt"
+  | "lastReviewedAt";
 type SortDirection = "asc" | "desc";
+type LifecycleStatus = "ACTIVE" | "AMENDED" | "REPEALED";
+
+const WATCHLIST_KEY = "statute-watchlist-v1";
+const WATCHLIST_SEEN_KEY = "statute-watchlist-seen-v1";
+
+function getLifecycleBadgeVariant(status: LifecycleStatus) {
+  switch (status) {
+    case "ACTIVE":
+      return "success" as const;
+    case "AMENDED":
+      return "warning" as const;
+    case "REPEALED":
+      return "default" as const;
+    default:
+      return "default" as const;
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 export default function StatutesPage() {
   const navigate = useNavigate();
   const { authState } = useAuth();
-  
-  // Filters
+
   const [jurisdiction, setJurisdiction] = useState<string>("");
   const [code, setCode] = useState<string>("");
+  const [status, setStatus] = useState<LifecycleStatus>("ACTIVE");
+  const [topic, setTopic] = useState<string>("");
   const [includeSuperseded, setIncludeSuperseded] = useState<boolean>(false);
-  const [activeOnly, setActiveOnly] = useState<boolean>(false);
   const [searchText, setSearchText] = useState<string>("");
+  const [citation, setCitation] = useState<string>("");
 
-  // Sorting
   const [sortField, setSortField] = useState<SortField>("jurisdiction");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  // Dialog States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [historyVersionId, setHistoryVersionId] = useState<number | null>(null);
+  const [historyLabel, setHistoryLabel] = useState<string>("");
 
-  // Queries & Mutations
+  const [watchedVersionIds, setWatchedVersionIds] = useState<Set<number>>(new Set());
+  const [seenReviewedAtByVersion, setSeenReviewedAtByVersion] = useState<Record<string, string>>({});
+
   const { data: filterOptions } = useStatuteFilterOptions();
+  const effectiveIncludeSuperseded = includeSuperseded || status !== "ACTIVE";
+  const { data, isFetching, error } = useStatutes({
+    jurisdiction: jurisdiction || undefined,
+    code: code || undefined,
+    status,
+    topic: topic || undefined,
+    citation: citation || undefined,
+    includeSuperseded: effectiveIncludeSuperseded,
+    searchText: searchText || undefined,
+  });
+  const { data: historyData, isFetching: historyLoading } = useStatuteHistory(
+    historyVersionId ?? undefined
+  );
+
+  const createMutation = useCreateStatute();
+  const updateMutation = useUpdateStatute();
+  const { showSuccess, showError } = useToast();
+
   useEffect(() => {
     if (authState.type === "unauthenticated") {
       navigate("/login");
@@ -72,39 +133,82 @@ export default function StatutesPage() {
     }
   }, [authState, navigate]);
 
-  const { data, isFetching, error } = useStatutes({
-    jurisdiction: jurisdiction || undefined,
-    code: code || undefined,
-    includeSuperseded,
-    searchText: searchText || undefined,
-  });
+  useEffect(() => {
+    try {
+      const storedWatch = localStorage.getItem(WATCHLIST_KEY);
+      const storedSeen = localStorage.getItem(WATCHLIST_SEEN_KEY);
+      if (storedWatch) {
+        const parsed = JSON.parse(storedWatch);
+        if (Array.isArray(parsed)) {
+          setWatchedVersionIds(new Set(parsed.filter((v) => Number.isFinite(v))));
+        }
+      }
+      if (storedSeen) {
+        const parsedSeen = JSON.parse(storedSeen);
+        if (parsedSeen && typeof parsedSeen === "object") {
+          setSeenReviewedAtByVersion(parsedSeen);
+        }
+      }
+    } catch {
+      // ignore storage parsing errors
+    }
+  }, []);
 
-  const createMutation = useCreateStatute();
-  const updateMutation = useUpdateStatute();
-  const { showSuccess, showError } = useToast();
+  const persistWatchState = (nextWatchSet: Set<number>, nextSeen: Record<string, string>) => {
+    setWatchedVersionIds(nextWatchSet);
+    setSeenReviewedAtByVersion(nextSeen);
+    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(Array.from(nextWatchSet)));
+    localStorage.setItem(WATCHLIST_SEEN_KEY, JSON.stringify(nextSeen));
+  };
 
-  // Filter and sort statutes
+  const toggleWatch = (statute: StatuteData) => {
+    const nextWatch = new Set(watchedVersionIds);
+    const nextSeen = { ...seenReviewedAtByVersion };
+    if (nextWatch.has(statute.versionId)) {
+      nextWatch.delete(statute.versionId);
+      delete nextSeen[String(statute.versionId)];
+    } else {
+      nextWatch.add(statute.versionId);
+      if (statute.lastReviewedAt) {
+        nextSeen[String(statute.versionId)] = new Date(statute.lastReviewedAt).toISOString();
+      }
+    }
+    persistWatchState(nextWatch, nextSeen);
+  };
+
+  const markWatchSeen = (statute: StatuteData) => {
+    if (!watchedVersionIds.has(statute.versionId) || !statute.lastReviewedAt) return;
+    const nextSeen = {
+      ...seenReviewedAtByVersion,
+      [String(statute.versionId)]: new Date(statute.lastReviewedAt).toISOString(),
+    };
+    persistWatchState(new Set(watchedVersionIds), nextSeen);
+  };
+
+  const hasWatchUpdate = (statute: StatuteData) => {
+    if (!watchedVersionIds.has(statute.versionId)) return false;
+    if (!statute.lastReviewedAt) return false;
+    const seen = seenReviewedAtByVersion[String(statute.versionId)];
+    if (!seen) return true;
+    return new Date(statute.lastReviewedAt).getTime() > new Date(seen).getTime();
+  };
+
   const filteredAndSortedStatutes = useMemo(() => {
     if (!data?.statutes) return [];
 
-    let filtered = [...data.statutes];
-
-    // Apply active-only filter (active = not superseded)
-    if (activeOnly) {
-      filtered = filtered.filter(s => !s.supersededDate);
-    }
-
-    // Sort
+    const filtered = [...data.statutes];
     filtered.sort((a, b) => {
       let aVal: any = a[sortField];
       let bVal: any = b[sortField];
 
-      // Handle null values
-      if (aVal === null) return 1;
-      if (bVal === null) return -1;
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
 
-      // Convert dates to timestamps for comparison
-      if (sortField === "effectiveDate" || sortField === "createdAt") {
+      if (
+        sortField === "effectiveDate" ||
+        sortField === "createdAt" ||
+        sortField === "lastReviewedAt"
+      ) {
         aVal = aVal ? new Date(aVal).getTime() : 0;
         bVal = bVal ? new Date(bVal).getTime() : 0;
       }
@@ -115,24 +219,21 @@ export default function StatutesPage() {
     });
 
     return filtered;
-  }, [data, activeOnly, sortField, sortDirection]);
+  }, [data, sortField, sortDirection]);
 
-  // Grouping Logic
   const groupedStatutes = useMemo(() => {
     const groups: Record<string, Record<string, StatuteData[]>> = {};
-    
     filteredAndSortedStatutes.forEach((statute) => {
-      if (!groups[statute.jurisdiction]) {
-        groups[statute.jurisdiction] = {};
-      }
-      if (!groups[statute.jurisdiction][statute.code]) {
-        groups[statute.jurisdiction][statute.code] = [];
-      }
+      if (!groups[statute.jurisdiction]) groups[statute.jurisdiction] = {};
+      if (!groups[statute.jurisdiction][statute.code]) groups[statute.jurisdiction][statute.code] = [];
       groups[statute.jurisdiction][statute.code].push(statute);
     });
-
     return groups;
   }, [filteredAndSortedStatutes]);
+
+  const watchedUpdates = useMemo(() => {
+    return filteredAndSortedStatutes.filter((statute) => hasWatchUpdate(statute));
+  }, [filteredAndSortedStatutes, watchedVersionIds, seenReviewedAtByVersion]);
 
   if (authState.type === "loading") {
     return (
@@ -147,22 +248,21 @@ export default function StatutesPage() {
     return null;
   }
 
-  // Handlers
   const handleCreate = async (formData: any) => {
     try {
       await createMutation.mutateAsync({
         ...formData,
+        code: (formData.code || "").toUpperCase().trim(),
         effectiveDate: new Date(formData.effectiveDate),
       });
-      showSuccess("Statute created successfully", {
-        description: "The new statute version is now active and ready for use.",
+      showSuccess("Law version created", {
+        description: "Metadata has been validated and the version is now available.",
       });
     } catch (e) {
-      showError("Failed to create statute");
+      showError("Failed to create law version");
       console.error(e);
     }
   };
-
 
   const handleMarkSuperseded = async (statute: StatuteData) => {
     try {
@@ -170,19 +270,25 @@ export default function StatutesPage() {
         versionId: statute.versionId,
         supersededDate: new Date(),
       });
-      showSuccess("Statute marked as superseded", {
-        undo: () => {
-          // Note: In a real app, we would implement restore functionality here
-          // For now just showing the toast structure
-          console.log("Undo not implemented yet");
-        }
-      });
+      showSuccess("Marked as superseded");
     } catch (e) {
       showError("Failed to mark as superseded");
       console.error(e);
     }
   };
 
+  const handleMarkReviewed = async (statute: StatuteData) => {
+    try {
+      await updateMutation.mutateAsync({
+        versionId: statute.versionId,
+        markReviewed: true,
+      });
+      showSuccess("Law version marked as reviewed");
+    } catch (e) {
+      showError("Failed to mark as reviewed");
+      console.error(e);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -204,45 +310,193 @@ export default function StatutesPage() {
     );
   };
 
+  const handleExportCsv = () => {
+    const headers = [
+      "Jurisdiction",
+      "Code",
+      "Version",
+      "Citation",
+      "Topic",
+      "Status",
+      "Description",
+      "EffectiveDate",
+      "LastReviewedAt",
+      "SourceUrl",
+      "ResponseClockDays",
+      "PacketCount",
+      "ObligationCount",
+    ];
+
+    const rows = filteredAndSortedStatutes.map((s) => [
+      s.jurisdiction,
+      s.code,
+      `v${s.version}`,
+      s.citation || "",
+      s.topic || "",
+      s.lifecycleStatus,
+      s.description || "",
+      s.effectiveDate ? new Date(s.effectiveDate).toISOString() : "",
+      s.lastReviewedAt ? new Date(s.lastReviewedAt).toISOString() : "",
+      s.sourceUrl || "",
+      s.responseClockDays ?? "",
+      s.packetCount,
+      s.obligationCount,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `laws-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  };
+
+  const handleExportPdf = () => {
+    const htmlRows = filteredAndSortedStatutes
+      .map(
+        (s) => `
+        <tr>
+          <td>${escapeHtml(s.jurisdiction)}</td>
+          <td>${escapeHtml(s.code)}</td>
+          <td>v${s.version}</td>
+          <td>${escapeHtml(s.citation || "")}</td>
+          <td>${escapeHtml(s.topic || "")}</td>
+          <td>${escapeHtml(s.lifecycleStatus)}</td>
+          <td>${escapeHtml(s.description || "")}</td>
+          <td>${s.effectiveDate ? escapeHtml(format(new Date(s.effectiveDate), "yyyy-MM-dd")) : ""}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      showError("Unable to open PDF preview window");
+      return;
+    }
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Laws Export</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 16px; }
+            h1 { margin-bottom: 12px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; vertical-align: top; }
+            th { background: #f5f5f5; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <h1>Laws Export</h1>
+          <table>
+            <thead>
+              <tr>
+                <th>Jurisdiction</th>
+                <th>Code</th>
+                <th>Version</th>
+                <th>Citation</th>
+                <th>Topic</th>
+                <th>Status</th>
+                <th>Description</th>
+                <th>Effective Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${htmlRows}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
+  };
+
+  const relatedLawsByVersionId = useMemo(() => {
+    const map = new Map<number, StatuteData[]>();
+    for (const statute of filteredAndSortedStatutes) {
+      const related = filteredAndSortedStatutes
+        .filter(
+          (candidate) =>
+            candidate.versionId !== statute.versionId &&
+            candidate.jurisdiction === statute.jurisdiction &&
+            candidate.code !== statute.code
+        )
+        .slice(0, 3);
+      map.set(statute.versionId, related);
+    }
+    return map;
+  }, [filteredAndSortedStatutes]);
+
+  const openHistory = (statute: StatuteData) => {
+    setHistoryVersionId(statute.versionId);
+    setHistoryLabel(`${statute.jurisdiction} ${statute.code} v${statute.version}`);
+    markWatchSeen(statute);
+  };
+
   return (
     <div className={styles.container}>
       <Helmet>
-        <title>Statute Management | Credit Regulator Pro</title>
+        <title>Laws Registry | Credit Regulator Pro</title>
       </Helmet>
 
       <PageHeader
         title={
           <div className={styles.titleWrapper}>
-            Statute Management
+            Laws Registry
             <HelpTooltip
               content={
                 <>
                   <p>
-                    Statutes define the legal frameworks and rules for credit reporting
-                    compliance (e.g., Federal (PIPEDA) and provincial consumer protection acts).
+                    Laws define the legal frameworks and obligations used by the platform.
                   </p>
                   <p style={{ marginTop: "0.5rem" }}>
-                    They govern response timelines (clocks), packet requirements, and
-                    specific obligations for creditors.
+                    Active laws require citation, source URL, effective date, and review history.
                   </p>
                 </>
               }
-              title="About Statutes"
+              title="About Laws"
             />
           </div>
         }
-        subtitle="Create new statute versions and mark old versions as superseded. Statutes cannot be edited or deleted once created."
-        
+        subtitle="Manage canonical law versions with status lifecycle, source traceability, and review history."
         role={authState.user.role}
       >
-        <button
-          className={styles.createButton}
-          onClick={() => setIsCreateOpen(true)}
-        >
+        <Button variant="outline" onClick={handleExportCsv}>
+          <FileDown size={16} />
+          Export CSV
+        </Button>
+        <Button variant="outline" onClick={handleExportPdf}>
+          <FileText size={16} />
+          Export PDF
+        </Button>
+        <button className={styles.createButton} onClick={() => setIsCreateOpen(true)}>
           <Plus size={18} />
-          Create Statute
+          Create Law Version
         </button>
       </PageHeader>
+
+      {watchedUpdates.length > 0 && (
+        <div className={styles.watchAlert}>
+          <BellRing size={16} />
+          <span>
+            {watchedUpdates.length} watched law version
+            {watchedUpdates.length > 1 ? "s have" : " has"} new updates.
+          </span>
+        </div>
+      )}
 
       <StatuteStats />
 
@@ -251,7 +505,7 @@ export default function StatutesPage() {
           <div className={styles.filterLabel}>
             Filters
             <HelpTooltip
-              content="Use these filters to narrow down statutes by jurisdiction (Federal/Provincial), specific code, or status. You can also toggle seeing historical superseded versions."
+              content="Filter by jurisdiction, code, topic, and lifecycle status. Citation filter is exact-match."
               side="right"
             />
           </div>
@@ -259,7 +513,7 @@ export default function StatutesPage() {
             <Search size={16} className={styles.filterIcon} />
             <Input
               type="text"
-              placeholder="Search description or section..."
+              placeholder="Search description, code, section..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className={styles.searchInput}
@@ -267,15 +521,48 @@ export default function StatutesPage() {
           </div>
 
           <div className={styles.filterGroup}>
+            <Search size={16} className={styles.filterIcon} />
+            <Input
+              type="text"
+              placeholder="Exact citation (e.g., CRA Section 12)"
+              value={citation}
+              onChange={(e) => setCitation(e.target.value)}
+              className={styles.citationInput}
+            />
+          </div>
+
+          <div className={styles.filterGroup}>
             <Filter size={16} className={styles.filterIcon} />
-            <select
-              className={styles.select}
-              value={jurisdiction}
-              onChange={(e) => setJurisdiction(e.target.value)}
-            >
+            <select className={styles.select} value={jurisdiction} onChange={(e) => setJurisdiction(e.target.value)}>
               <option value="">All Jurisdictions</option>
-              {filterOptions?.jurisdictions.map(j => (
-                <option key={j} value={j}>{j}</option>
+              {filterOptions?.jurisdictions.map((j) => (
+                <option key={j} value={j}>
+                  {j}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.filterGroup}>
+            <Filter size={16} className={styles.filterIcon} />
+            <select className={styles.select} value={code} onChange={(e) => setCode(e.target.value)}>
+              <option value="">All Codes</option>
+              {filterOptions?.codes.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={styles.filterGroup}>
+            <Filter size={16} className={styles.filterIcon} />
+            <select className={styles.select} value={topic} onChange={(e) => setTopic(e.target.value)}>
+              <option value="">All Topics</option>
+              {filterOptions?.topics.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
@@ -284,24 +571,22 @@ export default function StatutesPage() {
             <Filter size={16} className={styles.filterIcon} />
             <select
               className={styles.select}
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
+              value={status}
+              onChange={(e) => setStatus(e.target.value as LifecycleStatus)}
             >
-              <option value="">All Codes</option>
-              {filterOptions?.codes.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              {filterOptions?.statuses.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              )) || (
+                <>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="AMENDED">AMENDED</option>
+                  <option value="REPEALED">REPEALED</option>
+                </>
+              )}
             </select>
           </div>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-            />
-            <span className={styles.toggleLabel}>Active Only</span>
-          </label>
 
           <label className={styles.toggle}>
             <input
@@ -309,7 +594,7 @@ export default function StatutesPage() {
               checked={includeSuperseded}
               onChange={(e) => setIncludeSuperseded(e.target.checked)}
             />
-            <span className={styles.toggleLabel}>Show Superseded</span>
+            <span className={styles.toggleLabel}>Include Superseded Records</span>
           </label>
         </div>
       </div>
@@ -324,11 +609,11 @@ export default function StatutesPage() {
         ) : error ? (
           <div className={styles.errorState}>
             <AlertTriangle size={32} />
-            <p>Failed to load statutes. Please try again.</p>
+            <p>Failed to load laws. Please try again.</p>
           </div>
         ) : Object.keys(groupedStatutes).length === 0 ? (
           <div className={styles.emptyState}>
-            <p>No statutes found matching your filters.</p>
+            <p>No laws found matching your filters.</p>
           </div>
         ) : (
           <div className={styles.tableContainer}>
@@ -337,38 +622,22 @@ export default function StatutesPage() {
                 <tr>
                   <th onClick={() => handleSort("jurisdiction")} className={styles.sortable}>
                     Jurisdiction / Code {getSortIcon("jurisdiction")}
-                    <HelpTooltip
-                      content="Jurisdictions include Federal (CA) and Provincial (e.g., ON, BC). Codes represent specific acts."
-                      size={14}
-                    />
                   </th>
                   <th onClick={() => handleSort("version")} className={`${styles.sortable} ${styles.hideOnMobile}`}>
                     Ver {getSortIcon("version")}
                   </th>
+                  <th>Citation</th>
                   <th>Description</th>
                   <th onClick={() => handleSort("responseClockDays")} className={`${styles.sortable} ${styles.hideOnMobile}`}>
                     Clock {getSortIcon("responseClockDays")}
-                    <HelpTooltip
-                      content="The number of days legally allowed to respond to a dispute under this statute."
-                      size={14}
-                    />
                   </th>
                   <th onClick={() => handleSort("effectiveDate")} className={styles.sortable}>
                     Effective {getSortIcon("effectiveDate")}
                   </th>
-                  <th onClick={() => handleSort("createdAt")} className={`${styles.sortable} ${styles.hideOnMobile}`}>
-                    Created {getSortIcon("createdAt")}
+                  <th onClick={() => handleSort("lastReviewedAt")} className={`${styles.sortable} ${styles.hideOnMobile}`}>
+                    Last Reviewed {getSortIcon("lastReviewedAt")}
                   </th>
-                  <th onClick={() => handleSort("packetCount")} className={`${styles.sortable} ${styles.hideOnMobile}`}>
-                    Packets {getSortIcon("packetCount")}
-                  </th>
-                  <th onClick={() => handleSort("obligationCount")} className={`${styles.sortable} ${styles.hideOnMobile}`}>
-                    Obligations {getSortIcon("obligationCount")}
-                    <HelpTooltip
-                      content="Specific compliance tasks or checks required by this statute version."
-                      size={14}
-                    />
-                  </th>
+                  <th className={styles.hideOnMobile}>Topic</th>
                   <th>Status</th>
                   <th className={styles.actionsHeader}>Actions</th>
                 </tr>
@@ -382,74 +651,104 @@ export default function StatutesPage() {
                           {jur} <span className={styles.codeBadge}>{c}</span>
                         </td>
                       </tr>
-                      {statutes.map((statute) => (
-                        <tr key={statute.versionId} className={styles.row}>
-                          <td className={styles.indent}>
-                            <div className={styles.citation}>
-                              {statute.sectionReference}
-                            </div>
-                          </td>
-                          <td className={styles.hideOnMobile}>v{statute.version}</td>
-                          <td className={styles.descriptionCell}>
-                            <div className={styles.description} title={statute.description || ""}>
-                              {statute.description}
-                            </div>
-                          </td>
-                          <td className={styles.hideOnMobile}>{statute.responseClockDays} days</td>
-                          <td>
-                            {statute.effectiveDate
-                              ? format(new Date(statute.effectiveDate), "MMM d, yyyy")
-                              : "-"}
-                          </td>
-                          <td className={styles.hideOnMobile}>
-                            {statute.createdAt
-                              ? format(new Date(statute.createdAt), "MMM d, yyyy")
-                              : "-"}
-                          </td>
-                          <td className={styles.hideOnMobile}>
-                            <Badge variant={statute.packetCount > 0 ? "primary" : "default"}>
-                              {statute.packetCount}
-                            </Badge>
-                          </td>
-                          <td className={styles.hideOnMobile}>
-                            <Badge variant={statute.obligationCount > 0 ? "primary" : "default"}>
-                              {statute.obligationCount}
-                            </Badge>
-                          </td>
-                          <td>
-                            {statute.supersededDate ? (
-                              <Badge variant="default">Superseded</Badge>
-                            ) : (
-                              <Badge variant="success">Active</Badge>
-                            )}
-                          </td>
-                          <td>
-                            <div className={styles.actions}>
-                              {!statute.supersededDate && (
+                      {statutes.map((statute) => {
+                        const related = relatedLawsByVersionId.get(statute.versionId) || [];
+                        return (
+                          <tr key={statute.versionId} className={styles.row}>
+                            <td className={styles.indent}>
+                              <div className={styles.citation}>{statute.code}</div>
+                            </td>
+                            <td className={styles.hideOnMobile}>v{statute.version}</td>
+                            <td>
+                              <div className={styles.citationBlock}>
+                                <div className={styles.citation}>{statute.citation || "-"}</div>
+                                {related.length > 0 && (
+                                  <div className={styles.relatedLaws}>
+                                    Related:{" "}
+                                    {related.map((law) => `${law.code} v${law.version}`).join(", ")}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className={styles.descriptionCell}>
+                              <div className={styles.description} title={statute.description || ""}>
+                                {statute.description}
+                              </div>
+                            </td>
+                            <td className={styles.hideOnMobile}>{statute.responseClockDays} days</td>
+                            <td>
+                              {statute.effectiveDate
+                                ? format(new Date(statute.effectiveDate), "MMM d, yyyy")
+                                : "-"}
+                            </td>
+                            <td className={styles.hideOnMobile}>
+                              {statute.lastReviewedAt
+                                ? format(new Date(statute.lastReviewedAt), "MMM d, yyyy")
+                                : "-"}
+                            </td>
+                            <td className={styles.hideOnMobile}>
+                              <Badge variant="info">{statute.topic}</Badge>
+                            </td>
+                            <td>
+                              <Badge variant={getLifecycleBadgeVariant(statute.lifecycleStatus)}>
+                                {statute.lifecycleStatus}
+                              </Badge>
+                            </td>
+                            <td>
+                              <div className={styles.actions}>
+                                <button
+                                  className={`${styles.actionButton} ${
+                                    watchedVersionIds.has(statute.versionId) ? styles.actionActive : ""
+                                  }`}
+                                  onClick={() => toggleWatch(statute)}
+                                  title="Watch this law version"
+                                >
+                                  <Star size={16} />
+                                  {hasWatchUpdate(statute) && <span className={styles.updateDot} />}
+                                </button>
+
                                 <button
                                   className={styles.actionButton}
-                                  onClick={() => handleMarkSuperseded(statute)}
-                                  title="Mark as Superseded"
+                                  onClick={() => openHistory(statute)}
+                                  title="View change history"
                                 >
-                                  <Archive size={16} />
+                                  <History size={16} />
                                 </button>
-                              )}
 
-                              {statute.sourceUrl && (
-                                <a
-                                  href={statute.sourceUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
                                   className={styles.actionButton}
-                                  title="View Source"
+                                  onClick={() => handleMarkReviewed(statute)}
+                                  title="Mark as reviewed"
                                 >
-                                  <ExternalLink size={16} />
-                                </a>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                  <CheckCircle2 size={16} />
+                                </button>
+
+                                {statute.lifecycleStatus === "ACTIVE" && (
+                                  <button
+                                    className={styles.actionButton}
+                                    onClick={() => handleMarkSuperseded(statute)}
+                                    title="Mark as superseded"
+                                  >
+                                    <Archive size={16} />
+                                  </button>
+                                )}
+
+                                {statute.sourceUrl && (
+                                  <a
+                                    href={statute.sourceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.actionButton}
+                                    title="View official source"
+                                  >
+                                    <ExternalLink size={16} />
+                                  </a>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </React.Fragment>
                   ))
                 )}
@@ -459,7 +758,6 @@ export default function StatutesPage() {
         )}
       </div>
 
-      {/* Create Dialog */}
       <StatuteFormDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
@@ -467,6 +765,50 @@ export default function StatutesPage() {
         onSubmit={handleCreate}
         isSubmitting={createMutation.isPending}
       />
+
+      <Dialog.Root open={historyVersionId !== null} onOpenChange={(open) => !open && setHistoryVersionId(null)}>
+        <Dialog.Portal>
+          <Dialog.Overlay className={styles.historyOverlay} />
+          <Dialog.Content className={styles.historyDialog}>
+            <Dialog.Title className={styles.historyTitle}>Change History: {historyLabel}</Dialog.Title>
+            <div className={styles.historyBody}>
+              {historyLoading ? (
+                <>
+                  <Skeleton className={styles.skeletonRow} />
+                  <Skeleton className={styles.skeletonRow} />
+                </>
+              ) : !historyData?.history || historyData.history.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p>No history entries found for this law version.</p>
+                </div>
+              ) : (
+                historyData.history.map((entry) => (
+                  <div key={entry.auditLogId} className={styles.historyRow}>
+                    <div className={styles.historyMeta}>
+                      <Badge variant="info">{entry.mode || entry.actionType}</Badge>
+                      <span>
+                        {format(new Date(entry.timestamp), "MMM d, yyyy h:mm a")}
+                      </span>
+                      <span>{entry.userDisplayName || entry.userEmail || "System"}</span>
+                    </div>
+                    <div className={styles.historyFields}>
+                      {entry.changedFields.length > 0
+                        ? `Changed: ${entry.changedFields.join(", ")}`
+                        : "No field-level diff recorded"}
+                    </div>
+                    {entry.citation && <div className={styles.historyFields}>Citation: {entry.citation}</div>}
+                  </div>
+                ))
+              )}
+            </div>
+            <div className={styles.historyActions}>
+              <Button variant="outline" onClick={() => setHistoryVersionId(null)}>
+                Close
+              </Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

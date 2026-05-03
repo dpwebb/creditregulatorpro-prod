@@ -16,13 +16,15 @@ export async function handle(request: Request) {
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
+    const normalizedJurisdiction = input.jurisdiction.trim();
+    const normalizedCode = input.code.trim().toUpperCase();
 
     // First, check if statute exists with given jurisdiction and code
     let statute = await db
       .selectFrom("statute")
       .selectAll()
-      .where("jurisdiction", "=", input.jurisdiction)
-      .where("code", "=", input.code)
+      .where("jurisdiction", "=", normalizedJurisdiction)
+      .where("code", "=", normalizedCode)
       .executeTakeFirst();
 
     // If statute doesn't exist, create it
@@ -30,8 +32,8 @@ export async function handle(request: Request) {
       statute = await db
         .insertInto("statute")
         .values({
-          jurisdiction: input.jurisdiction,
-          code: input.code,
+          jurisdiction: normalizedJurisdiction,
+          code: normalizedCode,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
@@ -70,11 +72,11 @@ export async function handle(request: Request) {
       .values({
         statuteId: statute.id,
         version: version,
-        description: input.description ?? null,
-        responseClockDays: input.responseClockDays ?? null,
-                effectiveDate: input.effectiveDate ?? new Date(),
-        sourceUrl: input.sourceUrl ?? null,
-        sectionReference: input.sectionReference ?? null,
+        description: input.description,
+        responseClockDays: input.responseClockDays,
+        effectiveDate: input.effectiveDate,
+        sourceUrl: input.sourceUrl,
+        sectionReference: input.sectionReference,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -99,9 +101,29 @@ export async function handle(request: Request) {
     await logAudit({
       action: "SCHEMA_CHANGE",
       entityType: "STATUTE",
-      entityId: statute.id,
+      entityId: statuteVersion.id,
       userId: user.id,
-      details: { jurisdiction: statute.jurisdiction, code: statute.code },
+      details: {
+        component: "statute",
+        mode: "CREATE",
+        statuteId: statute.id,
+        versionId: statuteVersion.id,
+        jurisdiction: statute.jurisdiction,
+        code: statute.code,
+        citation: `${statute.code} ${statuteVersion.sectionReference || ""}`.trim(),
+        changedFields: [
+          "jurisdiction",
+          "code",
+          "version",
+          "description",
+          "responseClockDays",
+          "effectiveDate",
+          "sourceUrl",
+          "sectionReference",
+        ],
+        before: null,
+        after: result,
+      },
       status: "SUCCESS",
       request,
     });
