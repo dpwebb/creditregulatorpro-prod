@@ -5,7 +5,7 @@ export const ADMIN_USER_DETAIL_QUERY_KEY = (userId: number) => ["admin", "user-d
 
 export function useAdminUserDetail(userId: number | undefined) {
   return useQuery({
-    queryKey: ADMIN_USER_DETAIL_QUERY_KEY(userId as number),
+    queryKey: ["admin", "user-detail", userId ?? "missing"],
     queryFn: async () => {
       if (userId === undefined) {
         throw new Error("userId is required");

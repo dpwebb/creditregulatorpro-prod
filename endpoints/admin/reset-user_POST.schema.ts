@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const schema = z.object({
-  userId: z.number(),
+  userId: z.coerce.number().int().positive(),
 });
 
 export type InputType = z.infer<typeof schema>;

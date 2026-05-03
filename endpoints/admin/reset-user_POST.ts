@@ -32,6 +32,10 @@ export async function handle(request: Request) {
       throw new BusinessRuleError("Cannot reset an admin account", 400);
     }
 
+    if (input.userId === adminUser.id) {
+      throw new BusinessRuleError("Cannot reset the current admin account", 400);
+    }
+
     // 3. Query all report_artifact records for the given userId
     const artifacts = await db
       .selectFrom("reportArtifact")

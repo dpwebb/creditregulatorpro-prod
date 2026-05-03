@@ -6,6 +6,8 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import { generatePasswordHash } from "../../helpers/generatePasswordHash";
 import { sendGridEmail } from "../../helpers/sendGridEmail";
+import { logAudit } from "../../helpers/auditLogger";
+import { sql } from "kysely";
 
 export async function handle(request: Request) {
   try {
@@ -17,10 +19,16 @@ export async function handle(request: Request) {
     
     const json = JSON.parse(await request.text());
     const result = schema.parse(json);
+    const normalizedEmail = result.email.trim().toLowerCase();
+    const normalizedDisplayName = result.displayName.trim();
+
+    if (!normalizedDisplayName) {
+      throw new BusinessRuleError("Display name is required", 400);
+    }
 
     const existingUser = await db
       .selectFrom("users")
-      .where("email", "=", result.email)
+      .where(sql<boolean>`lower(users.email) = ${normalizedEmail}`)
       .selectAll()
       .executeTakeFirst();
       
@@ -32,8 +40,8 @@ export async function handle(request: Request) {
       const insertedUser = await trx
         .insertInto("users")
         .values({
-          email: result.email,
-          displayName: result.displayName,
+          email: normalizedEmail,
+          displayName: normalizedDisplayName,
           role: "support",
           emailVerified: true,
         })
@@ -54,9 +62,9 @@ export async function handle(request: Request) {
         .insertInto("userAccount")
         .values({
           userId: insertedUser.id,
-          email: result.email,
+          email: normalizedEmail,
           role: "support",
-          fullName: result.displayName,
+          fullName: normalizedDisplayName,
         })
         .execute();
 
@@ -77,20 +85,32 @@ export async function handle(request: Request) {
       .execute();
 
     console.log(`Password reset token created for new support agent userId=${newUser.id}`);
+    await logAudit({
+      action: "CREATE",
+      entityType: "USER_ACCOUNT",
+      entityId: newUser.id,
+      userId: user.id,
+      details: {
+        action: "CREATE_SUPPORT_AGENT",
+        agentEmail: normalizedEmail,
+      },
+      status: "SUCCESS",
+      request,
+    });
 
     const setPasswordUrl = `https://www.creditregulatorpro.com/reset-password?token=${resetToken}`;
 
     await sendGridEmail({
-      to: result.email,
+      to: normalizedEmail,
       subject: "Welcome to Credit Regulator Pro Support Team",
       html: `
-        <p>Hello ${result.displayName},</p>
+        <p>Hello ${normalizedDisplayName},</p>
         <p>Welcome to the support team. Click below to set your password.</p>
         <p><a href="${setPasswordUrl}" style="display:inline-block;padding:12px 24px;background:#FF2A2A;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:500;">Set Your Password</a></p>
         <p>This link expires in 24 hours.</p>
         <p>If you did not expect this email, please contact your administrator.</p>
       `,
-      text: `Hello ${result.displayName},\n\nWelcome to the support team. Click the link below to set your password:\n\n${setPasswordUrl}\n\nThis link expires in 24 hours.`,
+      text: `Hello ${normalizedDisplayName},\n\nWelcome to the support team. Click the link below to set your password:\n\n${setPasswordUrl}\n\nThis link expires in 24 hours.`,
     }).catch((e) => console.error("Failed to send agent creation email", e));
 
     return new Response(JSON.stringify({ user: newUser } satisfies OutputType), {

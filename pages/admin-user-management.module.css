@@ -273,6 +273,25 @@
   justify-content: flex-end;
 }
 
+.pagination {
+  margin-top: var(--spacing-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.paginationInfo {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.paginationActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
 .noAction {
   color: var(--muted-foreground);
   padding: var(--spacing-2) var(--spacing-4);
@@ -348,6 +367,10 @@
     align-items: flex-start;
   }
   .cardBottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pagination {
     flex-direction: column;
     align-items: flex-start;
   }

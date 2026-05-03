@@ -4,9 +4,9 @@ import { UserRole, SubscriptionPlan, SubscriptionStatus } from "../../helpers/sc
 
 export const schema = z.object({
   role: z.enum(["admin", "user", "support"]).optional(),
-  
-
-  search: z.string().optional(),
+  search: z.string().trim().max(120).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
@@ -37,6 +37,8 @@ export const getAdminUsers = async (
   const searchParams = new URLSearchParams();
   if (params.role) searchParams.append("role", params.role);
   if (params.search) searchParams.append("search", params.search);
+  if (params.limit !== undefined) searchParams.append("limit", String(params.limit));
+  if (params.offset !== undefined) searchParams.append("offset", String(params.offset));
 
   const result = await fetch(`/_api/admin/users?${searchParams.toString()}`, {
     method: "GET",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { format } from "../helpers/dateUtils";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../helpers/useAuth";
@@ -54,10 +54,12 @@ import { UserRoleArrayValues } from "../helpers/schema";
 import styles from "./admin-user-management.module.css";
 
 export default function AdminUserManagementPage() {
+  const PAGE_SIZE = 25;
   const { authState } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState<string>("ALL");
+  const [page, setPage] = useState(0);
 
   const { showSuccess, showError } = useToast();
   const resetUserMutation = useAdminResetUser();
@@ -66,10 +68,22 @@ export default function AdminUserManagementPage() {
 
   const debouncedSearch = useDebounce(search, 500);
 
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, role]);
+
   const { data: users, isLoading, isError } = useAdminUsers({
     role: role === "ALL" ? undefined : (role as any),
     search: debouncedSearch || undefined,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
   });
+
+  const hasPrevPage = page > 0;
+  const hasNextPage = (users?.length ?? 0) === PAGE_SIZE;
+  const firstVisible = users && users.length > 0 ? page * PAGE_SIZE + 1 : 0;
+  const lastVisible = page * PAGE_SIZE + (users?.length ?? 0);
+  const isResetEmailConfirmed = !!resetTarget && confirmEmail.trim().toLowerCase() === resetTarget.email.trim().toLowerCase();
 
   const createAgentMutation = useCreateSupportAgent();
   const [isAddAgentOpen, setIsAddAgentOpen] = useState(false);
@@ -268,6 +282,32 @@ export default function AdminUserManagementPage() {
         )}
       </div>
 
+      {!isLoading && !isError && (
+        <div className={styles.pagination}>
+          <span className={styles.paginationInfo}>
+            Showing {firstVisible}-{lastVisible}
+          </span>
+          <div className={styles.paginationActions}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+              disabled={!hasPrevPage}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((prev) => prev + 1)}
+              disabled={!hasNextPage}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Dialog open={isAddAgentOpen} onOpenChange={(open) => { if (!open) setIsAddAgentOpen(false); }}>
         <DialogContent>
           <DialogHeader>
@@ -364,7 +404,7 @@ export default function AdminUserManagementPage() {
             </Button>
             <Button
               variant="destructive"
-              disabled={!resetTarget || confirmEmail !== resetTarget.email || resetUserMutation.isPending}
+              disabled={!isResetEmailConfirmed || resetUserMutation.isPending}
               onClick={handleReset}
             >
               {resetUserMutation.isPending ? <Spinner size="sm" /> : "Reset"}

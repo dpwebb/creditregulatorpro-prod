@@ -8,9 +8,7 @@ import styles from "./DashboardUsersTable.module.css";
 
 export const DashboardUsersTable = () => {
   const navigate = useNavigate();
-  const { data: users, isFetching } = useAdminUsers({});
-
-  const displayUsers = users?.slice(0, 5); // Show only recent or top 5
+  const { data: displayUsers, isFetching } = useAdminUsers({ limit: 5, offset: 0 });
 
   return (
     <div className={styles.section}>

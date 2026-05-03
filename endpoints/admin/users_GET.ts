@@ -23,11 +23,13 @@ export async function handle(request: Request) {
     const queryParams = Object.fromEntries(url.searchParams.entries());
     const input = schema.parse(queryParams);
 
+    const limit = input.limit ?? 25;
+    const offset = input.offset ?? 0;
+    const normalizedSearch = input.search?.trim();
+
     // 3. Build Query
     let query = db
       .selectFrom("users")
-      .leftJoin("subscriptions", "subscriptions.userId", "users.id")
-      .leftJoin("userAccount", "userAccount.userId", "users.id")
       .select([
         "users.id",
         "users.email",
@@ -36,10 +38,30 @@ export async function handle(request: Request) {
         "users.createdAt",
         "users.emailVerified",
         "users.avatarUrl",
-        "subscriptions.plan as subscriptionPlan",
-        "subscriptions.status as subscriptionStatus",
-        "userAccount.fullName as fullName",
-        // Subqueries for counts to avoid massive joins/group by issues
+        (eb) =>
+          eb
+            .selectFrom("subscriptions")
+            .select("subscriptions.plan")
+            .whereRef("subscriptions.userId", "=", "users.id")
+            .orderBy("subscriptions.updatedAt", "desc")
+            .limit(1)
+            .as("subscriptionPlan"),
+        (eb) =>
+          eb
+            .selectFrom("subscriptions")
+            .select("subscriptions.status")
+            .whereRef("subscriptions.userId", "=", "users.id")
+            .orderBy("subscriptions.updatedAt", "desc")
+            .limit(1)
+            .as("subscriptionStatus"),
+        (eb) =>
+          eb
+            .selectFrom("userAccount")
+            .select("userAccount.fullName")
+            .whereRef("userAccount.userId", "=", "users.id")
+            .orderBy("userAccount.createdAt", "desc")
+            .limit(1)
+            .as("fullName"),
         (eb) =>
           eb
             .selectFrom("tradeline")
@@ -52,16 +74,6 @@ export async function handle(request: Request) {
             .select(sql<number>`count(*)`.as("count"))
             .whereRef("packet.userId", "=", "users.id")
             .as("packetsCount"),
-        // Evidence events don't have a direct userId column in schema provided, 
-        // but usually are linked via packet or tradeline. 
-        // However, looking at schema, evidenceEvent doesn't have userId directly.
-        // It has organizationId. 
-        // Wait, auditLog has userId. Let's count audit logs for activity instead?
-        // Or check if we can link evidenceEvent.
-        // The prompt asks for "evidenceEventsCount".
-        // Looking at schema: EvidenceEvent has organizationId and packetId.
-        // It doesn't seem to have userId directly.
-        // Let's count audit logs where entityType = 'EVIDENCE_EVENT' and userId = user.id as a proxy for evidence activity created by user.
         (eb) =>
           eb
             .selectFrom("auditLog")
@@ -83,8 +95,8 @@ export async function handle(request: Request) {
       query = query.where("users.role", "=", input.role as UserRole);
     }
 
-    if (input.search) {
-      const searchLower = `%${input.search.toLowerCase()}%`;
+    if (normalizedSearch) {
+      const searchLower = `%${normalizedSearch.toLowerCase()}%`;
       query = query.where((eb) =>
         eb.or([
           eb(sql`lower(users.email)`, "like", searchLower),
@@ -94,7 +106,11 @@ export async function handle(request: Request) {
     }
 
     // 5. Execute Query
-    const users = await query.orderBy("users.createdAt", "desc").execute();
+    const users = await query
+      .orderBy("users.createdAt", "desc")
+      .limit(limit)
+      .offset(offset)
+      .execute();
 
     // 6. Transform Result (handle string counts from SQL)
     const transformedUsers = users.map((u) => ({
@@ -109,7 +125,9 @@ export async function handle(request: Request) {
     }));
 
     // 7. Return Response
-    return new Response(JSON.stringify(transformedUsers satisfies OutputType));
+    return new Response(JSON.stringify(transformedUsers satisfies OutputType), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     return handleEndpointError(error);
   }

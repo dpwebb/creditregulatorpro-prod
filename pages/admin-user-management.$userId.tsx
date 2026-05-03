@@ -22,6 +22,7 @@ export default function AdminUserDetail() {
   const deleteUserMutation = useAdminDeleteUser();
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const isDeleteEmailConfirmed = !!data && deleteConfirmEmail.trim().toLowerCase() === data.user.email.trim().toLowerCase();
 
   const handleDeleteUser = () => {
     if (!numericUserId || !data) return;
@@ -361,7 +362,7 @@ export default function AdminUserDetail() {
                     </Button>
                     <Button
                       variant="destructive"
-                      disabled={deleteConfirmEmail !== data.user.email || deleteUserMutation.isPending}
+                      disabled={!isDeleteEmailConfirmed || deleteUserMutation.isPending}
                       onClick={handleDeleteUser}
                     >
                       {deleteUserMutation.isPending ? "Deleting..." : "Permanently Delete"}

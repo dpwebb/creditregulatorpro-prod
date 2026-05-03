@@ -35,8 +35,14 @@ export async function handle(request: Request) {
       throw new BusinessRuleError("Cannot delete an admin account", 400);
     }
 
+    if (targetUser.id === adminUser.id) {
+      throw new BusinessRuleError("Cannot delete the current admin account", 400);
+    }
+
     // 4. Reject if confirmEmail doesn't match target user's email
-    if (targetUser.email !== input.confirmEmail) {
+    const normalizedTargetEmail = targetUser.email.trim().toLowerCase();
+    const normalizedConfirmEmail = input.confirmEmail.trim().toLowerCase();
+    if (normalizedTargetEmail !== normalizedConfirmEmail) {
       throw new BusinessRuleError("Confirmation email does not match the target user's email", 400);
     }
 
