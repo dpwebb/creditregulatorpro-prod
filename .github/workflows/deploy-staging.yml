@@ -58,22 +58,88 @@ jobs:
 
       - name: Prepare SSH
         env:
-          STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY != '' && secrets.STAGING_SSH_PRIVATE_KEY || secrets.STAGING_SSH_KEY }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
           STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$STAGING_SSH_PRIVATE_KEY" > ~/.ssh/staging_deploy_key.raw
           python3 - <<'PY'
+          import base64
+          import binascii
           from pathlib import Path
 
           raw_path = Path.home() / ".ssh" / "staging_deploy_key.raw"
           key_path = Path.home() / ".ssh" / "staging_deploy_key"
-          key = raw_path.read_text()
-          key = key.replace("\\n", "\n")
-          key = key.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
-          key_path.write_text(key)
+          raw = raw_path.read_text().strip()
+
+          if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
+              raw = raw[1:-1].strip()
+
+          def normalize_newlines(text: str) -> str:
+              return text.replace("\r\n", "\n").replace("\r", "\n").strip()
+
+          def looks_like_private_key(text: str) -> bool:
+              normalized = normalize_newlines(text)
+              if "\\n" in normalized:
+                  return False
+
+              lines = [line.strip() for line in normalized.split("\n") if line.strip()]
+              if len(lines) < 3:
+                  return False
+
+              begin = lines[0]
+              end = lines[-1]
+
+              return (
+                  begin.startswith("-----BEGIN ")
+                  and begin.endswith("PRIVATE KEY-----")
+                  and end.startswith("-----END ")
+                  and end.endswith("PRIVATE KEY-----")
+              )
+
+          def base64_candidates(text: str):
+              compact = "".join(text.split())
+              if not compact:
+                  return
+
+              for decoder in (base64.b64decode, base64.urlsafe_b64decode):
+                  for candidate in (compact, compact + "=" * ((4 - len(compact) % 4) % 4)):
+                      try:
+                          decoded = decoder(candidate).decode("utf-8")
+                      except (binascii.Error, UnicodeDecodeError, ValueError):
+                          continue
+                      yield normalize_newlines(decoded)
+
+          key = None
+          direct_candidates = [
+              normalize_newlines(raw.replace("\\n", "\n")),
+              normalize_newlines(raw),
+          ]
+
+          for candidate in direct_candidates:
+              if looks_like_private_key(candidate):
+                  key = candidate
+                  break
+
+          if key is None:
+              for candidate in direct_candidates:
+                  for decoded in base64_candidates(candidate):
+                      if looks_like_private_key(decoded):
+                          key = decoded
+                          break
+                  if key is not None:
+                      break
+
+          if key is None:
+              raise SystemExit(
+                  "STAGING_SSH_PRIVATE_KEY is invalid. Store a full SSH private key "
+                  "(BEGIN/END ... PRIVATE KEY) or base64 of that full text."
+              )
+
+          key_path.write_text(key + "\n")
           raw_path.unlink()
           PY
           chmod 600 ~/.ssh/staging_deploy_key
