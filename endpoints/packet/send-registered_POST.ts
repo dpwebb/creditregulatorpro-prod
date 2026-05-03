@@ -28,8 +28,38 @@ function generateHash(data: string): string {
 function parsePostGridError(rawMessage: string): { errorType: PostGridErrorType; userMessage: string } {
   const lower = rawMessage.toLowerCase();
 
-  // "cannot send from" → sender (FROM) address verification failure
-  if (lower.includes("cannot send from") || lower.includes("send from") || (lower.includes("failed to verify") && lower.includes("from"))) {
+  // PostGrid authentication/config issue (invalid or missing API key)
+  if (
+    lower.includes("invalid api key") ||
+    (lower.includes("api key") && (lower.includes("unauthorized") || lower.includes("forbidden")))
+  ) {
+    return {
+      errorType: "other",
+      userMessage:
+        "We could not reach our mailing provider because of a service configuration issue. " +
+        "Please try again later or contact support.",
+    };
+  }
+
+  // Unsupported or invalid mailing class
+  if (
+    lower.includes("mailingclass") &&
+    (lower.includes("invalid") || lower.includes("unsupported"))
+  ) {
+    return {
+      errorType: "other",
+      userMessage:
+        "We could not send this letter because the selected mail service is temporarily unavailable. " +
+        "Please try again later.",
+    };
+  }
+
+  // "cannot send from" -> sender (FROM) address verification failure
+  if (
+    lower.includes("cannot send from") ||
+    lower.includes("send from") ||
+    (lower.includes("failed to verify") && lower.includes("from"))
+  ) {
     return {
       errorType: "address_from",
       userMessage:
@@ -38,8 +68,12 @@ function parsePostGridError(rawMessage: string): { errorType: PostGridErrorType;
     };
   }
 
-  // "cannot send to" → recipient (TO) address verification failure
-  if (lower.includes("cannot send to") || lower.includes("send to") || (lower.includes("failed to verify") && lower.includes("to"))) {
+  // "cannot send to" -> recipient (TO) address verification failure
+  if (
+    lower.includes("cannot send to") ||
+    lower.includes("send to") ||
+    (lower.includes("failed to verify") && lower.includes("to"))
+  ) {
     return {
       errorType: "address_to",
       userMessage:

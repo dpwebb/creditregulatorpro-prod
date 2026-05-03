@@ -5,6 +5,7 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { createMailPaymentIntent } from "../../helpers/stripeServer";
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
+import { db } from "../../helpers/db";
 
 export async function handle(request: Request) {
   try {
@@ -28,7 +29,18 @@ export async function handle(request: Request) {
 
     const pricing = await getPostalPricingFromDB();
 
-    if (user.subscriptionPlan === "beta") {
+    // Use the latest subscription row for payment gating to match packet send endpoints.
+    const latestSubscription = await db
+      .selectFrom("subscriptions")
+      .select(["plan"])
+      .where("userId", "=", user.id)
+      .orderBy("createdAt", "desc")
+      .limit(1)
+      .executeTakeFirst();
+
+    const isBetaUser = latestSubscription?.plan === "beta" || user.subscriptionPlan === "beta";
+
+    if (isBetaUser) {
       return new Response(
         JSON.stringify({
           clientSecret: null,

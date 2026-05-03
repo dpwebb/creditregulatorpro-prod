@@ -109,6 +109,8 @@ export async function handle(request: Request) {
         "creditorObligationTest.tradelineId",
         "creditorObligationTest.severity",
         "creditorObligationTest.violationCategory",
+        "creditorObligationTest.userStatus",
+        "creditorObligationTest.obligationState",
         "creditorObligationTest.obligationType",
         "creditorObligationTest.userExplanation",
         "creditor.name as creditorName",
@@ -151,7 +153,14 @@ export async function handle(request: Request) {
         creditorViolations++;
       }
 
-      if (v.severity === "HIGH" || v.severity === "ERROR") {
+      const isHighSeverity = v.severity === "HIGH" || v.severity === "ERROR";
+      const isActiveViolation = !v.userStatus || v.userStatus === "active";
+      const isResolvableState =
+        !v.obligationState ||
+        (v.obligationState !== "PROCEDURALLY_EXHAUSTED" &&
+          v.obligationState !== "ADDRESSED_VIA_LINKED_DISPUTE");
+
+      if (isHighSeverity && isActiveViolation && isResolvableState) {
         actionableCount++;
       }
 

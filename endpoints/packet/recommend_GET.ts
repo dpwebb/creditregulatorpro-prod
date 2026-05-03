@@ -180,8 +180,14 @@ export async function handle(request: Request) {
       const severityWeight =
         v.severity === "ERROR" ? 3 : v.severity === "WARNING" ? 2 : 1;
         
-      const confScore =
-        v.confidenceScore != null ? Number(v.confidenceScore) : 0.5;
+      const rawConfidence =
+        v.confidenceScore != null ? Number(v.confidenceScore) : 50;
+      // confidenceScore is persisted as 0-100 by the compliance scanner.
+      // Normalize to 0-1 for consistent scoring and confidence-level buckets.
+      const confScore = Math.max(
+        0,
+        Math.min(1, rawConfidence > 1 ? rawConfidence / 100 : rawConfidence)
+      );
         
       const count = violationCounts[v.tradelineId] || 1;
       const bonus = Math.min(0.5, (count - 1) * 0.1);
