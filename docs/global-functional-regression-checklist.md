@@ -217,6 +217,44 @@ Suggested accounts:
    - UI displays concrete error text instead of hanging or unresolved state
    - No JSON parse crash when backend returns non-JSON error bodies
 
+### G) Metro 2 Compliance Guide
+
+1. Open `/metro2-compliance` as admin
+2. In `Validation Rules`, verify tab loads with:
+   - Search box
+   - Category filter
+   - Severity filter
+   - Impact filter
+   - Confidence filter
+3. Apply each filter independently and in combination
+4. Click `Reset` and confirm all filters clear
+5. Confirm rule cards include:
+   - `Why It Matters`
+   - `What To Check`
+   - `Field References` (where available)
+   - Source links and `Last Reviewed`
+6. Click one field reference chip (example: `Base-8`)
+7. Expected:
+   - Active tab switches to `Field Reference`
+   - Table search is populated with selected field ID
+   - Matching field row is visibly highlighted
+8. Back in `Validation Rules`, click `CSV`
+9. Expected:
+   - CSV downloads with current filtered rule set
+10. Click `PDF Preview`
+11. Expected:
+   - Preview window opens with rendered rule summary
+   - If popups are blocked, user receives actionable error message
+12. Open `Quick Check` tab
+13. Toggle checklist items and verify progress % updates
+14. Click `Reset Checklist` and confirm all items clear
+15. Open `CRA Obligations` tab and click `View Related Statutes`
+16. Expected:
+   - Route navigates to `/statutes` without error
+17. Return to `/metro2-compliance` and open `Guide Changelog`
+18. Expected:
+   - Changelog entries render with date, summary, and details
+
 
 ## 8) Static/Reference Pages (Load Check)
 
@@ -244,6 +282,7 @@ Mark release **PASS** only if all are true:
 6. Activity/error log filters, presets, and timestamp displays are correct
 7. Error log severity classification, dedupe toggle, and metadata fields are functioning
 8. Letter templates support draft/publish validation, revision history, rollback, and archive lifecycle
+9. Metro 2 Compliance Guide filters/exports/field-linking/checklist/changelog work without runtime errors
 
 If any critical item fails, mark **FAIL** and capture:
 
