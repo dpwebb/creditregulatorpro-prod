@@ -301,14 +301,30 @@ export async function parseReport(
 
         const sourceText = tradeline.sourceText;
         const hasPaymentGrid = hasPaymentHistoryGrid(sourceText);
+        const extractedIsCollection = extractIsCollectionAccount(sourceText);
+        const extractedCollectionAgencyName =
+          extractCollectionAgencyName(sourceText) || undefined;
+        const extractedDateAssignedToCollection =
+          extractDateAssignedToCollection(sourceText);
+        const accountTypeLooksCollection =
+          typeof tradeline.accountType === "string" &&
+          tradeline.accountType.toUpperCase().includes("COLLECTION");
 
         // Base augmentation (synchronous fields)
         const augmented = {
           ...tradeline,
-          isCollectionAccount: extractIsCollectionAccount(sourceText),
+          // Preserve explicit collection fields produced by bureau-specific extractors.
+          // Generic extractors are used as fallback enrichment only.
+          isCollectionAccount:
+            tradeline.isCollectionAccount === true ||
+            accountTypeLooksCollection ||
+            extractedIsCollection,
           collectionAgencyName:
-            extractCollectionAgencyName(sourceText) || undefined,
-          dateAssignedToCollection: extractDateAssignedToCollection(sourceText),
+            tradeline.collectionAgencyName ||
+            extractedCollectionAgencyName,
+          dateAssignedToCollection:
+            tradeline.dateAssignedToCollection ??
+            extractedDateAssignedToCollection,
           originalBalance: extractOriginalBalance(sourceText) || undefined,
           interestRate: extractInterestRate(sourceText) || undefined,
           terms: extractTerms(sourceText) || undefined,
