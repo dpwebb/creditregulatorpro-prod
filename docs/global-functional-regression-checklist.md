@@ -129,10 +129,25 @@ Suggested accounts:
 ### C) Letter Templates
 
 1. Open `/admin-letter-templates`
-2. Create or edit a template
-3. Save and reload page
-4. Expected:
-   - Saved changes persist
+2. Expand an existing template row and edit one or more sections
+3. Click `Save Draft`
+4. Reload page and confirm template remains `Draft` with edits persisted
+5. Add an invalid placeholder syntax (example: `{{accountNumber`) and attempt publish
+6. Expected:
+   - Publish is blocked with validation error
+7. Fix placeholder syntax and ensure no unresolved/unknown placeholders remain
+8. Click `Publish Template`
+9. Reload page and confirm template status is `Published`
+10. In editor, review `Revision History`:
+    - Confirm latest revision entry appears with timestamp, user, and changed fields
+11. Trigger rollback from a previous history entry
+12. Reload and confirm prior content is restored
+13. Use archive flow on one template and confirm it becomes inactive/draft (not hard-deleted)
+14. Expected:
+   - Draft/Publish behavior is enforced
+   - Validation and preview checks gate publish
+   - Revision history and rollback are functional
+   - Archive action preserves template record lifecycle
    - Template renders correctly in downstream packet flows
 
 ### D) Parser Tools
@@ -201,6 +216,7 @@ Mark release **PASS** only if all are true:
 5. No new blocking errors in logs during test run
 6. Activity/error log filters, presets, and timestamp displays are correct
 7. Error log severity classification, dedupe toggle, and metadata fields are functioning
+8. Letter templates support draft/publish validation, revision history, rollback, and archive lifecycle
 
 If any critical item fails, mark **FAIL** and capture:
 

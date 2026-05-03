@@ -3,6 +3,7 @@ import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { db } from "../../../helpers/db";
 import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
 import { LetterTemplateCategory } from "../../../helpers/schema";
+import { logAudit } from "../../../helpers/auditLogger";
 import superjson from "superjson";
 
 // Helper to convert snake_case to Title Case
@@ -76,6 +77,19 @@ export async function handle(request: Request) {
         seededCount++;
       }
     }
+
+    await logAudit({
+      action: "CREATE",
+      entityType: "SYSTEM",
+      userId: user.id,
+      status: "SUCCESS",
+      details: {
+        component: "letter_template",
+        mode: "SEED",
+        seeded: seededCount,
+      },
+      request,
+    });
 
     return new Response(superjson.stringify({ ok: true, seeded: seededCount } satisfies OutputType));
   } catch (error) {

@@ -56,7 +56,11 @@ export async function upsertLetterTemplate(
 }
 
 export async function deleteLetterTemplate(id: number): Promise<void> {
-  await db.deleteFrom("letterTemplate").where("id", "=", id).execute();
+  await db
+    .updateTable("letterTemplate")
+    .set({ isActive: false, updatedAt: new Date() })
+    .where("id", "=", id)
+    .execute();
 }
 
 export async function resolveTemplateOverrides(

@@ -126,6 +126,36 @@
   gap: 1.25rem;
 }
 
+.validationPanel {
+  margin-bottom: 1rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 40%, var(--border));
+  background-color: color-mix(in srgb, var(--warning) 8%, var(--card));
+  border-radius: var(--radius);
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.validationHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.validationError {
+  font-size: 0.8125rem;
+  color: var(--error);
+}
+
+.validationWarning {
+  font-size: 0.8125rem;
+  color: var(--warning);
+}
+
 .fieldGroup {
   display: flex;
   flex-direction: column;
@@ -135,6 +165,49 @@
 .fieldGroup label {
   font-size: 0.875rem;
   font-weight: 500;
+  color: var(--foreground);
+}
+
+.historyPanel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.historySkeleton {
+  height: 4rem;
+  border-radius: var(--radius-sm);
+}
+
+.historyEmpty {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.historyRow {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.historyMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  flex-wrap: wrap;
+}
+
+.historyFields {
+  font-size: 0.8125rem;
   color: var(--foreground);
 }
 

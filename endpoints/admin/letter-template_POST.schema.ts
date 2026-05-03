@@ -8,6 +8,7 @@ export const schema = z.object({
   category: z.enum(LetterTemplateCategoryArrayValues),
   templateKey: z.string().min(1),
   label: z.string().min(1),
+  mode: z.enum(["DRAFT", "PUBLISH", "ROLLBACK"]).optional(),
   isActive: z.boolean().default(true),
   subject: z.string().nullable().optional(),
   introduction: z.string().nullable().optional(),

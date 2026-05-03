@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Selectable } from "kysely";
 import { LetterTemplate, LetterTemplateCategory } from "../helpers/schema";
 import {
+  useLetterTemplateHistory,
   useLetterTemplates,
-  useUpsertLetterTemplate,
+  useRollbackLetterTemplate,
   useSeedLetterTemplates,
+  useUpsertLetterTemplate,
 } from "../helpers/useLetterTemplates";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
@@ -14,12 +16,12 @@ import { Badge } from "../components/Badge";
 import { Switch } from "../components/Switch";
 import { Textarea } from "../components/Textarea";
 import { Skeleton } from "../components/Skeleton";
+import { AlertTriangle, ChevronDown, ChevronUp, Download, RotateCcw, Undo2 } from "lucide-react";
 import {
-  ChevronDown,
-  ChevronUp,
-  Download,
-  RotateCcw,
-} from "lucide-react";
+  buildTemplateSnapshot,
+  renderTemplatePreview,
+  validateTemplateSnapshot,
+} from "../helpers/letterTemplateLifecycle";
 
 import styles from "./admin-letter-templates.module.css";
 
@@ -30,20 +32,56 @@ const TemplateEditor = ({
   template: Selectable<LetterTemplate>;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState<Partial<Selectable<LetterTemplate>>>(
-    template
-  );
-  const upsertMutation = useUpsertLetterTemplate();
+  const [formData, setFormData] = useState<Partial<Selectable<LetterTemplate>>>(template);
   const [useFullBody, setUseFullBody] = useState(!!template.fullBodyOverride);
+  const upsertMutation = useUpsertLetterTemplate();
+  const rollbackMutation = useRollbackLetterTemplate();
+  const { data: historyData, isLoading: historyLoading } = useLetterTemplateHistory(template.id);
 
-  const handleSave = () => {
+  const isViolationNarrative = template.category === "violation_narrative";
+  const workingSnapshot = useMemo(
+    () =>
+      buildTemplateSnapshot({
+        id: template.id,
+        category: template.category,
+        templateKey: template.templateKey,
+        label: template.label,
+        isActive: true,
+        subject: formData.subject ?? null,
+        introduction: formData.introduction ?? null,
+        statutoryGrounds: formData.statutoryGrounds ?? null,
+        requestedAction: formData.requestedAction ?? null,
+        statutoryTimeframe: formData.statutoryTimeframe ?? null,
+        consumerStatementRight: formData.consumerStatementRight ?? null,
+        certification: formData.certification ?? null,
+        closing: formData.closing ?? null,
+        fullBodyOverride: useFullBody ? formData.fullBodyOverride ?? null : null,
+        statutoryReference: formData.statutoryReference ?? null,
+        sourceUrl: formData.sourceUrl ?? null,
+      }),
+    [formData, template, useFullBody]
+  );
+
+  const publishValidation = useMemo(
+    () => validateTemplateSnapshot(workingSnapshot, "PUBLISH"),
+    [workingSnapshot]
+  );
+  const preview = useMemo(() => renderTemplatePreview(workingSnapshot), [workingSnapshot]);
+
+  const canPublish =
+    publishValidation.errors.length === 0 &&
+    publishValidation.unknownPlaceholders.length === 0 &&
+    preview.unresolvedPlaceholders.length === 0;
+
+  const handleSave = (mode: "DRAFT" | "PUBLISH") => {
     upsertMutation.mutate(
       {
         id: template.id,
         category: template.category,
         templateKey: template.templateKey,
         label: template.label,
-        isActive: formData.isActive ?? true,
+        mode,
+        isActive: mode === "PUBLISH",
         subject: formData.subject || null,
         introduction: formData.introduction || null,
         statutoryGrounds: formData.statutoryGrounds || null,
@@ -86,35 +124,63 @@ const TemplateEditor = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const isViolationNarrative = template.category === "violation_narrative";
+  const handleRollback = (auditLogId: number) => {
+    if (!window.confirm("Rollback to this revision? This will overwrite the current template content.")) {
+      return;
+    }
+    rollbackMutation.mutate(
+      {
+        templateId: template.id,
+        auditLogId,
+      },
+      {
+        onSuccess: () => {
+          onCancel();
+        },
+      }
+    );
+  };
 
   return (
     <div className={styles.editor}>
       <div className={styles.editorHeader}>
         <div className={styles.editorTitle}>Editing: {template.label}</div>
         <div className={styles.editorToggles}>
+          <Badge variant={template.isActive ? "success" : "default"}>
+            {template.isActive ? "Published" : "Draft"}
+          </Badge>
           <div className={styles.toggleGroup}>
-            <label htmlFor={`active-${template.id}`}>Active</label>
-            <Switch
-              id={`active-${template.id}`}
-              checked={formData.isActive ?? true}
-              onCheckedChange={(c) =>
-                setFormData((prev) => ({ ...prev, isActive: c }))
-              }
-            />
-          </div>
-          <div className={styles.toggleGroup}>
-            <label htmlFor={`fullbody-${template.id}`}>
-              Full Body Override
-            </label>
-            <Switch
-              id={`fullbody-${template.id}`}
-              checked={useFullBody}
-              onCheckedChange={(c) => setUseFullBody(c)}
-            />
+            <label htmlFor={`fullbody-${template.id}`}>Full Body Override</label>
+            <Switch id={`fullbody-${template.id}`} checked={useFullBody} onCheckedChange={(c) => setUseFullBody(c)} />
           </div>
         </div>
       </div>
+
+      {(publishValidation.errors.length > 0 ||
+        publishValidation.warnings.length > 0 ||
+        preview.unresolvedPlaceholders.length > 0) && (
+        <div className={styles.validationPanel}>
+          <div className={styles.validationHeader}>
+            <AlertTriangle size={16} />
+            <span>Validation Checks</span>
+          </div>
+          {publishValidation.errors.map((err) => (
+            <div key={err} className={styles.validationError}>
+              {err}
+            </div>
+          ))}
+          {publishValidation.warnings.map((warn) => (
+            <div key={warn} className={styles.validationWarning}>
+              {warn}
+            </div>
+          ))}
+          {preview.unresolvedPlaceholders.length > 0 && (
+            <div className={styles.validationError}>
+              Unresolved preview placeholders: {preview.unresolvedPlaceholders.join(", ")}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className={styles.editorBody}>
         <div className={styles.fieldGroup}>
@@ -154,9 +220,7 @@ const TemplateEditor = ({
                 <label>Statutory Grounds</label>
                 <Textarea
                   value={formData.statutoryGrounds || ""}
-                  onChange={(e) =>
-                    handleChange("statutoryGrounds", e.target.value)
-                  }
+                  onChange={(e) => handleChange("statutoryGrounds", e.target.value)}
                   placeholder="Enter statutory grounds override..."
                   rows={4}
                 />
@@ -167,9 +231,7 @@ const TemplateEditor = ({
               <label>Requested Action</label>
               <Textarea
                 value={formData.requestedAction || ""}
-                onChange={(e) =>
-                  handleChange("requestedAction", e.target.value)
-                }
+                onChange={(e) => handleChange("requestedAction", e.target.value)}
                 placeholder="Enter requested action override..."
                 rows={4}
               />
@@ -181,9 +243,7 @@ const TemplateEditor = ({
                   <label>Statutory Timeframe</label>
                   <Textarea
                     value={formData.statutoryTimeframe || ""}
-                    onChange={(e) =>
-                      handleChange("statutoryTimeframe", e.target.value)
-                    }
+                    onChange={(e) => handleChange("statutoryTimeframe", e.target.value)}
                     placeholder="Enter statutory timeframe override..."
                     rows={2}
                   />
@@ -192,9 +252,7 @@ const TemplateEditor = ({
                   <label>Consumer Statement Right</label>
                   <Textarea
                     value={formData.consumerStatementRight || ""}
-                    onChange={(e) =>
-                      handleChange("consumerStatementRight", e.target.value)
-                    }
+                    onChange={(e) => handleChange("consumerStatementRight", e.target.value)}
                     placeholder="Enter consumer statement right override..."
                     rows={2}
                   />
@@ -203,9 +261,7 @@ const TemplateEditor = ({
                   <label>Certification</label>
                   <Textarea
                     value={formData.certification || ""}
-                    onChange={(e) =>
-                      handleChange("certification", e.target.value)
-                    }
+                    onChange={(e) => handleChange("certification", e.target.value)}
                     placeholder="Enter certification override..."
                     rows={2}
                   />
@@ -230,9 +286,7 @@ const TemplateEditor = ({
               <label>Statutory Reference</label>
               <Textarea
                 value={formData.statutoryReference || ""}
-                onChange={(e) =>
-                  handleChange("statutoryReference", e.target.value)
-                }
+                onChange={(e) => handleChange("statutoryReference", e.target.value)}
                 placeholder="Enter statutory reference override..."
                 rows={2}
               />
@@ -248,23 +302,83 @@ const TemplateEditor = ({
             </div>
           </>
         )}
+
+        <div className={styles.fieldGroup}>
+          <label>Preview (Sample Data)</label>
+          <Textarea readOnly value={preview.previewText} rows={8} />
+        </div>
+
+        <div className={styles.fieldGroup}>
+          <label>Revision History</label>
+          <div className={styles.historyPanel}>
+            {historyLoading ? (
+              <Skeleton className={styles.historySkeleton} />
+            ) : !historyData?.history || historyData.history.length === 0 ? (
+              <div className={styles.historyEmpty}>No history entries yet.</div>
+            ) : (
+              historyData.history.map((entry) => (
+                <div key={entry.auditLogId} className={styles.historyRow}>
+                  <div className={styles.historyMeta}>
+                    <Badge variant="info">{entry.mode || entry.actionType}</Badge>
+                    <span>
+                      {new Intl.DateTimeFormat("en-CA", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "numeric",
+                      }).format(new Date(entry.timestamp))}
+                    </span>
+                    <span>
+                      {entry.userDisplayName || entry.userEmail || "System"}
+                    </span>
+                  </div>
+                  <div className={styles.historyFields}>
+                    {entry.changedFields.length > 0
+                      ? `Changed: ${entry.changedFields.join(", ")}`
+                      : "No field diff recorded"}
+                  </div>
+                  {entry.after && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRollback(entry.auditLogId)}
+                      disabled={rollbackMutation.isPending}
+                    >
+                      <Undo2 size={14} />
+                      Rollback
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
       <div className={styles.editorActions}>
         <Button variant="outline" onClick={handleReset} type="button">
           <RotateCcw size={16} />
-          Reset to Defaults
+          Reset Fields
         </Button>
         <div className={styles.actionGroup}>
           <Button variant="ghost" onClick={onCancel} type="button">
             Cancel
           </Button>
           <Button
-            onClick={handleSave}
+            variant="outline"
+            onClick={() => handleSave("DRAFT")}
             disabled={upsertMutation.isPending}
             type="button"
           >
-            {upsertMutation.isPending ? "Saving..." : "Save Template"}
+            Save Draft
+          </Button>
+          <Button
+            onClick={() => handleSave("PUBLISH")}
+            disabled={upsertMutation.isPending || !canPublish}
+            type="button"
+          >
+            Publish Template
           </Button>
         </div>
       </div>
@@ -297,11 +411,7 @@ const TemplateRow = ({
           <span className={styles.rowDate}>Last updated: {formattedDate}</span>
         </div>
         <div className={styles.rowStatus}>
-          {template.isActive ? (
-            <Badge variant="success">Active</Badge>
-          ) : (
-            <Badge variant="default">Inactive</Badge>
-          )}
+          {template.isActive ? <Badge variant="success">Published</Badge> : <Badge variant="default">Draft</Badge>}
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </div>
       </div>
@@ -330,7 +440,7 @@ export default function AdminLetterTemplates() {
 
       <PageHeader
         title="Letter Templates"
-        subtitle="Manage text blocks and overrides for different letter types."
+        subtitle="Manage template drafts, publish validated revisions, and rollback from revision history."
       >
         <Button onClick={handleSeed} disabled={seedMutation.isPending}>
           <Download size={16} />
@@ -348,9 +458,7 @@ export default function AdminLetterTemplates() {
         <TabsList>
           <TabsTrigger value="bureau">Bureau</TabsTrigger>
           <TabsTrigger value="provincial">Provincial</TabsTrigger>
-          <TabsTrigger value="violation_narrative">
-            Violation Narrative
-          </TabsTrigger>
+          <TabsTrigger value="violation_narrative">Violation Narrative</TabsTrigger>
         </TabsList>
 
         <div className={styles.tabContent}>
@@ -371,11 +479,7 @@ export default function AdminLetterTemplates() {
                   key={template.id}
                   template={template}
                   isExpanded={expandedId === template.id}
-                  onToggle={() =>
-                    setExpandedId((prev) =>
-                      prev === template.id ? null : template.id
-                    )
-                  }
+                  onToggle={() => setExpandedId((prev) => (prev === template.id ? null : template.id))}
                 />
               ))}
             </div>
