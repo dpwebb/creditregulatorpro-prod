@@ -37,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm run build
+      - name: Build + internal regression checks
+        run: pnpm run check
 
   deploy:
     name: Deploy to staging server
