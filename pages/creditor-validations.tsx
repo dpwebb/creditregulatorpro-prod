@@ -7,6 +7,7 @@ import { DashboardStatCard } from "../components/DashboardStatCard";
 import { ComplianceTradelineCard } from "../components/ComplianceTradelineCard";
 import { Skeleton } from "../components/Skeleton";
 import { useCreditorValidationList } from "../helpers/creditorValidationQueries";
+import { useTradelineList } from "../helpers/tradelineQueries";
 
 import styles from "./creditor-validations.module.css";
 
@@ -15,7 +16,8 @@ export default function CreditorValidationsPage() {
   
   // Fetch data
   const { data: validationData, isLoading: isLoadingValidations } = useCreditorValidationList();
-  const isLoading = isLoadingValidations;
+  const { data: tradelineData, isLoading: isLoadingTradelines } = useTradelineList();
+  const isLoading = isLoadingValidations || isLoadingTradelines;
 
   // Process data
   const { 
@@ -24,10 +26,11 @@ export default function CreditorValidationsPage() {
     stats 
   } = useMemo(() => {
     if (!validationData) {
+      const totalAccounts = tradelineData?.tradelines?.length ?? 0;
       return { 
         tradelinesWithIssues: [], 
         bureauGroups: [],
-        stats: { totalIssues: 0, affectedTradelines: 0, highPriority: 0 } 
+        stats: { totalIssues: 0, affectedTradelines: 0, highPriority: 0, totalAccounts } 
       };
     }
 
@@ -76,6 +79,7 @@ export default function CreditorValidationsPage() {
     // Calculate stats using all issues with tradeline associations
     const totalIssues = issues.length;
     const affectedTradelines = affectedTradelinesList.length;
+    const totalAccounts = tradelineData?.tradelines?.length ?? affectedTradelines;
     // High priority: issues where obligationState is 'NO_RESPONSE' or 'INSUFFICIENT_RESPONSE'
     const highPriority = issues.filter(i =>
       ['NO_RESPONSE', 'INSUFFICIENT_RESPONSE'].includes(i.obligationState || '')
@@ -95,9 +99,9 @@ export default function CreditorValidationsPage() {
     return {
       tradelinesWithIssues: affectedTradelinesList,
       bureauGroups,
-      stats: { totalIssues, affectedTradelines, highPriority }
+      stats: { totalIssues, affectedTradelines, highPriority, totalAccounts }
     };
-  }, [validationData]);
+  }, [validationData, tradelineData]);
 
   return (
     <div className={styles.container}>
@@ -107,7 +111,11 @@ export default function CreditorValidationsPage() {
 
       <PageHeader
         title="Errors We Found"
-        subtitle="We checked your accounts against the rules. Here's what we found."
+        subtitle={
+          stats.totalAccounts > 0
+            ? `We checked your accounts against the rules. ${stats.affectedTradelines} of ${stats.totalAccounts} account${stats.totalAccounts !== 1 ? "s" : ""} currently show errors.`
+            : "We checked your accounts against the rules. Here's what we found."
+        }
         
       />
 

@@ -545,7 +545,7 @@ export async function persistViolations(
 
   const tradelineForWorkflow = await db
     .selectFrom("tradeline")
-    .select("userId")
+    .select(["userId", "creditorId"])
     .where("id", "=", tradelineId)
     .executeTakeFirst();
 
@@ -594,6 +594,7 @@ export async function persistViolations(
         .insertInto("creditorObligationTest")
         .values({
           tradelineId,
+          creditorId: tradelineForWorkflow?.creditorId ?? null,
           obligationType: violation.violationCategory
             ? mapViolationToObligationType(violation.violationCategory)
             : "ACCURACY_INTEGRITY",

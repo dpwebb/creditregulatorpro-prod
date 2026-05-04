@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
+import { sql } from "kysely";
 
 export async function handle(request: Request) {
   try {
@@ -25,6 +26,7 @@ export async function handle(request: Request) {
         .selectFrom('creditorObligationTest')
         .leftJoin('creditor', 'creditor.id', 'creditorObligationTest.creditorId')
         .leftJoin('tradeline', 'tradeline.id', 'creditorObligationTest.tradelineId')
+        .leftJoin('creditor as tradelineCreditor', 'tradelineCreditor.id', 'tradeline.creditorId')
         .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
         // Only return records with valid tradelineId (exclude orphaned records)
         .where('creditorObligationTest.tradelineId', 'is not', null);
@@ -111,7 +113,7 @@ export async function handle(request: Request) {
         'creditorObligationTest.userStatus',
         'creditorObligationTest.userStatusReason',
         'creditorObligationTest.userStatusUpdatedAt',
-        'creditor.name as creditorName',
+        sql<string | null>`coalesce("creditor"."name", "tradelineCreditor"."name")`.as('creditorName'),
         'tradeline.accountNumber as tradelineAccountNumber',
         'tradeline.status as tradelineDisplayStatus',
         'tradeline.currentBalance as tradelineCurrentBalance',
