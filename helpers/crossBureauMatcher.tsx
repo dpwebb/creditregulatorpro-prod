@@ -75,10 +75,14 @@ function isAccountNumberMatch(
   acc1: string | null | undefined,
   acc2: string | null | undefined
 ): boolean {
-  if (!acc1 || !acc2) return false;
+  const normalizeAccountToken = (value: string | null | undefined): string => {
+    if (value == null) return "";
+    return String(value).toLowerCase().trim();
+  };
 
-  const a1 = acc1.toLowerCase().trim();
-  const a2 = acc2.toLowerCase().trim();
+  const a1 = normalizeAccountToken(acc1);
+  const a2 = normalizeAccountToken(acc2);
+  if (!a1 || !a2) return false;
 
   // Exclude placeholder account strings
   if (a1 === "unknown" || a2 === "unknown") return false;
@@ -166,11 +170,14 @@ export function findCrossBureauSibling<T extends MatchableTradeline>(
   );
 
   if (accountMatched.length === 0) {
+    const normalizedAccount =
+      tradeline.accountNumber == null
+        ? ""
+        : String(tradeline.accountNumber).toLowerCase().trim();
     const isAccEmpty =
-      !tradeline.accountNumber ||
-      tradeline.accountNumber.trim() === "" ||
-      tradeline.accountNumber.toLowerCase().trim() === "unknown" ||
-      tradeline.accountNumber.toLowerCase().trim() === "not reported";
+      normalizedAccount === "" ||
+      normalizedAccount === "unknown" ||
+      normalizedAccount === "not reported";
 
     if (isAccEmpty && creditorMatched.length > 0) {
       const targetBal = getBalance(tradeline);

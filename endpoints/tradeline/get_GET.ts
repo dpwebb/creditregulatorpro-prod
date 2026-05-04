@@ -275,227 +275,241 @@ export async function handle(request: Request) {
       tradeline.dateOfFirstDelinquency != null &&
       tradeline.userId != null
     ) {
-      const related = await db
-        .selectFrom('tradeline as t')
-        .leftJoin('creditor', 'creditor.id', 't.creditorId')
-        .select([
-          't.id',
-          't.accountNumber',
-          't.collectionAgencyName',
-          'creditor.name as creditorName',
-          't.balance',
-          't.dateAssignedToCollection',
-          't.status',
-        ])
-        .where('t.isCollectionAccount', '=', true)
-        .where('t.userId', '=', tradeline.userId)
-        .where('t.accountNumber', '=', tradeline.accountNumber)
-        .where('t.dateOfFirstDelinquency', '=', tradeline.dateOfFirstDelinquency)
-        .where('t.id', '!=', tradeline.id)
-        .execute();
+      try {
+        const related = await db
+          .selectFrom('tradeline as t')
+          .leftJoin('creditor', 'creditor.id', 't.creditorId')
+          .select([
+            't.id',
+            't.accountNumber',
+            't.collectionAgencyName',
+            'creditor.name as creditorName',
+            't.balance',
+            't.dateAssignedToCollection',
+            't.status',
+          ])
+          .where('t.isCollectionAccount', '=', true)
+          .where('t.userId', '=', tradeline.userId)
+          .where('t.accountNumber', '=', tradeline.accountNumber)
+          .where('t.dateOfFirstDelinquency', '=', tradeline.dateOfFirstDelinquency)
+          .where('t.id', '!=', tradeline.id)
+          .execute();
 
-      const relatedIds = related.map((r) => r.id);
-      const allRelevantIds = [tradeline.id, ...relatedIds];
+        const relatedIds = related.map((r) => r.id);
+        const allRelevantIds = [tradeline.id, ...relatedIds];
 
-      // Look up packets linked to MULTIPLE_COLLECTOR_VIOLATION or COLLECTOR_DUPLICATE_REPORTING
-      // for the current tradeline or any related tradeline
-      let linkedDisputeStatus: LinkedDisputeStatus = 'none';
+        // Look up packets linked to MULTIPLE_COLLECTOR_VIOLATION or COLLECTOR_DUPLICATE_REPORTING
+        // for the current tradeline or any related tradeline
+        let linkedDisputeStatus: LinkedDisputeStatus = 'none';
 
-      if (allRelevantIds.length > 0 && tradeline.userId != null) {
-        try {
-          const linkedPackets = await db
-            .selectFrom('packet')
-            .innerJoin(
-              'creditorObligationTest',
-              'creditorObligationTest.id',
-              'packet.creditorObligationTestId'
-            )
-            .select(['packet.id', 'packet.status', 'packet.sentDate'])
-            .where('packet.userId', '=', tradeline.userId)
-            .where('packet.tradelineId', 'in', allRelevantIds)
-            .where('creditorObligationTest.violationCategory', 'in', [
-              'MULTIPLE_COLLECTOR_VIOLATION',
-              'COLLECTOR_DUPLICATE_REPORTING',
-            ])
-            .execute();
+        if (allRelevantIds.length > 0 && tradeline.userId != null) {
+          try {
+            const linkedPackets = await db
+              .selectFrom('packet')
+              .innerJoin(
+                'creditorObligationTest',
+                'creditorObligationTest.id',
+                'packet.creditorObligationTestId'
+              )
+              .select(['packet.id', 'packet.status', 'packet.sentDate'])
+              .where('packet.userId', '=', tradeline.userId)
+              .where('packet.tradelineId', 'in', allRelevantIds)
+              .where('creditorObligationTest.violationCategory', 'in', [
+                'MULTIPLE_COLLECTOR_VIOLATION',
+                'COLLECTOR_DUPLICATE_REPORTING',
+              ])
+              .execute();
 
-          if (linkedPackets.length > 0) {
-            const hasSent = linkedPackets.some(
-              (p) => p.status === 'SENT' || p.sentDate != null
+            if (linkedPackets.length > 0) {
+              const hasSent = linkedPackets.some(
+                (p) => p.status === 'SENT' || p.sentDate != null
+              );
+              linkedDisputeStatus = hasSent ? 'sent' : 'created';
+            }
+
+            console.log(
+              `Linked dispute status for tradeline ${tradeline.id}: ${linkedDisputeStatus} (checked ${linkedPackets.length} packet(s))`
             );
-            linkedDisputeStatus = hasSent ? 'sent' : 'created';
+          } catch (error) {
+            if (!isOptionalSchemaError(error)) {
+              throw error;
+            }
+            console.warn(`[tradeline/get] linked dispute status skipped for tradeline ${tradeline.id} due to schema mismatch`, error);
           }
-
-          console.log(
-            `Linked dispute status for tradeline ${tradeline.id}: ${linkedDisputeStatus} (checked ${linkedPackets.length} packet(s))`
-          );
-        } catch (error) {
-          if (!isOptionalSchemaError(error)) {
-            throw error;
-          }
-          console.warn(`[tradeline/get] linked dispute status skipped for tradeline ${tradeline.id} due to schema mismatch`, error);
         }
+
+        relatedCollectionTradelines = related.map((r) => ({
+          id: r.id,
+          accountNumber: r.accountNumber,
+          collectionAgencyName: r.collectionAgencyName,
+          creditorName: r.creditorName,
+          balance: r.balance,
+          dateAssignedToCollection: r.dateAssignedToCollection,
+          status: r.status,
+          linkedDisputeStatus,
+        }));
+
+        console.log(`Found ${relatedCollectionTradelines.length} related collection tradeline(s) for tradeline ${tradeline.id}`);
+      } catch (error) {
+        console.warn(
+          `[tradeline/get] related collection enrichment skipped for tradeline ${tradeline.id}`,
+          error,
+        );
       }
-
-      relatedCollectionTradelines = related.map((r) => ({
-        id: r.id,
-        accountNumber: r.accountNumber,
-        collectionAgencyName: r.collectionAgencyName,
-        creditorName: r.creditorName,
-        balance: r.balance,
-        dateAssignedToCollection: r.dateAssignedToCollection,
-        status: r.status,
-        linkedDisputeStatus,
-      }));
-
-      console.log(`Found ${relatedCollectionTradelines.length} related collection tradeline(s) for tradeline ${tradeline.id}`);
     }
 
     // Fetch cross-bureau sibling
     let crossBureauTradeline: CrossBureauTradeline | null = null;
 
     if (tradeline.userId != null) {
-      let allUserTradelines: Array<{
-        id: number;
-        bureauId: number | null;
-        creditorId: number | null;
-        creditorIdAlias: number | null;
-        accountNumber: string;
-        balance: string | null;
-        currentBalance: string | null;
-        status: string | null;
-        openedDate: Date | null;
-        dateClosed: Date | null;
-        dateOfFirstDelinquency: Date | null;
-        creditLimit: string | null;
-        highCredit: string | null;
-        amountPastDue: string | null;
-        lastActivityDate: Date | null;
-        bureauName: string | null;
-        creditorName: string | null;
-        disputeStatus: string | null;
-      }> = [];
-
       try {
-        // Fetch all tradelines for the same user to find cross-bureau sibling
-        allUserTradelines = await db
-          .selectFrom('tradeline')
-          .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
-          .leftJoin('creditor', 'creditor.id', 'tradeline.creditorId')
-          .leftJoin(
-            (eb) =>
-              eb
-                .selectFrom('obligationInstance')
-                .select(['obligationInstance.tradelineId', 'obligationInstance.state'])
-                .distinctOn('obligationInstance.tradelineId')
-                .orderBy('obligationInstance.tradelineId')
-                .orderBy('obligationInstance.createdAt', 'desc')
-                .as('latestObligation'),
-            (join) => join.onRef('latestObligation.tradelineId', '=', 'tradeline.id')
-          )
-          .select([
-            'tradeline.id',
-            'tradeline.bureauId',
-            'tradeline.creditorId',
-            'tradeline.creditorId as creditorIdAlias',
-            'tradeline.accountNumber',
-            'tradeline.balance',
-            'tradeline.currentBalance',
-            'tradeline.status',
-            'tradeline.openedDate',
-            'tradeline.dateClosed',
-            'tradeline.dateOfFirstDelinquency',
-            'tradeline.creditLimit',
-            'tradeline.highCredit',
-            'tradeline.amountPastDue',
-            'tradeline.lastActivityDate',
-            'bureau.name as bureauName',
-            'creditor.name as creditorName',
-            'latestObligation.state as disputeStatus',
-          ])
-          .where('tradeline.userId', '=', tradeline.userId)
-          .execute();
+        let allUserTradelines: Array<{
+          id: number;
+          bureauId: number | null;
+          creditorId: number | null;
+          creditorIdAlias: number | null;
+          accountNumber: string;
+          balance: string | null;
+          currentBalance: string | null;
+          status: string | null;
+          openedDate: Date | null;
+          dateClosed: Date | null;
+          dateOfFirstDelinquency: Date | null;
+          creditLimit: string | null;
+          highCredit: string | null;
+          amountPastDue: string | null;
+          lastActivityDate: Date | null;
+          bureauName: string | null;
+          creditorName: string | null;
+          disputeStatus: string | null;
+        }> = [];
+
+        try {
+          // Fetch all tradelines for the same user to find cross-bureau sibling
+          allUserTradelines = await db
+            .selectFrom('tradeline')
+            .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
+            .leftJoin('creditor', 'creditor.id', 'tradeline.creditorId')
+            .leftJoin(
+              (eb) =>
+                eb
+                  .selectFrom('obligationInstance')
+                  .select(['obligationInstance.tradelineId', 'obligationInstance.state'])
+                  .distinctOn('obligationInstance.tradelineId')
+                  .orderBy('obligationInstance.tradelineId')
+                  .orderBy('obligationInstance.createdAt', 'desc')
+                  .as('latestObligation'),
+              (join) => join.onRef('latestObligation.tradelineId', '=', 'tradeline.id')
+            )
+            .select([
+              'tradeline.id',
+              'tradeline.bureauId',
+              'tradeline.creditorId',
+              'tradeline.creditorId as creditorIdAlias',
+              'tradeline.accountNumber',
+              'tradeline.balance',
+              'tradeline.currentBalance',
+              'tradeline.status',
+              'tradeline.openedDate',
+              'tradeline.dateClosed',
+              'tradeline.dateOfFirstDelinquency',
+              'tradeline.creditLimit',
+              'tradeline.highCredit',
+              'tradeline.amountPastDue',
+              'tradeline.lastActivityDate',
+              'bureau.name as bureauName',
+              'creditor.name as creditorName',
+              'latestObligation.state as disputeStatus',
+            ])
+            .where('tradeline.userId', '=', tradeline.userId)
+            .execute();
+        } catch (error) {
+          if (!isOptionalSchemaError(error)) {
+            throw error;
+          }
+          console.warn(`[tradeline/get] obligation state join skipped for tradeline ${tradeline.id} due to schema mismatch`, error);
+          const fallbackRows = await db
+            .selectFrom('tradeline')
+            .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
+            .leftJoin('creditor', 'creditor.id', 'tradeline.creditorId')
+            .select([
+              'tradeline.id',
+              'tradeline.bureauId',
+              'tradeline.creditorId',
+              'tradeline.creditorId as creditorIdAlias',
+              'tradeline.accountNumber',
+              'tradeline.balance',
+              'tradeline.currentBalance',
+              'tradeline.status',
+              'tradeline.openedDate',
+              'tradeline.dateClosed',
+              'tradeline.dateOfFirstDelinquency',
+              'tradeline.creditLimit',
+              'tradeline.highCredit',
+              'tradeline.amountPastDue',
+              'tradeline.lastActivityDate',
+              'bureau.name as bureauName',
+              'creditor.name as creditorName',
+            ])
+            .where('tradeline.userId', '=', tradeline.userId)
+            .execute();
+
+          allUserTradelines = fallbackRows.map((row) => ({
+            ...row,
+            disputeStatus: null,
+          }));
+        }
+
+        const sibling = findCrossBureauSibling(
+          {
+            id: tradeline.id,
+            bureauId: tradeline.bureauId,
+            creditorId: tradeline.creditorId,
+            creditorName: tradeline.creditorName ?? null,
+            accountNumber: tradeline.accountNumber,
+            balance: tradeline.balance,
+            currentBalance: tradeline.currentBalance,
+          },
+          allUserTradelines.map((t) => ({
+            id: t.id,
+            bureauId: t.bureauId,
+            creditorId: t.creditorIdAlias,
+            creditorName: t.creditorName,
+            accountNumber: t.accountNumber,
+            balance: t.balance,
+            currentBalance: t.currentBalance,
+          }))
+        );
+
+        if (sibling) {
+          const siblingRow = allUserTradelines.find((t) => t.id === sibling.id);
+          if (siblingRow) {
+            crossBureauTradeline = {
+              id: siblingRow.id,
+              bureauId: siblingRow.bureauId,
+              bureauName: siblingRow.bureauName,
+              creditorName: siblingRow.creditorName,
+              accountNumber: siblingRow.accountNumber,
+              disputeStatus: siblingRow.disputeStatus ?? null,
+              balance: siblingRow.balance,
+              currentBalance: siblingRow.currentBalance,
+              status: siblingRow.status,
+              openedDate: siblingRow.openedDate,
+              dateClosed: siblingRow.dateClosed,
+              dateOfFirstDelinquency: siblingRow.dateOfFirstDelinquency,
+              creditLimit: siblingRow.creditLimit,
+              highCredit: siblingRow.highCredit,
+              amountPastDue: siblingRow.amountPastDue,
+              lastActivityDate: siblingRow.lastActivityDate,
+            };
+            console.log(`Found cross-bureau sibling tradeline ${crossBureauTradeline.id} for tradeline ${tradeline.id}`);
+          }
+        }
       } catch (error) {
-        if (!isOptionalSchemaError(error)) {
-          throw error;
-        }
-        console.warn(`[tradeline/get] obligation state join skipped for tradeline ${tradeline.id} due to schema mismatch`, error);
-        const fallbackRows = await db
-          .selectFrom('tradeline')
-          .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
-          .leftJoin('creditor', 'creditor.id', 'tradeline.creditorId')
-          .select([
-            'tradeline.id',
-            'tradeline.bureauId',
-            'tradeline.creditorId',
-            'tradeline.creditorId as creditorIdAlias',
-            'tradeline.accountNumber',
-            'tradeline.balance',
-            'tradeline.currentBalance',
-            'tradeline.status',
-            'tradeline.openedDate',
-            'tradeline.dateClosed',
-            'tradeline.dateOfFirstDelinquency',
-            'tradeline.creditLimit',
-            'tradeline.highCredit',
-            'tradeline.amountPastDue',
-            'tradeline.lastActivityDate',
-            'bureau.name as bureauName',
-            'creditor.name as creditorName',
-          ])
-          .where('tradeline.userId', '=', tradeline.userId)
-          .execute();
-
-        allUserTradelines = fallbackRows.map((row) => ({
-          ...row,
-          disputeStatus: null,
-        }));
-      }
-
-      const sibling = findCrossBureauSibling(
-        { 
-          id: tradeline.id, 
-          bureauId: tradeline.bureauId, 
-          creditorId: tradeline.creditorId, 
-          creditorName: tradeline.creditorName ?? null, 
-          accountNumber: tradeline.accountNumber, 
-          balance: tradeline.balance, 
-          currentBalance: tradeline.currentBalance 
-        },
-        allUserTradelines.map((t) => ({
-          id: t.id,
-          bureauId: t.bureauId,
-          creditorId: t.creditorIdAlias,
-          creditorName: t.creditorName,
-          accountNumber: t.accountNumber,
-          balance: t.balance,
-          currentBalance: t.currentBalance,
-        }))
-      );
-
-      if (sibling) {
-        const siblingRow = allUserTradelines.find((t) => t.id === sibling.id);
-        if (siblingRow) {
-        crossBureauTradeline = {
-            id: siblingRow.id,
-            bureauId: siblingRow.bureauId,
-            bureauName: siblingRow.bureauName,
-            creditorName: siblingRow.creditorName,
-            accountNumber: siblingRow.accountNumber,
-            disputeStatus: siblingRow.disputeStatus ?? null,
-            balance: siblingRow.balance,
-            currentBalance: siblingRow.currentBalance,
-            status: siblingRow.status,
-            openedDate: siblingRow.openedDate,
-            dateClosed: siblingRow.dateClosed,
-            dateOfFirstDelinquency: siblingRow.dateOfFirstDelinquency,
-            creditLimit: siblingRow.creditLimit,
-            highCredit: siblingRow.highCredit,
-            amountPastDue: siblingRow.amountPastDue,
-            lastActivityDate: siblingRow.lastActivityDate,
-          };
-          console.log(`Found cross-bureau sibling tradeline ${crossBureauTradeline.id} for tradeline ${tradeline.id}`);
-        }
+        console.warn(
+          `[tradeline/get] cross-bureau enrichment skipped for tradeline ${tradeline.id}`,
+          error,
+        );
       }
     }
 
