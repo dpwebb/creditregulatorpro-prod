@@ -353,7 +353,17 @@ export async function deleteTradeline(
   const obligationInstanceIds = obligationInstances.map((o) => o.id);
   console.log(`Found ${obligationInstanceIds.length} obligation instances for tradeline ${tradelineId}`);
 
-  // a. Delete evidence_event where packetId matches
+  // a. Delete packet_compliance_audit where packetId matches.
+  // Must run before evidence_event cleanup because packet_compliance_audit can reference evidence_event_id.
+  if (packetIds.length > 0) {
+    const packetComplianceResult = await trx
+      .deleteFrom("packetComplianceAudit")
+      .where("packetId", "in", packetIds)
+      .executeTakeFirst();
+    console.log(`Deleted ${packetComplianceResult.numDeletedRows || 0} packet compliance audits for tradeline ${tradelineId}`);
+  }
+
+  // b. Delete evidence_event where packetId matches
   if (packetIds.length > 0) {
     const evidenceEventResult = await trx
       .deleteFrom("evidenceEvent")
@@ -362,7 +372,7 @@ export async function deleteTradeline(
     console.log(`Deleted ${evidenceEventResult.numDeletedRows || 0} evidence events for tradeline ${tradelineId}`);
   }
 
-  // b. Delete deadline_event where packetId OR obligationInstanceId matches
+  // c. Delete deadline_event where packetId OR obligationInstanceId matches
   if (packetIds.length > 0 || obligationInstanceIds.length > 0) {
     let query = trx.deleteFrom("deadlineEvent");
     
@@ -383,7 +393,7 @@ export async function deleteTradeline(
     console.log(`Deleted ${deadlineEventResult.numDeletedRows || 0} deadline events for tradeline ${tradelineId}`);
   }
 
-  // c. Delete evidence_attachment where packetId OR obligationInstanceId matches
+  // d. Delete evidence_attachment where packetId OR obligationInstanceId matches
   if (packetIds.length > 0 || obligationInstanceIds.length > 0) {
     let query = trx.deleteFrom("evidenceAttachment");
     
@@ -402,15 +412,6 @@ export async function deleteTradeline(
     
     const evidenceAttachmentResult = await query.executeTakeFirst();
     console.log(`Deleted ${evidenceAttachmentResult.numDeletedRows || 0} evidence attachments for tradeline ${tradelineId}`);
-  }
-
-  // d. Delete packet_compliance_audit where packetId matches
-  if (packetIds.length > 0) {
-    const packetComplianceResult = await trx
-      .deleteFrom("packetComplianceAudit")
-      .where("packetId", "in", packetIds)
-      .executeTakeFirst();
-    console.log(`Deleted ${packetComplianceResult.numDeletedRows || 0} packet compliance audits for tradeline ${tradelineId}`);
   }
 
   // e. Delete success_metric where obligationInstanceId matches
