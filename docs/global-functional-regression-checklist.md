@@ -38,6 +38,19 @@ Suggested accounts:
    - `/admin-user-management`
    - Expected: blocked/redirected (no admin content exposed)
 
+### Platform Scope Hard-Coding
+
+1. Login as any authenticated role
+2. Confirm top scope banner is visible and reads: `Platform scope: Canadian Credit Bureau Compliance only.`
+3. Open one upload results page: `/upload-results/:artifactId`
+4. Inspect the `/_api/upload-results/get?artifactId=...` response metadata
+5. Expected:
+   - `metadata.region` is always `"CA"`
+   - `metadata.platformScope` is `"Canadian Credit Bureau Compliance"`
+6. Open AI support chat and ask a scope question (example: "Do you cover U.S. credit bureau compliance?")
+7. Expected:
+   - Response remains Canada-only in framing (does not present non-Canadian scope as supported platform scope)
+
 ## 5) User Workflow Regression
 
 ### A) Upload + Ingestion

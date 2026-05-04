@@ -70,6 +70,7 @@ export type OutputType = {
     uploadDate: Date;
     region: string;
     bureauName: string;
+    platformScope: string;
   };
   stats: {
     totalTradelines: number;

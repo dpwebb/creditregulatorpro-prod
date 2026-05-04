@@ -272,6 +272,41 @@ const TimelineItem: React.FC<{ entry: any }> = ({ entry }) => {
             {data.disputeVector && (
               <p className={styles.timelineDesc}>Approach: {data.disputeVector}</p>
             )}
+            {data.successOutcome && (
+              <p className={styles.timelineDesc}>Outcome: {data.successOutcome}</p>
+            )}
+            {data.responseDeadline && (
+              <p className={styles.timelineDesc}>
+                Response deadline: {formatDateTime(data.responseDeadline)}
+              </p>
+            )}
+          </div>
+        );
+      case "OUTCOME":
+        return (
+          <div className={styles.timelineContent}>
+            <div className={styles.timelineHeader}>
+              <span className={styles.timelineTitle}>Dispute Outcome Evaluated</span>
+              <Badge
+                variant={
+                  data.outcome === "WORKED"
+                    ? "success"
+                    : data.outcome === "PARTIAL"
+                      ? "warning"
+                      : "error"
+                }
+              >
+                {data.outcome || "Unknown"}
+              </Badge>
+            </div>
+            {data.disputeVector && (
+              <p className={styles.timelineDesc}>Approach: {data.disputeVector}</p>
+            )}
+            {data.responseTimeDays != null && (
+              <p className={styles.timelineDesc}>
+                Response time: {data.responseTimeDays} day(s)
+              </p>
+            )}
           </div>
         );
       case "EVIDENCE":
@@ -305,6 +340,7 @@ const TimelineItem: React.FC<{ entry: any }> = ({ entry }) => {
       case "IMPACT": return <ShieldCheck size={14} />;
       case "DRIFT": return <Activity size={14} />;
       case "OBLIGATION": return <ShieldAlert size={14} />;
+      case "OUTCOME": return <CheckCircle2 size={14} />;
       default: return <Clock size={14} />;
     }
   };

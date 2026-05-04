@@ -161,6 +161,20 @@
   border-bottom: 1px solid var(--border);
 }
 
+.scopeBanner {
+  background-color: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--foreground);
+  font-size: 0.75rem;
+  padding: var(--spacing-2) var(--spacing-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
 .globalBannerIcon {
   flex-shrink: 0;
 }

@@ -23,6 +23,7 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { generateAccessPointsWhenNoViolations, ChallengeAccessPoint } from "../../helpers/challengeAccessPointGenerator";
+import { PLATFORM_COMPLIANCE_SCOPE, PLATFORM_REGION } from "../../helpers/platformScope";
 
 export async function handle(request: Request) {
   try {
@@ -76,8 +77,9 @@ export async function handle(request: Request) {
         metadata: {
           fileName: (artifactData?.fileName as string) || "Unknown File",
           uploadDate: artifact.createdAt ? new Date(artifact.createdAt) : new Date(),
-          region: artifact.region || "CA",
+          region: PLATFORM_REGION,
           bureauName: parserQuality?.sourceBureauName || "Unknown",
+          platformScope: PLATFORM_COMPLIANCE_SCOPE,
         },
         stats: {
           totalTradelines: 0,
@@ -297,8 +299,9 @@ export async function handle(request: Request) {
       metadata: {
         fileName: (artifactData?.fileName as string) || "Unknown File",
         uploadDate: artifact.createdAt ? new Date(artifact.createdAt) : new Date(),
-        region: artifact.region || "CA",
+        region: PLATFORM_REGION,
         bureauName: artifactBureauName,
+        platformScope: PLATFORM_COMPLIANCE_SCOPE,
       },
       stats: {
         totalTradelines: tradelineIds.length,

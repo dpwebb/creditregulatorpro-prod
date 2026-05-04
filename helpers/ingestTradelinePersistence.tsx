@@ -29,6 +29,7 @@ type TradelineCandidate = {
 
 const MIN_ACCOUNT_NUMBER_MATCH_SCORE = 40;
 const MIN_CORROBORATED_MATCH_SCORE = 45;
+const MIN_COLLECTION_FALLBACK_MATCH_SCORE = 55;
 const AMBIGUOUS_MATCH_SCORE_MARGIN = 15;
 
 function normalizeAccountNumber(value: string | null | undefined): string | null {
@@ -286,6 +287,103 @@ async function findExistingTradeline(
 }
 
 /**
+ * Collection-specific fallback matcher that can recover account continuity when
+ * the reporting collection agency name/creditor mapping changes between pulls.
+ */
+async function findExistingCollectionTradelineFallback(
+  trx: any,
+  userId: number,
+  bureauId: number | null,
+  parsedData: ParsedTradeline,
+  excludeIds: Set<number>
+): Promise<{ id: number; accountNumber: string; matchType: TradelineMatchType; matchScore: number } | null> {
+  if (
+    !parsedData.isCollectionAccount &&
+    !parsedData.collectionAgencyName &&
+    !parsedData.originalCreditorName
+  ) {
+    return null;
+  }
+
+  let query = trx
+    .selectFrom("tradeline")
+    .select([
+      "id",
+      "accountNumber",
+      "currentBalance",
+      "status",
+      "openedDate",
+      "accountType",
+      "highCredit",
+      "creditLimit",
+      "lastReportedDate",
+      "responsibilityCode",
+      "originalCreditorName",
+      "collectionAgencyName",
+      "isCollectionAccount",
+    ])
+    .where("userId", "=", userId)
+    .where("isCollectionAccount", "=", true)
+    .forUpdate();
+
+  if (bureauId !== null) {
+    query = query.where("bureauId", "=", bureauId);
+  }
+
+  if (excludeIds.size > 0) {
+    query = query.where("id", "not in", Array.from(excludeIds));
+  }
+
+  const candidates = await query.execute();
+  if (candidates.length === 0) return null;
+
+  const scoredCandidates: Array<{
+    candidate: typeof candidates[number];
+    score: number;
+    matchType: TradelineMatchType;
+    strongAnchors: string[];
+  }> = [];
+
+  for (const candidate of candidates) {
+    const scored = scoreTradelineCandidate(candidate as TradelineCandidate, parsedData);
+    if (!scored) continue;
+    scoredCandidates.push({
+      candidate,
+      score: scored.score,
+      matchType: scored.matchType,
+      strongAnchors: scored.strongAnchors,
+    });
+  }
+
+  scoredCandidates.sort((a, b) => b.score - a.score);
+
+  const best = scoredCandidates.find(
+    (entry) => entry.score >= MIN_COLLECTION_FALLBACK_MATCH_SCORE && entry.strongAnchors.length > 0
+  );
+
+  if (!best) return null;
+
+  const second = scoredCandidates[1];
+  if (second && second.score >= best.score - AMBIGUOUS_MATCH_SCORE_MARGIN) {
+    console.warn(
+      `[Ingest] Ambiguous collection fallback match for account ${parsedData.accountNumber}. Candidates ${best.candidate.id}/${second.candidate.id} scored ${best.score}/${second.score}.`
+    );
+    return null;
+  }
+
+  console.log(
+    `[Ingest] Matched collection tradeline ${best.candidate.id} via cross-creditor fallback (score ${best.score}, anchors ${best.strongAnchors.join(", ")})`
+  );
+
+  return {
+    id: best.candidate.id,
+    accountNumber: best.candidate.accountNumber,
+    matchType: best.matchType,
+    matchScore: best.score,
+  };
+}
+
+/**
  * Merges new tradeline data with existing data using a "prefer non-null, newer value" strategy.
  */
 function mergeTradelineData(
@@ -365,6 +463,19 @@ export async function persistTradelines(
         matchedTradelineIds
       );
 
+      const fallbackCollectionTradeline =
+        !existingTradeline && isCollection
+          ? await findExistingCollectionTradelineFallback(
+              trx,
+              userId,
+              detectedBureauId,
+              parsedTradeline,
+              matchedTradelineIds
+            )
+          : null;
+
+      const resolvedExistingTradeline = existingTradeline ?? fallbackCollectionTradeline;
+
       // Prepare fields for insert/update
       const tradelineData = {
         accountType: parsedTradeline.accountType ? parsedTradeline.accountType.substring(0, 100) : null,
@@ -432,19 +543,19 @@ export async function persistTradelines(
         console.log(`[Ingest] Set collectionAgencyName="${creditorNameForDb}" for collection account ${parsedTradeline.accountNumber}`);
       }
 
-      if (existingTradeline) {
+      if (resolvedExistingTradeline) {
         // Ensure we have a "before" snapshot before updating
-        await ensureInitialSnapshot(existingTradeline.id);
+        await ensureInitialSnapshot(resolvedExistingTradeline.id);
 
         // Merge data intelligently
         const { accountNumber: updatedAccountNumber, updatedFields } = mergeTradelineData(
-          existingTradeline.accountNumber,
+          resolvedExistingTradeline.accountNumber,
           parsedTradeline.accountNumber,
           tradelineData
         );
 
         console.log(
-          `[Ingest] Updating existing tradeline ${existingTradeline.id} (${existingTradeline.matchType} match, score ${existingTradeline.matchScore}) for account ${parsedTradeline.accountNumber || "not reported"}`
+          `[Ingest] Updating existing tradeline ${resolvedExistingTradeline.id} (${resolvedExistingTradeline.matchType} match, score ${resolvedExistingTradeline.matchScore}) for account ${parsedTradeline.accountNumber || "not reported"}`
         );
 
         // Build the update object
@@ -456,12 +567,12 @@ export async function persistTradelines(
         await trx
           .updateTable("tradeline")
           .set(updateData)
-          .where("id", "=", existingTradeline.id)
+          .where("id", "=", resolvedExistingTradeline.id)
           .execute();
 
-        tradelineIds.push(existingTradeline.id);
-        updatedTradelineIds.push(existingTradeline.id);
-        matchedTradelineIds.add(existingTradeline.id); // Mark this tradeline as matched
+        tradelineIds.push(resolvedExistingTradeline.id);
+        updatedTradelineIds.push(resolvedExistingTradeline.id);
+        matchedTradelineIds.add(resolvedExistingTradeline.id); // Mark this tradeline as matched
       } else {
         // Insert new tradeline
         console.log(`[Ingest] Inserting new tradeline for account ${parsedTradeline.accountNumber} with creditorId ${creditorId}`);

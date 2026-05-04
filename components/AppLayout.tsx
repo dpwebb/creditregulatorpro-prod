@@ -57,6 +57,7 @@ import { AppSidebarPlatformFunctionsButton } from "./AppSidebarPlatformFunctions
 import { TrialCountdownBanner } from "./TrialCountdownBanner";
 import { APP_DISPLAY_VERSION } from "../helpers/appVersion";
 import { AISupportChat } from "./AISupportChat";
+import { PLATFORM_SCOPE_NOTICE } from "../helpers/platformScope";
 import styles from "./AppLayout.module.css";
 
 const SIDEBAR_MINIMIZED_KEY = "app-sidebar-minimized";
@@ -262,6 +263,12 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         data-tour="dashboard-overview"
       >
         <TrialCountdownBanner />
+        {authState.type === "authenticated" && (
+          <div className={styles.scopeBanner}>
+            <Info size={14} className={styles.globalBannerIcon} />
+            <span>{PLATFORM_SCOPE_NOTICE}</span>
+          </div>
+        )}
         {authState.type === "authenticated" && authState.user.role === "user" && isDisclaimerPage && (
           <div className={styles.globalBanner}>
             <Info size={14} className={styles.globalBannerIcon} />

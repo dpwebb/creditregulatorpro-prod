@@ -2,7 +2,16 @@ import { db } from "./db";
 import { sql } from "kysely";
 
 // Define what constitutes a "successful" outcome for analytics purposes
-const SUCCESS_OUTCOMES = ["DELETED", "CORRECTED", "REMOVED", "UPDATED", "SILENT_CORRECTION", "SILENT_DELETION"];
+const SUCCESS_OUTCOMES = [
+  "DELETED",
+  "CORRECTED",
+  "REMOVED",
+  "UPDATED",
+  "SILENT_CORRECTION",
+  "SILENT_DELETION",
+  "WORKED",
+  "PARTIAL",
+];
 
 /**
  * Records a success metric for a completed obligation challenge.

@@ -167,7 +167,18 @@ export async function handle(request: Request) {
     const obligations = await db
       .selectFrom("obligationInstance")
       .where("tradelineId", "=", tradelineId)
-      .select(["id", "createdAt", "state", "disputeVector", "pressureScore"])
+      .select([
+        "id",
+        "createdAt",
+        "state",
+        "disputeVector",
+        "pressureScore",
+        "challengeSentDate",
+        "responseDeadline",
+        "responseReceivedDate",
+        "responseStatus",
+        "successOutcome",
+      ])
       .execute();
 
     obligations.forEach(o => {
@@ -181,7 +192,48 @@ export async function handle(request: Request) {
             state: o.state,
             disputeVector: o.disputeVector,
             pressureScore: o.pressureScore,
+            challengeSentDate: o.challengeSentDate,
+            responseDeadline: o.responseDeadline,
+            responseReceivedDate: o.responseReceivedDate,
+            responseStatus: o.responseStatus,
+            successOutcome: o.successOutcome,
           }
+        });
+      }
+    });
+
+    // 7. Dispute outcomes (success metrics)
+    const outcomes = await db
+      .selectFrom("successMetric")
+      .innerJoin(
+        "obligationInstance",
+        "obligationInstance.id",
+        "successMetric.obligationInstanceId"
+      )
+      .where("obligationInstance.tradelineId", "=", tradelineId)
+      .select([
+        "successMetric.id",
+        "successMetric.recordedAt",
+        "successMetric.outcome",
+        "successMetric.responseTimeDays",
+        "successMetric.disputeVector",
+        "successMetric.obligationInstanceId",
+      ])
+      .execute();
+
+    outcomes.forEach(o => {
+      if (o.recordedAt) {
+        timeline.push({
+          id: `outcome_${o.id}`,
+          type: "OUTCOME",
+          timestamp: new Date(o.recordedAt).toISOString(),
+          data: {
+            id: o.id,
+            obligationInstanceId: o.obligationInstanceId,
+            outcome: o.outcome,
+            responseTimeDays: o.responseTimeDays,
+            disputeVector: o.disputeVector,
+          },
         });
       }
     });

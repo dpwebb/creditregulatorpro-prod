@@ -22,6 +22,7 @@ import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
 import { ResolvedUserSession } from "./ingestSessionResolver";
 import { ParserQualityAssessment } from "./parserQuality";
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
+import { evaluateDisputeOutcomesForTradeline } from "./disputeOutcomeEvaluator";
 
 export class IngestPipelineError extends Error {
   constructor(message: string, public code: string) {
@@ -695,6 +696,21 @@ export async function executeIngestPipeline({
                 })
                 .execute();
             }
+          }
+
+          // Link report changes to active disputes and classify outcome signals.
+          try {
+            await evaluateDisputeOutcomesForTradeline({
+              tradelineId,
+              userId: user.id,
+              reportArtifactId: artifactId,
+              changes,
+            });
+          } catch (evalError) {
+            console.error(
+              `[Ingest] Dispute outcome evaluation failed for tradeline ${tradelineId}:`,
+              evalError
+            );
           }
         }
       } catch (err) {

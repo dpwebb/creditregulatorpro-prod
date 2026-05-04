@@ -8,7 +8,7 @@ export type InputType = z.infer<typeof schema>;
 
 export type TimelineEntry = {
   id: string;
-  type: "SNAPSHOT" | "PACKET" | "DRIFT" | "IMPACT" | "EVIDENCE" | "OBLIGATION";
+  type: "SNAPSHOT" | "PACKET" | "DRIFT" | "IMPACT" | "EVIDENCE" | "OBLIGATION" | "OUTCOME";
   timestamp: string;
   data: any; // Type-specific data payload
 };

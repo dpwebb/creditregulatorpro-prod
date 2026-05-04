@@ -6,6 +6,17 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { subMonths, startOfMonth, endOfMonth } from "../../helpers/dateUtils";
 
+const SUCCESS_OUTCOMES = [
+  "DELETED",
+  "CORRECTED",
+  "REMOVED",
+  "UPDATED",
+  "SILENT_CORRECTION",
+  "SILENT_DELETION",
+  "WORKED",
+  "PARTIAL",
+];
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -83,7 +94,7 @@ export async function handle(request: Request) {
     let successMetricsQuery = db.selectFrom('successMetric')
       .select([
         db.fn.count('successMetric.id').as('total'),
-        db.fn.count('successMetric.id').filterWhere('successMetric.outcome', '=', 'SUCCESS').as('success')
+        sql<number>`sum(case when outcome in (${sql.join(SUCCESS_OUTCOMES)}) then 1 else 0 end)`.as('success')
       ]);
 
     let obligationsWithResponse = db.selectFrom('obligationInstance')

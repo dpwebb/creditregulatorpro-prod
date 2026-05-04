@@ -8,6 +8,23 @@ import { differenceInDays, addYears, isBefore, isValid } from "./dateUtils";
 import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { extractCanonicalStatus, extractCanonicalAccountType } from "./normalizeAccountData";
 import { normalizeAgencyName } from "./collectionAgencyRegistry";
+import {
+  resolveCreditorEntity,
+  matchCreditorAcrossReports,
+} from "./creditorEntityResolver";
+
+function namesLikelySameEntity(nameA: string, nameB: string): boolean {
+  if (!nameA || !nameB) return false;
+
+  const normalizedA = normalizeAgencyName(nameA);
+  const normalizedB = normalizeAgencyName(nameB);
+  if (!normalizedA || !normalizedB) return false;
+
+  if (normalizedA === normalizedB) return true;
+
+  const match = matchCreditorAcrossReports(nameA, nameB);
+  return match.isMatch && match.confidence >= 80;
+}
 
 /**
  * Compares creditor vs. bureau data for the same account. (Placeholder)
@@ -395,6 +412,16 @@ export async function detectOriginalCreditorChainFailure(
       matchReason = "self-reference (matches collection agency name)";
     }
 
+    // 1b. Alias-aware self-reference using canonical entity matching.
+    if (!isFakeOC && creditorName && namesLikelySameEntity(ocNameRaw, creditorName)) {
+      isFakeOC = true;
+      matchReason = "alias/self-reference (matches creditor entity alias)";
+    }
+    if (!isFakeOC && caName && namesLikelySameEntity(ocNameRaw, caName)) {
+      isFakeOC = true;
+      matchReason = "alias/self-reference (matches collection agency alias)";
+    }
+
     // 2. Licensed agency DB check
     if (!isFakeOC) {
       const normalizedOcName = normalizeAgencyName(ocNameRaw);
@@ -410,6 +437,15 @@ export async function detectOriginalCreditorChainFailure(
           isFakeOC = true;
           matchReason = "matches licensed collection agency database";
         }
+      }
+    }
+
+    // 2b. Canonical resolver check for known collection entities.
+    if (!isFakeOC) {
+      const ocEntity = resolveCreditorEntity(ocNameRaw);
+      if (ocEntity.entityType === "collection") {
+        isFakeOC = true;
+        matchReason = `classified as collection entity (${ocEntity.canonicalName})`;
       }
     }
 
@@ -483,6 +519,51 @@ export async function detectOriginalCreditorChainFailure(
         tradelineId: tradeline.id,
         responsibleEntity: "COLLECTOR",
       });
+    }
+
+    // 5. Same tradeline collection identity drift across snapshots.
+    // If the collector name keeps changing materially between pulls, we flag it.
+    if (tradeline.id) {
+      const snapshots = await db
+        .selectFrom("tradelineSnapshot")
+        .select(["collectionAgencyName", "creditorName", "snapshotAt"])
+        .where("tradelineId", "=", tradeline.id as number)
+        .orderBy("snapshotAt", "desc")
+        .limit(12)
+        .execute();
+
+      const rawNames = snapshots
+        .map((s) => s.collectionAgencyName || s.creditorName || "")
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+
+      const uniqueNames: string[] = [];
+      for (const name of rawNames) {
+        if (!uniqueNames.some((existing) => namesLikelySameEntity(existing, name))) {
+          uniqueNames.push(name);
+        }
+      }
+
+      if (uniqueNames.length >= 2) {
+        violations.push({
+          violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+          severity: "WARNING",
+          confidenceScore: 82,
+          userExplanation:
+            "The collection agency name changes across reports for this same debt, which may indicate identity inconsistency.",
+          technicalDetails: {
+            tradelineId: tradeline.id,
+            fieldName: "collectionAgencyName",
+            uniqueCollectorNames: uniqueNames,
+            detectedValue: uniqueNames.length,
+            regulationIds: ["PIPEDA_4_6"],
+          },
+          recommendedAction:
+            "Demand proof of the collector's exact legal identity and chain of authority to report this debt.",
+          tradelineId: tradeline.id,
+          responsibleEntity: "COLLECTOR",
+        });
+      }
     }
   }
 
