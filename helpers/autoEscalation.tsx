@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { logAudit } from "./auditLogger";
-import { createDeadlineEvent, calculateDeadline } from "./deadlineCalculator";
+import { calculateDeadline } from "./deadlineCalculator";
 import { sql } from "kysely";
 import { DisputeVectorType, OBLIGATION_SEQUENCES } from "./obligationVectors";
 import { getDataDrivenVectorRecommendation } from "./strategyFeedback";
@@ -75,9 +75,24 @@ export const triggerEscalation = async (
   const exhaustionCheck = await checkExhaustion(currentInstance.tradelineId!);
   const count = exhaustionCheck.escalationCount;
   const MAX_ESCALATIONS = 7;
-  
-  const willBeExhausted = count >= MAX_ESCALATIONS;
+
+  let willBeExhausted = count >= MAX_ESCALATIONS;
   let nextVector: DisputeVectorType = "TIMING_COMPLIANCE";
+
+  const canonicalVectors: DisputeVectorType[] = OBLIGATION_SEQUENCES.flatMap((seq) =>
+    seq.vectors.map((vector) => vector.type)
+  );
+  const usedVectorRows = await db
+    .selectFrom("obligationInstance")
+    .where("tradelineId", "=", currentInstance.tradelineId!)
+    .select("disputeVector")
+    .execute();
+  const usedVectors = new Set(
+    usedVectorRows
+      .map((row) => row.disputeVector)
+      .filter((value): value is DisputeVectorType => Boolean(value))
+  );
+  const unusedVectors = canonicalVectors.filter((vector) => !usedVectors.has(vector));
 
   if (!willBeExhausted) {
     if (count <= 2) {
@@ -94,6 +109,19 @@ export const triggerEscalation = async (
         nextVector = getNextDisputeVector(currentInstance.disputeVector);
       }
     }
+
+    // If the preferred vector already exists for this tradeline and we still have
+    // unused vectors, rotate to the next unused vector to avoid unique/index collisions.
+    if (usedVectors.has(nextVector) && unusedVectors.length > 0) {
+      nextVector = unusedVectors[0];
+    }
+
+    // If every canonical vector has already been used, force procedural exhaustion
+    // instead of attempting another duplicate-vector insertion.
+    if (unusedVectors.length === 0) {
+      willBeExhausted = true;
+      nextVector = "TIMING_COMPLIANCE";
+    }
   }
 
   // 2. Transactional update
@@ -109,23 +137,38 @@ export const triggerEscalation = async (
       .where("id", "=", obligationInstanceId)
       .execute();
 
-    // B. Create new obligation instance (Escalation)
-    const newInstance = await trx
-      .insertInto("obligationInstance")
-      .values({
-        tradelineId: currentInstance.tradelineId,
-        userId: currentInstance.userId,
-        obligationId: currentInstance.obligationId,
-        disputeVector: willBeExhausted ? "TIMING_COMPLIANCE" : nextVector,
-        createdAt: new Date(),
-        challengeSentDate: new Date(), // Assuming we send it immediately or queue it
-        state: willBeExhausted ? "PROCEDURALLY_EXHAUSTED" : "OBLIGATION_PENDING",
-        notes: willBeExhausted 
-          ? `Auto-escalated from instance ${obligationInstanceId} - PHASE 4 REACHED`
-          : `Auto-escalated from instance ${obligationInstanceId}`,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    let newInstance: any;
+
+    if (willBeExhausted) {
+      // Reuse current instance for terminal state rather than inserting a potentially
+      // duplicate terminal row.
+      newInstance = await trx
+        .updateTable("obligationInstance")
+        .set({
+          state: "PROCEDURALLY_EXHAUSTED",
+          disputeVector: "TIMING_COMPLIANCE",
+          notes: `Auto-escalated from instance ${obligationInstanceId} - PHASE 4 REACHED`,
+        })
+        .where("id", "=", obligationInstanceId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    } else {
+      // B. Create new obligation instance (Escalation)
+      newInstance = await trx
+        .insertInto("obligationInstance")
+        .values({
+          tradelineId: currentInstance.tradelineId,
+          userId: currentInstance.userId,
+          obligationId: currentInstance.obligationId,
+          disputeVector: nextVector,
+          createdAt: new Date(),
+          challengeSentDate: new Date(), // Assuming we send it immediately or queue it
+          state: "OBLIGATION_PENDING",
+          notes: `Auto-escalated from instance ${obligationInstanceId}`,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    }
 
     // C. Calculate and set deadline for new instance (only if not exhausted)
     if (!willBeExhausted) {
@@ -138,13 +181,27 @@ export const triggerEscalation = async (
         .execute();
 
       // D. Create deadline event (only if not exhausted)
-      await createDeadlineEvent({
-        obligationInstanceId: newInstance.id,
-        eventType: "ESCALATION_RESPONSE_DUE",
-        deadline: deadline,
-        title: `Escalation Response Due: ${nextVector}`,
-        description: "Auto-generated deadline for escalated challenge.",
-      });
+      try {
+        await trx
+          .insertInto("deadlineEvent")
+          .values({
+            obligationInstanceId: newInstance.id,
+            packetId: null,
+            eventType: "ESCALATION_RESPONSE_DUE",
+            deadline,
+            title: `Escalation Response Due: ${nextVector}`,
+            description: "Auto-generated deadline for escalated challenge.",
+            region: "CA",
+            isCompleted: false,
+            createdAt: new Date(),
+          })
+          .execute();
+      } catch (deadlineError) {
+        console.error(
+          "Failed to create escalation deadline event:",
+          deadlineError instanceof Error ? deadlineError.message : deadlineError
+        );
+      }
     }
 
     // E. Audit Log for escalation
