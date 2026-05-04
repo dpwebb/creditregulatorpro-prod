@@ -11,6 +11,7 @@ import { ParserTestCaseEditor } from "../components/ParserTestCaseEditor";
 import { ParserTestCasesList } from "../components/ParserTestCasesList";
 import { ParserTestRunAllTab } from "../components/ParserTestRunAllTab";
 import { ParserTestImportExportTab } from "../components/ParserTestImportExportTab";
+import { ParserLabStageTab } from "../components/ParserLabStageTab";
 
 import {
   useParserKnownEntities,
@@ -399,6 +400,7 @@ export default function AdminParserTestingPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className={styles.tabs}>
         <TabsList>
           <TabsTrigger value="test-cases">Test Cases</TabsTrigger>
+          <TabsTrigger value="stage-lab">Stage Lab</TabsTrigger>
           <TabsTrigger value="run-all">Run All Tests</TabsTrigger>
           <TabsTrigger value="import-export">Import / Export</TabsTrigger>
         </TabsList>
@@ -414,6 +416,10 @@ export default function AdminParserTestingPage() {
             onAcceptResults={handleAcceptResults}
             onApproveField={handleApproveField}
           />
+        </TabsContent>
+
+        <TabsContent value="stage-lab" className={styles.tabContent}>
+          <ParserLabStageTab />
         </TabsContent>
 
         <TabsContent value="run-all" className={styles.tabContent}>
