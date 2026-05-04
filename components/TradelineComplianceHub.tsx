@@ -34,6 +34,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { USER_PROFILE_QUERY_KEY } from "../helpers/useUserProfile";
 import { getViolationLabel } from "../helpers/getViolationLabel";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
+import { isIneligibleForStaleReportingViolation } from "../helpers/staleReportingGuard";
 
 import styles from "./TradelineComplianceHub.module.css";
 
@@ -238,9 +239,20 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     await queryClient.invalidateQueries({ queryKey: USER_PROFILE_QUERY_KEY });
   };
 
-    const nonAdminDisplayViolations = useMemo(() => {
+  const nonAdminDisplayViolations = useMemo(() => {
     const hasStatuteTimingIssue = activeViolations.some(
       v => v.violationCategory === "STATUTE_OF_LIMITATIONS" || v.violationCategory === "STATUTE_APPROACHING"
+    );
+    const shouldSuppressStaleForCurrentTradeline = !!(
+      currentTradeline &&
+      isIneligibleForStaleReportingViolation({
+        status: currentTradeline.status,
+        dateClosed: currentTradeline.dateClosed,
+        datePaidSettled: currentTradeline.datePaidSettled,
+        isCollectionAccount: currentTradeline.isCollectionAccount,
+        collectionAgencyName: currentTradeline.collectionAgencyName,
+        accountType: currentTradeline.accountType,
+      })
     );
     const hasKnownCreditorIdentity = !!(
       currentTradeline &&
@@ -257,7 +269,9 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
       if (v.violationCategory === "MULTIPLE_COLLECTOR_VIOLATION") return false;
 
       // "Information Wasn't Kept Up-to-Date" overlaps with statute timing cards.
-      if (hasStatuteTimingIssue && v.violationCategory === "STALE_REPORTING_FAILURE") return false;
+      if (v.violationCategory === "STALE_REPORTING_FAILURE") {
+        if (hasStatuteTimingIssue || shouldSuppressStaleForCurrentTradeline) return false;
+      }
 
       // Hide known false-positive style when creditor identity is already present on the tradeline.
       if (v.violationCategory === "DISCLOSURE_DEFICIENCY") {

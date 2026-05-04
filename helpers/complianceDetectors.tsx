@@ -144,6 +144,25 @@ export {
   detectFreezeViolationInquiry,
 };
 
+function getMostRecentArtifactReportDate(
+  reportArtifacts: Selectable<ReportArtifact>[]
+): Date | string | null {
+  let latest: Date | string | null = null;
+  let latestTs = Number.NEGATIVE_INFINITY;
+
+  for (const artifact of reportArtifacts) {
+    if (!artifact.reportDate) continue;
+    const ts = new Date(artifact.reportDate as any).getTime();
+    if (!Number.isFinite(ts)) continue;
+    if (ts > latestTs) {
+      latestTs = ts;
+      latest = artifact.reportDate;
+    }
+  }
+
+  return latest;
+}
+
 /**
  * Aggregates all tradeline-level detectors into a single execution flow.
  * This is a convenience function for running all checks on a single tradeline.
@@ -165,13 +184,14 @@ export async function runAllTradelineDetectors(
     bankruptcies = [],
     metro2Version,
   } = context;
+  const latestReportDate = getMostRecentArtifactReportDate(reportArtifacts);
 
   // 1. Temporal & Statute
   violations.push(...detectTemporalManipulation(tradeline, reportArtifacts));
   violations.push(...(await detectStatuteOfLimitations(tradeline)));
   violations.push(...detectRetroactiveHistoryManipulation(tradeline, reportArtifacts));
-  if (reportArtifacts[0]?.reportDate) {
-    violations.push(...detectStaleReportingFailure(tradeline, reportArtifacts[0].reportDate));
+  if (latestReportDate) {
+    violations.push(...detectStaleReportingFailure(tradeline, latestReportDate));
   }
   violations.push(...detectLastActivityDateManipulation(tradeline, reportArtifacts));
 

@@ -111,6 +111,25 @@ function mergeArtifactsById(
   });
 }
 
+function getMostRecentArtifactReportDate(
+  artifacts: Selectable<ReportArtifact>[]
+): Date | string | null {
+  let latest: Date | string | null = null;
+  let latestTs = Number.NEGATIVE_INFINITY;
+
+  for (const artifact of artifacts) {
+    if (!artifact.reportDate) continue;
+    const ts = new Date(artifact.reportDate as any).getTime();
+    if (!Number.isFinite(ts)) continue;
+    if (ts > latestTs) {
+      latestTs = ts;
+      latest = artifact.reportDate;
+    }
+  }
+
+  return latest;
+}
+
 async function loadSameBureauArtifactTimeline(
   tradeline: Selectable<Tradeline>
 ): Promise<Selectable<ReportArtifact>[]> {
@@ -248,6 +267,7 @@ export async function scanForViolations(
     }
   }
   console.log(`Found ${artifacts.length} artifacts for tradeline ${tradelineId}`);
+  const latestReportDate = getMostRecentArtifactReportDate(artifacts);
 
   // Fetch bankruptcy records for the user
   const bankruptcies =
@@ -291,7 +311,7 @@ export async function scanForViolations(
       ...detectCreditorResponseQuality(disputes),
       ...runAllResponseAuditDetectors(disputes),
       ...detectBureauInvestigationFailure(disputes),
-      ...(artifacts[0]?.reportDate ? detectStaleReportingFailure(tradeline, artifacts[0].reportDate) : []),
+      ...(latestReportDate ? detectStaleReportingFailure(tradeline, latestReportDate) : []),
       ...detectLastActivityDateManipulation(tradeline, artifacts),
       ...detectClosedAccountBalanceInflation(tradeline, artifacts),
       ...detectZombieDebtResurrection(tradeline, artifacts),

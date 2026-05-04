@@ -3,6 +3,7 @@ import { schema, OutputType } from "./list_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 
 export async function handle(request: Request) {
   try {
@@ -44,11 +45,37 @@ export async function handle(request: Request) {
       return filtered;
     };
 
-    // Count query
-    const countResult = await applyFilters(
-      buildBaseQuery().select((eb) => eb.fn.countAll<string>().as('total'))
-    ).executeTakeFirstOrThrow();
-    const total = parseInt(countResult.total, 10);
+    const shouldSuppressStaleForRow = (row: {
+      violationCategory: string | null;
+      tradelineStatus: string | null;
+      tradelineDateClosed: Date | string | null;
+      tradelineDatePaidSettled: Date | string | null;
+      tradelineIsCollectionAccount: boolean | null;
+      tradelineCollectionAgencyName: string | null;
+      tradelineAccountType: string | null;
+    }): boolean =>
+      shouldSuppressStaleReportingViolation(row.violationCategory, {
+        status: row.tradelineStatus,
+        dateClosed: row.tradelineDateClosed,
+        datePaidSettled: row.tradelineDatePaidSettled,
+        isCollectionAccount: row.tradelineIsCollectionAccount,
+        collectionAgencyName: row.tradelineCollectionAgencyName,
+        accountType: row.tradelineAccountType,
+      });
+
+    // Count query (count only rows that remain after stale suppression)
+    const countRows = await applyFilters(
+      buildBaseQuery().select([
+        "creditorObligationTest.violationCategory",
+        "tradeline.status as tradelineStatus",
+        "tradeline.dateClosed as tradelineDateClosed",
+        "tradeline.datePaidSettled as tradelineDatePaidSettled",
+        "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
+        "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
+        "tradeline.accountType as tradelineAccountType",
+      ])
+    ).execute();
+    const total = countRows.filter((row) => !shouldSuppressStaleForRow(row)).length;
 
     // Data query
     let dataQuery = applyFilters(
@@ -84,6 +111,12 @@ export async function handle(request: Request) {
         'creditorObligationTest.userStatusReason',
         'creditorObligationTest.userStatusUpdatedAt',
         'creditor.name as creditorName',
+        "tradeline.status as tradelineStatus",
+        "tradeline.dateClosed as tradelineDateClosed",
+        "tradeline.datePaidSettled as tradelineDatePaidSettled",
+        "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
+        "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
+        "tradeline.accountType as tradelineAccountType",
       ])
     )
       .orderBy('creditorObligationTest.detectedAt', 'desc')
@@ -96,7 +129,9 @@ export async function handle(request: Request) {
       }
     }
 
-    const obligationTests = await dataQuery.execute();
+    const obligationTests = (await dataQuery.execute()).filter(
+      (row) => !shouldSuppressStaleForRow(row)
+    );
 
     // Province enrichment: for any test missing province in technicalDetails,
     // look it up from report_consumer_info via the tradeline's report_artifact_id.
@@ -151,7 +186,20 @@ export async function handle(request: Request) {
       return test;
     });
 
-    return new Response(JSON.stringify({ obligationTests: enrichedObligationTests as any, total } satisfies OutputType));
+    const responseObligationTests = enrichedObligationTests.map((test) => {
+      const {
+        tradelineStatus,
+        tradelineDateClosed,
+        tradelineDatePaidSettled,
+        tradelineIsCollectionAccount,
+        tradelineCollectionAgencyName,
+        tradelineAccountType,
+        ...rest
+      } = test as any;
+      return rest;
+    });
+
+    return new Response(JSON.stringify({ obligationTests: responseObligationTests as any, total } satisfies OutputType));
   } catch (error) {
     console.error("Error listing creditor obligation tests:", error);
     return handleEndpointError(error);

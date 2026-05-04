@@ -1,26 +1,26 @@
 import { parseISO, isValid } from "./dateUtils";
 import type { Selectable } from "kysely";
+import type { Tradeline } from "./schema";
+import type { DetectedViolation } from "./complianceDetectorTypes";
+import { isIneligibleForStaleReportingViolation } from "./staleReportingGuard";
 
 /**
  * Safely parses a date input which might be a Date object, an ISO string, or null/undefined.
  */
 function safeParseDate(dateInput: Date | string | null | undefined): Date | null {
   if (!dateInput) return null;
-  
+
   if (dateInput instanceof Date) {
     return isValid(dateInput) ? dateInput : null;
   }
-  
-  if (typeof dateInput === 'string') {
+
+  if (typeof dateInput === "string") {
     const parsed = parseISO(dateInput);
     return isValid(parsed) ? parsed : null;
   }
-  
+
   return null;
 }
-import type { Tradeline } from "./schema";
-import type { DetectedViolation } from "./complianceDetectorTypes";
-import { regulationRegistry } from "./regulationRegistry";
 
 /**
  * Checks if a tradeline's last reported date is suspiciously old.
@@ -32,20 +32,8 @@ export function detectStaleReportingFailure(
 ): DetectedViolation[] {
   const violations: DetectedViolation[] = [];
 
-  const statusLower = (tradeline.status || "").toLowerCase();
-  
-  const trulyDeadStatuses = ["closed", "paid", "settled", "transferred"];
-  if (trulyDeadStatuses.some((s) => statusLower.includes(s))) {
-    return violations; // No obligation to continue monthly reporting
-  }
-
-  const chargeOffStatuses = ["charge", "writeoff", "write-off"];
-  if (chargeOffStatuses.some((s) => statusLower.includes(s))) {
-    const balance = Number(tradeline.balance) || 0;
-    if (balance <= 0) {
-      return violations; // No obligation to report if balance is 0
-    }
-  }
+  // Closed/terminal/collection accounts should not trigger stale monthly reporting violations.
+  if (isIneligibleForStaleReportingViolation(tradeline)) return violations;
 
   const lastReported = safeParseDate(tradeline.lastReportedDate as any);
   const posted = safeParseDate((tradeline as any).postedDate);

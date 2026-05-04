@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { findAllCrossBureauPairs } from "../../helpers/crossBureauMatcher";
+import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 
 export async function handle(request: Request) {
   try {
@@ -68,6 +69,7 @@ export async function handle(request: Request) {
 
     const rawTradelines = await dataQuery.execute();
     const allTradelineIds = rawTradelines.map((t) => t.id);
+    const tradelineById = new Map(rawTradelines.map((t) => [t.id, t]));
 
     // Per-tradeline enrichment maps
     const tradelineViolationMap = new Map<number, { total: number; challenged: number }>();
@@ -93,6 +95,20 @@ export async function handle(request: Request) {
 
       for (const v of allViolations) {
         if (v.tradelineId === null) continue;
+        const tradeline = tradelineById.get(v.tradelineId);
+        if (
+          tradeline &&
+          shouldSuppressStaleReportingViolation(v.violationCategory, {
+            status: tradeline.status,
+            dateClosed: tradeline.dateClosed,
+            datePaidSettled: tradeline.datePaidSettled,
+            isCollectionAccount: tradeline.isCollectionAccount,
+            collectionAgencyName: tradeline.collectionAgencyName,
+            accountType: tradeline.accountType,
+          })
+        ) {
+          continue;
+        }
 
         // Accumulate violation totals and challenged counts
         const existing = tradelineViolationMap.get(v.tradelineId) ?? { total: 0, challenged: 0 };

@@ -24,6 +24,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { generateAccessPointsWhenNoViolations, ChallengeAccessPoint } from "../../helpers/challengeAccessPointGenerator";
 import { PLATFORM_COMPLIANCE_SCOPE, PLATFORM_REGION } from "../../helpers/platformScope";
+import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 
 export async function handle(request: Request) {
   try {
@@ -117,10 +118,27 @@ export async function handle(request: Request) {
         "creditorObligationTest.userExplanation",
         "creditor.name as creditorName",
         "tradeline.accountNumber",
+        "tradeline.status as tradelineStatus",
+        "tradeline.dateClosed as tradelineDateClosed",
+        "tradeline.datePaidSettled as tradelineDatePaidSettled",
+        "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
+        "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
+        "tradeline.accountType as tradelineAccountType",
         "bureau.name as bureauName",
       ])
       .where("creditorObligationTest.tradelineId", "in", tradelineIds)
       .execute();
+
+    const filteredViolations = violations.filter((v) =>
+      !shouldSuppressStaleReportingViolation(v.violationCategory, {
+        status: v.tradelineStatus,
+        dateClosed: v.tradelineDateClosed,
+        datePaidSettled: v.tradelineDatePaidSettled,
+        isCollectionAccount: v.tradelineIsCollectionAccount,
+        collectionAgencyName: v.tradelineCollectionAgencyName,
+        accountType: v.tradelineAccountType,
+      })
+    );
 
     // 6. Calculate Stats
     let highSeverity = 0;
@@ -133,7 +151,7 @@ export async function handle(request: Request) {
     let equifaxViolations = 0;
     let transunionViolations = 0;
 
-    for (const v of violations) {
+    for (const v of filteredViolations) {
       if (v.severity === "HIGH" || v.severity === "ERROR") highSeverity++;
       else if (v.severity === "MEDIUM" || v.severity === "WARNING") mediumSeverity++;
       else lowSeverity++;
@@ -187,7 +205,7 @@ export async function handle(request: Request) {
     const threatScore = Math.min(rawScore, 100);
 
     // Top 5 Findings (Prioritize High Severity)
-    const sortedViolations = [...violations].sort((a, b) => {
+    const sortedViolations = [...filteredViolations].sort((a, b) => {
       const severityWeight = (s: string | null) => {
         if (s === "HIGH" || s === "ERROR") return 3;
         if (s === "MEDIUM" || s === "WARNING") return 2;
@@ -209,18 +227,18 @@ export async function handle(request: Request) {
     // 7. Determine Challenge Access Points
     let challengeAccessPoints: ChallengeAccessPoint[] = [];
 
-    if (violations.length === 0) {
+    if (filteredViolations.length === 0) {
       challengeAccessPoints = generateAccessPointsWhenNoViolations(tradelineIds.length);
       console.log(`No violations found for artifact ${input.artifactId}. Generated ${challengeAccessPoints.length} procedural access points.`);
-    } else if (violations.length < 3) {
+    } else if (filteredViolations.length < 3) {
       const allAccessPoints = generateAccessPointsWhenNoViolations(tradelineIds.length);
       challengeAccessPoints = allAccessPoints
         .filter(ap => ["BUREAU_AUTHORITY", "CREDITOR_AUTHORITY", "CREDITOR_PURPOSE"].includes(ap.id))
         .slice(0, 3);
-      console.log(`${violations.length} violations found for artifact ${input.artifactId}. Added ${challengeAccessPoints.length} supplementary access points.`);
+      console.log(`${filteredViolations.length} violations found for artifact ${input.artifactId}. Added ${challengeAccessPoints.length} supplementary access points.`);
     } else {
       challengeAccessPoints = [];
-      console.log(`${violations.length} violations found for artifact ${input.artifactId}. No supplementary access points needed.`);
+      console.log(`${filteredViolations.length} violations found for artifact ${input.artifactId}. No supplementary access points needed.`);
     }
 
     // 7b. Resolve artifact's bureau name from the first tradeline's bureau

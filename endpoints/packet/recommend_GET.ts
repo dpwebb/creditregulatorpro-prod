@@ -5,6 +5,7 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getDisputeVectorSuggestion } from "../../helpers/violationToDisputeVector";
 import { mapViolationToDisputeReason } from "../../helpers/equifaxDisputeReasons";
+import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 import {
   generateAccessPointsForTradelines,
   generateAccessPointsWhenNoViolations,
@@ -102,6 +103,11 @@ export async function handle(request: Request) {
         "tradeline.id",
         "tradeline.accountNumber",
         "tradeline.status",
+        "tradeline.dateClosed",
+        "tradeline.datePaidSettled",
+        "tradeline.isCollectionAccount",
+        "tradeline.collectionAgencyName",
+        "tradeline.accountType",
         "creditor.name as creditorName",
         "bureau.id as bureauId",
         "bureau.name as bureauName",
@@ -158,10 +164,23 @@ export async function handle(request: Request) {
     const availableViolations = violations.filter(
       (v) => v.tradelineId && !activeSet.has(`${v.tradelineId}-${v.id}`)
     );
+    const eligibleViolations = availableViolations.filter((v) => {
+      if (!v.tradelineId) return false;
+      const tl = tradelines.find((t) => t.id === v.tradelineId);
+      if (!tl) return false;
+      return !shouldSuppressStaleReportingViolation(v.violationCategory, {
+        status: tl.status,
+        dateClosed: tl.dateClosed,
+        datePaidSettled: tl.datePaidSettled,
+        isCollectionAccount: tl.isCollectionAccount,
+        collectionAgencyName: tl.collectionAgencyName,
+        accountType: tl.accountType,
+      });
+    });
 
     // Build the bonus map for multiple violations on the same tradeline
     const violationCounts: Record<number, number> = {};
-    for (const v of availableViolations) {
+    for (const v of eligibleViolations) {
       if (v.tradelineId) {
         violationCounts[v.tradelineId] = (violationCounts[v.tradelineId] || 0) + 1;
       }
@@ -170,7 +189,7 @@ export async function handle(request: Request) {
     const recommendations: OutputType extends { recommendations: infer R } | { error: string } ? R : never = [];
 
     // 4. Process each available violation, compute score, and map properties
-    for (const v of availableViolations) {
+    for (const v of eligibleViolations) {
       if (!v.tradelineId) continue;
       
       const tl = tradelines.find((t) => t.id === v.tradelineId);
@@ -263,7 +282,7 @@ export async function handle(request: Request) {
       JSON.stringify({
         recommendations: top3,
         proceduralOptions,
-        hasViolations: availableViolations.length > 0,
+        hasViolations: eligibleViolations.length > 0,
         totalTradelines,
       } satisfies OutputType)
     );

@@ -2,6 +2,7 @@ import { schema, OutputType } from "./list_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 
 const hiddenRiskCategories = [
   "ZOMBIE_DEBT_RESURRECTION",
@@ -56,6 +57,12 @@ export async function handle(request: Request) {
         'c.name as creditorName',
         'b.name as bureauName',
         't.userId',
+        't.status as tradelineStatus',
+        't.dateClosed as tradelineDateClosed',
+        't.datePaidSettled as tradelineDatePaidSettled',
+        't.isCollectionAccount as tradelineIsCollectionAccount',
+        't.collectionAgencyName as tradelineCollectionAgencyName',
+        't.accountType as tradelineAccountType',
         fn.count<string>('p.id').as('packetCount')
       ])
       .groupBy([
@@ -69,13 +76,30 @@ export async function handle(request: Request) {
         'cot.tradelineId', 
         'c.name', 
         'b.name', 
-        't.userId'
+        't.userId',
+        't.status',
+        't.dateClosed',
+        't.datePaidSettled',
+        't.isCollectionAccount',
+        't.collectionAgencyName',
+        't.accountType'
       ])
       .execute();
 
+    const filteredResults = results.filter((row) =>
+      !shouldSuppressStaleReportingViolation(row.violationCategory as string | null, {
+        status: row.tradelineStatus,
+        dateClosed: row.tradelineDateClosed,
+        datePaidSettled: row.tradelineDatePaidSettled,
+        isCollectionAccount: row.tradelineIsCollectionAccount,
+        collectionAgencyName: row.tradelineCollectionAgencyName,
+        accountType: row.tradelineAccountType,
+      })
+    );
+
     const severityRank: Record<string, number> = { ERROR: 3, WARNING: 2, INFO: 1 };
     
-    const sortedRisks = results.map(r => ({
+    const sortedRisks = filteredResults.map(r => ({
       id: r.id,
       violationCategory: r.violationCategory as string,
       severity: r.severity || 'INFO',
