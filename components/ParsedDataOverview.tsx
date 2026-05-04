@@ -40,6 +40,22 @@ const parsePaymentPattern = (pattern: string) => {
   return null;
 };
 
+const toFiniteNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const formatCurrencyOrNull = (value: unknown): string | null => {
+  const numeric = toFiniteNumber(value);
+  return numeric === null ? null : formatCurrency(numeric);
+};
+
+const formatDateOrNull = (value: unknown): string | null => {
+  const formatted = formatDate(value as any);
+  return formatted || null;
+};
+
 interface ParsedDataOverviewProps {
   tradelineId: number;
   className?: string;
@@ -66,6 +82,8 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
   }
 
   const { tradeline } = data;
+  const accountType = (tradeline.accountType || "").toLowerCase();
+  const isCreditAccount = accountType.includes("revolving") || accountType.includes("credit card") || accountType.includes("installment") || accountType.includes("loan");
 
   if (!isAdmin) {
     return (
@@ -97,21 +115,16 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
         <div className={styles.card}>
           <SectionHeader icon={DollarSign} title="Money" />
           <div className={styles.grid3}>
-            {Number(tradeline.balance ?? tradeline.currentBalance) > 0 && (
-              <Field label="Current Balance" value={formatCurrency(Number(tradeline.balance ?? tradeline.currentBalance))} monospace />
-            )}
-            {Number(tradeline.monthlyPayment) > 0 && (
-              <Field label="Monthly Payment" value={formatCurrency(Number(tradeline.monthlyPayment))} monospace />
-            )}
-            {Number(tradeline.amountPastDue) > 0 && (
-              <Field label="Past Due" value={formatCurrency(Number(tradeline.amountPastDue))} monospace />
-            )}
-            {(tradeline.accountType?.toLowerCase().includes('revolving') || tradeline.accountType?.toLowerCase().includes('credit card')) && Number(tradeline.creditLimit) > 0 && (
-              <Field label="Credit Limit" value={formatCurrency(Number(tradeline.creditLimit))} monospace />
-            )}
-            {Number(tradeline.highCredit) > 0 && (
-              <Field label="Highest Balance" value={formatCurrency(Number(tradeline.highCredit))} monospace />
-            )}
+            <Field label="Current Balance" value={formatCurrencyOrNull(tradeline.balance ?? tradeline.currentBalance)} monospace emptyText="Not reported" />
+            <Field label="Monthly Payment" value={formatCurrencyOrNull(tradeline.monthlyPayment)} monospace emptyText="Not reported" />
+            <Field label="Past Due" value={formatCurrencyOrNull(tradeline.amountPastDue)} monospace emptyText="Not reported" />
+            <Field
+              label="Credit Limit"
+              value={isCreditAccount ? formatCurrencyOrNull(tradeline.creditLimit) : null}
+              monospace
+              emptyText={isCreditAccount ? "Not reported" : "N/A"}
+            />
+            <Field label="Highest Balance" value={formatCurrencyOrNull(tradeline.highCredit)} monospace emptyText="Not reported" />
           </div>
         </div>
 
@@ -123,7 +136,7 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
               (() => {
                 const parsed = parsePaymentPattern(tradeline.paymentPattern);
                 if (!parsed) {
-                  return <div className={styles.emptyState}>No payment info yet.</div>;
+                  return <div className={styles.rawText}>{tradeline.paymentPattern}</div>;
                 }
 
                 const { late30, late60, late90, months } = parsed;
@@ -167,10 +180,14 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
         <div className={styles.card}>
           <SectionHeader icon={Calendar} title="Important Dates" />
           <div className={styles.grid2}>
-            {tradeline.openedDate && <Field label="Date Opened" value={formatDate(tradeline.openedDate)} monospace emptyText="Not reported" />}
-            {tradeline.dateClosed && <Field label="Date Closed" value={formatDate(tradeline.dateClosed)} monospace emptyText="Not reported" />}
-            {tradeline.dateOfLastPayment && <Field label="Last Payment Date" value={formatDate(tradeline.dateOfLastPayment)} monospace emptyText="Not reported" />}
-            {tradeline.lastActivityDate && <Field label="Last Activity" value={formatDate(tradeline.lastActivityDate)} monospace emptyText="Not reported" />}
+            <Field label="Date Opened" value={formatDateOrNull(tradeline.openedDate)} monospace emptyText="Not reported" />
+            <Field label="Reported Date" value={formatDateOrNull(tradeline.lastReportedDate)} monospace emptyText="Not reported" />
+            <Field label="Posted Date" value={formatDateOrNull(tradeline.postedDate)} monospace emptyText="Not reported" />
+            <Field label="Date Closed" value={formatDateOrNull(tradeline.dateClosed)} monospace emptyText="Not reported" />
+            <Field label="First Delinquency Date" value={formatDateOrNull(tradeline.dateOfFirstDelinquency)} monospace emptyText="Not reported" />
+            <Field label="Last Payment Date" value={formatDateOrNull(tradeline.dateOfLastPayment)} monospace emptyText="Not reported" />
+            <Field label="Last Activity" value={formatDateOrNull(tradeline.lastActivityDate)} monospace emptyText="Not reported" />
+            <Field label="Charge Off Date" value={formatDateOrNull(tradeline.chargeOffDate)} monospace emptyText="Not reported" />
           </div>
         </div>
 

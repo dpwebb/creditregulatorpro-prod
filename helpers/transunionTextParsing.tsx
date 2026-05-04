@@ -102,6 +102,21 @@ export type TransUnionPaymentGridRow = {
   rawLine: string;
 };
 
+function extractPaymentGridWindow(text: string): string | null {
+  const headerMatch = text.match(/Date\s+Balance[\s\S]{0,120}?(?:Payment|Past\s+Due|MOP)/i);
+  if (!headerMatch || headerMatch.index == null) return null;
+
+  const start = headerMatch.index + headerMatch[0].length;
+  const remainder = text.slice(start);
+  const stopMatch = remainder.match(
+    /\b(?:Legend|Creditor Name|Account\(s\)|Credit Related Inquiries|Non-?Credit Related Inquiries|Account Review Inquiries|Consumer Statement\(s\)|\*\*\*\s*This completes the report)/i,
+  );
+
+  const end = stopMatch?.index ?? remainder.length;
+  const windowText = remainder.slice(0, end).trim();
+  return windowText.length > 0 ? windowText : null;
+}
+
 function parseAmountToken(token: string): number | null {
   const clean = token.replace(/[$,\s]/g, "");
   if (!clean || !/^\d+(?:\.\d+)?$/.test(clean)) return null;
@@ -143,6 +158,8 @@ function extractGridNumbers(rawAfterDate: string): number[] {
 
 export function extractTransUnionPaymentGridRows(text: string): TransUnionPaymentGridRow[] {
   if (!text || !TRANSUNION_MONTH_YEAR_PATTERN.test(text)) return [];
+  const gridWindow = extractPaymentGridWindow(text);
+  if (!gridWindow) return [];
 
   const rows: TransUnionPaymentGridRow[] = [];
   const rowPattern = new RegExp(
@@ -151,7 +168,7 @@ export function extractTransUnionPaymentGridRows(text: string): TransUnionPaymen
   );
 
   let match: RegExpExecArray | null;
-  while ((match = rowPattern.exec(text)) !== null) {
+  while ((match = rowPattern.exec(gridWindow)) !== null) {
     const month = match[1];
     const year = match[2];
     const rawAfterDate = match[3] ?? "";

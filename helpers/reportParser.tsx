@@ -12,6 +12,7 @@ import {
   extractOriginalBalance,
   extractMonthlyPayment,
   extractLastPaymentAmount,
+  extractBalance,
   extractCreditLimit,
   extractBalanceAsync,
   extractAmountsAsync,
@@ -23,6 +24,9 @@ import {
   extractLastActivityDate,
   extractLastPaymentDate,
   extractMaturityDate,
+  extractPostedDate,
+  extractChargeOffDate,
+  extractBalloonPaymentDate,
 } from "./tradelineDateExtractors";
 import {
   extractInterestRate,
@@ -83,6 +87,14 @@ function hasPaymentHistoryGrid(text: string): boolean {
   }
 
   return false;
+}
+
+function amountsWithinTolerance(a: number | null | undefined, b: number | null | undefined, tolerance = 0.35): boolean {
+  if (a == null || b == null) return false;
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  const max = Math.max(Math.abs(a), Math.abs(b));
+  if (max === 0) return true;
+  return Math.abs(a - b) / max <= tolerance;
 }
 
 /**
@@ -336,6 +348,9 @@ export async function parseReport(
           lastPaymentDate: extractLastPaymentDate(sourceText),
           lastPaymentAmount: extractLastPaymentAmount(sourceText) || undefined,
           maturityDate: extractMaturityDate(sourceText),
+          postedDate: extractPostedDate(sourceText),
+          chargeOffDate: extractChargeOffDate(sourceText),
+          balloonPaymentDate: extractBalloonPaymentDate(sourceText),
           paymentPattern: extractPaymentPattern(sourceText) || undefined,
         };
 
@@ -348,35 +363,82 @@ export async function parseReport(
             `[Report Parser]   Tradeline "${tradeline.creditorName}" has payment grid - using Gemini-enhanced extraction`,
           );
 
+          const deterministicBalance = extractBalance(sourceText);
+
           // Extract balance with Gemini
           const geminiBalance = await extractBalanceAsync(sourceText);
-          if (geminiBalance !== 0 && geminiBalance !== tradeline.balance) {
+          const shouldUseGeminiBalance =
+            geminiBalance > 0 &&
+            (
+              deterministicBalance <= 0 ||
+              tradeline.balance <= 0 ||
+              amountsWithinTolerance(geminiBalance, deterministicBalance)
+            );
+
+          if (shouldUseGeminiBalance && geminiBalance !== tradeline.balance) {
             console.log(
               `[Report Parser]   Balance updated from ${tradeline.balance} to ${geminiBalance} (Gemini)`,
             );
             augmented.balance = geminiBalance;
+          } else if (deterministicBalance > 0 && deterministicBalance !== tradeline.balance) {
+            console.log(
+              `[Report Parser]   Balance corrected from ${tradeline.balance} to ${deterministicBalance} (deterministic grid)`,
+            );
+            augmented.balance = deterministicBalance;
+          } else if (geminiBalance > 0 && !shouldUseGeminiBalance) {
+            console.log(
+              `[Report Parser]   Ignored Gemini balance ${geminiBalance}; keeping deterministic ${deterministicBalance || tradeline.balance}`,
+            );
           }
 
           // Extract amounts with Gemini
           const geminiAmounts = await extractAmountsAsync(sourceText);
           if (geminiAmounts.high !== undefined || geminiAmounts.pastDue !== undefined) {
-            if (geminiAmounts.high !== undefined && geminiAmounts.high !== tradeline.amounts.high) {
+            const currentHigh = tradeline.amounts.high;
+            const geminiHigh = geminiAmounts.high;
+            if (
+              geminiHigh !== undefined &&
+              (
+                currentHigh == null ||
+                currentHigh <= 0 ||
+                amountsWithinTolerance(geminiHigh, currentHigh)
+              ) &&
+              geminiHigh !== currentHigh
+            ) {
               console.log(
-                `[Report Parser]   High credit updated from ${tradeline.amounts.high} to ${geminiAmounts.high} (Gemini)`,
+                `[Report Parser]   High credit updated from ${tradeline.amounts.high} to ${geminiHigh} (Gemini)`,
               );
-              augmented.amounts.high = geminiAmounts.high;
+              augmented.amounts.high = geminiHigh;
             }
-            if (geminiAmounts.pastDue !== undefined && geminiAmounts.pastDue !== tradeline.amounts.pastDue) {
+            const currentPastDue = tradeline.amounts.pastDue;
+            const geminiPastDue = geminiAmounts.pastDue;
+            if (
+              geminiPastDue !== undefined &&
+              (
+                currentPastDue == null ||
+                amountsWithinTolerance(geminiPastDue, currentPastDue, 0.5)
+              ) &&
+              geminiPastDue !== currentPastDue
+            ) {
               console.log(
-                `[Report Parser]   Past due updated from ${tradeline.amounts.pastDue} to ${geminiAmounts.pastDue} (Gemini)`,
+                `[Report Parser]   Past due updated from ${tradeline.amounts.pastDue} to ${geminiPastDue} (Gemini)`,
               );
-              augmented.amounts.pastDue = geminiAmounts.pastDue;
+              augmented.amounts.pastDue = geminiPastDue;
             }
           }
 
           // Extract credit limit with Gemini
           const geminiCreditLimit = await extractCreditLimitAsync(sourceText);
-          augmented.creditLimit = geminiCreditLimit || undefined;
+          if (
+            geminiCreditLimit &&
+            (
+              !tradeline.creditLimit ||
+              tradeline.creditLimit <= 0 ||
+              amountsWithinTolerance(geminiCreditLimit, tradeline.creditLimit)
+            )
+          ) {
+            augmented.creditLimit = geminiCreditLimit;
+          }
 
           // Extract MOP with Gemini
           const geminiMop = await extractMopAsync(sourceText);

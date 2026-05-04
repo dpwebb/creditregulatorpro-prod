@@ -223,10 +223,67 @@ function summarizeAttempt(
   };
 }
 
+function isLikelyCreditAccountType(accountType: string | null | undefined): boolean {
+  const type = (accountType || "").toLowerCase();
+  if (!type) return false;
+  return (
+    type.includes("revolving") ||
+    type.includes("installment") ||
+    type.includes("mortgage") ||
+    type.includes("line") ||
+    type.includes("loan") ||
+    type.includes("credit")
+  );
+}
+
+function hasMeaningfulText(value: string | null | undefined): boolean {
+  const normalized = (value || "").trim().toLowerCase();
+  if (!normalized) return false;
+  if (["unknown", "not reported", "n/a", "na", "-", "missing"].includes(normalized)) return false;
+  return true;
+}
+
+function estimateTradelineDetailCoverage(tradelines: ParsedTradeline[]): number {
+  if (tradelines.length === 0) return 0;
+
+  let total = 0;
+  for (const tradeline of tradelines) {
+    let score = 0;
+    const likelyCredit = isLikelyCreditAccountType(tradeline.accountType);
+
+    if (hasMeaningfulText(tradeline.creditorName)) score += 15;
+    if (hasMeaningfulText(tradeline.accountNumber)) score += 10;
+    if (tradeline.dates?.reported || tradeline.postedDate) score += 10;
+    if (tradeline.lastPaymentDate || tradeline.dateAssignedToCollection) score += 10;
+    if (likelyCredit && typeof tradeline.creditLimit === "number" && tradeline.creditLimit > 0) score += 15;
+    if (likelyCredit && typeof tradeline.amounts?.high === "number" && tradeline.amounts.high > 0) score += 15;
+    if (typeof tradeline.amounts?.pastDue === "number") score += 5;
+    if (hasMeaningfulText(tradeline.terms)) score += 10;
+    if (hasMeaningfulText(tradeline.paymentPattern)) score += 10;
+
+    total += score;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(total / tradelines.length)));
+}
+
 function shouldAttemptAiFallback(candidate: CandidateExtraction): boolean {
   if (candidate.parseResult.tradelines.length === 0) return true;
   if (candidate.parserQuality.requiresManualReview) return true;
   if (candidate.parserQuality.confidenceScore < 78) return true;
+  const detailCoverage = estimateTradelineDetailCoverage(candidate.parseResult.tradelines);
+  if (detailCoverage < 65) return true;
+  if (
+    detailCoverage < 78 &&
+    candidate.parseResult.tradelines.some((tradeline) => {
+      if (!isLikelyCreditAccountType(tradeline.accountType)) return false;
+      const missingLimit = !(typeof tradeline.creditLimit === "number" && tradeline.creditLimit > 0);
+      const missingHighCredit = !(typeof tradeline.amounts?.high === "number" && tradeline.amounts.high > 0);
+      return missingLimit && missingHighCredit;
+    })
+  ) {
+    return true;
+  }
   return candidate.parserQuality.issues.some((issue) =>
     [
       "PARSER_ACCOUNT_COUNT_MISMATCH",

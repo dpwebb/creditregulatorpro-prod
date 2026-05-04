@@ -139,3 +139,64 @@ export function extractMaturityDate(text: string): Date | null {
 
   return null;
 }
+
+/**
+ * Extracts posted/date reported by furnisher (distinct from report date).
+ */
+export function extractPostedDate(text: string): Date | null {
+  const patterns = [
+    // TransUnion concatenated format: "Posted DateDec 18, 2025"
+    /Posted\s*Date([A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4})/i,
+    /Posted\s+Date[\s:]+([^\n]+)/i,
+    /Date\s+Posted[\s:]+([^\n]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const parsed = parseDate(match[1].trim());
+    if (parsed) return parsed;
+  }
+
+  return null;
+}
+
+/**
+ * Extracts charge-off/write-off date.
+ */
+export function extractChargeOffDate(text: string): Date | null {
+  const patterns = [
+    // TransUnion concatenated format: "Charge Off DateJan 10, 2024"
+    /Charge\s*Off\s*Date([A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4})/i,
+    /Charge\s*[- ]?Off(?:\s+Date)?[\s:]+([^\n]+)/i,
+    /Write\s*[- ]?Off(?:\s+Date)?[\s:]+([^\n]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const parsed = parseDate(match[1].trim());
+    if (parsed) return parsed;
+  }
+
+  return null;
+}
+
+/**
+ * Extracts balloon payment date when present.
+ */
+export function extractBalloonPaymentDate(text: string): Date | null {
+  const patterns = [
+    /Balloon\s+Payment(?:\s+Date)?[\s:]+([^\n]+)/i,
+    /Balloon\s+Date[\s:]+([^\n]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const parsed = parseDate(match[1].trim());
+    if (parsed) return parsed;
+  }
+
+  return null;
+}

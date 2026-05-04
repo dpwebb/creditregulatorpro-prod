@@ -65,6 +65,33 @@ export function extractTerms(text: string): string | null {
  * Extracts the payment pattern (history string like "111111111111").
  */
 export function extractPaymentPattern(text: string): string | null {
+  // Table-summary style often present in TransUnion disclosures:
+  // header: "30 60 90 #M" with next row values like "1 1 21 32".
+  const summaryPatterns = [
+    /30\s+60\s+90\s+#M[\s\S]{0,120}?(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/i,
+    /30\s*:\s*(\d+)[\s,;|]+60\s*:\s*(\d+)[\s,;|]+90\s*:\s*(\d+)[\s,;|]+#M\s*:\s*(\d+)/i,
+  ];
+
+  for (const pattern of summaryPatterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+
+    const late30 = Number(match[1]);
+    const late60 = Number(match[2]);
+    const late90 = Number(match[3]);
+    const months = Number(match[4]);
+
+    if (
+      Number.isFinite(late30) &&
+      Number.isFinite(late60) &&
+      Number.isFinite(late90) &&
+      Number.isFinite(months) &&
+      months >= 0
+    ) {
+      return `30d:${late30} 60d:${late60} 90d:${late90} months:${months}`;
+    }
+  }
+
   const patterns = [
     // "Payment History: 111111111111"
     /Payment\s+History[\s:]+([0-9CNOX]{12,})/i,

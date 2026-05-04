@@ -5,6 +5,32 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { findCrossBureauSibling } from "../../helpers/crossBureauMatcher";
 
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function isMeaningfulText(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+  return !['unknown', 'n/a', 'na', '-', 'not reported'].includes(normalized);
+}
+
+function buildSummaryPaymentPattern(
+  times30: number | null,
+  times60: number | null,
+  times90: number | null,
+  times120: number | null,
+): string | null {
+  if (times30 == null || times60 == null || times90 == null) return null;
+  const months = [times30, times60, times90, times120 ?? 0]
+    .map((value) => (Number.isFinite(value) ? Number(value) : 0))
+    .reduce((sum, value) => sum + Math.max(0, value), 0);
+  return `30d:${Math.max(0, times30)} 60d:${Math.max(0, times60)} 90d:${Math.max(0, times90)} months:${Math.max(0, months)}`;
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -79,6 +105,112 @@ export async function handle(request: Request) {
         lastReviewedBy = extractValue('lastReviewedBy', 'last_reviewed_by');
         lastReviewedDate = extractValue('lastReviewedDate', 'last_reviewed_date');
       }
+    }
+
+    // Merge fallback account details from payment history tables.
+    // This ensures UI accuracy when base tradeline fields are sparse or stale.
+    let paymentHistoryQuery = db
+      .selectFrom('tradelinePaymentHistory')
+      .select([
+        'paymentPattern',
+        'times30DaysLate',
+        'times60DaysLate',
+        'times90DaysLate',
+        'times120DaysLate',
+        'monthlyPayment',
+        'lastPaymentAmount',
+        'lastActivityDate',
+        'lastReportedDate',
+        'dateOfLastPayment',
+        'id',
+      ])
+      .where('tradelineId', '=', tradeline.id);
+
+    if (tradeline.reportArtifactId != null) {
+      paymentHistoryQuery = paymentHistoryQuery.where('reportArtifactId', '=', tradeline.reportArtifactId);
+    }
+
+    const latestPaymentHistory = await paymentHistoryQuery
+      .orderBy('lastReportedDate', 'desc')
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    let paymentDetailQuery = db
+      .selectFrom('tradelinePaymentHistoryDetail')
+      .select([
+        'balance',
+        'pastDue',
+        'highCredit',
+        'creditLimit',
+        'mop',
+        'terms',
+        'periodDate',
+        'id',
+      ])
+      .where('tradelineId', '=', tradeline.id);
+
+    if (tradeline.reportArtifactId != null) {
+      paymentDetailQuery = paymentDetailQuery.where('reportArtifactId', '=', tradeline.reportArtifactId);
+    }
+
+    const latestPaymentDetail = await paymentDetailQuery
+      .orderBy('periodDate', 'desc')
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    const fallbackPaymentPattern =
+      latestPaymentHistory?.paymentPattern ??
+      buildSummaryPaymentPattern(
+        latestPaymentHistory?.times30DaysLate ?? null,
+        latestPaymentHistory?.times60DaysLate ?? null,
+        latestPaymentHistory?.times90DaysLate ?? null,
+        latestPaymentHistory?.times120DaysLate ?? null,
+      );
+
+    const mergedTradeline = { ...tradeline };
+    const detailBalance = toNumberOrNull(latestPaymentDetail?.balance);
+    const detailPastDue = toNumberOrNull(latestPaymentDetail?.pastDue);
+    const detailHighCredit = toNumberOrNull(latestPaymentDetail?.highCredit);
+    const detailCreditLimit = toNumberOrNull(latestPaymentDetail?.creditLimit);
+
+    // If a payment-detail grid exists, treat latest row balance as authoritative.
+    if (detailBalance !== null) {
+      const normalized = String(detailBalance);
+      mergedTradeline.balance = normalized;
+      mergedTradeline.currentBalance = normalized;
+    }
+    if (toNumberOrNull(mergedTradeline.amountPastDue) === null && detailPastDue !== null) {
+      mergedTradeline.amountPastDue = String(detailPastDue);
+    }
+    if (toNumberOrNull(mergedTradeline.highCredit) === null && detailHighCredit !== null && detailHighCredit > 0) {
+      mergedTradeline.highCredit = String(detailHighCredit);
+    }
+    if (toNumberOrNull(mergedTradeline.creditLimit) === null && detailCreditLimit !== null && detailCreditLimit > 0) {
+      mergedTradeline.creditLimit = String(detailCreditLimit);
+    }
+    if (!isMeaningfulText(mergedTradeline.mop) && isMeaningfulText(latestPaymentDetail?.mop)) {
+      mergedTradeline.mop = latestPaymentDetail.mop;
+    }
+    if (!isMeaningfulText(mergedTradeline.terms) && isMeaningfulText(latestPaymentDetail?.terms)) {
+      mergedTradeline.terms = latestPaymentDetail.terms;
+    }
+    if (!isMeaningfulText(mergedTradeline.paymentPattern) && fallbackPaymentPattern) {
+      mergedTradeline.paymentPattern = fallbackPaymentPattern;
+    }
+    if (mergedTradeline.monthlyPayment == null && latestPaymentHistory?.monthlyPayment != null) {
+      mergedTradeline.monthlyPayment = latestPaymentHistory.monthlyPayment;
+    }
+    if (mergedTradeline.lastPaymentAmount == null && latestPaymentHistory?.lastPaymentAmount != null) {
+      mergedTradeline.lastPaymentAmount = latestPaymentHistory.lastPaymentAmount;
+    }
+    if (mergedTradeline.lastActivityDate == null && latestPaymentHistory?.lastActivityDate != null) {
+      mergedTradeline.lastActivityDate = latestPaymentHistory.lastActivityDate;
+    }
+    if (mergedTradeline.lastReportedDate == null && latestPaymentHistory?.lastReportedDate != null) {
+      mergedTradeline.lastReportedDate = latestPaymentHistory.lastReportedDate;
+    }
+    if (mergedTradeline.dateOfLastPayment == null && latestPaymentHistory?.dateOfLastPayment != null) {
+      mergedTradeline.dateOfLastPayment = latestPaymentHistory.dateOfLastPayment;
     }
 
     // Fetch related collection tradelines if this is a collection account
@@ -251,7 +383,7 @@ export async function handle(request: Request) {
 
     return new Response(JSON.stringify({
       tradeline: {
-        ...tradeline,
+        ...mergedTradeline,
         tuCaseId,
         firstReportedDate,
         lastReviewedBy,

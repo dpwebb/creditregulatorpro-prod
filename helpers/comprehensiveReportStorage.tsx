@@ -28,6 +28,19 @@ export type ComprehensiveStorageResult = {
   errors: string[];
 };
 
+type PaymentHistoryDetailLike = {
+  date?: string | null;
+  balance?: number | string | null;
+  payment?: number | string | null;
+  pastDue?: number | string | null;
+  highCredit?: number | string | null;
+  creditLimit?: number | string | null;
+  balloonPayment?: number | string | null;
+  chargeOff?: number | string | null;
+  mop?: string | null;
+  terms?: string | null;
+};
+
 /**
  * Stores all extracted data from a comprehensive credit report into the database.
  * Handles partial failures by logging errors and continuing with other sections.
@@ -304,10 +317,14 @@ export async function storeComprehensiveReportData(params: {
         if (times90 === null && summary["90"] != null) times90 = Number(summary["90"]);
       }
 
+      const derivedPaymentPattern =
+        paymentHistory.paymentPattern ??
+        buildSummaryPaymentPattern(times30, times60, times90, paymentHistory.times120DaysLate);
+
       const payload = {
         tradelineId,
         reportArtifactId,
-        paymentPattern: paymentHistory.paymentPattern,
+        paymentPattern: derivedPaymentPattern,
         responsibilityCode: paymentHistory.responsibilityCode,
         ecoaCode: paymentHistory.ecoaCode,
         complianceConditionCode: paymentHistory.complianceConditionCode,
@@ -315,8 +332,8 @@ export async function storeComprehensiveReportData(params: {
         worstDelinquencyCode: paymentHistory.worstDelinquencyCode,
         worstDelinquencyDate: paymentHistory.worstDelinquencyDate,
         accountCondition: paymentHistory.accountCondition,
-        monthlyPayment: paymentHistory.monthlyPayment ? String(paymentHistory.monthlyPayment) : null,
-        lastPaymentAmount: paymentHistory.lastPaymentAmount ? String(paymentHistory.lastPaymentAmount) : null,
+        monthlyPayment: paymentHistory.monthlyPayment != null ? String(paymentHistory.monthlyPayment) : null,
+        lastPaymentAmount: paymentHistory.lastPaymentAmount != null ? String(paymentHistory.lastPaymentAmount) : null,
         lastActivityDate: paymentHistory.lastActivityDate,
         lastReportedDate: paymentHistory.lastReportedDate,
         rawSectionText: paymentHistory.rawSectionText,
@@ -390,6 +407,43 @@ export async function storeComprehensiveReportData(params: {
           .insertInto("tradelinePaymentHistoryDetail")
           .values(detailRows)
           .execute();
+
+        const latestDetail = pickLatestPaymentHistoryDetail(details);
+        const detailBalance = toNumberOrNull(latestDetail?.balance);
+        const detailPastDue = toNumberOrNull(latestDetail?.pastDue);
+        const detailHighCredit = toNumberOrNull(latestDetail?.highCredit);
+        const detailCreditLimit = toNumberOrNull(latestDetail?.creditLimit);
+        const detailMop = cleanMeaningfulString(latestDetail?.mop);
+        const detailTerms = cleanMeaningfulString(latestDetail?.terms);
+
+        const tradelineFallbackUpdates: Record<string, unknown> = {};
+        if (detailBalance !== null) {
+          tradelineFallbackUpdates.balance = detailBalance;
+          tradelineFallbackUpdates.currentBalance = detailBalance;
+        }
+        if (detailPastDue !== null) tradelineFallbackUpdates.amountPastDue = detailPastDue;
+        if (detailHighCredit !== null && detailHighCredit > 0) tradelineFallbackUpdates.highCredit = detailHighCredit;
+        if (detailCreditLimit !== null && detailCreditLimit > 0) tradelineFallbackUpdates.creditLimit = detailCreditLimit;
+        if (detailMop) tradelineFallbackUpdates.mop = detailMop;
+        if (detailTerms) tradelineFallbackUpdates.terms = detailTerms;
+        if (derivedPaymentPattern) tradelineFallbackUpdates.paymentPattern = derivedPaymentPattern;
+        if (paymentHistory.lastReportedDate) tradelineFallbackUpdates.lastReportedDate = paymentHistory.lastReportedDate;
+        if (paymentHistory.lastActivityDate) tradelineFallbackUpdates.lastActivityDate = paymentHistory.lastActivityDate;
+        if (paymentHistory.lastPaymentDate) tradelineFallbackUpdates.dateOfLastPayment = paymentHistory.lastPaymentDate;
+        if (paymentHistory.lastPaymentAmount != null) {
+          tradelineFallbackUpdates.lastPaymentAmount = paymentHistory.lastPaymentAmount;
+        }
+        if (paymentHistory.monthlyPayment != null) {
+          tradelineFallbackUpdates.monthlyPayment = paymentHistory.monthlyPayment;
+        }
+
+        if (Object.keys(tradelineFallbackUpdates).length > 0) {
+          await db
+            .updateTable("tradeline")
+            .set(tradelineFallbackUpdates)
+            .where("id", "=", tradelineId)
+            .execute();
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -483,6 +537,60 @@ function parsePeriodDate(dateStr: string | null | undefined): Date | null {
   }
 
   return null;
+}
+
+function cleanMeaningfulString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  const lower = normalized.toLowerCase();
+  if (lower === "unknown" || lower === "n/a" || lower === "na" || lower === "-") return null;
+  return normalized;
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildSummaryPaymentPattern(
+  times30: number | null,
+  times60: number | null,
+  times90: number | null,
+  times120: number | null,
+): string | null {
+  if (times30 == null || times60 == null || times90 == null) return null;
+  const months = [times30, times60, times90, times120 ?? 0]
+    .map((value) => (Number.isFinite(value) ? Number(value) : 0))
+    .reduce((sum, value) => sum + Math.max(0, value), 0);
+  return `30d:${Math.max(0, times30)} 60d:${Math.max(0, times60)} 90d:${Math.max(0, times90)} months:${Math.max(0, months)}`;
+}
+
+function pickLatestPaymentHistoryDetail(details: PaymentHistoryDetailLike[]): PaymentHistoryDetailLike | null {
+  if (!Array.isArray(details) || details.length === 0) return null;
+
+  const withOrder = details
+    .map((detail, index) => ({
+      detail,
+      index,
+      time: parsePeriodDate(detail.date ?? null)?.getTime() ?? Number.NEGATIVE_INFINITY,
+    }))
+    .sort((a, b) => {
+      if (a.time !== b.time) return b.time - a.time;
+      return a.index - b.index;
+    });
+
+  const firstWithFinancialData = withOrder.find(({ detail }) => {
+    return (
+      toNumberOrNull(detail.balance) !== null ||
+      toNumberOrNull(detail.pastDue) !== null ||
+      toNumberOrNull(detail.highCredit) !== null ||
+      toNumberOrNull(detail.creditLimit) !== null
+    );
+  });
+
+  return firstWithFinancialData?.detail ?? withOrder[0]?.detail ?? null;
 }
 
 function mapInquiryType(type: string): InquiryType {
