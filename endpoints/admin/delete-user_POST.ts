@@ -4,6 +4,7 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import { deleteReportArtifactCascade, deleteTradeline } from "../../helpers/deleteReportArtifactCascade";
 import { logAudit } from "../../helpers/auditLogger";
+import postgres from "postgres";
 
 function isOptionalSchemaError(error: unknown): boolean {
   return (
@@ -23,6 +24,119 @@ async function runOptionalDeleteStep(stepName: string, fn: () => Promise<void>):
       throw error;
     }
     console.warn(`[delete-user] Optional step skipped (${stepName}) due to schema mismatch:`, error);
+  }
+}
+
+type UserFkReference = {
+  table_name: string;
+  column_name: string;
+  is_nullable: "YES" | "NO";
+  delete_rule: string;
+};
+
+function quoteIdentifier(identifier: string): string {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+    throw new Error(`Unsafe SQL identifier: ${identifier}`);
+  }
+  return `"${identifier}"`;
+}
+
+function isForeignKeyViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23503"
+  );
+}
+
+async function runDynamicUserFkCleanup(
+  targetUserId: number,
+  adminUserId: number,
+  purgedCounts: Record<string, number>
+): Promise<void> {
+  if (!process.env.FLOOT_DATABASE_URL) {
+    console.warn("[delete-user] FLOOT_DATABASE_URL unavailable; skipping dynamic FK cleanup.");
+    return;
+  }
+
+  const sqlClient = postgres(process.env.FLOOT_DATABASE_URL, {
+    prepare: false,
+    max: 1,
+    idle_timeout: 10,
+  });
+
+  try {
+    const fkRows = await sqlClient.unsafe<UserFkReference[]>(
+      `
+      SELECT
+        tc.table_name,
+        kcu.column_name,
+        cols.is_nullable,
+        rc.delete_rule
+      FROM information_schema.table_constraints AS tc
+      JOIN information_schema.key_column_usage AS kcu
+        ON tc.constraint_name = kcu.constraint_name
+        AND tc.table_schema = kcu.table_schema
+      JOIN information_schema.constraint_column_usage AS ccu
+        ON ccu.constraint_name = tc.constraint_name
+        AND ccu.table_schema = tc.table_schema
+      JOIN information_schema.referential_constraints AS rc
+        ON rc.constraint_name = tc.constraint_name
+        AND rc.constraint_schema = tc.table_schema
+      JOIN information_schema.columns AS cols
+        ON cols.table_schema = tc.table_schema
+        AND cols.table_name = tc.table_name
+        AND cols.column_name = kcu.column_name
+      WHERE tc.constraint_type = 'FOREIGN KEY'
+        AND tc.table_schema = 'public'
+        AND ccu.table_name = 'users'
+      ORDER BY tc.table_name, kcu.column_name
+      `
+    );
+
+    for (const ref of fkRows) {
+      if (
+        ref.table_name === "users" ||
+        ref.delete_rule === "CASCADE" ||
+        ref.delete_rule === "SET NULL"
+      ) {
+        continue;
+      }
+
+      const table = quoteIdentifier(ref.table_name);
+      const column = quoteIdentifier(ref.column_name);
+      const metricKey = `dynamicFk_${ref.table_name}_${ref.column_name}`;
+
+      if (ref.table_name === "parser_test_case" && ref.column_name === "created_by") {
+        const updatedRows = await sqlClient.unsafe(
+          `UPDATE ${table} SET ${column} = $2 WHERE ${column} = $1 RETURNING 1`,
+          [targetUserId, adminUserId]
+        );
+        purgedCounts[metricKey] = (purgedCounts[metricKey] || 0) + updatedRows.length;
+        continue;
+      }
+
+      if (ref.is_nullable === "YES") {
+        const updatedRows = await sqlClient.unsafe(
+          `UPDATE ${table} SET ${column} = NULL WHERE ${column} = $1 RETURNING 1`,
+          [targetUserId]
+        );
+        purgedCounts[metricKey] = (purgedCounts[metricKey] || 0) + updatedRows.length;
+        continue;
+      }
+
+      const deletedRows = await sqlClient.unsafe(
+        `DELETE FROM ${table} WHERE ${column} = $1 RETURNING 1`,
+        [targetUserId]
+      );
+      purgedCounts[metricKey] = (purgedCounts[metricKey] || 0) + deletedRows.length;
+    }
+  } catch (error) {
+    console.error("[delete-user] Dynamic FK cleanup failed:", error);
+    throw error;
+  } finally {
+    await sqlClient.end({ timeout: 5 });
   }
 }
 
@@ -384,11 +498,30 @@ export async function handle(request: Request) {
       systemSettingsNullified: purgedCounts["systemSettingsNullified"],
     });
 
-    // 23. Finally, delete the core user record
-    const deleteUsersResult = await db
-      .deleteFrom("users")
-      .where("id", "=", targetUser.id)
-      .executeTakeFirst();
+    // 23. Dynamic FK sweep for NO ACTION references to users.id that vary by staging schema.
+    await runOptionalDeleteStep("dynamic FK cleanup sweep", async () => {
+      await runDynamicUserFkCleanup(targetUser.id, adminUser.id, purgedCounts);
+    });
+
+    // 24. Finally, delete the core user record.
+    // If we still hit an FK violation, run one more dynamic sweep and retry once.
+    let deleteUsersResult;
+    try {
+      deleteUsersResult = await db
+        .deleteFrom("users")
+        .where("id", "=", targetUser.id)
+        .executeTakeFirst();
+    } catch (error) {
+      if (!isForeignKeyViolation(error)) {
+        throw error;
+      }
+      console.warn("[delete-user] FK violation on final users delete; retrying after dynamic sweep.", error);
+      await runDynamicUserFkCleanup(targetUser.id, adminUser.id, purgedCounts);
+      deleteUsersResult = await db
+        .deleteFrom("users")
+        .where("id", "=", targetUser.id)
+        .executeTakeFirst();
+    }
     purgedCounts["users"] = Number(deleteUsersResult.numDeletedRows || 0);
 
     const output: OutputType = {
