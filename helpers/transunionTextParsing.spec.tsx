@@ -2,6 +2,7 @@ import { extractBalance } from "./tradelineAmountExtractors";
 import {
   extractLatestTransUnionPaymentGridBalance,
   extractTransUnionPaymentGridRows,
+  extractTransUnionPaymentSummary,
 } from "./transunionTextParsing";
 import { extractPaymentPattern } from "./tradelineOtherExtractors";
 
@@ -26,6 +27,11 @@ Legend: CG-Account cancelled by credit grantor
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].dateLabel).toBe("Jul 2024");
     expect(rows[0].balance).toBe(248);
+    expect(rows[0].mop).toBe("0");
+    expect(rows[0].highCredit).toBe(358);
+    expect(rows[0].creditLimit).toBe(300);
+    expect(rows[1].mop).toBe("X");
+    expect(rows[1].highCredit).toBe(358);
     expect(extractLatestTransUnionPaymentGridBalance(sampleTradeline)).toBe(248);
     expect(extractBalance(sampleTradeline)).toBe(248);
   });
@@ -49,5 +55,11 @@ Payment History
 1 1 21 32
 `;
     expect(extractPaymentPattern(text)).toBe("30d:1 60d:1 90d:21 months:32");
+    expect(extractTransUnionPaymentSummary(text)).toEqual({
+      "30": 1,
+      "60": 1,
+      "90": 21,
+      "#M": 32,
+    });
   });
 });

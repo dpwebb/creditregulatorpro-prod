@@ -488,6 +488,9 @@ export async function persistTradelines(
       const originalBalance = normalizeCreditReportAmount(parsedTradeline.originalBalance, "tradeline.originalBalance");
       const monthlyPayment = normalizeCreditReportAmount(parsedTradeline.monthlyPayment, "tradeline.monthlyPayment");
       const lastPaymentAmount = normalizeCreditReportAmount(parsedTradeline.lastPaymentAmount, "tradeline.lastPaymentAmount");
+      const paymentPattern = (parsedTradeline.paymentPattern || parsedTradeline.paymentHistoryProfile || null)?.substring(0, 255) ?? null;
+      const paymentHistoryProfile = (parsedTradeline.paymentHistoryProfile || parsedTradeline.paymentPattern || null)?.substring(0, 255) ?? null;
+      const monthsReviewed = parsedTradeline.monthsReviewed != null ? String(parsedTradeline.monthsReviewed).substring(0, 50) : null;
 
       const tradelineData = {
         accountType: parsedTradeline.accountType ? parsedTradeline.accountType.substring(0, 100) : null,
@@ -522,17 +525,18 @@ export async function persistTradelines(
         postedDate: parsedTradeline.postedDate ?? null,
         chargeOffDate: parsedTradeline.chargeOffDate ?? null,
         balloonPaymentDate: parsedTradeline.balloonPaymentDate ?? null,
-        paymentPattern: parsedTradeline.paymentPattern ? parsedTradeline.paymentPattern.substring(0, 255) : null,
+        paymentPattern,
+        paymentHistoryProfile,
         mop: parsedTradeline.mop ?? null,
-        monthsReviewed: (parsedTradeline as any).monthsReviewed ?? null,
-        creditorPhone: (parsedTradeline as any).creditorPhone ?? null,
-        memberNumber: (parsedTradeline as any).memberNumber ?? null,
-        ratingCode: (parsedTradeline as any).ratingCode ?? null,
-        ratingCodeDescription: (parsedTradeline as any).ratingCodeDescription ?? null,
-        amountWrittenOff: normalizeCreditReportAmount((parsedTradeline as any).amountWrittenOff, "tradeline.amountWrittenOff"),
-        notes: (parsedTradeline as any).notes ?? null,
-        dateVerified: (parsedTradeline as any).dateVerified ?? null,
-        datePaidSettled: (parsedTradeline as any).datePaidSettled ?? null,
+        monthsReviewed,
+        creditorPhone: parsedTradeline.creditorPhone ?? null,
+        memberNumber: parsedTradeline.memberNumber ?? null,
+        ratingCode: parsedTradeline.ratingCode ?? null,
+        ratingCodeDescription: parsedTradeline.ratingCodeDescription ?? null,
+        amountWrittenOff: normalizeCreditReportAmount(parsedTradeline.amountWrittenOff, "tradeline.amountWrittenOff"),
+        notes: parsedTradeline.notes ?? null,
+        dateVerified: parsedTradeline.dateVerified ?? null,
+        datePaidSettled: parsedTradeline.datePaidSettled ?? null,
       };
 
       // ECOA Code derivation from responsibilityCode
@@ -595,7 +599,6 @@ export async function persistTradelines(
             ...tradelineData,
             userId: userId,
             accountNumber: parsedTradeline.accountNumber,
-            paymentHistoryProfile: parsedTradeline.paymentPattern || null,
           })
           .returning("id")
           .executeTakeFirstOrThrow();

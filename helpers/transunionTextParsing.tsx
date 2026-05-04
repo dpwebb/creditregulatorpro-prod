@@ -98,8 +98,20 @@ export type TransUnionPaymentGridRow = {
   payment: number | null;
   pastDue: number | null;
   mop: string | null;
+  terms: string | null;
+  highCredit: number | null;
+  creditLimit: number | null;
+  balloonPayment: number | null;
+  chargeOff: number | null;
   narrative: string | null;
   rawLine: string;
+};
+
+export type TransUnionPaymentSummary = {
+  "30": number;
+  "60": number;
+  "90": number;
+  "#M": number;
 };
 
 function extractPaymentGridWindow(text: string): string | null {
@@ -153,20 +165,125 @@ function inferFirstAmountFromCompactToken(token: string): number | null {
   return Number(clean.slice(0, 3));
 }
 
-function extractGridNumbers(rawAfterDate: string): number[] {
-  const beforeNarrative = rawAfterDate
-    .replace(/\b[A-Z]{1,3}\s*\/\s*[A-Z]{0,3}\b/g, " ")
-    .replace(/\b(?:Creditor|Reported|Opened|Closed|Legend|Status|Account|Payment History)\b[\s\S]*$/i, " ");
+function cleanGridColumnWindow(rawAfterDate: string): string {
+  return rawAfterDate
+    .replace(/[A-Z]{1,3}\s*\/\s*[A-Z]{0,3}\b/g, " ")
+    .replace(/\b(?:Creditor|Reported|Opened|Closed|Legend|Status|Account|Payment History)\b[\s\S]*$/i, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  const tokens = beforeNarrative.match(/\$?\d[\d,]*(?:\.\d+)?/g) ?? [];
+function parseGridRowColumns(rawAfterDate: string): Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> | null {
+  const window = cleanGridColumnWindow(rawAfterDate);
+  if (!window) return null;
+
+  const tokens = window.match(/X|\$?\d[\d,]*(?:\.\d+)?(?:\/[A-Z])?/gi) ?? [];
+  if (tokens.length === 0) return null;
+
   if (tokens.length === 1 && /^\$?\d{6,}$/.test(tokens[0])) {
     const amount = inferFirstAmountFromCompactToken(tokens[0]);
-    return amount === null ? [] : [amount];
+    if (amount === null) return null;
+    return {
+      balance: amount,
+      payment: null,
+      pastDue: null,
+      mop: null,
+      terms: null,
+      highCredit: null,
+      creditLimit: null,
+      balloonPayment: null,
+      chargeOff: null,
+    };
   }
 
-  return tokens
-    .map(parseAmountToken)
-    .filter((value): value is number => value !== null);
+  const parseAmountAt = (index: number): number | null => parseAmountToken(tokens[index] ?? "");
+  const parseTextAt = (index: number): string | null => {
+    const token = tokens[index];
+    if (!token) return null;
+    return token.trim().toUpperCase();
+  };
+
+  const balance = parseAmountAt(0);
+  const payment = parseAmountAt(1);
+  const pastDue = parseAmountAt(2);
+  const mop = parseTextAt(3);
+
+  const hasTermsColumn = tokens.length >= 9;
+  const terms = hasTermsColumn ? parseTextAt(4) : null;
+  const financialStart = hasTermsColumn ? 5 : 4;
+
+  return {
+    balance,
+    payment,
+    pastDue,
+    mop,
+    terms,
+    highCredit: parseAmountAt(financialStart),
+    creditLimit: parseAmountAt(financialStart + 1),
+    balloonPayment: parseAmountAt(financialStart + 2),
+    chargeOff: parseAmountAt(financialStart + 3),
+  };
+}
+
+function toNonNegativeInteger(value: string): number | null {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
+export function extractTransUnionPaymentSummary(text: string): TransUnionPaymentSummary | null {
+  if (!text) return null;
+
+  const summaryPatterns = [
+    /30\s+60\s+90\s+#M[\s\S]{0,120}?(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/i,
+    /30\s*:\s*(\d+)[\s,;|]+60\s*:\s*(\d+)[\s,;|]+90\s*:\s*(\d+)[\s,;|]+#M\s*:\s*(\d+)/i,
+    /30\s*(?:days?)?\s*(?:late)?\s*[:=]\s*(\d+)[\s\S]{0,40}?60\s*(?:days?)?\s*(?:late)?\s*[:=]\s*(\d+)[\s\S]{0,40}?90\s*(?:days?)?\s*(?:late)?\s*[:=]\s*(\d+)[\s\S]{0,40}?(?:#M|months?\s+reviewed)\s*[:=]\s*(\d+)/i,
+  ];
+
+  for (const pattern of summaryPatterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+
+    const late30 = toNonNegativeInteger(match[1]);
+    const late60 = toNonNegativeInteger(match[2]);
+    const late90 = toNonNegativeInteger(match[3]);
+    const months = toNonNegativeInteger(match[4]);
+
+    if (
+      late30 !== null &&
+      late60 !== null &&
+      late90 !== null &&
+      months !== null &&
+      months <= 999 &&
+      late30 <= months &&
+      late60 <= months &&
+      late90 <= months
+    ) {
+      return {
+        "30": late30,
+        "60": late60,
+        "90": late90,
+        "#M": months,
+      };
+    }
+  }
+
+  return null;
+}
+
+export function formatTransUnionPaymentSummary(summary: TransUnionPaymentSummary | null): string | null {
+  if (!summary) return null;
+  return `30d:${summary["30"]} 60d:${summary["60"]} 90d:${summary["90"]} months:${summary["#M"]}`;
+}
+
+export function extractTransUnionMonthsReviewed(text: string): number | null {
+  const explicitMatch = text.match(/\bMonths\s+Reviewed\s*:?\s*(\d+)\b/i);
+  if (explicitMatch) {
+    const months = toNonNegativeInteger(explicitMatch[1]);
+    if (months !== null) return months;
+  }
+
+  return extractTransUnionPaymentSummary(text)?.["#M"] ?? null;
 }
 
 export function extractTransUnionPaymentGridRows(text: string): TransUnionPaymentGridRow[] {
@@ -186,19 +303,24 @@ export function extractTransUnionPaymentGridRows(text: string): TransUnionPaymen
     const year = match[2];
     const rawAfterDate = match[3] ?? "";
     const rawLine = `${month} ${year}${rawAfterDate}`.replace(/\s+/g, " ").trim();
-    const numbers = extractGridNumbers(rawAfterDate);
-    const narrativeMatch = rawAfterDate.match(/\b([A-Z]{1,3}\s*\/\s*[A-Z]{0,3})\b/);
+    const columns = parseGridRowColumns(rawAfterDate);
+    const narrativeMatch = rawAfterDate.match(/([A-Z]{1,3}\s*\/\s*[A-Z]{0,3})\b/);
     const date = parseDate(`${month} ${year}`);
 
-    if (numbers.length === 0 && !narrativeMatch) continue;
+    if (!columns && !narrativeMatch) continue;
 
     rows.push({
       dateLabel: `${month} ${year}`,
       date,
-      balance: numbers[0] ?? null,
-      payment: numbers[1] ?? null,
-      pastDue: numbers[2] ?? null,
-      mop: numbers[3] != null ? String(numbers[3]) : null,
+      balance: columns?.balance ?? null,
+      payment: columns?.payment ?? null,
+      pastDue: columns?.pastDue ?? null,
+      mop: columns?.mop ?? null,
+      terms: columns?.terms ?? null,
+      highCredit: columns?.highCredit ?? null,
+      creditLimit: columns?.creditLimit ?? null,
+      balloonPayment: columns?.balloonPayment ?? null,
+      chargeOff: columns?.chargeOff ?? null,
       narrative: narrativeMatch?.[1]?.replace(/\s+/g, " ").trim() ?? null,
       rawLine,
     });

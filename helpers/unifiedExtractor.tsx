@@ -309,12 +309,12 @@ export function unifiedExtract(
       ? t.remarkCodes.map((c) => createEv(c)!).filter(Boolean)
       : undefined,
     terms: createEv(t.terms),
-    payment_history_profile: createEv(t.paymentPattern),
-    months_reviewed: createEv((t as any).monthsReviewed),
-    times_30_days_late: createEv((t as any).paymentHistory?.['30']),
-    times_60_days_late: createEv((t as any).paymentHistory?.['60']),
-    times_90_days_late: createEv((t as any).paymentHistory?.['90']),
-  } as unknown as AccountExtraction));
+    payment_history_profile: createEv(t.paymentHistoryProfile || t.paymentPattern),
+    months_reviewed: createEv(t.monthsReviewed),
+    times_30_days_late: createEv(t.paymentHistory?.["30"]),
+    times_60_days_late: createEv(t.paymentHistory?.["60"]),
+    times_90_days_late: createEv(t.paymentHistory?.["90"]),
+  }));
 
   // 5. Map Inquiries for Full Extraction
   const inquiries_credit_related: InquiryExtraction[] = [];

@@ -25,8 +25,15 @@ import {
   extractRemarkCodes,
   extractInterestRate,
   extractTerms,
+  extractPaymentPattern,
 } from "./tradelineOtherExtractors";
 import { extractDates } from "./tradelineDateParser";
+import {
+  extractTransUnionMonthsReviewed,
+  extractTransUnionPaymentGridRows,
+  extractTransUnionPaymentSummary,
+  formatTransUnionPaymentSummary,
+} from "./transunionTextParsing";
 
 /**
  * Extracts tradelines from credit report text.
@@ -119,6 +126,27 @@ function parseTradelineSection(
   const terms = extractTerms(section);
   const monthlyPayment = extractMonthlyPayment(section);
   const lastActivityDate = extractLastActivityDate(section);
+  const paymentHistoryDetails = extractTransUnionPaymentGridRows(section).map((row) => ({
+    date: row.dateLabel,
+    balance: row.balance,
+    payment: row.payment,
+    pastDue: row.pastDue,
+    mop: row.mop,
+    terms: row.terms,
+    highCredit: row.highCredit,
+    creditLimit: row.creditLimit,
+    balloonPayment: row.balloonPayment,
+    chargeOff: row.chargeOff,
+    narrative: row.narrative,
+  }));
+  const latestPaymentDetail = paymentHistoryDetails[0];
+  const paymentHistory = extractTransUnionPaymentSummary(section);
+  const paymentPattern =
+    extractPaymentPattern(section) ||
+    formatTransUnionPaymentSummary(paymentHistory) ||
+    undefined;
+  const monthsReviewed = extractTransUnionMonthsReviewed(section);
+  const detailMop = paymentHistoryDetails.find((row) => row.mop)?.mop;
 
   // Validation: A tradeline must have at minimum a creditor name OR account number
   if (!accountNumber && !creditorName) {
@@ -135,7 +163,9 @@ function parseTradelineSection(
     status !== null ||
     dates.opened !== null ||
     dates.reported !== null ||
-    amounts.high !== undefined;
+    amounts.high !== undefined ||
+    paymentHistoryDetails.length > 0 ||
+    paymentHistory !== null;
 
   if (!hasAdditionalData) {
     console.log(
@@ -158,8 +188,8 @@ function parseTradelineSection(
       dofd: dates.dofd,
     },
     amounts: {
-      high: amounts.high,
-      pastDue: amounts.pastDue,
+      high: amounts.high ?? latestPaymentDetail?.highCredit ?? undefined,
+      pastDue: amounts.pastDue ?? latestPaymentDetail?.pastDue ?? undefined,
     },
     remarkCodes: remarkCodes,
     // Collection-account specific fields
@@ -173,6 +203,13 @@ function parseTradelineSection(
     terms: terms || undefined,
     monthlyPayment: monthlyPayment || undefined,
     lastActivityDate: lastActivityDate,
+    paymentPattern,
+    paymentHistoryProfile: paymentPattern ?? null,
+    paymentHistory,
+    monthsReviewed,
+    paymentHistoryDetails: paymentHistoryDetails.length > 0 ? paymentHistoryDetails : null,
+    mop: detailMop ?? undefined,
+    creditLimit: latestPaymentDetail?.creditLimit ?? undefined,
   };
 
   // Store the raw source text for document highlighting
@@ -371,6 +408,26 @@ function mergeTradelines(tradelines: ParsedTradeline[]): ParsedTradeline {
     
     if (!isMeaningful(merged.paymentPattern) && isMeaningful(current.paymentPattern)) {
       merged.paymentPattern = current.paymentPattern;
+    }
+
+    if (!isMeaningful(merged.paymentHistoryProfile) && isMeaningful(current.paymentHistoryProfile)) {
+      merged.paymentHistoryProfile = current.paymentHistoryProfile;
+    }
+
+    if (!merged.paymentHistory && current.paymentHistory) {
+      merged.paymentHistory = current.paymentHistory;
+    }
+
+    if (!isMeaningful(merged.monthsReviewed) && isMeaningful(current.monthsReviewed)) {
+      merged.monthsReviewed = current.monthsReviewed;
+    }
+
+    if ((!merged.paymentHistoryDetails || merged.paymentHistoryDetails.length === 0) && current.paymentHistoryDetails?.length) {
+      merged.paymentHistoryDetails = current.paymentHistoryDetails;
+    }
+
+    if (!isMeaningful(merged.mop) && isMeaningful(current.mop)) {
+      merged.mop = current.mop;
     }
     
     if (merged.creditLimit === undefined && current.creditLimit !== undefined) {

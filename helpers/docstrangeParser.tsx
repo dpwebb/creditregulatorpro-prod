@@ -141,15 +141,19 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
     })(),
     };
 
-    (parsed as any).monthsReviewed = t.monthsReviewed != null ? parseInt(String(t.monthsReviewed), 10) : undefined;
-    (parsed as any).creditorPhone = t.creditorPhone ?? null;
-    (parsed as any).memberNumber = t.memberNumber ?? null;
-    (parsed as any).ratingCode = t.ratingCode ?? null;
-    (parsed as any).ratingCodeDescription = t.ratingCodeDescription ?? null;
-    (parsed as any).notes = t.notes ?? null;
-    (parsed as any).amountWrittenOff = t.amountWrittenOff ?? null;
-    (parsed as any).dateVerified = t.dateVerified ?? null;
-    (parsed as any).datePaidSettled = t.datePaidSettled ?? null;
+    const monthsReviewed = t.monthsReviewed != null ? parseInt(String(t.monthsReviewed), 10) : undefined;
+    parsed.paymentHistoryProfile = parsed.paymentPattern ?? null;
+    parsed.paymentHistory = t.paymentHistory ?? null;
+    parsed.paymentHistoryDetails = Array.isArray(t.paymentHistoryDetails) ? t.paymentHistoryDetails : null;
+    parsed.monthsReviewed = Number.isFinite(monthsReviewed) ? monthsReviewed : undefined;
+    parsed.creditorPhone = t.creditorPhone ?? null;
+    parsed.memberNumber = t.memberNumber ?? null;
+    parsed.ratingCode = t.ratingCode ?? null;
+    parsed.ratingCodeDescription = t.ratingCodeDescription ?? null;
+    parsed.notes = t.notes ?? null;
+    parsed.amountWrittenOff = t.amountWrittenOff ?? null;
+    parsed.dateVerified = t.dateVerified ?? null;
+    parsed.datePaidSettled = t.datePaidSettled ?? null;
 
     return parsed;
   });
@@ -224,6 +228,7 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
     
     (result as any).paymentHistoryDetails = t.paymentHistoryDetails || [];
     (result as any).paymentHistorySummary = t.paymentHistory || null;
+    (result as any).monthsReviewed = t.paymentHistory?.["#M"] ?? t.monthsReviewed ?? null;
     
     return result;
   });

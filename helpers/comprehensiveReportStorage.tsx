@@ -44,6 +44,7 @@ type PaymentHistoryDetailLike = {
   chargeOff?: number | string | null;
   mop?: string | null;
   terms?: string | null;
+  narrative?: string | null;
 };
 
 /**
@@ -326,10 +327,14 @@ export async function storeComprehensiveReportData(params: {
       times60 = normalizePaymentHistoryCount(times60, "tradelinePaymentHistory.times60DaysLate");
       times90 = normalizePaymentHistoryCount(times90, "tradelinePaymentHistory.times90DaysLate");
       const times120 = normalizePaymentHistoryCount(paymentHistory.times120DaysLate, "tradelinePaymentHistory.times120DaysLate");
+      const monthsReviewed = normalizePaymentHistoryCount(
+        (paymentHistory as any).monthsReviewed ?? summary?.["#M"],
+        "tradeline.monthsReviewed",
+      );
 
       const derivedPaymentPattern =
         paymentHistory.paymentPattern ??
-        buildSummaryPaymentPattern(times30, times60, times90, times120);
+        buildSummaryPaymentPattern(times30, times60, times90, times120, monthsReviewed);
 
       const payload = {
         tradelineId,
@@ -387,6 +392,23 @@ export async function storeComprehensiveReportData(params: {
       console.log("[Storage] Successfully stored payment history ID:", recordId);
       result.paymentHistoryIds.push(recordId);
 
+      const paymentSummaryTradelineUpdates: Record<string, unknown> = {};
+      if (derivedPaymentPattern) {
+        paymentSummaryTradelineUpdates.paymentPattern = derivedPaymentPattern;
+        paymentSummaryTradelineUpdates.paymentHistoryProfile = derivedPaymentPattern;
+      }
+      if (monthsReviewed !== null) {
+        paymentSummaryTradelineUpdates.monthsReviewed = String(monthsReviewed);
+      }
+
+      if (Object.keys(paymentSummaryTradelineUpdates).length > 0) {
+        await db
+          .updateTable("tradeline")
+          .set(paymentSummaryTradelineUpdates)
+          .where("id", "=", tradelineId)
+          .execute();
+      }
+
       // 8. Store Payment History Details
       const details = (paymentHistory as any).paymentHistoryDetails;
       if (Array.isArray(details) && details.length > 0) {
@@ -436,7 +458,11 @@ export async function storeComprehensiveReportData(params: {
         if (detailCreditLimit !== null && detailCreditLimit > 0) tradelineFallbackUpdates.creditLimit = detailCreditLimit;
         if (detailMop) tradelineFallbackUpdates.mop = detailMop;
         if (detailTerms) tradelineFallbackUpdates.terms = detailTerms;
-        if (derivedPaymentPattern) tradelineFallbackUpdates.paymentPattern = derivedPaymentPattern;
+        if (derivedPaymentPattern) {
+          tradelineFallbackUpdates.paymentPattern = derivedPaymentPattern;
+          tradelineFallbackUpdates.paymentHistoryProfile = derivedPaymentPattern;
+        }
+        if (monthsReviewed !== null) tradelineFallbackUpdates.monthsReviewed = String(monthsReviewed);
         if (paymentHistory.lastReportedDate) tradelineFallbackUpdates.lastReportedDate = paymentHistory.lastReportedDate;
         if (paymentHistory.lastActivityDate) tradelineFallbackUpdates.lastActivityDate = paymentHistory.lastActivityDate;
         if (paymentHistory.lastPaymentDate) tradelineFallbackUpdates.dateOfLastPayment = paymentHistory.lastPaymentDate;
@@ -575,9 +601,10 @@ function buildSummaryPaymentPattern(
   times60: number | null,
   times90: number | null,
   times120: number | null,
+  monthsReviewed: number | null = null,
 ): string | null {
   if (times30 == null || times60 == null || times90 == null) return null;
-  const months = [times30, times60, times90, times120 ?? 0]
+  const months = monthsReviewed ?? [times30, times60, times90, times120 ?? 0]
     .map((value) => (Number.isFinite(value) ? Number(value) : 0))
     .reduce((sum, value) => sum + Math.max(0, value), 0);
   return `30d:${Math.max(0, times30)} 60d:${Math.max(0, times60)} 90d:${Math.max(0, times90)} months:${Math.max(0, months)}`;

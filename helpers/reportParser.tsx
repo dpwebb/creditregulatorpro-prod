@@ -321,6 +321,11 @@ export async function parseReport(
         const accountTypeLooksCollection =
           typeof tradeline.accountType === "string" &&
           tradeline.accountType.toUpperCase().includes("COLLECTION");
+        const extractedPaymentPattern =
+          extractPaymentPattern(sourceText) ||
+          tradeline.paymentPattern ||
+          tradeline.paymentHistoryProfile ||
+          undefined;
 
         // Base augmentation (synchronous fields)
         const augmented = {
@@ -351,7 +356,9 @@ export async function parseReport(
           postedDate: extractPostedDate(sourceText),
           chargeOffDate: extractChargeOffDate(sourceText),
           balloonPaymentDate: extractBalloonPaymentDate(sourceText),
-          paymentPattern: extractPaymentPattern(sourceText) || undefined,
+          paymentPattern: extractedPaymentPattern,
+          paymentHistoryProfile:
+            tradeline.paymentHistoryProfile || extractedPaymentPattern || null,
         };
 
         const resolvedEntity = resolveCreditorEntity(tradeline.creditorName);
@@ -447,7 +454,7 @@ export async function parseReport(
           }
         } else {
           // No payment grid - use synchronous extractor for credit limit
-          augmented.creditLimit = extractCreditLimit(sourceText) || undefined;
+          augmented.creditLimit = extractCreditLimit(sourceText) || tradeline.creditLimit || undefined;
         }
 
         return augmented;
@@ -466,6 +473,33 @@ export async function parseReport(
       // Use the sourceText if available, otherwise fall back to full text (less accurate)
       const tradelineText = tradeline.sourceText || text;
       const paymentHistory = extractPaymentHistory(tradelineText);
+      const sourcePaymentPattern =
+        tradeline.paymentHistoryProfile ||
+        tradeline.paymentPattern ||
+        paymentHistory.paymentPattern;
+
+      if (sourcePaymentPattern) {
+        paymentHistory.paymentPattern = sourcePaymentPattern;
+      }
+
+      if (tradeline.paymentHistory) {
+        paymentHistory.times30DaysLate =
+          paymentHistory.times30DaysLate ?? tradeline.paymentHistory["30"] ?? null;
+        paymentHistory.times60DaysLate =
+          paymentHistory.times60DaysLate ?? tradeline.paymentHistory["60"] ?? null;
+        paymentHistory.times90DaysLate =
+          paymentHistory.times90DaysLate ?? tradeline.paymentHistory["90"] ?? null;
+        (paymentHistory as any).paymentHistorySummary = tradeline.paymentHistory;
+      }
+
+      if (tradeline.monthsReviewed != null) {
+        (paymentHistory as any).monthsReviewed = tradeline.monthsReviewed;
+      }
+
+      if (tradeline.paymentHistoryDetails?.length) {
+        (paymentHistory as any).paymentHistoryDetails = tradeline.paymentHistoryDetails;
+      }
+
       paymentHistories.push(paymentHistory);
       
       console.log(

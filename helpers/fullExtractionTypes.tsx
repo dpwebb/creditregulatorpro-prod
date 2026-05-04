@@ -66,6 +66,11 @@ export interface AccountExtraction {
   
   // Payment history (as extracted)
   payment_history?: PaymentHistoryEntry[];
+  payment_history_profile?: ExtractedValue<string>;
+  months_reviewed?: ExtractedValue<string | number>;
+  times_30_days_late?: ExtractedValue<number>;
+  times_60_days_late?: ExtractedValue<number>;
+  times_90_days_late?: ExtractedValue<number>;
   
   // Terms
   terms?: ExtractedValue<string>;

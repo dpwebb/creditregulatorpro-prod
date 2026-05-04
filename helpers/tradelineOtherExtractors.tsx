@@ -86,7 +86,11 @@ export function extractPaymentPattern(text: string): string | null {
       Number.isFinite(late60) &&
       Number.isFinite(late90) &&
       Number.isFinite(months) &&
-      months >= 0
+      months >= 0 &&
+      months <= 999 &&
+      late30 <= months &&
+      late60 <= months &&
+      late90 <= months
     ) {
       return `30d:${late30} 60d:${late60} 90d:${late90} months:${months}`;
     }

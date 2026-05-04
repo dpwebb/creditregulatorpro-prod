@@ -7,6 +7,28 @@ import { ExtractedConsumerStatement } from "./consumerStatementExtractor";
 import { ExtractedEmploymentInfo } from "./employmentExtractor";
 import { ExtractedPaymentHistory } from "./paymentHistoryExtractor";
 
+export type ParsedPaymentHistorySummary = {
+  "30"?: number | null;
+  "60"?: number | null;
+  "90"?: number | null;
+  "#M"?: number | null;
+  [key: string]: number | null | undefined;
+};
+
+export type ParsedPaymentHistoryDetail = {
+  date?: string | null;
+  balance?: number | string | null;
+  payment?: number | string | null;
+  pastDue?: number | string | null;
+  mop?: string | null;
+  terms?: string | null;
+  highCredit?: number | string | null;
+  creditLimit?: number | string | null;
+  balloonPayment?: number | string | null;
+  chargeOff?: number | string | null;
+  narrative?: string | null;
+};
+
 /**
  * Represents the structured data for a single credit account (tradeline) 
  * extracted from a Canadian credit report.
@@ -83,10 +105,34 @@ export interface ParsedTradeline {
   balloonPaymentDate?: Date | null;
   /** Payment pattern/history string (e.g., "111111111111") */
   paymentPattern?: string;
+  /** Raw bureau payment-history profile or summary string when available */
+  paymentHistoryProfile?: string | null;
+  /** Bureau-reported count of reviewed months, often TU "#M" */
+  monthsReviewed?: string | number | null;
+  /** Bureau-reported payment-summary counts such as 30/60/90/#M */
+  paymentHistory?: ParsedPaymentHistorySummary | null;
+  /** Parsed monthly payment-history detail rows with source-level fields */
+  paymentHistoryDetails?: ParsedPaymentHistoryDetail[] | null;
   /** Manner of Payment code (0-9, X) */
   mop?: string;
   /** Credit limit for revolving accounts */
   creditLimit?: number;
+  /** Creditor phone number shown on the source report */
+  creditorPhone?: string | null;
+  /** Bureau subscriber/member number shown on the source report */
+  memberNumber?: string | null;
+  /** Bureau rating code when reported separately from status */
+  ratingCode?: string | null;
+  /** Human-readable bureau rating description */
+  ratingCodeDescription?: string | null;
+  /** Amount written off or charged off when separately reported */
+  amountWrittenOff?: number | null;
+  /** Bureau/account notes that are not legal conclusions */
+  notes?: string | null;
+  /** Date the bureau/furnisher verified the account data */
+  dateVerified?: Date | string | null;
+  /** Date paid or settled when separately reported */
+  datePaidSettled?: Date | string | null;
 }
 
 /**

@@ -7,6 +7,7 @@ import { extractInquiries } from "../helpers/inquiryExtractor";
 import { extractReportMetadata } from "../helpers/reportMetadataExtractor";
 import { extractBalance } from "../helpers/tradelineAmountExtractors";
 import { extractLastPaymentDate } from "../helpers/tradelineDateExtractors";
+import { extractTradelines } from "../helpers/transunionPdfExtractor";
 import type { ComprehensiveParseResult, ParsedTradeline } from "../helpers/reportParserTypes";
 
 function assert(condition: unknown, message: string): void {
@@ -108,10 +109,20 @@ Opened DateFeb 25, 2020
 Reported DateDec 30, 2025
 Last Payment DateAug 09, 2020
 Payment History
+30 60 90 #M
+1 2 3 24
 Mar 202534103419000TC / CG
 `;
   assert(extractBalance(fidoSection) === 341, "TransUnion compact payment grid should provide the latest balance.");
   assert(isoDate(extractLastPaymentDate(fidoSection)) === "2020-08-09", "Concatenated Last Payment Date should parse.");
+  const fidoTradeline = extractTradelines(fidoSection)[0];
+  assert(fidoTradeline.paymentHistoryProfile === "30d:1 60d:2 90d:3 months:24", "TransUnion payment profile should preserve 30/60/90/#M summary.");
+  assert(fidoTradeline.paymentHistory?.["30"] === 1, "TransUnion 30-day late count should map to payment history summary.");
+  assert(fidoTradeline.paymentHistory?.["60"] === 2, "TransUnion 60-day late count should map to payment history summary.");
+  assert(fidoTradeline.paymentHistory?.["90"] === 3, "TransUnion 90-day late count should map to payment history summary.");
+  assert(String(fidoTradeline.monthsReviewed) === "24", "TransUnion #M value should map to monthsReviewed.");
+  assert(fidoTradeline.paymentHistoryDetails?.[0]?.balance === 341, "TransUnion compact monthly detail should preserve balance.");
+  assert(fidoTradeline.paymentHistoryDetails?.[0]?.narrative === "TC / CG", "TransUnion compact monthly detail should preserve narrative code.");
 }
 
 function tradeline(input: Partial<ParsedTradeline>): ParsedTradeline {
