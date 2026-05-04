@@ -16,7 +16,7 @@ export const usePacketDelivery = () => {
       queryClient.invalidateQueries({ queryKey: ["obligation-instances"] });
       queryClient.invalidateQueries({ queryKey: ["deadline-events"] });
       queryClient.invalidateQueries({ queryKey: ["deadlines"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
     },
     onError: (error) => {
       toast.error(`Failed to record delivery: ${error.message}`);

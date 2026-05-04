@@ -44,10 +44,27 @@ export default function PacketsPage() {
   const { isAdmin } = useAuth();
 
   React.useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams);
+    let shouldReplaceParams = false;
+
     if (searchParams.get("create") === "true") {
       setIsCreateOpen(true);
-      searchParams.delete("create");
-      setSearchParams(searchParams, { replace: true });
+      nextParams.delete("create");
+      shouldReplaceParams = true;
+    }
+
+    const packetIdParam = searchParams.get("id");
+    if (packetIdParam !== null) {
+      const parsedPacketId = Number(packetIdParam);
+      if (Number.isFinite(parsedPacketId) && parsedPacketId > 0) {
+        setViewingPacketId(parsedPacketId);
+      }
+      nextParams.delete("id");
+      shouldReplaceParams = true;
+    }
+
+    if (shouldReplaceParams) {
+      setSearchParams(nextParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 

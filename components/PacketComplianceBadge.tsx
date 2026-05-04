@@ -24,6 +24,9 @@ export const PacketComplianceBadge = ({
     packetId,
     limit: 100, // Fetch enough to show a comprehensive list
     offset: 0,
+  }, {
+    // Avoid per-row polling load on packets list.
+    refetchInterval: false,
   });
 
   if (isLoading) {

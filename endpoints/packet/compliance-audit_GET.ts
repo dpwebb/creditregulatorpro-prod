@@ -41,6 +41,16 @@ export async function handle(request: Request) {
       baseQuery = baseQuery.where('packetComplianceAudit.appliedAt', '<=', params.endDate);
     }
 
+    // Non-admins can only access compliance audits for their own packets/tradelines.
+    if (user.role !== 'admin') {
+      baseQuery = baseQuery.where((eb) =>
+        eb.or([
+          eb('packet.userId', '=', user.id),
+          eb('tradeline.userId', '=', user.id),
+        ]),
+      );
+    }
+
     // Get total count for pagination
     const countResult = await baseQuery
       .select(db.fn.count<string>('packetComplianceAudit.id').as('count'))

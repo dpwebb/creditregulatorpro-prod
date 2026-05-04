@@ -671,15 +671,16 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
                   >
                     Close
                   </Button>
-                                    <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => {
-                      if (onComplete) onComplete();
-                      onOpenChange(false);
-                    }}
-                  >
-                    View My Packets
+                  <Button variant="outline" size="lg" asChild>
+                    <Link
+                      to="/packets"
+                      onClick={() => {
+                        if (onComplete) onComplete();
+                        onOpenChange(false);
+                      }}
+                    >
+                      View My Packets
+                    </Link>
                   </Button>
                 </div>
               </div>

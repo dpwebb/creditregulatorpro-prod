@@ -10,11 +10,18 @@ export type { ComplianceAuditWithDetails, InputType as ComplianceAuditFilters };
 
 export const COMPLIANCE_AUDIT_QUERY_KEY = ["packet", "compliance-audit"] as const;
 
-export const useComplianceAudit = (params: InputType = { limit: 50, offset: 0 }) => {
+type UseComplianceAuditOptions = {
+  refetchInterval?: number | false;
+};
+
+export const useComplianceAudit = (
+  params: InputType = { limit: 50, offset: 0 },
+  options?: UseComplianceAuditOptions,
+) => {
   return useQuery({
     queryKey: [...COMPLIANCE_AUDIT_QUERY_KEY, params],
     queryFn: () => getComplianceAudits(params),
     placeholderData: (prev) => prev,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: options?.refetchInterval ?? 30000, // Refetch every 30 seconds by default
   });
 };
