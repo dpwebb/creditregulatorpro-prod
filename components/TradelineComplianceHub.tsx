@@ -65,8 +65,20 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const isProvinceUnset = !profile?.province;
   
   // Data Fetching
-  const { data: violationsData, isLoading: isLoadingViolations } = useComplianceViolations(tradelineId);
-  const { data: challengesData, isLoading: isLoadingChallenges } = useObligationInstanceList({ tradelineId });
+  const {
+    data: violationsData,
+    isLoading: isLoadingViolations,
+    isError: isViolationsError,
+    error: violationsError,
+    refetch: refetchViolations,
+  } = useComplianceViolations(tradelineId);
+  const {
+    data: challengesData,
+    isLoading: isLoadingChallenges,
+    isError: isChallengesError,
+    error: challengesError,
+    refetch: refetchChallenges,
+  } = useObligationInstanceList({ tradelineId });
   const { data: tradelinesData } = useTradelineList();
   const { data: packetsData } = useTradelinePackets(tradelineId);
   const { mutateAsync: dismissViolation } = useDismissViolation();
@@ -303,11 +315,38 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const topViolationLinked = topViolation?.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const topViolationDisputeStatus = topViolationLinked ? "linked" : isTopViolationDisputed ? "sent" : packetForTopViolation ? "created" : "none";
 
-  if (isLoadingViolations || isLoadingChallenges) {
+  const hasNoComplianceData = !violationsData && !challengesData;
+
+  if (hasNoComplianceData && (isLoadingViolations || isLoadingChallenges)) {
     return (
       <div className={`${styles.container} ${className || ''}`}>
         <Skeleton className={styles.summarySkeleton} />
         <Skeleton className={styles.contentSkeleton} />
+      </div>
+    );
+  }
+
+  if (hasNoComplianceData && (isViolationsError || isChallengesError)) {
+    return (
+      <div className={`${styles.container} ${className || ''}`}>
+        <div className={styles.emptyState}>
+          <AlertTriangle size={36} className={styles.successIcon} />
+          <h3>Unable to load account details</h3>
+          <p>
+            {(violationsError as Error | null)?.message ||
+              (challengesError as Error | null)?.message ||
+              "Please retry loading this account."}
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              void refetchViolations();
+              void refetchChallenges();
+            }}
+          >
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
