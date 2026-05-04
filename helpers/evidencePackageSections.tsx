@@ -13,24 +13,19 @@ const formatOrNA = (value: Date | string | null | undefined, pattern: string): s
   return Number.isNaN(parsedDate.getTime()) ? "N/A" : format(parsedDate, pattern);
 };
 
-const shortenOrNA = (value: string | null | undefined, maxLength: number): string => {
-  if (!value) return "N/A";
-  return value.length > maxLength ? `${value.substring(0, maxLength)}...` : value;
-};
-
 /**
  * Generates the cover page section
  */
 export const generateCoverPage = (data: EvidencePackageData): Content[] => {
   return [
     {
-      text: "Evidence Package",
+      text: "Evidence Organization Package",
       style: "coverTitle",
       alignment: "center",
       margin: [0, 80, 0, 10] as [number, number, number, number],
     },
     {
-      text: "Case Documentation",
+      text: "Factual Record Summary",
       style: "coverSubtitle",
       alignment: "center",
       margin: [0, 0, 0, 40] as [number, number, number, number],
@@ -49,10 +44,10 @@ export const generateCoverPage = (data: EvidencePackageData): Content[] => {
       ],
     },
     {
-      text: "CONFIDENTIAL - LEGAL PRIVILEGE ASSERTED",
+      text: "CONSUMER EVIDENCE RECORD - FOR REVIEW",
       style: "watermark",
       alignment: "center",
-      color: "#dc3545",
+      color: "#495057",
       margin: [0, -45, 0, 0] as [number, number, number, number],
     },
     {
@@ -79,7 +74,7 @@ export const generateCoverPage = (data: EvidencePackageData): Content[] => {
       margin: [50, 50, 50, 20] as [number, number, number, number],
     },
     {
-      text: "\n\nThis document is prepared for legal proceedings and contains privileged information protected under attorney-client privilege.",
+      text: "\n\nThis document organizes consumer-provided evidence and system records for factual review and clarification workflows.",
       style: "disclaimer",
       alignment: "center",
       margin: [40, 50, 40, 0] as [number, number, number, number],
@@ -112,15 +107,15 @@ export const generateExecutiveSummary = (data: EvidencePackageData): Content[] =
             data.obligation.state || "Unknown",
           ],
           [
-            { text: "Days Since Initial Challenge:", bold: true },
+            { text: "Days Since Initial Clarification:", bold: true },
             data.daysSinceChallenge.toString(),
           ],
           [
-            { text: "Total Escalations:", bold: true },
+            { text: "Total Follow-ups:", bold: true },
             data.escalationCount.toString(),
           ],
           [
-            { text: "Challenge Vector:", bold: true },
+            { text: "Clarification Vector:", bold: true },
             data.obligation.disputeVector || "N/A",
           ],
         ],
@@ -128,7 +123,7 @@ export const generateExecutiveSummary = (data: EvidencePackageData): Content[] =
       layout: "lightHorizontalLines",
       margin: [0, 10, 0, 20] as [number, number, number, number],
     },
-    { text: "Challenge Timeline", style: "subsectionHeader" },
+    { text: "Clarification Timeline", style: "subsectionHeader" },
     challengeRows.length > 0
       ? {
           table: {
@@ -147,7 +142,7 @@ export const generateExecutiveSummary = (data: EvidencePackageData): Content[] =
           layout: "lightHorizontalLines",
           margin: [0, 5, 0, 20] as [number, number, number, number],
         }
-      : { text: "No challenges recorded.", italics: true, margin: [0, 5, 0, 20] as [number, number, number, number] },
+      : { text: "No clarification packets recorded.", italics: true, margin: [0, 5, 0, 20] as [number, number, number, number] },
     { text: "Creditor Compliance Record", style: "subsectionHeader" },
     data.creditorMetrics.length > 0
       ? {
@@ -204,7 +199,7 @@ export const generateChainOfCustody = (data: EvidencePackageData): Content[] => 
   return [
     { text: "Chain of Custody", style: "sectionHeader" },
     {
-      text: "All actions and modifications to this case are logged below to ensure document integrity and establish a verifiable chain of custody for court proceedings.",
+      text: "All actions and modifications to this case are logged below to support document integrity and a verifiable evidence history.",
       margin: [0, 5, 0, 15] as [number, number, number, number],
     },
     { text: "Audit Log", style: "subsectionHeader" },
@@ -265,7 +260,7 @@ export const generateChainOfCustody = (data: EvidencePackageData): Content[] => 
 };
 
 /**
- * Generates challenge documentation section
+ * Generates clarification documentation section
  */
 export const generateChallengeDocumentation = (data: EvidencePackageData): Content[] => {
   const packetRows = data.packets.map((packet) => [
@@ -278,9 +273,9 @@ export const generateChallengeDocumentation = (data: EvidencePackageData): Conte
   ]);
 
   return [
-    { text: "Challenge Documentation", style: "sectionHeader" },
+    { text: "Clarification Documentation", style: "sectionHeader" },
     {
-      text: "All formal dispute packets and communications sent to bureaus and creditors.",
+      text: "Generated clarification packets and related communications sent to bureaus, creditors, or collection agencies.",
       margin: [0, 5, 0, 15] as [number, number, number, number],
     },
     packetRows.length > 0
@@ -292,7 +287,7 @@ export const generateChallengeDocumentation = (data: EvidencePackageData): Conte
               [
                 { text: "Packet ID", style: "tableHeader" },
                 { text: "Date Sent", style: "tableHeader" },
-                { text: "Type", style: "tableHeader" },
+                { text: "Packet Type", style: "tableHeader" },
                 { text: "Statute Ref", style: "tableHeader" },
                 { text: "Status", style: "tableHeader" },
                 { text: "Response", style: "tableHeader" },
@@ -319,7 +314,6 @@ export const generateEvidenceAttachmentsIndex = (
     formatOrNA(att.uploadedAt, "yyyy-MM-dd HH:mm"),
     (att.fileSizeBytes / 1024).toFixed(2) + " KB",
     att.description || "No description",
-    shortenOrNA(att.storageUrl, 40),
   ]);
 
   return [
@@ -332,14 +326,13 @@ export const generateEvidenceAttachmentsIndex = (
       ? {
           table: {
             headerRows: 1,
-            widths: ["20%", "15%", "12%", "30%", "23%"],
+            widths: ["25%", "20%", "15%", "40%"],
             body: [
               [
                 { text: "File Name", style: "tableHeader" },
                 { text: "Upload Date", style: "tableHeader" },
                 { text: "Size", style: "tableHeader" },
                 { text: "Description", style: "tableHeader" },
-                { text: "Storage Location", style: "tableHeader" },
               ],
               ...attachmentRows,
             ],
@@ -404,7 +397,7 @@ export const generateStatutoryReferences = (data: EvidencePackageData): Content[
   return [
     { text: "Statutory References", style: "sectionHeader" },
     {
-      text: "Complete statutory authority and references cited in all challenges.",
+      text: "References available for clarification workflows. These references are included for organization and review, not as legal conclusions.",
       margin: [0, 5, 0, 15] as [number, number, number, number],
     },
     ...(data.statutes.length > 0
@@ -439,36 +432,36 @@ export const generateAppendices = (): Content[] => {
           text: "DOFD: Date of First Delinquency - Critical date for credit reporting compliance.",
         },
         {
-          text: "Procedural Exhaustion: Legal requirement to complete all administrative remedies before litigation.",
+          text: "Clarification Workflow Status: Record of requests, responses, and unresolved factual questions.",
         },
       ],
       margin: [0, 0, 0, 20] as [number, number, number, number],
     },
     {
-      text: "B. Procedural Exhaustion Criteria",
+      text: "B. Clarification Workflow Criteria",
       style: "subsectionHeader",
       margin: [0, 10, 0, 10] as [number, number, number, number],
     },
     {
-      text: "To establish procedural exhaustion for litigation:",
+      text: "To document the clarification workflow:",
       margin: [0, 0, 0, 5] as [number, number, number, number],
     },
     {
       ol: [
-        "Initial dispute filed with credit bureau",
-        "Bureau investigation completed (30-45 days)",
-        "If unresolved, direct dispute with creditor",
-        "Creditor investigation period expired (30 days)",
-        "All reasonable remedies attempted",
-        "Documentation of all communications and responses",
+        "Initial clarification request generated",
+        "Response window tracked under the applicable workflow",
+        "Supporting evidence linked to the relevant reported fields",
+        "Creditor, bureau, or collection agency response recorded",
+        "Unresolved factual questions identified",
+        "Documentation of communications and responses retained",
       ],
       margin: [0, 0, 0, 20] as [number, number, number, number],
     },
     { text: "C. Contact Information", style: "subsectionHeader", margin: [0, 10, 0, 10] as [number, number, number, number] },
     {
       text: [
-        "For questions about this evidence package or to request additional documentation, contact the case management team.\n\n",
-        "Document generated by: Canada Serverless Application Project\n",
+        "For questions about this evidence organization package or to request additional documentation, contact the case management team.\n\n",
+        "Document generated by: Credit Regulator Pro\n",
         `Generation timestamp: ${format(new Date(), "yyyy-MM-dd HH:mm:ss zzz")}`,
       ],
       margin: [0, 0, 0, 20] as [number, number, number, number],
@@ -484,10 +477,10 @@ export const generateDocumentDefinition = (
 ): TDocumentDefinitions => {
   return {
     info: {
-      title: `Evidence Package - Case ${data.obligation.id}`,
-      author: "Canada Serverless Application Project",
-      subject: `Legal Documentation for Obligation Instance ${data.obligation.id}`,
-      keywords: "evidence, legal, Provincial CRA, PIPEDA, credit reporting",
+      title: `Evidence Organization Package - Case ${data.obligation.id}`,
+      author: "Credit Regulator Pro",
+      subject: `Factual Record Summary for Obligation Instance ${data.obligation.id}`,
+      keywords: "evidence, clarification, Provincial CRA, PIPEDA, credit reporting",
     },
     pageSize: "LETTER",
     pageMargins: [50, 80, 50, 60],

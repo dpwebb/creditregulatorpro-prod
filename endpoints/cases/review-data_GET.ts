@@ -2,6 +2,8 @@ import { schema, OutputType } from "./review-data_GET.schema";
 import { getEffectiveExtraction } from "../../helpers/passAEditLogManager";
 import { requirePassA } from "../../helpers/passAGating";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { requireReportArtifactAccess } from "../../helpers/accessControl";
 
 
 export async function handle(request: Request) {
@@ -10,6 +12,8 @@ export async function handle(request: Request) {
     const queryParams = Object.fromEntries(url.searchParams.entries());
     const validatedInput = schema.parse(queryParams);
     const artifactId = validatedInput.artifactId;
+    const { user } = await getServerUserSession(request);
+    await requireReportArtifactAccess(user, artifactId);
 
     // 1. Ensure Pass A is completed
     const gating = await requirePassA(artifactId);

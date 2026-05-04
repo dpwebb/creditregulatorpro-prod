@@ -3,13 +3,50 @@ import { schema, OutputType } from "./extract_POST.schema";
 import { parseReport } from "../../helpers/reportParser";
 import { normalizeTradelines } from "../../helpers/normalization";
 import { scoreTradelines } from "../../helpers/confidenceScorer";
-import { logAudit } from "../../helpers/auditLogger";
-import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
+
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+
+function getDecodedBase64Size(bytesBase64: string): number {
+  const payload = bytesBase64.includes(",")
+    ? bytesBase64.split(",").pop() || ""
+    : bytesBase64;
+  const padding = payload.match(/=+$/)?.[0].length || 0;
+  return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+}
 
 export async function handle(request: Request) {
   try {
+    const { user } = await getServerUserSession(request);
+    const rateLimit = await checkRateLimit(
+      user.id.toString(),
+      "OCR_EXTRACT_POST",
+      RateLimitConfig.REPORT_PARSE.maxAttempts,
+      RateLimitConfig.REPORT_PARSE.windowMinutes
+    );
+
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Too many extraction attempts. Please try again later.",
+          resetAt: rateLimit.resetAt.toISOString(),
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
+
+    if (input.mimeType !== "application/pdf") {
+      throw new BusinessRuleError("Only PDF extraction is supported", 400);
+    }
+
+    if (getDecodedBase64Size(input.bytesBase64) > MAX_PDF_BYTES) {
+      throw new BusinessRuleError("PDF file exceeds the 15 MB extraction limit", 400);
+    }
 
     // 1. Parse the report
     // Note: We are not persisting anything yet.

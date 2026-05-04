@@ -1,6 +1,7 @@
 import type { LetterContent } from "./pdfGenerator";
 
 const NARRATIVE_KEYS = [
+  "subject",
   "introduction",
   "accountIdentification",
   "disputedItems",
@@ -16,6 +17,10 @@ const NARRATIVE_KEYS = [
 type NarrativeKey = typeof NARRATIVE_KEYS[number];
 
 const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
+  {
+    pattern: /\brequest\s+for\s+removal\b/gi,
+    replacement: "request for clarification",
+  },
   {
     pattern: /\b(remove|delete|re-delete)\s+(this|the)\s+(tradeline|account|information|item)\b/gi,
     replacement: "review and correct this reported information",
@@ -37,6 +42,10 @@ const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
     replacement: "review this potentially unauthorized information",
   },
   {
+    pattern: /\bfraudulent\s+chain\s+of\s+title\b/gi,
+    replacement: "unverified chain of title",
+  },
+  {
     pattern: /\bfraudulent\b/gi,
     replacement: "potentially unauthorized",
   },
@@ -47,6 +56,46 @@ const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
   {
     pattern: /\bviolates?\b/gi,
     replacement: "may not align with",
+  },
+  {
+    pattern: /\bdisputed\s+items?\b/gi,
+    replacement: "items for clarification",
+  },
+  {
+    pattern: /\bdispute\b/gi,
+    replacement: "clarification request",
+  },
+  {
+    pattern: /\blegal\s+time\s+limit\b/gi,
+    replacement: "applicable response timeframe",
+  },
+  {
+    pattern: /\blegal\s+proceedings?\b/gi,
+    replacement: "regulatory or documentation review",
+  },
+  {
+    pattern: /\blitigation\b/gi,
+    replacement: "further review",
+  },
+  {
+    pattern: /\bcourt-ready\b/gi,
+    replacement: "organized",
+  },
+  {
+    pattern: /\battorney-client\s+privilege\b/gi,
+    replacement: "consumer privacy",
+  },
+  {
+    pattern: /\blegal\s+privilege\s+asserted\b/gi,
+    replacement: "private consumer record",
+  },
+  {
+    pattern: /\bunder\s+penalty\s+of\s+law\b/gi,
+    replacement: "to the best of my knowledge",
+  },
+  {
+    pattern: /\bI\s+reserve\s+my\s+right\b/gi,
+    replacement: "I understand I may be able",
   },
   {
     pattern: /\bdemand\b/gi,

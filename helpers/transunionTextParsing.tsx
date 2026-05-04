@@ -104,7 +104,20 @@ export type TransUnionPaymentGridRow = {
 
 function extractPaymentGridWindow(text: string): string | null {
   const headerMatch = text.match(/Date\s+Balance[\s\S]{0,120}?(?:Payment|Past\s+Due|MOP)/i);
-  if (!headerMatch || headerMatch.index == null) return null;
+  if (!headerMatch || headerMatch.index == null) {
+    const compactMatch = text.match(/Payment\s+History/i);
+    if (!compactMatch || compactMatch.index == null) return null;
+
+    const compactStart = compactMatch.index + compactMatch[0].length;
+    const compactRemainder = text.slice(compactStart);
+    const compactStopMatch = compactRemainder.match(
+      /\b(?:Legend|Creditor Name|Account\(s\)|Credit Related Inquiries|Non-?Credit Related Inquiries|Account Review Inquiries|Consumer Statement\(s\)|\*\*\*\s*This completes the report)/i,
+    );
+
+    const compactEnd = compactStopMatch?.index ?? compactRemainder.length;
+    const compactWindowText = compactRemainder.slice(0, compactEnd).trim();
+    return compactWindowText.length > 0 ? compactWindowText : null;
+  }
 
   const start = headerMatch.index + headerMatch[0].length;
   const remainder = text.slice(start);

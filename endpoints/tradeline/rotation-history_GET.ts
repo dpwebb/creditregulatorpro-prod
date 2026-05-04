@@ -2,6 +2,8 @@ import { schema, OutputType, VectorHistoryItem, VectorStats } from "./rotation-h
 
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { requireTradelineAccess } from "../../helpers/accessControl";
 
 export async function handle(request: Request) {
   try {
@@ -13,6 +15,8 @@ export async function handle(request: Request) {
     }
 
     const input = schema.parse({ tradelineId: parseInt(tradelineIdParam) });
+    const { user } = await getServerUserSession(request);
+    await requireTradelineAccess(user, input.tradelineId);
 
     // Fetch obligation instances for this tradeline that have a dispute vector
     const instances = await db

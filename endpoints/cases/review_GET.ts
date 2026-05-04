@@ -2,6 +2,8 @@ import { schema } from "./review_GET.schema";
 import { getEffectiveExtraction, AnyDraftExtraction } from "../../helpers/passAEditLogManager";
 import { requirePassA, createPassAGatingResponse } from "../../helpers/passAGating";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { requireReportArtifactAccess } from "../../helpers/accessControl";
 
 import { ExtractedValue, AddressEntry, PhoneEntry, EmploymentEntry, ConsumerProfile } from "../../helpers/passAExtractorTypes";
 import { AccountExtraction, InquiryExtraction, InsolvencyPublicRecords, PaymentHistoryEntry } from "../../helpers/fullExtractionTypes";
@@ -200,6 +202,8 @@ export async function handle(request: Request) {
     }
     
     const artifactId = parseInt(validation.data.artifactId, 10);
+    const { user } = await getServerUserSession(request);
+    await requireReportArtifactAccess(user, artifactId);
 
     // Check Pass-A gating
     const passACheck = await requirePassA(artifactId);

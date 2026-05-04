@@ -1,6 +1,8 @@
 import { schema, OutputType } from "./patch_POST.schema";
 import { storeEdits, getEffectiveExtraction, PatchOperation } from "../../helpers/passAEditLogManager";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { requireReportArtifactAccess } from "../../helpers/accessControl";
 
 
 export async function handle(request: Request) {
@@ -11,6 +13,8 @@ export async function handle(request: Request) {
     const validatedInput = schema.parse(body);
 
     const artifactId = validatedInput.artifactId;
+    const { user } = await getServerUserSession(request);
+    await requireReportArtifactAccess(user, artifactId);
 
     // Convert schema patches to PatchOperation type expected by manager
     const patches: PatchOperation[] = validatedInput.patches.map(p => ({

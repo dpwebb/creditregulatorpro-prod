@@ -219,10 +219,10 @@ export async function generatePDF(
       });
     }
 
-    // Disputed Items
+    // Items for Clarification
     if (safeContent.disputedItems) {
       documentContent.push({
-        text: "Disputed Items",
+        text: "Items for Clarification",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
