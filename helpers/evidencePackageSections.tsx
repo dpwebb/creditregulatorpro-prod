@@ -8,7 +8,9 @@ import { EvidencePackageData } from "./evidencePackageData";
 const pageBreakAfter: Content = { text: "", pageBreak: "after" as PageBreak };
 
 const formatOrNA = (value: Date | string | null | undefined, pattern: string): string => {
-  return value ? format(value, pattern) : "N/A";
+  if (!value) return "N/A";
+  const parsedDate = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? "N/A" : format(parsedDate, pattern);
 };
 
 const shortenOrNA = (value: string | null | undefined, maxLength: number): string => {

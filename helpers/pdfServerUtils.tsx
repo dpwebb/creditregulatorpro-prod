@@ -24,6 +24,58 @@ const ROBOTO_FONTS = {
   },
 };
 
+type RobotoFontStyle = keyof typeof ROBOTO_FONTS;
+
+const STANDARD_FONT_FALLBACK: Record<RobotoFontStyle, string> = {
+  normal: "Helvetica",
+  bold: "Helvetica-Bold",
+  italics: "Helvetica-Oblique",
+  bolditalics: "Helvetica-BoldOblique",
+};
+
+const FONT_FETCH_TIMEOUT_MS = 8000;
+const FONT_FETCH_MAX_ATTEMPTS = 2;
+
+const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const downloadFontBuffer = async (url: string, filename: string): Promise<Buffer> => {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= FONT_FETCH_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(url, FONT_FETCH_TIMEOUT_MS);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (error) {
+      lastError = error;
+      if (attempt === FONT_FETCH_MAX_ATTEMPTS) {
+        break;
+      }
+    }
+  }
+
+  const errorDetail = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(`Failed to fetch font ${filename}: ${errorDetail}`);
+};
+
 /**
  * Ensures Roboto fonts are present locally or downloads them into the temp directory.
  * Required for serverless pdfmake generation.
@@ -39,35 +91,58 @@ export async function ensureRobotoFonts(): Promise<TFontDictionary> {
     fs.mkdirSync(fontsDir, { recursive: true });
   }
 
-  const result: TFontDictionary = {
-    Roboto: {
-      normal: "",
-      bold: "",
-      italics: "",
-      bolditalics: "",
-    },
+  const result: Record<RobotoFontStyle, string> = {
+    normal: "",
+    bold: "",
+    italics: "",
+    bolditalics: "",
   };
 
-  for (const [style, config] of Object.entries(ROBOTO_FONTS)) {
+  const failedStyles: RobotoFontStyle[] = [];
+  const fontStyles = Object.keys(ROBOTO_FONTS) as RobotoFontStyle[];
+
+  for (const style of fontStyles) {
+    const config = ROBOTO_FONTS[style];
+
     if (fs.existsSync(config.localPath)) {
-      (result.Roboto as any)[style] = config.localPath;
+      result[style] = config.localPath;
       continue;
     }
 
     const tmpPath = path.join(fontsDir, config.filename);
-    if (!fs.existsSync(tmpPath)) {
-      const response = await fetch(config.url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch font ${config.filename}: ${response.statusText}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      fs.writeFileSync(tmpPath, Buffer.from(arrayBuffer));
+    if (fs.existsSync(tmpPath)) {
+      result[style] = tmpPath;
+      continue;
     }
 
-    (result.Roboto as any)[style] = tmpPath;
+    try {
+      const fontBuffer = await downloadFontBuffer(config.url, config.filename);
+      fs.writeFileSync(tmpPath, fontBuffer);
+      result[style] = tmpPath;
+    } catch (error) {
+      failedStyles.push(style);
+      const errorDetail = error instanceof Error ? error.message : String(error);
+      console.warn(`[pdfServerUtils] ${errorDetail}. Falling back for style "${style}".`);
+    }
   }
 
-  return result;
+  if (failedStyles.length > 0) {
+    console.warn(
+      `[pdfServerUtils] Falling back to standard PDF fonts for styles: ${failedStyles.join(", ")}`
+    );
+    for (const style of failedStyles) {
+      result[style] = STANDARD_FONT_FALLBACK[style];
+    }
+  }
+
+  return {
+    Roboto: {
+      normal: result.normal,
+      bold: result.bold,
+      italics: result.italics,
+      bolditalics: result.bolditalics,
+    },
+  };
 }
 
 /**
