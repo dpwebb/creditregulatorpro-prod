@@ -163,7 +163,35 @@ jobs:
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
             pnpm run build
-            docker rm -f creditregulatorpro-staging 2>/dev/null || true
-            docker compose up -d --build creditregulatorpro-staging
+
+            cleanup_staging_container() {
+              docker compose rm -sf creditregulatorpro-staging 2>/dev/null || true
+              docker rm -f creditregulatorpro-staging 2>/dev/null || true
+              docker ps -a --filter "name=^/creditregulatorpro-staging$" --format '{{.ID}}' | while read -r id; do
+                [ -n "$id" ] || continue
+                docker rm -f "$id" 2>/dev/null || true
+              done
+            }
+
+            deployed=0
+            for attempt in 1 2 3; do
+              cleanup_staging_container
+              if docker compose up -d --build --force-recreate creditregulatorpro-staging; then
+                deployed=1
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$deployed" -ne 1 ]; then
+              echo "Failed to deploy staging container after 3 attempts."
+              exit 1
+            fi
+
+            docker ps --filter "name=^/creditregulatorpro-staging$" --format '{{.Status}}' | grep -q '^Up ' || {
+              echo "Staging container is not running after deploy."
+              exit 1
+            }
+
             git log -1 --oneline
           REMOTE
