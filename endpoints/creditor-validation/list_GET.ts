@@ -6,6 +6,16 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 import { sql } from "kysely";
 
+function isOptionalSchemaError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (((error as { code?: unknown }).code === "42P01") || // undefined_table
+      ((error as { code?: unknown }).code === "42703")) // undefined_column
+  );
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -66,23 +76,16 @@ export async function handle(request: Request) {
         accountType: row.tradelineAccountType,
       });
 
-    // Count query (count only rows that remain after stale suppression)
-    const countRows = await applyFilters(
-      buildBaseQuery().select([
-        "creditorObligationTest.violationCategory",
-        "tradeline.status as tradelineStatus",
-        "tradeline.dateClosed as tradelineDateClosed",
-        "tradeline.datePaidSettled as tradelineDatePaidSettled",
-        "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
-        "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
-        "tradeline.accountType as tradelineAccountType",
-      ])
-    ).execute();
-    const total = countRows.filter((row) => !shouldSuppressStaleForRow(row)).length;
+    const staleSuppressionSelectFields = [
+      "tradeline.status as tradelineStatus",
+      "tradeline.dateClosed as tradelineDateClosed",
+      "tradeline.datePaidSettled as tradelineDatePaidSettled",
+      "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
+      "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
+      "tradeline.accountType as tradelineAccountType",
+    ] as const;
 
-    // Data query
-    let dataQuery = applyFilters(
-      buildBaseQuery().select([
+    const baseDataSelectFields = [
         'creditorObligationTest.id',
         'creditorObligationTest.creditorId',
         'creditorObligationTest.obligationType',
@@ -119,27 +122,67 @@ export async function handle(request: Request) {
         'tradeline.currentBalance as tradelineCurrentBalance',
         'tradeline.balance as tradelineBalance',
         'bureau.name as tradelineBureauName',
-        "tradeline.status as tradelineStatus",
-        "tradeline.dateClosed as tradelineDateClosed",
-        "tradeline.datePaidSettled as tradelineDatePaidSettled",
-        "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
-        "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
-        "tradeline.accountType as tradelineAccountType",
-      ])
-    )
-      .orderBy('creditorObligationTest.detectedAt', 'desc')
-      .orderBy('creditorObligationTest.createdAt', 'desc');
+    ] as const;
 
-    if (input.limit !== undefined) {
-      dataQuery = dataQuery.limit(input.limit);
-      if (input.offset !== undefined) {
-        dataQuery = dataQuery.offset(input.offset);
+    let staleSuppressionEnabled = true;
+
+    // Count query (count only rows that remain after stale suppression when schema supports it)
+    let total = 0;
+    try {
+      const countRows = await applyFilters(
+        buildBaseQuery().select([
+          "creditorObligationTest.violationCategory",
+          ...staleSuppressionSelectFields,
+        ])
+      ).execute();
+      total = countRows.filter((row) => !shouldSuppressStaleForRow(row)).length;
+    } catch (error) {
+      if (!isOptionalSchemaError(error)) {
+        throw error;
       }
+      staleSuppressionEnabled = false;
+      console.warn("[creditor-validation/list] stale suppression count fallback due to schema mismatch", error);
+      const fallbackCount = await applyFilters(
+        buildBaseQuery().select((eb) => eb.fn.countAll<string>().as("total"))
+      ).executeTakeFirst();
+      total = parseInt(String(fallbackCount?.total ?? "0"), 10);
     }
 
-    const obligationTests = (await dataQuery.execute()).filter(
-      (row) => !shouldSuppressStaleForRow(row)
-    );
+    const buildDataQuery = (includeStaleSuppressionFields: boolean) => {
+      let query = applyFilters(
+        buildBaseQuery().select([
+          ...baseDataSelectFields,
+          ...(includeStaleSuppressionFields ? staleSuppressionSelectFields : []),
+        ] as any)
+      )
+        .orderBy('creditorObligationTest.detectedAt', 'desc')
+        .orderBy('creditorObligationTest.createdAt', 'desc');
+
+      if (input.limit !== undefined) {
+        query = query.limit(input.limit);
+        if (input.offset !== undefined) {
+          query = query.offset(input.offset);
+        }
+      }
+
+      return query;
+    };
+
+    let dataRows: any[] = [];
+    try {
+      dataRows = await buildDataQuery(staleSuppressionEnabled).execute();
+    } catch (error) {
+      if (!isOptionalSchemaError(error)) {
+        throw error;
+      }
+      staleSuppressionEnabled = false;
+      console.warn("[creditor-validation/list] stale suppression data fallback due to schema mismatch", error);
+      dataRows = await buildDataQuery(false).execute();
+    }
+
+    const obligationTests = staleSuppressionEnabled
+      ? dataRows.filter((row) => !shouldSuppressStaleForRow(row))
+      : dataRows;
 
     // Province enrichment: for any test missing province in technicalDetails,
     // look it up from report_consumer_info via the tradeline's report_artifact_id.
@@ -157,26 +200,33 @@ export async function handle(request: Request) {
     const tradelineProvinceMap = new Map<number, string>();
 
     if (tradelineIdsNeedingProvince.length > 0) {
-      const provinceRows = await db
-        .selectFrom('tradeline')
-        .innerJoin(
-          'reportConsumerInfo',
-          'reportConsumerInfo.reportArtifactId',
-          'tradeline.reportArtifactId'
-        )
-        .select(['tradeline.id as tradelineId', 'reportConsumerInfo.province'])
-        .where('tradeline.id', 'in', tradelineIdsNeedingProvince)
-        .where('reportConsumerInfo.province', 'is not', null)
-        .where('tradeline.reportArtifactId', 'is not', null)
-        .execute();
+      try {
+        const provinceRows = await db
+          .selectFrom('tradeline')
+          .innerJoin(
+            'reportConsumerInfo',
+            'reportConsumerInfo.reportArtifactId',
+            'tradeline.reportArtifactId'
+          )
+          .select(['tradeline.id as tradelineId', 'reportConsumerInfo.province'])
+          .where('tradeline.id', 'in', tradelineIdsNeedingProvince)
+          .where('reportConsumerInfo.province', 'is not', null)
+          .where('tradeline.reportArtifactId', 'is not', null)
+          .execute();
 
-      for (const row of provinceRows) {
-        if (row.province && !tradelineProvinceMap.has(row.tradelineId)) {
-          tradelineProvinceMap.set(row.tradelineId, row.province);
+        for (const row of provinceRows) {
+          if (row.province && !tradelineProvinceMap.has(row.tradelineId)) {
+            tradelineProvinceMap.set(row.tradelineId, row.province);
+          }
         }
-      }
 
-      console.log(`Province enrichment: resolved province for ${tradelineProvinceMap.size} of ${tradelineIdsNeedingProvince.length} tradelines needing enrichment`);
+        console.log(`Province enrichment: resolved province for ${tradelineProvinceMap.size} of ${tradelineIdsNeedingProvince.length} tradelines needing enrichment`);
+      } catch (error) {
+        if (!isOptionalSchemaError(error)) {
+          throw error;
+        }
+        console.warn("[creditor-validation/list] province enrichment skipped due to schema mismatch", error);
+      }
     }
 
     // Apply enriched provinces to technicalDetails only when a real province was found.
@@ -194,18 +244,20 @@ export async function handle(request: Request) {
       return test;
     });
 
-    const responseObligationTests = enrichedObligationTests.map((test) => {
-      const {
-        tradelineStatus,
-        tradelineDateClosed,
-        tradelineDatePaidSettled,
-        tradelineIsCollectionAccount,
-        tradelineCollectionAgencyName,
-        tradelineAccountType,
-        ...rest
-      } = test as any;
-      return rest;
-    });
+    const responseObligationTests = staleSuppressionEnabled
+      ? enrichedObligationTests.map((test) => {
+          const {
+            tradelineStatus,
+            tradelineDateClosed,
+            tradelineDatePaidSettled,
+            tradelineIsCollectionAccount,
+            tradelineCollectionAgencyName,
+            tradelineAccountType,
+            ...rest
+          } = test as any;
+          return rest;
+        })
+      : enrichedObligationTests;
 
     return new Response(JSON.stringify({ obligationTests: responseObligationTests as any, total } satisfies OutputType));
   } catch (error) {
