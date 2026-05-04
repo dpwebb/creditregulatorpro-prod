@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Play, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
@@ -24,14 +25,36 @@ function statusVariant(status: MockLifecycleJobRecord["status"]): "info" | "warn
 }
 
 export default function AdminMockLifecyclePage() {
-  const [initialReportPath, setInitialReportPath] = useState(".local/fixtures/mock-initial-report.pdf");
-  const [followupReportPath, setFollowupReportPath] = useState(".local/fixtures/mock-followup-report.pdf");
+  const [initialReportPath, setInitialReportPath] = useState("");
+  const [followupReportPath, setFollowupReportPath] = useState("");
+  const [initialReportUpload, setInitialReportUpload] = useState<{
+    fileName: string;
+    mimeType: string;
+    bytesBase64: string;
+  } | null>(null);
+  const [followupReportUpload, setFollowupReportUpload] = useState<{
+    fileName: string;
+    mimeType: string;
+    bytesBase64: string;
+  } | null>(null);
   const [simulateDays, setSimulateDays] = useState("30");
   const [packetCount, setPacketCount] = useState("2");
   const [strict, setStrict] = useState(false);
   const [useDbAssist, setUseDbAssist] = useState(true);
-  const [baseUrl, setBaseUrl] = useState("http://localhost:3333");
-  const [origin, setOrigin] = useState("https://staging.creditregulatorpro.com");
+  const [baseUrl, setBaseUrl] = useState(() => {
+    if (typeof window === "undefined") {
+      return "http://localhost:3333";
+    }
+    return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:3333"
+      : window.location.origin;
+  });
+  const [origin, setOrigin] = useState(() => {
+    if (typeof window === "undefined") {
+      return "http://localhost:5175";
+    }
+    return window.location.origin;
+  });
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const lifecycleList = useAdminMockLifecycleList(40);
@@ -51,11 +74,54 @@ export default function AdminMockLifecyclePage() {
 
   const running = runMutation.isPending || selectedJob?.status === "RUNNING" || selectedJob?.status === "QUEUED";
 
+  const toBase64 = async (file: File): Promise<string> => {
+    const buffer = await file.arrayBuffer();
+    let binary = "";
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    return btoa(binary);
+  };
+
+  const handleUploadChange = async (
+    file: File | null,
+    target: "initial" | "followup"
+  ) => {
+    if (!file) {
+      if (target === "initial") setInitialReportUpload(null);
+      if (target === "followup") setFollowupReportUpload(null);
+      return;
+    }
+
+    const bytesBase64 = await toBase64(file);
+    const payload = {
+      fileName: file.name,
+      mimeType: file.type || "application/pdf",
+      bytesBase64,
+    };
+
+    if (target === "initial") setInitialReportUpload(payload);
+    if (target === "followup") setFollowupReportUpload(payload);
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    const initialPath = initialReportPath.trim();
+    const followupPath = followupReportPath.trim();
+
+    if (!initialPath && !initialReportUpload) {
+      toast.error("Provide an initial report path or upload an initial PDF.");
+      return;
+    }
+
     const response = await runMutation.mutateAsync({
-      initialReportPath,
-      followupReportPath,
+      ...(initialPath ? { initialReportPath: initialPath } : {}),
+      ...(followupPath ? { followupReportPath: followupPath } : {}),
+      ...(initialReportUpload ? { initialReportUpload } : {}),
+      ...(followupReportUpload ? { followupReportUpload } : {}),
       simulateDays: Number(simulateDays),
       packetCount: Number(packetCount),
       strict,
@@ -103,7 +169,7 @@ export default function AdminMockLifecyclePage() {
       />
 
       <div className={styles.notice}>
-        Use project-local fixture paths only. OneDrive and My Drive paths are blocked.
+        Preferred: upload PDFs directly below. Path-based fixtures are optional and must exist on the API server filesystem.
       </div>
 
       <div className={styles.grid}>
@@ -115,16 +181,48 @@ export default function AdminMockLifecyclePage() {
               <Input
                 value={initialReportPath}
                 onChange={(e) => setInitialReportPath(e.target.value)}
-                placeholder=".local/fixtures/mock-initial-report.pdf"
+                placeholder="Optional: .local/fixtures/admin-lifecycle-smoke.pdf"
               />
+            </label>
+            <label className={styles.field}>
+              <span>Or upload initial report (PDF)</span>
+              <Input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  await handleUploadChange(file, "initial");
+                }}
+              />
+              {initialReportUpload && (
+                <span className={styles.uploadMeta}>
+                  Selected upload: {initialReportUpload.fileName}
+                </span>
+              )}
             </label>
             <label className={styles.field}>
               <span>Follow-up report path (PDF)</span>
               <Input
                 value={followupReportPath}
                 onChange={(e) => setFollowupReportPath(e.target.value)}
-                placeholder=".local/fixtures/mock-followup-report.pdf"
+                placeholder="Optional: .local/fixtures/admin-lifecycle-smoke.pdf"
               />
+            </label>
+            <label className={styles.field}>
+              <span>Or upload follow-up report (PDF)</span>
+              <Input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  await handleUploadChange(file, "followup");
+                }}
+              />
+              {followupReportUpload && (
+                <span className={styles.uploadMeta}>
+                  Selected upload: {followupReportUpload.fileName}
+                </span>
+              )}
             </label>
             <div className={styles.row}>
               <label className={styles.field}>
@@ -316,4 +414,3 @@ export default function AdminMockLifecyclePage() {
     </div>
   );
 }
-

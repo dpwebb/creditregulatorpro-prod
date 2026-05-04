@@ -13,8 +13,8 @@ Use this document after a full round of edits to validate core behavior across u
 
 Use these fixtures for ingestion-related tests:
 
-- `C:\Users\webbd\My Drive\COMPND SYSTEMS\Credit Regulator Pro\Credit Report\Transunion\Transunion David Webb Consumer Disclosure.pdf`
-- `C:\Users\webbd\My Drive\COMPND SYSTEMS\Credit Regulator Pro\Credit Report\Equifax\Equifax-creditreport_20260416.pdf`
+- `C:\Users\webbd\Projects\creditregulatorpro-staging\.local\fixtures\credit-reports\transunion-david-webb-consumer-disclosure.pdf`
+- `C:\Users\webbd\Projects\creditregulatorpro-staging\.local\fixtures\credit-reports\equifax-creditreport-20260416.pdf`
 
 Suggested accounts:
 
@@ -288,35 +288,36 @@ Verify these pages render with no route error:
 Use this to simulate the full user lifecycle, including dispute exhaustion and user-function coverage matrix output:
 
 1. Start app services and confirm API is reachable at `http://localhost:3333`
-2. Place test fixtures under project-local paths (example):
-   - `.local/fixtures/mock-initial-report.pdf`
-   - `.local/fixtures/mock-followup-report.pdf`
-3. Run from CLI:
+2. For localhost CLI runs, place test fixtures under project-local paths (example):
+   - `.local/fixtures/credit-reports/equifax-creditreport-20260416.pdf`
+   - `.local/fixtures/credit-reports/transunion-david-webb-consumer-disclosure.pdf`
+3. For staging/prod runs via Admin UI, upload PDFs directly in `/admin-mock-lifecycle` instead of relying on server-local file paths.
+4. Run from CLI:
 
 ```powershell
-pnpm run test:mock-lifecycle -- --initial-report ".local/fixtures/mock-initial-report.pdf" --followup-report ".local/fixtures/mock-followup-report.pdf" --simulate-days 30 --packet-count 2
+pnpm run test:mock-lifecycle -- --initial-report ".local/fixtures/credit-reports/equifax-creditreport-20260416.pdf" --followup-report ".local/fixtures/credit-reports/transunion-david-webb-consumer-disclosure.pdf" --simulate-days 30 --packet-count 2
 ```
 
-4. Optional strict mode (fail run when any coverage item is `FAILED` or `BLOCKED`):
+5. Optional strict mode (fail run when any coverage item is `FAILED` or `BLOCKED`):
 
 ```powershell
-pnpm run test:mock-lifecycle -- --initial-report ".local/fixtures/mock-initial-report.pdf" --followup-report ".local/fixtures/mock-followup-report.pdf" --simulate-days 30 --packet-count 2 --strict
+pnpm run test:mock-lifecycle -- --initial-report ".local/fixtures/credit-reports/equifax-creditreport-20260416.pdf" --followup-report ".local/fixtures/credit-reports/transunion-david-webb-consumer-disclosure.pdf" --simulate-days 30 --packet-count 2 --strict
 ```
 
-5. Admin UI path (recommended for operations/review):
+6. Admin UI path (recommended for operations/review):
    - Open `/admin-mock-lifecycle` (admin role only)
-   - Start run using project-local fixture paths
+   - Upload initial/follow-up PDFs (or supply valid server-local paths)
    - Verify run appears in **Recent Runs** with live `QUEUED`/`RUNNING`/`COMPLETED` status updates
    - Open completed run and verify **Coverage Matrix** + **Runner Log** render
    - Confirm non-admin users cannot access `/admin-mock-lifecycle`
-6. Wait for completion and record both output files:
+7. Wait for completion and record both output files:
    - `.local/test-runs/mock-user-lifecycle-full-suite-*.json`
    - `.local/test-runs/mock-user-lifecycle-full-suite-*.md`
-7. Validate the report sections:
+8. Validate the report sections:
    - `coverageSummary`
    - `coverageMatrix`
    - `analysis`
-8. Confirm key lifecycle checkpoints exist in `coverageMatrix` as `PASSED` when environment services are available:
+9. Confirm key lifecycle checkpoints exist in `coverageMatrix` as `PASSED` when environment services are available:
    - Auth: register/login/logout/password reset
    - Upload cycle: anonymous preview + initial upload + follow-up upload
    - Dispute flow: packet create/delivery, obligation response, escalation, exhaustion
@@ -324,7 +325,7 @@ pnpm run test:mock-lifecycle -- --initial-report ".local/fixtures/mock-initial-r
    - Support flow: ticket create/list/get/reply
    - Subscription flow attempts and outcomes
    - Change tracking: detect-changes + timeline
-9. If `analysis.potentialBureauObligationFailureSignals` is non-empty, open those tradelines in `/upload-results/:artifactId` and `/tradelines/:id` to verify escalation paths.
+10. If `analysis.potentialBureauObligationFailureSignals` is non-empty, open those tradelines in `/upload-results/:artifactId` and `/tradelines/:id` to verify escalation paths.
 
 ## 10) Pass/Fail Criteria
 

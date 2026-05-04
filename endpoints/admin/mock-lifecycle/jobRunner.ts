@@ -12,6 +12,7 @@ import type {
 const PROJECT_ROOT = process.cwd();
 const JOBS_DIR = path.resolve(PROJECT_ROOT, ".local/test-runs/admin-jobs");
 const RUNS_DIR = path.resolve(PROJECT_ROOT, ".local/test-runs/admin-ui");
+const FIXTURE_UPLOADS_DIR = path.resolve(PROJECT_ROOT, ".local/test-runs/admin-fixtures");
 const LOG_LIMIT = 600;
 
 const FORBIDDEN_ACTIVE_ROOTS = [
@@ -52,10 +53,58 @@ export async function resolveAndValidatePdfPath(
   try {
     await access(resolved);
   } catch {
-    throw new BusinessRuleError(`${label} file not found: ${resolved}`, 400);
+    throw new BusinessRuleError(
+      `${label} file not found: ${resolved}. Upload the PDF in Admin Lifecycle UI or provide a valid server-local path.`,
+      400
+    );
   }
 
   return resolved;
+}
+
+export type UploadedFixtureInput = {
+  fileName: string;
+  mimeType?: string;
+  bytesBase64: string;
+};
+
+function sanitizeFileName(fileName: string): string {
+  const base = path.basename(fileName).replace(/[^\w.\- ]+/g, "_").trim();
+  return base || "uploaded-report.pdf";
+}
+
+export async function materializeUploadedFixture(
+  input: UploadedFixtureInput,
+  label: "initial" | "followup"
+): Promise<string> {
+  const safeName = sanitizeFileName(input.fileName);
+  const ext = path.extname(safeName).toLowerCase();
+  if (ext !== ".pdf") {
+    throw new BusinessRuleError("Uploaded fixture must be a PDF file.", 400);
+  }
+
+  if (input.mimeType && !input.mimeType.toLowerCase().includes("pdf")) {
+    throw new BusinessRuleError("Uploaded fixture mimeType must be application/pdf.", 400);
+  }
+
+  let bytes: Buffer;
+  try {
+    bytes = Buffer.from(input.bytesBase64, "base64");
+  } catch {
+    throw new BusinessRuleError("Uploaded fixture has invalid base64 content.", 400);
+  }
+
+  if (!bytes.length) {
+    throw new BusinessRuleError("Uploaded fixture is empty.", 400);
+  }
+
+  await mkdir(FIXTURE_UPLOADS_DIR, { recursive: true });
+
+  const stampedName = `${label}-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}-${safeName}`;
+  const targetPath = path.resolve(FIXTURE_UPLOADS_DIR, stampedName);
+  await writeFile(targetPath, bytes);
+
+  return targetPath;
 }
 
 async function persistJob(job: MockLifecycleJobRecord): Promise<void> {
@@ -119,11 +168,8 @@ async function readCoverageSummary(
   }
 }
 
-function buildRunnerArgs(input: MockLifecycleRunConfig, runOutputDir: string): string[] {
+function buildLifecycleScriptArgs(input: MockLifecycleRunConfig, runOutputDir: string): string[] {
   const args = [
-    "exec",
-    "tsx",
-    "scripts/mock-user-lifecycle-e2e.ts",
     "--initial-report",
     input.initialReportPath,
     "--followup-report",
@@ -193,8 +239,19 @@ export async function startMockLifecycleJob(input: {
 
   await persistJob(job);
 
-  const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  const args = buildRunnerArgs(input.runConfig, runOutputDir);
+  const tsxCliPath = path.resolve(PROJECT_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
+  try {
+    await access(tsxCliPath);
+  } catch {
+    throw new BusinessRuleError(
+      "Lifecycle runner dependency missing: node_modules/tsx/dist/cli.mjs not found.",
+      500
+    );
+  }
+
+  const lifecycleArgs = buildLifecycleScriptArgs(input.runConfig, runOutputDir);
+  const command = process.execPath;
+  const args = [tsxCliPath, "scripts/mock-user-lifecycle-e2e.ts", ...lifecycleArgs];
   const child = spawn(command, args, {
     cwd: PROJECT_ROOT,
     env: process.env,

@@ -1,8 +1,13 @@
 import fs from 'fs'
 
-function applyEnvConfig(envConfig) {
+function applyEnvConfig(envConfig, options = {}) {
+  const overrideExisting = options.overrideExisting === true;
   Object.keys(envConfig).forEach((key) => {
-    if (!process.env[key] && envConfig[key] != null && envConfig[key] !== '') {
+    if (
+      envConfig[key] != null &&
+      envConfig[key] !== '' &&
+      (overrideExisting || !process.env[key])
+    ) {
       process.env[key] = envConfig[key];
     }
   });
@@ -60,7 +65,8 @@ function isLocalDevBootstrapEnabled() {
 if (!isProductionRuntime() && fs.existsSync('env.json')) {
   const envConfig = JSON.parse(fs.readFileSync('env.json', 'utf8'));
 
-  applyEnvConfig(envConfig);
+  // Local project config should be authoritative for this repository in dev/runtime.
+  applyEnvConfig(envConfig, { overrideExisting: true });
 }
 
 if (
@@ -70,18 +76,19 @@ if (
 ) {
   const globalEnvConfig = parseEnvFile(fs.readFileSync(process.env.GLOBAL_SECRETS_PATH, 'utf8'));
 
-  applyEnvConfig(globalEnvConfig);
+  // Ensure local runtime always uses current global-secrets values, not stale ambient env values.
+  applyEnvConfig(globalEnvConfig, { overrideExisting: true });
 }
 
 if (isLocalDevBootstrapEnabled()) {
-  if (
-    process.env.DATABASE_URL &&
-    isValidUrl(process.env.DATABASE_URL) &&
-    (
-      !process.env.FLOOT_DATABASE_URL ||
-      isPlaceholderValue(process.env.FLOOT_DATABASE_URL) ||
-      !isValidUrl(process.env.FLOOT_DATABASE_URL)
-    )
+  // In local dev, prefer DATABASE_URL as the canonical source for DB credentials.
+  // This prevents stale FLOOT_DATABASE_URL values in env.json from persisting across sessions.
+  if (process.env.DATABASE_URL && isValidUrl(process.env.DATABASE_URL)) {
+    process.env.FLOOT_DATABASE_URL = process.env.DATABASE_URL;
+  } else if (
+    !process.env.FLOOT_DATABASE_URL ||
+    isPlaceholderValue(process.env.FLOOT_DATABASE_URL) ||
+    !isValidUrl(process.env.FLOOT_DATABASE_URL)
   ) {
     process.env.FLOOT_DATABASE_URL = process.env.DATABASE_URL;
   }

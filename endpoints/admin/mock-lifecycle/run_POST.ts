@@ -1,7 +1,11 @@
 import { handleEndpointError, BusinessRuleError } from "../../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { schema, OutputType } from "./run_POST.schema";
-import { resolveAndValidatePdfPath, startMockLifecycleJob } from "./jobRunner";
+import {
+  materializeUploadedFixture,
+  resolveAndValidatePdfPath,
+  startMockLifecycleJob,
+} from "./jobRunner";
 
 export async function handle(request: Request) {
   try {
@@ -12,16 +16,45 @@ export async function handle(request: Request) {
 
     const raw = JSON.parse(await request.text());
     const input = schema.parse(raw);
+    const requestUrl = new URL(request.url);
+    const isLocalHost =
+      requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
+    const inferredBaseUrl = isLocalHost
+      ? "http://localhost:3333"
+      : `${requestUrl.protocol}//${requestUrl.host}`;
+    const inferredOrigin = isLocalHost
+      ? "http://localhost:5175"
+      : `${requestUrl.protocol}//${requestUrl.host}`;
 
-    const initialReportPath = await resolveAndValidatePdfPath(
-      input.initialReportPath,
-      "Initial report"
-    );
-    const followupInputPath = input.followupReportPath || input.initialReportPath;
-    const followupReportPath = await resolveAndValidatePdfPath(
-      followupInputPath,
-      "Follow-up report"
-    );
+    const initialReportPath = input.initialReportUpload
+      ? await materializeUploadedFixture(
+          {
+            fileName: input.initialReportUpload.fileName!,
+            mimeType: input.initialReportUpload.mimeType,
+            bytesBase64: input.initialReportUpload.bytesBase64!,
+          },
+          "initial"
+        )
+      : await resolveAndValidatePdfPath(input.initialReportPath!, "Initial report");
+
+    let followupReportPath: string;
+    if (input.followupReportUpload) {
+      followupReportPath = await materializeUploadedFixture(
+        {
+          fileName: input.followupReportUpload.fileName!,
+          mimeType: input.followupReportUpload.mimeType,
+          bytesBase64: input.followupReportUpload.bytesBase64!,
+        },
+        "followup"
+      );
+    } else if (input.followupReportPath) {
+      followupReportPath = await resolveAndValidatePdfPath(
+        input.followupReportPath,
+        "Follow-up report"
+      );
+    } else {
+      followupReportPath = initialReportPath;
+    }
 
     const job = await startMockLifecycleJob({
       runConfig: {
@@ -31,8 +64,8 @@ export async function handle(request: Request) {
         packetCount: input.packetCount,
         strict: input.strict,
         useDbAssist: input.useDbAssist,
-        baseUrl: input.baseUrl,
-        origin: input.origin,
+        baseUrl: input.baseUrl ?? inferredBaseUrl,
+        origin: input.origin ?? inferredOrigin,
         email: input.email,
         password: input.password,
         displayName: input.displayName,
@@ -50,4 +83,3 @@ export async function handle(request: Request) {
     return handleEndpointError(error);
   }
 }
-

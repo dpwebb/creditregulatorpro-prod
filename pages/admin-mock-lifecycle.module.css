@@ -44,6 +44,11 @@
   font-size: 13px;
 }
 
+.uploadMeta {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -224,4 +229,3 @@
     grid-template-columns: 1fr;
   }
 }
-
