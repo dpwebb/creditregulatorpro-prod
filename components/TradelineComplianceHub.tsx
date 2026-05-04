@@ -74,9 +74,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   } = useComplianceViolations(tradelineId);
   const {
     data: challengesData,
-    isLoading: isLoadingChallenges,
-    isError: isChallengesError,
-    error: challengesError,
     refetch: refetchChallenges,
   } = useObligationInstanceList({ tradelineId });
   const { data: tradelinesData } = useTradelineList();
@@ -315,9 +312,9 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const topViolationLinked = topViolation?.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const topViolationDisputeStatus = topViolationLinked ? "linked" : isTopViolationDisputed ? "sent" : packetForTopViolation ? "created" : "none";
 
-  const hasNoComplianceData = !violationsData && !challengesData;
-
-  if (hasNoComplianceData && (isLoadingViolations || isLoadingChallenges)) {
+  // Never treat missing violations data as "no issues found".
+  // Violations are the source of truth for this panel's primary content.
+  if (!violationsData && isLoadingViolations) {
     return (
       <div className={`${styles.container} ${className || ''}`}>
         <Skeleton className={styles.summarySkeleton} />
@@ -326,16 +323,14 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     );
   }
 
-  if (hasNoComplianceData && (isViolationsError || isChallengesError)) {
+  if (!violationsData && isViolationsError) {
     return (
       <div className={`${styles.container} ${className || ''}`}>
         <div className={styles.emptyState}>
           <AlertTriangle size={36} className={styles.successIcon} />
           <h3>Unable to load account details</h3>
           <p>
-            {(violationsError as Error | null)?.message ||
-              (challengesError as Error | null)?.message ||
-              "Please retry loading this account."}
+            {(violationsError as Error | null)?.message || "Please retry loading this account."}
           </p>
           <Button
             variant="outline"
