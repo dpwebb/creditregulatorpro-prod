@@ -25,6 +25,7 @@ export async function handle(request: Request) {
         .selectFrom('creditorObligationTest')
         .leftJoin('creditor', 'creditor.id', 'creditorObligationTest.creditorId')
         .leftJoin('tradeline', 'tradeline.id', 'creditorObligationTest.tradelineId')
+        .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
         // Only return records with valid tradelineId (exclude orphaned records)
         .where('creditorObligationTest.tradelineId', 'is not', null);
 
@@ -111,6 +112,11 @@ export async function handle(request: Request) {
         'creditorObligationTest.userStatusReason',
         'creditorObligationTest.userStatusUpdatedAt',
         'creditor.name as creditorName',
+        'tradeline.accountNumber as tradelineAccountNumber',
+        'tradeline.status as tradelineDisplayStatus',
+        'tradeline.currentBalance as tradelineCurrentBalance',
+        'tradeline.balance as tradelineBalance',
+        'bureau.name as tradelineBureauName',
         "tradeline.status as tradelineStatus",
         "tradeline.dateClosed as tradelineDateClosed",
         "tradeline.datePaidSettled as tradelineDatePaidSettled",

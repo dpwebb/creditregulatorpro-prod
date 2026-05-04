@@ -3,11 +3,20 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ShieldAlert } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
-import { TradelineWithDetails } from "../endpoints/tradeline/list_GET.schema";
 import styles from "./ComplianceTradelineCard.module.css";
 
+type ComplianceTradelineSummary = {
+  id: number;
+  creditorName: string | null;
+  accountNumber: string | null;
+  bureauName: string | null;
+  status: string | null;
+  currentBalance: string | number | null;
+  balance?: string | number | null;
+};
+
 interface ComplianceTradelineCardProps {
-  tradeline: TradelineWithDetails;
+  tradeline: ComplianceTradelineSummary;
   issueCount: number;
   priorityIssueCount?: number;
 }
@@ -49,8 +58,8 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
         <div className={styles.statusRow}>
           <span className={styles.label}>Balance</span>
           <span className={styles.value}>
-            {tradeline.currentBalance !== null 
-              ? `$${Number(tradeline.currentBalance).toLocaleString()}` 
+            {(tradeline.currentBalance ?? tradeline.balance) !== null && (tradeline.currentBalance ?? tradeline.balance) !== undefined
+              ? `$${Number(tradeline.currentBalance ?? tradeline.balance).toLocaleString()}` 
               : "N/A"}
           </span>
         </div>

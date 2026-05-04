@@ -7,7 +7,6 @@ import { DashboardStatCard } from "../components/DashboardStatCard";
 import { ComplianceTradelineCard } from "../components/ComplianceTradelineCard";
 import { Skeleton } from "../components/Skeleton";
 import { useCreditorValidationList } from "../helpers/creditorValidationQueries";
-import { useTradelineList } from "../helpers/tradelineQueries";
 
 import styles from "./creditor-validations.module.css";
 
@@ -16,9 +15,7 @@ export default function CreditorValidationsPage() {
   
   // Fetch data
   const { data: validationData, isLoading: isLoadingValidations } = useCreditorValidationList();
-  const { data: tradelineData, isLoading: isLoadingTradelines } = useTradelineList();
-
-  const isLoading = isLoadingValidations || isLoadingTradelines;
+  const isLoading = isLoadingValidations;
 
   // Process data
   const { 
@@ -26,7 +23,7 @@ export default function CreditorValidationsPage() {
     bureauGroups,
     stats 
   } = useMemo(() => {
-    if (!validationData || !tradelineData?.tradelines) {
+    if (!validationData) {
       return { 
         tradelinesWithIssues: [], 
         bureauGroups: [],
@@ -34,39 +31,41 @@ export default function CreditorValidationsPage() {
       };
     }
 
-    const issues = validationData.obligationTests;
-    const tradelines = tradelineData.tradelines;
-    
-    // Create a Set of valid tradeline IDs for efficient lookup
-    const validTradelineIds = new Set(tradelines.map(t => t.id));
-    
-    // Filter issues to only those with valid tradeline associations
-    const validIssues = issues.filter(issue => 
-      issue.tradelineId != null && validTradelineIds.has(issue.tradelineId)
-    );
-    
-    // Group valid issues by tradelineId
-    const issuesByTradeline = validIssues.reduce((acc, issue) => {
-      if (issue.tradelineId) {
-        if (!acc[issue.tradelineId]) {
-          acc[issue.tradelineId] = [];
+    const issues = validationData.obligationTests.filter((issue) => issue.tradelineId != null);
+
+    // Group issues by tradelineId
+    const issuesByTradeline = issues.reduce((acc, issue) => {
+      const tradelineId = issue.tradelineId;
+      if (tradelineId != null) {
+        if (!acc[tradelineId]) {
+          acc[tradelineId] = [];
         }
-        acc[issue.tradelineId].push(issue);
+        acc[tradelineId].push(issue);
       }
       return acc;
-    }, {} as Record<number, typeof issues[0][]>);
+    }, {} as Record<number, typeof issues>);
 
-    // Filter tradelines that have issues
-    const affectedTradelinesList = tradelines
-      .filter(t => issuesByTradeline[t.id])
-      .map(t => {
-        const tIssues = issuesByTradeline[t.id];
+    // Build affected tradelines from grouped issue payloads
+    const affectedTradelinesList = Object.entries(issuesByTradeline)
+      .map(([tradelineIdKey, tIssues]) => {
+        const issueSeed = tIssues[0];
+        const tradelineId = Number(tradelineIdKey);
         const highPriorityCount = tIssues.filter(i => 
           ['NO_RESPONSE', 'INSUFFICIENT_RESPONSE'].includes(i.obligationState || '')
         ).length;
 
+        const tradeline = {
+          id: tradelineId,
+          creditorName: issueSeed.creditorName ?? "Unknown Creditor",
+          accountNumber: issueSeed.tradelineAccountNumber ?? "Unknown",
+          bureauName: issueSeed.tradelineBureauName ?? "Unknown Bureau",
+          status: issueSeed.tradelineDisplayStatus ?? null,
+          currentBalance: issueSeed.tradelineCurrentBalance ?? issueSeed.tradelineBalance ?? null,
+          balance: issueSeed.tradelineBalance ?? null,
+        };
+
         return {
-          tradeline: t,
+          tradeline,
           issues: tIssues,
           issueCount: tIssues.length,
           highPriorityCount
@@ -74,11 +73,11 @@ export default function CreditorValidationsPage() {
       })
       .sort((a, b) => b.issueCount - a.issueCount); // Sort by most issues first
 
-    // Calculate stats using only valid issues
-    const totalIssues = validIssues.length;
+    // Calculate stats using all issues with tradeline associations
+    const totalIssues = issues.length;
     const affectedTradelines = affectedTradelinesList.length;
     // High priority: issues where obligationState is 'NO_RESPONSE' or 'INSUFFICIENT_RESPONSE'
-    const highPriority = validIssues.filter(i =>
+    const highPriority = issues.filter(i =>
       ['NO_RESPONSE', 'INSUFFICIENT_RESPONSE'].includes(i.obligationState || '')
     ).length;
 
@@ -98,7 +97,7 @@ export default function CreditorValidationsPage() {
       bureauGroups,
       stats: { totalIssues, affectedTradelines, highPriority }
     };
-  }, [validationData, tradelineData]);
+  }, [validationData]);
 
   return (
     <div className={styles.container}>

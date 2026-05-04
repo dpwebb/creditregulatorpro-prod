@@ -44,6 +44,11 @@ export type ObligationTestWithDetails = Omit<Selectable<CreditorObligationTest>,
   userStatusReason: string | null;
   userStatusUpdatedAt: Date | null;
   creditorName: string | null;
+  tradelineAccountNumber: string | null;
+  tradelineDisplayStatus: string | null;
+  tradelineCurrentBalance: string | number | null;
+  tradelineBalance: string | number | null;
+  tradelineBureauName: string | null;
 };
 
 export type OutputType = {
