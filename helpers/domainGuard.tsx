@@ -59,18 +59,25 @@ export async function validateOrigin(
 ): Promise<DomainGuardResult> {
   const originStr = getOriginOrReferer(request);
 
+  // Temporary project-wide default: keep domain guard in log_only mode unless explicitly
+  // re-enabled via DOMAIN_GUARD_FORCE_LOG_ONLY=false.
+  // This avoids user-facing 500s during active staging development while preserving logging.
+  const forceLogOnly = process.env.DOMAIN_GUARD_FORCE_LOG_ONLY !== "false";
   let mode = "log_only";
-  try {
-    const setting = await db
-      .selectFrom("systemSettings")
-      .select("value")
-      .where("key", "=", "DOMAIN_GUARD_MODE")
-      .executeTakeFirst();
-    if (setting && setting.value) {
-      mode = setting.value;
+
+  if (!forceLogOnly) {
+    try {
+      const setting = await db
+        .selectFrom("systemSettings")
+        .select("value")
+        .where("key", "=", "DOMAIN_GUARD_MODE")
+        .executeTakeFirst();
+      if (setting && setting.value) {
+        mode = setting.value;
+      }
+    } catch (error) {
+      console.error("Failed to fetch DOMAIN_GUARD_MODE setting", error);
     }
-  } catch (error) {
-    console.error("Failed to fetch DOMAIN_GUARD_MODE setting", error);
   }
 
   let valid = false;
