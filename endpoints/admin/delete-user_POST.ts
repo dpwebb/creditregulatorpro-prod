@@ -15,6 +15,17 @@ function isOptionalSchemaError(error: unknown): boolean {
   );
 }
 
+async function runOptionalDeleteStep(stepName: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    if (!isOptionalSchemaError(error)) {
+      throw error;
+    }
+    console.warn(`[delete-user] Optional step skipped (${stepName}) due to schema mismatch:`, error);
+  }
+}
+
 export async function handle(request: Request) {
   try {
     // 1. Validate admin session
@@ -58,11 +69,14 @@ export async function handle(request: Request) {
     const purgedCounts: Record<string, number> = {};
 
     // 5. Delete report_artifacts and their cascaded data
-    const artifacts = await db
-      .selectFrom("reportArtifact")
-      .select("id")
-      .where("userId", "=", targetUser.id)
-      .execute();
+    let artifacts: Array<{ id: number }> = [];
+    await runOptionalDeleteStep("reportArtifact lookup", async () => {
+      artifacts = await db
+        .selectFrom("reportArtifact")
+        .select("id")
+        .where("userId", "=", targetUser.id)
+        .execute();
+    });
 
     let deletedReportArtifacts = 0;
     for (const artifact of artifacts) {
@@ -286,28 +300,70 @@ export async function handle(request: Request) {
     purgedCounts["consumerSignaturesVerifiedByNullified"] = Number(nullifyConsumerSignatureResult.numUpdatedRows || 0);
 
     // parser_known_entity.created_by
-    const nullifyParserKnownEntityResult = await db
-      .updateTable("parserKnownEntity")
-      .set({ createdBy: null })
-      .where("createdBy", "=", targetUser.id)
-      .executeTakeFirst();
-    purgedCounts["parserKnownEntitiesNullified"] = Number(nullifyParserKnownEntityResult.numUpdatedRows || 0);
+    await runOptionalDeleteStep("parserKnownEntity.createdBy nullify", async () => {
+      const nullifyParserKnownEntityResult = await db
+        .updateTable("parserKnownEntity")
+        .set({ createdBy: null })
+        .where("createdBy", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["parserKnownEntitiesNullified"] = Number(nullifyParserKnownEntityResult.numUpdatedRows || 0);
+    });
+    purgedCounts["parserKnownEntitiesNullified"] = purgedCounts["parserKnownEntitiesNullified"] ?? 0;
+
+    // parser_field_mapping.created_by
+    await runOptionalDeleteStep("parserFieldMapping.createdBy nullify", async () => {
+      const nullifyParserFieldMappingResult = await db
+        .updateTable("parserFieldMapping")
+        .set({ createdBy: null })
+        .where("createdBy", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["parserFieldMappingsNullified"] = Number(nullifyParserFieldMappingResult.numUpdatedRows || 0);
+    });
+    purgedCounts["parserFieldMappingsNullified"] = purgedCounts["parserFieldMappingsNullified"] ?? 0;
+
+    // parser_bureau_detection_config.created_by
+    await runOptionalDeleteStep("parserBureauDetectionConfig.createdBy nullify", async () => {
+      const nullifyParserBureauConfigResult = await db
+        .updateTable("parserBureauDetectionConfig")
+        .set({ createdBy: null })
+        .where("createdBy", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["parserBureauConfigsNullified"] = Number(nullifyParserBureauConfigResult.numUpdatedRows || 0);
+    });
+    purgedCounts["parserBureauConfigsNullified"] = purgedCounts["parserBureauConfigsNullified"] ?? 0;
+
+    // parser_mapping_version.changed_by
+    await runOptionalDeleteStep("parserMappingVersion.changedBy nullify", async () => {
+      const nullifyParserMappingVersionResult = await db
+        .updateTable("parserMappingVersion")
+        .set({ changedBy: null })
+        .where("changedBy", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["parserMappingVersionsNullified"] = Number(nullifyParserMappingVersionResult.numUpdatedRows || 0);
+    });
+    purgedCounts["parserMappingVersionsNullified"] = purgedCounts["parserMappingVersionsNullified"] ?? 0;
 
     // parser_test_case.created_by is NOT NULL — reassign to admin user
-    const reassignParserTestCaseResult = await db
-      .updateTable("parserTestCase")
-      .set({ createdBy: adminUser.id })
-      .where("createdBy", "=", targetUser.id)
-      .executeTakeFirst();
-    purgedCounts["parserTestCasesReassigned"] = Number(reassignParserTestCaseResult.numUpdatedRows || 0);
+    await runOptionalDeleteStep("parserTestCase.createdBy reassign", async () => {
+      const reassignParserTestCaseResult = await db
+        .updateTable("parserTestCase")
+        .set({ createdBy: adminUser.id })
+        .where("createdBy", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["parserTestCasesReassigned"] = Number(reassignParserTestCaseResult.numUpdatedRows || 0);
+    });
+    purgedCounts["parserTestCasesReassigned"] = purgedCounts["parserTestCasesReassigned"] ?? 0;
 
     // software_version.created_by
-    const nullifySoftwareVersionResult = await db
-      .updateTable("softwareVersion")
-      .set({ createdBy: null })
-      .where("createdBy", "=", targetUser.id)
-      .executeTakeFirst();
-    purgedCounts["softwareVersionsNullified"] = Number(nullifySoftwareVersionResult.numUpdatedRows || 0);
+    await runOptionalDeleteStep("softwareVersion.createdBy nullify", async () => {
+      const nullifySoftwareVersionResult = await db
+        .updateTable("softwareVersion")
+        .set({ createdBy: null })
+        .where("createdBy", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["softwareVersionsNullified"] = Number(nullifySoftwareVersionResult.numUpdatedRows || 0);
+    });
+    purgedCounts["softwareVersionsNullified"] = purgedCounts["softwareVersionsNullified"] ?? 0;
 
     // system_settings.updated_by_user_id
     const nullifySystemSettingsResult = await db

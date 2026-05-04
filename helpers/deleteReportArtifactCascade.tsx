@@ -3,6 +3,27 @@ import { Transaction } from "kysely";
 import { DB } from "./schema";
 import { logDelete, logAudit } from "./auditLogger";
 
+function isOptionalSchemaError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (((error as { code?: unknown }).code === "42P01") || // undefined_table
+      ((error as { code?: unknown }).code === "42703")) // undefined_column
+  );
+}
+
+async function runOptionalStep(stepName: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    if (!isOptionalSchemaError(error)) {
+      throw error;
+    }
+    console.warn(`[Cascade Delete] Optional step skipped (${stepName}) due to schema mismatch:`, error);
+  }
+}
+
 /**
  * Cascade delete all data associated with a report artifact.
  * This function deletes all downstream records in the correct order to respect foreign key constraints.
@@ -64,37 +85,113 @@ export async function deleteReportArtifactCascade(
     if (orphanSnapshotIds.length > 0) {
       console.log(`Found ${orphanSnapshotIds.length} orphaned tradeline snapshots for report artifact ${reportArtifactId}`);
 
-      await trx
-        .deleteFrom("packetImpactAssessment")
-        .where((eb) => eb.or([
-          eb("baselineSnapshotId", "in", orphanSnapshotIds),
-          eb("followupSnapshotId", "in", orphanSnapshotIds)
-        ]))
-        .executeTakeFirst();
+      await runOptionalStep("packetImpactAssessment cleanup (orphan snapshots)", async () => {
+        await trx
+          .deleteFrom("packetImpactAssessment")
+          .where((eb) => eb.or([
+            eb("baselineSnapshotId", "in", orphanSnapshotIds),
+            eb("followupSnapshotId", "in", orphanSnapshotIds)
+          ]))
+          .executeTakeFirst();
+      });
 
-      await trx
-        .updateTable("obligationChallengeLog")
-        .set({ sourceSnapshotId: null })
-        .where("sourceSnapshotId", "in", orphanSnapshotIds)
-        .executeTakeFirst();
+      await runOptionalStep("obligationChallengeLog.sourceSnapshotId nullify", async () => {
+        await trx
+          .updateTable("obligationChallengeLog")
+          .set({ sourceSnapshotId: null })
+          .where("sourceSnapshotId", "in", orphanSnapshotIds)
+          .executeTakeFirst();
+      });
       
-      await trx
-        .updateTable("obligationChallengeLog")
-        .set({ comparisonSnapshotId: null })
-        .where("comparisonSnapshotId", "in", orphanSnapshotIds)
-        .executeTakeFirst();
+      await runOptionalStep("obligationChallengeLog.comparisonSnapshotId nullify", async () => {
+        await trx
+          .updateTable("obligationChallengeLog")
+          .set({ comparisonSnapshotId: null })
+          .where("comparisonSnapshotId", "in", orphanSnapshotIds)
+          .executeTakeFirst();
+      });
 
-      await trx
-        .updateTable("packet")
-        .set({ baselineSnapshotId: null })
-        .where("baselineSnapshotId", "in", orphanSnapshotIds)
-        .executeTakeFirst();
+      await runOptionalStep("packet.baselineSnapshotId nullify", async () => {
+        await trx
+          .updateTable("packet")
+          .set({ baselineSnapshotId: null })
+          .where("baselineSnapshotId", "in", orphanSnapshotIds)
+          .executeTakeFirst();
+      });
 
       await trx
         .deleteFrom("tradelineSnapshot")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     }
+
+    // Step 3a: Best-effort cleanup for artifact child tables that may not have ON DELETE CASCADE in older schemas.
+    await runOptionalStep("passAEditLog cleanup", async () => {
+      await trx
+        .deleteFrom("passAEditLog")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("passExtraction cleanup", async () => {
+      await trx
+        .deleteFrom("passExtraction")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("reportConsumerInfo cleanup", async () => {
+      await trx
+        .deleteFrom("reportConsumerInfo")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("reportConsumerStatement cleanup", async () => {
+      await trx
+        .deleteFrom("reportConsumerStatement")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("reportCreditScore cleanup", async () => {
+      await trx
+        .deleteFrom("reportCreditScore")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("reportEmploymentInfo cleanup", async () => {
+      await trx
+        .deleteFrom("reportEmploymentInfo")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("reportInquiry cleanup", async () => {
+      await trx
+        .deleteFrom("reportInquiry")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("reportPublicRecord cleanup", async () => {
+      await trx
+        .deleteFrom("reportPublicRecord")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("tradelineArtifactPresence cleanup (artifact)", async () => {
+      await trx
+        .deleteFrom("tradelineArtifactPresence")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("tradelinePaymentHistoryDetail cleanup (artifact)", async () => {
+      await trx
+        .deleteFrom("tradelinePaymentHistoryDetail")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
+    await runOptionalStep("tradelinePaymentHistory cleanup (artifact)", async () => {
+      await trx
+        .deleteFrom("tradelinePaymentHistory")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
 
     // Step 3: Delete the report artifact itself
     console.log(`Deleting report artifact ${reportArtifactId}`);
@@ -143,57 +240,100 @@ export async function deleteTradeline(
 ): Promise<void> {
   console.log(`Deleting tradeline ${tradelineId} and all associated records`);
 
+  // Best-effort cleanup for child tables that may not be configured with ON DELETE CASCADE.
+  await runOptionalStep("tradelinePaymentHistoryDetail cleanup (tradeline)", async () => {
+    await trx
+      .deleteFrom("tradelinePaymentHistoryDetail")
+      .where("tradelineId", "=", tradelineId)
+      .executeTakeFirst();
+  });
+
+  await runOptionalStep("tradelinePaymentHistory cleanup (tradeline)", async () => {
+    await trx
+      .deleteFrom("tradelinePaymentHistory")
+      .where("tradelineId", "=", tradelineId)
+      .executeTakeFirst();
+  });
+
+  await runOptionalStep("tradelineArtifactPresence cleanup (tradeline)", async () => {
+    await trx
+      .deleteFrom("tradelineArtifactPresence")
+      .where("tradelineId", "=", tradelineId)
+      .executeTakeFirst();
+  });
+
   // First, handle tradeline_snapshots and their dependencies
-  const snapshots = await trx
-    .selectFrom("tradelineSnapshot")
-    .select("id")
-    .where("tradelineId", "=", tradelineId)
-    .execute();
-  const snapshotIds = snapshots.map((s) => s.id);
+  let snapshotIds: number[] = [];
+  try {
+    const snapshots = await trx
+      .selectFrom("tradelineSnapshot")
+      .select("id")
+      .where("tradelineId", "=", tradelineId)
+      .execute();
+    snapshotIds = snapshots.map((s) => s.id);
+  } catch (error) {
+    if (!isOptionalSchemaError(error)) {
+      throw error;
+    }
+    console.warn(`[Cascade Delete] tradelineSnapshot lookup skipped for tradeline ${tradelineId} due to schema mismatch:`, error);
+  }
 
   if (snapshotIds.length > 0) {
     console.log(`Found ${snapshotIds.length} tradeline snapshots for tradeline ${tradelineId}`);
 
     // Delete packet_impact_assessment referencing these snapshots
-    const impactAssessmentResult = await trx
-      .deleteFrom("packetImpactAssessment")
-      .where((eb) => eb.or([
-        eb("baselineSnapshotId", "in", snapshotIds),
-        eb("followupSnapshotId", "in", snapshotIds)
-      ]))
-      .executeTakeFirst();
-    console.log(`Deleted ${impactAssessmentResult.numDeletedRows || 0} packet impact assessments for tradeline ${tradelineId} snapshots`);
+    await runOptionalStep("packetImpactAssessment cleanup (tradeline snapshots)", async () => {
+      const impactAssessmentResult = await trx
+        .deleteFrom("packetImpactAssessment")
+        .where((eb) => eb.or([
+          eb("baselineSnapshotId", "in", snapshotIds),
+          eb("followupSnapshotId", "in", snapshotIds)
+        ]))
+        .executeTakeFirst();
+      console.log(`Deleted ${impactAssessmentResult.numDeletedRows || 0} packet impact assessments for tradeline ${tradelineId} snapshots`);
+    });
 
     // Null out obligation_challenge_log snapshot references
-    const challengeSourceResult = await trx
-      .updateTable("obligationChallengeLog")
-      .set({ sourceSnapshotId: null })
-      .where("sourceSnapshotId", "in", snapshotIds)
-      .executeTakeFirst();
+    let challengeSourceUpdated = 0;
+    let challengeComparisonUpdated = 0;
+    await runOptionalStep("obligationChallengeLog snapshot nullification", async () => {
+      const challengeSourceResult = await trx
+        .updateTable("obligationChallengeLog")
+        .set({ sourceSnapshotId: null })
+        .where("sourceSnapshotId", "in", snapshotIds)
+        .executeTakeFirst();
+      
+      const challengeComparisonResult = await trx
+        .updateTable("obligationChallengeLog")
+        .set({ comparisonSnapshotId: null })
+        .where("comparisonSnapshotId", "in", snapshotIds)
+        .executeTakeFirst();
+      
+      challengeSourceUpdated = Number(challengeSourceResult.numUpdatedRows || 0);
+      challengeComparisonUpdated = Number(challengeComparisonResult.numUpdatedRows || 0);
+    });
     
-    const challengeComparisonResult = await trx
-      .updateTable("obligationChallengeLog")
-      .set({ comparisonSnapshotId: null })
-      .where("comparisonSnapshotId", "in", snapshotIds)
-      .executeTakeFirst();
-    
-    console.log(`Nulled out snapshot references in ${Number(challengeSourceResult.numUpdatedRows || 0) + Number(challengeComparisonResult.numUpdatedRows || 0)} obligation challenge logs`);
+    console.log(`Nulled out snapshot references in ${challengeSourceUpdated + challengeComparisonUpdated} obligation challenge logs`);
 
     // Null out packet baseline_snapshot_id references
-    const packetSnapshotResult = await trx
-      .updateTable("packet")
-      .set({ baselineSnapshotId: null })
-      .where("baselineSnapshotId", "in", snapshotIds)
-      .executeTakeFirst();
-    
-    console.log(`Nulled out baseline snapshot references in ${packetSnapshotResult.numUpdatedRows || 0} packets`);
+    await runOptionalStep("packet baseline snapshot nullification", async () => {
+      const packetSnapshotResult = await trx
+        .updateTable("packet")
+        .set({ baselineSnapshotId: null })
+        .where("baselineSnapshotId", "in", snapshotIds)
+        .executeTakeFirst();
+      
+      console.log(`Nulled out baseline snapshot references in ${packetSnapshotResult.numUpdatedRows || 0} packets`);
+    });
 
     // Delete the tradeline snapshots
-    const snapshotDeleteResult = await trx
-      .deleteFrom("tradelineSnapshot")
-      .where("tradelineId", "=", tradelineId)
-      .executeTakeFirst();
-    console.log(`Deleted ${snapshotDeleteResult.numDeletedRows || 0} tradeline snapshots for tradeline ${tradelineId}`);
+    await runOptionalStep("tradelineSnapshot cleanup", async () => {
+      const snapshotDeleteResult = await trx
+        .deleteFrom("tradelineSnapshot")
+        .where("tradelineId", "=", tradelineId)
+        .executeTakeFirst();
+      console.log(`Deleted ${snapshotDeleteResult.numDeletedRows || 0} tradeline snapshots for tradeline ${tradelineId}`);
+    });
   }
 
   // Next, get all packet IDs and obligation instance IDs for this tradeline
@@ -283,20 +423,22 @@ export async function deleteTradeline(
   }
 
     // f. Delete discrimination_claim where tradelineId OR packetId OR obligationInstanceId matches
-  const discriminationResult = await trx
-    .deleteFrom("discriminationClaim")
-    .where((eb) => {
-      const conditions = [eb("tradelineId", "=", tradelineId)];
-      if (packetIds.length > 0) {
-        conditions.push(eb("packetId", "in", packetIds));
-      }
-      if (obligationInstanceIds.length > 0) {
-        conditions.push(eb("obligationInstanceId", "in", obligationInstanceIds));
-      }
-      return eb.or(conditions);
-    })
-    .executeTakeFirst();
-  console.log(`Deleted ${discriminationResult.numDeletedRows || 0} discrimination claims for tradeline ${tradelineId}`);
+  await runOptionalStep("discriminationClaim cleanup", async () => {
+    const discriminationResult = await trx
+      .deleteFrom("discriminationClaim")
+      .where((eb) => {
+        const conditions = [eb("tradelineId", "=", tradelineId)];
+        if (packetIds.length > 0) {
+          conditions.push(eb("packetId", "in", packetIds));
+        }
+        if (obligationInstanceIds.length > 0) {
+          conditions.push(eb("obligationInstanceId", "in", obligationInstanceIds));
+        }
+        return eb.or(conditions);
+      })
+      .executeTakeFirst();
+    console.log(`Deleted ${discriminationResult.numDeletedRows || 0} discrimination claims for tradeline ${tradelineId}`);
+  });
 
   // g1. Delete postalTransaction records for packets before deleting packets
   if (packetIds.length > 0) {
@@ -307,11 +449,13 @@ export async function deleteTradeline(
     console.log(`Deleted ${postalTransactionResult.numDeletedRows || 0} postal transactions for tradeline ${tradelineId}`);
 
     // g2. Delete packetImpactAssessment by direct packetId FK (not covered by snapshotId deletion above)
-    const packetImpactByPacketResult = await trx
-      .deleteFrom("packetImpactAssessment")
-      .where("packetId", "in", packetIds)
-      .executeTakeFirst();
-    console.log(`Deleted ${packetImpactByPacketResult.numDeletedRows || 0} packet impact assessments (by packetId) for tradeline ${tradelineId}`);
+    await runOptionalStep("packetImpactAssessment cleanup (by packet)", async () => {
+      const packetImpactByPacketResult = await trx
+        .deleteFrom("packetImpactAssessment")
+        .where("packetId", "in", packetIds)
+        .executeTakeFirst();
+      console.log(`Deleted ${packetImpactByPacketResult.numDeletedRows || 0} packet impact assessments (by packetId) for tradeline ${tradelineId}`);
+    });
   }
 
   // g. Delete packet where tradelineId matches
