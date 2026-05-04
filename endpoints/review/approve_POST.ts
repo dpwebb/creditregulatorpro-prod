@@ -10,6 +10,7 @@ import { logValidation } from "../../helpers/metro2ValidationLogger";
 import { getRulesByYear } from "../../helpers/metro2ValidationRules";
 import { logAudit, logUpload } from "../../helpers/auditLogger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { normalizeCreditReportAmount } from "../../helpers/creditReportNumberSanitizer";
 
 function normalizeAccountNumberForLookup(accountNumber: string | null | undefined): string | null {
   const normalized = (accountNumber || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -138,27 +139,36 @@ export async function handle(request: Request) {
 
         if (existingTradeline) {
           console.log(`[Review/Approve] Updating existing tradeline ${existingTradeline.id} for account ${accountNumberForDb}`);
+
+          const currentBalance = normalizeCreditReportAmount(parsedTradeline.balance, "tradeline.currentBalance");
+          const amountPastDue = normalizeCreditReportAmount(parsedTradeline.amounts.pastDue, "tradeline.amountPastDue");
+          const highCredit = normalizeCreditReportAmount(parsedTradeline.amounts.high, "tradeline.highCredit");
+          const updateValues: Record<string, unknown> = {
+            accountType: parsedTradeline.accountType,
+            status: parsedTradeline.status,
+            openedDate: parsedTradeline.dates.opened ?? null,
+            dateClosed: parsedTradeline.dates.closed ?? null,
+            dateOfFirstDelinquency: parsedTradeline.dates.dofd ?? null,
+            originalCreditorName: parsedTradeline.creditorName,
+            creditorId: creditorId,
+          };
+          if (currentBalance !== null) updateValues.currentBalance = currentBalance;
+          if (amountPastDue !== null) updateValues.amountPastDue = amountPastDue;
+          if (highCredit !== null) updateValues.highCredit = highCredit;
           
           await db
             .updateTable("tradeline")
-            .set({
-              accountType: parsedTradeline.accountType,
-              status: parsedTradeline.status,
-              currentBalance: parsedTradeline.balance,
-              amountPastDue: parsedTradeline.amounts.pastDue ?? null,
-              highCredit: parsedTradeline.amounts.high ?? null,
-              openedDate: parsedTradeline.dates.opened ?? null,
-              dateClosed: parsedTradeline.dates.closed ?? null,
-              dateOfFirstDelinquency: parsedTradeline.dates.dofd ?? null,
-              originalCreditorName: parsedTradeline.creditorName,
-              creditorId: creditorId,
-            })
+            .set(updateValues)
             .where("id", "=", existingTradeline.id)
             .execute();
           tradelineIds.push(existingTradeline.id);
         } else {
           // Insert new tradeline - use users.id for userId
           console.log(`[Review/Approve] Inserting new tradeline for account ${accountNumberForDb}`);
+
+          const currentBalance = normalizeCreditReportAmount(parsedTradeline.balance, "tradeline.currentBalance");
+          const amountPastDue = normalizeCreditReportAmount(parsedTradeline.amounts.pastDue, "tradeline.amountPastDue");
+          const highCredit = normalizeCreditReportAmount(parsedTradeline.amounts.high, "tradeline.highCredit");
           
           const newTradeline = await db
             .insertInto("tradeline")
@@ -167,9 +177,9 @@ export async function handle(request: Request) {
               accountNumber: accountNumberForDb,
               accountType: parsedTradeline.accountType,
               status: parsedTradeline.status,
-              currentBalance: parsedTradeline.balance,
-              amountPastDue: parsedTradeline.amounts.pastDue ?? null,
-              highCredit: parsedTradeline.amounts.high ?? null,
+              currentBalance,
+              amountPastDue,
+              highCredit,
               openedDate: parsedTradeline.dates.opened ?? null,
               dateClosed: parsedTradeline.dates.closed ?? null,
               dateOfFirstDelinquency: parsedTradeline.dates.dofd ?? null,

@@ -3,6 +3,7 @@ import { routeHtmlToComprehensiveResult } from "./bureauDetectionRouter";
 import { resolveCreditorEntity } from "./creditorEntityResolver";
 import { findOrCreateCreditor } from "./creditorMatcher";
 import { scanAndPersistViolations } from "./complianceScanner";
+import { normalizeCreditReportAmount } from "./creditReportNumberSanitizer";
 
 /**
  * Checks whether a database value is considered stale (missing or unknown).
@@ -154,16 +155,19 @@ export async function tradelineReparseSync(artifactId: number): Promise<{ update
           updates.responsibilityCode = pt.responsibilityCode?.substring(0, 50);
         }
         if (isStale(matchedDb.highCredit) && !isStale(pt.amounts?.high)) {
-          updates.highCredit = pt.amounts.high;
+          const highCredit = normalizeCreditReportAmount(pt.amounts.high, "tradeline.highCredit");
+          if (highCredit !== null) updates.highCredit = highCredit;
         }
         if (isStale(matchedDb.mop) && !isStale(pt.mop)) {
           updates.mop = pt.mop;
         }
         if (isStale(matchedDb.creditLimit) && !isStale(pt.creditLimit)) {
-          updates.creditLimit = pt.creditLimit;
+          const creditLimit = normalizeCreditReportAmount(pt.creditLimit, "tradeline.creditLimit");
+          if (creditLimit !== null) updates.creditLimit = creditLimit;
         }
         if (isStale(matchedDb.amountPastDue) && !isStale(pt.amounts?.pastDue)) {
-          updates.amountPastDue = pt.amounts.pastDue;
+          const amountPastDue = normalizeCreditReportAmount(pt.amounts.pastDue, "tradeline.amountPastDue");
+          if (amountPastDue !== null) updates.amountPastDue = amountPastDue;
         }
         if (isStale(matchedDb.status) && !isStale(pt.status)) {
           updates.status = pt.status?.substring(0, 255);

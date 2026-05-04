@@ -16,6 +16,11 @@ import {
   ConsumerStatementType,
   CanadianProvince,
 } from "./schema";
+import {
+  normalizeCreditReportAmount,
+  normalizeCreditReportAmountString,
+  normalizePaymentHistoryCount,
+} from "./creditReportNumberSanitizer";
 
 export type ComprehensiveStorageResult = {
   consumerInfoId: number | null;
@@ -204,7 +209,7 @@ export async function storeComprehensiveReportData(params: {
           recordType,
           filingDate: record.filingDate,
           dischargeDate: record.dischargeDate,
-          amount: record.amount ? String(record.amount) : null, // Schema uses Numeric (string | number)
+          amount: normalizeCreditReportAmountString(record.amount, "reportPublicRecord.amount"),
           caseNumber: record.caseNumber,
           courtName: record.courtName,
           status: record.status,
@@ -265,7 +270,7 @@ export async function storeComprehensiveReportData(params: {
           employerName: employment.employerName,
           occupation: employment.occupation,
           employmentStatus: employment.employmentStatus,
-          salary: employment.salary ? String(employment.salary) : null,
+          salary: normalizeCreditReportAmountString(employment.salary, "reportEmploymentInfo.salary"),
           salaryFrequency: employment.salaryFrequency,
           hireDate: employment.hireDate,
           terminationDate: employment.terminationDate,
@@ -312,14 +317,19 @@ export async function storeComprehensiveReportData(params: {
       let times90 = paymentHistory.times90DaysLate;
 
       if (summary) {
-        if (times30 === null && summary["30"] != null) times30 = Number(summary["30"]);
-        if (times60 === null && summary["60"] != null) times60 = Number(summary["60"]);
-        if (times90 === null && summary["90"] != null) times90 = Number(summary["90"]);
+        if (times30 === null && summary["30"] != null) times30 = normalizePaymentHistoryCount(summary["30"], "tradelinePaymentHistory.times30DaysLate");
+        if (times60 === null && summary["60"] != null) times60 = normalizePaymentHistoryCount(summary["60"], "tradelinePaymentHistory.times60DaysLate");
+        if (times90 === null && summary["90"] != null) times90 = normalizePaymentHistoryCount(summary["90"], "tradelinePaymentHistory.times90DaysLate");
       }
+
+      times30 = normalizePaymentHistoryCount(times30, "tradelinePaymentHistory.times30DaysLate");
+      times60 = normalizePaymentHistoryCount(times60, "tradelinePaymentHistory.times60DaysLate");
+      times90 = normalizePaymentHistoryCount(times90, "tradelinePaymentHistory.times90DaysLate");
+      const times120 = normalizePaymentHistoryCount(paymentHistory.times120DaysLate, "tradelinePaymentHistory.times120DaysLate");
 
       const derivedPaymentPattern =
         paymentHistory.paymentPattern ??
-        buildSummaryPaymentPattern(times30, times60, times90, paymentHistory.times120DaysLate);
+        buildSummaryPaymentPattern(times30, times60, times90, times120);
 
       const payload = {
         tradelineId,
@@ -332,8 +342,8 @@ export async function storeComprehensiveReportData(params: {
         worstDelinquencyCode: paymentHistory.worstDelinquencyCode,
         worstDelinquencyDate: paymentHistory.worstDelinquencyDate,
         accountCondition: paymentHistory.accountCondition,
-        monthlyPayment: paymentHistory.monthlyPayment != null ? String(paymentHistory.monthlyPayment) : null,
-        lastPaymentAmount: paymentHistory.lastPaymentAmount != null ? String(paymentHistory.lastPaymentAmount) : null,
+        monthlyPayment: normalizeCreditReportAmountString(paymentHistory.monthlyPayment, "tradelinePaymentHistory.monthlyPayment"),
+        lastPaymentAmount: normalizeCreditReportAmountString(paymentHistory.lastPaymentAmount, "tradelinePaymentHistory.lastPaymentAmount"),
         lastActivityDate: paymentHistory.lastActivityDate,
         lastReportedDate: paymentHistory.lastReportedDate,
         rawSectionText: paymentHistory.rawSectionText,
@@ -370,7 +380,7 @@ export async function storeComprehensiveReportData(params: {
           times_30_days_late = ${times30},
           times_60_days_late = ${times60},
           times_90_days_late = ${times90},
-          times_120_days_late = ${paymentHistory.times120DaysLate}
+          times_120_days_late = ${times120}
         WHERE id = ${recordId}
       `.execute(db);
 
@@ -390,13 +400,13 @@ export async function storeComprehensiveReportData(params: {
           tradelineId,
           reportArtifactId,
           periodDate: parsePeriodDate(d.date),
-          balance: d.balance != null ? String(d.balance) : null,
-          payment: d.payment != null ? String(d.payment) : null,
-          pastDue: d.pastDue != null ? String(d.pastDue) : null,
-          highCredit: d.highCredit != null ? String(d.highCredit) : null,
-          creditLimit: d.creditLimit != null ? String(d.creditLimit) : null,
-          balloonPayment: d.balloonPayment != null ? String(d.balloonPayment) : null,
-          chargeOff: d.chargeOff != null ? String(d.chargeOff) : null,
+          balance: normalizeCreditReportAmountString(d.balance, "tradelinePaymentHistoryDetail.balance"),
+          payment: normalizeCreditReportAmountString(d.payment, "tradelinePaymentHistoryDetail.payment"),
+          pastDue: normalizeCreditReportAmountString(d.pastDue, "tradelinePaymentHistoryDetail.pastDue"),
+          highCredit: normalizeCreditReportAmountString(d.highCredit, "tradelinePaymentHistoryDetail.highCredit"),
+          creditLimit: normalizeCreditReportAmountString(d.creditLimit, "tradelinePaymentHistoryDetail.creditLimit"),
+          balloonPayment: normalizeCreditReportAmountString(d.balloonPayment, "tradelinePaymentHistoryDetail.balloonPayment"),
+          chargeOff: normalizeCreditReportAmountString(d.chargeOff, "tradelinePaymentHistoryDetail.chargeOff"),
           mop: d.mop || null,
           terms: d.terms || null,
           narrative: d.narrative || null,
@@ -409,10 +419,10 @@ export async function storeComprehensiveReportData(params: {
           .execute();
 
         const latestDetail = pickLatestPaymentHistoryDetail(details);
-        const detailBalance = toNumberOrNull(latestDetail?.balance);
-        const detailPastDue = toNumberOrNull(latestDetail?.pastDue);
-        const detailHighCredit = toNumberOrNull(latestDetail?.highCredit);
-        const detailCreditLimit = toNumberOrNull(latestDetail?.creditLimit);
+        const detailBalance = normalizeCreditReportAmount(latestDetail?.balance, "tradeline.balance");
+        const detailPastDue = normalizeCreditReportAmount(latestDetail?.pastDue, "tradeline.amountPastDue");
+        const detailHighCredit = normalizeCreditReportAmount(latestDetail?.highCredit, "tradeline.highCredit");
+        const detailCreditLimit = normalizeCreditReportAmount(latestDetail?.creditLimit, "tradeline.creditLimit");
         const detailMop = cleanMeaningfulString(latestDetail?.mop);
         const detailTerms = cleanMeaningfulString(latestDetail?.terms);
 
@@ -431,10 +441,16 @@ export async function storeComprehensiveReportData(params: {
         if (paymentHistory.lastActivityDate) tradelineFallbackUpdates.lastActivityDate = paymentHistory.lastActivityDate;
         if (paymentHistory.lastPaymentDate) tradelineFallbackUpdates.dateOfLastPayment = paymentHistory.lastPaymentDate;
         if (paymentHistory.lastPaymentAmount != null) {
-          tradelineFallbackUpdates.lastPaymentAmount = paymentHistory.lastPaymentAmount;
+          const normalizedLastPaymentAmount = normalizeCreditReportAmount(paymentHistory.lastPaymentAmount, "tradeline.lastPaymentAmount");
+          if (normalizedLastPaymentAmount !== null) {
+            tradelineFallbackUpdates.lastPaymentAmount = normalizedLastPaymentAmount;
+          }
         }
         if (paymentHistory.monthlyPayment != null) {
-          tradelineFallbackUpdates.monthlyPayment = paymentHistory.monthlyPayment;
+          const normalizedMonthlyPayment = normalizeCreditReportAmount(paymentHistory.monthlyPayment, "tradeline.monthlyPayment");
+          if (normalizedMonthlyPayment !== null) {
+            tradelineFallbackUpdates.monthlyPayment = normalizedMonthlyPayment;
+          }
         }
 
         if (Object.keys(tradelineFallbackUpdates).length > 0) {

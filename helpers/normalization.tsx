@@ -1,4 +1,5 @@
 import { ParsedTradeline } from "./reportParser";
+import { normalizeCreditReportAmount } from "./creditReportNumberSanitizer";
 
 /**
  * Normalizes parsed tradeline data.
@@ -15,11 +16,11 @@ export function normalizeTradelines(tradelines: ParsedTradeline[]): ParsedTradel
       creditorName: tl.creditorName.trim(),
       accountType: normalizeAccountType(tl.accountType),
       status: tl.status.trim().toUpperCase(),
-      balance: Math.max(0, tl.balance || 0),
+      balance: normalizeCreditReportAmount(tl.balance, "tradeline.balance") ?? 0,
       amounts: {
         ...tl.amounts,
-        high: Math.max(0, tl.amounts.high || 0),
-        pastDue: Math.max(0, tl.amounts.pastDue || 0),
+        high: normalizeCreditReportAmount(tl.amounts.high, "tradeline.highCredit") ?? 0,
+        pastDue: normalizeCreditReportAmount(tl.amounts.pastDue, "tradeline.amountPastDue") ?? 0,
       },
       remarkCodes: tl.remarkCodes.map((code) => code.trim().toUpperCase()),
     };

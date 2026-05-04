@@ -3,6 +3,10 @@ import { ParsedTradeline } from "./reportParser";
 import { findOrCreateCreditor } from "./creditorMatcher";
 import { resolveCreditorEntity } from "./creditorEntityResolver";
 import { ensureInitialSnapshot } from "./tradelineSnapshotManager";
+import {
+  normalizeCreditReportAmount,
+  normalizeCreditReportPercent,
+} from "./creditReportNumberSanitizer";
 
 type TradelineMatchType = "account_number" | "corroborated";
 type TradelineScoreResult = {
@@ -477,14 +481,22 @@ export async function persistTradelines(
       const resolvedExistingTradeline = existingTradeline ?? fallbackCollectionTradeline;
 
       // Prepare fields for insert/update
+      const balance = normalizeCreditReportAmount(parsedTradeline.balance, "tradeline.balance");
+      const amountPastDue = normalizeCreditReportAmount(parsedTradeline.amounts.pastDue, "tradeline.amountPastDue");
+      const highCredit = normalizeCreditReportAmount(parsedTradeline.amounts.high, "tradeline.highCredit");
+      const creditLimit = normalizeCreditReportAmount(parsedTradeline.creditLimit, "tradeline.creditLimit");
+      const originalBalance = normalizeCreditReportAmount(parsedTradeline.originalBalance, "tradeline.originalBalance");
+      const monthlyPayment = normalizeCreditReportAmount(parsedTradeline.monthlyPayment, "tradeline.monthlyPayment");
+      const lastPaymentAmount = normalizeCreditReportAmount(parsedTradeline.lastPaymentAmount, "tradeline.lastPaymentAmount");
+
       const tradelineData = {
         accountType: parsedTradeline.accountType ? parsedTradeline.accountType.substring(0, 100) : null,
         status: parsedTradeline.status ? parsedTradeline.status.substring(0, 255) : null,
-        balance: parsedTradeline.balance,
-        currentBalance: parsedTradeline.balance,
-        amountPastDue: parsedTradeline.amounts.pastDue ?? null,
-        highCredit: parsedTradeline.amounts.high ?? null,
-        creditLimit: parsedTradeline.creditLimit ?? null,
+        balance,
+        currentBalance: balance,
+        amountPastDue,
+        highCredit,
+        creditLimit,
         openedDate: parsedTradeline.dates.opened ?? null,
         dateClosed: parsedTradeline.dates.closed ?? null,
         dateOfFirstDelinquency: parsedTradeline.dates.dofd ?? null,
@@ -498,14 +510,14 @@ export async function persistTradelines(
         isCollectionAccount: parsedTradeline.isCollectionAccount ?? false,
         collectionAgencyName: parsedTradeline.collectionAgencyName ?? null,
         dateAssignedToCollection: parsedTradeline.dateAssignedToCollection ?? null,
-        originalBalance: parsedTradeline.originalBalance ?? null,
-        interestRate: parsedTradeline.interestRate ?? null,
+        originalBalance,
+        interestRate: normalizeCreditReportPercent(parsedTradeline.interestRate, "tradeline.interestRate"),
         terms: parsedTradeline.terms ?? null,
-        monthlyPayment: parsedTradeline.monthlyPayment ?? null,
+        monthlyPayment,
         lastActivityDate: parsedTradeline.lastActivityDate ?? null,
         responsibilityCode: parsedTradeline.responsibilityCode ? parsedTradeline.responsibilityCode.substring(0, 50) : null,
         ecoaCode: parsedTradeline.ecoaCode ? parsedTradeline.ecoaCode.substring(0, 1) : null,
-        lastPaymentAmount: parsedTradeline.lastPaymentAmount ?? null,
+        lastPaymentAmount,
         maturityDate: parsedTradeline.maturityDate ?? null,
         postedDate: parsedTradeline.postedDate ?? null,
         chargeOffDate: parsedTradeline.chargeOffDate ?? null,
@@ -517,7 +529,7 @@ export async function persistTradelines(
         memberNumber: (parsedTradeline as any).memberNumber ?? null,
         ratingCode: (parsedTradeline as any).ratingCode ?? null,
         ratingCodeDescription: (parsedTradeline as any).ratingCodeDescription ?? null,
-        amountWrittenOff: (parsedTradeline as any).amountWrittenOff ?? null,
+        amountWrittenOff: normalizeCreditReportAmount((parsedTradeline as any).amountWrittenOff, "tradeline.amountWrittenOff"),
         notes: (parsedTradeline as any).notes ?? null,
         dateVerified: (parsedTradeline as any).dateVerified ?? null,
         datePaidSettled: (parsedTradeline as any).datePaidSettled ?? null,
