@@ -63,6 +63,7 @@ import {
 import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { executeActiveRules } from "./dynamicRuleExecutor";
 import { mapViolationToDisputeVector } from "./violationToDisputeVector";
+import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 
 // Re-export types for convenience
 export type { DetectedViolation };
@@ -412,7 +413,7 @@ export async function scanForViolations(
     console.log(`Filtered out ${filteredCount} violations based on complianceConfig settings.`);
   }
 
-  return finalViolations;
+  return normalizeDetectedViolations(finalViolations);
 }
 
 /**
@@ -536,12 +537,14 @@ export async function persistViolations(
   violations: DetectedViolation[],
   tradelineId: number
 ): Promise<number[]> {
-  if (violations.length === 0) {
+  const normalizedViolations = normalizeDetectedViolations(violations);
+
+  if (normalizedViolations.length === 0) {
     console.log(`No violations to persist for tradeline ${tradelineId}`);
     return [];
   }
 
-  console.log(`Processing ${violations.length} violations for tradeline ${tradelineId}`);
+  console.log(`Processing ${normalizedViolations.length} violations for tradeline ${tradelineId}`);
 
   const tradelineForWorkflow = await db
     .selectFrom("tradeline")
@@ -575,7 +578,7 @@ export async function persistViolations(
   const insertedIds: number[] = [];
 
   // 2. Insert all violations from the fresh scan
-  for (const violation of violations) {
+  for (const violation of normalizedViolations) {
     const signature = `${violation.violationCategory}|${violation.userExplanation}`;
     
     // Skip if a matching dismissed/verified violation already exists

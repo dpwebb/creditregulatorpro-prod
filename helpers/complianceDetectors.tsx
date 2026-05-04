@@ -6,6 +6,7 @@ import type {
   BankruptcyRecord,
 } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
+import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 
 // Import existing detectors
 import {
@@ -268,7 +269,7 @@ export async function runAllTradelineDetectors(
   // 38. DISCLOSURE_DEFICIENCY
   violations.push(...(await detectDisclosureDeficiency(tradeline, tradeline.reportArtifactId ?? undefined)));
 
-  return deduplicateViolations(violations);
+  return normalizeDetectedViolations(deduplicateViolations(violations));
 }
 
 const severityScore: Record<string, number> = {

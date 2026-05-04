@@ -5,6 +5,7 @@ import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpoi
 import { validateOrigin } from "../../helpers/domainGuard";
 import { scanForViolations, mapViolationToObligationType } from "../../helpers/complianceScanner";
 import { mapViolationToDisputeVector } from "../../helpers/violationToDisputeVector";
+import { normalizeDetectedViolations } from "../../helpers/complianceFindingNormalizer";
 
 import type { ViolationCategory } from "../../helpers/schema";
 
@@ -113,7 +114,9 @@ export async function handle(request: Request) {
     );
 
     // 6. Run the compliance scan
-    const detectedViolations = await scanForViolations(input.tradelineId);
+    const detectedViolations = normalizeDetectedViolations(
+      await scanForViolations(input.tradelineId)
+    );
 
     console.log(`Detected ${detectedViolations.length} violations from scan`);
 
