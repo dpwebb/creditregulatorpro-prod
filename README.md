@@ -130,3 +130,24 @@ npm run check:source-of-truth
 See `docs/github-source-of-truth.md` for the full workflow.
 
 Pushing to the `staging` branch can deploy the staging site automatically through GitHub Actions after the required staging environment secrets are configured.
+
+## Automated commit-push to staging
+
+Use the integrated publish command:
+
+```bash
+pnpm run commit-push -- --message "your short summary"
+```
+
+What it does:
+* verifies the current git branch is `staging`
+* runs `pnpm run typecheck` and `pnpm run check` by default
+* stages all local changes
+* creates a commit
+* pushes to `origin/staging`
+
+Quick mode (skips checks):
+
+```bash
+pnpm run commit-push:quick -- --message "your short summary"
+```

@@ -6,6 +6,8 @@
     "start": "tsx server.ts",
     "typecheck": "tsc --noEmit",
     "check": "pnpm run build",
+    "commit-push": "node scripts/commit-push-staging.mjs",
+    "commit-push:quick": "node scripts/commit-push-staging.mjs --skip-checks",
     "test:credit-extraction": "tsx scripts/credit-report-extraction-smoke.ts",
     "test:credit-regression": "tsx scripts/credit-report-parser-regression.ts",
     "test:mock-lifecycle": "tsx scripts/mock-user-lifecycle-e2e.ts",

@@ -26,9 +26,9 @@
 - Treat this local directory as the working copy for Codex chat changes
 - GitHub remains the source of truth for deployment after commits are pushed
 - Make changes in staging only
-- Do not commit automatically unless explicitly asked
-- Do not push automatically unless explicitly asked
-- When publishing is requested, commit and push to `staging`; the existing GitHub Actions and Hostinger path handle deployment
+- Default publish path is `pnpm run commit-push -- --message "<summary>"`
+- `commit-push` is the standard integrated publish command and must target `staging`
+- Unless the user explicitly asks to hold changes locally, run the automated commit-push flow after task changes are complete and checks pass
 - Do not add or require new secrets, tokens, deploy keys, Hostinger authentication, or GitHub authentication
 - Suggest a commit message after each task
 
