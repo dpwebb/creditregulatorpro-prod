@@ -7,6 +7,15 @@ import { EvidencePackageData } from "./evidencePackageData";
  */
 const pageBreakAfter: Content = { text: "", pageBreak: "after" as PageBreak };
 
+const formatOrNA = (value: Date | string | null | undefined, pattern: string): string => {
+  return value ? format(value, pattern) : "N/A";
+};
+
+const shortenOrNA = (value: string | null | undefined, maxLength: number): string => {
+  if (!value) return "N/A";
+  return value.length > maxLength ? `${value.substring(0, maxLength)}...` : value;
+};
+
 /**
  * Generates the cover page section
  */
@@ -82,11 +91,11 @@ export const generateCoverPage = (data: EvidencePackageData): Content[] => {
  */
 export const generateExecutiveSummary = (data: EvidencePackageData): Content[] => {
   const challengeRows = data.packets.map((packet) => [
-    format(packet.createdAt!, "yyyy-MM-dd"),
+    formatOrNA(packet.createdAt, "yyyy-MM-dd"),
     packet.type || "N/A",
     packet.status || "Pending",
     packet.bureauResponseDate
-      ? format(packet.bureauResponseDate, "yyyy-MM-dd")
+      ? formatOrNA(packet.bureauResponseDate, "yyyy-MM-dd")
       : "No response",
   ]);
 
@@ -259,7 +268,7 @@ export const generateChainOfCustody = (data: EvidencePackageData): Content[] => 
 export const generateChallengeDocumentation = (data: EvidencePackageData): Content[] => {
   const packetRows = data.packets.map((packet) => [
     packet.id.toString(),
-    format(packet.createdAt!, "yyyy-MM-dd"),
+    formatOrNA(packet.createdAt, "yyyy-MM-dd"),
     packet.type || "N/A",
     packet.statuteCode || "N/A",
     packet.status || "Pending",
@@ -305,10 +314,10 @@ export const generateEvidenceAttachmentsIndex = (
 ): Content[] => {
   const attachmentRows = data.attachments.map((att) => [
     att.fileName,
-    format(att.uploadedAt, "yyyy-MM-dd HH:mm"),
+    formatOrNA(att.uploadedAt, "yyyy-MM-dd HH:mm"),
     (att.fileSizeBytes / 1024).toFixed(2) + " KB",
     att.description || "No description",
-    att.storageUrl.substring(0, 40) + "...",
+    shortenOrNA(att.storageUrl, 40),
   ]);
 
   return [
@@ -366,7 +375,7 @@ export const generateStatutoryReferences = (data: EvidencePackageData): Content[
         margin: [10, 0, 0, 3] as [number, number, number, number],
       },
       {
-        text: `Effective Date: ${format(statute.effectiveDate, "yyyy-MM-dd")}`,
+        text: `Effective Date: ${formatOrNA(statute.effectiveDate, "yyyy-MM-dd")}`,
         margin: [10, 0, 0, 3] as [number, number, number, number],
       },
       {

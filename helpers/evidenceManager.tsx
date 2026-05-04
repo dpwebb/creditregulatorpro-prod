@@ -3,16 +3,7 @@ import PdfPrinter from "pdfmake";
 import { format } from "./dateUtils";
 import { fetchEvidencePackageData } from "./evidencePackageData";
 import { generateDocumentDefinition } from "./evidencePackageSections";
-
-// Define fonts for server-side PDF generation
-const fonts = {
-  Roboto: {
-    normal: "fonts/Roboto-Regular.ttf",
-    bold: "fonts/Roboto-Medium.ttf",
-    italics: "fonts/Roboto-Italic.ttf",
-    bolditalics: "fonts/Roboto-MediumItalic.ttf",
-  },
-};
+import { ensureRobotoFonts } from "./pdfServerUtils";
 
 /**
  * Records metadata for an uploaded evidence file.
@@ -101,6 +92,7 @@ export const generateEvidencePackage = async (obligationInstanceId: number) => {
   const docDefinition = generateDocumentDefinition(data);
 
   // 3. Generate PDF buffer
+  const fonts = await ensureRobotoFonts();
   const printer = new PdfPrinter(fonts);
   const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
