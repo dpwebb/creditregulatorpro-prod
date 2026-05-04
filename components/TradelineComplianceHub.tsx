@@ -239,8 +239,37 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   };
 
     const nonAdminDisplayViolations = useMemo(() => {
-    // Filter out MULTIPLE_COLLECTOR_VIOLATION — it's already shown by RelatedCollectionAccounts
-    const filtered = displayViolations.filter(v => v.violationCategory !== "MULTIPLE_COLLECTOR_VIOLATION");
+    const hasStatuteTimingIssue = activeViolations.some(
+      v => v.violationCategory === "STATUTE_OF_LIMITATIONS" || v.violationCategory === "STATUTE_APPROACHING"
+    );
+    const hasKnownCreditorIdentity = !!(
+      currentTradeline &&
+      (
+        currentTradeline.creditorId != null ||
+        (currentTradeline.originalCreditorName && currentTradeline.originalCreditorName.trim().length > 0) ||
+        (currentTradeline.collectionAgencyName && currentTradeline.collectionAgencyName.trim().length > 0)
+      )
+    );
+
+    // Reduce confusing duplicates for consumer-facing view.
+    const filtered = displayViolations.filter(v => {
+      // Already represented by related collections UI
+      if (v.violationCategory === "MULTIPLE_COLLECTOR_VIOLATION") return false;
+
+      // "Information Wasn't Kept Up-to-Date" overlaps with statute timing cards.
+      if (hasStatuteTimingIssue && v.violationCategory === "STALE_REPORTING_FAILURE") return false;
+
+      // Hide known false-positive style when creditor identity is already present on the tradeline.
+      if (v.violationCategory === "DISCLOSURE_DEFICIENCY") {
+        const fieldPath = String(v.technicalDetails?.fieldPath || "").toLowerCase();
+        if ((fieldPath === "accounts[].creditor_name" || fieldPath === "accounts.creditor_name") && hasKnownCreditorIdentity) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
     const seen = new Set<string>();
     return filtered.filter(v => {
       if (!v.violationCategory) return true;
@@ -248,7 +277,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
       seen.add(v.violationCategory);
       return true;
     });
-  }, [displayViolations]);
+  }, [displayViolations, activeViolations, currentTradeline]);
 
   const topViolation = nonAdminDisplayViolations[0];
   const otherViolations = nonAdminDisplayViolations.slice(1);

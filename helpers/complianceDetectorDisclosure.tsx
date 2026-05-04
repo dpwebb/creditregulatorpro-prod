@@ -27,8 +27,69 @@ const OPTIONAL_ACCOUNT_IDENTIFIER_PATHS = new Set([
   "accounts[].account_number_masked",
 ]);
 
+const ACCOUNT_FIELD_ALIASES: Record<string, string[]> = {
+  creditor_name: ["creditorName", "account_name", "accountName", "furnisher_name", "furnisherName"],
+  account_number_partial: ["accountNumberPartial", "account_number", "accountNumber"],
+  high_credit: ["highCredit"],
+  date_opened: ["openedDate", "dateOpened"],
+};
+
 function normalizeFieldPath(path: string): string {
   return path.trim().toLowerCase();
+}
+
+function unwrapExtractedValue(value: any): any {
+  if (value && typeof value === "object" && "value" in value) {
+    return (value as { value: unknown }).value;
+  }
+  return value;
+}
+
+function getAccountFieldValues(account: any, key: string): any[] {
+  const aliases = ACCOUNT_FIELD_ALIASES[key] || [];
+  const keys = [key, ...aliases];
+  return keys.map((candidateKey) => unwrapExtractedValue(account?.[candidateKey]));
+}
+
+function hasMeaningfulAccountFieldValue(account: any, key: string): boolean {
+  const values = getAccountFieldValues(account, key);
+  for (const value of values) {
+    if (value == null) continue;
+    if (typeof value === "string" && value.trim().length === 0) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    return true;
+  }
+  return false;
+}
+
+function normalizeAccountIdentifier(value: string): string {
+  return value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+}
+
+function accountNumbersLikelyMatch(tradelineAccount: string | null, extractionAccount: string | null): boolean {
+  if (!tradelineAccount || !extractionAccount) return false;
+
+  const normalizedTradeline = normalizeAccountIdentifier(tradelineAccount);
+  const normalizedExtraction = normalizeAccountIdentifier(extractionAccount);
+  if (!normalizedTradeline || !normalizedExtraction) return false;
+
+  if (
+    normalizedTradeline.includes(normalizedExtraction) ||
+    normalizedExtraction.includes(normalizedTradeline)
+  ) {
+    return true;
+  }
+
+  const tradelineDigits = normalizedTradeline.replace(/\D/g, "");
+  const extractionDigits = normalizedExtraction.replace(/\D/g, "");
+  const comparableLength = Math.min(tradelineDigits.length, extractionDigits.length, 6);
+  if (comparableLength >= 4) {
+    return (
+      tradelineDigits.slice(-comparableLength) === extractionDigits.slice(-comparableLength)
+    );
+  }
+
+  return false;
 }
 
 function shouldSkipRequirementForTradeline(
@@ -122,16 +183,21 @@ function checkFieldExists(
       // Try to find the specific account matching this tradeline
       const match = accounts.find((a) => {
         // Handle various extraction shapes (raw string vs ExtractedValue object)
-        const acctNum = a.account_number_partial?.value || a.account_number_partial || a.accountNumber;
-        return (
-          acctNum &&
-          tradeline.accountNumber &&
-          tradeline.accountNumber.includes(String(acctNum))
+        const acctNumValues = getAccountFieldValues(a, "account_number_partial");
+        const acctNum = acctNumValues.find(
+          (candidate) =>
+            typeof candidate === "string"
+              ? candidate.trim().length > 0
+              : candidate != null
+        );
+        return accountNumbersLikelyMatch(
+          tradeline.accountNumber || null,
+          acctNum != null ? String(acctNum) : null
         );
       });
 
       const checkKey = (a: any) => {
-        if (a[key] != null) return true;
+        if (hasMeaningfulAccountFieldValue(a, key)) return true;
         if (key === "payment_history") {
           if (typeof a.payment_pattern === "string" && a.payment_pattern.length > 0) return true;
           if (Array.isArray(a.paymentHistoryDetails) && a.paymentHistoryDetails.length > 0) return true;
@@ -300,6 +366,15 @@ export async function detectDisclosureDeficiency(
           isPresent = true;
         }
       } else if (req.fieldPath === "accounts[].status" && tradeline.status != null && String(tradeline.status).trim().length > 0) {
+        isPresent = true;
+      } else if (
+        req.fieldPath === "accounts[].creditor_name" &&
+        (
+          (tradeline.originalCreditorName != null && String(tradeline.originalCreditorName).trim().length > 0) ||
+          (tradeline.collectionAgencyName != null && String(tradeline.collectionAgencyName).trim().length > 0) ||
+          tradeline.creditorId != null
+        )
+      ) {
         isPresent = true;
       }
     }

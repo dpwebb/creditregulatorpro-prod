@@ -47,6 +47,27 @@ const createEv = <T,>(
   };
 };
 
+const isMeaningfulName = (value: string | null | undefined): value is string => {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+  return normalized !== "unknown" && normalized !== "unknown creditor" && normalized !== "n/a";
+};
+
+const resolveCreditorNameForExtraction = (tradeline: ComprehensiveParseResult["tradelines"][number]): string | undefined => {
+  const candidates = [
+    tradeline.creditorName,
+    tradeline.collectionAgencyName,
+    tradeline.originalCreditorName,
+  ];
+  for (const candidate of candidates) {
+    if (isMeaningfulName(candidate)) {
+      return candidate.trim();
+    }
+  }
+  return undefined;
+};
+
 /**
  * Safely formats a Date object to an ISO string for strict schema fields.
  */
@@ -267,7 +288,7 @@ export function unifiedExtract(
 
   // 4. Map Accounts for Full Extraction
   const accounts: AccountExtraction[] = comprehensive.tradelines.map((t) => ({
-    creditor_name: createEv(t.creditorName)!, // fallback mapped upstream
+    creditor_name: createEv(resolveCreditorNameForExtraction(t))!,
     account_number_partial: createEv(t.accountNumber),
     account_type: createEv(t.accountType),
     responsibility: createEv(t.responsibilityCode),
