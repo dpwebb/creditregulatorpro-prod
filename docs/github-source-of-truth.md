@@ -12,11 +12,17 @@ Staging and production should only run code that exists in GitHub at a known com
 ## Workflow
 
 1. Make source changes in the local staging repo.
-2. Run checks locally.
+2. Run local checks (`typecheck` + `build`) for fast feedback only.
 3. Commit the intended changes.
 4. Push the branch to GitHub.
-5. Deploy staging from the pushed GitHub commit.
-6. Promote to production only from an approved GitHub commit, tag, or release.
+5. Use staging as the primary validation gate for end-to-end behavior.
+6. Promote to production only from an approved staging commit in GitHub.
+
+## Hybrid Validation Model
+
+- Localhost is for rapid compile/type checks and quick UI iteration.
+- Staging is the first authoritative runtime validation environment.
+- Production promotions are blocked unless staging gate checks pass.
 
 ## Rules
 
@@ -77,6 +83,7 @@ The command is a dry run by default. It verifies:
 - the current branch is `staging`,
 - the local branch is clean,
 - local `HEAD` matches `origin/staging`,
+- `pnpm run check:staging-gate` passes,
 - `pnpm run check` passes,
 - the production repository is reachable,
 - the production branch has not moved unexpectedly.
@@ -86,6 +93,14 @@ To promote the exact approved staging commit to production:
 ```bash
 pnpm run promote:production -- --confirm
 ```
+
+Emergency bypass (not normal flow):
+
+```bash
+pnpm run promote:production -- --confirm --skip-staging-gate
+```
+
+Use `--skip-staging-gate` only when staging itself is unavailable and rollback/incident response requires immediate production action.
 
 Default production target:
 

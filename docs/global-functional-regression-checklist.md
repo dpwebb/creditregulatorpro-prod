@@ -4,10 +4,11 @@ Use this document after a full round of edits to validate core behavior across u
 
 ## 1) Test Scope
 
-- Frontend URL: `http://localhost:5175`
-- Backend/API URL: `http://localhost:3333` (do not use as browser app URL)
+- Primary validation URL: `https://staging.creditregulatorpro.com`
+- Local fallback URL (dev-only): `http://localhost:5175`
+- Local backend/API URL (dev-only): `http://localhost:3333` (do not use as browser app URL)
 - Roles covered: `user`, `support`, `admin`
-- Primary goal: confirm major workflows still work and role boundaries are still correct
+- Primary goal: confirm major workflows still work and role boundaries are still correct in staging before production promotion
 
 ## 2) Required Test Data
 
@@ -27,7 +28,8 @@ Suggested accounts:
 1. Start app and verify login page loads: `/login`
 2. Run `pnpm run typecheck`
 3. Run `pnpm run build`
-4. Confirm no fatal server/client console errors during first page load
+4. Run `pnpm run check:staging-gate`
+5. Confirm no fatal server/client console errors during first page load
 
 ## 4) Global Smoke (All Roles)
 
@@ -285,10 +287,11 @@ Verify these pages render with no route error:
 
 ## 9) Automated Mock User Lifecycle (Full Suite)
 
-Use this to simulate the full user lifecycle, including dispute exhaustion and user-function coverage matrix output:
+Use this to simulate the full user lifecycle, including dispute exhaustion and user-function coverage matrix output.
+Primary gate: run through staging first. Use localhost only for script-level debugging.
 
-1. Start app services and confirm API is reachable at `http://localhost:3333`
-2. For localhost CLI runs, place test fixtures under project-local paths (example):
+1. Confirm staging app/API are reachable at `https://staging.creditregulatorpro.com`
+2. For localhost CLI runs (dev fallback only), place test fixtures under project-local paths (example):
    - `.local/fixtures/credit-reports/equifax-creditreport-20260416.pdf`
    - `.local/fixtures/credit-reports/transunion-david-webb-consumer-disclosure.pdf`
 3. For staging/prod runs via Admin UI, upload PDFs directly in `/admin-mock-lifecycle` instead of relying on server-local file paths.

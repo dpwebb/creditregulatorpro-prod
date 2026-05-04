@@ -7,6 +7,7 @@ const DEFAULT_PRODUCTION_BRANCH = "main";
 const args = new Set(process.argv.slice(2));
 const confirm = args.has("--confirm");
 const allowNonFastForward = args.has("--allow-non-fast-forward");
+const skipStagingGate = args.has("--skip-staging-gate");
 
 const productionRepo = process.env.PRODUCTION_REPO_URL || DEFAULT_PRODUCTION_REPO;
 const sourceBranch = process.env.SOURCE_BRANCH || DEFAULT_SOURCE_BRANCH;
@@ -77,6 +78,13 @@ const localHead = runGit(["rev-parse", "HEAD"]);
 const upstreamHead = runGit(["rev-parse", upstream]);
 if (localHead !== upstreamHead) {
   fail(`local HEAD ${localHead} does not match ${upstream} ${upstreamHead}`);
+}
+
+if (!skipStagingGate) {
+  console.log("Running staging validation gate...");
+  run(process.execPath, ["scripts/check-staging-gate.mjs"], { stdio: "inherit" });
+} else {
+  console.log("Skipping staging validation gate (--skip-staging-gate).");
 }
 
 console.log("Running build check...");

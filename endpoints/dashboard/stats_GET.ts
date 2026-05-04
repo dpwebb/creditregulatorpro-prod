@@ -17,6 +17,42 @@ const SUCCESS_OUTCOMES = [
   "PARTIAL",
 ];
 
+function isLocalDevMissingRelationError(error: unknown): boolean {
+  if (process.env.CRP_LOCAL_DEV !== "true") {
+    return false;
+  }
+
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const maybeError = error as { code?: unknown; message?: unknown };
+  const code = typeof maybeError.code === "string" ? maybeError.code : "";
+  const message = typeof maybeError.message === "string" ? maybeError.message : "";
+
+  return code === "42P01" || /relation\s+".*"\s+does not exist/i.test(message);
+}
+
+function buildZeroedOutput(): OutputType {
+  return buildOutput({
+    bureauCount: undefined,
+    tradelineCount: undefined,
+    tradelineLastMonth: undefined,
+    obligationCount: undefined,
+    obligationLastMonth: undefined,
+    packetCount: undefined,
+    packetLastMonth: undefined,
+    recentPackets: [],
+    totalObligation: undefined,
+    exhausted: undefined,
+    successMetrics: undefined,
+    withResponse: undefined,
+    reportArtifactCount: undefined,
+    packetsSent: undefined,
+    violationsFound: undefined,
+  });
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -254,6 +290,13 @@ export async function handle(request: Request) {
       }) satisfies OutputType
     ));
   } catch (error) {
+    if (isLocalDevMissingRelationError(error)) {
+      console.warn(
+        "Dashboard stats fallback: missing relation in local dev bootstrap; returning zeroed stats."
+      );
+      return new Response(JSON.stringify(buildZeroedOutput() satisfies OutputType));
+    }
+
     console.error('Dashboard stats error:', error);
     return handleEndpointError(error);
   }

@@ -639,9 +639,10 @@ function getErrorMessage(error: unknown): string {
 
 function parseArgs(argv: string[]): CliOptions {
   const defaultRunId = Date.now().toString(36);
+  const defaultStagingUrl = process.env.STAGING_APP_URL || "https://staging.creditregulatorpro.com";
   const options: Partial<CliOptions> = {
-    baseUrl: "http://localhost:3333",
-    origin: "https://staging.creditregulatorpro.com",
+    baseUrl: defaultStagingUrl,
+    origin: defaultStagingUrl,
     simulateDayGapDays: 30,
     packetCount: 2,
     password: "MockUser123A",
@@ -754,8 +755,8 @@ Usage:
   pnpm exec tsx scripts/mock-user-lifecycle-e2e.ts --initial-report <file> --followup-report <file> [options]
 
 Options:
-  --base-url <url>                 API base URL (default: http://localhost:3333)
-  --origin <origin>                Origin header for requests (default: https://staging.creditregulatorpro.com)
+  --base-url <url>                 API base URL (default: https://staging.creditregulatorpro.com or STAGING_APP_URL)
+  --origin <origin>                Origin header for requests (default: same as --base-url)
   --initial-report <path>          First uploaded credit report (required)
   --followup-report <path>         Follow-up credit report for 30-day cycle (defaults to first file)
   --simulate-days <n>              Simulated day gap noted in analysis (default: 30)

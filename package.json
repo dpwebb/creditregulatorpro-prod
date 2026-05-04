@@ -11,6 +11,7 @@
     "test:mock-lifecycle": "tsx scripts/mock-user-lifecycle-e2e.ts",
     "bootstrap:local-auth-schema": "tsx scripts/bootstrap-local-auth-schema.ts",
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
+    "check:staging-gate": "node scripts/check-staging-gate.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",
     "promote:production": "node scripts/promote-production.mjs"
   },

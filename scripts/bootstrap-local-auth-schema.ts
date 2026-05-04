@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
+import { hash } from "bcryptjs";
 
 type EnvMap = Record<string, string>;
 
@@ -59,6 +60,15 @@ function resolveLocalDatabaseUrl(): string {
 async function main() {
   const databaseUrl = resolveLocalDatabaseUrl();
   const sql = postgres(databaseUrl, { prepare: false, max: 1 });
+  const localAdminEmail =
+    (process.env.LOCAL_DEV_ADMIN_EMAIL || "local.admin@creditregulatorpro.local")
+      .trim()
+      .toLowerCase();
+  const localAdminPassword =
+    process.env.LOCAL_DEV_ADMIN_PASSWORD || "LocalAdmin123";
+  const localAdminDisplayName = process.env.LOCAL_DEV_ADMIN_NAME || "Local Admin";
+  const localAdminSignature =
+    process.env.LOCAL_DEV_ADMIN_SIGNATURE || "Local Admin";
 
   try {
     await sql`create table if not exists public.users (
@@ -185,7 +195,67 @@ async function main() {
         ('DOMAIN_GUARD_MODE', 'log_only', 'origin guard mode', now(), null)
       on conflict (key) do update set value = excluded.value, updated_at = now()`;
 
+    // Seed/reset a deterministic local admin account to prevent localhost login lockouts
+    // after database/environment resets.
+    const passwordHash = await hash(localAdminPassword, 12);
+    const adminRows = await sql`
+      insert into public.users (email, display_name, role, email_verified)
+      values (${localAdminEmail}, ${localAdminDisplayName}, 'admin', true)
+      on conflict (email)
+      do update set
+        display_name = excluded.display_name,
+        role = 'admin',
+        email_verified = true
+      returning id
+    `;
+    const adminId = Number(adminRows[0]?.id);
+
+    if (!Number.isFinite(adminId)) {
+      throw new Error("Failed to resolve seeded local admin user id.");
+    }
+
+    await sql`
+      insert into public.user_passwords (user_id, password_hash)
+      values (${adminId}, ${passwordHash})
+      on conflict (user_id)
+      do update set password_hash = excluded.password_hash
+    `;
+
+    await sql`
+      insert into public.user_account (
+        user_id,
+        email,
+        full_name,
+        legal_name_signature,
+        role,
+        region,
+        terms_accepted_at,
+        terms_accepted_version
+      )
+      values (
+        ${adminId},
+        ${localAdminEmail},
+        ${localAdminDisplayName},
+        ${localAdminSignature},
+        'admin',
+        'CA',
+        now(),
+        'v1'
+      )
+      on conflict (user_id)
+      do update set
+        email = excluded.email,
+        full_name = excluded.full_name,
+        legal_name_signature = excluded.legal_name_signature,
+        role = 'admin',
+        region = 'CA',
+        terms_accepted_at = coalesce(public.user_account.terms_accepted_at, now()),
+        terms_accepted_version = coalesce(public.user_account.terms_accepted_version, 'v1')
+    `;
+
     console.log("Local auth schema bootstrap complete.");
+    console.log(`Seeded local admin email: ${localAdminEmail}`);
+    console.log("Seeded local admin password: (value from LOCAL_DEV_ADMIN_PASSWORD or default)");
   } finally {
     await sql.end({ timeout: 1 });
   }
@@ -195,4 +265,3 @@ main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
-

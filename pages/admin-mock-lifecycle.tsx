@@ -41,20 +41,8 @@ export default function AdminMockLifecyclePage() {
   const [packetCount, setPacketCount] = useState("2");
   const [strict, setStrict] = useState(false);
   const [useDbAssist, setUseDbAssist] = useState(true);
-  const [baseUrl, setBaseUrl] = useState(() => {
-    if (typeof window === "undefined") {
-      return "http://localhost:3333";
-    }
-    return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:3333"
-      : window.location.origin;
-  });
-  const [origin, setOrigin] = useState(() => {
-    if (typeof window === "undefined") {
-      return "http://localhost:5175";
-    }
-    return window.location.origin;
-  });
+  const [baseUrl, setBaseUrl] = useState("");
+  const [origin, setOrigin] = useState("");
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const lifecycleList = useAdminMockLifecycleList(40);
@@ -111,6 +99,8 @@ export default function AdminMockLifecyclePage() {
     event.preventDefault();
     const initialPath = initialReportPath.trim();
     const followupPath = followupReportPath.trim();
+    const baseUrlValue = baseUrl.trim();
+    const originValue = origin.trim();
 
     if (!initialPath && !initialReportUpload) {
       toast.error("Provide an initial report path or upload an initial PDF.");
@@ -126,8 +116,8 @@ export default function AdminMockLifecyclePage() {
       packetCount: Number(packetCount),
       strict,
       useDbAssist,
-      baseUrl,
-      origin,
+      ...(baseUrlValue ? { baseUrl: baseUrlValue } : {}),
+      ...(originValue ? { origin: originValue } : {}),
     });
     setSelectedJobId(response.job.jobId);
   };
@@ -245,11 +235,19 @@ export default function AdminMockLifecyclePage() {
             <div className={styles.row}>
               <label className={styles.field}>
                 <span>API base URL</span>
-                <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+                <Input
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder="Optional override (defaults to current environment)"
+                />
               </label>
               <label className={styles.field}>
                 <span>Origin header</span>
-                <Input value={origin} onChange={(e) => setOrigin(e.target.value)} />
+                <Input
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                  placeholder="Optional override (defaults to current environment)"
+                />
               </label>
             </div>
             <label className={styles.inlineCheck}>

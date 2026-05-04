@@ -2,7 +2,11 @@ import fs from 'fs'
 
 function applyEnvConfig(envConfig, options = {}) {
   const overrideExisting = options.overrideExisting === true;
+  const preserveExistingKeys = new Set(options.preserveExistingKeys || []);
   Object.keys(envConfig).forEach((key) => {
+    if (preserveExistingKeys.has(key) && process.env[key]) {
+      return;
+    }
     if (
       envConfig[key] != null &&
       envConfig[key] !== '' &&
@@ -66,7 +70,11 @@ if (!isProductionRuntime() && fs.existsSync('env.json')) {
   const envConfig = JSON.parse(fs.readFileSync('env.json', 'utf8'));
 
   // Local project config should be authoritative for this repository in dev/runtime.
-  applyEnvConfig(envConfig, { overrideExisting: true });
+  // Keep explicit runtime overrides for host/port URLs so local starts can pin expected endpoints.
+  applyEnvConfig(envConfig, {
+    overrideExisting: true,
+    preserveExistingKeys: ["APP_BASE_URL", "PREVIEW_URL"],
+  });
 }
 
 if (
@@ -77,7 +85,10 @@ if (
   const globalEnvConfig = parseEnvFile(fs.readFileSync(process.env.GLOBAL_SECRETS_PATH, 'utf8'));
 
   // Ensure local runtime always uses current global-secrets values, not stale ambient env values.
-  applyEnvConfig(globalEnvConfig, { overrideExisting: true });
+  applyEnvConfig(globalEnvConfig, {
+    overrideExisting: true,
+    preserveExistingKeys: ["PORT", "APP_BASE_URL", "PREVIEW_URL", "LOCAL_DATABASE_NAME"],
+  });
 }
 
 if (isLocalDevBootstrapEnabled()) {
