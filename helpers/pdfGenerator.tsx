@@ -1,6 +1,7 @@
 import PdfPrinter from "pdfmake";
 import type { TDocumentDefinitions, TFontDictionary, Content } from "pdfmake/interfaces";
 import { generatePdfWatermark } from "./contentMarker";
+import { lintLetterContentForRegulatorSafety } from "./letterSafetyLinter";
 
 const ROBOTO_FONTS = {
   normal: {
@@ -149,6 +150,8 @@ export async function generatePDF(
       },
     };
   } else {
+    const safeContent = lintLetterContentForRegulatorSafety(content);
+
     // Structured legal letter format
     const documentContent: Content[] = [];
     
@@ -163,16 +166,16 @@ export async function generatePDF(
         {
           width: "*",
           stack: [
-            { text: content.consumerName, style: "consumerInfo" },
-            ...content.consumerAddress.map(line => ({ text: line, style: "consumerInfo" })),
-            ...(content.consumerDOB ? [{ text: `DOB: ${content.consumerDOB}`, style: "consumerInfo" }] : []),
-            ...(content.consumerPhone ? [{ text: `Phone: ${content.consumerPhone}`, style: "consumerInfo" }] : []),
-            ...(content.consumerEmail ? [{ text: `Email: ${content.consumerEmail}`, style: "consumerInfo" }] : []),
+            { text: safeContent.consumerName, style: "consumerInfo" },
+            ...safeContent.consumerAddress.map(line => ({ text: line, style: "consumerInfo" })),
+            ...(safeContent.consumerDOB ? [{ text: `DOB: ${safeContent.consumerDOB}`, style: "consumerInfo" }] : []),
+            ...(safeContent.consumerPhone ? [{ text: `Phone: ${safeContent.consumerPhone}`, style: "consumerInfo" }] : []),
+            ...(safeContent.consumerEmail ? [{ text: `Email: ${safeContent.consumerEmail}`, style: "consumerInfo" }] : []),
           ],
         },
         {
           width: "auto",
-          text: content.letterDate,
+          text: safeContent.letterDate,
           style: "date",
         },
       ],
@@ -182,49 +185,49 @@ export async function generatePDF(
     // Recipient address block
     documentContent.push({
       stack: [
-        { text: content.recipientName, style: "recipientInfo" },
-        ...content.recipientAddress.map(line => ({ text: line, style: "recipientInfo" })),
+        { text: safeContent.recipientName, style: "recipientInfo" },
+        ...safeContent.recipientAddress.map(line => ({ text: line, style: "recipientInfo" })),
       ],
       margin: [0, 0, 0, 24],
     });
 
     // Subject line
     documentContent.push({
-      text: content.subject,
+      text: safeContent.subject,
       style: "subject",
       margin: [0, 0, 0, 16],
     });
 
     // Introduction
     documentContent.push({
-      text: content.introduction,
+      text: safeContent.introduction,
       style: "bodyText",
       margin: [0, 0, 0, 12],
     });
 
     // Account Identification
-    if (content.accountIdentification) {
+    if (safeContent.accountIdentification) {
       documentContent.push({
         text: "Account Identification",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
       documentContent.push({
-        text: content.accountIdentification,
+        text: safeContent.accountIdentification,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
     }
 
     // Disputed Items
-    if (content.disputedItems) {
+    if (safeContent.disputedItems) {
       documentContent.push({
         text: "Disputed Items",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
       documentContent.push({
-        text: content.disputedItems,
+        text: safeContent.disputedItems,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
@@ -232,20 +235,20 @@ export async function generatePDF(
 
     // Statutory Grounds
     documentContent.push({
-      text: content.statutoryGrounds,
+      text: safeContent.statutoryGrounds,
       style: "bodyText",
       margin: [0, 0, 0, 12],
     });
 
     // Supporting Documentation
-    if (content.supportingDocumentation) {
+    if (safeContent.supportingDocumentation) {
       documentContent.push({
         text: "Supporting Documentation",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
       documentContent.push({
-        text: content.supportingDocumentation,
+        text: safeContent.supportingDocumentation,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
@@ -253,43 +256,43 @@ export async function generatePDF(
 
     // Requested Action
     documentContent.push({
-      text: content.requestedAction,
+      text: safeContent.requestedAction,
       style: "bodyText",
       margin: [0, 0, 0, 12],
     });
 
     // Statutory Timeframe
-    if (content.statutoryTimeframe) {
+    if (safeContent.statutoryTimeframe) {
       documentContent.push({
-        text: content.statutoryTimeframe,
+        text: safeContent.statutoryTimeframe,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
     }
 
     // Consumer Statement Right
-    if (content.consumerStatementRight) {
+    if (safeContent.consumerStatementRight) {
       documentContent.push({
         text: "Consumer Statement Right",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
       documentContent.push({
-        text: content.consumerStatementRight,
+        text: safeContent.consumerStatementRight,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
     }
 
     // Delivery Confirmation
-    if (content.deliveryConfirmation) {
+    if (safeContent.deliveryConfirmation) {
       documentContent.push({
         text: "Delivery Confirmation",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
       documentContent.push({
-        text: content.deliveryConfirmation,
+        text: safeContent.deliveryConfirmation,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
@@ -297,28 +300,28 @@ export async function generatePDF(
 
     // Certification
     documentContent.push({
-      text: content.certification,
+      text: safeContent.certification,
       style: "bodyText",
       margin: [0, 0, 0, 16],
     });
 
     // Closing and signature block
     documentContent.push({
-      text: content.closing,
+      text: safeContent.closing,
       style: "bodyText",
       margin: [0, 0, 0, 8],
     });
 
     // Signature image, SVG, or blank lines for handwritten signature
-    if (content.signatureSvg) {
+    if (safeContent.signatureSvg) {
       documentContent.push({
-        svg: content.signatureSvg,
+        svg: safeContent.signatureSvg,
         width: 150,
         margin: [0, 8, 0, 8],
       });
-    } else if (content.signatureImage) {
+    } else if (safeContent.signatureImage) {
       documentContent.push({
-        image: content.signatureImage,
+        image: safeContent.signatureImage,
         width: 150,
         height: 50,
         margin: [0, 8, 0, 8],
@@ -332,13 +335,13 @@ export async function generatePDF(
 
     // Typed name
     documentContent.push({
-      text: content.consumerName,
+      text: safeContent.consumerName,
       style: "bodyText",
       margin: [0, 0, 0, 24],
     });
 
     // Tracking and Delivery Information (if provided)
-    if (content.trackingPlaceholder || content.deliveryInstructions) {
+    if (safeContent.trackingPlaceholder || safeContent.deliveryInstructions) {
       documentContent.push({
         canvas: [
           {
@@ -346,7 +349,7 @@ export async function generatePDF(
             x: 0,
             y: 0,
             w: 468, // Page width minus margins (612 - 72*2 = 468)
-            h: content.trackingPlaceholder && content.deliveryInstructions ? 80 : 40,
+            h: safeContent.trackingPlaceholder && safeContent.deliveryInstructions ? 80 : 40,
             color: "#f5f5f5",
           },
         ],
@@ -355,21 +358,21 @@ export async function generatePDF(
 
             documentContent.push({
         stack: [
-          ...(content.trackingPlaceholder ? [
+          ...(safeContent.trackingPlaceholder ? [
             {
               text: "Delivery Tracking",
               style: "trackingHeading",
               margin: [8, 8, 8, 4] as [number, number, number, number],
             },
             {
-              text: `Temporary Tracking ID: ${content.trackingPlaceholder}`,
+              text: `Temporary Tracking ID: ${safeContent.trackingPlaceholder}`,
               style: "trackingPlaceholder",
               margin: [8, 0, 8, 8] as [number, number, number, number],
             },
           ] : []),
-          ...(content.deliveryInstructions ? [
+          ...(safeContent.deliveryInstructions ? [
             {
-              text: content.deliveryInstructions,
+              text: safeContent.deliveryInstructions,
               style: "deliveryInstructions",
               margin: [8, 0, 8, 8] as [number, number, number, number],
             },
@@ -402,15 +405,15 @@ export async function generatePDF(
     });
 
     // Footer with statutory reference
-    if (content.statutoryReference || content.sourceUrl) {
+    if (safeContent.statutoryReference || safeContent.sourceUrl) {
       documentContent.push({
         stack: [
-          ...(content.statutoryReference ? [{
-            text: content.statutoryReference,
+          ...(safeContent.statutoryReference ? [{
+            text: safeContent.statutoryReference,
             style: "footer",
           }] : []),
-          ...(content.sourceUrl ? [{
-            text: content.sourceUrl,
+          ...(safeContent.sourceUrl ? [{
+            text: safeContent.sourceUrl,
             style: "footer",
           }] : []),
         ],

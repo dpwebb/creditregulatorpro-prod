@@ -1,4 +1,5 @@
 import type { LetterContent } from "./pdfGenerator";
+import { lintLetterContentForRegulatorSafety } from "./letterSafetyLinter";
 
 const NARRATIVE_KEYS = [
   "introduction",
@@ -183,25 +184,26 @@ export async function letterHumanizer(
   letterContent: LetterContent
 ): Promise<LetterContent> {
   const locallyStreamlined = streamlineLetterContent(letterContent);
+  const locallySafe = lintLetterContentForRegulatorSafety(locallyStreamlined);
 
   try {
     if (!process.env.OPENAI_API_KEY) {
-      return locallyStreamlined;
+      return locallySafe;
     }
 
     // 1. Extract the narrative sections that need humanizing
     const sectionsToHumanize: Record<string, string> = {};
 
-    if (locallyStreamlined.introduction) sectionsToHumanize.introduction = locallyStreamlined.introduction;
-    if (locallyStreamlined.disputedItems) sectionsToHumanize.disputedItems = locallyStreamlined.disputedItems;
-    if (locallyStreamlined.statutoryGrounds) sectionsToHumanize.statutoryGrounds = locallyStreamlined.statutoryGrounds;
-    if (locallyStreamlined.requestedAction) sectionsToHumanize.requestedAction = locallyStreamlined.requestedAction;
-    if (locallyStreamlined.statutoryTimeframe) sectionsToHumanize.statutoryTimeframe = locallyStreamlined.statutoryTimeframe;
-    if (locallyStreamlined.certification) sectionsToHumanize.certification = locallyStreamlined.certification;
+    if (locallySafe.introduction) sectionsToHumanize.introduction = locallySafe.introduction;
+    if (locallySafe.disputedItems) sectionsToHumanize.disputedItems = locallySafe.disputedItems;
+    if (locallySafe.statutoryGrounds) sectionsToHumanize.statutoryGrounds = locallySafe.statutoryGrounds;
+    if (locallySafe.requestedAction) sectionsToHumanize.requestedAction = locallySafe.requestedAction;
+    if (locallySafe.statutoryTimeframe) sectionsToHumanize.statutoryTimeframe = locallySafe.statutoryTimeframe;
+    if (locallySafe.certification) sectionsToHumanize.certification = locallySafe.certification;
 
     // If there's nothing to humanize, just return the original
     if (Object.keys(sectionsToHumanize).length === 0) {
-      return locallyStreamlined;
+      return locallySafe;
     }
 
     // 2. Define the system prompt
@@ -254,19 +256,19 @@ Rules:
     const rewrittenSections = JSON.parse(rewrittenTextRaw) as Record<string, string>;
 
     const mergedContent = {
-      ...locallyStreamlined,
-      introduction: rewrittenSections.introduction ?? locallyStreamlined.introduction,
-      disputedItems: rewrittenSections.disputedItems ?? locallyStreamlined.disputedItems,
-      statutoryGrounds: rewrittenSections.statutoryGrounds ?? locallyStreamlined.statutoryGrounds,
-      requestedAction: rewrittenSections.requestedAction ?? locallyStreamlined.requestedAction,
-      statutoryTimeframe: rewrittenSections.statutoryTimeframe ?? locallyStreamlined.statutoryTimeframe,
-      certification: rewrittenSections.certification ?? locallyStreamlined.certification,
+      ...locallySafe,
+      introduction: rewrittenSections.introduction ?? locallySafe.introduction,
+      disputedItems: rewrittenSections.disputedItems ?? locallySafe.disputedItems,
+      statutoryGrounds: rewrittenSections.statutoryGrounds ?? locallySafe.statutoryGrounds,
+      requestedAction: rewrittenSections.requestedAction ?? locallySafe.requestedAction,
+      statutoryTimeframe: rewrittenSections.statutoryTimeframe ?? locallySafe.statutoryTimeframe,
+      certification: rewrittenSections.certification ?? locallySafe.certification,
     };
 
-    return streamlineLetterContent(mergedContent);
+    return lintLetterContentForRegulatorSafety(streamlineLetterContent(mergedContent));
   } catch (error) {
     // 5. Fallback on any error
     console.error("Failed to humanize letter content. Falling back to original template.", error instanceof Error ? error.message : error);
-    return locallyStreamlined;
+    return locallySafe;
   }
 }

@@ -5,7 +5,7 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 
 export async function handle(request: Request) {
   try {
-    await getServerUserSession(request);
+    const { user } = await getServerUserSession(request);
 
     const url = new URL(request.url);
     const packetIdParam = url.searchParams.get("packetId");
@@ -18,6 +18,7 @@ export async function handle(request: Request) {
       .where("id", "=", parsed.packetId)
       .select([
         "id",
+        "userId",
         "tradelineId",
         "status",
         "baselineSnapshotId",
@@ -32,6 +33,10 @@ export async function handle(request: Request) {
         baselineSnapshot: null,
         followupSnapshot: null,
       } satisfies OutputType));
+    }
+
+    if (user.role !== "admin" && packet.userId !== user.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized access to packet impact" }), { status: 403 });
     }
 
     // Fetch the assessment
@@ -63,7 +68,13 @@ export async function handle(request: Request) {
 
     return new Response(JSON.stringify({
       assessment,
-      packet,
+      packet: {
+        id: packet.id,
+        tradelineId: packet.tradelineId,
+        status: packet.status,
+        baselineSnapshotId: packet.baselineSnapshotId,
+        createdAt: packet.createdAt,
+      },
       baselineSnapshot,
       followupSnapshot,
     } satisfies OutputType));
