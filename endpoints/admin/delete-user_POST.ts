@@ -2,9 +2,18 @@ import { schema, OutputType } from "./delete-user_POST.schema";
 import { db } from "../../helpers/db";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
-import { deleteReportArtifactCascade } from "../../helpers/deleteReportArtifactCascade";
+import { deleteReportArtifactCascade, deleteTradeline } from "../../helpers/deleteReportArtifactCascade";
 import { logAudit } from "../../helpers/auditLogger";
 
+function isOptionalSchemaError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (((error as { code?: unknown }).code === "42P01") || // undefined_table
+      ((error as { code?: unknown }).code === "42703")) // undefined_column
+  );
+}
 
 export async function handle(request: Request) {
   try {
@@ -166,21 +175,61 @@ export async function handle(request: Request) {
       .executeTakeFirst();
     purgedCounts["oauthAccounts"] = Number(deleteOauthResult.numDeletedRows || 0);
 
-    // 17. Delete user_passwords
+    // 17. Delete password_reset_tokens (optional for older schemas)
+    try {
+      const deletePasswordResetTokensResult = await db
+        .deleteFrom("passwordResetTokens")
+        .where("userId", "=", targetUser.id)
+        .executeTakeFirst();
+      purgedCounts["passwordResetTokens"] = Number(deletePasswordResetTokensResult.numDeletedRows || 0);
+    } catch (error) {
+      if (!isOptionalSchemaError(error)) {
+        throw error;
+      }
+      purgedCounts["passwordResetTokens"] = 0;
+      console.warn(`[delete-user] Skipping passwordResetTokens cleanup due to schema mismatch:`, error);
+    }
+
+    // 18. Delete user_passwords
     const deletePasswordsResult = await db
       .deleteFrom("userPasswords")
       .where("userId", "=", targetUser.id)
       .executeTakeFirst();
     purgedCounts["userPasswords"] = Number(deletePasswordsResult.numDeletedRows || 0);
 
-    // 18. Delete user_account
+    // 19. Delete user_account
     const deleteUserAccountResult = await db
       .deleteFrom("userAccount")
       .where("userId", "=", targetUser.id)
       .executeTakeFirst();
     purgedCounts["userAccounts"] = Number(deleteUserAccountResult.numDeletedRows || 0);
 
-    // 19. Log the deletion in audit_log as the admin
+    // 20. Delete standalone tradelines (created manually without reportArtifact linkage).
+    // This prevents FK violations when deleting the user record.
+    try {
+      const standaloneTradelines = await db
+        .selectFrom("tradeline")
+        .select("id")
+        .where("userId", "=", targetUser.id)
+        .execute();
+
+      let deletedStandaloneTradelines = 0;
+      for (const tradeline of standaloneTradelines) {
+        await db.transaction().execute(async (trx) => {
+          await deleteTradeline(trx, tradeline.id, adminUser.id);
+        });
+        deletedStandaloneTradelines++;
+      }
+      purgedCounts["standaloneTradelines"] = deletedStandaloneTradelines;
+    } catch (error) {
+      if (!isOptionalSchemaError(error)) {
+        throw error;
+      }
+      purgedCounts["standaloneTradelines"] = 0;
+      console.warn(`[delete-user] Skipping standalone tradeline cleanup due to schema mismatch:`, error);
+    }
+
+    // 21. Log the deletion in audit_log as the admin
     await logAudit({
       action: "DELETE",
       entityType: "USER_ACCOUNT",
@@ -195,14 +244,14 @@ export async function handle(request: Request) {
       request,
     });
 
-    // 20. Delete remaining audit_log entries belonging to the deleted user
+    // 22. Delete remaining audit_log entries belonging to the deleted user
     const deleteAuditLogResult = await db
       .deleteFrom("auditLog")
       .where("userId", "=", targetUser.id)
       .executeTakeFirst();
     purgedCounts["auditLogs"] = Number(deleteAuditLogResult.numDeletedRows || 0);
 
-    // 20b. SET NULL on FK columns referencing users.id to avoid FK constraint violations on user deletion
+    // 22b. SET NULL on FK columns referencing users.id to avoid FK constraint violations on user deletion
 
     // evidence_attachment.uploaded_by
     const nullifyEvidenceAttachmentResult = await db
@@ -279,7 +328,7 @@ export async function handle(request: Request) {
       systemSettingsNullified: purgedCounts["systemSettingsNullified"],
     });
 
-    // 21. Finally, delete the core user record
+    // 23. Finally, delete the core user record
     const deleteUsersResult = await db
       .deleteFrom("users")
       .where("id", "=", targetUser.id)
