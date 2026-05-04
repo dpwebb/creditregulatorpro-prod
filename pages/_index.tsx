@@ -125,6 +125,9 @@ function DashboardContent() {
               <Button asChild variant="outline">
                 <Link to="/admin-version-management"><GitBranch size={16} /> Version Management</Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin-mock-lifecycle"><BarChart3 size={16} /> Lifecycle Testing</Link>
+              </Button>
             </div>
 
             <div className={styles.hiddenRiskSection}>

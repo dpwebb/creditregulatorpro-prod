@@ -150,6 +150,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
       {
         group: "Tools",
         items: [
+          { path: "/admin-mock-lifecycle", label: "Lifecycle Testing", icon: ClipboardCheck },
           { path: "/admin-parser-testing", label: "Parser Testing", icon: FlaskConical },
           { path: "/admin-parser-mappings", label: "Parser Mappings", icon: Settings2 },
           { path: "/admin-version-management", label: "Version Management", icon: GitBranch },

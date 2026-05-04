@@ -1,0 +1,227 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notice {
+  background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 35%, transparent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 16px;
+}
+
+.panel {
+  border: 1px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent);
+  border-radius: 12px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--background, #0b1020) 92%, #000 8%);
+}
+
+.panelTitle {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.inlineCheck {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.jobList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 460px;
+  overflow: auto;
+}
+
+.jobItem {
+  border: 1px solid color-mix(in srgb, var(--foreground, #fff) 15%, transparent);
+  background: color-mix(in srgb, var(--background, #0b1020) 97%, #000 3%);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jobItem:hover {
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 40%, transparent);
+}
+
+.jobItemActive {
+  border-color: color-mix(in srgb, var(--primary, #2563eb) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary, #2563eb) 35%, transparent);
+}
+
+.jobItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.jobId {
+  font-size: 12px;
+}
+
+.jobMeta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.empty {
+  padding: 14px;
+  border: 1px dashed color-mix(in srgb, var(--foreground, #fff) 20%, transparent);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.selectedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.metaGrid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  font-size: 13px;
+}
+
+.errorBox {
+  margin-top: 10px;
+  border: 1px solid color-mix(in srgb, var(--error, #ef4444) 40%, transparent);
+  background: color-mix(in srgb, var(--error, #ef4444) 12%, transparent);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.runningBox {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.summaryGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.summaryCard {
+  border: 1px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.summaryCard strong {
+  font-size: 18px;
+}
+
+.tableWrap {
+  margin-top: 16px;
+}
+
+.tableWrap h3 {
+  margin: 0 0 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  border: 1px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent);
+  padding: 7px 8px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.logsWrap {
+  margin-top: 16px;
+}
+
+.logsWrap h3 {
+  margin: 0 0 8px;
+}
+
+.logs {
+  margin: 0;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--foreground, #fff) 10%, transparent);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  background: color-mix(in srgb, #000 25%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
