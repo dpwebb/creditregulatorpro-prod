@@ -93,6 +93,35 @@
   gap: var(--spacing-5);
 }
 
+.resultTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.resultTabButton {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: var(--spacing-2) var(--spacing-3);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.resultTabButton:hover {
+  color: var(--foreground);
+}
+
+.resultTabButtonActive {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
 .emptyState {
   display: flex;
   min-height: 280px;

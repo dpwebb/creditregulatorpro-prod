@@ -104,12 +104,50 @@ function humanizeKey(value: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function formatAuditCell(value: unknown): string {
+function truncateAuditValue(value: string): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized.length > 100 ? `${normalized.slice(0, 100)}...` : normalized;
+}
+
+function formatAuditScalar(value: unknown): string {
   if (value == null) return "";
-  if (typeof value === "string") return hasReportedValue(value) ? value : "";
+  if (typeof value === "string") {
+    if (!hasReportedValue(value)) return "";
+    const date = new Date(value);
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-CA");
+    }
+    return value;
+  }
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
-  if (typeof value === "boolean") return value ? "true" : "false";
-  return JSON.stringify(value, null, 2);
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return "";
+}
+
+function formatAuditCell(value: unknown): string {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "";
+    const first = value[0];
+    const preview = isPlainRecord(first)
+      ? Object.entries(first)
+          .slice(0, 4)
+          .map(([key, entryValue]) => `${humanizeKey(key)}: ${formatAuditScalar(entryValue)}`)
+          .filter((part) => !part.endsWith(": "))
+          .join("; ")
+      : value.map(formatAuditScalar).filter(Boolean).join(", ");
+    return truncateAuditValue(`${value.length} item${value.length === 1 ? "" : "s"}${preview ? ` - ${preview}` : ""}`);
+  }
+
+  if (isPlainRecord(value)) {
+    const preview = Object.entries(value)
+      .slice(0, 6)
+      .map(([key, entryValue]) => `${humanizeKey(key)}: ${formatAuditScalar(entryValue)}`)
+      .filter((part) => !part.endsWith(": "))
+      .join("; ");
+    return truncateAuditValue(preview);
+  }
+
+  return truncateAuditValue(formatAuditScalar(value));
 }
 
 function sectionValue(source: any, key: string): unknown {
@@ -290,11 +328,7 @@ function AuditObjectSection({ title, value }: { title: string; value: unknown })
           entries.map(([key, entryValue]) => (
             <div key={key} className={styles.auditField}>
               <span className={styles.fieldLabel}>{humanizeKey(key)}</span>
-              {isPlainRecord(entryValue) || Array.isArray(entryValue) ? (
-                <pre className={styles.auditJson}>{formatAuditCell(entryValue)}</pre>
-              ) : (
-                <span className={styles.fieldValue}>{formatAuditCell(entryValue)}</span>
-              )}
+              <span className={styles.fieldValue}>{formatAuditCell(entryValue)}</span>
             </div>
           ))
         ) : (
@@ -334,13 +368,7 @@ function AuditArraySection({ title, value }: { title: string; value: unknown }) 
                   {columns.map((column) => {
                     const cell = record[column];
                     return (
-                      <td key={column}>
-                        {isPlainRecord(cell) || Array.isArray(cell) ? (
-                          <pre className={styles.auditJson}>{formatAuditCell(cell)}</pre>
-                        ) : (
-                          formatAuditCell(cell)
-                        )}
-                      </td>
+                      <td key={column}>{formatAuditCell(cell)}</td>
                     );
                   })}
                 </tr>
@@ -402,6 +430,7 @@ export function ParserLabStageTab() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [allowAiFallback, setAllowAiFallback] = useState(true);
   const [result, setResult] = useState<ParserLabResult | null>(null);
+  const [activeResultTab, setActiveResultTab] = useState<"results" | "audit">("results");
   const runMutation = useRunParserLabStage();
 
   const handleFilesSelected = (files: File[]) => {
@@ -409,6 +438,7 @@ export function ParserLabStageTab() {
     if (!file) return;
     setSelectedFile(file);
     setResult(null);
+    setActiveResultTab("results");
   };
 
   const handleRun = async () => {
@@ -426,6 +456,7 @@ export function ParserLabStageTab() {
         allowAiFallback,
       });
       setResult(nextResult);
+      setActiveResultTab("results");
       toast.success("Parser lab run completed");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Parser lab run failed");
@@ -435,6 +466,7 @@ export function ParserLabStageTab() {
   const reset = () => {
     setSelectedFile(null);
     setResult(null);
+    setActiveResultTab("results");
     runMutation.reset();
   };
 
@@ -498,7 +530,26 @@ export function ParserLabStageTab() {
             </div>
           ) : (
             <>
-              <div className={styles.panel}>
+              <div className={styles.resultTabs} role="tablist" aria-label="Parser lab result views">
+                <button
+                  type="button"
+                  className={`${styles.resultTabButton} ${activeResultTab === "results" ? styles.resultTabButtonActive : ""}`}
+                  onClick={() => setActiveResultTab("results")}
+                >
+                  Stage Lab Results
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.resultTabButton} ${activeResultTab === "audit" ? styles.resultTabButtonActive : ""}`}
+                  onClick={() => setActiveResultTab("audit")}
+                >
+                  Complete Parsed Output
+                </button>
+              </div>
+
+              {activeResultTab === "results" ? (
+                <>
+                  <div className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <div>
                     <h3 className={styles.panelTitle}>Run Summary</h3>
@@ -525,7 +576,7 @@ export function ParserLabStageTab() {
                 </div>
               </div>
 
-              <div className={styles.panel}>
+                  <div className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <h3 className={styles.panelTitle}>Retention Metrics</h3>
                   <Badge variant={result.quality.requiresManualReview ? "warning" : "success"}>
@@ -574,7 +625,7 @@ export function ParserLabStageTab() {
                 </div>
               </div>
 
-              <div className={styles.panel}>
+                  <div className={styles.panel}>
                 <div className={styles.panelHeader}>
                   <h3 className={styles.panelTitle}>Extracted Counts</h3>
                 </div>
@@ -598,8 +649,8 @@ export function ParserLabStageTab() {
                 </div>
               </div>
 
-              {(result.quality.issues.length > 0 || result.retention.blockers.length > 0) && (
-                <div className={styles.panel}>
+                  {(result.quality.issues.length > 0 || result.retention.blockers.length > 0) && (
+                    <div className={styles.panel}>
                   <div className={styles.panelHeader}>
                     <h3 className={styles.panelTitle}>Quality Gates</h3>
                   </div>
@@ -623,10 +674,10 @@ export function ParserLabStageTab() {
                     ))}
                   </div>
                 </div>
-              )}
+                  )}
 
-              {result.reviewQueue.length > 0 && (
-                <div className={styles.panel}>
+                  {result.reviewQueue.length > 0 && (
+                    <div className={styles.panel}>
                   <div className={styles.panelHeader}>
                     <h3 className={styles.panelTitle}>Review Queue</h3>
                     <Badge variant="warning">{result.reviewQueue.length}</Badge>
@@ -656,12 +707,6 @@ export function ParserLabStageTab() {
                               ))}
                             </div>
 
-                            {tradeline && (
-                              <TradelineFieldGrid tradeline={tradeline} className={styles.reviewSummaryGrid} />
-                            )}
-
-                            {tradeline && <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />}
-
                             {item.sourceTextPreview && (
                               <details className={styles.evidenceDetails}>
                                 <summary>Source evidence preview</summary>
@@ -674,10 +719,10 @@ export function ParserLabStageTab() {
                     ))}
                   </div>
                 </div>
-              )}
+                  )}
 
-              {result.parsed.tradelines && Array.isArray(result.parsed.tradelines) && (
-                <div className={styles.panel}>
+                  {result.parsed.tradelines && Array.isArray(result.parsed.tradelines) && (
+                    <div className={styles.panel}>
                   <div className={styles.panelHeader}>
                     <h3 className={styles.panelTitle}>Parsed Tradelines</h3>
                   </div>
@@ -709,16 +754,18 @@ export function ParserLabStageTab() {
                     ))}
                   </div>
                 </div>
+                  )}
+
+                  <div className={styles.panel}>
+                    <div className={styles.panelHeader}>
+                      <h3 className={styles.panelTitle}>Raw Text Preview</h3>
+                    </div>
+                    <pre className={styles.pre}>{result.rawTextPreview}</pre>
+                  </div>
+                </>
+              ) : (
+                <CompleteParsedOutput result={result} />
               )}
-
-              <CompleteParsedOutput result={result} />
-
-              <div className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <h3 className={styles.panelTitle}>Raw Text Preview</h3>
-                </div>
-                <pre className={styles.pre}>{result.rawTextPreview}</pre>
-              </div>
             </>
           )}
         </section>
