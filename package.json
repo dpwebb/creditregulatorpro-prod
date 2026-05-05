@@ -14,6 +14,7 @@
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "bootstrap:local-auth-schema": "tsx scripts/bootstrap-local-auth-schema.ts",
     "bootstrap:local-app-fixtures": "tsx scripts/bootstrap-local-app-fixtures.ts",
+    "refresh:local-from-staging": "node scripts/refresh-local-from-staging.mjs",
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
     "check:staging-gate": "node scripts/check-staging-gate.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",

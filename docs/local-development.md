@@ -65,6 +65,33 @@ pnpm run bootstrap:local-app-fixtures
 The app fixture bootstrap refuses to run unless local-dev mode is enabled and
 the resolved database host is localhost.
 
+## Staging Data Refresh
+
+When a local bug depends on real staging relationships, refresh the local
+database from staging instead of pointing localhost directly at the live staging
+database:
+
+```powershell
+pnpm run refresh:local-from-staging -- --dry-run
+pnpm run refresh:local-from-staging -- --confirm
+```
+
+The refresh command is destructive to the local database only. It refuses to
+restore unless the target database host is localhost and `CRP_LOCAL_DEV=true`.
+It supports:
+
+- direct staging database URL via `STAGING_DATABASE_URL`,
+  `CRP_STAGING_DATABASE_URL`, `STAGING_FLOOT_DATABASE_URL`, or
+  `REMOTE_STAGING_DATABASE_URL`
+- SSH-based dumping via `STAGING_HOST`, `STAGING_USER`,
+  `STAGING_SSH_PRIVATE_KEY`, and optional `STAGING_SSH_PORT`
+- restoring an existing dump file via `--source dump --dump-file <path>`
+
+By default it removes copied sessions/tokens locally, clears copied IP and
+user-agent fields where those tables exist, reseeds the local admin account, and
+deletes the temporary dump file after restore. Use `--keep-dump` only when you
+need to inspect the dump; treat retained dumps as sensitive data.
+
 ## Run
 
 Start the backend:
