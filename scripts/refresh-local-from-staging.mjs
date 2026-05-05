@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import postgres from "postgres";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -379,68 +379,14 @@ function resolveSshKeyFile(env, outputDir) {
     return path.resolve(key);
   }
 
-  const keyPath = path.join(
-    outputDir,
-    `staging_ssh_key_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-  );
-  const keyContents = normalizePrivateKeyValue(key);
-  fs.writeFileSync(keyPath, keyContents.endsWith("\n") ? keyContents : `${keyContents}\n`, { mode: 0o600 });
-  hardenPrivateKeyFile(keyPath);
-  return keyPath;
-}
-
-function normalizePrivateKeyValue(value) {
-  const trimmed = value.trim();
-  if (/-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----/.test(trimmed)) {
-    return trimmed;
-  }
-
-  if (/^[A-Za-z0-9+/=_-]+$/.test(trimmed)) {
-    try {
-      const decoded = Buffer.from(trimmed, "base64").toString("utf8").trim();
-      if (/-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----/.test(decoded)) {
-        return decoded;
-      }
-    } catch {
-      // Fall through to raw value below.
-    }
-  }
-
-  return value;
-}
-
-function getCurrentWindowsUser() {
-  return process.env.USERDOMAIN && process.env.USERNAME
-    ? `${process.env.USERDOMAIN}\\${process.env.USERNAME}`
-    : os.userInfo().username;
-}
-
-function hardenPrivateKeyFile(keyPath) {
+  const keyPath = path.join(outputDir, "staging_ssh_key");
+  fs.writeFileSync(keyPath, key.endsWith("\n") ? key : `${key}\n`, { mode: 0o600 });
   try {
     fs.chmodSync(keyPath, 0o600);
   } catch {
-    // Windows needs ACL hardening below; POSIX chmod can fail on some mounts.
+    // Windows ignores POSIX key permissions; OpenSSH still accepts most user-owned files.
   }
-
-  if (process.platform !== "win32") {
-    return;
-  }
-
-  const removeInheritance = spawnSync("icacls", [keyPath, "/inheritance:r"], {
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (removeInheritance.status !== 0) {
-    throw new Error(`Failed to harden SSH key ACL inheritance: ${removeInheritance.stderr || removeInheritance.stdout}`);
-  }
-
-  const grantCurrentUser = spawnSync("icacls", [keyPath, "/grant:r", `${getCurrentWindowsUser()}:R`], {
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (grantCurrentUser.status !== 0) {
-    throw new Error(`Failed to grant current user SSH key read permission: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
-  }
+  return keyPath;
 }
 
 function shellQuote(value) {
@@ -475,13 +421,7 @@ if [ -z "$DB_URL" ] && command -v docker >/dev/null 2>&1; then
     APP_CONTAINER="$(docker ps --format '{{.Names}} {{.Image}}' | awk 'tolower($0) ~ /creditregulatorpro/ && tolower($0) !~ /postgres/ {print $1; exit}')"
   fi
   if [ -n "$APP_CONTAINER" ]; then
-    DB_URL="$(docker exec "$APP_CONTAINER" printenv FLOOT_DATABASE_URL 2>/dev/null || true)"
-    if [ -z "$DB_URL" ]; then
-      DB_URL="$(docker exec "$APP_CONTAINER" printenv DATABASE_URL 2>/dev/null || true)"
-    fi
-    if [ -z "$DB_URL" ]; then
-      DB_URL="$(docker exec "$APP_CONTAINER" printenv DATABASE_PRIVATE_URL 2>/dev/null || true)"
-    fi
+    DB_URL="$(docker exec "$APP_CONTAINER" sh -lc 'node --input-type=module -e "process.stdout.write(process.env.FLOOT_DATABASE_URL || process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL || \"\")"' 2>/dev/null || true)"
   fi
 fi
 
@@ -498,9 +438,9 @@ if command -v docker >/dev/null 2>&1; then
     APP_NETWORK="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$APP_CONTAINER" 2>/dev/null | head -n 1 || true)"
   fi
   if [ -n "$APP_NETWORK" ]; then
-    exec docker run --rm --network "$APP_NETWORK" --add-host host.docker.internal:host-gateway ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
+    exec docker run --rm --network "$APP_NETWORK" ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
   fi
-  exec docker run --rm --network host --add-host host.docker.internal:host-gateway ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
+  exec docker run --rm --network host ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
 fi
 echo "pg_dump is not available on the staging host and no Docker fallback worked" >&2
 exit 31
