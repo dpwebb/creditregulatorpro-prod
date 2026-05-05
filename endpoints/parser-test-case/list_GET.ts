@@ -4,6 +4,7 @@ import { schema, OutputType } from "./list_GET.schema";
 
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
+import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
 
 export async function handle(request: Request) {
   try {
@@ -15,6 +16,7 @@ export async function handle(request: Request) {
         { status: 403 }
       );
     }
+    await ensureParserTestAdjudicationSchema();
 
     // Fetch test cases with latest run info
     const testCases = await db
@@ -52,6 +54,16 @@ export async function handle(request: Request) {
         expectedConsumerInfo: tc.expectedConsumerInfo,
         expectedTradelines: tc.expectedTradelines,
         rawExtractedText: tc.rawExtractedText,
+        bureau: tc.bureau,
+        parserMode: tc.parserMode,
+        allowAiFallback: tc.allowAiFallback,
+        stageVersion: tc.stageVersion,
+        extractionSource: tc.extractionSource,
+        parserContext: tc.parserContext,
+        adminReviewStatus: tc.adminReviewStatus,
+        approvedConsumerInfo: tc.approvedConsumerInfo,
+        approvedTradelines: tc.approvedTradelines,
+        adjudicationDecisions: tc.adjudicationDecisions,
         lastRunPassed: tc.lastRunPassed,
         lastRunAt: tc.lastRunAt,
         totalRuns: Number(tc.totalRuns || 0),

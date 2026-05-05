@@ -5,6 +5,7 @@ import { schema, OutputType } from "./import_POST.schema";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { Json } from "../../helpers/schema";
+import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
 
 export async function handle(request: Request) {
   try {
@@ -18,6 +19,7 @@ export async function handle(request: Request) {
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
+    await ensureParserTestAdjudicationSchema();
 
     let importedCount = 0;
 
@@ -28,9 +30,19 @@ export async function handle(request: Request) {
           name: tc.name,
           description: tc.description,
           pdfBase64: tc.pdfBase64,
-          expectedConsumerInfo: tc.expectedConsumerInfo as unknown as Json,
-          expectedTradelines: tc.expectedTradelines as unknown as Json,
+          expectedConsumerInfo: (tc.expectedConsumerInfo ?? null) as unknown as Json,
+          expectedTradelines: (tc.expectedTradelines ?? []) as unknown as Json,
           rawExtractedText: tc.rawExtractedText,
+          bureau: tc.bureau ?? null,
+          parserMode: tc.parserMode ?? null,
+          allowAiFallback: tc.allowAiFallback ?? null,
+          stageVersion: tc.stageVersion ?? null,
+          extractionSource: tc.extractionSource ?? null,
+          parserContext: (tc.parserContext ?? {}) as unknown as Json,
+          adminReviewStatus: tc.adminReviewStatus ?? "needs_review",
+          approvedConsumerInfo: (tc.approvedConsumerInfo ?? null) as unknown as Json,
+          approvedTradelines: (tc.approvedTradelines ?? []) as unknown as Json,
+          adjudicationDecisions: (tc.adjudicationDecisions ?? []) as unknown as Json,
           createdBy: user.id,
           updatedAt: new Date(),
         })

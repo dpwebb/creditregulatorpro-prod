@@ -35,6 +35,35 @@
   gap: var(--spacing-3);
 }
 
+.contextGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.contextGrid > div {
+  min-width: 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.contextGrid span,
+.decisionForm label > span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.contextGrid strong {
+  display: block;
+  margin-top: var(--spacing-1);
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
 .metric {
   padding: var(--spacing-3);
   border: 1px solid var(--border);
@@ -58,6 +87,82 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+}
+
+.reviewActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.reviewActionHeader,
+.decisionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.helpText {
+  margin: var(--spacing-1) 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.decisionForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: var(--spacing-3);
+}
+
+.decisionForm label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.decisionForm select {
+  min-height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--foreground);
+  padding: 0 var(--spacing-3);
+  font: inherit;
+}
+
+.fullWidth,
+.formActions {
+  grid-column: 1 / -1;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.decisionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.decisionItem {
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+}
+
+.decisionItem p {
+  margin: var(--spacing-2) 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
 }
 
 .sectionTitle,
@@ -209,11 +314,15 @@
 }
 
 @media (max-width: 760px) {
-  .metrics {
+  .metrics,
+  .contextGrid,
+  .decisionForm {
     grid-template-columns: 1fr;
   }
 
-  .tradelineHeader {
+  .tradelineHeader,
+  .reviewActionHeader,
+  .decisionHeader {
     align-items: flex-start;
     flex-direction: column;
   }

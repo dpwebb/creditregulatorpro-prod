@@ -6,6 +6,7 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { Json } from "../../helpers/schema";
 import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
+import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
 
 export async function handle(request: Request) {
   try {
@@ -19,6 +20,7 @@ export async function handle(request: Request) {
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
+    await ensureParserTestAdjudicationSchema();
 
     const needsParserFallback =
       input.expectedConsumerInfo === undefined ||
@@ -51,6 +53,16 @@ export async function handle(request: Request) {
         rawExtractedText,
         expectedConsumerInfo: expectedConsumerInfo as unknown as Json,
         expectedTradelines: expectedTradelines as unknown as Json,
+        bureau: input.bureau ?? null,
+        parserMode: input.parserMode ?? null,
+        allowAiFallback: input.allowAiFallback ?? null,
+        stageVersion: input.stageVersion ?? null,
+        extractionSource: input.extractionSource ?? null,
+        parserContext: (input.parserContext ?? {}) as unknown as Json,
+        adminReviewStatus: "needs_review",
+        approvedConsumerInfo: null,
+        approvedTradelines: [],
+        adjudicationDecisions: [],
         createdBy: user.id,
         updatedAt: new Date(),
       })
@@ -65,6 +77,13 @@ export async function handle(request: Request) {
         expectedConsumerInfo: newTestCase.expectedConsumerInfo,
         expectedTradelines: newTestCase.expectedTradelines,
         rawExtractedText: newTestCase.rawExtractedText,
+        bureau: newTestCase.bureau,
+        parserMode: newTestCase.parserMode,
+        allowAiFallback: newTestCase.allowAiFallback,
+        stageVersion: newTestCase.stageVersion,
+        extractionSource: newTestCase.extractionSource,
+        parserContext: newTestCase.parserContext,
+        adminReviewStatus: newTestCase.adminReviewStatus,
       },
     };
 

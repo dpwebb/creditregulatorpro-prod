@@ -11,6 +11,16 @@ export type ParserTestCaseSummary = {
   expectedConsumerInfo: Json | null;
   expectedTradelines: Json | null;
   rawExtractedText: string | null;
+  bureau: string | null;
+  parserMode: string | null;
+  allowAiFallback: boolean | null;
+  stageVersion: string | null;
+  extractionSource: string | null;
+  parserContext: Json | null;
+  adminReviewStatus: string;
+  approvedConsumerInfo: Json | null;
+  approvedTradelines: Json | null;
+  adjudicationDecisions: Json | null;
   lastRunPassed: boolean | null;
   lastRunAt: Date | null;
   totalRuns: number;

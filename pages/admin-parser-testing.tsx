@@ -27,7 +27,8 @@ import {
   useRunParserTest,
   useRunAllParserTests,
   useExportParserTestCases,
-  useImportParserTestCases
+  useImportParserTestCases,
+  useAdjudicateParserTestCase
 } from "../helpers/parserTestQueries";
 
 import styles from "./admin-parser-testing.module.css";
@@ -46,6 +47,7 @@ export default function AdminParserTestingPage() {
   const runAllMutation = useRunAllParserTests();
   const exportMutation = useExportParserTestCases();
   const importMutation = useImportParserTestCases();
+  const adjudicateMutation = useAdjudicateParserTestCase();
   const createKnownEntityMutation = useCreateParserKnownEntity();
 
   // State
@@ -77,6 +79,16 @@ export default function AdminParserTestingPage() {
     toast.success("Stage Lab run saved to Test Cases");
     setActiveTab("test-cases");
     return result;
+  };
+
+  const handleAdjudicate = async (data: any) => {
+    try {
+      await adjudicateMutation.mutateAsync(data);
+      toast.success("Parser review saved");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save parser review");
+      throw error;
+    }
   };
 
   const handleUpdate = async (data: any) => {
@@ -423,6 +435,8 @@ export default function AdminParserTestingPage() {
             onDelete={handleDelete}
             onAcceptResults={handleAcceptResults}
             onApproveField={handleApproveField}
+            onAdjudicate={handleAdjudicate}
+            isAdjudicating={adjudicateMutation.isPending}
           />
         </TabsContent>
 

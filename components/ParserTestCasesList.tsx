@@ -20,6 +20,8 @@ interface ParserTestCasesListProps {
   onDelete: (id: number) => void;
   onAcceptResults: (id: number) => void;
   onApproveField?: (testCaseId: number, fieldType: 'consumerInfo' | 'tradeline', id: string, value: any) => void;
+  onAdjudicate?: (data: any) => Promise<void>;
+  isAdjudicating?: boolean;
 }
 
 export function ParserTestCasesList({
@@ -30,7 +32,9 @@ export function ParserTestCasesList({
   onEdit,
   onDelete,
   onAcceptResults,
-  onApproveField
+  onApproveField,
+  onAdjudicate,
+  isAdjudicating = false
 }: ParserTestCasesListProps) {
   const [search, setSearch] = React.useState("");
   const [selectedTestCase, setSelectedTestCase] = React.useState<any>(null);
@@ -182,6 +186,8 @@ export function ParserTestCasesList({
               <ParserTestSavedOutputPanel
                 testCase={selectedTestCase}
                 emptyIcon={<Clock size={48} className="text-muted-foreground mb-4" />}
+                onAdjudicate={onAdjudicate}
+                isAdjudicating={isAdjudicating}
               />
             )}
           </div>

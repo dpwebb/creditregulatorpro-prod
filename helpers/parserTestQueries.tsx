@@ -7,6 +7,7 @@ import { runParserTest } from "../endpoints/parser-test-case/run_POST.schema";
 import { runAllParserTests } from "../endpoints/parser-test-case/run-all_POST.schema";
 import { exportParserTestCases } from "../endpoints/parser-test-case/export_POST.schema";
 import { importParserTestCases } from "../endpoints/parser-test-case/import_POST.schema";
+import { adjudicateParserTestCase } from "../endpoints/parser-test-case/adjudicate_POST.schema";
 
 export const PARSER_TEST_KEYS = {
   all: ["parserTestCases"] as const,
@@ -90,6 +91,20 @@ export function useImportParserTestCases() {
     mutationFn: (input: Parameters<typeof importParserTestCases>[0]) => importParserTestCases(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
+    },
+  });
+}
+
+export function useAdjudicateParserTestCase() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof adjudicateParserTestCase>[0]) =>
+      adjudicateParserTestCase(input),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
+      queryClient.invalidateQueries({
+        queryKey: PARSER_TEST_KEYS.detail(data.testCase.id),
+      });
     },
   });
 }

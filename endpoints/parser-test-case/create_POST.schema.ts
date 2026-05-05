@@ -9,6 +9,12 @@ export const schema = z.object({
   expectedConsumerInfo: z.any().optional(),
   expectedTradelines: z.any().optional(),
   rawExtractedText: z.string().nullable().optional(),
+  bureau: z.string().nullable().optional(),
+  parserMode: z.string().nullable().optional(),
+  allowAiFallback: z.boolean().nullable().optional(),
+  stageVersion: z.string().nullable().optional(),
+  extractionSource: z.string().nullable().optional(),
+  parserContext: z.any().optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
@@ -21,6 +27,13 @@ export type OutputType = {
     expectedConsumerInfo: Json | null;
     expectedTradelines: Json | null;
     rawExtractedText: string | null;
+    bureau: string | null;
+    parserMode: string | null;
+    allowAiFallback: boolean | null;
+    stageVersion: string | null;
+    extractionSource: string | null;
+    parserContext: Json | null;
+    adminReviewStatus: string;
   };
 };
 

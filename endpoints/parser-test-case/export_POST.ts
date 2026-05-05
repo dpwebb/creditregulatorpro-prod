@@ -4,6 +4,7 @@ import { schema, OutputType } from "./export_POST.schema";
 
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
+import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
 
 export async function handle(request: Request) {
   try {
@@ -17,6 +18,7 @@ export async function handle(request: Request) {
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
+    await ensureParserTestAdjudicationSchema();
 
     let query = db.selectFrom("parserTestCase").selectAll();
 
@@ -32,7 +34,17 @@ export async function handle(request: Request) {
       pdfBase64: tc.pdfBase64,
       expectedConsumerInfo: tc.expectedConsumerInfo,
       expectedTradelines: tc.expectedTradelines,
-      rawExtractedText: tc.rawExtractedText
+      rawExtractedText: tc.rawExtractedText,
+      bureau: tc.bureau,
+      parserMode: tc.parserMode,
+      allowAiFallback: tc.allowAiFallback,
+      stageVersion: tc.stageVersion,
+      extractionSource: tc.extractionSource,
+      parserContext: tc.parserContext,
+      adminReviewStatus: tc.adminReviewStatus,
+      approvedConsumerInfo: tc.approvedConsumerInfo,
+      approvedTradelines: tc.approvedTradelines,
+      adjudicationDecisions: tc.adjudicationDecisions,
     }));
 
     const output: OutputType = {

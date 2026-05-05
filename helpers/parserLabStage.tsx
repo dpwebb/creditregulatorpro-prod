@@ -424,7 +424,11 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
       parsedResult: toAuditValue(parseResult) as Record<string, unknown>,
       mappedResult: toAuditValue(extraction.llmData) as Record<string, unknown>,
     },
-    provenance: provenance as unknown as Record<string, unknown>,
+    provenance: {
+      ...(provenance as unknown as Record<string, unknown>),
+      allowAiFallback: input.allowAiFallback ?? true,
+      parserMode: input.allowAiFallback === false ? "deterministic" : "ai_fallback_enabled",
+    },
     rawExtractedText: extraction.rawText,
     rawTextPreview: previewText(extraction.rawText, 5000),
   };

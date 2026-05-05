@@ -9,6 +9,11 @@ import { ExtractedConsumerInfo } from "../../helpers/consumerInfoExtractorTypes"
 import { compareConsumerInfo, compareTradelines, hasAnyExpectations } from "../../helpers/parserPatternAnalyzer";
 import { Json } from "../../helpers/schema";
 import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
+import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
+
+function preferredTradelineExpectations(approved: unknown, fallback: unknown): unknown {
+  return Array.isArray(approved) && approved.length > 0 ? approved : fallback;
+}
 
 export async function handle(request: Request) {
   try {
@@ -19,6 +24,8 @@ export async function handle(request: Request) {
         { status: 403 }
       );
     }
+
+    await ensureParserTestAdjudicationSchema();
 
     // Fetch all test cases
     const testCases = await db
@@ -34,21 +41,26 @@ export async function handle(request: Request) {
     for (const testCase of testCases) {
       try {
         const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(testCase.pdfBase64);
+        const expectedConsumerInfo = testCase.approvedConsumerInfo ?? testCase.expectedConsumerInfo;
+        const expectedTradelines = preferredTradelineExpectations(
+          testCase.approvedTradelines,
+          testCase.expectedTradelines,
+        );
 
         // Check expectations
         const hasExpectations = hasAnyExpectations(
-          testCase.expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
-          testCase.expectedTradelines as unknown as ParsedTradeline[]
+          expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
+          expectedTradelines as unknown as ParsedTradeline[]
         );
 
         const consumerInfoResults = compareConsumerInfo(
-          testCase.expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
+          expectedConsumerInfo as unknown as Partial<ExtractedConsumerInfo>,
           parseResult.consumerInfo,
           rawExtractedText
         );
 
         const tradelineResults = compareTradelines(
-          testCase.expectedTradelines as unknown as ParsedTradeline[],
+          expectedTradelines as unknown as ParsedTradeline[],
           parseResult.tradelines,
           rawExtractedText
         );

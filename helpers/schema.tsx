@@ -743,17 +743,27 @@ export interface ParserMappingVersion {
 }
 
 export interface ParserTestCase {
+  adjudicationDecisions: Generated<Json | null>;
+  adminReviewStatus: Generated<string>;
+  allowAiFallback: boolean | null;
+  approvedConsumerInfo: Json | null;
+  approvedTradelines: Generated<Json | null>;
+  bureau: string | null;
   createdAt: Generated<Timestamp>;
   createdBy: number;
   description: string | null;
   expectedConsumerInfo: Json | null;
   expectedTradelines: Generated<Json | null>;
+  extractionSource: string | null;
   id: Generated<number>;
   lastRunAt: Timestamp | null;
   lastRunPassed: boolean | null;
   name: string;
+  parserContext: Generated<Json | null>;
+  parserMode: string | null;
   pdfBase64: string;
   rawExtractedText: string | null;
+  stageVersion: string | null;
   updatedAt: Generated<Timestamp>;
 }
 

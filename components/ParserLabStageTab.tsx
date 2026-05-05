@@ -20,6 +20,12 @@ export type StageLabTestCasePayload = {
   expectedConsumerInfo?: unknown;
   expectedTradelines?: unknown;
   rawExtractedText?: string | null;
+  bureau?: string | null;
+  parserMode?: string | null;
+  allowAiFallback?: boolean | null;
+  stageVersion?: string | null;
+  extractionSource?: string | null;
+  parserContext?: unknown;
 };
 
 interface ParserLabStageTabProps {
@@ -251,11 +257,13 @@ function buildStageLabTestCaseName(result: ParserLabResult): string {
 }
 
 function buildStageLabTestCaseDescription(result: ParserLabResult): string {
+  const allowAiFallback = Boolean((result.provenance as any)?.allowAiFallback);
   return [
     "Created from Stage Lab parser run.",
     `Source file: ${result.fileName}`,
     `Stage version: ${result.stageVersion}`,
     `Bureau: ${formatValue(result.bureauName)}`,
+    `Parser mode: ${allowAiFallback ? "AI fallback enabled" : "Deterministic only"}`,
     `Confidence: ${result.quality.confidenceScore}%`,
     `Original SHA-256: ${result.retention.originalDocumentSha256}`,
     `Canonical SHA-256: ${result.retention.canonicalResultSha256}`,
@@ -269,6 +277,7 @@ function buildStageLabTestCasePayload(
   const parsedResult = isPlainRecord(result.audit?.parsedResult)
     ? result.audit.parsedResult
     : {};
+  const allowAiFallback = Boolean((result.provenance as any)?.allowAiFallback);
 
   return {
     name: buildStageLabTestCaseName(result),
@@ -279,6 +288,26 @@ function buildStageLabTestCasePayload(
       ? parsedResult.tradelines
       : result.parsed.tradelines,
     rawExtractedText: result.rawExtractedText || result.rawTextPreview || null,
+    bureau: hasReportedValue(result.bureauName) ? String(result.bureauName) : null,
+    parserMode: allowAiFallback ? "ai_fallback_enabled" : "deterministic",
+    allowAiFallback,
+    stageVersion: result.stageVersion,
+    extractionSource: result.extractionSource,
+    parserContext: {
+      sourceFileName: result.fileName,
+      bureauName: result.bureauName,
+      parserMode: allowAiFallback ? "ai_fallback_enabled" : "deterministic",
+      allowAiFallback,
+      stageVersion: result.stageVersion,
+      extractionSource: result.extractionSource,
+      quality: result.quality,
+      retention: result.retention,
+      counts: result.counts,
+      parsed: result.parsed,
+      audit: result.audit,
+      reviewQueue: result.reviewQueue,
+      provenance: result.provenance,
+    },
   };
 }
 
