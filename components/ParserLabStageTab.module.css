@@ -446,19 +446,18 @@
   font-weight: 600;
 }
 
-.evidenceText {
-  max-height: 220px;
-  overflow: auto;
+.evidenceBody {
   margin: var(--spacing-3) 0 0;
   padding: var(--spacing-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--muted);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 0.8125rem;
-  line-height: 1.5;
+}
+
+.evidenceFieldGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: var(--spacing-3);
 }
 
 @media (max-width: 1100px) {
@@ -473,6 +472,7 @@
   .metricsGrid,
   .metaGrid,
   .fieldGrid,
+  .evidenceFieldGrid,
   .financialSnapshot,
   .reviewSummaryGrid,
   .auditGrid {
@@ -484,6 +484,7 @@
   .metricsGrid,
   .metaGrid,
   .fieldGrid,
+  .evidenceFieldGrid,
   .financialSnapshot,
   .reviewSummaryGrid,
   .auditGrid {

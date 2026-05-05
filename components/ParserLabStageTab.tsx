@@ -207,41 +207,6 @@ function reviewTitle(item: any, tradeline: any): string {
   return account ? `${creditor} - ${account}` : creditor;
 }
 
-function formatEvidencePreview(value: string): string {
-  const labels = [
-    "Creditor Name",
-    "Payment History",
-    "Reported Date",
-    "Opened Date",
-    "Closed Date",
-    "First Delinquency Date",
-    "Last Payment Date",
-    "Posted Date",
-    "Charge Off Date",
-    "Balloon Payment Date",
-    "Terms",
-    "Account Type",
-    "Balance",
-    "Payment",
-    "Past Due",
-    "MOP",
-    "High Credit",
-    "Credit Limit",
-    "Narrative",
-    "Legend",
-  ];
-
-  let formatted = value.replace(/\s+/g, " ").trim();
-  for (const label of labels) {
-    formatted = formatted.replace(new RegExp(`\\s*(${label})\\s*`, "gi"), "\n$1: ");
-  }
-
-  return formatted
-    .replace(/\n+/g, "\n")
-    .replace(/^:/gm, "")
-    .trim();
-}
-
 function downloadJson(result: ParserLabResult) {
   const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -372,6 +337,22 @@ function PaymentHistoryRows({ rows }: { rows: any[] | null | undefined }) {
         </table>
       </div>
     </div>
+  );
+}
+
+function SourceEvidencePreview({
+  tradeline,
+}: {
+  tradeline: any;
+}) {
+  return (
+    <details className={styles.evidenceDetails}>
+      <summary>Source evidence preview</summary>
+      <div className={styles.evidenceBody}>
+        <TradelineFieldGrid tradeline={tradeline} className={styles.evidenceFieldGrid} />
+        <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />
+      </div>
+    </details>
   );
 }
 
@@ -808,12 +789,7 @@ export function ParserLabStageTab() {
                               />
                             )}
 
-                            {item.sourceTextPreview && (
-                              <details className={styles.evidenceDetails}>
-                                <summary>Source evidence preview</summary>
-                                <pre className={styles.evidenceText}>{formatEvidencePreview(item.sourceTextPreview)}</pre>
-                              </details>
-                            )}
+                            {tradeline && <SourceEvidencePreview tradeline={tradeline} />}
                           </div>
                         );
                       })()
