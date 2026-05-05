@@ -238,7 +238,16 @@
 
 .reviewSummaryGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border);
+}
+
+.financialSnapshot {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
   gap: var(--spacing-3);
   margin-top: var(--spacing-3);
   padding-top: var(--spacing-3);
@@ -263,6 +272,15 @@
   min-height: 1.25rem;
   margin-top: var(--spacing-1);
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.financialValue {
+  display: block;
+  min-height: 1.5rem;
+  margin-top: var(--spacing-1);
+  font-size: 1rem;
+  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
@@ -455,6 +473,7 @@
   .metricsGrid,
   .metaGrid,
   .fieldGrid,
+  .financialSnapshot,
   .reviewSummaryGrid,
   .auditGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -465,6 +484,7 @@
   .metricsGrid,
   .metaGrid,
   .fieldGrid,
+  .financialSnapshot,
   .reviewSummaryGrid,
   .auditGrid {
     grid-template-columns: 1fr;

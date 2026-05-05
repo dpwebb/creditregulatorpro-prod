@@ -154,6 +154,36 @@ function sectionValue(source: any, key: string): unknown {
   return source && typeof source === "object" ? source[key] : undefined;
 }
 
+const AUDIT_PRIORITY_COLUMNS = [
+  "creditorName",
+  "accountNumber",
+  "accountType",
+  "balance",
+  "currentBalance",
+  "monthlyPayment",
+  "payment",
+  "pastDue",
+  "highCredit",
+  "creditLimit",
+  "originalBalance",
+  "amounts",
+  "status",
+  "dates",
+  "paymentHistory",
+  "paymentHistoryProfile",
+  "paymentPattern",
+  "monthsReviewed",
+  "paymentHistoryDetails",
+  "sourceText",
+];
+
+function orderAuditColumns(columns: string[]): string[] {
+  return [
+    ...AUDIT_PRIORITY_COLUMNS.filter((column) => columns.includes(column)),
+    ...columns.filter((column) => !AUDIT_PRIORITY_COLUMNS.includes(column)),
+  ];
+}
+
 function withoutArrayFields(value: unknown): Record<string, unknown> {
   if (!isPlainRecord(value)) return {};
   return Object.fromEntries(
@@ -270,6 +300,34 @@ function TradelineFieldGrid({ tradeline, className }: { tradeline: any; classNam
   );
 }
 
+function FinancialSnapshot({
+  tradeline,
+  className,
+}: {
+  tradeline: any;
+  className: string;
+}) {
+  const latestPayment = latestPaymentDetail(tradeline);
+  const fields = [
+    ["Balance", formatMoneyBlank(tradeline.balance)],
+    ["Payment", formatMoneyBlank(latestPayment?.payment ?? tradeline.monthlyPayment)],
+    ["Past Due", formatMoneyBlank(tradeline.pastDue)],
+    ["High Credit", formatMoneyBlank(tradeline.highCredit)],
+    ["Credit Limit", formatMoneyBlank(tradeline.creditLimit)],
+  ];
+
+  return (
+    <div className={className}>
+      {fields.map(([label, value]) => (
+        <div key={label}>
+          <span className={styles.fieldLabel}>{label}</span>
+          <span className={styles.financialValue}>{value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PaymentHistoryRows({ rows }: { rows: any[] | null | undefined }) {
   const displayRows = Array.isArray(rows) && rows.length > 0 ? rows : [{}];
 
@@ -345,7 +403,9 @@ function AuditObjectSection({ title, value }: { title: string; value: unknown })
 function AuditArraySection({ title, value }: { title: string; value: unknown }) {
   const rows = Array.isArray(value) ? value : [];
   const records = rows.map((row) => (isPlainRecord(row) ? row : { value: row }));
-  const columns = Array.from(new Set(records.flatMap((record) => Object.keys(record))));
+  const columns = orderAuditColumns(
+    Array.from(new Set(records.flatMap((record) => Object.keys(record))))
+  );
 
   return (
     <details className={styles.auditSection} open>
@@ -707,6 +767,13 @@ export function ParserLabStageTab() {
                               ))}
                             </div>
 
+                            {tradeline && (
+                              <FinancialSnapshot
+                                tradeline={tradeline}
+                                className={styles.reviewSummaryGrid}
+                              />
+                            )}
+
                             {item.sourceTextPreview && (
                               <details className={styles.evidenceDetails}>
                                 <summary>Source evidence preview</summary>
@@ -739,6 +806,10 @@ export function ParserLabStageTab() {
                                 {tradeline.needsReview ? "Needs review" : "Source-backed"}
                               </Badge>
                             </div>
+                            <FinancialSnapshot
+                              tradeline={tradeline}
+                              className={styles.financialSnapshot}
+                            />
                             <TradelineFieldGrid tradeline={tradeline} className={styles.fieldGrid} />
                             <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />
                             {tradeline.reviewReasons?.length > 0 && (
