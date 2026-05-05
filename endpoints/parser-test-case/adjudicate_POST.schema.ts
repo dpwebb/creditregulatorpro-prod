@@ -48,10 +48,28 @@ export const adjudicateParserTestCase = async (
     },
   });
 
-  if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+  const responseText = await result.text();
+  let responseObject: unknown = null;
+  try {
+    responseObject = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    if (!result.ok) {
+      throw new Error(
+        responseText
+          ? `Request failed (${result.status}): ${responseText}`
+          : `Request failed (${result.status})`,
+      );
+    }
+    throw new Error("Parser adjudication returned an invalid JSON response.");
   }
 
-  return JSON.parse(await result.text());
+  if (!result.ok) {
+    const errorObject =
+      responseObject && typeof responseObject === "object" && "error" in responseObject
+        ? responseObject as { error?: string }
+        : null;
+    throw new Error(errorObject?.error || `Request failed (${result.status})`);
+  }
+
+  return responseObject as OutputType;
 };
