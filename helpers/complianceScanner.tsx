@@ -64,6 +64,7 @@ import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { executeActiveRules } from "./dynamicRuleExecutor";
 import { mapViolationToDisputeVector } from "./violationToDisputeVector";
 import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
+import { applyViolationCorrectionTruthLayer } from "./violationCorrectionRetrieval";
 
 // Re-export types for convenience
 export type { DetectedViolation };
@@ -129,6 +130,25 @@ function getMostRecentArtifactReportDate(
   }
 
   return latest;
+}
+
+export function getAdminReviewedStatutoryBasis(violation: DetectedViolation): string | null {
+  const details = violation.technicalDetails as Record<string, any> | null | undefined;
+  const refs = Array.isArray(details?.adminRegulationReferences)
+    ? details.adminRegulationReferences
+    : [];
+
+  const basis = refs
+    .map((ref: any) => {
+      if (typeof ref?.basis === "string" && ref.basis.trim()) return ref.basis.trim();
+      const name = [ref?.regulationName, ref?.statuteOrRuleName, ref?.sectionNumber]
+        .filter((value) => typeof value === "string" && value.trim())
+        .join(" ");
+      return name ? `requires review under ${name}` : null;
+    })
+    .filter((value: string | null): value is string => Boolean(value));
+
+  return basis.length > 0 ? basis.slice(0, 3).join("; ") : null;
 }
 
 async function loadSameBureauArtifactTimeline(
@@ -413,7 +433,9 @@ export async function scanForViolations(
     console.log(`Filtered out ${filteredCount} violations based on complianceConfig settings.`);
   }
 
-  return normalizeDetectedViolations(finalViolations);
+  const truthLayerViolations = await applyViolationCorrectionTruthLayer(finalViolations, tradeline);
+
+  return normalizeDetectedViolations(truthLayerViolations);
 }
 
 /**
@@ -608,7 +630,7 @@ export async function persistViolations(
           technicalDetails: enrichedDetails,
                     
           recommendedAction: violation.recommendedAction,
-          statutoryBasis: null,
+          statutoryBasis: getAdminReviewedStatutoryBasis(violation),
           detectedAt: new Date(),
           validationStatus: "PENDING",
           obligationState: "OBLIGATION_PENDING",

@@ -12,6 +12,7 @@ import { ParserTestCasesList } from "../components/ParserTestCasesList";
 import { ParserTestRunAllTab } from "../components/ParserTestRunAllTab";
 import { ParserTestImportExportTab } from "../components/ParserTestImportExportTab";
 import { ParserLabStageTab } from "../components/ParserLabStageTab";
+import { AdminViolationCorrectionPanel } from "../components/AdminViolationCorrectionPanel";
 import type { StageLabTestCasePayload } from "../components/ParserLabStageTab";
 
 import {
@@ -421,6 +422,7 @@ export default function AdminParserTestingPage() {
         <TabsList>
           <TabsTrigger value="test-cases">Test Cases</TabsTrigger>
           <TabsTrigger value="stage-lab">Stage Lab</TabsTrigger>
+          <TabsTrigger value="violation-corrections">Violation Corrections</TabsTrigger>
           <TabsTrigger value="run-all">Run All Tests</TabsTrigger>
           <TabsTrigger value="import-export">Import / Export</TabsTrigger>
         </TabsList>
@@ -445,6 +447,10 @@ export default function AdminParserTestingPage() {
             onSaveAsTestCase={handleCreateFromStageLab}
             isSavingTestCase={createMutation.isPending}
           />
+        </TabsContent>
+
+        <TabsContent value="violation-corrections" className={styles.tabContent}>
+          <AdminViolationCorrectionPanel />
         </TabsContent>
 
         <TabsContent value="run-all" className={styles.tabContent}>

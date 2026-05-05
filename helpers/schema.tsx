@@ -273,6 +273,82 @@ export interface CreditorObligationTest {
   violationCategory: ViolationCategory | null;
 }
 
+export interface ViolationCorrection {
+  adminNotes: string | null;
+  correctedConfidence: number | null;
+  correctedExplanation: string | null;
+  correctedSeverity: string | null;
+  correctedSummary: string | null;
+  correctedViolationType: string | null;
+  correctionAction: string;
+  correctionReason: string | null;
+  createdAt: Generated<Timestamp>;
+  createdByAdminId: number;
+  extractionRunId: number;
+  finalReviewedAt: Timestamp | null;
+  finalizedByAdminId: number | null;
+  id: Generated<number>;
+  originalViolationId: number | null;
+  status: Generated<string>;
+  tradelineId: number;
+  trainingLabel: string | null;
+  trainingNoteOnly: Generated<boolean>;
+  updatedAt: Generated<Timestamp>;
+  useForTraining: Generated<boolean>;
+}
+
+export interface ViolationCorrectionEvidence {
+  adminSelected: Generated<boolean>;
+  correctionId: number;
+  createdAt: Generated<Timestamp>;
+  evidenceReason: string;
+  extractionRunId: number;
+  fieldName: string | null;
+  id: Generated<number>;
+  normalizedValue: string | null;
+  pageNumber: number;
+  sourceDocumentId: number;
+  textExcerpt: string;
+  tradelineId: number;
+}
+
+export interface ViolationRegulationReference {
+  adminNotes: string | null;
+  adminVerifiedCitation: Generated<boolean>;
+  citationConfidence: Generated<number>;
+  citationSource: string;
+  citationUrl: string | null;
+  correctionId: number | null;
+  country: Generated<string>;
+  createdAt: Generated<Timestamp>;
+  extractionRunId: number;
+  id: Generated<number>;
+  jurisdiction: string;
+  mappingStatus: Generated<string>;
+  provinceOrTerritory: string | null;
+  regulationName: string;
+  regulationTextExcerpt: string;
+  regulatorOrStandardBody: string;
+  sectionNumber: string;
+  statuteOrRuleName: string;
+  subsectionNumber: string | null;
+  tradelineId: number | null;
+  updatedAt: Generated<Timestamp>;
+  violationId: number | null;
+}
+
+export interface ViolationTrainingExample {
+  correctionId: number;
+  createdAt: Generated<Timestamp>;
+  expectedOutputJson: Json;
+  id: Generated<number>;
+  inputContextJson: Json;
+  label: string;
+  regulationMappingJson: Generated<Json>;
+  updatedAt: Generated<Timestamp>;
+  useForTraining: Generated<boolean>;
+}
+
 export interface CreditorValidationRequirement {
   createdAt: Generated<Timestamp>;
   creditorId: number | null;
@@ -1417,6 +1493,10 @@ export interface DB {
   userPasswords: UserPasswords;
   users: Users;
   versionMigration: VersionMigration;
+  violationCorrection: ViolationCorrection;
+  violationCorrectionEvidence: ViolationCorrectionEvidence;
+  violationRegulationReference: ViolationRegulationReference;
+  violationTrainingExample: ViolationTrainingExample;
 }
 
 

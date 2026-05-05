@@ -1,0 +1,350 @@
+.panel {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) 0;
+}
+
+.toolbarGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.compactSelect {
+  width: 180px;
+}
+
+.layout {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: var(--spacing-4);
+  flex: 1;
+}
+
+.runList,
+.tradelineColumn,
+.originalColumn,
+.truthColumn,
+.evidenceColumn,
+.regulationColumn {
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.runList {
+  display: flex;
+  flex-direction: column;
+}
+
+.reviewGrid {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(210px, 0.75fr) minmax(260px, 1fr) minmax(340px, 1.15fr);
+  grid-template-rows: minmax(330px, 1fr) minmax(360px, 1.1fr);
+  gap: var(--spacing-4);
+}
+
+.tradelineColumn,
+.originalColumn,
+.truthColumn,
+.evidenceColumn,
+.regulationColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.truthColumn {
+  grid-row: span 2;
+}
+
+.evidenceColumn {
+  grid-column: 1 / span 1;
+}
+
+.regulationColumn {
+  grid-column: 2 / span 1;
+}
+
+.sectionHeader,
+.sectionHeadingRow {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: var(--spacing-3);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--foreground);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.sectionHeadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.runButton,
+.tradelineButton,
+.violationButton,
+.suggestionButton {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.runButton {
+  display: grid;
+  gap: 4px;
+  padding: var(--spacing-3);
+}
+
+.runButton:hover,
+.tradelineButton:hover,
+.violationButton:hover,
+.suggestionButton:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.runButton[data-active="true"],
+.tradelineButton[data-active="true"],
+.violationButton[data-active="true"] {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.runTitle,
+.tradelineName,
+.violationTitle {
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.runMeta,
+.runStats,
+.tradelineMeta,
+.violationMeta,
+.violationText,
+.snapshot span,
+.linkedItem span {
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.tradelineList,
+.originalStack,
+.linkedList,
+.suggestionList {
+  overflow: auto;
+}
+
+.tradelineButton {
+  display: grid;
+  gap: 4px;
+  padding: var(--spacing-3);
+}
+
+.originalStack {
+  display: flex;
+  flex-direction: column;
+}
+
+.snapshot {
+  display: grid;
+  gap: 4px;
+  padding: var(--spacing-3);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 42%, transparent);
+}
+
+.violationButton {
+  display: grid;
+  gap: 6px;
+  padding: var(--spacing-3);
+}
+
+.violationText {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.truthColumn,
+.evidenceColumn,
+.regulationColumn {
+  padding-bottom: var(--spacing-3);
+}
+
+.truthColumn > .sectionHeader,
+.evidenceColumn > .sectionHeader,
+.regulationColumn > .sectionHeader {
+  margin-bottom: var(--spacing-3);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-3) var(--spacing-3);
+}
+
+.formGrid label,
+.trainingStrip label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--muted-foreground);
+}
+
+.fullSpan {
+  grid-column: 1 / -1;
+}
+
+.trainingStrip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--spacing-3);
+  align-items: end;
+  padding: 0 var(--spacing-3) var(--spacing-3);
+}
+
+.checkboxLabel {
+  display: flex !important;
+  grid-auto-flow: column;
+  align-items: center;
+  justify-content: start;
+  gap: var(--spacing-2) !important;
+  white-space: nowrap;
+  color: var(--foreground) !important;
+}
+
+.actionRow,
+.requirementRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-3) var(--spacing-3);
+}
+
+.evidenceColumn > button,
+.regulationColumn > button {
+  margin: 0 var(--spacing-3) var(--spacing-3);
+  align-self: flex-start;
+}
+
+.linkedList {
+  display: grid;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-3);
+}
+
+.linkedItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--spacing-2);
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--spacing-2);
+  background: var(--background);
+}
+
+.linkedItem[data-muted="true"] {
+  opacity: 0.65;
+}
+
+.linkedItem div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.linkedItem p {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.inlineActions {
+  display: flex !important;
+  gap: 2px;
+}
+
+.suggestionList {
+  display: grid;
+  gap: 6px;
+  max-height: 104px;
+  padding: 0 var(--spacing-3) var(--spacing-3);
+}
+
+.suggestionButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--spacing-2);
+  font-size: 0.82rem;
+}
+
+.emptyState {
+  padding: var(--spacing-4);
+  color: var(--muted-foreground);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 1280px) {
+  .layout,
+  .reviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewGrid {
+    grid-template-rows: none;
+  }
+
+  .truthColumn,
+  .evidenceColumn,
+  .regulationColumn {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .toolbar,
+  .trainingStrip {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

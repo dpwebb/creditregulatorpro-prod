@@ -3,7 +3,7 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { db } from "../../helpers/db";
 import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { validateOrigin } from "../../helpers/domainGuard";
-import { scanForViolations, mapViolationToObligationType } from "../../helpers/complianceScanner";
+import { scanForViolations, mapViolationToObligationType, getAdminReviewedStatutoryBasis } from "../../helpers/complianceScanner";
 import { mapViolationToDisputeVector } from "../../helpers/violationToDisputeVector";
 import { normalizeDetectedViolations } from "../../helpers/complianceFindingNormalizer";
 
@@ -150,7 +150,7 @@ export async function handle(request: Request) {
               responsibleEntity: violation.responsibleEntity || null,
             })),
             recommendedAction: violation.recommendedAction,
-            statutoryBasis: null,
+            statutoryBasis: getAdminReviewedStatutoryBasis(violation),
             detectedAt: new Date(),
             validationStatus: "PENDING",
             obligationState: "OBLIGATION_PENDING",
