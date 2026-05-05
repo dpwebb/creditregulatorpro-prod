@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { Json } from "../../helpers/schema";
 
 export const schema = z.object({});
 
@@ -7,6 +8,9 @@ export type ParserTestCaseSummary = {
   id: number;
   name: string;
   description: string | null;
+  expectedConsumerInfo: Json | null;
+  expectedTradelines: Json | null;
+  rawExtractedText: string | null;
   lastRunPassed: boolean | null;
   lastRunAt: Date | null;
   totalRuns: number;

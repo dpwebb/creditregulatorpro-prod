@@ -7,6 +7,7 @@ import { Badge } from "./Badge";
 import { Spinner } from "./Spinner";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableContainer } from "./Table";
 import { ParserTestResultsPanel } from "./ParserTestResultsPanel";
+import { ParserTestSavedOutputPanel } from "./ParserTestSavedOutputPanel";
 import { useDebounce } from "../helpers/useDebounce";
 import styles from "./ParserTestCasesList.module.css";
 
@@ -178,10 +179,10 @@ export function ParserTestCasesList({
                 }}
               />
             ) : (
-              <div className={styles.emptyState}>
-                <Clock size={48} className="text-muted-foreground mb-4" />
-                <p>Run the test to see results</p>
-              </div>
+              <ParserTestSavedOutputPanel
+                testCase={selectedTestCase}
+                emptyIcon={<Clock size={48} className="text-muted-foreground mb-4" />}
+              />
             )}
           </div>
         </div>
