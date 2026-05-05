@@ -9,6 +9,11 @@ export type InputType = z.infer<typeof schema>;
 
 export type OutputType = {
   success: boolean;
+  deleted?: {
+    testRuns: number;
+    testCases: number;
+    preservedTrainingArtifacts: number;
+  };
 };
 
 export const deleteParserTestCase = async (

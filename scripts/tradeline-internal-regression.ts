@@ -7,6 +7,7 @@ import {
   normalizeTransUnionPaymentTerms,
   parseTransUnionPaymentAmountFrequency,
 } from "../helpers/transunionPaymentTerms";
+import { extractParserTestTrainingArchiveItems } from "../helpers/parserTestTrainingArchive";
 
 type RuntimeTradeline = {
   id: number;
@@ -149,6 +150,38 @@ function run() {
         paymentFrequency: "M",
       },
     );
+  });
+
+  runCase("parser test delete preserves only training-marked decisions", () => {
+    const archived = extractParserTestTrainingArchiveItems({
+      id: 501,
+      name: "Parser sample",
+      bureau: "TransUnion Canada",
+      parserMode: "deterministic",
+      stageVersion: "test",
+      extractionSource: "pdf_text",
+      parserContext: { sourceFileName: "sample.pdf" },
+      adjudicationDecisions: [
+        {
+          fieldPath: "tradelines[0].terms",
+          decision: "corrected",
+          correctValue: "",
+          useForTraining: true,
+          trainingNote: "Map TU amount/frequency into payment fields.",
+        },
+        {
+          fieldPath: "tradelines[1].balance",
+          decision: "accepted",
+          correctValue: 0,
+        },
+      ],
+    });
+
+    assert.equal(archived.length, 1);
+    assert.equal(archived[0].sourceTestCaseId, 501);
+    assert.equal(archived[0].useForTraining, true);
+    assert.equal(archived[0].trainingNoteOnly, false);
+    assert.equal(archived[0].trainingNote, "Map TU amount/frequency into payment fields.");
   });
 
   console.log("Tradeline internal regression checks passed.");

@@ -107,10 +107,26 @@ export default function AdminParserTestingPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm("Are you sure you want to delete this test case?")) {
+    if (confirm("Delete this test case and its parser run/output data? Training-marked records and training-note-only records will be preserved.")) {
       try {
-        await deleteMutation.mutateAsync({ id });
-        toast.success("Test case deleted");
+        const result = await deleteMutation.mutateAsync({ id });
+        setRunResults((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        setApprovedFields((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+        setSelectedForExport((prev) => prev.filter((testCaseId) => testCaseId !== id));
+        const preserved = result.deleted?.preservedTrainingArtifacts ?? 0;
+        toast.success(
+          preserved > 0
+            ? `Test case deleted. Preserved ${preserved} training record${preserved === 1 ? "" : "s"}.`
+            : "Test case deleted"
+        );
         if (selectedTestCase?.id === id) setSelectedTestCase(null);
       } catch (error) {
         toast.error("Failed to delete test case");

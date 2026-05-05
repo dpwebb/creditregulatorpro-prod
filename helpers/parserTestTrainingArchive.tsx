@@ -1,0 +1,126 @@
+import { sql } from "kysely";
+import { db } from "./db";
+
+type ParserTestCaseTrainingSource = {
+  id: number;
+  name: string;
+  bureau: string | null;
+  parserMode: string | null;
+  stageVersion: string | null;
+  extractionSource: string | null;
+  parserContext: unknown;
+  adjudicationDecisions: unknown;
+};
+
+export type ParserTestTrainingArchiveItem = {
+  sourceTestCaseId: number;
+  sourceTestCaseName: string;
+  bureau: string | null;
+  parserMode: string | null;
+  stageVersion: string | null;
+  extractionSource: string | null;
+  trainingLabel: string | null;
+  trainingNote: string | null;
+  trainingNoteOnly: boolean;
+  useForTraining: boolean;
+  payload: Record<string, unknown>;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function stringOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text ? text : null;
+}
+
+function booleanValue(record: Record<string, unknown>, camelKey: string, snakeKey: string): boolean {
+  const value = record[camelKey] ?? record[snakeKey];
+  return value === true || value === "true";
+}
+
+export function extractParserTestTrainingArchiveItems(
+  testCase: ParserTestCaseTrainingSource,
+): ParserTestTrainingArchiveItem[] {
+  return asArray(testCase.adjudicationDecisions).flatMap((entry) => {
+    const decision = asRecord(entry);
+    if (!decision) return [];
+
+    const useForTraining = booleanValue(decision, "useForTraining", "use_for_training");
+    const trainingNoteOnly = booleanValue(decision, "trainingNoteOnly", "training_note_only");
+    const trainingNote =
+      stringOrNull(decision.trainingNote) ??
+      stringOrNull(decision.training_note) ??
+      (trainingNoteOnly ? stringOrNull(decision.reason) : null);
+
+    if (!useForTraining && !trainingNoteOnly && !trainingNote) return [];
+
+    return [
+      {
+        sourceTestCaseId: testCase.id,
+        sourceTestCaseName: testCase.name,
+        bureau: testCase.bureau,
+        parserMode: testCase.parserMode,
+        stageVersion: testCase.stageVersion,
+        extractionSource: testCase.extractionSource,
+        trainingLabel:
+          stringOrNull(decision.trainingLabel) ?? stringOrNull(decision.training_label),
+        trainingNote,
+        trainingNoteOnly,
+        useForTraining,
+        payload: {
+          source: "parser_test_case_delete",
+          sourceTestCase: {
+            id: testCase.id,
+            name: testCase.name,
+            bureau: testCase.bureau,
+            parserMode: testCase.parserMode,
+            stageVersion: testCase.stageVersion,
+            extractionSource: testCase.extractionSource,
+          },
+          parserContext: testCase.parserContext ?? null,
+          decision,
+        },
+      },
+    ];
+  });
+}
+
+export async function ensureParserTestTrainingArchiveSchema(): Promise<void> {
+  await sql`
+    create table if not exists public.parser_test_training_archive (
+      id bigserial primary key,
+      source_test_case_id bigint null,
+      source_test_case_name text not null,
+      bureau text null,
+      parser_mode text null,
+      stage_version text null,
+      extraction_source text null,
+      training_label text null,
+      training_note text null,
+      training_note_only boolean not null default false,
+      use_for_training boolean not null default true,
+      training_payload jsonb not null,
+      created_by_admin_id bigint null references public.users(id) on delete set null,
+      created_at timestamptz not null default now()
+    )
+  `.execute(db);
+
+  await sql`
+    create index if not exists idx_parser_test_training_archive_source
+      on public.parser_test_training_archive(source_test_case_id)
+  `.execute(db);
+
+  await sql`
+    create index if not exists idx_parser_test_training_archive_use
+      on public.parser_test_training_archive(use_for_training, training_note_only)
+  `.execute(db);
+}
