@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import postgres from "postgres";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -13,7 +13,7 @@ const SOURCE_URL_ENV_CANDIDATES = [
 ];
 const DEFAULT_REMOTE_APP_DIR = "/opt/creditregulatorpro-staging/app";
 const DEFAULT_REMOTE_APP_CONTAINER = "creditregulatorpro-staging";
-const DEFAULT_DOCKER_IMAGE = "postgres:16";
+const DEFAULT_DOCKER_IMAGE = "postgres:17";
 const DEFAULT_OUTPUT_DIR = ".local/staging-db-refresh";
 const VOLATILE_TABLES = [
   "sessions",
@@ -297,6 +297,42 @@ function spawnToPromise(command, commandArgs, spawnOptions = {}) {
   });
 }
 
+function spawnToResult(command, commandArgs, spawnOptions = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, commandArgs, {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: spawnOptions.env ?? process.env,
+      shell: false,
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      const text = chunk.toString();
+      stdout += text;
+      if (spawnOptions.tee !== false) process.stdout.write(text);
+    });
+    child.stderr.on("data", (chunk) => {
+      const text = chunk.toString();
+      stderr += text;
+      if (spawnOptions.tee !== false) process.stderr.write(text);
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      resolve({ code: code ?? 1, stdout, stderr });
+    });
+  });
+}
+
+function isIgnorablePg17ToPg16RestoreWarning(result) {
+  const combined = `${result.stdout}\n${result.stderr}`;
+  return (
+    result.code === 1 &&
+    combined.includes('unrecognized configuration parameter "transaction_timeout"') &&
+    /errors ignored on restore:\s*1/i.test(combined)
+  );
+}
+
 function dockerUrl(urlString) {
   const url = new URL(urlString);
   if (LOCAL_HOSTS.has(url.hostname)) {
@@ -322,23 +358,29 @@ async function runPgRestore(toolMode, dumpFile, targetUrl) {
   const dumpName = path.basename(dumpFile);
 
   if (toolMode === "native") {
-    await spawnToPromise("pg_restore", [
+    const result = await spawnToResult("pg_restore", [
       "--no-owner",
       "--no-acl",
       "--dbname",
       targetUrl,
       dumpFile,
     ]);
+    if (result.code !== 0 && !isIgnorablePg17ToPg16RestoreWarning(result)) {
+      throw new Error(`pg_restore exited with code ${result.code}`);
+    }
     return;
   }
 
-  await spawnToPromise("docker", dockerRunArgs("pg_restore", [
+  const result = await spawnToResult("docker", dockerRunArgs("pg_restore", [
     "--no-owner",
     "--no-acl",
     "--dbname",
     dockerUrl(targetUrl),
     `/work/${dumpName}`,
   ], dumpDir));
+  if (result.code !== 0 && !isIgnorablePg17ToPg16RestoreWarning(result)) {
+    throw new Error(`docker pg_restore exited with code ${result.code}`);
+  }
 }
 
 async function runPgDumpDirect(toolMode, sourceUrl, dumpFile) {
@@ -380,13 +422,90 @@ function resolveSshKeyFile(env, outputDir) {
   }
 
   const keyPath = path.join(outputDir, "staging_ssh_key");
-  fs.writeFileSync(keyPath, key.endsWith("\n") ? key : `${key}\n`, { mode: 0o600 });
+  const keyContents = normalizePrivateKeyValue(key);
+  removeExistingGeneratedKey(keyPath);
+  fs.writeFileSync(keyPath, keyContents.endsWith("\n") ? keyContents : `${keyContents}\n`, { mode: 0o600 });
+  hardenPrivateKeyFile(keyPath);
+  return keyPath;
+}
+
+function normalizePrivateKeyValue(value) {
+  const trimmed = value.trim();
+  if (/-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----/.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^[A-Za-z0-9+/=_-]+$/.test(trimmed)) {
+    try {
+      const decoded = Buffer.from(trimmed, "base64").toString("utf8").trim();
+      if (/-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----/.test(decoded)) {
+        return decoded;
+      }
+    } catch {
+      // Fall through to raw value below.
+    }
+  }
+
+  return value;
+}
+
+function getCurrentWindowsUser() {
+  return process.env.USERDOMAIN && process.env.USERNAME
+    ? `${process.env.USERDOMAIN}\\${process.env.USERNAME}`
+    : os.userInfo().username;
+}
+
+function removeExistingGeneratedKey(keyPath) {
+  if (!fs.existsSync(keyPath)) {
+    return;
+  }
+
+  try {
+    fs.unlinkSync(keyPath);
+    return;
+  } catch (error) {
+    if (process.platform !== "win32") {
+      throw error;
+    }
+  }
+
+  const grantCurrentUser = spawnSync("icacls", [keyPath, "/grant:r", `${getCurrentWindowsUser()}:F`], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (grantCurrentUser.status !== 0) {
+    throw new Error(`Failed to unlock existing generated SSH key: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
+  }
+
+  fs.unlinkSync(keyPath);
+}
+
+function hardenPrivateKeyFile(keyPath) {
   try {
     fs.chmodSync(keyPath, 0o600);
   } catch {
-    // Windows ignores POSIX key permissions; OpenSSH still accepts most user-owned files.
+    // Windows needs ACL hardening below; POSIX chmod can fail on some mounts.
   }
-  return keyPath;
+
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const removeInheritance = spawnSync("icacls", [keyPath, "/inheritance:r"], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (removeInheritance.status !== 0) {
+    throw new Error(`Failed to harden SSH key ACL inheritance: ${removeInheritance.stderr || removeInheritance.stdout}`);
+  }
+
+  const grantCurrentUser = spawnSync("icacls", [keyPath, "/grant:r", `${getCurrentWindowsUser()}:R`], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (grantCurrentUser.status !== 0) {
+    throw new Error(`Failed to grant current user SSH key read permission: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
+  }
 }
 
 function shellQuote(value) {
@@ -421,7 +540,13 @@ if [ -z "$DB_URL" ] && command -v docker >/dev/null 2>&1; then
     APP_CONTAINER="$(docker ps --format '{{.Names}} {{.Image}}' | awk 'tolower($0) ~ /creditregulatorpro/ && tolower($0) !~ /postgres/ {print $1; exit}')"
   fi
   if [ -n "$APP_CONTAINER" ]; then
-    DB_URL="$(docker exec "$APP_CONTAINER" sh -lc 'node --input-type=module -e "process.stdout.write(process.env.FLOOT_DATABASE_URL || process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL || \"\")"' 2>/dev/null || true)"
+    DB_URL="$(docker exec "$APP_CONTAINER" printenv FLOOT_DATABASE_URL 2>/dev/null || true)"
+    if [ -z "$DB_URL" ]; then
+      DB_URL="$(docker exec "$APP_CONTAINER" printenv DATABASE_URL 2>/dev/null || true)"
+    fi
+    if [ -z "$DB_URL" ]; then
+      DB_URL="$(docker exec "$APP_CONTAINER" printenv DATABASE_PRIVATE_URL 2>/dev/null || true)"
+    fi
   fi
 fi
 
@@ -438,9 +563,9 @@ if command -v docker >/dev/null 2>&1; then
     APP_NETWORK="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$APP_CONTAINER" 2>/dev/null | head -n 1 || true)"
   fi
   if [ -n "$APP_NETWORK" ]; then
-    exec docker run --rm --network "$APP_NETWORK" ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
+    exec docker run --rm --network "$APP_NETWORK" --add-host host.docker.internal:host-gateway ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
   fi
-  exec docker run --rm --network host ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
+  exec docker run --rm --network host --add-host host.docker.internal:host-gateway ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
 fi
 echo "pg_dump is not available on the staging host and no Docker fallback worked" >&2
 exit 31
@@ -459,22 +584,56 @@ exit 31
     remoteCommand,
   ];
 
-  await new Promise((resolve, reject) => {
-    const out = fs.createWriteStream(dumpFile, { mode: 0o600 });
-    const child = spawn("ssh", args, { stdio: ["ignore", "pipe", "inherit"] });
+  try {
+    await new Promise((resolve, reject) => {
+      const out = fs.createWriteStream(dumpFile, { mode: 0o600 });
+      const child = spawn("ssh", args, { stdio: ["ignore", "pipe", "inherit"] });
 
-    child.stdout.pipe(out);
-    child.on("error", reject);
-    out.on("error", reject);
-    child.on("exit", (code) => {
-      out.end();
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(`ssh exited with code ${code}`));
+      child.stdout.pipe(out);
+      child.on("error", reject);
+      out.on("error", reject);
+      child.on("exit", (code) => {
+        out.end();
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        reject(new Error(`ssh exited with code ${code}`));
+      });
     });
+  } finally {
+    removeGeneratedSshKeyFile(keyFile, outputDir);
+  }
+}
+
+function removeGeneratedSshKeyFile(keyFile, outputDir) {
+  const resolvedKey = path.resolve(keyFile);
+  const resolvedOutput = path.resolve(outputDir);
+  if (
+    !resolvedKey.startsWith(`${resolvedOutput}${path.sep}`) ||
+    !path.basename(resolvedKey).startsWith("staging_ssh_key_")
+  ) {
+    return;
+  }
+
+  try {
+    fs.unlinkSync(resolvedKey);
+    return;
+  } catch (error) {
+    if (process.platform !== "win32") {
+      throw error;
+    }
+  }
+
+  const grantCurrentUser = spawnSync("icacls", [resolvedKey, "/grant:r", `${getCurrentWindowsUser()}:F`], {
+    encoding: "utf8",
+    stdio: "pipe",
   });
+  if (grantCurrentUser.status !== 0) {
+    throw new Error(`Failed to unlock generated SSH key for cleanup: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
+  }
+
+  fs.unlinkSync(resolvedKey);
 }
 
 function makeMaintenanceUrl(targetUrl) {
