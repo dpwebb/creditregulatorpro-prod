@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL || "http://localhost:5175";
+const captureArtifacts = process.env.E2E_CAPTURE_ARTIFACTS === "true";
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -11,8 +12,9 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never", outputFolder: ".local/playwright-report" }]],
   use: {
     baseURL,
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
+    trace: captureArtifacts ? "retain-on-failure" : "off",
+    screenshot: captureArtifacts ? "only-on-failure" : "off",
+    video: "off",
   },
   projects: [
     {

@@ -10,7 +10,17 @@ async function login(page: Page, email: string, password: string) {
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(password);
   await page.getByRole("button", { name: /log in|login/i }).click();
-  await expect(page).not.toHaveURL(/\/login$/);
+
+  const outcome = await Promise.race([
+    page.waitForURL((url) => !/\/login$/.test(url.pathname), { timeout: 10000 }).then(() => "navigated" as const),
+    page.getByText(/invalid email or password/i).waitFor({ state: "visible", timeout: 10000 }).then(() => "invalid" as const),
+  ]).catch(() => "timeout" as const);
+
+  if (outcome !== "navigated") {
+    await page.getByLabel(/password/i).fill("");
+    await page.getByLabel(/email/i).fill("");
+    throw new Error(`Login failed for ${email}. Verify the E2E credentials and E2E_BASE_URL target.`);
+  }
 }
 
 test.describe("public route smoke", () => {
