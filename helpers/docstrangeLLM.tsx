@@ -108,6 +108,8 @@ const DocStrangeTradelineSchema = z.object({
   paymentHistoryProfile: z.string().nullable().optional(),
   lastActivityDate: z.string().nullable().optional(),
   monthlyPayment: z.number().nullable().optional(),
+  scheduledMonthlyPayment: z.number().nullable().optional(),
+  paymentFrequency: z.string().nullable().optional(),
 });
 
 const DocStrangeConsumerInfoSchema = z.object({

@@ -487,6 +487,10 @@ export async function persistTradelines(
       const creditLimit = normalizeCreditReportAmount(parsedTradeline.creditLimit, "tradeline.creditLimit");
       const originalBalance = normalizeCreditReportAmount(parsedTradeline.originalBalance, "tradeline.originalBalance");
       const monthlyPayment = normalizeCreditReportAmount(parsedTradeline.monthlyPayment, "tradeline.monthlyPayment");
+      const scheduledMonthlyPayment = normalizeCreditReportAmount(
+        parsedTradeline.scheduledMonthlyPayment ?? parsedTradeline.monthlyPayment,
+        "tradeline.scheduledMonthlyPayment",
+      );
       const lastPaymentAmount = normalizeCreditReportAmount(parsedTradeline.lastPaymentAmount, "tradeline.lastPaymentAmount");
       const paymentPattern = (parsedTradeline.paymentPattern || parsedTradeline.paymentHistoryProfile || null)?.substring(0, 255) ?? null;
       const paymentHistoryProfile = (parsedTradeline.paymentHistoryProfile || parsedTradeline.paymentPattern || null)?.substring(0, 255) ?? null;
@@ -517,6 +521,7 @@ export async function persistTradelines(
         interestRate: normalizeCreditReportPercent(parsedTradeline.interestRate, "tradeline.interestRate"),
         terms: parsedTradeline.terms ?? null,
         monthlyPayment,
+        scheduledMonthlyPayment,
         lastActivityDate: parsedTradeline.lastActivityDate ?? null,
         responsibilityCode: parsedTradeline.responsibilityCode ? parsedTradeline.responsibilityCode.substring(0, 50) : null,
         ecoaCode: parsedTradeline.ecoaCode ? parsedTradeline.ecoaCode.substring(0, 1) : null,

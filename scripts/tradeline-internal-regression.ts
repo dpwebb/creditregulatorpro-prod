@@ -3,6 +3,10 @@ import {
   findAllCrossBureauPairs,
   findCrossBureauSibling,
 } from "../helpers/crossBureauMatcher";
+import {
+  normalizeTransUnionPaymentTerms,
+  parseTransUnionPaymentAmountFrequency,
+} from "../helpers/transunionPaymentTerms";
 
 type RuntimeTradeline = {
   id: number;
@@ -120,6 +124,31 @@ function run() {
 
     assert.equal(pairMap.get(301), 302);
     assert.equal(pairMap.get(302), 301);
+  });
+
+  runCase("TransUnion amount/frequency terms map to scheduled payment fields", () => {
+    const parsed = parseTransUnionPaymentAmountFrequency("522/M");
+
+    assert.deepEqual(parsed, {
+      amount: 522,
+      frequency: "M",
+      raw: "522/M",
+    });
+
+    assert.deepEqual(
+      normalizeTransUnionPaymentTerms({
+        terms: "522/M",
+        monthlyPayment: null,
+        scheduledMonthlyPayment: null,
+        paymentFrequency: null,
+      }),
+      {
+        terms: null,
+        monthlyPayment: 522,
+        scheduledMonthlyPayment: 522,
+        paymentFrequency: "M",
+      },
+    );
   });
 
   console.log("Tradeline internal regression checks passed.");

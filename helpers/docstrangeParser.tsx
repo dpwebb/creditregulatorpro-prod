@@ -1,6 +1,7 @@
 import { ComprehensiveParseResult, ParsedTradeline, ExtractedReportMetadata, ExtractedPaymentHistory, ExtractedEmploymentInfo, ExtractedInquiry, ExtractedPublicRecord, ExtractedConsumerStatement } from "./reportParserTypes";
 import { LLMResponse } from "./docstrangeLLM";
 import { parse, isValid } from "./dateUtils";
+import { normalizeTransUnionPaymentTerms } from "./transunionPaymentTerms";
 
 // --- Helper: Map DocStrange Response to ComprehensiveParseResult ---
 
@@ -88,6 +89,17 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
 
   // 1. Map Tradelines
   const tradelines: ParsedTradeline[] = (docStrangeData.tradelines || []).map((t: any) => {
+    const parseAmount = (value: unknown): number | undefined => {
+      if (value == null || value === "") return undefined;
+      const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ""));
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    const normalizedPaymentTerms = normalizeTransUnionPaymentTerms({
+      terms: t.terms ?? undefined,
+      monthlyPayment: parseAmount(t.monthlyPayment),
+      scheduledMonthlyPayment: parseAmount(t.scheduledMonthlyPayment),
+      paymentFrequency: t.paymentFrequency ?? undefined,
+    });
     const parsed: ParsedTradeline = {
       creditorName: t.creditorName || "Unknown Creditor",
     accountNumber: t.accountNumber || "",
@@ -114,7 +126,9 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
     lastActivityDate: parseDate(t.lastActivityDate),
     lastPaymentDate: parseDate(t.lastPaymentDate),
     creditLimit: t.creditLimit != null ? t.creditLimit : undefined,
-    monthlyPayment: t.monthlyPayment != null ? parseFloat(String(t.monthlyPayment).replace(/[^0-9.-]/g, "")) : undefined,
+    monthlyPayment: normalizedPaymentTerms.monthlyPayment ?? undefined,
+    scheduledMonthlyPayment: normalizedPaymentTerms.scheduledMonthlyPayment ?? undefined,
+    paymentFrequency: normalizedPaymentTerms.paymentFrequency ?? undefined,
     paymentPattern: (() => {
       let pattern = t.paymentHistoryProfile || t.paymentPattern || undefined;
       if (pattern) {
@@ -133,7 +147,7 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
     responsibilityCode: t.responsibilityCode ?? undefined,
     remarkCodes: [t.remarks, t.legend].filter(Boolean) as string[],
     sourceText: t.sourceText || "",
-    terms: t.terms ?? undefined,
+    terms: normalizedPaymentTerms.terms ?? undefined,
     mop: (() => {
       const inferredMop = t.mop != null && String(t.mop) !== "0" ? String(t.mop) : undefined;
       const detailMop = (t.paymentHistoryDetails?.[0] as any)?.mop != null ? String((t.paymentHistoryDetails?.[0] as any)?.mop) : undefined;
@@ -160,6 +174,17 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
 
   // 2. Map Payment Histories (Extracted Payment History)
   const paymentHistories: ExtractedPaymentHistory[] = (docStrangeData.tradelines || []).map((t: any) => {
+    const parseAmount = (value: unknown): number | undefined => {
+      if (value == null || value === "") return undefined;
+      const parsed = parseFloat(String(value).replace(/[^0-9.-]/g, ""));
+      return Number.isFinite(parsed) ? parsed : undefined;
+    };
+    const normalizedPaymentTerms = normalizeTransUnionPaymentTerms({
+      terms: t.terms ?? undefined,
+      monthlyPayment: parseAmount(t.monthlyPayment),
+      scheduledMonthlyPayment: parseAmount(t.scheduledMonthlyPayment),
+      paymentFrequency: t.paymentFrequency ?? undefined,
+    });
     let pattern = t.paymentHistoryProfile || t.paymentPattern || null;
     if (pattern) {
       const p = pattern.toLowerCase();
@@ -217,7 +242,9 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
       worstDelinquencyCode: null,
       worstDelinquencyDate: null,
       accountCondition: t.status || null,
-      monthlyPayment: null,
+      monthlyPayment: normalizedPaymentTerms.scheduledMonthlyPayment ?? normalizedPaymentTerms.monthlyPayment ?? null,
+      termsFrequency: normalizedPaymentTerms.paymentFrequency ?? null,
+      termsMonths: null,
       lastPaymentAmount: null,
       lastActivityDate: parseDate(t.lastPaymentDate), // using as fallback
       lastReportedDate: parseDate(t.dateReported || t.reportedDate),

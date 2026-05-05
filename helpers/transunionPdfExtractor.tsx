@@ -34,6 +34,11 @@ import {
   extractTransUnionPaymentSummary,
   formatTransUnionPaymentSummary,
 } from "./transunionTextParsing";
+import {
+  isSamePaymentAmount,
+  normalizeTransUnionPaymentTerms,
+  parseTransUnionPaymentAmountFrequency,
+} from "./transunionPaymentTerms";
 
 /**
  * Extracts tradelines from credit report text.
@@ -123,16 +128,32 @@ function parseTradelineSection(
   
   // Extract financial details (applicable to both regular and collection accounts)
   const interestRate = extractInterestRate(section);
-  const terms = extractTerms(section);
-  const monthlyPayment = extractMonthlyPayment(section);
+  let terms = extractTerms(section);
+  let monthlyPayment = extractMonthlyPayment(section);
+  let scheduledMonthlyPayment: number | undefined;
+  let paymentFrequency: string | null | undefined;
+  const paymentTerms = parseTransUnionPaymentAmountFrequency(terms);
+  if (paymentTerms) {
+    monthlyPayment = monthlyPayment ?? paymentTerms.amount;
+    scheduledMonthlyPayment = paymentTerms.amount;
+    paymentFrequency = paymentTerms.frequency;
+    terms = null;
+  }
   const lastActivityDate = extractLastActivityDate(section);
   const paymentHistoryDetails = extractTransUnionPaymentGridRows(section).map((row) => ({
     date: row.dateLabel,
     balance: row.balance,
-    payment: row.payment,
+    payment:
+      row.payment ??
+      (paymentTerms && isSamePaymentAmount(row.terms, paymentTerms.amount)
+        ? paymentTerms.amount
+        : null),
     pastDue: row.pastDue,
     mop: row.mop,
-    terms: row.terms,
+    terms:
+      paymentTerms && isSamePaymentAmount(row.terms, paymentTerms.amount)
+        ? null
+        : row.terms,
     highCredit: row.highCredit,
     creditLimit: row.creditLimit,
     balloonPayment: row.balloonPayment,
@@ -175,7 +196,7 @@ function parseTradelineSection(
   }
 
   // Build and return the tradeline object
-  const tradeline: ParsedTradeline = {
+  const tradeline: ParsedTradeline = normalizeTransUnionPaymentTerms({
     accountNumber: accountNumber || "Unknown",
     creditorName: creditorName || "Unknown",
     accountType: accountType || "Unknown",
@@ -201,7 +222,9 @@ function parseTradelineSection(
     // Financial details
     interestRate: interestRate || undefined,
     terms: terms || undefined,
-    monthlyPayment: monthlyPayment || undefined,
+    monthlyPayment: monthlyPayment ?? undefined,
+    scheduledMonthlyPayment,
+    paymentFrequency,
     lastActivityDate: lastActivityDate,
     paymentPattern,
     paymentHistoryProfile: paymentPattern ?? null,
@@ -210,7 +233,7 @@ function parseTradelineSection(
     paymentHistoryDetails: paymentHistoryDetails.length > 0 ? paymentHistoryDetails : null,
     mop: detailMop ?? undefined,
     creditLimit: latestPaymentDetail?.creditLimit ?? undefined,
-  };
+  });
 
   // Store the raw source text for document highlighting
   tradeline.sourceText = section;
@@ -379,6 +402,14 @@ function mergeTradelines(tradelines: ParsedTradeline[]): ParsedTradeline {
     
     if (merged.monthlyPayment === undefined && current.monthlyPayment !== undefined) {
       merged.monthlyPayment = current.monthlyPayment;
+    }
+
+    if (merged.scheduledMonthlyPayment === undefined && current.scheduledMonthlyPayment !== undefined) {
+      merged.scheduledMonthlyPayment = current.scheduledMonthlyPayment;
+    }
+
+    if (!isMeaningful(merged.paymentFrequency) && isMeaningful(current.paymentFrequency)) {
+      merged.paymentFrequency = current.paymentFrequency;
     }
     
     if (!merged.lastActivityDate && current.lastActivityDate) {

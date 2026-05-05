@@ -93,6 +93,8 @@ export interface ParserLabTradelinePreview {
   status: string;
   balance: number | null;
   monthlyPayment: number | null;
+  scheduledMonthlyPayment: number | null;
+  paymentFrequency: string | null;
   creditLimit: number | null;
   highCredit: number | null;
   pastDue: number | null;
@@ -260,7 +262,9 @@ function buildTradelinePreview(tradeline: ParsedTradeline, index: number): Parse
     accountType: tradeline.accountType || "",
     status: tradeline.status || "",
     balance: numberOrNull(tradeline.balance),
-    monthlyPayment: numberOrNull(tradeline.monthlyPayment),
+    monthlyPayment: numberOrNull(tradeline.monthlyPayment ?? tradeline.scheduledMonthlyPayment),
+    scheduledMonthlyPayment: numberOrNull(tradeline.scheduledMonthlyPayment),
+    paymentFrequency: stringOrNull(tradeline.paymentFrequency),
     creditLimit: numberOrNull(tradeline.creditLimit),
     highCredit: numberOrNull(tradeline.amounts?.high),
     pastDue: numberOrNull(tradeline.amounts?.pastDue),

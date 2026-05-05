@@ -116,7 +116,7 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
           <SectionHeader icon={DollarSign} title="Money" />
           <div className={styles.grid3}>
             <Field label="Current Balance" value={formatCurrencyOrNull(tradeline.balance ?? tradeline.currentBalance)} monospace emptyText="Not reported" />
-            <Field label="Monthly Payment" value={formatCurrencyOrNull(tradeline.monthlyPayment)} monospace emptyText="Not reported" />
+            <Field label="Monthly Payment" value={formatCurrencyOrNull(tradeline.monthlyPayment ?? tradeline.scheduledMonthlyPayment)} monospace emptyText="Not reported" />
             <Field label="Past Due" value={formatCurrencyOrNull(tradeline.amountPastDue)} monospace emptyText="Not reported" />
             <Field
               label="Credit Limit"
@@ -253,7 +253,7 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
           <Field label="Credit Limit" value={tradeline.creditLimit != null ? formatCurrency(Number(tradeline.creditLimit)) : (tradeline.accountType?.toLowerCase().includes('revolving') || tradeline.accountType?.toLowerCase().includes('credit card') ? <Badge variant="error">VIOLATION</Badge> : null)} monospace />
           <Field label="Past Due" value={formatCurrency(Number(tradeline.amountPastDue))} monospace />
           <Field label="Original Balance" value={formatCurrency(Number(tradeline.originalBalance))} monospace />
-          <Field label="Monthly Payment" value={formatCurrency(Number(tradeline.monthlyPayment))} monospace />
+          <Field label="Monthly Payment" value={formatCurrency(Number(tradeline.monthlyPayment ?? tradeline.scheduledMonthlyPayment))} monospace />
           <Field label="Last Payment" value={formatCurrency(Number(tradeline.lastPaymentAmount))} monospace />
           <Field label="Interest Rate" value={formatPercent(tradeline.interestRate ? Number(tradeline.interestRate) : null)} monospace />
         </div>

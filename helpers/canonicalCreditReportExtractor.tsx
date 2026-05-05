@@ -133,6 +133,8 @@ function tradelineToLlmTradeline(tradeline: ParsedTradeline): NonNullable<LLMRes
     monthsReviewed: extra.monthsReviewed != null ? String(extra.monthsReviewed) : null,
     lastActivityDate: formatDate(tradeline.lastActivityDate),
     monthlyPayment: numberOrNull(tradeline.monthlyPayment),
+    scheduledMonthlyPayment: numberOrNull(tradeline.scheduledMonthlyPayment),
+    paymentFrequency: tradeline.paymentFrequency ?? null,
   };
 }
 

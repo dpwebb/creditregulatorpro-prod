@@ -5,6 +5,10 @@ import {
   extractFieldFromTables,
   mapTableRows
 } from "./_htmlParserUtils";
+import {
+  isSamePaymentAmount,
+  parseTransUnionPaymentAmountFrequency,
+} from "./transunionPaymentTerms";
 
 /**
  * Parses an individual Tradeline account block deterministically.
@@ -182,6 +186,8 @@ export function parseAccount(accHtml: string) {
   let pastDue = getAmount("Past Due");
   let creditLimit = getAmount("Credit Limit");
   let monthlyPayment = getAmountAlt("Monthly Payment");
+  let scheduledMonthlyPayment = null;
+  let paymentFrequency = null;
   const monthsReviewed = getFieldAlt("Months Reviewed");
   let terms = getField("Terms");
   
@@ -190,6 +196,14 @@ export function parseAccount(accHtml: string) {
     if (tLower === "terms:" || tLower === "terms" || (!/\d/.test(tLower) && !tLower.includes("month") && !tLower.includes("year"))) {
       terms = null;
     }
+  }
+
+  const paymentTerms = parseTransUnionPaymentAmountFrequency(terms);
+  if (paymentTerms) {
+    monthlyPayment = monthlyPayment ?? paymentTerms.amount;
+    scheduledMonthlyPayment = paymentTerms.amount;
+    paymentFrequency = paymentTerms.frequency;
+    terms = null;
   }
 
   let paymentHistoryProfile = getField("Payment History");
@@ -329,15 +343,25 @@ export function parseAccount(accHtml: string) {
             const n = parseFloat(String(v).replace(/[^0-9.-]/g, ""));
             return isNaN(n) ? null : n;
           };
+          const rowPayment = parseNum(row.payment);
+          const rowTerms =
+            paymentTerms && isSamePaymentAmount(row.terms, paymentTerms.amount)
+              ? null
+              : row.terms;
           return {
             ...row,
             balance: parseNum(row.balance),
-            payment: parseNum(row.payment),
+            payment:
+              rowPayment ??
+              (paymentTerms && isSamePaymentAmount(row.terms, paymentTerms.amount)
+                ? paymentTerms.amount
+                : null),
             pastDue: parseNum(row.pastDue),
             highCredit: parseNum(row.highCredit),
             creditLimit: parseNum(row.creditLimit),
             balloonPayment: parseNum(row.balloonPayment),
             chargeOff: parseNum(row.chargeOff),
+            terms: rowTerms,
           };
         });
 
@@ -473,6 +497,8 @@ export function parseAccount(accHtml: string) {
     pastDue,
     creditLimit,
     monthlyPayment,
+    scheduledMonthlyPayment,
+    paymentFrequency,
     paymentHistoryProfile,
     paymentPattern,
     monthsReviewed,

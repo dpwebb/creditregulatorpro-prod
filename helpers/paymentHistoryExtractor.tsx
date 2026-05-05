@@ -14,6 +14,8 @@ export type ExtractedPaymentHistory = {
   worstDelinquencyDate: Date | null;
   accountCondition: string | null;
   monthlyPayment: number | null;
+  termsFrequency?: string | null;
+  termsMonths?: number | null;
   lastPaymentAmount: number | null;
   lastActivityDate: Date | null;
   lastReportedDate: Date | null;

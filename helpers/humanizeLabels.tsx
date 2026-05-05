@@ -17,6 +17,8 @@ export const humanizeLabels = {
       highCredit: "Highest Amount Owed",
       pastDueAmount: "Past Due Amount",
       monthlyPayment: "Monthly Payment",
+      scheduledMonthlyPayment: "Scheduled Monthly Payment",
+      paymentFrequency: "Payment Frequency",
       openedDate: "Date Opened",
       closedDate: "Date Closed",
       lastActivityDate: "Last Activity",

@@ -21,6 +21,7 @@ import {
   normalizeCreditReportAmountString,
   normalizePaymentHistoryCount,
 } from "./creditReportNumberSanitizer";
+import { isSamePaymentAmount } from "./transunionPaymentTerms";
 
 export type ComprehensiveStorageResult = {
   consumerInfoId: number | null;
@@ -348,6 +349,8 @@ export async function storeComprehensiveReportData(params: {
         worstDelinquencyDate: paymentHistory.worstDelinquencyDate,
         accountCondition: paymentHistory.accountCondition,
         monthlyPayment: normalizeCreditReportAmountString(paymentHistory.monthlyPayment, "tradelinePaymentHistory.monthlyPayment"),
+        termsFrequency: paymentHistory.termsFrequency ?? null,
+        termsMonths: paymentHistory.termsMonths ?? null,
         lastPaymentAmount: normalizeCreditReportAmountString(paymentHistory.lastPaymentAmount, "tradelinePaymentHistory.lastPaymentAmount"),
         lastActivityDate: paymentHistory.lastActivityDate,
         lastReportedDate: paymentHistory.lastReportedDate,
@@ -457,7 +460,15 @@ export async function storeComprehensiveReportData(params: {
         if (detailHighCredit !== null && detailHighCredit > 0) tradelineFallbackUpdates.highCredit = detailHighCredit;
         if (detailCreditLimit !== null && detailCreditLimit > 0) tradelineFallbackUpdates.creditLimit = detailCreditLimit;
         if (detailMop) tradelineFallbackUpdates.mop = detailMop;
-        if (detailTerms) tradelineFallbackUpdates.terms = detailTerms;
+        if (
+          detailTerms &&
+          !(
+            paymentHistory.monthlyPayment != null &&
+            isSamePaymentAmount(detailTerms, Number(paymentHistory.monthlyPayment))
+          )
+        ) {
+          tradelineFallbackUpdates.terms = detailTerms;
+        }
         if (derivedPaymentPattern) {
           tradelineFallbackUpdates.paymentPattern = derivedPaymentPattern;
           tradelineFallbackUpdates.paymentHistoryProfile = derivedPaymentPattern;
@@ -476,6 +487,7 @@ export async function storeComprehensiveReportData(params: {
           const normalizedMonthlyPayment = normalizeCreditReportAmount(paymentHistory.monthlyPayment, "tradeline.monthlyPayment");
           if (normalizedMonthlyPayment !== null) {
             tradelineFallbackUpdates.monthlyPayment = normalizedMonthlyPayment;
+            tradelineFallbackUpdates.scheduledMonthlyPayment = normalizedMonthlyPayment;
           }
         }
 

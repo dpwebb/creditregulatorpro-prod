@@ -52,6 +52,7 @@ import {
   ExtractedReportMetadata,
   ExtractedPaymentHistory
 } from "./reportParserTypes";
+import { normalizeTransUnionPaymentTerms } from "./transunionPaymentTerms";
 
 // Re-export everything from types to maintain backward compatibility
 export * from "./reportParserTypes";
@@ -326,6 +327,13 @@ export async function parseReport(
           tradeline.paymentPattern ||
           tradeline.paymentHistoryProfile ||
           undefined;
+        const normalizedPaymentTerms = normalizeTransUnionPaymentTerms({
+          terms: tradeline.terms ?? extractTerms(sourceText) ?? undefined,
+          monthlyPayment:
+            tradeline.monthlyPayment ?? extractMonthlyPayment(sourceText) ?? undefined,
+          scheduledMonthlyPayment: tradeline.scheduledMonthlyPayment,
+          paymentFrequency: tradeline.paymentFrequency,
+        });
 
         // Base augmentation (synchronous fields)
         const augmented = {
@@ -344,8 +352,11 @@ export async function parseReport(
             extractedDateAssignedToCollection,
           originalBalance: extractOriginalBalance(sourceText) || undefined,
           interestRate: extractInterestRate(sourceText) || undefined,
-          terms: extractTerms(sourceText) || undefined,
-          monthlyPayment: extractMonthlyPayment(sourceText) || undefined,
+          terms: normalizedPaymentTerms.terms ?? undefined,
+          monthlyPayment: normalizedPaymentTerms.monthlyPayment ?? undefined,
+          scheduledMonthlyPayment:
+            normalizedPaymentTerms.scheduledMonthlyPayment ?? undefined,
+          paymentFrequency: normalizedPaymentTerms.paymentFrequency ?? undefined,
           lastActivityDate: extractLastActivityDate(sourceText),
           responsibilityCode:
             extractResponsibilityCode(sourceText) || undefined,
@@ -495,6 +506,14 @@ export async function parseReport(
 
       if (tradeline.monthsReviewed != null) {
         (paymentHistory as any).monthsReviewed = tradeline.monthsReviewed;
+      }
+
+      if (tradeline.scheduledMonthlyPayment != null && paymentHistory.monthlyPayment == null) {
+        paymentHistory.monthlyPayment = tradeline.scheduledMonthlyPayment;
+      }
+
+      if (tradeline.paymentFrequency) {
+        (paymentHistory as any).termsFrequency = tradeline.paymentFrequency;
       }
 
       if (tradeline.paymentHistoryDetails?.length) {

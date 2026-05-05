@@ -21,6 +21,8 @@ const COMMON_TRADELINE: Omit<DefaultMappingEntry, "bureau">[] = [
   { section: "tradeline", sourcePath: "pastDue", targetField: "amounts.pastDue", transformType: "numeric", description: "Extract numeric past due." },
   { section: "tradeline", sourcePath: "creditLimit", targetField: "creditLimit", transformType: "numeric", description: "Extract numeric credit limit." },
   { section: "tradeline", sourcePath: "monthlyPayment", targetField: "monthlyPayment", transformType: "numeric", description: "Extract numeric monthly payment." },
+  { section: "tradeline", sourcePath: "scheduledMonthlyPayment", targetField: "scheduledMonthlyPayment", transformType: "numeric", description: "Extract bureau-reported scheduled payment amount." },
+  { section: "tradeline", sourcePath: "paymentFrequency", targetField: "paymentFrequency", transformType: "uppercase", description: "Extract bureau-reported payment frequency code." },
   { section: "tradeline", sourcePath: "responsibilityCode", targetField: "responsibilityCode", transformType: "direct", description: "Direct map to responsibilityCode." },
   { section: "tradeline", sourcePath: "remarks/legend", targetField: "remarkCodes", transformType: "direct", description: "Direct map to remarkCodes." },
   { section: "tradeline", sourcePath: "isCollectionAccount", targetField: "isCollectionAccount", transformType: "boolean", description: "Cast to boolean." },
@@ -29,7 +31,7 @@ const COMMON_TRADELINE: Omit<DefaultMappingEntry, "bureau">[] = [
   { section: "tradeline", sourcePath: "lastActivityDate", targetField: "lastActivityDate", transformType: "date_parse", description: "Applies date_parse." },
   { section: "tradeline", sourcePath: "lastPaymentDate", targetField: "lastPaymentDate", transformType: "date_parse", description: "Applies date_parse." },
   { section: "tradeline", sourcePath: "paymentHistoryProfile/paymentPattern", targetField: "paymentPattern", transformType: "direct", description: "Direct map to paymentPattern." },
-  { section: "tradeline", sourcePath: "terms", targetField: "terms", transformType: "direct", description: "Direct map to terms." },
+  { section: "tradeline", sourcePath: "terms", targetField: "terms", transformType: "direct", description: "Direct map to loan terms only. TransUnion amount/frequency values such as 522/M are normalized to scheduledMonthlyPayment and paymentFrequency." },
   { section: "tradeline", sourcePath: "mop", targetField: "mop", transformType: "direct", description: "Direct map to mop." },
 ];
 

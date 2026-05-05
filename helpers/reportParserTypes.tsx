@@ -85,6 +85,10 @@ export interface ParsedTradeline {
   terms?: string;
   /** Monthly payment amount */
   monthlyPayment?: number;
+  /** Bureau-reported scheduled payment amount when separate from actual payment history */
+  scheduledMonthlyPayment?: number;
+  /** Bureau-reported payment frequency code such as M for monthly */
+  paymentFrequency?: string | null;
   /** Date of last activity on the account */
   lastActivityDate?: Date | null;
   /** Responsibility code: Individual, Joint, Authorized User, Cosigner */
