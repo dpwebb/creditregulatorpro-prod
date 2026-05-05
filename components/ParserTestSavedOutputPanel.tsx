@@ -153,6 +153,56 @@ function valueAtPath(record: JsonRecord, path: string): unknown {
   }, record);
 }
 
+function tokenizeFieldPath(path: string): Array<string | number> {
+  const tokens: Array<string | number> = [];
+  const matcher = /([^[.\]]+)|\[(\d+)\]/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = matcher.exec(path))) {
+    if (match[1] !== undefined) {
+      tokens.push(match[1]);
+    } else if (match[2] !== undefined) {
+      tokens.push(Number(match[2]));
+    }
+  }
+
+  return tokens;
+}
+
+function valueAtStructuredPath(value: unknown, path: string): unknown {
+  return tokenizeFieldPath(path).reduce<unknown>((current, token) => {
+    if (typeof token === "number") {
+      return Array.isArray(current) ? current[token] : undefined;
+    }
+    if (!isRecord(current)) return undefined;
+    return current[token];
+  }, value);
+}
+
+function approvedValueForField(
+  option: FieldOption | undefined,
+  approvedConsumerInfo: JsonRecord | null,
+  approvedTradelines: JsonRecord[] | null,
+): unknown {
+  if (!option) return undefined;
+
+  if (option.entityType === "consumerInfo" && approvedConsumerInfo) {
+    const path = option.fieldPath.replace(/^consumerInfo\.?/, "");
+    return path ? valueAtStructuredPath(approvedConsumerInfo, path) : undefined;
+  }
+
+  if (option.entityType === "tradeline" && approvedTradelines) {
+    const match = option.fieldPath.match(/^tradelines\[(\d+)\](?:\.(.+))?$/);
+    if (!match) return undefined;
+    const index = Number(match[1]);
+    const path = match[2];
+    if (!Number.isInteger(index) || !path) return undefined;
+    return valueAtStructuredPath(approvedTradelines[index], path);
+  }
+
+  return undefined;
+}
+
 function humanizeKey(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -619,6 +669,14 @@ export function ParserTestSavedOutputPanel({
   const hasSavedOutput =
     Object.keys(consumerInfo).length > 0 || tradelines.length > 0 || rawText.trim().length > 0;
   const selectedFieldOption = fieldOptions.find((option) => option.id === decisionDraft.selectedFieldId);
+  const selectedApprovedValue = approvedValueForField(
+    selectedFieldOption,
+    approvedConsumerInfo,
+    approvedTradelines,
+  );
+  const selectedApprovedValueLabel =
+    selectedApprovedValue === undefined ? "" : summarizeValue(selectedApprovedValue);
+  const hasSelectedApprovedValue = selectedApprovedValue !== undefined;
 
   const setDraftValue = (key: keyof DecisionDraft, value: string) => {
     setDecisionDraft((current) => ({ ...current, [key]: value }));
@@ -627,6 +685,8 @@ export function ParserTestSavedOutputPanel({
   const applyFieldOption = (option: FieldOption | undefined) => {
     if (!option) return;
     const parsedValue = summarizeValue(option.parsedValue);
+    const approvedValue = approvedValueForField(option, approvedConsumerInfo, approvedTradelines);
+    const approvedValueLabel = approvedValue === undefined ? "" : summarizeValue(approvedValue);
     setDecisionDraft((current) => ({
       ...current,
       selectedFieldId: option.id,
@@ -634,7 +694,7 @@ export function ParserTestSavedOutputPanel({
       entityKey: option.entityKey,
       fieldPath: option.fieldPath,
       parsedValue,
-      correctValue: current.decision === "not_reported" ? "" : parsedValue,
+      correctValue: current.decision === "not_reported" ? "" : approvedValueLabel || parsedValue,
     }));
   };
 
@@ -710,6 +770,16 @@ export function ParserTestSavedOutputPanel({
     if (!onAdjudicate || !decisionDraft.fieldPath.trim()) return;
     const rawParsedValue = selectedFieldOption?.parsedValue ?? decisionDraft.parsedValue;
     const parsedValueForSubmission = rawParsedValue === "" ? undefined : rawParsedValue;
+    const correctValueForSubmission =
+      decisionDraft.decision === "not_reported"
+        ? null
+        : decisionDraft.decision === "accepted"
+          ? parsedValueForSubmission
+          : coerceCorrectValue(
+              decisionDraft.correctValue || decisionDraft.parsedValue,
+              selectedFieldOption?.parsedValue,
+              decisionDraft.fieldPath,
+            );
 
     await onAdjudicate({
       testCaseId: testCase.id,
@@ -721,21 +791,17 @@ export function ParserTestSavedOutputPanel({
         fieldPath: decisionDraft.fieldPath,
         decision: decisionDraft.decision,
         parsedValue: parsedValueForSubmission,
-        correctValue:
-          decisionDraft.decision === "not_reported"
-            ? null
-            : decisionDraft.decision === "accepted"
-              ? parsedValueForSubmission
-              : coerceCorrectValue(
-                  decisionDraft.correctValue || decisionDraft.parsedValue,
-                  selectedFieldOption?.parsedValue,
-                  decisionDraft.fieldPath,
-                ),
+        correctValue: correctValueForSubmission,
         sourceEvidence: decisionDraft.sourceEvidence || undefined,
         reason: decisionDraft.reason || undefined,
       },
     });
-    setDecisionDraft(EMPTY_DECISION_DRAFT);
+    setDecisionDraft((current) => ({
+      ...current,
+      correctValue: summarizeValue(correctValueForSubmission),
+      sourceEvidence: "",
+      reason: "",
+    }));
   };
 
   if (!hasSavedOutput) {
@@ -884,10 +950,21 @@ export function ParserTestSavedOutputPanel({
                 placeholder="Edit this to the value shown on the bureau report"
               />
             </label>
-            <div className={styles.parsedValuePreview}>
-              <span>Current Parsed Value</span>
-              <strong>{decisionDraft.parsedValue || "Blank / not parsed"}</strong>
-              <small>{decisionDraft.fieldPath || "Select a field"}</small>
+            <div className={`${styles.valuePreviewGrid} ${styles.fullWidth}`}>
+              <div className={styles.parsedValuePreview}>
+                <span>Parser Extracted Value</span>
+                <strong>{decisionDraft.parsedValue || "Blank / not parsed"}</strong>
+                <small>{decisionDraft.fieldPath || "Select a field"}</small>
+              </div>
+              <div className={`${styles.parsedValuePreview} ${styles.approvedValuePreview}`}>
+                <span>Current Approved Value</span>
+                <strong>
+                  {hasSelectedApprovedValue
+                    ? selectedApprovedValueLabel || "Blank / approved empty"
+                    : "No correction saved"}
+                </strong>
+                <small>{hasSelectedApprovedValue ? "Used by parser test baseline" : "Save a decision to set this value"}</small>
+              </div>
             </div>
             <label className={styles.fullWidth}>
               <span>Source Evidence</span>

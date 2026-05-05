@@ -136,6 +136,12 @@
   font: inherit;
 }
 
+.valuePreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: var(--spacing-3);
+}
+
 .parsedValuePreview {
   display: flex;
   min-width: 0;
@@ -145,6 +151,11 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--background);
+}
+
+.approvedValuePreview {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, var(--background));
 }
 
 .parsedValuePreview span,
@@ -368,7 +379,8 @@
 @media (max-width: 760px) {
   .metrics,
   .contextGrid,
-  .decisionForm {
+  .decisionForm,
+  .valuePreviewGrid {
     grid-template-columns: 1fr;
   }
 
