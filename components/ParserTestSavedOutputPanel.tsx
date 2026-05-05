@@ -60,6 +60,9 @@ const ENTITY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const UNKNOWN_RESULT_LABEL = "Unknown";
+const NOT_PROVIDED_APPROVED_VALUE = "Not Provided";
+
 const CONSUMER_FIELD_TEMPLATES = [
   ["fullName", "Full Name"],
   ["dateOfBirth", "Date Of Birth"],
@@ -245,6 +248,39 @@ function summarizeValue(value: unknown): string {
   }
 
   return formatScalar(value);
+}
+
+function isUnknownResultValue(value: unknown): value is string {
+  return typeof value === "string" && value.trim().toLowerCase() === UNKNOWN_RESULT_LABEL.toLowerCase();
+}
+
+function approvedValueForParsedResult(parsedValue: unknown): unknown {
+  return isUnknownResultValue(parsedValue) ? NOT_PROVIDED_APPROVED_VALUE : parsedValue;
+}
+
+function defaultCorrectValue(parsedValue: string, approvedValueLabel: string, decision: string): string {
+  if (decision === "not_reported") return "";
+  if (approvedValueLabel) return approvedValueLabel;
+  return isUnknownResultValue(parsedValue) ? NOT_PROVIDED_APPROVED_VALUE : parsedValue;
+}
+
+function replaceUnknownResultsWithNotProvided(value: unknown): unknown {
+  if (isUnknownResultValue(value)) return NOT_PROVIDED_APPROVED_VALUE;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceUnknownResultsWithNotProvided(item));
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entryValue]) => [
+        key,
+        replaceUnknownResultsWithNotProvided(entryValue),
+      ]),
+    );
+  }
+
+  return value;
 }
 
 function truncate(value: string, maxLength = 100): string {
@@ -697,7 +733,7 @@ export function ParserTestSavedOutputPanel({
       entityKey: option.entityKey,
       fieldPath: option.fieldPath,
       parsedValue,
-      correctValue: current.decision === "not_reported" ? "" : approvedValueLabel || parsedValue,
+      correctValue: defaultCorrectValue(parsedValue, approvedValueLabel, current.decision),
     }));
   };
 
@@ -746,11 +782,14 @@ export function ParserTestSavedOutputPanel({
 
   const handleAcceptBaseline = async () => {
     if (!onAdjudicate) return;
+    const approvedConsumerBaseline = replaceUnknownResultsWithNotProvided(consumerInfo);
+    const approvedTradelineBaseline = replaceUnknownResultsWithNotProvided(tradelines);
+
     await onAdjudicate({
       testCaseId: testCase.id,
       adminReviewStatus: "approved",
-      approvedConsumerInfo: consumerInfo,
-      approvedTradelines: tradelines,
+      approvedConsumerInfo: approvedConsumerBaseline,
+      approvedTradelines: approvedTradelineBaseline,
       decision: {
         entityType: "report",
         fieldPath: "all_saved_output",
@@ -760,8 +799,8 @@ export function ParserTestSavedOutputPanel({
           tradelines,
         },
         correctValue: {
-          consumerInfo,
-          tradelines,
+          consumerInfo: approvedConsumerBaseline,
+          tradelines: approvedTradelineBaseline,
         },
         sourceEvidence: "Admin accepted saved parser output as bureau truth for this test case.",
       },
@@ -777,7 +816,7 @@ export function ParserTestSavedOutputPanel({
       decisionDraft.decision === "not_reported"
         ? null
         : decisionDraft.decision === "accepted"
-          ? parsedValueForSubmission
+          ? approvedValueForParsedResult(parsedValueForSubmission)
           : coerceCorrectValue(
               decisionDraft.correctValue || decisionDraft.parsedValue,
               selectedFieldOption?.parsedValue,
@@ -934,7 +973,9 @@ export function ParserTestSavedOutputPanel({
                     ...current,
                     decision: nextDecision,
                     correctValue:
-                      nextDecision === "accepted" ? current.parsedValue : current.correctValue,
+                      nextDecision === "accepted"
+                        ? defaultCorrectValue(current.parsedValue, "", nextDecision)
+                        : current.correctValue,
                   }));
                 }}
               >
