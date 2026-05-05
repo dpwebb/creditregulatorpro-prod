@@ -150,6 +150,52 @@ Mar 202534103419000TC / CG
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.balance === 341, "TransUnion compact monthly detail should preserve balance.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.narrative === "TC / CG", "TransUnion compact monthly detail should preserve narrative code.");
 
+  const bankOfNovaScotiaSection = `
+Creditor Name
+BANK OF NOVA SCOTIAPayment History
+30
+0
+60
+0
+90
+0
+#M
+26
+Reported DateOct 31, 2013
+Opened DateSep 03, 2011
+Closed Date
+First Delinquency Date
+Last Payment DateOct 03, 2013
+Posted DateNov 02, 2013
+Charge Off Date
+Balloon Payment Date
+Terms:522/M
+Account
+Type:
+INSTALLMENT / INDIVIDUAL
+DateBalancePaymentPast DueMOPTermsHigh CreditCredit Limit
+Balloon
+Payment
+Charge Off
+Narrative
+1 / 2
+Oct 20130015223132000AC /
+Legend:AC-Account closed/rating non derogatory
+`;
+  const scotiaRows = extractTransUnionPaymentGridRows(bankOfNovaScotiaSection);
+  assert(scotiaRows.length === 1, "Bank of Nova Scotia compact row should parse as one monthly row.");
+  assert(scotiaRows[0].balance === 0, "Bank of Nova Scotia compact row should preserve balance.");
+  assert(scotiaRows[0].payment === 0, "Bank of Nova Scotia compact row should not steal payment from the terms digits.");
+  assert(scotiaRows[0].pastDue === 1, "Bank of Nova Scotia compact row should not steal past due from the terms digits.");
+  assert(scotiaRows[0].terms === "522", "Bank of Nova Scotia compact row should preserve the full row terms.");
+  assert(scotiaRows[0].highCredit === 31320, "Bank of Nova Scotia compact row should preserve full high credit.");
+  assert(scotiaRows[0].creditLimit === null, "Bank of Nova Scotia compact row should leave missing credit limit blank.");
+
+  const scotiaTradeline = extractTradelines(bankOfNovaScotiaSection)[0];
+  assert(scotiaTradeline.amounts.high === 31320, "Bank of Nova Scotia high credit should use the layout-aware compact row.");
+  assert(scotiaTradeline.amounts.pastDue === 1, "Bank of Nova Scotia past due should use the layout-aware compact row.");
+  assert(scotiaTradeline.creditLimit === undefined, "Bank of Nova Scotia credit limit should stay blank when no value is under that column.");
+
   const capitalOneSection = `
 Creditor Name
 CAPITAL ONE BANKPayment History

@@ -45,6 +45,33 @@ Balance 19
 `;
     expect(extractLatestTransUnionPaymentGridBalance(noisyTradeline)).toBe(248);
   });
+
+  it("keeps compact TransUnion rows aligned to visible payment-grid columns", () => {
+    const bankOfNovaScotia = `
+Creditor Name
+BANK OF NOVA SCOTIA
+DateBalancePaymentPast DueMOPTermsHigh CreditCredit Limit
+Balloon
+Payment
+Charge Off
+Narrative
+1 / 2
+Oct 20130015223132000AC /
+Legend:AC-Account closed/rating non derogatory
+`;
+
+    const rows = extractTransUnionPaymentGridRows(bankOfNovaScotia);
+    expect(rows[0]).toMatchObject({
+      balance: 0,
+      payment: 0,
+      pastDue: 1,
+      terms: "522",
+      highCredit: 31320,
+      creditLimit: null,
+      balloonPayment: 0,
+      chargeOff: 0,
+    });
+  });
 });
 
 describe("payment pattern summary parsing", () => {

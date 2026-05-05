@@ -454,7 +454,8 @@ export async function parseReport(
           }
         } else {
           // No payment grid - use synchronous extractor for credit limit
-          augmented.creditLimit = extractCreditLimit(sourceText) || tradeline.creditLimit || undefined;
+          augmented.creditLimit =
+            extractCreditLimit(sourceText) ?? tradeline.creditLimit ?? undefined;
         }
 
         return augmented;

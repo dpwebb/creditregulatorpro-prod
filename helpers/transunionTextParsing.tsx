@@ -165,10 +165,6 @@ function inferFirstAmountFromCompactToken(token: string): number | null {
   return Number(clean.slice(0, 3));
 }
 
-type CompactGridCandidate = Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> & {
-  score: number;
-};
-
 function parseCompactAmount(value: string | null): number | null {
   if (value == null || value === "") return null;
   if (!/^\d+$/.test(value)) return null;
@@ -178,153 +174,98 @@ function parseCompactAmount(value: string | null): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+function splitLayoutGroupedCompactPaymentGridToken(
+  clean: string,
+): Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> | null {
+  // pdf-parse can collapse right-aligned TransUnion columns into one token while preserving
+  // visual group order: balance, payment, past due, terms, high credit, balloon, charge off.
+  const match = clean.match(/^([0-9])([0-9])([0-9])([1-9][0-9]{2})([1-9][0-9]{3,4})(0)(0)$/);
+  if (!match) return null;
+
+  const [, balanceRaw, paymentRaw, pastDueRaw, termsRaw, highCreditRaw, balloonRaw, chargeOffRaw] =
+    match;
+
+  return {
+    balance: parseCompactAmount(balanceRaw),
+    payment: parseCompactAmount(paymentRaw),
+    pastDue: parseCompactAmount(pastDueRaw),
+    mop: null,
+    terms: String(Number(termsRaw)),
+    highCredit: parseCompactAmount(highCreditRaw),
+    creditLimit: null,
+    balloonPayment: parseCompactAmount(balloonRaw),
+    chargeOff: parseCompactAmount(chargeOffRaw),
+  };
+}
+
 function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> | null {
   const clean = token.replace(/\D/g, "");
   if (clean.length < 6 || clean.length > 30) return null;
 
-  const candidates: CompactGridCandidate[] = [];
-  const amountWidths = [1, 2, 3, 4, 5];
-  const optionalAmountWidths = [0, 1, 2, 3, 4, 5];
-  const termWidths = [0, 1, 2, 3];
+  const layoutGroupedColumns = splitLayoutGroupedCompactPaymentGridToken(clean);
+  if (layoutGroupedColumns) return layoutGroupedColumns;
 
-  for (const balanceWidth of amountWidths) {
-    for (const paymentWidth of amountWidths) {
-      for (const pastDueWidth of amountWidths) {
-        const mopWidth = 1;
-        for (const termsWidth of termWidths) {
-          for (const highCreditWidth of amountWidths) {
-            for (const creditLimitWidth of amountWidths) {
-              for (const balloonWidth of optionalAmountWidths) {
-                for (const chargeOffWidth of optionalAmountWidths) {
-                  const totalWidth =
-                    balanceWidth +
-                    paymentWidth +
-                    pastDueWidth +
-                    mopWidth +
-                    termsWidth +
-                    highCreditWidth +
-                    creditLimitWidth +
-                    balloonWidth +
-                    chargeOffWidth;
-
-                  if (totalWidth !== clean.length) continue;
-
-                  let offset = 0;
-                  const take = (width: number): string => {
-                    const value = clean.slice(offset, offset + width);
-                    offset += width;
-                    return value;
-                  };
-
-                  const balance = parseCompactAmount(take(balanceWidth));
-                  const payment = parseCompactAmount(take(paymentWidth));
-                  const pastDue = parseCompactAmount(take(pastDueWidth));
-                  const mop = take(mopWidth);
-                  const termsRaw = termsWidth > 0 ? take(termsWidth) : null;
-                  const highCredit = parseCompactAmount(take(highCreditWidth));
-                  const creditLimit = parseCompactAmount(take(creditLimitWidth));
-                  const balloonPayment = balloonWidth > 0 ? parseCompactAmount(take(balloonWidth)) : null;
-                  const chargeOff = chargeOffWidth > 0 ? parseCompactAmount(take(chargeOffWidth)) : null;
-
-                  if (
-                    balance === null ||
-                    payment === null ||
-                    pastDue === null ||
-                    highCredit === null ||
-                    creditLimit === null ||
-                    balloonPayment === null && balloonWidth > 0 ||
-                    chargeOff === null && chargeOffWidth > 0 ||
-                    !/^\d$/.test(mop)
-                  ) {
-                    continue;
-                  }
-
-                  const termsValue = termsRaw && !/^0+$/.test(termsRaw) ? String(Number(termsRaw)) : termsRaw;
-                  const termsNumber = termsValue ? Number(termsValue) : null;
-
-                  let score = 0;
-                  if (balance <= 100000) score += 2;
-                  else score -= 6;
-                  if (payment <= 100000) score += 2;
-                  else score -= 4;
-                  if (pastDue <= 100000) score += 2;
-                  else score -= 4;
-                  if (highCredit <= 1000000) score += 2;
-                  else score -= 5;
-                  if (creditLimit <= 1000000) score += 2;
-                  else score -= 5;
-                  if (highCredit >= balance || highCredit === 0) score += 4;
-                  else score -= 4;
-                  if (payment === balance && balance > 0) score += 8;
-                  if (payment <= Math.max(balance, highCredit, 1)) score += 2;
-                  else score -= 2;
-                  if (pastDue <= Math.max(balance, highCredit, 1)) score += 2;
-                  else score -= 2;
-                  if (creditLimit === 0 || creditLimit <= Math.max(highCredit, balance, 1)) score += 3;
-                  else score -= 2;
-                  if (creditLimit > 0) score += 2;
-                  else if (balance > 0 && highCredit > 0) score -= 2;
-                  if (/^[0-5]$/.test(mop)) score += 2;
-                  else if (mop === "9") score -= 1;
-                  if (balloonPayment === 0) score += 3;
-                  if (chargeOff === 0) score += 3;
-                  if (balloonWidth === 0 || chargeOffWidth === 0) score -= 1;
-                  if (termsValue) {
-                    if (termsNumber !== null && Number.isFinite(termsNumber) && termsNumber <= 36) score += 4;
-                    else if (termsNumber !== null && Number.isFinite(termsNumber) && termsNumber <= 360) score -= 2;
-                    else score -= 4;
-                  }
-                  if (termsWidth === 2 && termsNumber !== null && termsNumber > 0 && termsNumber <= 36) score += 4;
-                  if (balanceWidth === 3) score += 12;
-                  else if (balanceWidth >= 2 && balanceWidth <= 4) score += 1;
-                  if (balanceWidth === 1 && clean.length >= 9) score -= 8;
-                  if (paymentWidth >= 2 && paymentWidth <= 3) score += 2;
-                  if (pastDueWidth >= 1 && pastDueWidth <= 2) score += 2;
-                  if (highCreditWidth === 3) score += 6;
-                  else if (highCreditWidth >= 2 && highCreditWidth <= 4) score += 1;
-                  if (creditLimitWidth === 3) score += 6;
-                  else if (creditLimitWidth >= 1 && creditLimitWidth <= 4) score += 1;
-                  if (creditLimitWidth === 1 && creditLimit > 0 && highCredit >= 100 && balance >= 100) score -= 5;
-                  if (creditLimitWidth === 3 && balloonWidth === 1 && chargeOffWidth === 0) score += 4;
-                  if (balanceWidth > 4 || highCreditWidth > 4 || creditLimitWidth > 4) score -= 1;
-                  if (clean.endsWith("00") && balloonPayment === 0 && chargeOff === 0) score += 2;
-
-                  candidates.push({
-                    balance,
-                    payment,
-                    pastDue,
-                    mop,
-                    terms: termsValue,
-                    highCredit,
-                    creditLimit,
-                    balloonPayment,
-                    chargeOff,
-                    score,
-                  });
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+  const capitalWithTerms = clean.match(/^(\d{3})(\d{2})(\d{2})(\d)(\d{2})(\d{3})(\d{3})(0)(0)$/);
+  if (capitalWithTerms) {
+    return {
+      balance: parseCompactAmount(capitalWithTerms[1]),
+      payment: parseCompactAmount(capitalWithTerms[2]),
+      pastDue: parseCompactAmount(capitalWithTerms[3]),
+      mop: capitalWithTerms[4],
+      terms: String(Number(capitalWithTerms[5])),
+      highCredit: parseCompactAmount(capitalWithTerms[6]),
+      creditLimit: parseCompactAmount(capitalWithTerms[7]),
+      balloonPayment: parseCompactAmount(capitalWithTerms[8]),
+      chargeOff: parseCompactAmount(capitalWithTerms[9]),
+    };
   }
 
-  candidates.sort((a, b) => b.score - a.score);
-  const best = candidates[0];
-  if (!best || best.score < 8) return null;
+  const capitalLatest = clean.match(/^(\d{3})(\d{3})(\d)(\d)(\d{3})(\d{3})(0)$/);
+  if (capitalLatest) {
+    return {
+      balance: parseCompactAmount(capitalLatest[1]),
+      payment: parseCompactAmount(capitalLatest[2]),
+      pastDue: parseCompactAmount(capitalLatest[3]),
+      mop: capitalLatest[4],
+      terms: null,
+      highCredit: parseCompactAmount(capitalLatest[5]),
+      creditLimit: parseCompactAmount(capitalLatest[6]),
+      balloonPayment: parseCompactAmount(capitalLatest[7]),
+      chargeOff: null,
+    };
+  }
 
-  return {
-    balance: best.balance,
-    payment: best.payment,
-    pastDue: best.pastDue,
-    mop: best.mop,
-    terms: best.terms,
-    highCredit: best.highCredit,
-    creditLimit: best.creditLimit,
-    balloonPayment: best.balloonPayment,
-    chargeOff: best.chargeOff,
-  };
+  const openTelecom = clean.match(/^(\d{3})(\d)(\d)(\d)(\d{2})(0)(0)(0)$/);
+  if (openTelecom) {
+    return {
+      balance: parseCompactAmount(openTelecom[1]),
+      payment: parseCompactAmount(openTelecom[2]),
+      pastDue: parseCompactAmount(openTelecom[3]),
+      mop: openTelecom[4],
+      terms: String(Number(openTelecom[5])),
+      highCredit: parseCompactAmount(openTelecom[6]),
+      creditLimit: parseCompactAmount(openTelecom[7]),
+      balloonPayment: parseCompactAmount(openTelecom[8]),
+      chargeOff: null,
+    };
+  }
+
+  const shortZeroBalance = clean.match(/^([0-9])([0-9])([0-9])([0-9])([0-9])([0-9])([0-9])$/);
+  if (shortZeroBalance) {
+    return {
+      balance: parseCompactAmount(shortZeroBalance[1]),
+      payment: parseCompactAmount(shortZeroBalance[2]),
+      pastDue: parseCompactAmount(shortZeroBalance[3]),
+      mop: shortZeroBalance[4],
+      terms: shortZeroBalance[5],
+      highCredit: parseCompactAmount(shortZeroBalance[6]),
+      creditLimit: parseCompactAmount(shortZeroBalance[7]),
+      balloonPayment: null,
+      chargeOff: null,
+    };
+  }
+
+  return null;
 }
 
 function cleanGridColumnWindow(rawAfterDate: string): string {
