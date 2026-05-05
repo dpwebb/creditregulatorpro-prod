@@ -8,6 +8,7 @@ import { extractReportMetadata } from "../helpers/reportMetadataExtractor";
 import { extractBalance } from "../helpers/tradelineAmountExtractors";
 import { extractLastPaymentDate } from "../helpers/tradelineDateExtractors";
 import { extractTradelines } from "../helpers/transunionPdfExtractor";
+import { extractTransUnionPaymentGridRows } from "../helpers/transunionTextParsing";
 import type { ComprehensiveParseResult, ParsedTradeline } from "../helpers/reportParserTypes";
 
 function assert(condition: unknown, message: string): void {
@@ -148,6 +149,66 @@ Mar 202534103419000TC / CG
   assert(String(fidoTradeline.monthsReviewed) === "24", "TransUnion #M value should map to monthsReviewed.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.balance === 341, "TransUnion compact monthly detail should preserve balance.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.narrative === "TC / CG", "TransUnion compact monthly detail should preserve narrative code.");
+
+  const capitalOneSection = `
+Creditor Name
+CAPITAL ONE BANKPayment History
+30
+1
+60
+1
+90
+21
+#M
+32
+Reported DateDec 16, 2025
+Opened DateApr 25, 2023
+Closed DateJun 17, 2024
+First Delinquency DateDec 16, 2023
+Last Payment DateOct 27, 2023
+Posted DateDec 18, 2025
+Charge Off Date
+Balloon Payment Date
+Terms:0/M
+Account
+Type:
+REVOLVING / INDIVIDUAL
+DateBalancePaymentPast DueMOPTermsHigh CreditCredit Limit
+Balloon
+Payment
+Charge Off
+Narrative
+1 / 2
+Jul 2024248248903583000WO / CG
+Jun 2024X
+May 2024242505051135830000
+Apr 2024179504051035830000
+Mar 2024176503041035830000
+Feb 2024172502031035830000
+Jan 2024168501021035830000
+Legend:CG-Account cancelled by credit grantor with derogatory rating,  WO-Bad debt write-off,  X-Unknown
+`;
+  const capitalRows = extractTransUnionPaymentGridRows(capitalOneSection);
+  assert(capitalRows.length === 7, "TransUnion compact payment rows should split at month-year boundaries even when the year touches the amount.");
+  assert(capitalRows[0].dateLabel === "Jul 2024", "TransUnion compact payment rows should preserve the latest row label.");
+  assert(capitalRows[0].balance === 248, "TransUnion compact Capital One row should preserve latest balance.");
+  assert(capitalRows[0].payment === 248, "TransUnion compact Capital One row should preserve latest payment.");
+  assert(capitalRows[0].pastDue === 9, "TransUnion compact Capital One row should preserve latest past due.");
+  assert(capitalRows[0].mop === "0", "TransUnion compact Capital One row should preserve latest MOP.");
+  assert(capitalRows[0].highCredit === 358, "TransUnion compact Capital One row should preserve high credit.");
+  assert(capitalRows[0].creditLimit === 300, "TransUnion compact Capital One row should preserve credit limit.");
+  assert(capitalRows[1].mop === "X", "TransUnion compact X rows should remain separate unknown rows.");
+  assert(capitalRows[2].terms === "11", "TransUnion compact Capital One row should preserve row-level terms.");
+
+  const capitalTradeline = extractTradelines(capitalOneSection)[0];
+  assert(capitalTradeline.balance === 248, "Capital One tradeline balance should use the latest compact payment row.");
+  assert(capitalTradeline.amounts.high === 358, "Capital One high credit should not be parsed as a concatenated number.");
+  assert(capitalTradeline.amounts.pastDue === 9, "Capital One past due should use the latest compact payment row.");
+  assert(capitalTradeline.creditLimit === 300, "Capital One credit limit should use the latest compact payment row.");
+  assert(capitalTradeline.paymentHistory?.["30"] === 1, "Capital One vertical TransUnion 30-day count should be parsed.");
+  assert(capitalTradeline.paymentHistory?.["60"] === 1, "Capital One vertical TransUnion 60-day count should be parsed.");
+  assert(capitalTradeline.paymentHistory?.["90"] === 21, "Capital One vertical TransUnion 90-day count should be parsed.");
+  assert(capitalTradeline.paymentHistory?.["#M"] === 32, "Capital One vertical TransUnion #M count should be parsed.");
 }
 
 function tradeline(input: Partial<ParsedTradeline>): ParsedTradeline {

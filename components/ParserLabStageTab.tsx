@@ -52,14 +52,18 @@ function hasReportedValue(value: unknown): boolean {
   );
 }
 
-function formatDateValue(value: unknown): string {
-  if (!hasReportedValue(value)) return "Not reported";
+function formatBlankValue(value: unknown): string {
+  return hasReportedValue(value) ? String(value) : "";
+}
+
+function formatDateBlank(value: unknown): string {
+  if (!hasReportedValue(value)) return "";
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-CA");
 }
 
-function formatMoneyValue(value: unknown): string {
-  if (!hasReportedValue(value)) return "Not reported";
+function formatMoneyBlank(value: unknown): string {
+  if (!hasReportedValue(value)) return "";
   const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
   if (!Number.isFinite(numeric)) return String(value);
   return new Intl.NumberFormat("en-CA", {
@@ -69,8 +73,54 @@ function formatMoneyValue(value: unknown): string {
   }).format(numeric);
 }
 
-function formatDisplayValue(value: unknown): string {
-  return hasReportedValue(value) ? String(value) : "Not reported";
+function formatPaymentHistorySummaryBlank(value: any): string {
+  if (!value || typeof value !== "object") return "";
+  const parts = [
+    ["30", value["30"]],
+    ["60", value["60"]],
+    ["90", value["90"]],
+    ["#M", value["#M"]],
+  ]
+    .filter(([, partValue]) => hasReportedValue(partValue))
+    .map(([label, partValue]) => `${label}: ${partValue}`);
+
+  return parts.length > 0 ? parts.join(" / ") : "";
+}
+
+function latestPaymentDetail(tradeline: any): any | null {
+  return Array.isArray(tradeline?.paymentHistoryDetails) && tradeline.paymentHistoryDetails.length > 0
+    ? tradeline.paymentHistoryDetails[0]
+    : null;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function humanizeKey(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatAuditCell(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return hasReportedValue(value) ? value : "";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  return JSON.stringify(value, null, 2);
+}
+
+function sectionValue(source: any, key: string): unknown {
+  return source && typeof source === "object" ? source[key] : undefined;
+}
+
+function withoutArrayFields(value: unknown): Record<string, unknown> {
+  if (!isPlainRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => !Array.isArray(entryValue))
+  );
 }
 
 function reviewTitle(item: any, tradeline: any): string {
@@ -133,6 +183,219 @@ function downloadJson(result: ParserLabResult) {
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
+}
+
+function TradelineFieldGrid({ tradeline, className }: { tradeline: any; className: string }) {
+  const latestPayment = latestPaymentDetail(tradeline);
+  const fields = [
+    ["Creditor Name", formatBlankValue(tradeline.creditorName)],
+    ["Account Number", formatBlankValue(tradeline.accountNumber)],
+    ["Account Type", formatBlankValue(tradeline.accountType)],
+    ["Responsibility", formatBlankValue(tradeline.responsibilityCode)],
+    ["Status", formatBlankValue(tradeline.status)],
+    ["Payment History", formatPaymentHistorySummaryBlank(tradeline.paymentHistory)],
+    ["Payment Profile", formatBlankValue(tradeline.paymentHistoryProfile || tradeline.paymentPattern)],
+    ["Months Reviewed", formatBlankValue(tradeline.monthsReviewed)],
+    ["Reported Date", formatDateBlank(tradeline.dates?.reported)],
+    ["Opened Date", formatDateBlank(tradeline.dates?.opened)],
+    ["Closed Date", formatDateBlank(tradeline.dates?.closed)],
+    ["First Delinquency Date", formatDateBlank(tradeline.dates?.dofd)],
+    ["Last Payment Date", formatDateBlank(tradeline.dates?.lastPayment)],
+    ["Last Activity Date", formatDateBlank(tradeline.dates?.lastActivity)],
+    ["Posted Date", formatDateBlank(tradeline.dates?.posted)],
+    ["Charge Off Date", formatDateBlank(tradeline.dates?.chargeOff)],
+    ["Balloon Payment Date", formatDateBlank(tradeline.dates?.balloonPayment)],
+    ["Balance", formatMoneyBlank(tradeline.balance)],
+    ["Payment", formatMoneyBlank(latestPayment?.payment ?? tradeline.monthlyPayment)],
+    ["Past Due", formatMoneyBlank(tradeline.pastDue)],
+    ["MOP", formatBlankValue(latestPayment?.mop ?? tradeline.mop)],
+    ["Terms", formatBlankValue(latestPayment?.terms ?? tradeline.terms)],
+    ["High Credit", formatMoneyBlank(tradeline.highCredit)],
+    ["Credit Limit", formatMoneyBlank(tradeline.creditLimit)],
+    ["Balloon Payment", formatMoneyBlank(latestPayment?.balloonPayment)],
+    ["Charge Off", formatMoneyBlank(latestPayment?.chargeOff)],
+    ["Narrative", formatBlankValue(latestPayment?.narrative)],
+    ["Legend", formatBlankValue(tradeline.legend)],
+    ["Source Text Characters", formatBlankValue(tradeline.sourceTextCharacters)],
+    ["Payment Rows", formatBlankValue(tradeline.paymentHistoryDetailsCount)],
+  ];
+
+  return (
+    <div className={className}>
+      {fields.map(([label, value]) => (
+        <div key={label}>
+          <span className={styles.fieldLabel}>{label}</span>
+          <span className={styles.fieldValue}>{value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PaymentHistoryRows({ rows }: { rows: any[] | null | undefined }) {
+  const displayRows = Array.isArray(rows) && rows.length > 0 ? rows : [{}];
+
+  return (
+    <div className={styles.paymentHistoryBlock}>
+      <span className={styles.subsectionLabel}>Payment history rows</span>
+      <div className={styles.tableScroller}>
+        <table className={styles.paymentTable}>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Balance</th>
+              <th>Payment</th>
+              <th>Past due</th>
+              <th>MOP</th>
+              <th>Terms</th>
+              <th>High credit</th>
+              <th>Credit limit</th>
+              <th>Balloon</th>
+              <th>Charge off</th>
+              <th>Narrative</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayRows.map((row, index) => (
+              <tr key={`${row.date || "row"}-${index}`}>
+                <td>{formatBlankValue(row.date)}</td>
+                <td>{formatMoneyBlank(row.balance)}</td>
+                <td>{formatMoneyBlank(row.payment)}</td>
+                <td>{formatMoneyBlank(row.pastDue)}</td>
+                <td>{formatBlankValue(row.mop)}</td>
+                <td>{formatBlankValue(row.terms)}</td>
+                <td>{formatMoneyBlank(row.highCredit)}</td>
+                <td>{formatMoneyBlank(row.creditLimit)}</td>
+                <td>{formatMoneyBlank(row.balloonPayment)}</td>
+                <td>{formatMoneyBlank(row.chargeOff)}</td>
+                <td>{formatBlankValue(row.narrative)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AuditObjectSection({ title, value }: { title: string; value: unknown }) {
+  const record = isPlainRecord(value) ? value : {};
+  const entries = Object.entries(record);
+
+  return (
+    <details className={styles.auditSection} open>
+      <summary>{title}</summary>
+      <div className={styles.auditGrid}>
+        {entries.length > 0 ? (
+          entries.map(([key, entryValue]) => (
+            <div key={key} className={styles.auditField}>
+              <span className={styles.fieldLabel}>{humanizeKey(key)}</span>
+              {isPlainRecord(entryValue) || Array.isArray(entryValue) ? (
+                <pre className={styles.auditJson}>{formatAuditCell(entryValue)}</pre>
+              ) : (
+                <span className={styles.fieldValue}>{formatAuditCell(entryValue)}</span>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className={styles.auditField}>
+            <span className={styles.fieldLabel}>Data</span>
+            <span className={styles.fieldValue} />
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function AuditArraySection({ title, value }: { title: string; value: unknown }) {
+  const rows = Array.isArray(value) ? value : [];
+  const records = rows.map((row) => (isPlainRecord(row) ? row : { value: row }));
+  const columns = Array.from(new Set(records.flatMap((record) => Object.keys(record))));
+
+  return (
+    <details className={styles.auditSection} open>
+      <summary>
+        {title} <span className={styles.auditCount}>{rows.length}</span>
+      </summary>
+      <div className={styles.tableScroller}>
+        <table className={styles.auditTable}>
+          <thead>
+            <tr>
+              {(columns.length > 0 ? columns : ["value"]).map((column) => (
+                <th key={column}>{humanizeKey(column)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {records.length > 0 ? (
+              records.map((record, rowIndex) => (
+                <tr key={rowIndex}>
+                  {columns.map((column) => {
+                    const cell = record[column];
+                    return (
+                      <td key={column}>
+                        {isPlainRecord(cell) || Array.isArray(cell) ? (
+                          <pre className={styles.auditJson}>{formatAuditCell(cell)}</pre>
+                        ) : (
+                          formatAuditCell(cell)
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td />
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
+function CompleteParsedOutput({ result }: { result: ParserLabResult }) {
+  const parsed = result.audit?.parsedResult || {};
+  const mapped = result.audit?.mappedResult || {};
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h3 className={styles.panelTitle}>Complete Parsed Output</h3>
+          <p className={styles.panelSubtitle}>Full parser result and canonical mapped output for audit testing.</p>
+        </div>
+      </div>
+
+      <div className={styles.auditGroup}>
+        <h4 className={styles.auditGroupTitle}>Parsed Result</h4>
+        <AuditObjectSection title="Report Metadata" value={sectionValue(parsed, "reportMetadata")} />
+        <AuditObjectSection title="Consumer Info" value={sectionValue(parsed, "consumerInfo")} />
+        <AuditArraySection title="Tradelines" value={sectionValue(parsed, "tradelines")} />
+        <AuditArraySection title="Payment Histories" value={sectionValue(parsed, "paymentHistories")} />
+        <AuditArraySection title="Inquiries" value={sectionValue(parsed, "inquiries")} />
+        <AuditArraySection title="Public Records" value={sectionValue(parsed, "publicRecords")} />
+        <AuditArraySection title="Employment Info" value={sectionValue(parsed, "employmentInfo")} />
+        <AuditArraySection title="Credit Scores" value={sectionValue(parsed, "creditScores")} />
+        <AuditArraySection title="Consumer Statements" value={sectionValue(parsed, "consumerStatements")} />
+      </div>
+
+      <div className={styles.auditGroup}>
+        <h4 className={styles.auditGroupTitle}>Canonical Mapped Output</h4>
+        <AuditObjectSection title="Mapped Report Fields" value={withoutArrayFields(mapped)} />
+        <AuditArraySection title="Mapped Tradelines" value={sectionValue(mapped, "tradelines")} />
+        <AuditArraySection title="Mapped Inquiries" value={sectionValue(mapped, "inquiries")} />
+        <AuditArraySection title="Mapped Credit Related Inquiries" value={sectionValue(mapped, "creditRelatedInquiries")} />
+        <AuditArraySection title="Mapped Non-Credit Related Inquiries" value={sectionValue(mapped, "nonCreditRelatedInquiries")} />
+        <AuditArraySection title="Mapped Public Records" value={sectionValue(mapped, "publicRecords")} />
+        <AuditArraySection title="Mapped Employments" value={sectionValue(mapped, "employments")} />
+        <AuditArraySection title="Mapped Scores" value={sectionValue(mapped, "scores")} />
+      </div>
+    </div>
+  );
 }
 
 export function ParserLabStageTab() {
@@ -394,41 +657,10 @@ export function ParserLabStageTab() {
                             </div>
 
                             {tradeline && (
-                              <div className={styles.reviewSummaryGrid}>
-                                <div>
-                                  <span className={styles.fieldLabel}>Creditor</span>
-                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.creditorName)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Account</span>
-                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountNumber)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Type</span>
-                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountType)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Status</span>
-                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.status)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Balance</span>
-                                  <span className={styles.fieldValue}>{formatMoneyValue(tradeline.balance)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Credit limit</span>
-                                  <span className={styles.fieldValue}>{formatMoneyValue(tradeline.creditLimit)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Reported</span>
-                                  <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.reported)}</span>
-                                </div>
-                                <div>
-                                  <span className={styles.fieldLabel}>Last payment</span>
-                                  <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.lastPayment)}</span>
-                                </div>
-                              </div>
+                              <TradelineFieldGrid tradeline={tradeline} className={styles.reviewSummaryGrid} />
                             )}
+
+                            {tradeline && <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />}
 
                             {item.sourceTextPreview && (
                               <details className={styles.evidenceDetails}>
@@ -451,61 +683,35 @@ export function ParserLabStageTab() {
                   </div>
                   <div className={styles.tradelineList}>
                     {result.parsed.tradelines.map((tradeline: any) => (
-                      <div key={`${tradeline.index}-${tradeline.creditorName}-${tradeline.accountNumber}`} className={styles.tradeline}>
-                        <div className={styles.tradelineHeader}>
-                          <span className={styles.entityTitle}>
-                            {formatValue(tradeline.creditorName)}
-                          </span>
-                          <Badge variant={tradeline.needsReview ? "warning" : "success"}>
-                            {tradeline.needsReview ? "Needs review" : "Source-backed"}
-                          </Badge>
-                        </div>
-                        <div className={styles.fieldGrid}>
-                          <div>
-                            <span className={styles.fieldLabel}>Account</span>
-                            <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountNumber)}</span>
+                      (() => {
+                        return (
+                          <div key={`${tradeline.index}-${tradeline.creditorName}-${tradeline.accountNumber}`} className={styles.tradeline}>
+                            <div className={styles.tradelineHeader}>
+                              <span className={styles.entityTitle}>
+                                {formatValue(tradeline.creditorName)}
+                              </span>
+                              <Badge variant={tradeline.needsReview ? "warning" : "success"}>
+                                {tradeline.needsReview ? "Needs review" : "Source-backed"}
+                              </Badge>
+                            </div>
+                            <TradelineFieldGrid tradeline={tradeline} className={styles.fieldGrid} />
+                            <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />
+                            {tradeline.reviewReasons?.length > 0 && (
+                              <ul className={styles.reasonList}>
+                                {tradeline.reviewReasons.map((reason: string) => (
+                                  <li key={reason}>{reason}</li>
+                                ))}
+                              </ul>
+                            )}
                           </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Type</span>
-                            <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountType)}</span>
-                          </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Status</span>
-                            <span className={styles.fieldValue}>{formatDisplayValue(tradeline.status)}</span>
-                          </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Balance</span>
-                            <span className={styles.fieldValue}>{formatMoneyValue(tradeline.balance)}</span>
-                          </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Reported</span>
-                            <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.reported)}</span>
-                          </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Opened</span>
-                            <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.opened)}</span>
-                          </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Source chars</span>
-                            <span className={styles.fieldValue}>{tradeline.sourceTextCharacters}</span>
-                          </div>
-                          <div>
-                            <span className={styles.fieldLabel}>Payment rows</span>
-                            <span className={styles.fieldValue}>{tradeline.paymentHistoryDetailsCount}</span>
-                          </div>
-                        </div>
-                        {tradeline.reviewReasons?.length > 0 && (
-                          <ul className={styles.reasonList}>
-                            {tradeline.reviewReasons.map((reason: string) => (
-                              <li key={reason}>{reason}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
+                        );
+                      })()
                     ))}
                   </div>
                 </div>
               )}
+
+              <CompleteParsedOutput result={result} />
 
               <div className={styles.panel}>
                 <div className={styles.panelHeader}>

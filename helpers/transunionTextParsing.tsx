@@ -165,6 +165,168 @@ function inferFirstAmountFromCompactToken(token: string): number | null {
   return Number(clean.slice(0, 3));
 }
 
+type CompactGridCandidate = Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> & {
+  score: number;
+};
+
+function parseCompactAmount(value: string | null): number | null {
+  if (value == null || value === "") return null;
+  if (!/^\d+$/.test(value)) return null;
+  if (/^0+$/.test(value)) return 0;
+  if (value.length > 1 && value.startsWith("0")) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> | null {
+  const clean = token.replace(/\D/g, "");
+  if (clean.length < 6 || clean.length > 30) return null;
+
+  const candidates: CompactGridCandidate[] = [];
+  const amountWidths = [1, 2, 3, 4, 5];
+  const optionalAmountWidths = [0, 1, 2, 3, 4, 5];
+  const termWidths = [0, 1, 2, 3];
+
+  for (const balanceWidth of amountWidths) {
+    for (const paymentWidth of amountWidths) {
+      for (const pastDueWidth of amountWidths) {
+        const mopWidth = 1;
+        for (const termsWidth of termWidths) {
+          for (const highCreditWidth of amountWidths) {
+            for (const creditLimitWidth of amountWidths) {
+              for (const balloonWidth of optionalAmountWidths) {
+                for (const chargeOffWidth of optionalAmountWidths) {
+                  const totalWidth =
+                    balanceWidth +
+                    paymentWidth +
+                    pastDueWidth +
+                    mopWidth +
+                    termsWidth +
+                    highCreditWidth +
+                    creditLimitWidth +
+                    balloonWidth +
+                    chargeOffWidth;
+
+                  if (totalWidth !== clean.length) continue;
+
+                  let offset = 0;
+                  const take = (width: number): string => {
+                    const value = clean.slice(offset, offset + width);
+                    offset += width;
+                    return value;
+                  };
+
+                  const balance = parseCompactAmount(take(balanceWidth));
+                  const payment = parseCompactAmount(take(paymentWidth));
+                  const pastDue = parseCompactAmount(take(pastDueWidth));
+                  const mop = take(mopWidth);
+                  const termsRaw = termsWidth > 0 ? take(termsWidth) : null;
+                  const highCredit = parseCompactAmount(take(highCreditWidth));
+                  const creditLimit = parseCompactAmount(take(creditLimitWidth));
+                  const balloonPayment = balloonWidth > 0 ? parseCompactAmount(take(balloonWidth)) : null;
+                  const chargeOff = chargeOffWidth > 0 ? parseCompactAmount(take(chargeOffWidth)) : null;
+
+                  if (
+                    balance === null ||
+                    payment === null ||
+                    pastDue === null ||
+                    highCredit === null ||
+                    creditLimit === null ||
+                    balloonPayment === null && balloonWidth > 0 ||
+                    chargeOff === null && chargeOffWidth > 0 ||
+                    !/^\d$/.test(mop)
+                  ) {
+                    continue;
+                  }
+
+                  const termsValue = termsRaw && !/^0+$/.test(termsRaw) ? String(Number(termsRaw)) : termsRaw;
+                  const termsNumber = termsValue ? Number(termsValue) : null;
+
+                  let score = 0;
+                  if (balance <= 100000) score += 2;
+                  else score -= 6;
+                  if (payment <= 100000) score += 2;
+                  else score -= 4;
+                  if (pastDue <= 100000) score += 2;
+                  else score -= 4;
+                  if (highCredit <= 1000000) score += 2;
+                  else score -= 5;
+                  if (creditLimit <= 1000000) score += 2;
+                  else score -= 5;
+                  if (highCredit >= balance || highCredit === 0) score += 4;
+                  else score -= 4;
+                  if (payment === balance && balance > 0) score += 8;
+                  if (payment <= Math.max(balance, highCredit, 1)) score += 2;
+                  else score -= 2;
+                  if (pastDue <= Math.max(balance, highCredit, 1)) score += 2;
+                  else score -= 2;
+                  if (creditLimit === 0 || creditLimit <= Math.max(highCredit, balance, 1)) score += 3;
+                  else score -= 2;
+                  if (creditLimit > 0) score += 2;
+                  else if (balance > 0 && highCredit > 0) score -= 2;
+                  if (/^[0-5]$/.test(mop)) score += 2;
+                  else if (mop === "9") score -= 1;
+                  if (balloonPayment === 0) score += 3;
+                  if (chargeOff === 0) score += 3;
+                  if (balloonWidth === 0 || chargeOffWidth === 0) score -= 1;
+                  if (termsValue) {
+                    if (termsNumber !== null && Number.isFinite(termsNumber) && termsNumber <= 36) score += 4;
+                    else if (termsNumber !== null && Number.isFinite(termsNumber) && termsNumber <= 360) score -= 2;
+                    else score -= 4;
+                  }
+                  if (termsWidth === 2 && termsNumber !== null && termsNumber > 0 && termsNumber <= 36) score += 4;
+                  if (balanceWidth === 3) score += 12;
+                  else if (balanceWidth >= 2 && balanceWidth <= 4) score += 1;
+                  if (balanceWidth === 1 && clean.length >= 9) score -= 8;
+                  if (paymentWidth >= 2 && paymentWidth <= 3) score += 2;
+                  if (pastDueWidth >= 1 && pastDueWidth <= 2) score += 2;
+                  if (highCreditWidth === 3) score += 6;
+                  else if (highCreditWidth >= 2 && highCreditWidth <= 4) score += 1;
+                  if (creditLimitWidth === 3) score += 6;
+                  else if (creditLimitWidth >= 1 && creditLimitWidth <= 4) score += 1;
+                  if (creditLimitWidth === 1 && creditLimit > 0 && highCredit >= 100 && balance >= 100) score -= 5;
+                  if (creditLimitWidth === 3 && balloonWidth === 1 && chargeOffWidth === 0) score += 4;
+                  if (balanceWidth > 4 || highCreditWidth > 4 || creditLimitWidth > 4) score -= 1;
+                  if (clean.endsWith("00") && balloonPayment === 0 && chargeOff === 0) score += 2;
+
+                  candidates.push({
+                    balance,
+                    payment,
+                    pastDue,
+                    mop,
+                    terms: termsValue,
+                    highCredit,
+                    creditLimit,
+                    balloonPayment,
+                    chargeOff,
+                    score,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  const best = candidates[0];
+  if (!best || best.score < 8) return null;
+
+  return {
+    balance: best.balance,
+    payment: best.payment,
+    pastDue: best.pastDue,
+    mop: best.mop,
+    terms: best.terms,
+    highCredit: best.highCredit,
+    creditLimit: best.creditLimit,
+    balloonPayment: best.balloonPayment,
+    chargeOff: best.chargeOff,
+  };
+}
+
 function cleanGridColumnWindow(rawAfterDate: string): string {
   return rawAfterDate
     .replace(/[A-Z]{1,3}\s*\/\s*[A-Z]{0,3}\b/g, " ")
@@ -180,7 +342,24 @@ function parseGridRowColumns(rawAfterDate: string): Omit<TransUnionPaymentGridRo
   const tokens = window.match(/X|\$?\d[\d,]*(?:\.\d+)?(?:\/[A-Z])?/gi) ?? [];
   if (tokens.length === 0) return null;
 
+  if (tokens.length === 1 && /^X$/i.test(tokens[0])) {
+    return {
+      balance: null,
+      payment: null,
+      pastDue: null,
+      mop: "X",
+      terms: null,
+      highCredit: null,
+      creditLimit: null,
+      balloonPayment: null,
+      chargeOff: null,
+    };
+  }
+
   if (tokens.length === 1 && /^\$?\d{6,}$/.test(tokens[0])) {
+    const compactColumns = splitCompactPaymentGridToken(tokens[0]);
+    if (compactColumns) return compactColumns;
+
     const amount = inferFirstAmountFromCompactToken(tokens[0]);
     if (amount === null) return null;
     return {
@@ -236,6 +415,7 @@ export function extractTransUnionPaymentSummary(text: string): TransUnionPayment
 
   const summaryPatterns = [
     /30\s+60\s+90\s+#M[\s\S]{0,120}?(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/i,
+    /30\s*:?\s*(\d+)\s+60\s*:?\s*(\d+)\s+90\s*:?\s*(\d+)\s+#M\s*:?\s*(\d+)/i,
     /30\s*:\s*(\d+)[\s,;|]+60\s*:\s*(\d+)[\s,;|]+90\s*:\s*(\d+)[\s,;|]+#M\s*:\s*(\d+)/i,
     /30\s*(?:days?)?\s*(?:late)?\s*[:=]\s*(\d+)[\s\S]{0,40}?60\s*(?:days?)?\s*(?:late)?\s*[:=]\s*(\d+)[\s\S]{0,40}?90\s*(?:days?)?\s*(?:late)?\s*[:=]\s*(\d+)[\s\S]{0,40}?(?:#M|months?\s+reviewed)\s*[:=]\s*(\d+)/i,
   ];
@@ -293,7 +473,7 @@ export function extractTransUnionPaymentGridRows(text: string): TransUnionPaymen
 
   const rows: TransUnionPaymentGridRow[] = [];
   const rowPattern = new RegExp(
-    `\\b(${MONTH_PATTERN})\\.?\\s+((?:19|20)\\d{2})([\\s\\S]{0,140}?)(?=\\b(?:${MONTH_PATTERN})\\.?\\s+(?:19|20)\\d{2}\\b|$)`,
+    `\\b(${MONTH_PATTERN})\\.?\\s+((?:19|20)\\d{2})([\\s\\S]{0,140}?)(?=\\b(?:${MONTH_PATTERN})\\.?\\s+(?:19|20)\\d{2}|$)`,
     "gi",
   );
 

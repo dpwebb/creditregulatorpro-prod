@@ -69,6 +69,7 @@ export function extractPaymentPattern(text: string): string | null {
   // header: "30 60 90 #M" with next row values like "1 1 21 32".
   const summaryPatterns = [
     /30\s+60\s+90\s+#M[\s\S]{0,120}?(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/i,
+    /30\s*:?\s*(\d+)\s+60\s*:?\s*(\d+)\s+90\s*:?\s*(\d+)\s+#M\s*:?\s*(\d+)/i,
     /30\s*:\s*(\d+)[\s,;|]+60\s*:\s*(\d+)[\s,;|]+90\s*:\s*(\d+)[\s,;|]+#M\s*:\s*(\d+)/i,
   ];
 

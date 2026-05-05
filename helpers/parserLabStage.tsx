@@ -1,6 +1,8 @@
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import {
   ComprehensiveParseResult,
+  ParsedPaymentHistoryDetail,
+  ParsedPaymentHistorySummary,
   ParsedTradeline,
 } from "./reportParserTypes";
 
@@ -66,6 +68,10 @@ export interface ParserLabStageOutput {
     employmentInfo: ComprehensiveParseResult["employmentInfo"];
     creditScores: ComprehensiveParseResult["creditScores"];
   };
+  audit: {
+    parsedResult: Record<string, unknown>;
+    mappedResult: Record<string, unknown>;
+  };
   provenance: Record<string, unknown>;
   rawTextPreview: string;
 }
@@ -86,9 +92,18 @@ export interface ParserLabTradelinePreview {
   accountType: string;
   status: string;
   balance: number | null;
+  monthlyPayment: number | null;
   creditLimit: number | null;
   highCredit: number | null;
   pastDue: number | null;
+  terms: string | null;
+  mop: string | null;
+  responsibilityCode: string | null;
+  paymentPattern: string | null;
+  paymentHistoryProfile: string | null;
+  monthsReviewed: string | number | null;
+  paymentHistory: ParsedPaymentHistorySummary | null;
+  legend: string | null;
   dates: {
     opened: string | null;
     reported: string | null;
@@ -96,11 +111,29 @@ export interface ParserLabTradelinePreview {
     dofd: string | null;
     lastPayment: string | null;
     lastActivity: string | null;
+    posted: string | null;
+    chargeOff: string | null;
+    balloonPayment: string | null;
   };
   sourceTextCharacters: number;
   paymentHistoryDetailsCount: number;
+  paymentHistoryDetails: ParserLabPaymentHistoryDetailPreview[];
   needsReview: boolean;
   reviewReasons: string[];
+}
+
+export interface ParserLabPaymentHistoryDetailPreview {
+  date: string | null;
+  balance: number | null;
+  payment: number | null;
+  pastDue: number | null;
+  mop: string | null;
+  terms: string | null;
+  highCredit: number | null;
+  creditLimit: number | null;
+  balloonPayment: number | null;
+  chargeOff: number | null;
+  narrative: string | null;
 }
 
 function dateToIso(value: Date | string | null | undefined): string | null {
@@ -122,6 +155,12 @@ function numberOrNull(value: unknown): number | null {
   return null;
 }
 
+function stringOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  const normalized = String(value).trim();
+  return normalized ? normalized : null;
+}
+
 function hasValue(value: unknown): boolean {
   if (value == null) return false;
   if (typeof value === "number") return Number.isFinite(value);
@@ -130,6 +169,14 @@ function hasValue(value: unknown): boolean {
     normalized &&
       !["unknown", "not reported", "n/a", "na", "-", "missing"].includes(normalized)
   );
+}
+
+function extractLegendText(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const match = value.match(/\bLegend\s*:?\s*([\s\S]*?)(?:\bEnd of Page\b|$)/i);
+  if (!match?.[1]) return null;
+  const normalized = match[1].replace(/\s+/g, " ").trim();
+  return normalized || null;
 }
 
 function hasAnyDate(tradeline: ParsedTradeline): boolean {
@@ -183,8 +230,28 @@ function criticalFieldCompletenessPercent(tradelines: ParsedTradeline[]): number
   return Math.round((present / total) * 100);
 }
 
+function buildPaymentHistoryDetailPreview(
+  detail: ParsedPaymentHistoryDetail,
+): ParserLabPaymentHistoryDetailPreview {
+  return {
+    date: stringOrNull(detail.date),
+    balance: numberOrNull(detail.balance),
+    payment: numberOrNull(detail.payment),
+    pastDue: numberOrNull(detail.pastDue),
+    mop: stringOrNull(detail.mop),
+    terms: stringOrNull(detail.terms),
+    highCredit: numberOrNull(detail.highCredit),
+    creditLimit: numberOrNull(detail.creditLimit),
+    balloonPayment: numberOrNull(detail.balloonPayment),
+    chargeOff: numberOrNull(detail.chargeOff),
+    narrative: stringOrNull(detail.narrative),
+  };
+}
+
 function buildTradelinePreview(tradeline: ParsedTradeline, index: number): ParserLabTradelinePreview {
   const reviewReasons = getTradelineReviewReasons(tradeline);
+  const paymentHistoryDetails =
+    tradeline.paymentHistoryDetails?.map(buildPaymentHistoryDetailPreview) ?? [];
 
   return {
     index,
@@ -193,9 +260,18 @@ function buildTradelinePreview(tradeline: ParsedTradeline, index: number): Parse
     accountType: tradeline.accountType || "",
     status: tradeline.status || "",
     balance: numberOrNull(tradeline.balance),
+    monthlyPayment: numberOrNull(tradeline.monthlyPayment),
     creditLimit: numberOrNull(tradeline.creditLimit),
     highCredit: numberOrNull(tradeline.amounts?.high),
     pastDue: numberOrNull(tradeline.amounts?.pastDue),
+    terms: stringOrNull(tradeline.terms),
+    mop: stringOrNull(tradeline.mop),
+    responsibilityCode: stringOrNull(tradeline.responsibilityCode),
+    paymentPattern: stringOrNull(tradeline.paymentPattern),
+    paymentHistoryProfile: stringOrNull(tradeline.paymentHistoryProfile),
+    monthsReviewed: tradeline.monthsReviewed ?? null,
+    paymentHistory: tradeline.paymentHistory ?? null,
+    legend: extractLegendText(tradeline.sourceText),
     dates: {
       opened: dateToIso(tradeline.dates?.opened),
       reported: dateToIso(tradeline.dates?.reported),
@@ -203,9 +279,13 @@ function buildTradelinePreview(tradeline: ParsedTradeline, index: number): Parse
       dofd: dateToIso(tradeline.dates?.dofd),
       lastPayment: dateToIso(tradeline.lastPaymentDate),
       lastActivity: dateToIso(tradeline.lastActivityDate),
+      posted: dateToIso(tradeline.postedDate),
+      chargeOff: dateToIso(tradeline.chargeOffDate),
+      balloonPayment: dateToIso(tradeline.balloonPaymentDate),
     },
     sourceTextCharacters: (tradeline.sourceText || "").trim().length,
-    paymentHistoryDetailsCount: tradeline.paymentHistoryDetails?.length ?? 0,
+    paymentHistoryDetailsCount: paymentHistoryDetails.length,
+    paymentHistoryDetails,
     needsReview: reviewReasons.length > 0,
     reviewReasons,
   };
@@ -253,6 +333,25 @@ function previewText(value: string, maxLength: number): string {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, maxLength)}...`;
+}
+
+function toAuditValue(value: unknown): unknown {
+  if (value === undefined) return null;
+  if (value === null) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  if (Array.isArray(value)) {
+    return value.map(toAuditValue);
+  }
+  if (typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+      result[key] = toAuditValue(nestedValue);
+    }
+    return result;
+  }
+  return value;
 }
 
 export async function runParserLabStage(input: ParserLabStageInput): Promise<ParserLabStageOutput> {
@@ -320,6 +419,10 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
       publicRecords: parseResult.publicRecords,
       employmentInfo: parseResult.employmentInfo,
       creditScores: parseResult.creditScores,
+    },
+    audit: {
+      parsedResult: toAuditValue(parseResult) as Record<string, unknown>,
+      mappedResult: toAuditValue(extraction.llmData) as Record<string, unknown>,
     },
     provenance: provenance as unknown as Record<string, unknown>,
     rawTextPreview: previewText(extraction.rawText, 5000),
