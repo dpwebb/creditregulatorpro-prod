@@ -1093,6 +1093,20 @@ app.post('_api/webhook/postgrid',async c => {
     return c.text("Error loading endpoint code " + e.message,  500)
   }
 })
+app.post('_api/webhook/stripe',async c => {
+  try {
+    const { handle } = await import("./endpoints/webhook/stripe_POST.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
 app.post('_api/webhook/tracking',async c => {
   try {
     const { handle } = await import("./endpoints/webhook/tracking_POST.js");
@@ -1824,6 +1838,34 @@ app.post('_api/support-ticket/reply',async c => {
 app.post('_api/admin/letter-template',async c => {
   try {
     const { handle } = await import("./endpoints/admin/letter-template_POST.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
+app.get('_api/admin/letter-template/history',async c => {
+  try {
+    const { handle } = await import("./endpoints/admin/letter-template/history_GET.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
+app.post('_api/admin/letter-template/rollback',async c => {
+  try {
+    const { handle } = await import("./endpoints/admin/letter-template/rollback_POST.js");
     let request = c.req.raw;
     const response = await handle(request);
     if (!(response instanceof Response) && response.constructor.name !== "Response") {

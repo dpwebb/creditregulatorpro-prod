@@ -115,7 +115,7 @@ export type TransUnionPaymentSummary = {
 };
 
 function extractPaymentGridWindow(text: string): string | null {
-  const headerMatch = text.match(/Date\s+Balance[\s\S]{0,120}?(?:Payment|Past\s+Due|MOP)/i);
+  const headerMatch = text.match(/Date\s*Balance[\s\S]{0,120}?(?:Payment|Past\s*Due|MOP)/i);
   if (!headerMatch || headerMatch.index == null) {
     const compactMatch = text.match(/Payment\s+History/i);
     if (!compactMatch || compactMatch.index == null) return null;

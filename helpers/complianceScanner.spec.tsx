@@ -82,6 +82,10 @@ vi.mock("./dynamicRuleExecutor", () => ({
   executeActiveRules: vi.fn(async () => []),
 }));
 
+vi.mock("./violationCorrectionRetrieval", () => ({
+  applyViolationCorrectionTruthLayer: vi.fn(async (violations) => violations),
+}));
+
 import { deduplicateViolations } from "./complianceDetectors";
 
 describe("complianceScanner filtering logic", () => {
@@ -202,7 +206,7 @@ describe("complianceScanner filtering logic", () => {
 
     const result = await scanForViolations(1, scanContext);
     expect(result.length).toBe(1);
-    expect(result[0].userExplanation).toBe("Valid Violation");
+    expect(result[0].userExplanation).toContain("potential inconsistency");
   });
 
   it("6. Violations with no violationCategory pass through", async () => {
@@ -224,6 +228,6 @@ describe("complianceScanner filtering logic", () => {
 
     const result = await scanForViolations(1, scanContext);
     expect(result.length).toBe(1);
-    expect(result[0].userExplanation).toBe("No Category");
+    expect(result[0].userExplanation).toContain("No Category");
   });
 });

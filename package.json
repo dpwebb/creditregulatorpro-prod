@@ -5,11 +5,17 @@
     "build": "vite build",
     "start": "tsx server.ts",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm run build && pnpm run test:tradeline-internal && pnpm run test:violation-corrections",
+    "check": "pnpm run build && pnpm run test:unit && pnpm run test:tradeline-internal && pnpm run test:violation-corrections",
     "commit-push": "node scripts/commit-push-staging.mjs",
     "commit-push:quick": "node scripts/commit-push-staging.mjs --skip-checks",
     "test:credit-extraction": "tsx scripts/credit-report-extraction-smoke.ts",
     "test:credit-regression": "tsx scripts/credit-report-parser-regression.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:contracts": "vitest run --config vitest.config.ts tests/contracts",
+    "test:api": "vitest run --config vitest.config.ts tests/api",
+    "test:db": "vitest run --config vitest.config.ts tests/db",
+    "test:extraction": "vitest run --config vitest.config.ts tests/extraction",
+    "test:e2e": "playwright test",
     "test:mock-lifecycle": "tsx scripts/mock-user-lifecycle-e2e.ts",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",
@@ -92,12 +98,18 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.6.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^3.8.0",
+    "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^6.2.0",
-    "vite-plugin-node-polyfills": "^0.24.0"
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "vitest": "^4.1.5"
   },
   "overrides": {
     "tar": "7.5.13"

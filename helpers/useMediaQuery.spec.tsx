@@ -1,19 +1,20 @@
 import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMediaQuery } from "./useMediaQuery";
 
 describe("useMediaQuery", () => {
-  let matchMedia: jasmine.Spy;
-  let addListener: jasmine.Spy;
-  let removeListener: jasmine.Spy;
+  let matchMedia: ReturnType<typeof vi.fn>;
+  let addEventListener: ReturnType<typeof vi.fn>;
+  let removeEventListener: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    addListener = jasmine.createSpy("addEventListener");
-    removeListener = jasmine.createSpy("removeEventListener");
+    addEventListener = vi.fn();
+    removeEventListener = vi.fn();
 
-    matchMedia = jasmine.createSpy("matchMedia").and.returnValue({
+    matchMedia = vi.fn().mockReturnValue({
       matches: false,
-      addEventListener: addListener,
-      removeEventListener: removeListener,
+      addEventListener,
+      removeEventListener,
     });
 
     (window as any).matchMedia = matchMedia;
@@ -32,15 +33,15 @@ describe("useMediaQuery", () => {
 
   it("should add event listener on mount", () => {
     renderHook(() => useMediaQuery("(min-width: 768px)"));
-    expect(addListener).toHaveBeenCalledWith("change", jasmine.any(Function));
+    expect(addEventListener).toHaveBeenCalledWith("change", expect.any(Function));
   });
 
   it("should remove event listener on unmount", () => {
     const { unmount } = renderHook(() => useMediaQuery("(min-width: 768px)"));
     unmount();
-    expect(removeListener).toHaveBeenCalledWith(
+    expect(removeEventListener).toHaveBeenCalledWith(
       "change",
-      jasmine.any(Function),
+      expect.any(Function),
     );
   });
 });

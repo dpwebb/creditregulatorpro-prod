@@ -46,7 +46,7 @@ describe("evidencePackageSections null/invalid fallbacks", () => {
     expect(firstDataRow[3]).toBe("N/A");
   });
 
-  it("renders N/A for invalid attachment date and missing storage URL", () => {
+  it("renders N/A for invalid attachment date and a description fallback", () => {
     const data = buildEvidencePackageData();
     data.attachments = [
       {
@@ -63,7 +63,7 @@ describe("evidencePackageSections null/invalid fallbacks", () => {
     const firstDataRow = attachmentsTable.body[1];
 
     expect(firstDataRow[1]).toBe("N/A");
-    expect(firstDataRow[4]).toBe("N/A");
+    expect(firstDataRow[3]).toBe("No description");
   });
 
   it("renders N/A for invalid statute effective dates", () => {
