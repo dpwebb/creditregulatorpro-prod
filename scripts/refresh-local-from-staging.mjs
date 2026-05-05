@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import postgres from "postgres";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -380,13 +380,90 @@ function resolveSshKeyFile(env, outputDir) {
   }
 
   const keyPath = path.join(outputDir, "staging_ssh_key");
-  fs.writeFileSync(keyPath, key.endsWith("\n") ? key : `${key}\n`, { mode: 0o600 });
+  const keyContents = normalizePrivateKeyValue(key);
+  removeExistingGeneratedKey(keyPath);
+  fs.writeFileSync(keyPath, keyContents.endsWith("\n") ? keyContents : `${keyContents}\n`, { mode: 0o600 });
+  hardenPrivateKeyFile(keyPath);
+  return keyPath;
+}
+
+function normalizePrivateKeyValue(value) {
+  const trimmed = value.trim();
+  if (/-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----/.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^[A-Za-z0-9+/=_-]+$/.test(trimmed)) {
+    try {
+      const decoded = Buffer.from(trimmed, "base64").toString("utf8").trim();
+      if (/-----BEGIN [A-Z0-9 ]+PRIVATE KEY-----/.test(decoded)) {
+        return decoded;
+      }
+    } catch {
+      // Fall through to raw value below.
+    }
+  }
+
+  return value;
+}
+
+function getCurrentWindowsUser() {
+  return process.env.USERDOMAIN && process.env.USERNAME
+    ? `${process.env.USERDOMAIN}\\${process.env.USERNAME}`
+    : os.userInfo().username;
+}
+
+function removeExistingGeneratedKey(keyPath) {
+  if (!fs.existsSync(keyPath)) {
+    return;
+  }
+
+  try {
+    fs.unlinkSync(keyPath);
+    return;
+  } catch {
+    if (process.platform !== "win32") {
+      throw;
+    }
+  }
+
+  const grantCurrentUser = spawnSync("icacls", [keyPath, "/grant:r", `${getCurrentWindowsUser()}:F`], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (grantCurrentUser.status !== 0) {
+    throw new Error(`Failed to unlock existing generated SSH key: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
+  }
+
+  fs.unlinkSync(keyPath);
+}
+
+function hardenPrivateKeyFile(keyPath) {
   try {
     fs.chmodSync(keyPath, 0o600);
   } catch {
-    // Windows ignores POSIX key permissions; OpenSSH still accepts most user-owned files.
+    // Windows needs ACL hardening below; POSIX chmod can fail on some mounts.
   }
-  return keyPath;
+
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const removeInheritance = spawnSync("icacls", [keyPath, "/inheritance:r"], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (removeInheritance.status !== 0) {
+    throw new Error(`Failed to harden SSH key ACL inheritance: ${removeInheritance.stderr || removeInheritance.stdout}`);
+  }
+
+  const grantCurrentUser = spawnSync("icacls", [keyPath, "/grant:r", `${getCurrentWindowsUser()}:R`], {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+  if (grantCurrentUser.status !== 0) {
+    throw new Error(`Failed to grant current user SSH key read permission: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
+  }
 }
 
 function shellQuote(value) {

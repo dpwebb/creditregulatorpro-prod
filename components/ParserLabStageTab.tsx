@@ -11,6 +11,15 @@ import { PARSER_LAB_STAGE_VERSION } from "../helpers/parserLabStageVersion";
 import styles from "./ParserLabStageTab.module.css";
 
 type ParserLabResult = Awaited<ReturnType<ReturnType<typeof useRunParserLabStage>["mutateAsync"]>>;
+type ResultTab = "results" | "review" | "tradelines" | "raw" | "audit";
+
+const RESULT_TABS: Array<{ value: ResultTab; label: string }> = [
+  { value: "results", label: "Stage Lab Results" },
+  { value: "review", label: "Review Queue" },
+  { value: "tradelines", label: "Parsed Tradelines" },
+  { value: "raw", label: "Raw Text Preview" },
+  { value: "audit", label: "Complete Parsed Output" },
+];
 
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -427,6 +436,248 @@ function AuditArraySection({ title, value }: { title: string; value: unknown }) 
   );
 }
 
+function StageLabResults({ result }: { result: ParserLabResult }) {
+  return (
+    <>
+      <div className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <div>
+            <h3 className={styles.panelTitle}>Run Summary</h3>
+            <p className={styles.panelSubtitle}>{result.stageVersion}</p>
+          </div>
+          <Badge variant={qualityVariant(result.quality.confidenceScore)}>
+            {result.quality.confidenceScore}% confidence
+          </Badge>
+        </div>
+
+        <div className={styles.metaGrid}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Bureau</span>
+            <span className={styles.metaValue}>{formatValue(result.bureauName)}</span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Source</span>
+            <span className={styles.metaValue}>{result.extractionSource}</span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Side effects</span>
+            <span className={styles.metaValue}>{result.sideEffects}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <h3 className={styles.panelTitle}>Retention Metrics</h3>
+          <Badge variant={result.quality.requiresManualReview ? "warning" : "success"}>
+            {result.quality.requiresManualReview ? "Review required" : "Review clear"}
+          </Badge>
+        </div>
+
+        <div className={styles.metricsGrid}>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Critical fields</span>
+            <span className={styles.metricValue}>{result.retention.criticalFieldCompletenessPercent}%</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Source coverage</span>
+            <span className={styles.metricValue}>{result.retention.sourceTextCoveragePercent}%</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Review queue</span>
+            <span className={styles.metricValue}>{result.retention.reviewQueueCount}</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Raw text chars</span>
+            <span className={styles.metricValue}>{result.retention.rawTextCharacters}</span>
+          </div>
+        </div>
+
+        <div className={styles.metaGrid} style={{ marginTop: "var(--spacing-4)" }}>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Original SHA-256</span>
+            <span className={`${styles.metaValue} ${styles.hash}`}>
+              {result.retention.originalDocumentSha256}
+            </span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Canonical SHA-256</span>
+            <span className={`${styles.metaValue} ${styles.hash}`}>
+              {result.retention.canonicalResultSha256}
+            </span>
+          </div>
+          <div className={styles.metaItem}>
+            <span className={styles.metaLabel}>Source-backed tradelines</span>
+            <span className={styles.metaValue}>
+              {result.retention.tradelinesWithSourceText} of {result.counts.tradelines}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <h3 className={styles.panelTitle}>Extracted Counts</h3>
+        </div>
+        <div className={styles.metricsGrid}>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Tradelines</span>
+            <span className={styles.metricValue}>{result.counts.tradelines}</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Inquiries</span>
+            <span className={styles.metricValue}>{result.counts.inquiries}</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Employments</span>
+            <span className={styles.metricValue}>{result.counts.employments}</span>
+          </div>
+          <div className={styles.metric}>
+            <span className={styles.metricLabel}>Scores</span>
+            <span className={styles.metricValue}>{result.counts.scores}</span>
+          </div>
+        </div>
+      </div>
+
+      {(result.quality.issues.length > 0 || result.retention.blockers.length > 0) && (
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h3 className={styles.panelTitle}>Quality Gates</h3>
+          </div>
+          <div className={styles.issueList}>
+            {result.retention.blockers.map((blocker) => (
+              <div key={blocker} className={styles.issue}>
+                <div className={styles.issueHeader}>
+                  <span className={styles.entityTitle}>{blocker}</span>
+                  <Badge variant="warning">Blocker</Badge>
+                </div>
+              </div>
+            ))}
+            {result.quality.issues.map((issue) => (
+              <div key={`${issue.code}-${issue.message}`} className={styles.issue}>
+                <div className={styles.issueHeader}>
+                  <span className={styles.entityTitle}>{issue.code}</span>
+                  <Badge variant={severityVariant(issue.severity)}>{issue.severity}</Badge>
+                </div>
+                <p>{issue.message}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ReviewQueuePanel({ result }: { result: ParserLabResult }) {
+  const parsedTradelines = Array.isArray(result.parsed.tradelines) ? result.parsed.tradelines : [];
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h3 className={styles.panelTitle}>Review Queue</h3>
+          <p className={styles.panelSubtitle}>Items that need manual parser review from this stage lab run.</p>
+        </div>
+        <Badge variant={result.reviewQueue.length > 0 ? "warning" : "success"}>{result.reviewQueue.length}</Badge>
+      </div>
+
+      {result.reviewQueue.length > 0 ? (
+        <div className={styles.reviewList}>
+          {result.reviewQueue.map((item, index) => {
+            const tradeline =
+              item.kind === "tradeline" && typeof item.index === "number"
+                ? parsedTradelines[item.index]
+                : null;
+
+            return (
+              <div key={`${item.kind}-${item.index ?? "report"}-${index}`} className={styles.reviewItem}>
+                <div className={styles.reviewHeader}>
+                  <span className={styles.entityTitle}>{reviewTitle(item, tradeline)}</span>
+                  <Badge variant="warning">{item.kind}</Badge>
+                </div>
+
+                <div className={styles.reviewReasons}>
+                  {item.reasons.map((reason) => (
+                    <Badge key={reason} variant="warning" className={styles.reasonBadge}>
+                      {reason}
+                    </Badge>
+                  ))}
+                </div>
+
+                {tradeline && <FinancialSnapshot tradeline={tradeline} className={styles.reviewSummaryGrid} />}
+                {tradeline && <SourceEvidencePreview tradeline={tradeline} />}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className={styles.panelSubtitle}>No review items were generated for this parser run.</p>
+      )}
+    </div>
+  );
+}
+
+function ParsedTradelinesPanel({ result }: { result: ParserLabResult }) {
+  const tradelines = Array.isArray(result.parsed.tradelines) ? result.parsed.tradelines : [];
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h3 className={styles.panelTitle}>Parsed Tradelines</h3>
+          <p className={styles.panelSubtitle}>Tradeline fields extracted by the stage lab parser.</p>
+        </div>
+        <Badge variant="info">{tradelines.length}</Badge>
+      </div>
+
+      {tradelines.length > 0 ? (
+        <div className={styles.tradelineList}>
+          {tradelines.map((tradeline: any, index: number) => (
+            <div
+              key={`${tradeline.index ?? index}-${tradeline.creditorName}-${tradeline.accountNumber}`}
+              className={styles.tradeline}
+            >
+              <div className={styles.tradelineHeader}>
+                <span className={styles.entityTitle}>{formatValue(tradeline.creditorName)}</span>
+                <Badge variant={tradeline.needsReview ? "warning" : "success"}>
+                  {tradeline.needsReview ? "Needs review" : "Source-backed"}
+                </Badge>
+              </div>
+              <FinancialSnapshot tradeline={tradeline} className={styles.financialSnapshot} />
+              <TradelineFieldGrid tradeline={tradeline} className={styles.fieldGrid} />
+              <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />
+              {tradeline.reviewReasons?.length > 0 && (
+                <ul className={styles.reasonList}>
+                  {tradeline.reviewReasons.map((reason: string) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className={styles.panelSubtitle}>No tradelines were parsed from this document.</p>
+      )}
+    </div>
+  );
+}
+
+function RawTextPreviewPanel({ result }: { result: ParserLabResult }) {
+  return (
+    <div className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <div>
+          <h3 className={styles.panelTitle}>Raw Text Preview</h3>
+          <p className={styles.panelSubtitle}>Extracted source text preview from the uploaded report.</p>
+        </div>
+      </div>
+      <pre className={styles.pre}>{result.rawTextPreview || "No raw text preview was returned."}</pre>
+    </div>
+  );
+}
+
 function CompleteParsedOutput({ result }: { result: ParserLabResult }) {
   const parsed = result.audit?.parsedResult || {};
   const mapped = result.audit?.mappedResult || {};
@@ -496,7 +747,7 @@ export function ParserLabStageTab() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [allowAiFallback, setAllowAiFallback] = useState(true);
   const [result, setResult] = useState<ParserLabResult | null>(null);
-  const [activeResultTab, setActiveResultTab] = useState<"results" | "audit">("results");
+  const [activeResultTab, setActiveResultTab] = useState<ResultTab>("results");
   const runMutation = useRunParserLabStage();
   const isStaleResult = Boolean(result && result.stageVersion !== PARSER_LAB_STAGE_VERSION);
 
@@ -606,247 +857,27 @@ export function ParserLabStageTab() {
           ) : (
             <>
               <div className={styles.resultTabs} role="tablist" aria-label="Parser lab result views">
-                <button
-                  type="button"
-                  className={`${styles.resultTabButton} ${activeResultTab === "results" ? styles.resultTabButtonActive : ""}`}
-                  onClick={() => setActiveResultTab("results")}
-                >
-                  Stage Lab Results
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.resultTabButton} ${activeResultTab === "audit" ? styles.resultTabButtonActive : ""}`}
-                  onClick={() => setActiveResultTab("audit")}
-                >
-                  Complete Parsed Output
-                </button>
+                {RESULT_TABS.map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeResultTab === tab.value}
+                    className={`${styles.resultTabButton} ${
+                      activeResultTab === tab.value ? styles.resultTabButtonActive : ""
+                    }`}
+                    onClick={() => setActiveResultTab(tab.value)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
 
-              {activeResultTab === "results" ? (
-                <>
-                  <div className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <div>
-                    <h3 className={styles.panelTitle}>Run Summary</h3>
-                    <p className={styles.panelSubtitle}>{result.stageVersion}</p>
-                  </div>
-                  <Badge variant={qualityVariant(result.quality.confidenceScore)}>
-                    {result.quality.confidenceScore}% confidence
-                  </Badge>
-                </div>
-
-                <div className={styles.metaGrid}>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Bureau</span>
-                    <span className={styles.metaValue}>{formatValue(result.bureauName)}</span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Source</span>
-                    <span className={styles.metaValue}>{result.extractionSource}</span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Side effects</span>
-                    <span className={styles.metaValue}>{result.sideEffects}</span>
-                  </div>
-                </div>
-              </div>
-
-                  <div className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <h3 className={styles.panelTitle}>Retention Metrics</h3>
-                  <Badge variant={result.quality.requiresManualReview ? "warning" : "success"}>
-                    {result.quality.requiresManualReview ? "Review required" : "Review clear"}
-                  </Badge>
-                </div>
-
-                <div className={styles.metricsGrid}>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Critical fields</span>
-                    <span className={styles.metricValue}>{result.retention.criticalFieldCompletenessPercent}%</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Source coverage</span>
-                    <span className={styles.metricValue}>{result.retention.sourceTextCoveragePercent}%</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Review queue</span>
-                    <span className={styles.metricValue}>{result.retention.reviewQueueCount}</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Raw text chars</span>
-                    <span className={styles.metricValue}>{result.retention.rawTextCharacters}</span>
-                  </div>
-                </div>
-
-                <div className={styles.metaGrid} style={{ marginTop: "var(--spacing-4)" }}>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Original SHA-256</span>
-                    <span className={`${styles.metaValue} ${styles.hash}`}>
-                      {result.retention.originalDocumentSha256}
-                    </span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Canonical SHA-256</span>
-                    <span className={`${styles.metaValue} ${styles.hash}`}>
-                      {result.retention.canonicalResultSha256}
-                    </span>
-                  </div>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Source-backed tradelines</span>
-                    <span className={styles.metaValue}>
-                      {result.retention.tradelinesWithSourceText} of {result.counts.tradelines}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-                  <div className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <h3 className={styles.panelTitle}>Extracted Counts</h3>
-                </div>
-                <div className={styles.metricsGrid}>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Tradelines</span>
-                    <span className={styles.metricValue}>{result.counts.tradelines}</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Inquiries</span>
-                    <span className={styles.metricValue}>{result.counts.inquiries}</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Employments</span>
-                    <span className={styles.metricValue}>{result.counts.employments}</span>
-                  </div>
-                  <div className={styles.metric}>
-                    <span className={styles.metricLabel}>Scores</span>
-                    <span className={styles.metricValue}>{result.counts.scores}</span>
-                  </div>
-                </div>
-              </div>
-
-                  {(result.quality.issues.length > 0 || result.retention.blockers.length > 0) && (
-                    <div className={styles.panel}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Quality Gates</h3>
-                  </div>
-                  <div className={styles.issueList}>
-                    {result.retention.blockers.map((blocker) => (
-                      <div key={blocker} className={styles.issue}>
-                        <div className={styles.issueHeader}>
-                          <span className={styles.entityTitle}>{blocker}</span>
-                          <Badge variant="warning">Blocker</Badge>
-                        </div>
-                      </div>
-                    ))}
-                    {result.quality.issues.map((issue) => (
-                      <div key={`${issue.code}-${issue.message}`} className={styles.issue}>
-                        <div className={styles.issueHeader}>
-                          <span className={styles.entityTitle}>{issue.code}</span>
-                          <Badge variant={severityVariant(issue.severity)}>{issue.severity}</Badge>
-                        </div>
-                        <p>{issue.message}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                  )}
-
-                  {result.reviewQueue.length > 0 && (
-                    <div className={styles.panel}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Review Queue</h3>
-                    <Badge variant="warning">{result.reviewQueue.length}</Badge>
-                  </div>
-                  <div className={styles.reviewList}>
-                    {result.reviewQueue.map((item, index) => (
-                      (() => {
-                        const tradeline =
-                          item.kind === "tradeline" &&
-                          typeof item.index === "number" &&
-                          Array.isArray(result.parsed.tradelines)
-                            ? (result.parsed.tradelines as any[])[item.index]
-                            : null;
-
-                        return (
-                          <div key={`${item.kind}-${item.index ?? "report"}-${index}`} className={styles.reviewItem}>
-                            <div className={styles.reviewHeader}>
-                              <span className={styles.entityTitle}>{reviewTitle(item, tradeline)}</span>
-                              <Badge variant="warning">{item.kind}</Badge>
-                            </div>
-
-                            <div className={styles.reviewReasons}>
-                              {item.reasons.map((reason) => (
-                                <Badge key={reason} variant="warning" className={styles.reasonBadge}>
-                                  {reason}
-                                </Badge>
-                              ))}
-                            </div>
-
-                            {tradeline && (
-                              <FinancialSnapshot
-                                tradeline={tradeline}
-                                className={styles.reviewSummaryGrid}
-                              />
-                            )}
-
-                            {tradeline && <SourceEvidencePreview tradeline={tradeline} />}
-                          </div>
-                        );
-                      })()
-                    ))}
-                  </div>
-                </div>
-                  )}
-
-                  {result.parsed.tradelines && Array.isArray(result.parsed.tradelines) && (
-                    <div className={styles.panel}>
-                  <div className={styles.panelHeader}>
-                    <h3 className={styles.panelTitle}>Parsed Tradelines</h3>
-                  </div>
-                  <div className={styles.tradelineList}>
-                    {result.parsed.tradelines.map((tradeline: any) => (
-                      (() => {
-                        return (
-                          <div key={`${tradeline.index}-${tradeline.creditorName}-${tradeline.accountNumber}`} className={styles.tradeline}>
-                            <div className={styles.tradelineHeader}>
-                              <span className={styles.entityTitle}>
-                                {formatValue(tradeline.creditorName)}
-                              </span>
-                              <Badge variant={tradeline.needsReview ? "warning" : "success"}>
-                                {tradeline.needsReview ? "Needs review" : "Source-backed"}
-                              </Badge>
-                            </div>
-                            <FinancialSnapshot
-                              tradeline={tradeline}
-                              className={styles.financialSnapshot}
-                            />
-                            <TradelineFieldGrid tradeline={tradeline} className={styles.fieldGrid} />
-                            <PaymentHistoryRows rows={tradeline.paymentHistoryDetails} />
-                            {tradeline.reviewReasons?.length > 0 && (
-                              <ul className={styles.reasonList}>
-                                {tradeline.reviewReasons.map((reason: string) => (
-                                  <li key={reason}>{reason}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        );
-                      })()
-                    ))}
-                  </div>
-                </div>
-                  )}
-
-                  <div className={styles.panel}>
-                    <div className={styles.panelHeader}>
-                      <h3 className={styles.panelTitle}>Raw Text Preview</h3>
-                    </div>
-                    <pre className={styles.pre}>{result.rawTextPreview}</pre>
-                  </div>
-                </>
-              ) : (
-                <CompleteParsedOutput result={result} />
-              )}
+              {activeResultTab === "results" && <StageLabResults result={result} />}
+              {activeResultTab === "review" && <ReviewQueuePanel result={result} />}
+              {activeResultTab === "tradelines" && <ParsedTradelinesPanel result={result} />}
+              {activeResultTab === "raw" && <RawTextPreviewPanel result={result} />}
+              {activeResultTab === "audit" && <CompleteParsedOutput result={result} />}
             </>
           )}
         </section>
