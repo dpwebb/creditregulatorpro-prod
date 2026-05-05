@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, FileJson, Play, RotateCcw, ShieldCheck } from "lucide-react";
+import { Download, FileJson, Play, RotateCcw, Save, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
@@ -12,6 +12,22 @@ import styles from "./ParserLabStageTab.module.css";
 
 type ParserLabResult = Awaited<ReturnType<ReturnType<typeof useRunParserLabStage>["mutateAsync"]>>;
 type ResultTab = "results" | "review" | "tradelines" | "raw" | "audit";
+
+export type StageLabTestCasePayload = {
+  name: string;
+  description?: string;
+  pdfBase64: string;
+  expectedConsumerInfo?: unknown;
+  expectedTradelines?: unknown;
+  rawExtractedText?: string | null;
+};
+
+interface ParserLabStageTabProps {
+  onSaveAsTestCase?: (
+    payload: StageLabTestCasePayload,
+  ) => Promise<{ testCase?: { id: number } } | void>;
+  isSavingTestCase?: boolean;
+}
 
 const RESULT_TABS: Array<{ value: ResultTab; label: string }> = [
   { value: "results", label: "Stage Lab Results" },
@@ -226,6 +242,44 @@ function downloadJson(result: ParserLabResult) {
   anchor.click();
   document.body.removeChild(anchor);
   URL.revokeObjectURL(url);
+}
+
+function buildStageLabTestCaseName(result: ParserLabResult): string {
+  const sourceName = result.fileName.replace(/\.pdf$/i, "").trim() || "Credit Report";
+  const bureau = hasReportedValue(result.bureauName) ? String(result.bureauName) : "Unknown Bureau";
+  return `${bureau} Stage Lab - ${sourceName}`;
+}
+
+function buildStageLabTestCaseDescription(result: ParserLabResult): string {
+  return [
+    "Created from Stage Lab parser run.",
+    `Source file: ${result.fileName}`,
+    `Stage version: ${result.stageVersion}`,
+    `Bureau: ${formatValue(result.bureauName)}`,
+    `Confidence: ${result.quality.confidenceScore}%`,
+    `Original SHA-256: ${result.retention.originalDocumentSha256}`,
+    `Canonical SHA-256: ${result.retention.canonicalResultSha256}`,
+  ].join("\n");
+}
+
+function buildStageLabTestCasePayload(
+  result: ParserLabResult,
+  pdfBase64: string,
+): StageLabTestCasePayload {
+  const parsedResult = isPlainRecord(result.audit?.parsedResult)
+    ? result.audit.parsedResult
+    : {};
+
+  return {
+    name: buildStageLabTestCaseName(result),
+    description: buildStageLabTestCaseDescription(result),
+    pdfBase64,
+    expectedConsumerInfo: parsedResult.consumerInfo ?? result.parsed.consumerInfo,
+    expectedTradelines: Array.isArray(parsedResult.tradelines)
+      ? parsedResult.tradelines
+      : result.parsed.tradelines,
+    rawExtractedText: result.rawExtractedText || result.rawTextPreview || null,
+  };
 }
 
 function TradelineFieldGrid({ tradeline, className }: { tradeline: any; className: string }) {
@@ -743,10 +797,15 @@ function StaleResultNotice({
   );
 }
 
-export function ParserLabStageTab() {
+export function ParserLabStageTab({
+  onSaveAsTestCase,
+  isSavingTestCase = false,
+}: ParserLabStageTabProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [allowAiFallback, setAllowAiFallback] = useState(true);
   const [result, setResult] = useState<ParserLabResult | null>(null);
+  const [resultPdfBase64, setResultPdfBase64] = useState<string | null>(null);
+  const [savedTestCaseId, setSavedTestCaseId] = useState<number | null>(null);
   const [activeResultTab, setActiveResultTab] = useState<ResultTab>("results");
   const runMutation = useRunParserLabStage();
   const isStaleResult = Boolean(result && result.stageVersion !== PARSER_LAB_STAGE_VERSION);
@@ -756,6 +815,8 @@ export function ParserLabStageTab() {
     if (!file) return;
     setSelectedFile(file);
     setResult(null);
+    setResultPdfBase64(null);
+    setSavedTestCaseId(null);
     setActiveResultTab("results");
   };
 
@@ -774,6 +835,8 @@ export function ParserLabStageTab() {
         allowAiFallback,
       });
       setResult(nextResult);
+      setResultPdfBase64(bytesBase64);
+      setSavedTestCaseId(null);
       setActiveResultTab("results");
       toast.success("Parser lab run completed");
     } catch (error) {
@@ -784,8 +847,22 @@ export function ParserLabStageTab() {
   const reset = () => {
     setSelectedFile(null);
     setResult(null);
+    setResultPdfBase64(null);
+    setSavedTestCaseId(null);
     setActiveResultTab("results");
     runMutation.reset();
+  };
+
+  const handleSaveAsTestCase = async () => {
+    if (!result || !resultPdfBase64 || !onSaveAsTestCase) return;
+
+    try {
+      const saved = await onSaveAsTestCase(buildStageLabTestCasePayload(result, resultPdfBase64));
+      const savedId = saved && "testCase" in saved ? saved.testCase?.id : undefined;
+      setSavedTestCaseId(savedId ?? 0);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save Stage Lab run");
+    }
   };
 
   return (
@@ -795,7 +872,7 @@ export function ParserLabStageTab() {
           <div className={styles.panelHeader}>
             <div>
               <h3 className={styles.panelTitle}>Shadow Parser Lab</h3>
-              <p className={styles.panelSubtitle}>Admin-only extraction without persistence.</p>
+              <p className={styles.panelSubtitle}>Admin-only extraction, with optional save to Test Cases.</p>
             </div>
             <ShieldCheck size={20} />
           </div>
@@ -833,6 +910,16 @@ export function ParserLabStageTab() {
             {result && (
               <Button variant="outline" onClick={() => downloadJson(result)}>
                 <Download size={16} /> Export JSON
+              </Button>
+            )}
+            {result && onSaveAsTestCase && !isStaleResult && (
+              <Button
+                variant="secondary"
+                onClick={handleSaveAsTestCase}
+                disabled={!resultPdfBase64 || isSavingTestCase || savedTestCaseId !== null}
+              >
+                {isSavingTestCase ? <Spinner size="sm" /> : <Save size={16} />}
+                {savedTestCaseId !== null ? "Saved to Test Cases" : "Save to Test Cases"}
               </Button>
             )}
           </div>

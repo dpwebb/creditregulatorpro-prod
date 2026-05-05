@@ -12,6 +12,7 @@ import { ParserTestCasesList } from "../components/ParserTestCasesList";
 import { ParserTestRunAllTab } from "../components/ParserTestRunAllTab";
 import { ParserTestImportExportTab } from "../components/ParserTestImportExportTab";
 import { ParserLabStageTab } from "../components/ParserLabStageTab";
+import type { StageLabTestCasePayload } from "../components/ParserLabStageTab";
 
 import {
   useParserKnownEntities,
@@ -69,6 +70,13 @@ export default function AdminParserTestingPage() {
     } catch (error) {
       toast.error("Failed to create test case");
     }
+  };
+
+  const handleCreateFromStageLab = async (data: StageLabTestCasePayload) => {
+    const result = await createMutation.mutateAsync(data);
+    toast.success("Stage Lab run saved to Test Cases");
+    setActiveTab("test-cases");
+    return result;
   };
 
   const handleUpdate = async (data: any) => {
@@ -419,7 +427,10 @@ export default function AdminParserTestingPage() {
         </TabsContent>
 
         <TabsContent value="stage-lab" className={styles.tabContent}>
-          <ParserLabStageTab />
+          <ParserLabStageTab
+            onSaveAsTestCase={handleCreateFromStageLab}
+            isSavingTestCase={createMutation.isPending}
+          />
         </TabsContent>
 
         <TabsContent value="run-all" className={styles.tabContent}>

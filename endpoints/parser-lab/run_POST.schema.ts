@@ -66,6 +66,7 @@ export type OutputType = {
     mappedResult: Record<string, unknown>;
   };
   provenance: Record<string, unknown>;
+  rawExtractedText: string;
   rawTextPreview: string;
 };
 

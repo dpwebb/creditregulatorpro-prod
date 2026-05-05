@@ -72,6 +72,7 @@ export interface ParserLabStageOutput {
     mappedResult: Record<string, unknown>;
   };
   provenance: Record<string, unknown>;
+  rawExtractedText: string;
   rawTextPreview: string;
 }
 
@@ -424,6 +425,7 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
       mappedResult: toAuditValue(extraction.llmData) as Record<string, unknown>,
     },
     provenance: provenance as unknown as Record<string, unknown>,
+    rawExtractedText: extraction.rawText,
     rawTextPreview: previewText(extraction.rawText, 5000),
   };
 }

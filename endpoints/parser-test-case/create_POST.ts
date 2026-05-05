@@ -20,8 +20,26 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
-    // Run the same PDF -> AI HTML -> bureau router path used by production ingestion.
-    const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(input.pdfBase64);
+    const needsParserFallback =
+      input.expectedConsumerInfo === undefined ||
+      input.expectedTradelines === undefined ||
+      input.rawExtractedText === undefined;
+    const parserFallback = needsParserFallback
+      ? await parsePdfThroughProductionHtmlPipeline(input.pdfBase64)
+      : null;
+
+    const expectedConsumerInfo =
+      input.expectedConsumerInfo !== undefined
+        ? input.expectedConsumerInfo
+        : parserFallback?.parseResult.consumerInfo ?? null;
+    const expectedTradelines =
+      input.expectedTradelines !== undefined
+        ? input.expectedTradelines
+        : parserFallback?.parseResult.tradelines ?? null;
+    const rawExtractedText =
+      input.rawExtractedText !== undefined
+        ? input.rawExtractedText
+        : parserFallback?.rawExtractedText ?? null;
 
     // 3. Create test case
     const newTestCase = await db
@@ -31,8 +49,8 @@ export async function handle(request: Request) {
         description: input.description,
         pdfBase64: input.pdfBase64,
         rawExtractedText,
-        expectedConsumerInfo: parseResult.consumerInfo as unknown as Json,
-        expectedTradelines: parseResult.tradelines as unknown as Json,
+        expectedConsumerInfo: expectedConsumerInfo as unknown as Json,
+        expectedTradelines: expectedTradelines as unknown as Json,
         createdBy: user.id,
         updatedAt: new Date(),
       })

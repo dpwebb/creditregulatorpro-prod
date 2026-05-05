@@ -6,6 +6,9 @@ export const schema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   pdfBase64: z.string().min(1),
+  expectedConsumerInfo: z.any().optional(),
+  expectedTradelines: z.any().optional(),
+  rawExtractedText: z.string().nullable().optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
