@@ -48,7 +48,7 @@ export function findTradelineSectionStart(text: string): number {
     
     for (const pattern of tradelineSectionPatterns) {
       if (pattern.test(line)) {
-        console.log(`[Section Splitter] Found tradeline section start at line ${i}: "${line}"`);
+        console.log(`[Section Splitter] Found tradeline section start at line ${i}`);
         return charIndex;
       }
     }
@@ -116,9 +116,6 @@ export function logSectionDetails(sections: string[]): void {
   sections.forEach((section, index) => {
     console.log(
       `[Section Splitter] --- Section ${index + 1} (${section.length} chars) ---`,
-    );
-    console.log(
-      `[Section Splitter] First 200 chars:\n${section.substring(0, 200)}${section.length > 200 ? "..." : ""}`,
     );
     console.log(`[Section Splitter] --- End Section ${index + 1} ---`);
   });

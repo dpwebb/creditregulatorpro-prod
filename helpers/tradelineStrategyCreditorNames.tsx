@@ -168,7 +168,7 @@ export function extractByCreditorNames(text: string): string[] {
       // Stop processing - we've left the tradeline sections
       shouldStopProcessing = true;
       console.log(
-        `[Section Splitter] Hit termination pattern at line: "${line}" - stopping tradeline extraction`
+        `[Section Splitter] Hit termination pattern at line ${i} - stopping tradeline extraction`
       );
       break;
     }

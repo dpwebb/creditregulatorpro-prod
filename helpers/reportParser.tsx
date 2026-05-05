@@ -63,6 +63,8 @@ export interface ParseReportOptions {
   logRawTextPreview?: boolean;
 }
 
+export const DEFAULT_LOG_RAW_TEXT_PREVIEW = false;
+
 /**
  * Detects if a tradeline section contains a payment history grid.
  * Payment grids typically have month/year patterns followed by numeric values.
@@ -126,7 +128,7 @@ export async function parseReport(
 ): Promise<ComprehensiveParseResult> {
   const allowOcrFallback = options.allowOcrFallback ?? true;
   const enableAiAugmentation = options.enableAiAugmentation ?? true;
-  const logRawTextPreview = options.logRawTextPreview ?? true;
+  const logRawTextPreview = options.logRawTextPreview ?? DEFAULT_LOG_RAW_TEXT_PREVIEW;
 
   console.log(
     `[Report Parser] Starting comprehensive parse for ${mimeType} document (${base64Data.length} chars)`,

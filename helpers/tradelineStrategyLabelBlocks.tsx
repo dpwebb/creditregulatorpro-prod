@@ -75,8 +75,6 @@ export function extractByLabelBlocks(text: string): string[] {
       console.log(
         `[Section Splitter] Label block strategy: Markdown normalization helped detect tradeline start`
       );
-      console.log(`[Section Splitter]   Original: "${line}"`);
-      console.log(`[Section Splitter]   Normalized: "${normalizedLine}"`);
     }
 
     if (isTradelineStart && currentSection.length > 0) {
@@ -123,9 +121,6 @@ export function extractByLabelBlocks(text: string): string[] {
         if (normalizedLine.includes(blacklisted)) {
           console.log(
             `[Section Splitter] Label block strategy: Filtering out section containing blacklisted term: "${blacklisted}"`
-          );
-          console.log(
-            `[Section Splitter]   Matched line: "${line.trim()}"`
           );
           return false;
         }

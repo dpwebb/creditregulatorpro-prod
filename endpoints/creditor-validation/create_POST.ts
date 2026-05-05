@@ -1,7 +1,7 @@
 import { schema, OutputType } from "./create_POST.schema";
 
 import { db } from "../../helpers/db";
-import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { 
   analyzeTradelineForTriggers, 
@@ -12,7 +12,7 @@ import { TL } from "../../helpers/metro2";
 
 export async function handle(request: Request) {
   try {
-    await getServerUserSession(request);
+    const { user } = await getServerUserSession(request);
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
@@ -25,6 +25,10 @@ export async function handle(request: Request) {
       .selectAll()
       .where('id', '=', input.tradelineId)
       .executeTakeFirstOrThrow();
+
+    if (user.role !== "admin" && tradeline.userId !== user.id) {
+      throw new BusinessRuleError("You are not authorized to create a challenge for this tradeline", 403);
+    }
 
     // Convert DB tradeline to TL format for analysis
     const tlForAnalysis: TL = {

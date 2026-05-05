@@ -17,9 +17,6 @@ import {
  */
 export function splitIntoTradelineSections(text: string): string[] {
   console.log(`[Section Splitter] Processing ${text.length} characters`);
-  console.log(
-    `[Section Splitter] First 500 characters of input text:\n${text.substring(0, 500)}\n... (end of preview)`,
-  );
 
   // First, find where the actual tradeline sections begin
   const tradelineStartIndex = findTradelineSectionStart(text);

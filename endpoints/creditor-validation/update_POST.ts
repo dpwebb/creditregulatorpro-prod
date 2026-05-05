@@ -15,17 +15,19 @@ import { DisputeVectorType } from "../../helpers/obligationVectors";
 
 export async function handle(request: Request) {
   try {
-    await getServerUserSession(request);
+    const { user } = await getServerUserSession(request);
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
     const now = new Date();
 
-    // Fetch the current test record
+    // Fetch the current test record joined with tradeline ownership.
     const currentTest = await db
       .selectFrom('creditorObligationTest')
-      .selectAll()
+      .leftJoin('tradeline', 'tradeline.id', 'creditorObligationTest.tradelineId')
+      .selectAll('creditorObligationTest')
+      .select('tradeline.userId as tradelineUserId')
       .where('id', '=', input.id)
       .executeTakeFirst();
 
@@ -33,14 +35,23 @@ export async function handle(request: Request) {
       throw new BusinessRuleError("Obligation test not found", 404);
     }
 
+    if (user.role !== "admin" && currentTest.tradelineUserId !== user.id) {
+      throw new BusinessRuleError("You are not authorized to update this obligation test", 403);
+    }
+
     // Build test history from database records for this creditor
-    const historicalTests = await db
+    let historicalTestsQuery = db
       .selectFrom('creditorObligationTest')
-      .selectAll()
+      .leftJoin('tradeline', 'tradeline.id', 'creditorObligationTest.tradelineId')
+      .selectAll('creditorObligationTest')
       .where('creditorId', '=', currentTest.creditorId || 0)
-      .where('obligationType', '=', currentTest.obligationType)
-      .orderBy('lastChallengeDate', 'asc')
-      .execute();
+      .where('obligationType', '=', currentTest.obligationType);
+
+    if (user.role !== "admin") {
+      historicalTestsQuery = historicalTestsQuery.where('tradeline.userId', '=', user.id);
+    }
+
+    const historicalTests = await historicalTestsQuery.orderBy('lastChallengeDate', 'asc').execute();
 
     const testHistory: TestHistoryItem[] = historicalTests
       .filter(test => test.lastChallengeDate && test.disputeVector)
