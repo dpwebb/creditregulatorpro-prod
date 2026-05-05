@@ -74,9 +74,21 @@ INVESTIGATION REQUEST FORM
 *** This completes the report ***
 `;
 
+const equifaxText = `
+Equifax Canada
+Credit ReportRequest Date 2026/04/16
+Personal File Number 3708406180
+Personal Info
+Accounts - Revolving
+CAPITAL ONE BANK
+`;
+
 function runFieldExtractionRegression(): void {
   const metadata = extractReportMetadata(transUnionText);
   assert(isoDate(metadata.reportDate) === "2026-01-10", "TransUnion report date should be extracted from file-as-of text.");
+
+  const equifaxMetadata = extractReportMetadata(equifaxText);
+  assert(isoDate(equifaxMetadata.reportDate) === "2026-04-16", "Equifax Request Date should be extracted from collapsed PDF header text.");
 
   const consumer = extractConsumerInfo(transUnionText);
   assert(isoDate(consumer.dateOfBirth) === "1961-01-30", "TransUnion DOB should be extracted from collapsed personal-info row.");

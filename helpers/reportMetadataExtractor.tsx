@@ -46,6 +46,21 @@ function parseReportDate(dateStr: string): Date | null {
   if (!dateStr) return null;
   const cleanStr = dateStr.trim();
 
+  const yearFirstMatch = cleanStr.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/);
+  if (yearFirstMatch) {
+    const year = Number(yearFirstMatch[1]);
+    const month = Number(yearFirstMatch[2]);
+    const day = Number(yearFirstMatch[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    ) {
+      return date;
+    }
+  }
+
   // Try common formats
   const formats = [
     "MM/dd/yyyy",
@@ -153,8 +168,13 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
   // --- 1. Report Identification ---
 
   // Report Date
+  const dateValuePattern =
+    "(\\d{4}[/-]\\d{1,2}[/-]\\d{1,2}|\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}|[A-Za-z]+\\s+\\d{1,2},?\\s*\\d{4})";
   const datePatterns = [
-    /(?:Report Date|Date of Report|Date Generated|Created|As of)\s*[:.]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|[A-Za-z]+\s+\d{1,2},?\s*\d{4})/i,
+    new RegExp(
+      `(?:Report\\s*Date|Date\\s*of\\s*Report|Date\\s*Generated|Request\\s*Date|Date\\s*Requested|Created|As\\s*of)\\s*[:.]?\\s*${dateValuePattern}`,
+      "i",
+    ),
     /Date:\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i,
   ];
 
