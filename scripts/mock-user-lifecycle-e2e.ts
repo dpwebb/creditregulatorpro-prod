@@ -599,10 +599,17 @@ class ApiClient {
   }
 
   private captureCookies(response: Response): void {
+    const headersWithSetCookie = response.headers as Headers & {
+      getSetCookie?: () => string[];
+    };
+    const cookieHeaders = [...(headersWithSetCookie.getSetCookie?.() ?? [])];
     const setCookieRaw = response.headers.get("set-cookie");
-    if (!setCookieRaw) return;
+    if (setCookieRaw) {
+      cookieHeaders.push(...setCookieRaw.split(/,(?=[^;,]+=)/));
+    }
 
-    const cookieHeaders = setCookieRaw.split(/,(?=[^;,]+=)/);
+    if (cookieHeaders.length === 0) return;
+
     for (const header of cookieHeaders) {
       const firstPart = header.split(";")[0]?.trim();
       if (!firstPart) continue;

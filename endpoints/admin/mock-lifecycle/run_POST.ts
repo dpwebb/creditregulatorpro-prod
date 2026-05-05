@@ -7,6 +7,38 @@ import {
   startMockLifecycleJob,
 } from "./jobRunner";
 
+function firstForwardedHeader(value: string | null): string | null {
+  const first = value?.split(",")[0]?.trim();
+  return first || null;
+}
+
+function inferLifecycleUrls(request: Request) {
+  const requestUrl = new URL(request.url);
+  const forwardedHost =
+    firstForwardedHeader(request.headers.get("x-forwarded-host")) ||
+    firstForwardedHeader(request.headers.get("host")) ||
+    requestUrl.host;
+  const forwardedProto = firstForwardedHeader(request.headers.get("x-forwarded-proto"));
+  const isLocalHost =
+    requestUrl.hostname === "localhost" ||
+    requestUrl.hostname === "127.0.0.1" ||
+    forwardedHost.startsWith("localhost") ||
+    forwardedHost.startsWith("127.0.0.1");
+
+  if (isLocalHost) {
+    return {
+      baseUrl: "http://localhost:3333",
+      origin: "http://localhost:5175",
+    };
+  }
+
+  const inferredProtocol =
+    forwardedProto ?? (forwardedHost.includes("staging.creditregulatorpro.com") ? "https" : requestUrl.protocol);
+  const protocol = inferredProtocol.replace(/:$/, "");
+  const origin = `${protocol}://${forwardedHost}`;
+  return { baseUrl: origin, origin };
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -16,15 +48,7 @@ export async function handle(request: Request) {
 
     const raw = JSON.parse(await request.text());
     const input = schema.parse(raw);
-    const requestUrl = new URL(request.url);
-    const isLocalHost =
-      requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
-    const inferredBaseUrl = isLocalHost
-      ? "http://localhost:3333"
-      : `${requestUrl.protocol}//${requestUrl.host}`;
-    const inferredOrigin = isLocalHost
-      ? "http://localhost:5175"
-      : `${requestUrl.protocol}//${requestUrl.host}`;
+    const inferredUrls = inferLifecycleUrls(request);
 
     const initialReportPath = input.initialReportUpload
       ? await materializeUploadedFixture(
@@ -64,8 +88,8 @@ export async function handle(request: Request) {
         packetCount: input.packetCount,
         strict: input.strict,
         useDbAssist: input.useDbAssist,
-        baseUrl: input.baseUrl ?? inferredBaseUrl,
-        origin: input.origin ?? inferredOrigin,
+        baseUrl: input.baseUrl ?? inferredUrls.baseUrl,
+        origin: input.origin ?? inferredUrls.origin,
         email: input.email,
         password: input.password,
         displayName: input.displayName,
