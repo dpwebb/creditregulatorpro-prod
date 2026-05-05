@@ -538,6 +538,24 @@ function parserModeLabel(value: unknown): string {
   return mode || "Mode not recorded";
 }
 
+function coerceCorrectValue(value: string, parsedValue: unknown, fieldPath: string): unknown {
+  if (typeof parsedValue === "number") {
+    const numeric = Number(value.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(numeric) ? numeric : value;
+  }
+
+  if (typeof parsedValue === "boolean") {
+    return ["true", "yes", "allowed", "1"].includes(value.trim().toLowerCase());
+  }
+
+  if (/(balance|payment|pastDue|highCredit|creditLimit|amounts\.high|amounts\.limit|amounts\.pastDue)$/i.test(fieldPath)) {
+    const numeric = Number(value.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(numeric) ? numeric : value;
+  }
+
+  return value;
+}
+
 function decisionBadgeVariant(decision: string): "success" | "warning" | "info" | "default" {
   if (decision === "accepted") return "success";
   if (decision === "corrected" || decision === "missing") return "warning";
@@ -555,6 +573,16 @@ export function ParserTestSavedOutputPanel({
   const tradelines = Array.isArray(testCase?.expectedTradelines)
     ? testCase.expectedTradelines.filter(isRecord)
     : [];
+  const approvedConsumerInfo =
+    isRecord(testCase?.approvedConsumerInfo) && Object.keys(testCase.approvedConsumerInfo).length > 0
+      ? testCase.approvedConsumerInfo
+      : null;
+  const approvedTradelines = Array.isArray(testCase?.approvedTradelines) && testCase.approvedTradelines.length > 0
+    ? testCase.approvedTradelines.filter(isRecord)
+    : null;
+  const displayConsumerInfo = approvedConsumerInfo ?? consumerInfo;
+  const displayTradelines = approvedTradelines ?? tradelines;
+  const hasApprovedValues = approvedConsumerInfo !== null || approvedTradelines !== null;
   const decisions = Array.isArray(testCase?.adjudicationDecisions)
     ? testCase.adjudicationDecisions.filter(isRecord)
     : [];
@@ -590,6 +618,7 @@ export function ParserTestSavedOutputPanel({
   );
   const hasSavedOutput =
     Object.keys(consumerInfo).length > 0 || tradelines.length > 0 || rawText.trim().length > 0;
+  const selectedFieldOption = fieldOptions.find((option) => option.id === decisionDraft.selectedFieldId);
 
   const setDraftValue = (key: keyof DecisionDraft, value: string) => {
     setDecisionDraft((current) => ({ ...current, [key]: value }));
@@ -679,6 +708,8 @@ export function ParserTestSavedOutputPanel({
   const handleDecisionSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!onAdjudicate || !decisionDraft.fieldPath.trim()) return;
+    const rawParsedValue = selectedFieldOption?.parsedValue ?? decisionDraft.parsedValue;
+    const parsedValueForSubmission = rawParsedValue === "" ? undefined : rawParsedValue;
 
     await onAdjudicate({
       testCaseId: testCase.id,
@@ -689,11 +720,17 @@ export function ParserTestSavedOutputPanel({
         entityKey: decisionDraft.entityKey || undefined,
         fieldPath: decisionDraft.fieldPath,
         decision: decisionDraft.decision,
-        parsedValue: decisionDraft.parsedValue || undefined,
+        parsedValue: parsedValueForSubmission,
         correctValue:
           decisionDraft.decision === "not_reported"
             ? null
-            : decisionDraft.correctValue || decisionDraft.parsedValue,
+            : decisionDraft.decision === "accepted"
+              ? parsedValueForSubmission
+              : coerceCorrectValue(
+                  decisionDraft.correctValue || decisionDraft.parsedValue,
+                  selectedFieldOption?.parsedValue,
+                  decisionDraft.fieldPath,
+                ),
         sourceEvidence: decisionDraft.sourceEvidence || undefined,
         reason: decisionDraft.reason || undefined,
       },
@@ -840,11 +877,11 @@ export function ParserTestSavedOutputPanel({
               </select>
             </label>
             <label>
-              <span>Correct Value</span>
+              <span>Corrected / Approved Value</span>
               <Input
                 value={decisionDraft.correctValue}
                 onChange={(event) => setDraftValue("correctValue", event.target.value)}
-                placeholder="Leave blank when bureau reports no value"
+                placeholder="Edit this to the value shown on the bureau report"
               />
             </label>
             <div className={styles.parsedValuePreview}>
@@ -892,6 +929,16 @@ export function ParserTestSavedOutputPanel({
                   </Badge>
                 </div>
                 <p>{truncate(formatScalar(decision.reason) || formatScalar(decision.sourceEvidence) || "No note recorded.", 220)}</p>
+                <div className={styles.decisionValues}>
+                  <div>
+                    <span>Parsed</span>
+                    <strong>{truncate(summarizeValue(decision.parsedValue) || "Blank / not parsed")}</strong>
+                  </div>
+                  <div>
+                    <span>Approved</span>
+                    <strong>{truncate(summarizeValue(decision.correctValue) || "Blank / not reported")}</strong>
+                  </div>
+                </div>
                 <span className={styles.mutedText}>
                   {formatScalar(decision.entityType)} {formatScalar(decision.entityKey)}
                 </span>
@@ -902,15 +949,19 @@ export function ParserTestSavedOutputPanel({
       )}
 
       <section className={styles.section}>
-        <h4 className={styles.sectionTitle}>Consumer Information</h4>
-        <ObjectTable record={consumerInfo} />
+        <h4 className={styles.sectionTitle}>
+          {hasApprovedValues ? "Approved Consumer Information" : "Consumer Information"}
+        </h4>
+        <ObjectTable record={displayConsumerInfo} />
       </section>
 
       <section className={styles.section}>
-        <h4 className={styles.sectionTitle}>Saved Tradelines</h4>
+        <h4 className={styles.sectionTitle}>
+          {hasApprovedValues ? "Approved Tradelines" : "Saved Tradelines"}
+        </h4>
         <div className={styles.tradelineList}>
-          {tradelines.length > 0 ? (
-            tradelines.map((tradeline, index) => (
+          {displayTradelines.length > 0 ? (
+            displayTradelines.map((tradeline, index) => (
               <SavedTradelineCard
                 key={`${formatScalar(tradeline.accountNumber) || index}-${formatScalar(tradeline.creditorName)}`}
                 tradeline={tradeline}

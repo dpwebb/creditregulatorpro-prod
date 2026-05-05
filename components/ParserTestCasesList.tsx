@@ -39,10 +39,20 @@ export function ParserTestCasesList({
   const [search, setSearch] = React.useState("");
   const [selectedTestCase, setSelectedTestCase] = React.useState<any>(null);
   const debouncedSearch = useDebounce(search, 300);
+  const selectedTestCaseId = selectedTestCase?.id;
 
   const filteredTestCases = testCases.filter(tc =>
     tc.name.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
+
+  React.useEffect(() => {
+    if (!selectedTestCaseId) return;
+    const refreshedTestCase = testCases.find((tc) => tc.id === selectedTestCaseId);
+    setSelectedTestCase((current: any) => {
+      if (!current || current.id !== selectedTestCaseId) return current;
+      return refreshedTestCase ?? null;
+    });
+  }, [testCases, selectedTestCaseId]);
 
   const listPanel = (
     <div className={styles.listPanel}>
