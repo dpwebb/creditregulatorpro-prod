@@ -283,7 +283,7 @@ export function extractCreditorName(text: string): string | null {
     // Monitoring format: "Account Name" on one line, followed by actual name on next line
     /Account\s+Name\s*\n\s*([A-Z][A-Za-z\s&,.\-']{2,})(?:\n|$)/i,
     // TransUnion format: "Creditor Name BANK OF NOVA SCOTIA" or label on one line, value on next line
-    /Creditor\s+Name[\s:]+([A-Z][A-Za-z\s&,.\-']{2,})(?:\n|Account|Balance|Status|$)/i,
+    /Creditor\s+Name[\s:]+([A-Z][A-Za-z\s&,.\-']{2,}?)(?=Payment\s+History|\n|Account|Balance|Status|$)/i,
     // TransUnion format: "Creditor Name\n{NAME}Payment History" - extract name between "Creditor Name" and "Payment History"
     /Creditor\s+Name\s*\n\s*([A-Z][A-Za-z\s&,.\-']+?)(?=Payment\s+History)/i,
     // "Creditor: BANK OF MONTREAL" or "Creditor: Portfolio Recovery Associates" (highest priority)
