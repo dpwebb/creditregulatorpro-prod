@@ -5,6 +5,7 @@ export const schema = z.object({
   reviewStatus: z.enum(["needs_review", "finalized", "all"]).optional(),
   limit: z.coerce.number().min(1).max(100).optional(),
   offset: z.coerce.number().min(0).optional(),
+  sourceSha256s: z.array(z.string().trim().min(1)).optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
@@ -25,6 +26,9 @@ export const getViolationCorrectionRuns = async (
   if (params.reviewStatus) url.searchParams.set("reviewStatus", params.reviewStatus);
   if (params.limit !== undefined) url.searchParams.set("limit", String(params.limit));
   if (params.offset !== undefined) url.searchParams.set("offset", String(params.offset));
+  params.sourceSha256s?.forEach((sha256) => {
+    url.searchParams.append("sourceSha256", sha256);
+  });
 
   const result = await fetch(url.toString(), {
     method: "GET",

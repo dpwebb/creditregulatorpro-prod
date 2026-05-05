@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -34,6 +34,22 @@ import {
 
 import styles from "./admin-parser-testing.module.css";
 
+function extractParserTestSourceSha256(testCase: any): string | null {
+  const context = testCase?.parserContext;
+  if (!context || typeof context !== "object" || Array.isArray(context)) return null;
+
+  const retention = (context as any).retention;
+  const provenance = (context as any).provenance;
+  const directSha = (context as any).originalDocumentSha256;
+  const sha =
+    directSha ??
+    retention?.originalDocumentSha256 ??
+    retention?.documentBinarySha256 ??
+    provenance?.documentBinarySha256;
+
+  return typeof sha === "string" && sha.trim() ? sha.trim() : null;
+}
+
 export default function AdminParserTestingPage() {
   const [activeTab, setActiveTab] = useState("test-cases");
 
@@ -63,6 +79,17 @@ export default function AdminParserTestingPage() {
   const [importPreview, setImportPreview] = useState<any>(null);
 
   const testCases = testCasesData?.testCases || [];
+  const violationCorrectionSourceSha256s = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          testCases
+            .map((testCase) => extractParserTestSourceSha256(testCase))
+            .filter((sha): sha is string => Boolean(sha)),
+        ),
+      ),
+    [testCases],
+  );
 
   // Handlers
   const handleCreate = async (data: any) => {
@@ -121,11 +148,16 @@ export default function AdminParserTestingPage() {
           return next;
         });
         setSelectedForExport((prev) => prev.filter((testCaseId) => testCaseId !== id));
-        const preserved = result.deleted?.preservedTrainingArtifacts ?? 0;
+        const preserved =
+          (result.deleted?.preservedTrainingArtifacts ?? 0) +
+          (result.deleted?.preservedViolationTrainingArtifacts ?? 0);
+        const deletedCorrections = result.deleted?.violationCorrections ?? 0;
         toast.success(
           preserved > 0
-            ? `Test case deleted. Preserved ${preserved} training record${preserved === 1 ? "" : "s"}.`
-            : "Test case deleted"
+            ? `Test case deleted. Removed ${deletedCorrections} correction record${deletedCorrections === 1 ? "" : "s"} and preserved ${preserved} training record${preserved === 1 ? "" : "s"}.`
+            : deletedCorrections > 0
+              ? `Test case deleted. Removed ${deletedCorrections} correction record${deletedCorrections === 1 ? "" : "s"}.`
+              : "Test case deleted"
         );
         if (selectedTestCase?.id === id) setSelectedTestCase(null);
       } catch (error) {
@@ -466,7 +498,7 @@ export default function AdminParserTestingPage() {
         </TabsContent>
 
         <TabsContent value="violation-corrections" className={styles.tabContent}>
-          <AdminViolationCorrectionPanel />
+          <AdminViolationCorrectionPanel sourceSha256s={violationCorrectionSourceSha256s} />
         </TabsContent>
 
         <TabsContent value="run-all" className={styles.tabContent}>

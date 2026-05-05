@@ -10,14 +10,20 @@ import { exportViolationTrainingExamples } from "../endpoints/admin/violation-co
 
 export const VIOLATION_CORRECTION_KEYS = {
   all: ["admin", "violationCorrections"] as const,
-  runs: (reviewStatus: string) => [...VIOLATION_CORRECTION_KEYS.all, "runs", reviewStatus] as const,
+  runs: (reviewStatus: string, sourceSha256s?: string[]) =>
+    [...VIOLATION_CORRECTION_KEYS.all, "runs", reviewStatus, sourceSha256s?.join(",") ?? "all"] as const,
   detail: (runId: number | null) => [...VIOLATION_CORRECTION_KEYS.all, "detail", runId ?? "none"] as const,
 };
 
-export function useViolationCorrectionRuns(reviewStatus: "needs_review" | "finalized" | "all" = "needs_review") {
+export function useViolationCorrectionRuns(
+  reviewStatus: "needs_review" | "finalized" | "all" = "needs_review",
+  sourceSha256s?: string[],
+  enabled = true,
+) {
   return useQuery({
-    queryKey: VIOLATION_CORRECTION_KEYS.runs(reviewStatus),
-    queryFn: () => getViolationCorrectionRuns({ reviewStatus }),
+    queryKey: VIOLATION_CORRECTION_KEYS.runs(reviewStatus, sourceSha256s),
+    queryFn: () => getViolationCorrectionRuns({ reviewStatus, sourceSha256s }),
+    enabled,
   });
 }
 

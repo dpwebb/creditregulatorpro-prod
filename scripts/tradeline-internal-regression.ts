@@ -7,7 +7,10 @@ import {
   normalizeTransUnionPaymentTerms,
   parseTransUnionPaymentAmountFrequency,
 } from "../helpers/transunionPaymentTerms";
-import { extractParserTestTrainingArchiveItems } from "../helpers/parserTestTrainingArchive";
+import {
+  extractParserTestTrainingArchiveItems,
+  getParserTestCaseSourceSha256s,
+} from "../helpers/parserTestTrainingArchive";
 
 type RuntimeTradeline = {
   id: number;
@@ -182,6 +185,19 @@ function run() {
     assert.equal(archived[0].useForTraining, true);
     assert.equal(archived[0].trainingNoteOnly, false);
     assert.equal(archived[0].trainingNote, "Map TU amount/frequency into payment fields.");
+  });
+
+  runCase("parser test source hashes are derived from Stage Lab context", () => {
+    assert.deepEqual(
+      getParserTestCaseSourceSha256s({
+        parserContext: {
+          retention: {
+            originalDocumentSha256: "abc123",
+          },
+        },
+      }),
+      ["abc123"],
+    );
   });
 
   console.log("Tradeline internal regression checks passed.");

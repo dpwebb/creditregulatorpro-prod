@@ -8,6 +8,7 @@ import { runAllParserTests } from "../endpoints/parser-test-case/run-all_POST.sc
 import { exportParserTestCases } from "../endpoints/parser-test-case/export_POST.schema";
 import { importParserTestCases } from "../endpoints/parser-test-case/import_POST.schema";
 import { adjudicateParserTestCase } from "../endpoints/parser-test-case/adjudicate_POST.schema";
+import { VIOLATION_CORRECTION_KEYS } from "./violationCorrectionQueries";
 
 export const PARSER_TEST_KEYS = {
   all: ["parserTestCases"] as const,
@@ -52,6 +53,7 @@ export function useDeleteParserTestCase() {
     mutationFn: (input: Parameters<typeof deleteParserTestCase>[0]) => deleteParserTestCase(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: VIOLATION_CORRECTION_KEYS.all });
     },
   });
 }

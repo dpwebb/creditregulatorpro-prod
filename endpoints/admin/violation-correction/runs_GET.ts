@@ -16,13 +16,15 @@ export async function handle(request: Request) {
     await ensureViolationCorrectionSchema();
 
     const url = new URL(request.url);
+    const sourceSha256s = url.searchParams.getAll("sourceSha256");
     const input = schema.parse({
       reviewStatus: url.searchParams.get("reviewStatus") ?? undefined,
       limit: url.searchParams.get("limit") ?? undefined,
       offset: url.searchParams.get("offset") ?? undefined,
+      sourceSha256s: sourceSha256s.length > 0 ? sourceSha256s : undefined,
     });
 
-    const baseRuns = await db
+    let runsQuery = db
       .selectFrom("passExtraction")
       .innerJoin("reportArtifact", "reportArtifact.id", "passExtraction.reportArtifactId")
       .select([
@@ -38,8 +40,16 @@ export async function handle(request: Request) {
         "reportArtifact.reportDate",
         "reportArtifact.createdAt as reportCreatedAt",
       ])
-      .orderBy("passExtraction.createdAt", "desc")
-      .execute();
+      .orderBy("passExtraction.createdAt", "desc");
+
+    if (input.sourceSha256s !== undefined) {
+      runsQuery =
+        input.sourceSha256s.length > 0
+          ? runsQuery.where("reportArtifact.sha256", "in", input.sourceSha256s)
+          : runsQuery.where("passExtraction.id", "=", -1);
+    }
+
+    const baseRuns = await runsQuery.execute();
 
     const runIds = baseRuns.map((run) => run.id);
     const artifactIds = baseRuns.map((run) => run.reportArtifactId);

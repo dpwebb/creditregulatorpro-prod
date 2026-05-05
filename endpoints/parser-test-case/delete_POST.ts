@@ -7,7 +7,9 @@ import { isAdmin } from "../../helpers/userRoleUtils";
 import {
   ensureParserTestTrainingArchiveSchema,
   extractParserTestTrainingArchiveItems,
+  getParserTestCaseSourceSha256s,
 } from "../../helpers/parserTestTrainingArchive";
+import { ensureViolationCorrectionSchema } from "../../helpers/violationCorrectionSchema";
 import { sql } from "kysely";
 
 export async function handle(request: Request) {
@@ -24,6 +26,7 @@ export async function handle(request: Request) {
     const input = schema.parse(json);
 
     await ensureParserTestTrainingArchiveSchema();
+    await ensureViolationCorrectionSchema();
 
     const deleted = await db.transaction().execute(async (trx) => {
       const testCase = await trx
@@ -37,6 +40,8 @@ export async function handle(request: Request) {
           testRuns: 0,
           testCases: 0,
           preservedTrainingArtifacts: 0,
+          violationCorrections: 0,
+          preservedViolationTrainingArtifacts: 0,
         };
       }
 
@@ -74,6 +79,159 @@ export async function handle(request: Request) {
         `.execute(trx);
       }
 
+      const sourceSha256s = getParserTestCaseSourceSha256s(testCase);
+      const linkedArtifacts =
+        sourceSha256s.length > 0
+          ? await trx
+              .selectFrom("reportArtifact")
+              .select("id")
+              .where("sha256", "in", sourceSha256s)
+              .execute()
+          : [];
+      const linkedArtifactIds = linkedArtifacts.map((artifact) => artifact.id);
+      const linkedRuns =
+        linkedArtifactIds.length > 0
+          ? await trx
+              .selectFrom("passExtraction")
+              .select("id")
+              .where("reportArtifactId", "in", linkedArtifactIds)
+              .execute()
+          : [];
+      const linkedTradelines =
+        linkedArtifactIds.length > 0
+          ? await trx
+              .selectFrom("tradeline")
+              .select("id")
+              .where("reportArtifactId", "in", linkedArtifactIds)
+              .execute()
+          : [];
+      const linkedRunIds = linkedRuns.map((run) => run.id);
+      const linkedTradelineIds = linkedTradelines.map((tradeline) => tradeline.id);
+
+      let linkedCorrections: any[] = [];
+      if (linkedRunIds.length > 0 || linkedTradelineIds.length > 0) {
+        let correctionQuery = trx.selectFrom("violationCorrection").selectAll();
+        if (linkedRunIds.length > 0 && linkedTradelineIds.length > 0) {
+          correctionQuery = correctionQuery.where((eb) =>
+            eb.or([
+              eb("extractionRunId", "in", linkedRunIds),
+              eb("tradelineId", "in", linkedTradelineIds),
+            ]),
+          );
+        } else if (linkedRunIds.length > 0) {
+          correctionQuery = correctionQuery.where("extractionRunId", "in", linkedRunIds);
+        } else {
+          correctionQuery = correctionQuery.where("tradelineId", "in", linkedTradelineIds);
+        }
+        linkedCorrections = await correctionQuery.execute();
+      }
+
+      const linkedCorrectionIds = linkedCorrections.map((correction) => correction.id);
+      const [evidenceRows, referenceRows, trainingRows] =
+        linkedCorrectionIds.length > 0
+          ? await Promise.all([
+              trx
+                .selectFrom("violationCorrectionEvidence")
+                .selectAll()
+                .where("correctionId", "in", linkedCorrectionIds)
+                .execute(),
+              trx
+                .selectFrom("violationRegulationReference")
+                .selectAll()
+                .where("correctionId", "in", linkedCorrectionIds)
+                .execute(),
+              trx
+                .selectFrom("violationTrainingExample")
+                .selectAll()
+                .where("correctionId", "in", linkedCorrectionIds)
+                .execute(),
+            ])
+          : [[], [], []];
+
+      const rowsByCorrection = <T extends { correctionId: number }>(rows: T[]) => {
+        const map = new Map<number, T[]>();
+        for (const row of rows) {
+          map.set(row.correctionId, [...(map.get(row.correctionId) ?? []), row]);
+        }
+        return map;
+      };
+
+      const evidenceByCorrection = rowsByCorrection(evidenceRows);
+      const referencesByCorrection = rowsByCorrection(
+        referenceRows.filter((row) => row.correctionId != null) as Array<typeof referenceRows[number] & { correctionId: number }>,
+      );
+      const trainingByCorrection = rowsByCorrection(trainingRows);
+      const trainingCorrections = linkedCorrections.filter(
+        (correction) => correction.useForTraining === true || correction.trainingNoteOnly === true,
+      );
+
+      for (const correction of trainingCorrections) {
+        await sql`
+          insert into public.parser_test_training_archive (
+            source_test_case_id,
+            source_test_case_name,
+            bureau,
+            parser_mode,
+            stage_version,
+            extraction_source,
+            training_label,
+            training_note,
+            training_note_only,
+            use_for_training,
+            training_payload,
+            created_by_admin_id
+          )
+          values (
+            ${testCase.id},
+            ${testCase.name},
+            ${testCase.bureau},
+            ${testCase.parserMode},
+            ${testCase.stageVersion},
+            ${testCase.extractionSource},
+            ${correction.trainingLabel},
+            ${correction.adminNotes ?? correction.correctionReason},
+            ${correction.trainingNoteOnly},
+            ${correction.useForTraining},
+            ${JSON.stringify({
+              source: "violation_correction_delete",
+              sourceTestCase: {
+                id: testCase.id,
+                name: testCase.name,
+                bureau: testCase.bureau,
+                parserMode: testCase.parserMode,
+                stageVersion: testCase.stageVersion,
+                extractionSource: testCase.extractionSource,
+              },
+              linkedSourceSha256s: sourceSha256s,
+              correction,
+              evidence: evidenceByCorrection.get(correction.id) ?? [],
+              regulationReferences: referencesByCorrection.get(correction.id) ?? [],
+              trainingExamples: trainingByCorrection.get(correction.id) ?? [],
+            })}::jsonb,
+            ${user.id}
+          )
+        `.execute(trx);
+      }
+
+      if (linkedCorrectionIds.length > 0) {
+        await trx
+          .deleteFrom("violationTrainingExample")
+          .where("correctionId", "in", linkedCorrectionIds)
+          .execute();
+        await trx
+          .deleteFrom("violationRegulationReference")
+          .where("correctionId", "in", linkedCorrectionIds)
+          .execute();
+        await trx
+          .deleteFrom("violationCorrectionEvidence")
+          .where("correctionId", "in", linkedCorrectionIds)
+          .execute();
+        await trx
+          .deleteFrom("violationCorrection")
+          .where("id", "in", linkedCorrectionIds)
+          .execute();
+      }
+
       // Delete generated run/output data first so a test case deletion leaves no stale parser artifacts.
       const runDelete = await trx
         .deleteFrom("parserTestRun")
@@ -89,6 +247,8 @@ export async function handle(request: Request) {
         testRuns: Number(runDelete.numDeletedRows ?? 0),
         testCases: Number(testCaseDelete.numDeletedRows ?? 0),
         preservedTrainingArtifacts: trainingArtifacts.length,
+        violationCorrections: linkedCorrections.length,
+        preservedViolationTrainingArtifacts: trainingCorrections.length,
       };
     });
 

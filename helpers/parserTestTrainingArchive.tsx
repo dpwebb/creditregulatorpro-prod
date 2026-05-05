@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import { db } from "./db";
+import { sha256HexOfBase64Payload } from "./reportBinaryUtils";
 
 type ParserTestCaseTrainingSource = {
   id: number;
@@ -10,6 +11,7 @@ type ParserTestCaseTrainingSource = {
   extractionSource: string | null;
   parserContext: unknown;
   adjudicationDecisions: unknown;
+  pdfBase64?: string;
 };
 
 export type ParserTestTrainingArchiveItem = {
@@ -30,6 +32,38 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+export function getParserTestCaseSourceSha256s(testCase: Pick<
+  ParserTestCaseTrainingSource,
+  "parserContext" | "pdfBase64"
+>): string[] {
+  const sha256s = new Set<string>();
+  const context = asRecord(testCase.parserContext);
+  const retention = asRecord(context?.retention);
+  const provenance = asRecord(context?.provenance);
+  const candidates = [
+    context?.originalDocumentSha256,
+    retention?.originalDocumentSha256,
+    retention?.documentBinarySha256,
+    provenance?.documentBinarySha256,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = stringOrNull(candidate);
+    if (normalized) sha256s.add(normalized);
+  }
+
+  if (testCase.pdfBase64) {
+    try {
+      sha256s.add(sha256HexOfBase64Payload(testCase.pdfBase64));
+    } catch {
+      // The parser context hash is enough for Stage Lab cases; malformed legacy payloads
+      // should not block test-case deletion.
+    }
+  }
+
+  return [...sha256s];
 }
 
 function asArray(value: unknown): unknown[] {

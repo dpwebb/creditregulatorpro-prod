@@ -13,6 +13,8 @@ export type OutputType = {
     testRuns: number;
     testCases: number;
     preservedTrainingArtifacts: number;
+    violationCorrections: number;
+    preservedViolationTrainingArtifacts: number;
   };
 };
 

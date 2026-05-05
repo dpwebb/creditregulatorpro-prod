@@ -197,9 +197,19 @@ function regulationSuggestionToForm(ref: SuggestedRegulationReference): Regulati
   };
 }
 
-export function AdminViolationCorrectionPanel() {
+export function AdminViolationCorrectionPanel({
+  sourceSha256s,
+}: {
+  sourceSha256s?: string[];
+}) {
   const [reviewStatus, setReviewStatus] = useState<"needs_review" | "finalized" | "all">("needs_review");
-  const { data: runsData, isLoading: isLoadingRuns } = useViolationCorrectionRuns(reviewStatus);
+  const hasSourceFilter = sourceSha256s !== undefined;
+  const canLoadRuns = !hasSourceFilter || sourceSha256s.length > 0;
+  const { data: runsData, isLoading: isLoadingRuns } = useViolationCorrectionRuns(
+    reviewStatus,
+    sourceSha256s,
+    canLoadRuns,
+  );
   const runs = runsData?.runs ?? [];
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
   const { data: detail, isLoading: isLoadingDetail } = useViolationCorrectionRunDetail(selectedRunId);
@@ -218,7 +228,12 @@ export function AdminViolationCorrectionPanel() {
   const exportTraining = useExportViolationTrainingExamples();
 
   useEffect(() => {
-    if (!selectedRunId && runs.length > 0) {
+    if (runs.length === 0) {
+      setSelectedRunId(null);
+      return;
+    }
+
+    if (!selectedRunId || !runs.some((run) => run.id === selectedRunId)) {
       setSelectedRunId(runs[0].id);
     }
   }, [runs, selectedRunId]);
@@ -489,7 +504,9 @@ export function AdminViolationCorrectionPanel() {
       <div className={styles.layout}>
         <aside className={styles.runList}>
           <div className={styles.sectionHeader}>Extraction Runs</div>
-          {isLoadingRuns ? (
+          {!canLoadRuns ? (
+            <div className={styles.emptyState}>No active parser test case sources</div>
+          ) : isLoadingRuns ? (
             <div className={styles.emptyState}>Loading runs</div>
           ) : runs.length === 0 ? (
             <div className={styles.emptyState}>No runs</div>
