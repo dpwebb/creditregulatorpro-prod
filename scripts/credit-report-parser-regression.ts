@@ -83,9 +83,22 @@ Accounts - Revolving
 CAPITAL ONE BANK
 `;
 
+const transUnionDelayedHeaderText = `
+TransUnion Canada
+${"Consumer disclosure explanatory boilerplate. ".repeat(130)}
+Information regarding your credit history was first reported to TransUnion on Sep 06, 1989 and was last reviewed by [*
+CONSUMER DISCLOSURE *] on Jan 10, 2026.
+The information in the remainder of this report represents the contents of
+your file as of Jan 10, 2026. Blank areas indicate that this information was not reported to TransUnion.
+Personal Information:
+`;
+
 function runFieldExtractionRegression(): void {
   const metadata = extractReportMetadata(transUnionText);
   assert(isoDate(metadata.reportDate) === "2026-01-10", "TransUnion report date should be extracted from file-as-of text.");
+
+  const delayedTransUnionMetadata = extractReportMetadata(transUnionDelayedHeaderText);
+  assert(isoDate(delayedTransUnionMetadata.reportDate) === "2026-01-10", "TransUnion report date should be found when boilerplate pushes the file-as-of header past the first page text.");
 
   const equifaxMetadata = extractReportMetadata(equifaxText);
   assert(isoDate(equifaxMetadata.reportDate) === "2026-04-16", "Equifax Request Date should be extracted from collapsed PDF header text.");

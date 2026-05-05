@@ -161,6 +161,9 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
   // Limit processing to the header section (approx first 3000 chars)
   // This avoids false positives from tradeline data later in the file
   const headerText = text.substring(0, 3000);
+  const transUnionDateSearchText = /TransUnion/i.test(text.substring(0, 10000))
+    ? text.substring(0, 10000)
+    : headerText;
   result.rawHeaderText = headerText;
 
   const lines = headerText.split("\n").map((l) => l.trim());
@@ -186,8 +189,8 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
     }
   }
 
-  if (!result.reportDate && /TransUnion/i.test(headerText)) {
-    result.reportDate = extractTransUnionReportDate(headerText);
+  if (!result.reportDate && /TransUnion/i.test(transUnionDateSearchText)) {
+    result.reportDate = extractTransUnionReportDate(transUnionDateSearchText);
   }
 
   // File/Report Numbers
