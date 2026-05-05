@@ -54,6 +54,17 @@ creditregulatorpro_staging
 Do not point local development at the live staging database unless you intend
 local actions to write staging data.
 
+To populate localhost with the auth schema, core app tables, users, report
+artifacts, tradelines, and parser-test persistence tables:
+
+```powershell
+pnpm run bootstrap:local-auth-schema
+pnpm run bootstrap:local-app-fixtures
+```
+
+The app fixture bootstrap refuses to run unless local-dev mode is enabled and
+the resolved database host is localhost.
+
 ## Run
 
 Start the backend:
