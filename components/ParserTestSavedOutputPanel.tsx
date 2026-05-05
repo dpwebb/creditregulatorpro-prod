@@ -17,24 +17,102 @@ interface ParserTestSavedOutputPanelProps {
 type JsonRecord = Record<string, unknown>;
 
 type DecisionDraft = {
+  selectedFieldId: string;
   entityType: string;
   entityKey: string;
   fieldPath: string;
   decision: string;
+  parsedValue: string;
   correctValue: string;
   sourceEvidence: string;
   reason: string;
 };
 
 const EMPTY_DECISION_DRAFT: DecisionDraft = {
+  selectedFieldId: "",
   entityType: "tradeline",
   entityKey: "",
   fieldPath: "",
   decision: "corrected",
+  parsedValue: "",
   correctValue: "",
   sourceEvidence: "",
   reason: "",
 };
+
+type FieldOption = {
+  id: string;
+  label: string;
+  entityType: string;
+  entityKey: string;
+  fieldPath: string;
+  parsedValue: unknown;
+};
+
+const ENTITY_LABELS: Record<string, string> = {
+  report: "Report",
+  consumerInfo: "Consumer Info",
+  tradeline: "Tradeline",
+  inquiry: "Inquiry",
+  employment: "Employment",
+  publicRecord: "Public Record",
+  score: "Score",
+  other: "Other",
+};
+
+const CONSUMER_FIELD_TEMPLATES = [
+  ["fullName", "Full Name"],
+  ["dateOfBirth", "Date Of Birth"],
+  ["addressLine1", "Address Line 1"],
+  ["addressLine2", "Address Line 2"],
+  ["city", "City"],
+  ["province", "Province"],
+  ["postalCode", "Postal Code"],
+  ["previousAddresses", "Previous Addresses"],
+];
+
+const REPORT_FIELD_TEMPLATES = [
+  ["reportMetadata.reportDate", "Report Date"],
+  ["reportMetadata.bureauName", "Bureau Name"],
+  ["reportMetadata.fileNumber", "File Number"],
+  ["reportMetadata.reportNumber", "Report Number"],
+  ["reportMetadata.generatedAt", "Generated At"],
+];
+
+const TRADELINE_FIELD_TEMPLATES = [
+  ["creditorName", "Creditor Name"],
+  ["accountNumber", "Account Number"],
+  ["accountType", "Account Type"],
+  ["responsibilityCode", "Responsibility"],
+  ["status", "Status"],
+  ["balance", "Balance"],
+  ["monthlyPayment", "Payment"],
+  ["amounts.pastDue", "Past Due"],
+  ["amounts.high", "High Credit"],
+  ["amounts.limit", "Credit Limit"],
+  ["creditLimit", "Credit Limit"],
+  ["dates.reported", "Reported Date"],
+  ["dates.opened", "Opened Date"],
+  ["dates.closed", "Closed Date"],
+  ["dates.dofd", "First Delinquency Date"],
+  ["lastPaymentDate", "Last Payment Date"],
+  ["lastActivityDate", "Last Activity Date"],
+  ["postedDate", "Posted Date"],
+  ["chargeOffDate", "Charge Off Date"],
+  ["balloonPaymentDate", "Balloon Payment Date"],
+  ["terms", "Terms"],
+  ["mop", "MOP"],
+  ["paymentHistoryProfile", "Payment Profile"],
+  ["paymentPattern", "Payment Pattern"],
+  ["monthsReviewed", "Months Reviewed"],
+  ["paymentHistory.30", "Payment History 30"],
+  ["paymentHistory.60", "Payment History 60"],
+  ["paymentHistory.90", "Payment History 90"],
+  ["paymentHistory.#M", "Payment History #M"],
+  ["remarkCodes", "Remark Codes"],
+  ["narrative", "Narrative"],
+  ["legend", "Legend"],
+];
 
 const IMPORTANT_TRADELINE_FIELDS: Array<[string, (tradeline: JsonRecord) => unknown]> = [
   ["Creditor Name", (tradeline) => tradeline.creditorName],
@@ -63,6 +141,13 @@ function isRecord(value: unknown): value is JsonRecord {
 
 function nestedValue(record: JsonRecord, path: string[]): unknown {
   return path.reduce<unknown>((current, key) => {
+    if (!isRecord(current)) return undefined;
+    return current[key];
+  }, record);
+}
+
+function valueAtPath(record: JsonRecord, path: string): unknown {
+  return path.split(".").reduce<unknown>((current, key) => {
     if (!isRecord(current)) return undefined;
     return current[key];
   }, record);
@@ -112,6 +197,224 @@ function summarizeValue(value: unknown): string {
 function truncate(value: string, maxLength = 100): string {
   const normalized = value.replace(/\s+/g, " ").trim();
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized;
+}
+
+function optionId(entityType: string, entityKey: string, fieldPath: string): string {
+  return `${entityType}|${entityKey}|${fieldPath}`;
+}
+
+function addFieldOption(
+  options: FieldOption[],
+  seen: Set<string>,
+  option: Omit<FieldOption, "id">,
+) {
+  const id = optionId(option.entityType, option.entityKey, option.fieldPath);
+  if (seen.has(id)) return;
+  seen.add(id);
+  options.push({ ...option, id });
+}
+
+function collectLeafFieldOptions({
+  record,
+  entityType,
+  entityKey,
+  basePath,
+  options,
+  seen,
+  maxArrayItems = 12,
+}: {
+  record: unknown;
+  entityType: string;
+  entityKey: string;
+  basePath: string;
+  options: FieldOption[];
+  seen: Set<string>;
+  maxArrayItems?: number;
+}) {
+  if (Array.isArray(record)) {
+    record.slice(0, maxArrayItems).forEach((item, index) => {
+      collectLeafFieldOptions({
+        record: item,
+        entityType,
+        entityKey,
+        basePath: `${basePath}[${index}]`,
+        options,
+        seen,
+        maxArrayItems,
+      });
+    });
+    return;
+  }
+
+  if (isRecord(record)) {
+    Object.entries(record).forEach(([key, value]) => {
+      if (key === "sourceText") return;
+      collectLeafFieldOptions({
+        record: value,
+        entityType,
+        entityKey,
+        basePath: basePath ? `${basePath}.${key}` : key,
+        options,
+        seen,
+        maxArrayItems,
+      });
+    });
+    return;
+  }
+
+  addFieldOption(options, seen, {
+    entityType,
+    entityKey,
+    fieldPath: basePath,
+    label: humanizeKey(basePath.split(".").pop()?.replace(/\[\d+\]/g, "") || basePath),
+    parsedValue: record,
+  });
+}
+
+function addTemplateOptions({
+  templates,
+  record,
+  entityType,
+  entityKey,
+  pathPrefix,
+  options,
+  seen,
+}: {
+  templates: string[][];
+  record: JsonRecord;
+  entityType: string;
+  entityKey: string;
+  pathPrefix?: string;
+  options: FieldOption[];
+  seen: Set<string>;
+}) {
+  templates.forEach(([fieldPath, label]) => {
+    const fullPath = pathPrefix ? `${pathPrefix}.${fieldPath}` : fieldPath;
+    const lookupPath = pathPrefix && fullPath.startsWith(`${pathPrefix}.`)
+      ? fullPath.slice(pathPrefix.length + 1)
+      : fullPath;
+    addFieldOption(options, seen, {
+      entityType,
+      entityKey,
+      fieldPath: fullPath,
+      label,
+      parsedValue: valueAtPath(record, lookupPath),
+    });
+  });
+}
+
+function buildFieldOptions(testCase: any, consumerInfo: JsonRecord, tradelines: JsonRecord[]): FieldOption[] {
+  const options: FieldOption[] = [];
+  const seen = new Set<string>();
+  const parserContext = isRecord(testCase?.parserContext) ? testCase.parserContext : {};
+  const parsed = isRecord(parserContext.parsed) ? parserContext.parsed : {};
+  const reportMetadata = isRecord(parsed.reportMetadata) ? parsed.reportMetadata : {};
+
+  [
+    ["bureau", "Bureau", testCase?.bureau],
+    ["parserMode", "Parser Mode", parserModeLabel(testCase?.parserMode)],
+    ["allowAiFallback", "AI Fallback", testCase?.allowAiFallback === true ? "Allowed" : "Off"],
+    ["stageVersion", "Stage Version", testCase?.stageVersion],
+    ["extractionSource", "Extraction Source", testCase?.extractionSource],
+  ].forEach(([fieldPath, label, parsedValue]) => {
+    addFieldOption(options, seen, {
+      entityType: "report",
+      entityKey: "Report",
+      fieldPath: String(fieldPath),
+      label: String(label),
+      parsedValue,
+    });
+  });
+
+  collectLeafFieldOptions({
+    record: reportMetadata,
+    entityType: "report",
+    entityKey: "Report",
+    basePath: "reportMetadata",
+    options,
+    seen,
+  });
+  addTemplateOptions({
+    templates: REPORT_FIELD_TEMPLATES,
+    record: reportMetadata,
+    entityType: "report",
+    entityKey: "Report",
+    options,
+    seen,
+  });
+
+  collectLeafFieldOptions({
+    record: consumerInfo,
+    entityType: "consumerInfo",
+    entityKey: "Consumer",
+    basePath: "consumerInfo",
+    options,
+    seen,
+  });
+  addTemplateOptions({
+    templates: CONSUMER_FIELD_TEMPLATES,
+    record: consumerInfo,
+    entityType: "consumerInfo",
+    entityKey: "Consumer",
+    pathPrefix: "consumerInfo",
+    options,
+    seen,
+  });
+
+  tradelines.forEach((tradeline, index) => {
+    const entityKey =
+      formatScalar(tradeline.creditorName) ||
+      formatScalar(tradeline.accountNumber) ||
+      `Tradeline ${index + 1}`;
+    collectLeafFieldOptions({
+      record: tradeline,
+      entityType: "tradeline",
+      entityKey,
+      basePath: `tradelines[${index}]`,
+      options,
+      seen,
+    });
+    addTemplateOptions({
+      templates: TRADELINE_FIELD_TEMPLATES,
+      record: tradeline,
+      entityType: "tradeline",
+      entityKey,
+      pathPrefix: `tradelines[${index}]`,
+      options,
+      seen,
+    });
+  });
+
+  [
+    ["inquiries", "inquiry", "Inquiry"],
+    ["employmentInfo", "employment", "Employment"],
+    ["publicRecords", "publicRecord", "Public Record"],
+    ["creditScores", "score", "Score"],
+  ].forEach(([sectionKey, entityType, entityLabel]) => {
+    const rows = parsed[sectionKey];
+    if (!Array.isArray(rows)) return;
+    rows.filter(isRecord).forEach((row, index) => {
+      const entityKey =
+        formatScalar(row.creditorName) ||
+        formatScalar(row.companyName) ||
+        formatScalar(row.name) ||
+        `${entityLabel} ${index + 1}`;
+      collectLeafFieldOptions({
+        record: row,
+        entityType,
+        entityKey,
+        basePath: `${sectionKey}[${index}]`,
+        options,
+        seen,
+      });
+    });
+  });
+
+  return options.sort((left, right) =>
+    `${left.entityType}-${left.entityKey}-${left.fieldPath}`.localeCompare(
+      `${right.entityType}-${right.entityKey}-${right.fieldPath}`,
+    )
+  );
 }
 
 function FieldTable({ rows }: { rows: Array<[string, unknown]> }) {
@@ -257,12 +560,97 @@ export function ParserTestSavedOutputPanel({
     : [];
   const rawText = typeof testCase?.rawExtractedText === "string" ? testCase.rawExtractedText : "";
   const [decisionDraft, setDecisionDraft] = React.useState<DecisionDraft>(EMPTY_DECISION_DRAFT);
+  const fieldOptions = React.useMemo(
+    () => buildFieldOptions(testCase, consumerInfo, tradelines),
+    [testCase, consumerInfo, tradelines],
+  );
+  const entityOptions = React.useMemo(
+    () => Array.from(new Set(fieldOptions.map((option) => option.entityType))),
+    [fieldOptions],
+  );
+  const entityKeyOptions = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          fieldOptions
+            .filter((option) => option.entityType === decisionDraft.entityType)
+            .map((option) => option.entityKey),
+        ),
+      ),
+    [fieldOptions, decisionDraft.entityType],
+  );
+  const visibleFieldOptions = React.useMemo(
+    () =>
+      fieldOptions.filter(
+        (option) =>
+          option.entityType === decisionDraft.entityType &&
+          option.entityKey === decisionDraft.entityKey,
+      ),
+    [fieldOptions, decisionDraft.entityType, decisionDraft.entityKey],
+  );
   const hasSavedOutput =
     Object.keys(consumerInfo).length > 0 || tradelines.length > 0 || rawText.trim().length > 0;
 
   const setDraftValue = (key: keyof DecisionDraft, value: string) => {
     setDecisionDraft((current) => ({ ...current, [key]: value }));
   };
+
+  const applyFieldOption = (option: FieldOption | undefined) => {
+    if (!option) return;
+    const parsedValue = summarizeValue(option.parsedValue);
+    setDecisionDraft((current) => ({
+      ...current,
+      selectedFieldId: option.id,
+      entityType: option.entityType,
+      entityKey: option.entityKey,
+      fieldPath: option.fieldPath,
+      parsedValue,
+      correctValue: current.decision === "not_reported" ? "" : parsedValue,
+    }));
+  };
+
+  const handleEntityChange = (entityType: string) => {
+    const nextOption = fieldOptions.find((option) => option.entityType === entityType);
+    if (nextOption) {
+      applyFieldOption(nextOption);
+      return;
+    }
+    setDecisionDraft((current) => ({
+      ...current,
+      entityType,
+      entityKey: "",
+      selectedFieldId: "",
+      fieldPath: "",
+      parsedValue: "",
+    }));
+  };
+
+  const handleEntityKeyChange = (entityKey: string) => {
+    const nextOption = fieldOptions.find(
+      (option) => option.entityType === decisionDraft.entityType && option.entityKey === entityKey,
+    );
+    if (nextOption) {
+      applyFieldOption(nextOption);
+      return;
+    }
+    setDecisionDraft((current) => ({
+      ...current,
+      entityKey,
+      selectedFieldId: "",
+      fieldPath: "",
+      parsedValue: "",
+    }));
+  };
+
+  const handleFieldChange = (fieldId: string) => {
+    applyFieldOption(fieldOptions.find((option) => option.id === fieldId));
+  };
+
+  React.useEffect(() => {
+    if (decisionDraft.selectedFieldId || fieldOptions.length === 0) return;
+    const firstTradeline = fieldOptions.find((option) => option.entityType === "tradeline");
+    applyFieldOption(firstTradeline ?? fieldOptions[0]);
+  }, [decisionDraft.selectedFieldId, fieldOptions]);
 
   const handleAcceptBaseline = async () => {
     if (!onAdjudicate) return;
@@ -301,8 +689,11 @@ export function ParserTestSavedOutputPanel({
         entityKey: decisionDraft.entityKey || undefined,
         fieldPath: decisionDraft.fieldPath,
         decision: decisionDraft.decision,
+        parsedValue: decisionDraft.parsedValue || undefined,
         correctValue:
-          decisionDraft.decision === "not_reported" ? null : decisionDraft.correctValue,
+          decisionDraft.decision === "not_reported"
+            ? null
+            : decisionDraft.correctValue || decisionDraft.parsedValue,
         sourceEvidence: decisionDraft.sourceEvidence || undefined,
         reason: decisionDraft.reason || undefined,
       },
@@ -388,39 +779,58 @@ export function ParserTestSavedOutputPanel({
               <span>Entity</span>
               <select
                 value={decisionDraft.entityType}
-                onChange={(event) => setDraftValue("entityType", event.target.value)}
+                onChange={(event) => handleEntityChange(event.target.value)}
               >
-                <option value="report">Report</option>
-                <option value="consumerInfo">Consumer Info</option>
-                <option value="tradeline">Tradeline</option>
-                <option value="inquiry">Inquiry</option>
-                <option value="employment">Employment</option>
-                <option value="publicRecord">Public Record</option>
-                <option value="score">Score</option>
-                <option value="other">Other</option>
+                {entityOptions.map((entityType) => (
+                  <option key={entityType} value={entityType}>
+                    {ENTITY_LABELS[entityType] ?? humanizeKey(entityType)}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
-              <span>Entity Key</span>
-              <Input
+              <span>Account / Section</span>
+              <select
                 value={decisionDraft.entityKey}
-                onChange={(event) => setDraftValue("entityKey", event.target.value)}
-                placeholder="BANK OF NOVA SCOTIA or account key"
-              />
+                onChange={(event) => handleEntityKeyChange(event.target.value)}
+              >
+                {entityKeyOptions.map((entityKey) => (
+                  <option key={entityKey} value={entityKey}>
+                    {entityKey}
+                  </option>
+                ))}
+              </select>
             </label>
-            <label>
-              <span>Field Path</span>
-              <Input
-                value={decisionDraft.fieldPath}
-                onChange={(event) => setDraftValue("fieldPath", event.target.value)}
-                placeholder="tradelines[0].creditLimit"
-              />
+            <label className={styles.fullWidth}>
+              <span>Field to Review</span>
+              <select
+                value={decisionDraft.selectedFieldId}
+                onChange={(event) => handleFieldChange(event.target.value)}
+              >
+                {visibleFieldOptions.map((option) => {
+                  const parsedValue = summarizeValue(option.parsedValue);
+                  return (
+                    <option key={option.id} value={option.id}>
+                      {option.label} - {option.fieldPath}
+                      {parsedValue ? ` (${truncate(parsedValue, 60)})` : ""}
+                    </option>
+                  );
+                })}
+              </select>
             </label>
             <label>
               <span>Decision</span>
               <select
                 value={decisionDraft.decision}
-                onChange={(event) => setDraftValue("decision", event.target.value)}
+                onChange={(event) => {
+                  const nextDecision = event.target.value;
+                  setDecisionDraft((current) => ({
+                    ...current,
+                    decision: nextDecision,
+                    correctValue:
+                      nextDecision === "accepted" ? current.parsedValue : current.correctValue,
+                  }));
+                }}
               >
                 <option value="corrected">Corrected</option>
                 <option value="missing">Missing From Parser</option>
@@ -437,6 +847,11 @@ export function ParserTestSavedOutputPanel({
                 placeholder="Leave blank when bureau reports no value"
               />
             </label>
+            <div className={styles.parsedValuePreview}>
+              <span>Current Parsed Value</span>
+              <strong>{decisionDraft.parsedValue || "Blank / not parsed"}</strong>
+              <small>{decisionDraft.fieldPath || "Select a field"}</small>
+            </div>
             <label className={styles.fullWidth}>
               <span>Source Evidence</span>
               <Textarea

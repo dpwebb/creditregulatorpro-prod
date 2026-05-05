@@ -136,6 +136,29 @@
   font: inherit;
 }
 
+.parsedValuePreview {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+}
+
+.parsedValuePreview span,
+.parsedValuePreview small {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.parsedValuePreview strong {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
 .fullWidth,
 .formActions {
   grid-column: 1 / -1;
