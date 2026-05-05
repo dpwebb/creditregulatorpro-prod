@@ -42,6 +42,87 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
+function hasReportedValue(value: unknown): boolean {
+  if (value == null) return false;
+  if (typeof value === "number") return Number.isFinite(value);
+  const normalized = String(value).trim().toLowerCase();
+  return Boolean(
+    normalized &&
+      !["unknown", "unknown creditor", "not reported", "n/a", "na", "-", "missing"].includes(normalized)
+  );
+}
+
+function formatDateValue(value: unknown): string {
+  if (!hasReportedValue(value)) return "Not reported";
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-CA");
+}
+
+function formatMoneyValue(value: unknown): string {
+  if (!hasReportedValue(value)) return "Not reported";
+  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
+  if (!Number.isFinite(numeric)) return String(value);
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+    maximumFractionDigits: 0,
+  }).format(numeric);
+}
+
+function formatDisplayValue(value: unknown): string {
+  return hasReportedValue(value) ? String(value) : "Not reported";
+}
+
+function reviewTitle(item: any, tradeline: any): string {
+  if (item.kind === "report") return "Report level";
+  const creditor = hasReportedValue(tradeline?.creditorName)
+    ? tradeline.creditorName
+    : hasReportedValue(item.creditorName)
+      ? item.creditorName
+      : `Tradeline ${typeof item.index === "number" ? item.index + 1 : ""}`.trim();
+  const account = hasReportedValue(tradeline?.accountNumber)
+    ? tradeline.accountNumber
+    : hasReportedValue(item.accountNumber)
+      ? item.accountNumber
+      : null;
+  return account ? `${creditor} - ${account}` : creditor;
+}
+
+function formatEvidencePreview(value: string): string {
+  const labels = [
+    "Creditor Name",
+    "Payment History",
+    "Reported Date",
+    "Opened Date",
+    "Closed Date",
+    "First Delinquency Date",
+    "Last Payment Date",
+    "Posted Date",
+    "Charge Off Date",
+    "Balloon Payment Date",
+    "Terms",
+    "Account Type",
+    "Balance",
+    "Payment",
+    "Past Due",
+    "MOP",
+    "High Credit",
+    "Credit Limit",
+    "Narrative",
+    "Legend",
+  ];
+
+  let formatted = value.replace(/\s+/g, " ").trim();
+  for (const label of labels) {
+    formatted = formatted.replace(new RegExp(`\\s*(${label})\\s*`, "gi"), "\n$1: ");
+  }
+
+  return formatted
+    .replace(/\n+/g, "\n")
+    .replace(/^:/gm, "")
+    .trim();
+}
+
 function downloadJson(result: ParserLabResult) {
   const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -289,22 +370,75 @@ export function ParserLabStageTab() {
                   </div>
                   <div className={styles.reviewList}>
                     {result.reviewQueue.map((item, index) => (
-                      <div key={`${item.kind}-${item.index ?? "report"}-${index}`} className={styles.reviewItem}>
-                        <div className={styles.reviewHeader}>
-                          <span className={styles.entityTitle}>
-                            {item.kind === "report"
-                              ? "Report level"
-                              : `${item.creditorName || "Unknown creditor"} ${item.accountNumber || ""}`}
-                          </span>
-                          <Badge variant="warning">{item.kind}</Badge>
-                        </div>
-                        <ul className={styles.reasonList}>
-                          {item.reasons.map((reason) => (
-                            <li key={reason}>{reason}</li>
-                          ))}
-                        </ul>
-                        {item.sourceTextPreview && <p>{item.sourceTextPreview}</p>}
-                      </div>
+                      (() => {
+                        const tradeline =
+                          item.kind === "tradeline" &&
+                          typeof item.index === "number" &&
+                          Array.isArray(result.parsed.tradelines)
+                            ? (result.parsed.tradelines as any[])[item.index]
+                            : null;
+
+                        return (
+                          <div key={`${item.kind}-${item.index ?? "report"}-${index}`} className={styles.reviewItem}>
+                            <div className={styles.reviewHeader}>
+                              <span className={styles.entityTitle}>{reviewTitle(item, tradeline)}</span>
+                              <Badge variant="warning">{item.kind}</Badge>
+                            </div>
+
+                            <div className={styles.reviewReasons}>
+                              {item.reasons.map((reason) => (
+                                <Badge key={reason} variant="warning" className={styles.reasonBadge}>
+                                  {reason}
+                                </Badge>
+                              ))}
+                            </div>
+
+                            {tradeline && (
+                              <div className={styles.reviewSummaryGrid}>
+                                <div>
+                                  <span className={styles.fieldLabel}>Creditor</span>
+                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.creditorName)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Account</span>
+                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountNumber)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Type</span>
+                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountType)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Status</span>
+                                  <span className={styles.fieldValue}>{formatDisplayValue(tradeline.status)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Balance</span>
+                                  <span className={styles.fieldValue}>{formatMoneyValue(tradeline.balance)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Credit limit</span>
+                                  <span className={styles.fieldValue}>{formatMoneyValue(tradeline.creditLimit)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Reported</span>
+                                  <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.reported)}</span>
+                                </div>
+                                <div>
+                                  <span className={styles.fieldLabel}>Last payment</span>
+                                  <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.lastPayment)}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {item.sourceTextPreview && (
+                              <details className={styles.evidenceDetails}>
+                                <summary>Source evidence preview</summary>
+                                <pre className={styles.evidenceText}>{formatEvidencePreview(item.sourceTextPreview)}</pre>
+                              </details>
+                            )}
+                          </div>
+                        );
+                      })()
                     ))}
                   </div>
                 </div>
@@ -329,27 +463,27 @@ export function ParserLabStageTab() {
                         <div className={styles.fieldGrid}>
                           <div>
                             <span className={styles.fieldLabel}>Account</span>
-                            <span className={styles.fieldValue}>{formatValue(tradeline.accountNumber)}</span>
+                            <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountNumber)}</span>
                           </div>
                           <div>
                             <span className={styles.fieldLabel}>Type</span>
-                            <span className={styles.fieldValue}>{formatValue(tradeline.accountType)}</span>
+                            <span className={styles.fieldValue}>{formatDisplayValue(tradeline.accountType)}</span>
                           </div>
                           <div>
                             <span className={styles.fieldLabel}>Status</span>
-                            <span className={styles.fieldValue}>{formatValue(tradeline.status)}</span>
+                            <span className={styles.fieldValue}>{formatDisplayValue(tradeline.status)}</span>
                           </div>
                           <div>
                             <span className={styles.fieldLabel}>Balance</span>
-                            <span className={styles.fieldValue}>{formatValue(tradeline.balance)}</span>
+                            <span className={styles.fieldValue}>{formatMoneyValue(tradeline.balance)}</span>
                           </div>
                           <div>
                             <span className={styles.fieldLabel}>Reported</span>
-                            <span className={styles.fieldValue}>{formatValue(tradeline.dates?.reported)}</span>
+                            <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.reported)}</span>
                           </div>
                           <div>
                             <span className={styles.fieldLabel}>Opened</span>
-                            <span className={styles.fieldValue}>{formatValue(tradeline.dates?.opened)}</span>
+                            <span className={styles.fieldValue}>{formatDateValue(tradeline.dates?.opened)}</span>
                           </div>
                           <div>
                             <span className={styles.fieldLabel}>Source chars</span>

@@ -195,6 +195,27 @@
   margin-bottom: var(--spacing-1);
 }
 
+.reviewReasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+}
+
+.reasonBadge {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.reviewSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--border);
+}
+
 .fieldGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));
@@ -230,6 +251,34 @@
   font-size: 0.8125rem;
 }
 
+.evidenceDetails {
+  margin-top: var(--spacing-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-3);
+}
+
+.evidenceDetails summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.evidenceText {
+  max-height: 220px;
+  overflow: auto;
+  margin: var(--spacing-3) 0 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;
@@ -241,7 +290,8 @@
 
   .metricsGrid,
   .metaGrid,
-  .fieldGrid {
+  .fieldGrid,
+  .reviewSummaryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -249,7 +299,8 @@
 @media (max-width: 640px) {
   .metricsGrid,
   .metaGrid,
-  .fieldGrid {
+  .fieldGrid,
+  .reviewSummaryGrid {
     grid-template-columns: 1fr;
   }
 
