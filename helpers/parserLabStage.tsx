@@ -5,8 +5,7 @@ import {
   ParsedPaymentHistorySummary,
   ParsedTradeline,
 } from "./reportParserTypes";
-
-export const PARSER_LAB_STAGE_VERSION = "parser-lab-shadow-2026-05-v1";
+import { PARSER_LAB_STAGE_VERSION } from "./parserLabStageVersion";
 
 export interface ParserLabStageInput {
   bytesBase64: string;
