@@ -44,10 +44,8 @@ export function ParserTestCasesList({
     tc.name.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
-  return (
-    <div className={styles.layout}>
-      {/* List Panel */}
-      <div className={`${styles.listPanel} ${selectedTestCase ? styles.listPanelShrink : ''}`}>
+  const listPanel = (
+    <div className={styles.listPanel}>
         <div className={styles.toolbar}>
           <div className={styles.search}>
             <Search size={16} className={styles.searchIcon} />
@@ -148,51 +146,55 @@ export function ParserTestCasesList({
             </TableBody>
           </Table>
         </TableContainer>
+    </div>
+  );
+
+  const detailPanel = selectedTestCase ? (
+    <div className={styles.detailPanel}>
+      <div className={styles.detailHeader}>
+        <h3 className={styles.detailTitle}>{selectedTestCase.name}</h3>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSelectedTestCase(null)}>
+            <XCircle size={14} /> Test Cases
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => onEdit(selectedTestCase)}>
+            <Edit size={14} /> Edit
+          </Button>
+          <Button size="sm" onClick={() => onRun(selectedTestCase.id)}>
+            <Play size={14} /> Run
+          </Button>
+        </div>
       </div>
 
-      {/* Detail Panel */}
-      {selectedTestCase && (
-        <div className={styles.detailPanel}>
-          <div className={styles.detailHeader}>
-            <h3 className={styles.detailTitle}>{selectedTestCase.name}</h3>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => onEdit(selectedTestCase)}>
-                <Edit size={14} /> Edit
-              </Button>
-              <Button size="sm" onClick={() => onRun(selectedTestCase.id)}>
-                <Play size={14} /> Run
-              </Button>
-              <Button size="icon-sm" variant="ghost" onClick={() => setSelectedTestCase(null)}>
-                <XCircle size={16} />
-              </Button>
-            </div>
-          </div>
+      <div className={styles.detailContent}>
+        {runResults[selectedTestCase.id] ? (
+          <ParserTestResultsPanel
+            summary={{
+              ...runResults[selectedTestCase.id].summary,
+              actualConsumerInfo: runResults[selectedTestCase.id].actualConsumerInfo,
+              actualTradelines: runResults[selectedTestCase.id].actualTradelines
+            }}
+            lastRunAt={new Date()}
+            onAcceptResults={() => onAcceptResults(selectedTestCase.id)}
+            onApproveField={(fieldType, id, value) => {
+              onApproveField?.(selectedTestCase.id, fieldType, id, value);
+            }}
+          />
+        ) : (
+          <ParserTestSavedOutputPanel
+            testCase={selectedTestCase}
+            emptyIcon={<Clock size={48} className="text-muted-foreground mb-4" />}
+            onAdjudicate={onAdjudicate}
+            isAdjudicating={isAdjudicating}
+          />
+        )}
+      </div>
+    </div>
+  ) : null;
 
-          <div className={styles.detailContent}>
-            {runResults[selectedTestCase.id] ? (
-              <ParserTestResultsPanel
-                summary={{
-                  ...runResults[selectedTestCase.id].summary,
-                  actualConsumerInfo: runResults[selectedTestCase.id].actualConsumerInfo,
-                  actualTradelines: runResults[selectedTestCase.id].actualTradelines
-                }}
-                lastRunAt={new Date()}
-                onAcceptResults={() => onAcceptResults(selectedTestCase.id)}
-                onApproveField={(fieldType, id, value) => {
-                  onApproveField?.(selectedTestCase.id, fieldType, id, value);
-                }}
-              />
-            ) : (
-              <ParserTestSavedOutputPanel
-                testCase={selectedTestCase}
-                emptyIcon={<Clock size={48} className="text-muted-foreground mb-4" />}
-                onAdjudicate={onAdjudicate}
-                isAdjudicating={isAdjudicating}
-              />
-            )}
-          </div>
-        </div>
-      )}
+  return (
+    <div className={styles.layout}>
+      {selectedTestCase ? detailPanel : listPanel}
     </div>
   );
 }

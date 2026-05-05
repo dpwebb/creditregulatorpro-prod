@@ -1,23 +1,18 @@
 .layout {
-  display: flex;
-  gap: var(--spacing-4);
+  display: block;
   height: 100%;
+  min-width: 0;
 }
 
 .listPanel {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  transition: flex var(--animation-duration-normal);
+  height: 100%;
   overflow: hidden;
 }
 
-.listPanelShrink {
-  flex: 0 0 300px;
-}
-
 .detailPanel {
-  flex: 1;
+  height: 100%;
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -28,8 +23,8 @@
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .toolbar {
@@ -73,6 +68,8 @@
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .detailContent {
