@@ -379,9 +379,11 @@ function resolveSshKeyFile(env, outputDir) {
     return path.resolve(key);
   }
 
-  const keyPath = path.join(outputDir, "staging_ssh_key");
+  const keyPath = path.join(
+    outputDir,
+    `staging_ssh_key_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+  );
   const keyContents = normalizePrivateKeyValue(key);
-  removeExistingGeneratedKey(keyPath);
   fs.writeFileSync(keyPath, keyContents.endsWith("\n") ? keyContents : `${keyContents}\n`, { mode: 0o600 });
   hardenPrivateKeyFile(keyPath);
   return keyPath;
@@ -411,31 +413,6 @@ function getCurrentWindowsUser() {
   return process.env.USERDOMAIN && process.env.USERNAME
     ? `${process.env.USERDOMAIN}\\${process.env.USERNAME}`
     : os.userInfo().username;
-}
-
-function removeExistingGeneratedKey(keyPath) {
-  if (!fs.existsSync(keyPath)) {
-    return;
-  }
-
-  try {
-    fs.unlinkSync(keyPath);
-    return;
-  } catch {
-    if (process.platform !== "win32") {
-      throw;
-    }
-  }
-
-  const grantCurrentUser = spawnSync("icacls", [keyPath, "/grant:r", `${getCurrentWindowsUser()}:F`], {
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  if (grantCurrentUser.status !== 0) {
-    throw new Error(`Failed to unlock existing generated SSH key: ${grantCurrentUser.stderr || grantCurrentUser.stdout}`);
-  }
-
-  fs.unlinkSync(keyPath);
 }
 
 function hardenPrivateKeyFile(keyPath) {
@@ -498,7 +475,13 @@ if [ -z "$DB_URL" ] && command -v docker >/dev/null 2>&1; then
     APP_CONTAINER="$(docker ps --format '{{.Names}} {{.Image}}' | awk 'tolower($0) ~ /creditregulatorpro/ && tolower($0) !~ /postgres/ {print $1; exit}')"
   fi
   if [ -n "$APP_CONTAINER" ]; then
-    DB_URL="$(docker exec "$APP_CONTAINER" sh -lc 'node --input-type=module -e "process.stdout.write(process.env.FLOOT_DATABASE_URL || process.env.DATABASE_URL || process.env.DATABASE_PRIVATE_URL || \"\")"' 2>/dev/null || true)"
+    DB_URL="$(docker exec "$APP_CONTAINER" printenv FLOOT_DATABASE_URL 2>/dev/null || true)"
+    if [ -z "$DB_URL" ]; then
+      DB_URL="$(docker exec "$APP_CONTAINER" printenv DATABASE_URL 2>/dev/null || true)"
+    fi
+    if [ -z "$DB_URL" ]; then
+      DB_URL="$(docker exec "$APP_CONTAINER" printenv DATABASE_PRIVATE_URL 2>/dev/null || true)"
+    fi
   fi
 fi
 
@@ -515,9 +498,9 @@ if command -v docker >/dev/null 2>&1; then
     APP_NETWORK="$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$APP_CONTAINER" 2>/dev/null | head -n 1 || true)"
   fi
   if [ -n "$APP_NETWORK" ]; then
-    exec docker run --rm --network "$APP_NETWORK" ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
+    exec docker run --rm --network "$APP_NETWORK" --add-host host.docker.internal:host-gateway ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
   fi
-  exec docker run --rm --network host ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
+  exec docker run --rm --network host --add-host host.docker.internal:host-gateway ${shellQuote(options.dockerImage)} pg_dump --format=custom --no-owner --no-acl --dbname="$DB_URL"
 fi
 echo "pg_dump is not available on the staging host and no Docker fallback worked" >&2
 exit 31
