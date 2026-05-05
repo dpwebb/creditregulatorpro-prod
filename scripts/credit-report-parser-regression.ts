@@ -148,6 +148,9 @@ Mar 202534103419000TC / CG
   assert(fidoTradeline.paymentHistory?.["90"] === 3, "TransUnion 90-day late count should map to payment history summary.");
   assert(String(fidoTradeline.monthsReviewed) === "24", "TransUnion #M value should map to monthsReviewed.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.balance === 341, "TransUnion compact monthly detail should preserve balance.");
+  assert(fidoTradeline.paymentHistoryDetails?.[0]?.payment === 0, "TransUnion compact monthly detail should preserve payment.");
+  assert(fidoTradeline.paymentHistoryDetails?.[0]?.pastDue === 341, "TransUnion compact monthly detail should preserve past due from the visible column.");
+  assert(fidoTradeline.paymentHistoryDetails?.[0]?.mop === "9", "TransUnion compact monthly detail should preserve MOP from the visible column.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.narrative === "TC / CG", "TransUnion compact monthly detail should preserve narrative code.");
 
   const bankOfNovaScotiaSection = `
@@ -185,15 +188,16 @@ Legend:AC-Account closed/rating non derogatory
   const scotiaRows = extractTransUnionPaymentGridRows(bankOfNovaScotiaSection);
   assert(scotiaRows.length === 1, "Bank of Nova Scotia compact row should parse as one monthly row.");
   assert(scotiaRows[0].balance === 0, "Bank of Nova Scotia compact row should preserve balance.");
-  assert(scotiaRows[0].payment === 0, "Bank of Nova Scotia compact row should not steal payment from the terms digits.");
-  assert(scotiaRows[0].pastDue === 1, "Bank of Nova Scotia compact row should not steal past due from the terms digits.");
+  assert(scotiaRows[0].payment === null, "Bank of Nova Scotia compact row should leave blank payment blank.");
+  assert(scotiaRows[0].pastDue === 0, "Bank of Nova Scotia compact row should not steal past due from the MOP digit.");
+  assert(scotiaRows[0].mop === "1", "Bank of Nova Scotia compact row should preserve the MOP digit.");
   assert(scotiaRows[0].terms === "522", "Bank of Nova Scotia compact row should preserve the full row terms.");
   assert(scotiaRows[0].highCredit === 31320, "Bank of Nova Scotia compact row should preserve full high credit.");
   assert(scotiaRows[0].creditLimit === null, "Bank of Nova Scotia compact row should leave missing credit limit blank.");
 
   const scotiaTradeline = extractTradelines(bankOfNovaScotiaSection)[0];
   assert(scotiaTradeline.amounts.high === 31320, "Bank of Nova Scotia high credit should use the layout-aware compact row.");
-  assert(scotiaTradeline.amounts.pastDue === 1, "Bank of Nova Scotia past due should use the layout-aware compact row.");
+  assert(scotiaTradeline.amounts.pastDue === 0, "Bank of Nova Scotia past due should use the layout-aware compact row.");
   assert(scotiaTradeline.creditLimit === undefined, "Bank of Nova Scotia credit limit should stay blank when no value is under that column.");
 
   const capitalOneSection = `

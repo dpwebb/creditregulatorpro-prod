@@ -178,7 +178,8 @@ function splitLayoutGroupedCompactPaymentGridToken(
   clean: string,
 ): Omit<TransUnionPaymentGridRow, "dateLabel" | "date" | "narrative" | "rawLine"> | null {
   // pdf-parse can collapse right-aligned TransUnion columns into one token while preserving
-  // visual group order: balance, payment, past due, terms, high credit, balloon, charge off.
+  // visual group order. Some rows have no Payment value, so the second digit belongs to Past Due
+  // and the next digit belongs to MOP.
   const match = clean.match(/^([0-9])([0-9])([0-9])([1-9][0-9]{2})([1-9][0-9]{3,4})(0)(0)$/);
   if (!match) return null;
 
@@ -187,9 +188,9 @@ function splitLayoutGroupedCompactPaymentGridToken(
 
   return {
     balance: parseCompactAmount(balanceRaw),
-    payment: parseCompactAmount(paymentRaw),
-    pastDue: parseCompactAmount(pastDueRaw),
-    mop: null,
+    payment: null,
+    pastDue: parseCompactAmount(paymentRaw),
+    mop: pastDueRaw,
     terms: String(Number(termsRaw)),
     highCredit: parseCompactAmount(highCreditRaw),
     creditLimit: null,
@@ -235,7 +236,7 @@ function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGrid
     };
   }
 
-  const openTelecom = clean.match(/^(\d{3})(\d)(\d)(\d)(\d{2})(0)(0)(0)$/);
+  const openTelecom = clean.match(/^(\d{3})(\d)(\d{3})(\d)(\d)(0)(0)$/);
   if (openTelecom) {
     return {
       balance: parseCompactAmount(openTelecom[1]),
@@ -244,8 +245,8 @@ function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGrid
       mop: openTelecom[4],
       terms: String(Number(openTelecom[5])),
       highCredit: parseCompactAmount(openTelecom[6]),
-      creditLimit: parseCompactAmount(openTelecom[7]),
-      balloonPayment: parseCompactAmount(openTelecom[8]),
+      creditLimit: null,
+      balloonPayment: parseCompactAmount(openTelecom[7]),
       chargeOff: null,
     };
   }
@@ -254,14 +255,14 @@ function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGrid
   if (shortZeroBalance) {
     return {
       balance: parseCompactAmount(shortZeroBalance[1]),
-      payment: parseCompactAmount(shortZeroBalance[2]),
-      pastDue: parseCompactAmount(shortZeroBalance[3]),
-      mop: shortZeroBalance[4],
-      terms: shortZeroBalance[5],
-      highCredit: parseCompactAmount(shortZeroBalance[6]),
-      creditLimit: parseCompactAmount(shortZeroBalance[7]),
-      balloonPayment: null,
-      chargeOff: null,
+      payment: null,
+      pastDue: parseCompactAmount(shortZeroBalance[2]),
+      mop: shortZeroBalance[3],
+      terms: shortZeroBalance[4],
+      highCredit: parseCompactAmount(shortZeroBalance[5]),
+      creditLimit: null,
+      balloonPayment: parseCompactAmount(shortZeroBalance[6]),
+      chargeOff: parseCompactAmount(shortZeroBalance[7]),
     };
   }
 

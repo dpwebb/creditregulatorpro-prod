@@ -63,8 +63,9 @@ Legend:AC-Account closed/rating non derogatory
     const rows = extractTransUnionPaymentGridRows(bankOfNovaScotia);
     expect(rows[0]).toMatchObject({
       balance: 0,
-      payment: 0,
-      pastDue: 1,
+      payment: null,
+      pastDue: 0,
+      mop: "1",
       terms: "522",
       highCredit: 31320,
       creditLimit: null,
