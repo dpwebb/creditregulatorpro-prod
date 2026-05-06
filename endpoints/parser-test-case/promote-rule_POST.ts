@@ -14,6 +14,10 @@ import {
 } from "../../helpers/parserExtractionRules";
 import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
 import { compareConsumerInfo, compareTradelines, hasAnyExpectations } from "../../helpers/parserPatternAnalyzer";
+import {
+  acceptDecisionCoveredByExistingRule,
+  EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE,
+} from "../../helpers/parserRulePromotionDecision";
 import { ExtractedConsumerInfo } from "../../helpers/consumerInfoExtractorTypes";
 import { ParsedTradeline } from "../../helpers/reportParser";
 import { schema, OutputType } from "./promote-rule_POST.schema";
@@ -468,6 +472,30 @@ export async function handle(request: Request) {
       .where("id", "=", insertedCandidate.id)
       .execute();
 
+    if (existingRule) {
+      const acceptance = acceptDecisionCoveredByExistingRule(
+        testCase.adjudicationDecisions,
+        input.decisionId,
+        activeRule.id,
+        user.id,
+      );
+      if (acceptance.changed) {
+        await db
+          .updateTable("parserTestCase")
+          .set({
+            adminReviewStatus: acceptance.hasRemainingPromotableDecisions
+              ? testCase.adminReviewStatus
+              : testCase.adminReviewStatus === "approved"
+                ? "approved"
+                : "partially_reviewed",
+            adjudicationDecisions: acceptance.decisions,
+            updatedAt: new Date(),
+          })
+          .where("id", "=", testCase.id)
+          .execute();
+      }
+    }
+
     const output: OutputType = {
       candidate: {
         id: insertedCandidate.id,
@@ -478,7 +506,7 @@ export async function handle(request: Request) {
       },
       activated: true,
       message: existingRule
-        ? "An existing active parser rule already covers this correction."
+        ? EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE
         : "Parser rule promoted and activated.",
       targetValidation,
       ...(runRegressionGate
