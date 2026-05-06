@@ -3,6 +3,19 @@ import { z } from "zod";
 
 export const schema = z.object({});
 
+export type PacketRecommendationActionPlan = {
+  deterministic: true;
+  ruleId: "packet-action-readiness-v1";
+  primaryAction: "CREATE_PACKET" | "COMPLETE_PROFILE" | "UPDATE_BUREAU_CONTACT";
+  status: "ready" | "blocked";
+  ctaLabel: string;
+  blockers: Array<{
+    code: "missing_user_profile" | "missing_bureau_contact";
+    label: string;
+    fields: string[];
+  }>;
+};
+
 export type OutputType =
   | {
       recommendations: Array<{
@@ -18,6 +31,7 @@ export type OutputType =
         reasoning: string;
         score: number;
         confidenceLevel: "good" | "fair" | "procedural";
+        actionPlan: PacketRecommendationActionPlan;
       }>;
       proceduralOptions: Array<{
         id: string;

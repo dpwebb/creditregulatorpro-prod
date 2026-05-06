@@ -94,6 +94,21 @@
   margin-top: var(--spacing-1);
 }
 
+.actionPlanBlock {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--muted);
+}
+
+.actionPlanText {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 .otherRecsList, .proceduralList {
   display: flex;
   flex-direction: column;

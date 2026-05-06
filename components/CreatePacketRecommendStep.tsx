@@ -76,6 +76,19 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
     const topRec = recsData.recommendations[0];
     const otherRecs = recsData.recommendations.slice(1);
 
+    const profileHrefFor = (rec: any) => {
+      const params = new URLSearchParams();
+      params.set("returnTo", "createPacket");
+      params.set("tradelineId", String(rec.tradelineId));
+      if (rec.bureauId) params.set("bureauId", String(rec.bureauId));
+      if (rec.violationId) params.set("violationId", String(rec.violationId));
+      const missingFields = rec.actionPlan?.blockers
+        ?.find((blocker: any) => blocker.code === "missing_user_profile")
+        ?.fields ?? [];
+      if (missingFields.length) params.set("missingFields", missingFields.join(","));
+      return `/my-info?tab=profile&${params.toString()}`;
+    };
+
     const getConfidenceBadge = (level: string) => {
       if (level === 'good') return <Badge variant="success">Good chance</Badge>;
       if (level === 'fair') return <Badge variant="warning">Worth trying</Badge>;
@@ -87,6 +100,47 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
       const label = EQUIFAX_DISPUTE_REASONS[code as EquifaxDisputeReasonCode];
       if (!label) return null;
       return <p className={styles.recCardSub} style={{ marginTop: '0.25rem' }}>Reason: {label}</p>;
+    };
+
+    const renderActionPlan = (rec: any) => {
+      if (!rec.actionPlan || rec.actionPlan.status === "ready") return null;
+      return (
+        <div className={styles.actionPlanBlock}>
+          {rec.actionPlan.blockers.map((blocker: any) => (
+            <p key={blocker.code} className={styles.actionPlanText}>{blocker.label}</p>
+          ))}
+        </div>
+      );
+    };
+
+    const renderActionButton = (rec: any, fallbackLabel: string, variant: "default" | "outline" = "default") => {
+      const actionPlan = rec.actionPlan;
+      if (actionPlan?.primaryAction === "COMPLETE_PROFILE") {
+        return (
+          <Button asChild variant={variant} size={variant === "outline" ? "sm" : undefined}>
+            <Link to={profileHrefFor(rec)}>{actionPlan.ctaLabel}</Link>
+          </Button>
+        );
+      }
+
+      if (actionPlan?.primaryAction === "UPDATE_BUREAU_CONTACT") {
+        return (
+          <Button variant={variant} size={variant === "outline" ? "sm" : undefined} disabled>
+            {actionPlan.ctaLabel}
+          </Button>
+        );
+      }
+
+      return (
+        <Button
+          variant={variant}
+          size={variant === "outline" ? "sm" : undefined}
+          onClick={() => onSelectRecommendation(rec)}
+          disabled={isPending}
+        >
+          {isPending && creatingRecId === rec.violationId ? "Creating..." : fallbackLabel}
+        </Button>
+      );
     };
 
     return (
@@ -106,11 +160,10 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
           <div>
             <p className={styles.recCardDesc}>{topRec.violationDescription}</p>
             {renderReasonCode(topRec.suggestedReasonCode)}
+            {renderActionPlan(topRec)}
           </div>
           <div className={styles.recCardFooter}>
-            <Button onClick={() => onSelectRecommendation(topRec)} disabled={isPending}>
-              {isPending && creatingRecId === topRec.violationId ? "Creating..." : "Challenge This Account"}
-            </Button>
+            {renderActionButton(topRec, "Challenge This Account")}
           </div>
         </div>
 
@@ -133,11 +186,10 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
                   <div>
                     <p className={styles.recCardDesc}>{rec.violationDescription}</p>
                     {renderReasonCode(rec.suggestedReasonCode)}
+                    {renderActionPlan(rec)}
                   </div>
                   <div className={styles.recCardFooter}>
-                    <Button variant="outline" size="sm" onClick={() => onSelectRecommendation(rec)} disabled={isPending}>
-                      {isPending && creatingRecId === rec.violationId ? "Creating..." : "Choose This"}
-                    </Button>
+                    {renderActionButton(rec, "Choose This", "outline")}
                   </div>
                 </div>
               ))}

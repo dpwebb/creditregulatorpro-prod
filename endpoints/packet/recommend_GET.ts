@@ -7,6 +7,10 @@ import { getDisputeVectorSuggestion } from "../../helpers/violationToDisputeVect
 import { mapViolationToDisputeReason } from "../../helpers/equifaxDisputeReasons";
 import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 import {
+  buildPacketRecommendationActionPlan,
+  evaluatePacketReadiness,
+} from "../../helpers/packetReadiness";
+import {
   generateAccessPointsForTradelines,
   generateAccessPointsWhenNoViolations,
   SimpleTradeline,
@@ -111,6 +115,11 @@ export async function handle(request: Request) {
         "creditor.name as creditorName",
         "bureau.id as bureauId",
         "bureau.name as bureauName",
+        "bureau.address as bureauAddress",
+        "bureau.addressLine1 as bureauAddressLine1",
+        "bureau.city as bureauCity",
+        "bureau.province as bureauProvince",
+        "bureau.postalCode as bureauPostalCode",
       ])
       .execute();
 
@@ -129,6 +138,20 @@ export async function handle(request: Request) {
     }
 
     const tlIds = tradelines.map((t) => t.id);
+
+    let userAccount = await db
+      .selectFrom("userAccount")
+      .where("userId", "=", user.id)
+      .selectAll()
+      .executeTakeFirst();
+
+    if (!userAccount) {
+      userAccount = await db
+        .selectFrom("userAccount")
+        .where("email", "=", user.email)
+        .selectAll()
+        .executeTakeFirst();
+    }
 
     // 2. Fetch violations associated with these tradelines that are NOT procedurally exhausted
     const violations = await db
@@ -259,6 +282,19 @@ export async function handle(request: Request) {
         reasoning: suggestion.reason,
         score,
         confidenceLevel,
+        actionPlan: buildPacketRecommendationActionPlan(
+          evaluatePacketReadiness({
+            userAccount,
+            bureau: {
+              name: tl.bureauName,
+              address: tl.bureauAddress,
+              addressLine1: tl.bureauAddressLine1,
+              city: tl.bureauCity,
+              province: tl.bureauProvince,
+              postalCode: tl.bureauPostalCode,
+            },
+          }),
+        ),
       });
     }
 
