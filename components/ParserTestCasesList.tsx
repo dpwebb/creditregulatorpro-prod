@@ -1,6 +1,6 @@
 import React from "react";
 import { format } from "../helpers/dateUtils";
-import { Play, Edit, Trash2, Search, XCircle, Clock } from "lucide-react";
+import { Play, Edit, Trash2, Search, XCircle, Clock, Database, ListChecks } from "lucide-react";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { Badge } from "./Badge";
@@ -44,6 +44,7 @@ export function ParserTestCasesList({
 }: ParserTestCasesListProps) {
   const [search, setSearch] = React.useState("");
   const [selectedTestCase, setSelectedTestCase] = React.useState<any>(null);
+  const [hiddenRunResultIds, setHiddenRunResultIds] = React.useState<Set<number>>(() => new Set());
   const debouncedSearch = useDebounce(search, 300);
   const selectedTestCaseId = selectedTestCase?.id;
   const isRunningTest = (id: number) => runningTestCaseId === id;
@@ -61,6 +62,27 @@ export function ParserTestCasesList({
       return refreshedTestCase ?? null;
     });
   }, [testCases, selectedTestCaseId]);
+
+  const showSavedOutputFor = (id: number) => {
+    setHiddenRunResultIds((current) => {
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  };
+
+  const showRunResultsFor = (id: number) => {
+    setHiddenRunResultIds((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const handleRunClick = (id: number) => {
+    showRunResultsFor(id);
+    onRun(id);
+  };
 
   const listPanel = (
     <div className={styles.listPanel}>
@@ -134,7 +156,7 @@ export function ParserTestCasesList({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => onRun(tc.id)}
+                          onClick={() => handleRunClick(tc.id)}
                           disabled={isRunDisabled}
                           title="Run Test"
                         >
@@ -168,18 +190,44 @@ export function ParserTestCasesList({
     </div>
   );
 
+  const selectedRunResult = selectedTestCase ? runResults[selectedTestCase.id] : null;
+  const shouldShowRunResults =
+    Boolean(selectedTestCase && selectedRunResult) &&
+    !hiddenRunResultIds.has(selectedTestCase.id);
+
   const detailPanel = selectedTestCase ? (
     <div className={styles.detailPanel}>
       <div className={styles.detailHeader}>
         <h3 className={styles.detailTitle}>{selectedTestCase.name}</h3>
-        <div className="flex gap-2">
+        <div className={styles.detailActions}>
           <Button size="sm" variant="outline" onClick={() => setSelectedTestCase(null)}>
             <XCircle size={14} /> Test Cases
           </Button>
+          {selectedRunResult && (
+            shouldShowRunResults ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => showSavedOutputFor(selectedTestCase.id)}
+                title="View saved parser output"
+              >
+                <Database size={14} /> Saved Output
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => showRunResultsFor(selectedTestCase.id)}
+                title="View latest test results"
+              >
+                <ListChecks size={14} /> Last Run Results
+              </Button>
+            )
+          )}
           <Button size="sm" variant="outline" onClick={() => onEdit(selectedTestCase)}>
             <Edit size={14} /> Edit
           </Button>
-          <Button size="sm" onClick={() => onRun(selectedTestCase.id)} disabled={isRunDisabled}>
+          <Button size="sm" onClick={() => handleRunClick(selectedTestCase.id)} disabled={isRunDisabled}>
             {isRunningTest(selectedTestCase.id) ? <Spinner size="sm" /> : <Play size={14} />}
             {isRunningTest(selectedTestCase.id) ? "Running..." : "Run"}
           </Button>
@@ -187,14 +235,14 @@ export function ParserTestCasesList({
       </div>
 
       <div className={styles.detailContent}>
-        {runResults[selectedTestCase.id] ? (
+        {shouldShowRunResults && selectedRunResult ? (
           <ParserTestResultsPanel
             summary={{
-              ...runResults[selectedTestCase.id].summary,
-              actualConsumerInfo: runResults[selectedTestCase.id].actualConsumerInfo,
-              actualTradelines: runResults[selectedTestCase.id].actualTradelines
+              ...selectedRunResult.summary,
+              actualConsumerInfo: selectedRunResult.actualConsumerInfo,
+              actualTradelines: selectedRunResult.actualTradelines
             }}
-            lastRunAt={new Date()}
+            lastRunAt={selectedRunResult.lastRunAt ?? selectedRunResult.runAt ?? selectedRunResult.timestamp ?? new Date()}
             onAcceptResults={() => onAcceptResults(selectedTestCase.id)}
             onApproveField={(fieldType, id, value) => {
               onApproveField?.(selectedTestCase.id, fieldType, id, value);
