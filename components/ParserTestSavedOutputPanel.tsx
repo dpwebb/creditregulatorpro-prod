@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckCircle, ChevronDown, ChevronRight, Database, Flag } from "lucide-react";
+import { CheckCircle, ChevronDown, ChevronRight, Database, Flag, Wand2 } from "lucide-react";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
@@ -14,6 +14,8 @@ interface ParserTestSavedOutputPanelProps {
   emptyIcon?: React.ReactNode;
   onAdjudicate?: (data: any) => Promise<void>;
   isAdjudicating?: boolean;
+  onPromoteParserRule?: (data: { testCaseId: number; decisionId: string }) => Promise<any>;
+  isPromotingParserRule?: boolean;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -662,11 +664,18 @@ function decisionBadgeVariant(decision: string): "success" | "warning" | "info" 
   return "default";
 }
 
+function isPromotableDecision(decision: JsonRecord): boolean {
+  const decisionType = formatScalar(decision.decision);
+  return decisionType === "corrected" || decisionType === "missing";
+}
+
 export function ParserTestSavedOutputPanel({
   testCase,
   emptyIcon,
   onAdjudicate,
   isAdjudicating = false,
+  onPromoteParserRule,
+  isPromotingParserRule = false,
 }: ParserTestSavedOutputPanelProps) {
   const consumerInfo = isRecord(testCase?.expectedConsumerInfo) ? testCase.expectedConsumerInfo : {};
   const tradelines = Array.isArray(testCase?.expectedTradelines)
@@ -854,6 +863,15 @@ export function ParserTestSavedOutputPanel({
       sourceEvidence: "",
       reason: "",
     }));
+  };
+
+  const handlePromoteDecision = async (decision: JsonRecord) => {
+    const decisionId = formatScalar(decision.id);
+    if (!onPromoteParserRule || !testCase?.id || !decisionId) return;
+    await onPromoteParserRule({
+      testCaseId: testCase.id,
+      decisionId,
+    });
   };
 
   if (!hasSavedOutput) {
@@ -1055,9 +1073,23 @@ export function ParserTestSavedOutputPanel({
               <div key={formatScalar(decision.id) || index} className={styles.decisionItem}>
                 <div className={styles.decisionHeader}>
                   <strong>{formatScalar(decision.fieldPath) || "Field"}</strong>
-                  <Badge variant={decisionBadgeVariant(formatScalar(decision.decision))}>
-                    {statusLabel(formatScalar(decision.decision))}
-                  </Badge>
+                  <div className={styles.decisionHeaderActions}>
+                    <Badge variant={decisionBadgeVariant(formatScalar(decision.decision))}>
+                      {statusLabel(formatScalar(decision.decision))}
+                    </Badge>
+                    {onPromoteParserRule && isPromotableDecision(decision) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePromoteDecision(decision)}
+                        disabled={isPromotingParserRule}
+                        title="Create and validate a global parser rule from this decision"
+                      >
+                        <Wand2 size={14} />
+                        {isPromotingParserRule ? "Promoting..." : "Promote Rule"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 <p>{truncate(formatScalar(decision.reason) || formatScalar(decision.sourceEvidence) || "No note recorded.", 220)}</p>
                 <div className={styles.decisionValues}>

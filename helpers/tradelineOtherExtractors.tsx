@@ -138,32 +138,34 @@ export function extractPaymentPattern(text: string): string | null {
 export function extractRemarkCodes(text: string): string[] {
   const codes: string[] = [];
 
-  const patterns = [
-    // "Remarks: AC01, CN02" or "Remark Codes: AC01"
-    /Remark(?:\s+Code)?s?[\s:]+([A-Z0-9,\s-]+)(?:\n|$)/i,
-    // Common remark code format (2 letters + 2 digits)
-    /\b([A-Z]{2}\d{2})\b/g,
-  ];
+  const addCode = (value: string | null | undefined) => {
+    const normalized = (value || "").trim();
+    if (normalized) codes.push(normalized);
+  };
 
-  for (const pattern of patterns) {
-    if (pattern.global) {
-      const matches = text.matchAll(pattern);
-      for (const match of matches) {
-        if (match[1]) {
-          codes.push(match[1].trim());
-        }
-      }
-    } else {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        // Split by comma or space if multiple codes
-        const splitCodes = match[1]
-          .split(/[,\s]+/)
-          .map((c) => c.trim())
-          .filter((c) => c.length > 0);
-        codes.push(...splitCodes);
+  const addDelimitedLine = (value: string, splitWhitespaceCodes = false) => {
+    const commaParts = value.split(/\s*,\s*/).map((part) => part.trim()).filter(Boolean);
+    for (const part of commaParts) {
+      if (splitWhitespaceCodes && /^[A-Z]{2}\d{2}(?:\s+[A-Z]{2}\d{2})+$/i.test(part)) {
+        part.split(/\s+/).forEach(addCode);
+      } else {
+        addCode(part);
       }
     }
+  };
+
+  // TransUnion consumer disclosures use "Legend:" to define the narrative/remark code
+  // attached to the payment-history row, e.g. "Legend:AC-Account closed/rating non derogatory".
+  const legendMatch = text.match(/(?:^|\n)\s*Legend\s*:?\s*([^\r\n]+)/i);
+  if (legendMatch?.[1]) addDelimitedLine(legendMatch[1]);
+
+  // "Remarks: AC01, CN02" or "Remark Codes: AC01 CN02".
+  const remarksMatch = text.match(/Remark(?:\s+Code)?s?\s*:?\s*([^\r\n]+)/i);
+  if (remarksMatch?.[1]) addDelimitedLine(remarksMatch[1], true);
+
+  // Common remark code format (2 letters + 2 digits).
+  for (const match of text.matchAll(/\b([A-Z]{2}\d{2})\b/g)) {
+    addCode(match[1]);
   }
 
   return [...new Set(codes)]; // Remove duplicates

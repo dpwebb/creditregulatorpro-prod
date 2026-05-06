@@ -29,7 +29,8 @@ import {
   useRunAllParserTests,
   useExportParserTestCases,
   useImportParserTestCases,
-  useAdjudicateParserTestCase
+  useAdjudicateParserTestCase,
+  usePromoteParserTestRule,
 } from "../helpers/parserTestQueries";
 
 import styles from "./admin-parser-testing.module.css";
@@ -65,6 +66,7 @@ export default function AdminParserTestingPage() {
   const exportMutation = useExportParserTestCases();
   const importMutation = useImportParserTestCases();
   const adjudicateMutation = useAdjudicateParserTestCase();
+  const promoteRuleMutation = usePromoteParserTestRule();
   const createKnownEntityMutation = useCreateParserKnownEntity();
 
   // State
@@ -116,6 +118,24 @@ export default function AdminParserTestingPage() {
       toast.success("Parser review saved");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save parser review");
+      throw error;
+    }
+  };
+
+  const handlePromoteParserRule = async (data: { testCaseId: number; decisionId: string }) => {
+    try {
+      const result = await promoteRuleMutation.mutateAsync({
+        ...data,
+        runRegressionGate: true,
+      });
+      if (result.activated) {
+        toast.success(result.message);
+      } else {
+        toast.warning(result.message);
+      }
+      return result;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to promote parser rule");
       throw error;
     }
   };
@@ -492,6 +512,8 @@ export default function AdminParserTestingPage() {
             onApproveField={handleApproveField}
             onAdjudicate={handleAdjudicate}
             isAdjudicating={adjudicateMutation.isPending}
+            onPromoteParserRule={handlePromoteParserRule}
+            isPromotingParserRule={promoteRuleMutation.isPending}
           />
         </TabsContent>
 

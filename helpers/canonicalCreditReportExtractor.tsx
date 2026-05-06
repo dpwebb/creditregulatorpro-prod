@@ -8,6 +8,10 @@ import { parseReport } from "./reportParser";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import { sha256HexOfBase64Payload, sha256HexOfJson } from "./reportBinaryUtils";
 import { AI_FALLBACK_AVAILABLE, resolveAiFallbackAvailability } from "./aiFallbackAvailability";
+import {
+  applyParserExtractionRules,
+  loadActiveParserExtractionRules,
+} from "./parserExtractionRules";
 
 export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "parser-first-2026-05-v2-ai-fallback-suspended";
 
@@ -427,22 +431,51 @@ export async function extractCanonicalCreditReport(
   }
 
   const selected = deterministic ? chooseCandidate(deterministic, aiCandidate) : aiCandidate!;
+  let selectedParseResult = selected.parseResult;
+  let selectedLlmData = selected.llmData;
+  let selectedParserQuality = selected.parserQuality;
+
+  try {
+    const activeRules = await loadActiveParserExtractionRules(
+      selectedParseResult.sourceBureau?.bureauName || selectedLlmData.bureau,
+    );
+    if (activeRules.length > 0) {
+      const applied = applyParserExtractionRules(selectedParseResult, activeRules);
+      if (applied.appliedRuleIds.length > 0) {
+        selectedParseResult = applied.parseResult;
+        selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
+        selectedParserQuality = assessParserQuality({
+          rawHtml: selected.rawHtml || "",
+          llmData: selectedLlmData,
+          parseResult: selectedParseResult,
+          parsedTradelines: selectedParseResult.tradelines,
+          extractionSource: selected.method,
+        });
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "[Canonical Extractor] Active parser extraction rules could not be loaded. Continuing with built-in parser output.",
+      error instanceof Error ? error.message : error,
+    );
+  }
+
   const canonicalResultSha256 = sha256HexOfJson({
-    ...selected.parseResult,
+    ...selectedParseResult,
     rawText: undefined,
-    tradelines: selected.parseResult.tradelines.map((tradeline) => ({
+    tradelines: selectedParseResult.tradelines.map((tradeline) => ({
       ...tradeline,
       sourceText: undefined,
     })),
   });
 
   return {
-    parseResult: selected.parseResult,
-    llmData: selected.llmData,
+    parseResult: selectedParseResult,
+    llmData: selectedLlmData,
     rawHtml: selected.rawHtml,
     rawText: selected.rawText,
     extractionSource: selected.method,
-    parserQuality: selected.parserQuality,
+    parserQuality: selectedParserQuality,
     provenance: {
       strategy: "pdf_text_first_ai_html_fallback",
       version: CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION,

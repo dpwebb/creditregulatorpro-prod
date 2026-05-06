@@ -199,6 +199,7 @@ Legend:AC-Account closed/rating non derogatory
   assert(scotiaTradeline.amounts.high === 31320, "Bank of Nova Scotia high credit should use the layout-aware compact row.");
   assert(scotiaTradeline.amounts.pastDue === 0, "Bank of Nova Scotia past due should use the layout-aware compact row.");
   assert(scotiaTradeline.creditLimit === undefined, "Bank of Nova Scotia credit limit should stay blank when no value is under that column.");
+  assert(scotiaTradeline.remarkCodes.includes("AC-Account closed/rating non derogatory"), "Bank of Nova Scotia Legend value should map to remarkCodes.");
 
   const capitalOneSection = `
 Creditor Name
@@ -259,6 +260,9 @@ Legend:CG-Account cancelled by credit grantor with derogatory rating,  WO-Bad de
   assert(capitalTradeline.paymentHistory?.["60"] === 1, "Capital One vertical TransUnion 60-day count should be parsed.");
   assert(capitalTradeline.paymentHistory?.["90"] === 21, "Capital One vertical TransUnion 90-day count should be parsed.");
   assert(capitalTradeline.paymentHistory?.["#M"] === 32, "Capital One vertical TransUnion #M count should be parsed.");
+  assert(capitalTradeline.remarkCodes.includes("CG-Account cancelled by credit grantor with derogatory rating"), "Capital One Legend CG value should map to remarkCodes.");
+  assert(capitalTradeline.remarkCodes.includes("WO-Bad debt write-off"), "Capital One Legend WO value should map to remarkCodes.");
+  assert(capitalTradeline.remarkCodes.includes("X-Unknown"), "Capital One Legend unknown value should map to remarkCodes.");
 }
 
 function tradeline(input: Partial<ParsedTradeline>): ParsedTradeline {

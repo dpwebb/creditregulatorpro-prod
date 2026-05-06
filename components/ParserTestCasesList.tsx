@@ -23,6 +23,8 @@ interface ParserTestCasesListProps {
   onApproveField?: (testCaseId: number, fieldType: 'consumerInfo' | 'tradeline', id: string, value: any) => void;
   onAdjudicate?: (data: any) => Promise<void>;
   isAdjudicating?: boolean;
+  onPromoteParserRule?: (data: { testCaseId: number; decisionId: string }) => Promise<any>;
+  isPromotingParserRule?: boolean;
 }
 
 export function ParserTestCasesList({
@@ -36,7 +38,9 @@ export function ParserTestCasesList({
   onAcceptResults,
   onApproveField,
   onAdjudicate,
-  isAdjudicating = false
+  isAdjudicating = false,
+  onPromoteParserRule,
+  isPromotingParserRule = false
 }: ParserTestCasesListProps) {
   const [search, setSearch] = React.useState("");
   const [selectedTestCase, setSelectedTestCase] = React.useState<any>(null);
@@ -202,6 +206,8 @@ export function ParserTestCasesList({
             emptyIcon={<Clock size={48} className="text-muted-foreground mb-4" />}
             onAdjudicate={onAdjudicate}
             isAdjudicating={isAdjudicating}
+            onPromoteParserRule={onPromoteParserRule}
+            isPromotingParserRule={isPromotingParserRule}
           />
         )}
       </div>

@@ -818,6 +818,46 @@ export interface ParserMappingVersion {
   versionNumber: number;
 }
 
+export interface ParserRuleCandidate {
+  activatedRuleId: number | null;
+  approvedValue: Json | null;
+  bureau: string | null;
+  createdAt: Generated<Timestamp>;
+  createdBy: number | null;
+  decisionId: string;
+  entityKey: string | null;
+  entityType: string;
+  fieldPath: string;
+  id: Generated<number>;
+  parsedValue: Json | null;
+  parserInstruction: string | null;
+  parserMode: string | null;
+  ruleConfig: Generated<Json>;
+  ruleType: string;
+  sourceEvidence: string | null;
+  stageVersion: string | null;
+  status: Generated<string>;
+  testCaseId: number;
+  updatedAt: Generated<Timestamp>;
+  validationSummary: Json | null;
+}
+
+export interface ParserExtractionRule {
+  bureau: string;
+  config: Generated<Json>;
+  createdAt: Generated<Timestamp>;
+  createdBy: number | null;
+  createdFromCandidateId: number | null;
+  description: string | null;
+  fieldPath: string;
+  id: Generated<number>;
+  isActive: Generated<boolean>;
+  priority: Generated<number>;
+  ruleType: string;
+  targetField: string;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface ParserTestCase {
   adjudicationDecisions: Generated<Json | null>;
   adminReviewStatus: Generated<string>;
@@ -1458,6 +1498,8 @@ export interface DB {
   parserFieldMapping: ParserFieldMapping;
   parserKnownEntity: ParserKnownEntity;
   parserMappingVersion: ParserMappingVersion;
+  parserRuleCandidate: ParserRuleCandidate;
+  parserExtractionRule: ParserExtractionRule;
   parserTestCase: ParserTestCase;
   parserTestRun: ParserTestRun;
   passAEditLog: PassAEditLog;

@@ -8,6 +8,7 @@ import { runAllParserTests } from "../endpoints/parser-test-case/run-all_POST.sc
 import { exportParserTestCases } from "../endpoints/parser-test-case/export_POST.schema";
 import { importParserTestCases } from "../endpoints/parser-test-case/import_POST.schema";
 import { adjudicateParserTestCase } from "../endpoints/parser-test-case/adjudicate_POST.schema";
+import { promoteParserTestRule } from "../endpoints/parser-test-case/promote-rule_POST.schema";
 import { VIOLATION_CORRECTION_KEYS } from "./violationCorrectionQueries";
 
 export const PARSER_TEST_KEYS = {
@@ -107,6 +108,17 @@ export function useAdjudicateParserTestCase() {
       queryClient.invalidateQueries({
         queryKey: PARSER_TEST_KEYS.detail(data.testCase.id),
       });
+    },
+  });
+}
+
+export function usePromoteParserTestRule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof promoteParserTestRule>[0]) =>
+      promoteParserTestRule(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
     },
   });
 }

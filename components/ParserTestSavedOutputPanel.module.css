@@ -107,6 +107,13 @@
   gap: var(--spacing-3);
 }
 
+.decisionHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}
+
 .helpText {
   margin: var(--spacing-1) 0 0;
   color: var(--muted-foreground);
@@ -386,7 +393,8 @@
 
   .tradelineHeader,
   .reviewActionHeader,
-  .decisionHeader {
+  .decisionHeader,
+  .decisionHeaderActions {
     align-items: flex-start;
     flex-direction: column;
   }
