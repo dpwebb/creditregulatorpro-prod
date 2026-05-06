@@ -65,6 +65,10 @@ import { executeActiveRules } from "./dynamicRuleExecutor";
 import { mapViolationToDisputeVector } from "./violationToDisputeVector";
 import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 import { applyViolationCorrectionTruthLayer } from "./violationCorrectionRetrieval";
+import {
+  enrichDetectedViolationsRuleEvidence,
+  getDeterministicViolationStatutoryBasis,
+} from "./violationRuleEvidence";
 
 // Re-export types for convenience
 export type { DetectedViolation };
@@ -434,8 +438,9 @@ export async function scanForViolations(
   }
 
   const truthLayerViolations = await applyViolationCorrectionTruthLayer(finalViolations, tradeline);
+  const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(truthLayerViolations);
 
-  return normalizeDetectedViolations(truthLayerViolations);
+  return normalizeDetectedViolations(ruleLinkedViolations);
 }
 
 /**
@@ -559,7 +564,9 @@ export async function persistViolations(
   violations: DetectedViolation[],
   tradelineId: number
 ): Promise<number[]> {
-  const normalizedViolations = normalizeDetectedViolations(violations);
+  const normalizedViolations = normalizeDetectedViolations(
+    enrichDetectedViolationsRuleEvidence(violations),
+  );
 
   if (normalizedViolations.length === 0) {
     console.log(`No violations to persist for tradeline ${tradelineId}`);
@@ -630,7 +637,9 @@ export async function persistViolations(
           technicalDetails: enrichedDetails,
                     
           recommendedAction: violation.recommendedAction,
-          statutoryBasis: getAdminReviewedStatutoryBasis(violation),
+          statutoryBasis:
+            getAdminReviewedStatutoryBasis(violation) ??
+            getDeterministicViolationStatutoryBasis(violation),
           detectedAt: new Date(),
           validationStatus: "PENDING",
           obligationState: "OBLIGATION_PENDING",
