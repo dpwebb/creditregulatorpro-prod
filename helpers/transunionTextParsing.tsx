@@ -4,7 +4,9 @@ const MONTH_PATTERN =
   "Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?";
 
 export const TRANSUNION_TEXT_DATE_PATTERN = new RegExp(
-  `\\b(?:${MONTH_PATTERN})\\.?\\s+\\d{1,2},?\\s+\\d{4}\\b`,
+  // pdf-parse can concatenate adjacent TransUnion table cells, e.g.
+  // "ON FILEJan 30, 1961", so the month cannot require a leading boundary.
+  `(?:${MONTH_PATTERN})\\.?\\s+\\d{1,2},?\\s+\\d{4}\\b`,
   "i",
 );
 

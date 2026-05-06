@@ -109,6 +109,16 @@ function runFieldExtractionRegression(): void {
   assert(consumer.dateOfBirthRaw === "Jan 30, 1961", "Raw DOB should preserve the visible date string.");
   assert(consumer.phone === "(647) 612-7729", "Consumer phone should come from Telephone Number(s), not bureau contact numbers.");
 
+  const collapsedDobConsumer = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+SurnameGiven Name(s)Middle NameSuffixSocial Insurance NoBirth Date
+Your InformationTEST CONSUMERON FILEJan 30, 1961
+Cross Reference(s):
+`);
+  assert(isoDate(collapsedDobConsumer.dateOfBirth) === "1961-01-30", "TransUnion DOB should parse when pdf text joins ON FILE and the date.");
+  assert(collapsedDobConsumer.dateOfBirthRaw === "Jan 30, 1961", "Raw DOB should be preserved when the month is joined to the previous table cell.");
+
   const inquiries = extractInquiries(transUnionText);
   assert(inquiries.length === 2, "TransUnion credit and non-credit inquiries should be parsed.");
   assert(inquiries[0].creditorName === "ROYAL BANK VISA", "Hard inquiry creditor should be parsed from collapsed row.");

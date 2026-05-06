@@ -22,6 +22,19 @@ describe("credit report fixture extraction", () => {
     expect(tradelines[0].creditorName).toBe("BANK OF NOVA SCOTIA");
   });
 
+  it("extracts TransUnion DOB when personal-info cells are collapsed together", () => {
+    const consumerInfo = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+SurnameGiven Name(s)Middle NameSuffixSocial Insurance NoBirth Date
+Your InformationTEST CONSUMERON FILEJan 30, 1961
+Cross Reference(s):
+`);
+
+    expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1961-01-30");
+    expect(consumerInfo.dateOfBirthRaw).toBe("Jan 30, 1961");
+  });
+
   it("routes HTML fixtures to the expected bureau parser family", () => {
     expect(detectBureau(transUnionHtmlFixture)).toBe("TransUnion");
     expect(detectBureau(equifaxHtmlFixture)).toBe("Equifax");

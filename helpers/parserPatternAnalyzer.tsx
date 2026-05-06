@@ -289,6 +289,7 @@ export function compareConsumerInfo(
     "city",
     "province",
     "postalCode",
+    "dateOfBirth",
   ];
 
   for (const field of fields) {
