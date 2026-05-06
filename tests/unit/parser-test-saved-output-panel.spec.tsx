@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { ParserTestSavedOutputPanel } from "../../components/ParserTestSavedOutputPanel";
+import { EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE } from "../../helpers/parserRulePromotionDecision";
 
 const savedOutputTestCase = {
   id: 42,
@@ -114,5 +115,48 @@ describe("ParserTestSavedOutputPanel", () => {
       expect(screen.getByLabelText("Corrected / Approved Value")).toHaveValue("2026-04-16");
     });
     expect(screen.getAllByText("2026-04-16").length).toBeGreaterThan(0);
+  });
+
+  it("marks a decision accepted locally when promotion reuses an existing active rule", async () => {
+    const onPromoteParserRule = vi.fn().mockResolvedValue({
+      activated: true,
+      message: EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE,
+      candidate: {
+        status: "activated",
+      },
+      targetValidation: {
+        passed: true,
+        reason: null,
+      },
+    });
+
+    render(
+      <ParserTestSavedOutputPanel
+        testCase={{
+          ...savedOutputTestCase,
+          adjudicationDecisions: [
+            {
+              id: "decision-1",
+              decision: "missing",
+              entityType: "tradeline",
+              entityKey: "BANK OF NOVA SCOTIA",
+              fieldPath: "tradelines[0].remarkCodes",
+              parsedValue: null,
+              correctValue: ["AC-Account closed/rating non derogatory"],
+            },
+          ],
+        }}
+        onPromoteParserRule={onPromoteParserRule}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /promote rule/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /promote rule/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Accepted")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("button", { name: /promote rule/i })).not.toBeInTheDocument();
   });
 });

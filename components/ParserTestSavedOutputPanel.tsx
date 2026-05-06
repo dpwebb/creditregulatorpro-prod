@@ -7,6 +7,7 @@ import { Input } from "./Input";
 import { Textarea } from "./Textarea";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
 import { AI_FALLBACK_AVAILABLE } from "../helpers/aiFallbackAvailability";
+import { EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE } from "../helpers/parserRulePromotionDecision";
 import styles from "./ParserTestSavedOutputPanel.module.css";
 
 interface ParserTestSavedOutputPanelProps {
@@ -703,6 +704,9 @@ export function ParserTestSavedOutputPanel({
   const rawText = typeof testCase?.rawExtractedText === "string" ? testCase.rawExtractedText : "";
   const [decisionDraft, setDecisionDraft] = React.useState<DecisionDraft>(EMPTY_DECISION_DRAFT);
   const [promotionFeedbackByDecisionId, setPromotionFeedbackByDecisionId] = React.useState<Record<string, PromotionFeedback>>({});
+  const [locallyAcceptedDecisionIds, setLocallyAcceptedDecisionIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
   const fieldOptions = React.useMemo(
     () => buildFieldOptions(testCase, consumerInfo, tradelines),
     [testCase, consumerInfo, tradelines],
@@ -889,15 +893,24 @@ export function ParserTestSavedOutputPanel({
         decisionId,
       });
       const candidateStatus = formatScalar(result?.candidate?.status);
+      const resultMessage = formatScalar(result?.message);
       const newFailureCount = Array.isArray(result?.regressionGate?.newFailures)
         ? result.regressionGate.newFailures.length
         : 0;
+
+      if (result?.activated && resultMessage === EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE) {
+        setLocallyAcceptedDecisionIds((current) => {
+          const next = new Set(current);
+          next.add(decisionId);
+          return next;
+        });
+      }
 
       setPromotionFeedbackByDecisionId((current) => ({
         ...current,
         [decisionId]: {
           status: result?.activated ? "activated" : candidateStatus === "blocked" ? "blocked" : "failed",
-          message: formatScalar(result?.message) || (result?.activated ? "Parser rule activated." : "Parser rule was not activated."),
+          message: resultMessage || (result?.activated ? "Parser rule activated." : "Parser rule was not activated."),
           detail:
             newFailureCount > 0
               ? `${newFailureCount} new regression failure${newFailureCount === 1 ? "" : "s"} blocked activation.`
@@ -1118,20 +1131,24 @@ export function ParserTestSavedOutputPanel({
                   const decisionId = formatScalar(decision.id);
                   const promotionFeedback = decisionId ? promotionFeedbackByDecisionId[decisionId] : undefined;
                   const isThisDecisionPromoting = promotionFeedback?.status === "pending";
+                  const isLocallyAccepted = Boolean(decisionId && locallyAcceptedDecisionIds.has(decisionId));
+                  const effectiveDecision = isLocallyAccepted
+                    ? { ...decision, decision: "accepted" }
+                    : decision;
 
                   return (
                     <>
                 <div className={styles.decisionHeader}>
-                  <strong>{formatScalar(decision.fieldPath) || "Field"}</strong>
+                  <strong>{formatScalar(effectiveDecision.fieldPath) || "Field"}</strong>
                   <div className={styles.decisionHeaderActions}>
-                    <Badge variant={decisionBadgeVariant(formatScalar(decision.decision))}>
-                      {statusLabel(formatScalar(decision.decision))}
+                    <Badge variant={decisionBadgeVariant(formatScalar(effectiveDecision.decision))}>
+                      {statusLabel(formatScalar(effectiveDecision.decision))}
                     </Badge>
-                    {onPromoteParserRule && isPromotableDecision(decision) && (
+                    {onPromoteParserRule && !isLocallyAccepted && isPromotableDecision(effectiveDecision) && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handlePromoteDecision(decision)}
+                        onClick={() => handlePromoteDecision(effectiveDecision)}
                         disabled={isPromotingParserRule || isThisDecisionPromoting}
                         title="Create and validate a global parser rule from this decision"
                       >

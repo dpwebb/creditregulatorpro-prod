@@ -5,6 +5,7 @@ import { schema, OutputType } from "./list_GET.schema";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
+import { acceptDecisionsCoveredByExistingRuleCandidates } from "../../helpers/parserRulePromotionDecision";
 
 export async function handle(request: Request) {
   try {
@@ -46,29 +47,61 @@ export async function handle(request: Request) {
       .orderBy("updatedAt", "desc")
       .execute();
 
+    const candidates = await db
+      .selectFrom("parserRuleCandidate")
+      .select([
+        "testCaseId",
+        "decisionId",
+        "status",
+        "activatedRuleId",
+        "validationSummary",
+        "createdBy",
+        "createdAt",
+      ])
+      .where("status", "=", "activated")
+      .execute();
+    const candidatesByTestCaseId = new Map<number, typeof candidates>();
+    candidates.forEach((candidate) => {
+      const existing = candidatesByTestCaseId.get(candidate.testCaseId) ?? [];
+      existing.push(candidate);
+      candidatesByTestCaseId.set(candidate.testCaseId, existing);
+    });
+
     const output: OutputType = {
-      testCases: testCases.map((tc) => ({
-        id: tc.id,
-        name: tc.name,
-        description: tc.description,
-        expectedConsumerInfo: tc.expectedConsumerInfo,
-        expectedTradelines: tc.expectedTradelines,
-        rawExtractedText: tc.rawExtractedText,
-        bureau: tc.bureau,
-        parserMode: tc.parserMode,
-        allowAiFallback: tc.allowAiFallback,
-        stageVersion: tc.stageVersion,
-        extractionSource: tc.extractionSource,
-        parserContext: tc.parserContext,
-        adminReviewStatus: tc.adminReviewStatus,
-        approvedConsumerInfo: tc.approvedConsumerInfo,
-        approvedTradelines: tc.approvedTradelines,
-        adjudicationDecisions: tc.adjudicationDecisions,
-        lastRunPassed: tc.lastRunPassed,
-        lastRunAt: tc.lastRunAt,
-        totalRuns: Number(tc.totalRuns || 0),
-        updatedAt: tc.updatedAt,
-      })),
+      testCases: testCases.map((tc) => {
+        const acceptedDecisions = acceptDecisionsCoveredByExistingRuleCandidates(
+          tc.adjudicationDecisions,
+          candidatesByTestCaseId.get(tc.id) ?? [],
+        );
+
+        return {
+          id: tc.id,
+          name: tc.name,
+          description: tc.description,
+          expectedConsumerInfo: tc.expectedConsumerInfo,
+          expectedTradelines: tc.expectedTradelines,
+          rawExtractedText: tc.rawExtractedText,
+          bureau: tc.bureau,
+          parserMode: tc.parserMode,
+          allowAiFallback: tc.allowAiFallback,
+          stageVersion: tc.stageVersion,
+          extractionSource: tc.extractionSource,
+          parserContext: tc.parserContext,
+          adminReviewStatus:
+            acceptedDecisions.changed && !acceptedDecisions.hasRemainingPromotableDecisions && tc.adminReviewStatus !== "approved"
+              ? "partially_reviewed"
+              : tc.adminReviewStatus,
+          approvedConsumerInfo: tc.approvedConsumerInfo,
+          approvedTradelines: tc.approvedTradelines,
+          adjudicationDecisions: acceptedDecisions.changed
+            ? acceptedDecisions.decisions
+            : tc.adjudicationDecisions,
+          lastRunPassed: tc.lastRunPassed,
+          lastRunAt: tc.lastRunAt,
+          totalRuns: Number(tc.totalRuns || 0),
+          updatedAt: tc.updatedAt,
+        };
+      }),
     };
 
     return new Response(JSON.stringify(output));

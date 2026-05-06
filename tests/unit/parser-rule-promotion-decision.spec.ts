@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  acceptDecisionsCoveredByExistingRuleCandidates,
   acceptDecisionCoveredByExistingRule,
   EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE,
 } from "../../helpers/parserRulePromotionDecision";
@@ -56,6 +57,39 @@ describe("parser rule promotion decision acceptance", () => {
     expect(result.decisions).toEqual([
       expect.objectContaining({ id: "decision-1", decision: "accepted" }),
       expect.objectContaining({ id: "decision-2", decision: "missing" }),
+    ]);
+  });
+
+  it("projects historical existing-rule promotion candidates as accepted decisions", () => {
+    const result = acceptDecisionsCoveredByExistingRuleCandidates(
+      [
+        { id: "decision-1", decision: "missing", fieldPath: "tradelines[0].remarkCodes" },
+        { id: "decision-2", decision: "accepted", fieldPath: "tradelines[0].status" },
+      ],
+      [
+        {
+          decisionId: "decision-1",
+          status: "activated",
+          activatedRuleId: 17,
+          validationSummary: { reusedExistingRule: true },
+          createdBy: 99,
+          createdAt: "2026-05-06T12:00:00.000Z",
+        },
+      ],
+    );
+
+    expect(result.changed).toBe(true);
+    expect(result.hasRemainingPromotableDecisions).toBe(false);
+    expect(result.decisions).toEqual([
+      expect.objectContaining({
+        id: "decision-1",
+        decision: "accepted",
+        acceptedByExistingParserRuleId: 17,
+      }),
+      expect.objectContaining({
+        id: "decision-2",
+        decision: "accepted",
+      }),
     ]);
   });
 });
