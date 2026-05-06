@@ -169,6 +169,42 @@ Creditor Name BANK OF NOVA SCOTIA
     expect(selected).toBeNull();
   });
 
+  it("indexes source evidence and reports required-field coverage", () => {
+    const tradelineSource = `
+Creditor Name BANK OF NOVA SCOTIA
+Account Number 123456789
+Account Type INSTALLMENT / INDIVIDUAL
+Balance 0
+Status OPEN
+Opened Date Sep 03, 2011
+Reported Date Jan 10, 2026
+`;
+    const packageResult = build(
+      `
+TransUnion Canada Credit Report
+Report Date 01/10/2026
+Personal Information
+Name TEST CONSUMER
+Date of Birth Apr 11, 1977
+Address 26 MAIN ST E STEWIACKE NS B0N 2J0
+Account Information
+${tradelineSource}
+`,
+      {
+        tradelines: [tradeline({ sourceText: tradelineSource })],
+      },
+    );
+
+    const evidence = packageResult.finalOutput.evidence;
+
+    expect(evidence.fieldIndex["consumerInfo.dateOfBirth"].textSnippet).toContain("Date of Birth");
+    expect(evidence.fieldIndex["tradelines[0].creditorName"].textSnippet).toContain("BANK OF NOVA SCOTIA");
+    expect(evidence.coverage.requiredFieldKeys).toContain("consumerInfo.dateOfBirth");
+    expect(evidence.coverage.requiredFieldKeys).toContain("tradelines[0].creditorName");
+    expect(evidence.coverage.requiredFieldsMissingEvidence).toEqual([]);
+    expect(evidence.coverage.requiredCoveragePercent).toBe(100);
+  });
+
   it("detects semantic zones across different section layouts", () => {
     const transUnionLayout = build(`
 TransUnion Canada Consumer Disclosure

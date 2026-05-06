@@ -126,9 +126,26 @@ export interface CandidatePool {
   alternatives: CanonicalFieldAlternative[];
 }
 
+export interface CanonicalEvidenceCoverage {
+  totalCanonicalFields: number;
+  fieldsWithEvidence: number;
+  fieldsMissingEvidence: string[];
+  requiredFieldKeys: string[];
+  requiredFieldsWithEvidence: number;
+  requiredFieldsMissingEvidence: string[];
+  coveragePercent: number;
+  requiredCoveragePercent: number;
+}
+
+export interface CanonicalEvidenceModel {
+  fieldIndex: Record<string, CanonicalFieldEvidence>;
+  coverage: CanonicalEvidenceCoverage;
+}
+
 export interface DeterministicNormalizedReport {
   version: typeof DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION;
   fields: Record<string, CanonicalFieldObject>;
+  evidence: CanonicalEvidenceModel;
   reportMetadata: Record<string, unknown>;
   consumerInfo: Record<string, unknown> | null;
   tradelines: Array<Record<string, unknown>>;
@@ -836,6 +853,13 @@ const TRADELINE_FIELD_PATHS = [
   "monthsReviewed",
 ] as const;
 
+const REQUIRED_EVIDENCE_FIELD_PATTERNS = [
+  /^sourceBureau\.bureauName$/,
+  /^reportMetadata\.reportDate$/,
+  /^consumerInfo\.(fullName|dateOfBirth|addressLine1|city|province|postalCode)$/,
+  /^tradelines\[\d+\]\.(creditorName|accountNumber|accountType|balance|status|dates\.opened|dates\.reported)$/,
+] as const;
+
 function buildCandidatePools(
   parseResult: ComprehensiveParseResult,
   lines: TextLine[],
@@ -1131,6 +1155,64 @@ function tradelineToSerializable(tradeline: ParsedTradeline): Record<string, unk
   return normalizeSerializableValue(tradeline) as Record<string, unknown>;
 }
 
+function hasSourceEvidence(evidence: CanonicalFieldEvidence | null | undefined): boolean {
+  if (!evidence) return false;
+  return Boolean(
+    evidence.textSnippet?.trim() &&
+      evidence.pageNumber != null &&
+      Array.isArray(evidence.tokenIndexes) &&
+      evidence.tokenIndexes.length > 0,
+  );
+}
+
+function requiresEvidence(fieldKey: string): boolean {
+  return REQUIRED_EVIDENCE_FIELD_PATTERNS.some((pattern) => pattern.test(fieldKey));
+}
+
+function buildEvidenceModel(fields: Record<string, CanonicalFieldObject>): CanonicalEvidenceModel {
+  const fieldIndex: Record<string, CanonicalFieldEvidence> = {};
+  const fieldsMissingEvidence: string[] = [];
+  const requiredFieldKeys: string[] = [];
+  const requiredFieldsMissingEvidence: string[] = [];
+
+  for (const fieldKey of Object.keys(fields).sort()) {
+    const evidence = fields[fieldKey].evidence;
+    fieldIndex[fieldKey] = evidence;
+
+    const hasEvidence = hasSourceEvidence(evidence);
+    if (!hasEvidence) fieldsMissingEvidence.push(fieldKey);
+
+    if (requiresEvidence(fieldKey)) {
+      requiredFieldKeys.push(fieldKey);
+      if (!hasEvidence) requiredFieldsMissingEvidence.push(fieldKey);
+    }
+  }
+
+  const totalCanonicalFields = Object.keys(fields).length;
+  const fieldsWithEvidence = totalCanonicalFields - fieldsMissingEvidence.length;
+  const requiredFieldsWithEvidence = requiredFieldKeys.length - requiredFieldsMissingEvidence.length;
+
+  return {
+    fieldIndex,
+    coverage: {
+      totalCanonicalFields,
+      fieldsWithEvidence,
+      fieldsMissingEvidence,
+      requiredFieldKeys,
+      requiredFieldsWithEvidence,
+      requiredFieldsMissingEvidence,
+      coveragePercent:
+        totalCanonicalFields === 0
+          ? 100
+          : Math.round((fieldsWithEvidence / totalCanonicalFields) * 100),
+      requiredCoveragePercent:
+        requiredFieldKeys.length === 0
+          ? 100
+          : Math.round((requiredFieldsWithEvidence / requiredFieldKeys.length) * 100),
+    },
+  };
+}
+
 function buildFinalOutput(
   parseResult: ComprehensiveParseResult,
   fields: Record<string, CanonicalFieldObject>,
@@ -1138,6 +1220,7 @@ function buildFinalOutput(
   return {
     version: DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION,
     fields,
+    evidence: buildEvidenceModel(fields),
     reportMetadata: normalizeSerializableValue(parseResult.reportMetadata) as Record<string, unknown>,
     consumerInfo: parseResult.consumerInfo
       ? (normalizeSerializableValue(parseResult.consumerInfo) as Record<string, unknown>)
