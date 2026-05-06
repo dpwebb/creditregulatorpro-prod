@@ -27,7 +27,10 @@ export async function handle(request: Request) {
       input.expectedTradelines === undefined ||
       input.rawExtractedText === undefined;
     const parserFallback = needsParserFallback
-      ? await parsePdfThroughProductionHtmlPipeline(input.pdfBase64)
+      ? await parsePdfThroughProductionHtmlPipeline(input.pdfBase64, {
+          allowAiFallback: input.allowAiFallback,
+          parserMode: input.parserMode,
+        })
       : null;
 
     const expectedConsumerInfo =

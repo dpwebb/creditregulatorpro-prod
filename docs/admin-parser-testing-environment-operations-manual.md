@@ -156,7 +156,7 @@ Use Test Cases when you need to:
 | Status badge: `Fail` | Last run did not match expectations or approved truth | Requires parser, baseline, or adjudication review |
 | Status badge: `Review` | Latest in-session result passed but has unapproved data | The parser found additional data not covered by the baseline |
 | Last Run | Timestamp of the most recent parser test run | Shows how fresh the regression result is |
-| Run icon | Runs that single test case through the production PDF parsing path | Fastest way to validate one baseline |
+| Run icon | Runs that single test case through the canonical parser using that case's saved parser settings, including AI fallback on/off | Fastest way to validate one baseline under the same mode used to create it |
 | Edit icon | Opens the editor for name, description, and expected values | Used for manual baseline maintenance |
 | Delete icon | Deletes the test case and generated parser run output after confirmation | Removes obsolete cases; preserves training-marked artifacts before deletion |
 
@@ -205,6 +205,8 @@ When a test case is selected and no new run result is currently open, the detail
 | AI Fallback | `Allowed` or `Off` | Important when comparing deterministic behavior against fallback behavior |
 | Stage Version | Stage Lab parser version that generated the saved output | Stale versions should be rerun before becoming trusted |
 | Extraction Source | Source path such as PDF text | Helps diagnose differences between text extraction, HTML mapping, and fallback |
+
+The Run button reuses the parser parameters stored on the test case. For example, a Stage Lab case saved with AI Fallback `Off` reruns with AI fallback disabled. If an older imported case has no explicit AI fallback setting but its parser mode is `Deterministic only`, the run also keeps AI fallback disabled. Cases with no saved mode or fallback setting default to AI fallback enabled.
 
 ### Admin Adjudication Settings in Test Cases
 
@@ -630,7 +632,7 @@ This means a confirmed or corrected actionable violation normally needs both sou
 
 ### Relevance
 
-Run All Tests is the regression gate. It runs every parser test case through the same production PDF parsing path used by single test runs, compares results to expected or approved truth, stores each run result, and reports pass/fail totals.
+Run All Tests is the regression gate. It runs every parser test case through the same canonical parser path used by single test runs, reusing each case's saved parser settings, compares results to expected or approved truth, stores each run result, and reports pass/fail totals.
 
 Use Run All Tests:
 
@@ -644,7 +646,7 @@ Use Run All Tests:
 
 | Control or Output | Meaning | Admin Action |
 | --- | --- | --- |
-| Run All Tests | Starts sequential regression execution across every test case | Click when ready to validate full parser behavior |
+| Run All Tests | Starts sequential regression execution across every test case with each case's saved parser settings | Click when ready to validate full parser behavior |
 | Total | Number of test cases executed | Confirms the expected suite size |
 | Passed | Count of cases that matched baselines | Should stay stable or increase after fixes |
 | Failed | Count of cases that failed | Must be triaged before parser release |

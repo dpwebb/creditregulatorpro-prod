@@ -36,8 +36,14 @@ export async function handle(request: Request) {
       .where("id", "=", input.testCaseId)
       .executeTakeFirstOrThrow();
 
-    // 2. Run the same PDF -> AI HTML -> bureau router path used by production ingestion.
-    const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(testCase.pdfBase64);
+    // 2. Rerun with the parser parameters saved on this test case.
+    const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(
+      testCase.pdfBase64,
+      {
+        allowAiFallback: testCase.allowAiFallback,
+        parserMode: testCase.parserMode,
+      },
+    );
     const expectedConsumerInfo = testCase.approvedConsumerInfo ?? testCase.expectedConsumerInfo;
     const expectedTradelines = preferredTradelineExpectations(
       testCase.approvedTradelines,

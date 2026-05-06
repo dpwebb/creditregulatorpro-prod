@@ -1,26 +1,39 @@
-import { routeHtmlToComprehensiveResultWithOverrides } from "./bureauDetectionRouter";
-import { parseHtmlToRawText } from "./_htmlParserUtils";
-import { extractHtmlWithFallbackChain } from "./fallbackPdfExtractor";
+import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { ComprehensiveParseResult } from "./reportParserTypes";
 
+export interface ParserTestRunOptions {
+  allowAiFallback?: boolean | null;
+  parserMode?: string | null;
+}
+
+export function resolveParserTestAllowAiFallback(options: ParserTestRunOptions = {}): boolean {
+  if (typeof options.allowAiFallback === "boolean") return options.allowAiFallback;
+  if (options.parserMode === "deterministic") return false;
+  if (options.parserMode === "ai_fallback_enabled") return true;
+  return true;
+}
+
 export async function parsePdfThroughProductionHtmlPipeline(
-  pdfBase64: string
+  pdfBase64: string,
+  options: ParserTestRunOptions = {},
 ): Promise<{
   parseResult: ComprehensiveParseResult;
   rawExtractedText: string;
-  extractionSource: "openai" | "gemini";
+  extractionSource: "pdf_text" | "openai" | "gemini";
 }> {
-  const extraction = await extractHtmlWithFallbackChain(pdfBase64);
+  const extraction = await extractCanonicalCreditReport({
+    bytesBase64: pdfBase64,
+    mimeType: "application/pdf",
+    allowAiFallback: resolveParserTestAllowAiFallback(options),
+  });
 
   if (!extraction) {
-    throw new Error("Production HTML extraction failed for parser test case");
+    throw new Error("Production extraction failed for parser test case");
   }
 
-  const parseResult = await routeHtmlToComprehensiveResultWithOverrides(extraction.html);
-
   return {
-    parseResult,
-    rawExtractedText: parseHtmlToRawText(extraction.html),
-    extractionSource: extraction.source,
+    parseResult: extraction.parseResult,
+    rawExtractedText: extraction.rawText,
+    extractionSource: extraction.extractionSource,
   };
 }

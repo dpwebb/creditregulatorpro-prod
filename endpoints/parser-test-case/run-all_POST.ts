@@ -40,7 +40,13 @@ export async function handle(request: Request) {
     // Run tests sequentially to avoid overwhelming the server
     for (const testCase of testCases) {
       try {
-        const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(testCase.pdfBase64);
+        const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(
+          testCase.pdfBase64,
+          {
+            allowAiFallback: testCase.allowAiFallback,
+            parserMode: testCase.parserMode,
+          },
+        );
         const expectedConsumerInfo = testCase.approvedConsumerInfo ?? testCase.expectedConsumerInfo;
         const expectedTradelines = preferredTradelineExpectations(
           testCase.approvedTradelines,
