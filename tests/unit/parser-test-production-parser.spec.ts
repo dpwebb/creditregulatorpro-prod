@@ -32,6 +32,7 @@ function mockExtraction() {
     rawText: "raw text",
     extractionSource: "pdf_text",
     parserQuality: {} as any,
+    fieldReconciliation: {} as any,
     provenance: {} as any,
   });
 }
@@ -40,13 +41,14 @@ describe("parsePdfThroughProductionHtmlPipeline", () => {
   it("passes saved AI fallback off through to canonical extraction", async () => {
     mockExtraction();
 
-    await parsePdfThroughProductionHtmlPipeline("pdf-base64", { allowAiFallback: false });
+    const result = await parsePdfThroughProductionHtmlPipeline("pdf-base64", { allowAiFallback: false });
 
     expect(extractCanonicalCreditReportMock).toHaveBeenCalledWith({
       bytesBase64: "pdf-base64",
       mimeType: "application/pdf",
       allowAiFallback: false,
     });
+    expect(result.parserPipelineAudit).toEqual({});
   });
 
   it("defaults to AI fallback suspended when no test case setting exists", async () => {

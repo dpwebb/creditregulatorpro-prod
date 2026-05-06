@@ -27,6 +27,7 @@ export interface ComparisonSummary {
   patternSuggestions: Record<string, string[]>;
   actualConsumerInfo?: any;
   actualTradelines?: any[];
+  pipelineAudit?: unknown;
 }
 
 /**

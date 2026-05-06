@@ -71,6 +71,7 @@ export interface ParserLabStageOutput {
   audit: {
     parsedResult: Record<string, unknown>;
     mappedResult: Record<string, unknown>;
+    fieldReconciliation: Record<string, unknown>;
   };
   provenance: Record<string, unknown>;
   rawExtractedText: string;
@@ -429,6 +430,7 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
     audit: {
       parsedResult: toAuditValue(parseResult) as Record<string, unknown>,
       mappedResult: toAuditValue(extraction.llmData) as Record<string, unknown>,
+      fieldReconciliation: toAuditValue(extraction.fieldReconciliation) as Record<string, unknown>,
     },
     provenance: {
       ...(provenance as unknown as Record<string, unknown>),

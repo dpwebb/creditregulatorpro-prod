@@ -15,6 +15,7 @@ export type OutputType = {
   summary: ComparisonSummary;
   actualConsumerInfo: any;
   actualTradelines: any[];
+  parserPipelineAudit?: unknown;
 };
 
 export const runParserTest = async (

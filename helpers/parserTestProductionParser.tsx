@@ -1,5 +1,6 @@
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { AI_FALLBACK_AVAILABLE } from "./aiFallbackAvailability";
+import { ParserPipelineFieldAudit } from "./parserPipelineFieldReconciliation";
 import { ComprehensiveParseResult } from "./reportParserTypes";
 
 export interface ParserTestRunOptions {
@@ -22,6 +23,7 @@ export async function parsePdfThroughProductionHtmlPipeline(
   parseResult: ComprehensiveParseResult;
   rawExtractedText: string;
   extractionSource: "pdf_text" | "openai" | "gemini";
+  parserPipelineAudit: ParserPipelineFieldAudit;
 }> {
   const extraction = await extractCanonicalCreditReport({
     bytesBase64: pdfBase64,
@@ -37,5 +39,6 @@ export async function parsePdfThroughProductionHtmlPipeline(
     parseResult: extraction.parseResult,
     rawExtractedText: extraction.rawText,
     extractionSource: extraction.extractionSource,
+    parserPipelineAudit: extraction.fieldReconciliation,
   };
 }

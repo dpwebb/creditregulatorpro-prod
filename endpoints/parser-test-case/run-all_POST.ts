@@ -10,6 +10,7 @@ import { compareConsumerInfo, compareTradelines, hasAnyExpectations } from "../.
 import { Json } from "../../helpers/schema";
 import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
 import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
+import { attachRuntimeValuesToParserPipelineAudit } from "../../helpers/parserPipelineFieldReconciliation";
 
 function preferredTradelineExpectations(approved: unknown, fallback: unknown): unknown {
   return Array.isArray(approved) && approved.length > 0 ? approved : fallback;
@@ -40,7 +41,7 @@ export async function handle(request: Request) {
     // Run tests sequentially to avoid overwhelming the server
     for (const testCase of testCases) {
       try {
-        const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(
+        const { parseResult, rawExtractedText, parserPipelineAudit } = await parsePdfThroughProductionHtmlPipeline(
           testCase.pdfBase64,
           {
             allowAiFallback: testCase.allowAiFallback,
@@ -113,8 +114,14 @@ export async function handle(request: Request) {
             });
         });
 
+        const initialFieldResults = {
+          consumerInfo: consumerInfoResults,
+          tradelines: tradelineResults,
+          pipelineAudit: parserPipelineAudit,
+        };
+
         // Store run result
-        await db
+        const persistedRun = await db
           .insertInto("parserTestRun")
           .values({
             testCaseId: testCase.id,
@@ -122,9 +129,31 @@ export async function handle(request: Request) {
             passed: passed,
             actualConsumerInfo: parseResult.consumerInfo as unknown as Json,
             actualTradelines: parseResult.tradelines as unknown as Json,
-            fieldResults: { consumerInfo: consumerInfoResults, tradelines: tradelineResults } as unknown as Json,
+            fieldResults: initialFieldResults as unknown as Json,
             patternSuggestions: patternSuggestions as unknown as Json,
           })
+          .returning(["id", "actualConsumerInfo", "actualTradelines"])
+          .executeTakeFirstOrThrow();
+
+        const finalPipelineAudit = attachRuntimeValuesToParserPipelineAudit({
+          audit: parserPipelineAudit,
+          persistedRoot: {
+            consumerInfo: persistedRun.actualConsumerInfo,
+            tradelines: persistedRun.actualTradelines,
+          },
+          finalApiRoot: parseResult,
+        });
+
+        await db
+          .updateTable("parserTestRun")
+          .set({
+            fieldResults: {
+              consumerInfo: consumerInfoResults,
+              tradelines: tradelineResults,
+              pipelineAudit: finalPipelineAudit,
+            } as unknown as Json,
+          })
+          .where("id", "=", persistedRun.id)
           .execute();
 
         // Update test case status

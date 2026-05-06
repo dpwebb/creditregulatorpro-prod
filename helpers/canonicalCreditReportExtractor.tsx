@@ -12,6 +12,11 @@ import {
   applyParserExtractionRules,
   loadActiveParserExtractionRules,
 } from "./parserExtractionRules";
+import {
+  extractRawParserFieldBaseline,
+  ParserPipelineFieldAudit,
+  reconcileParserPipelineFields,
+} from "./parserPipelineFieldReconciliation";
 
 export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "parser-first-2026-05-v2-ai-fallback-suspended";
 
@@ -37,6 +42,7 @@ export interface CanonicalExtractionProvenance {
   aiFallbackAvailable: boolean;
   aiFallbackRequested: boolean;
   attempts: CanonicalExtractionAttempt[];
+  fieldReconciliation: ParserPipelineFieldAudit;
   extractedAt: string;
 }
 
@@ -48,6 +54,7 @@ export interface CanonicalCreditReportExtraction {
   extractionSource: CanonicalExtractionMethod;
   parserQuality: ParserQualityAssessment;
   provenance: CanonicalExtractionProvenance;
+  fieldReconciliation: ParserPipelineFieldAudit;
 }
 
 export interface ExtractCanonicalCreditReportInput {
@@ -434,6 +441,7 @@ export async function extractCanonicalCreditReport(
   let selectedParseResult = selected.parseResult;
   let selectedLlmData = selected.llmData;
   let selectedParserQuality = selected.parserQuality;
+  const rawFieldBaseline = deterministic?.parseResult ?? extractRawParserFieldBaseline(selected.rawText);
 
   try {
     const activeRules = await loadActiveParserExtractionRules(
@@ -460,6 +468,27 @@ export async function extractCanonicalCreditReport(
     );
   }
 
+  const fieldReconciliation = reconcileParserPipelineFields(
+    selectedParseResult,
+    rawFieldBaseline,
+  );
+  if (fieldReconciliation.changed) {
+    selectedParseResult = fieldReconciliation.parseResult;
+    selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
+    selectedParserQuality = assessParserQuality({
+      rawHtml: selected.rawHtml || "",
+      llmData: selectedLlmData,
+      parseResult: selectedParseResult,
+      parsedTradelines: selectedParseResult.tradelines,
+      extractionSource: selected.method,
+    });
+    console.warn(
+      `[Canonical Extractor] Recovered parser fields dropped after raw extraction: ${fieldReconciliation.audit.summary.backfilledFields.join(", ")}`,
+    );
+  } else {
+    selectedParseResult = fieldReconciliation.parseResult;
+  }
+
   const canonicalResultSha256 = sha256HexOfJson({
     ...selectedParseResult,
     rawText: undefined,
@@ -476,6 +505,7 @@ export async function extractCanonicalCreditReport(
     rawText: selected.rawText,
     extractionSource: selected.method,
     parserQuality: selectedParserQuality,
+    fieldReconciliation: fieldReconciliation.audit,
     provenance: {
       strategy: "pdf_text_first_ai_html_fallback",
       version: CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION,
@@ -487,6 +517,7 @@ export async function extractCanonicalCreditReport(
       aiFallbackAvailable: AI_FALLBACK_AVAILABLE,
       aiFallbackRequested: requestedAiFallback,
       attempts,
+      fieldReconciliation: fieldReconciliation.audit,
       extractedAt: new Date().toISOString(),
     },
   };

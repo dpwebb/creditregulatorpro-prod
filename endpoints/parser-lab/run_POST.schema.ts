@@ -64,6 +64,7 @@ export type OutputType = {
   audit: {
     parsedResult: Record<string, unknown>;
     mappedResult: Record<string, unknown>;
+    fieldReconciliation: Record<string, unknown>;
   };
   provenance: Record<string, unknown>;
   rawExtractedText: string;

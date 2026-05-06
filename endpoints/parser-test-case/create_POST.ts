@@ -45,6 +45,15 @@ export async function handle(request: Request) {
       input.rawExtractedText !== undefined
         ? input.rawExtractedText
         : parserFallback?.rawExtractedText ?? null;
+    const parserContext =
+      input.parserContext && typeof input.parserContext === "object" && !Array.isArray(input.parserContext)
+        ? {
+            ...(input.parserContext as Record<string, unknown>),
+            ...(parserFallback?.parserPipelineAudit ? { pipelineAudit: parserFallback.parserPipelineAudit } : {}),
+          }
+        : parserFallback?.parserPipelineAudit
+          ? { pipelineAudit: parserFallback.parserPipelineAudit }
+          : {};
 
     // 3. Create test case
     const newTestCase = await db
@@ -61,7 +70,7 @@ export async function handle(request: Request) {
         allowAiFallback: input.allowAiFallback ?? null,
         stageVersion: input.stageVersion ?? null,
         extractionSource: input.extractionSource ?? null,
-        parserContext: (input.parserContext ?? {}) as unknown as Json,
+        parserContext: parserContext as unknown as Json,
         adminReviewStatus: "needs_review",
         approvedConsumerInfo: null,
         approvedTradelines: [],
