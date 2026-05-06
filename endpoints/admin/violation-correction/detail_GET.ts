@@ -9,6 +9,10 @@ import { jsonSafe, requireExtractionRun } from "../../../helpers/violationCorrec
 import { schema, OutputType } from "./detail_GET.schema";
 import type { SuggestedRegulationReference, ViolationReviewCorrectionDetail } from "./common";
 
+function idKey(value: number | string | null | undefined): string | null {
+  return value == null ? null : String(value);
+}
+
 function inferJurisdiction(entry: RegulationEntry): SuggestedRegulationReference["jurisdiction"] {
   if (entry.id.startsWith("PIPEDA") || entry.id.startsWith("BIA") || entry.id.startsWith("INVESTIGATION")) {
     return "federal";
@@ -148,47 +152,60 @@ export async function handle(request: Request) {
         : Promise.resolve([]),
     ]);
 
-    const evidenceByCorrection = new Map<number, typeof evidence>();
+    const evidenceByCorrection = new Map<string, typeof evidence>();
     for (const row of evidence) {
-      evidenceByCorrection.set(row.correctionId, [...(evidenceByCorrection.get(row.correctionId) ?? []), row]);
+      const key = idKey(row.correctionId);
+      if (!key) continue;
+      evidenceByCorrection.set(key, [...(evidenceByCorrection.get(key) ?? []), row]);
     }
 
-    const referencesByCorrection = new Map<number, typeof regulationReferences>();
+    const referencesByCorrection = new Map<string, typeof regulationReferences>();
     for (const row of regulationReferences) {
-      if (row.correctionId == null) continue;
-      referencesByCorrection.set(row.correctionId, [...(referencesByCorrection.get(row.correctionId) ?? []), row]);
+      const key = idKey(row.correctionId);
+      if (!key) continue;
+      referencesByCorrection.set(key, [...(referencesByCorrection.get(key) ?? []), row]);
     }
 
-    const trainingByCorrection = new Map(trainingExamples.map((example) => [example.correctionId, example] as const));
+    const trainingByCorrection = new Map(
+      trainingExamples.flatMap((example) => {
+        const key = idKey(example.correctionId);
+        return key ? [[key, example] as const] : [];
+      }),
+    );
 
     const correctionDetails = corrections.map((correction): ViolationReviewCorrectionDetail => ({
       ...correction,
-      evidence: evidenceByCorrection.get(correction.id) ?? [],
-      regulationReferences: referencesByCorrection.get(correction.id) ?? [],
-      trainingExample: trainingByCorrection.get(correction.id) ?? null,
+      evidence: evidenceByCorrection.get(String(correction.id)) ?? [],
+      regulationReferences: referencesByCorrection.get(String(correction.id)) ?? [],
+      trainingExample: trainingByCorrection.get(String(correction.id)) ?? null,
     }));
 
-    const correctionsByOriginalViolation = new Map<number, ViolationReviewCorrectionDetail[]>();
-    const manualCorrectionsByTradeline = new Map<number, ViolationReviewCorrectionDetail[]>();
+    const correctionsByOriginalViolation = new Map<string, ViolationReviewCorrectionDetail[]>();
+    const manualCorrectionsByTradeline = new Map<string, ViolationReviewCorrectionDetail[]>();
     for (const correction of correctionDetails) {
-      if (correction.originalViolationId) {
-        correctionsByOriginalViolation.set(correction.originalViolationId, [
-          ...(correctionsByOriginalViolation.get(correction.originalViolationId) ?? []),
+      const tradelineKey = idKey(correction.tradelineId);
+      if (!tradelineKey) continue;
+
+      const originalViolationKey = idKey(correction.originalViolationId);
+      if (originalViolationKey) {
+        correctionsByOriginalViolation.set(originalViolationKey, [
+          ...(correctionsByOriginalViolation.get(originalViolationKey) ?? []),
           correction,
         ]);
       } else {
-        manualCorrectionsByTradeline.set(correction.tradelineId, [
-          ...(manualCorrectionsByTradeline.get(correction.tradelineId) ?? []),
+        manualCorrectionsByTradeline.set(tradelineKey, [
+          ...(manualCorrectionsByTradeline.get(tradelineKey) ?? []),
           correction,
         ]);
       }
     }
 
-    const violationsByTradeline = new Map<number, typeof violations>();
+    const violationsByTradeline = new Map<string, typeof violations>();
     for (const violation of violations) {
-      if (violation.tradelineId == null) continue;
-      violationsByTradeline.set(violation.tradelineId, [
-        ...(violationsByTradeline.get(violation.tradelineId) ?? []),
+      const key = idKey(violation.tradelineId);
+      if (!key) continue;
+      violationsByTradeline.set(key, [
+        ...(violationsByTradeline.get(key) ?? []),
         violation,
       ]);
     }
@@ -217,12 +234,12 @@ export async function handle(request: Request) {
       },
       tradelines: tradelines.map((tradeline) => ({
         ...tradeline,
-        violations: (violationsByTradeline.get(tradeline.id) ?? []).map((violation) => ({
+        violations: (violationsByTradeline.get(String(tradeline.id)) ?? []).map((violation) => ({
           ...violation,
           suggestedRegulationReferences: suggestedReferencesForViolation(violation.violationCategory),
-          corrections: correctionsByOriginalViolation.get(violation.id) ?? [],
+          corrections: correctionsByOriginalViolation.get(String(violation.id)) ?? [],
         })),
-        manualCorrections: manualCorrectionsByTradeline.get(tradeline.id) ?? [],
+        manualCorrections: manualCorrectionsByTradeline.get(String(tradeline.id)) ?? [],
       })),
     };
 

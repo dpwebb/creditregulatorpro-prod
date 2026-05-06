@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { TrainingExampleRecord, ViolationReviewCorrectionDetail } from "./common";
+import { idSchema, type TrainingExampleRecord, type ViolationReviewCorrectionDetail } from "./common";
 
 export const schema = z.object({
-  correctionId: z.number(),
+  correctionId: idSchema,
 });
 
 export type InputType = z.infer<typeof schema>;

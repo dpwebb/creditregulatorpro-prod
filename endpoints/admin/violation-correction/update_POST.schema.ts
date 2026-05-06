@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { ViolationReviewCorrectionDetail } from "./common";
-import { correctionActionSchema, correctionStatusSchema, trainingLabelSchema } from "./common";
+import { correctionActionSchema, correctionStatusSchema, idSchema, trainingLabelSchema } from "./common";
 
 export const schema = z.object({
-  id: z.number(),
+  id: idSchema,
   correctionAction: correctionActionSchema.optional(),
   correctedViolationType: z.string().trim().min(1).nullable().optional(),
   correctedSummary: z.string().trim().nullable().optional(),

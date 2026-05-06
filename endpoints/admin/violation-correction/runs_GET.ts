@@ -6,6 +6,10 @@ import { ensureViolationCorrectionSchema } from "../../../helpers/violationCorre
 import { jsonSafe } from "../../../helpers/violationCorrectionManager";
 import { schema, OutputType } from "./runs_GET.schema";
 
+function idKey(value: number | string | null | undefined): string | null {
+  return value == null ? null : String(value);
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -80,38 +84,46 @@ export async function handle(request: Request) {
           .execute()
       : [];
 
-    const tradelinesByArtifact = new Map<number, number>();
+    const tradelinesByArtifact = new Map<string, number>();
     for (const tradeline of tradelines) {
-      if (tradeline.reportArtifactId == null) continue;
+      const artifactKey = idKey(tradeline.reportArtifactId);
+      if (!artifactKey) continue;
       tradelinesByArtifact.set(
-        tradeline.reportArtifactId,
-        (tradelinesByArtifact.get(tradeline.reportArtifactId) ?? 0) + 1,
+        artifactKey,
+        (tradelinesByArtifact.get(artifactKey) ?? 0) + 1,
       );
     }
 
-    const artifactIdByTradelineId = new Map(
-      tradelines.map((tradeline) => [tradeline.id, tradeline.reportArtifactId] as const),
+    const artifactIdByTradelineId = new Map<string, string>(
+      tradelines.flatMap((tradeline) => {
+        const tradelineKey = idKey(tradeline.id);
+        const artifactKey = idKey(tradeline.reportArtifactId);
+        return tradelineKey && artifactKey ? [[tradelineKey, artifactKey] as const] : [];
+      }),
     );
-    const violationsByArtifact = new Map<number, number>();
+    const violationsByArtifact = new Map<string, number>();
     for (const violation of violations) {
-      if (violation.tradelineId == null) continue;
-      const artifactId = artifactIdByTradelineId.get(violation.tradelineId);
-      if (artifactId == null) continue;
-      violationsByArtifact.set(artifactId, (violationsByArtifact.get(artifactId) ?? 0) + 1);
+      const tradelineKey = idKey(violation.tradelineId);
+      if (!tradelineKey) continue;
+      const artifactKey = artifactIdByTradelineId.get(tradelineKey);
+      if (!artifactKey) continue;
+      violationsByArtifact.set(artifactKey, (violationsByArtifact.get(artifactKey) ?? 0) + 1);
     }
 
-    const correctionsByRun = new Map<number, { total: number; finalized: number }>();
+    const correctionsByRun = new Map<string, { total: number; finalized: number }>();
     for (const correction of corrections) {
-      const current = correctionsByRun.get(correction.extractionRunId) ?? { total: 0, finalized: 0 };
+      const runKey = idKey(correction.extractionRunId);
+      if (!runKey) continue;
+      const current = correctionsByRun.get(runKey) ?? { total: 0, finalized: 0 };
       current.total += 1;
       if (correction.status === "finalized") current.finalized += 1;
-      correctionsByRun.set(correction.extractionRunId, current);
+      correctionsByRun.set(runKey, current);
     }
 
     const allRuns = baseRuns.map((run) => {
-      const correctionCounts = correctionsByRun.get(run.id) ?? { total: 0, finalized: 0 };
-      const violationCount = violationsByArtifact.get(run.reportArtifactId) ?? 0;
-      const tradelineCount = tradelinesByArtifact.get(run.reportArtifactId) ?? 0;
+      const correctionCounts = correctionsByRun.get(String(run.id)) ?? { total: 0, finalized: 0 };
+      const violationCount = violationsByArtifact.get(String(run.reportArtifactId)) ?? 0;
+      const tradelineCount = tradelinesByArtifact.get(String(run.reportArtifactId)) ?? 0;
       const needsReviewCount = Math.max(0, violationCount - correctionCounts.finalized);
 
       return {

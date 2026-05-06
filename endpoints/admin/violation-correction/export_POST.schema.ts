@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { TrainingExampleRecord } from "./common";
-import { trainingLabelSchema } from "./common";
+import { idSchema, trainingLabelSchema } from "./common";
 
 export const schema = z.object({
-  correctionIds: z.array(z.number()).optional(),
+  correctionIds: z.array(idSchema).optional(),
   labels: z.array(trainingLabelSchema).optional(),
   useForTrainingOnly: z.boolean().optional(),
 });

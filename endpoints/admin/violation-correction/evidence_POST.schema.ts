@@ -1,17 +1,17 @@
 import { z } from "zod";
 import type { ViolationReviewCorrectionDetail } from "./common";
-import { evidencePayloadSchema } from "./common";
+import { evidencePayloadSchema, idSchema } from "./common";
 
 export const schema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("add"),
-    correctionId: z.number(),
+    correctionId: idSchema,
     evidence: evidencePayloadSchema,
   }),
   z.object({
     action: z.literal("remove"),
-    correctionId: z.number(),
-    evidenceId: z.number(),
+    correctionId: idSchema,
+    evidenceId: idSchema,
   }),
 ]);
 

@@ -6,6 +6,9 @@ import { schema as profileSchema } from "../../endpoints/user/profile_POST.schem
 import { schema as packetBuildSchema } from "../../endpoints/packet/build_POST.schema";
 import { schema as supportTicketSchema } from "../../endpoints/support-ticket/create_POST.schema";
 import { schema as violationCorrectionSchema } from "../../endpoints/admin/violation-correction/create_POST.schema";
+import { schema as violationCorrectionEvidenceSchema } from "../../endpoints/admin/violation-correction/evidence_POST.schema";
+import { schema as violationCorrectionFinalizeSchema } from "../../endpoints/admin/violation-correction/finalize_POST.schema";
+import { schema as violationCorrectionUpdateSchema } from "../../endpoints/admin/violation-correction/update_POST.schema";
 
 const pdfBase64 = Buffer.from("%PDF-1.4\n%%EOF", "utf8").toString("base64");
 
@@ -80,9 +83,9 @@ describe("critical API schema contracts", () => {
 
     expect(
       violationCorrectionSchema.safeParse({
-        extractionRunId: 1,
-        tradelineId: 2,
-        originalViolationId: 3,
+        extractionRunId: "1",
+        tradelineId: "2",
+        originalViolationId: "3",
         correctionAction: "corrected",
         correctedViolationType: "BALANCE_CALCULATION_VIOLATION",
         correctedSummary: "Reported balance needs review.",
@@ -114,5 +117,22 @@ describe("critical API schema contracts", () => {
         ],
       }).success
     ).toBe(true);
+
+    expect(
+      violationCorrectionUpdateSchema.safeParse({
+        id: "42",
+        correctionAction: "corrected",
+        correctedViolationType: "BALANCE_CALCULATION_VIOLATION",
+        status: "in_review",
+      }).success
+    ).toBe(true);
+    expect(
+      violationCorrectionEvidenceSchema.safeParse({
+        action: "remove",
+        correctionId: "42",
+        evidenceId: "7",
+      }).success
+    ).toBe(true);
+    expect(violationCorrectionFinalizeSchema.safeParse({ correctionId: "42" }).success).toBe(true);
   });
 });

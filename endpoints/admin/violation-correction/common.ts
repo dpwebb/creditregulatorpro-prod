@@ -20,11 +20,12 @@ export const correctionActionSchema = z.enum(CORRECTION_ACTIONS);
 export const correctionStatusSchema = z.enum(CORRECTION_STATUSES);
 export const trainingLabelSchema = z.enum(TRAINING_LABELS);
 export const regulationJurisdictionSchema = z.enum(REGULATION_JURISDICTIONS);
+export const idSchema = z.coerce.number().int().min(1);
 
 export const correctionPayloadSchema = z.object({
-  extractionRunId: z.number(),
-  tradelineId: z.number(),
-  originalViolationId: z.number().nullable().optional(),
+  extractionRunId: idSchema,
+  tradelineId: idSchema,
+  originalViolationId: idSchema.nullable().optional(),
   correctionAction: correctionActionSchema,
   correctedViolationType: z.string().trim().min(1).nullable().optional(),
   correctedSummary: z.string().trim().nullable().optional(),
@@ -40,9 +41,9 @@ export const correctionPayloadSchema = z.object({
 });
 
 export const evidencePayloadSchema = z.object({
-  sourceDocumentId: z.number(),
-  extractionRunId: z.number(),
-  tradelineId: z.number(),
+  sourceDocumentId: idSchema,
+  extractionRunId: idSchema,
+  tradelineId: idSchema,
   pageNumber: z.coerce.number().int().min(1),
   fieldName: z.string().trim().nullable().optional(),
   textExcerpt: z.string().trim().min(1),
@@ -52,10 +53,10 @@ export const evidencePayloadSchema = z.object({
 });
 
 export const regulationReferencePayloadSchema = z.object({
-  violationId: z.number().nullable().optional(),
-  correctionId: z.number().nullable().optional(),
-  extractionRunId: z.number(),
-  tradelineId: z.number().nullable().optional(),
+  violationId: idSchema.nullable().optional(),
+  correctionId: idSchema.nullable().optional(),
+  extractionRunId: idSchema,
+  tradelineId: idSchema.nullable().optional(),
   jurisdiction: regulationJurisdictionSchema,
   country: z.string().trim().min(1).default("Canada"),
   provinceOrTerritory: z.string().trim().nullable().optional(),

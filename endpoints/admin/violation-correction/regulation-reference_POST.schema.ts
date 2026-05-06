@@ -1,26 +1,26 @@
 import { z } from "zod";
 import type { ViolationReviewCorrectionDetail } from "./common";
-import { regulationReferencePayloadSchema } from "./common";
+import { idSchema, regulationReferencePayloadSchema } from "./common";
 
 export const schema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("add"),
-    correctionId: z.number(),
+    correctionId: idSchema,
     reference: regulationReferencePayloadSchema,
   }),
   z.object({
     action: z.literal("update"),
-    correctionId: z.number(),
-    referenceId: z.number(),
+    correctionId: idSchema,
+    referenceId: idSchema,
     reference: regulationReferencePayloadSchema.partial().extend({
-      extractionRunId: z.number().optional(),
+      extractionRunId: idSchema.optional(),
       jurisdiction: z.enum(["federal", "provincial", "bureau_standard", "internal_rule"]).optional(),
     }),
   }),
   z.object({
     action: z.literal("remove"),
-    correctionId: z.number(),
-    referenceId: z.number(),
+    correctionId: idSchema,
+    referenceId: idSchema,
   }),
 ]);
 
