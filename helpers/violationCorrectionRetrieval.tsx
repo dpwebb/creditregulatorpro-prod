@@ -1,7 +1,8 @@
 import type { Selectable } from "kysely";
 import type { DetectedViolation } from "./complianceDetectorTypes";
-import type { Tradeline, ViolationRegulationReference } from "./schema";
+import type { Tradeline, ViolationCorrectionEvidence, ViolationRegulationReference } from "./schema";
 import {
+  getCorrectionEvidence,
   getCorrectionRegulationReferences,
   listFinalizedCorrectionPatterns,
   summarizeRegulationReference,
@@ -12,6 +13,37 @@ import {
 } from "./violationCorrectionValidation";
 
 type PatternCorrection = Awaited<ReturnType<typeof listFinalizedCorrectionPatterns>>[number];
+type CorrectionEvidenceForMatch = Pick<Selectable<ViolationCorrectionEvidence>, "fieldName">[];
+
+export type AdminCorrectionMatchKind =
+  | "same_tradeline_exact_category"
+  | "same_account_exact_field"
+  | "same_account_exact_identity";
+
+export interface AdminCorrectionMatchResult {
+  applies: boolean;
+  kind: AdminCorrectionMatchKind | null;
+  reason: string;
+}
+
+export interface AdminCorrectionPatternForMatch {
+  id: number;
+  tradelineId: number;
+  correctionAction: string;
+  correctedViolationType: string | null;
+  correctedSummary?: string | null;
+  originalViolationCategory?: string | null;
+  patternCreditorId?: number | null;
+  patternBureauId?: number | null;
+  patternAccountNumber?: string | null;
+}
+
+export interface TradelineForAdminCorrectionMatch {
+  id: number;
+  creditorId?: number | null;
+  bureauId?: number | null;
+  accountNumber?: string | null;
+}
 
 const REJECTING_ACTIONS = new Set<ViolationCorrectionAction>([
   "rejected",
@@ -38,49 +70,183 @@ function normalizePhrase(value: unknown): string {
     .trim();
 }
 
-function tokenOverlap(left: string, right: string): number {
-  const leftTokens = new Set(normalizePhrase(left).split(/\s+/).filter((token) => token.length > 2));
-  const rightTokens = new Set(normalizePhrase(right).split(/\s+/).filter((token) => token.length > 2));
-  if (leftTokens.size === 0 || rightTokens.size === 0) return 0;
-
-  let overlap = 0;
-  for (const token of leftTokens) {
-    if (rightTokens.has(token)) overlap++;
-  }
-
-  return overlap / Math.max(leftTokens.size, rightTokens.size);
+function normalizeCategory(value: unknown): string {
+  return String(value ?? "").trim();
 }
 
-function correctionMatchesViolation(
-  correction: PatternCorrection,
+function normalizeFieldName(value: unknown): string | null {
+  const normalized = normalizePhrase(value).replace(/\s+/g, "");
+  return normalized || null;
+}
+
+function normalizeAccountNumber(value: unknown): string | null {
+  const normalized = String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+  if (
+    !normalized ||
+    [
+      "unknown",
+      "notreported",
+      "notprovided",
+      "notprovidedbybureau",
+      "notavailable",
+      "na",
+      "n/a",
+    ].includes(normalized)
+  ) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function correctionCategoryMatches(
+  correction: AdminCorrectionPatternForMatch,
   violation: DetectedViolation,
-  tradeline: Selectable<Tradeline>
 ): boolean {
-  const details = getTechnicalDetails(violation);
-  const sameTradeline = correction.tradelineId === tradeline.id;
-  const sameCategory =
-    correction.correctedViolationType === violation.violationCategory ||
-    normalizePhrase(correction.correctedSummary).includes(normalizePhrase(violation.violationCategory));
+  const category = normalizeCategory(violation.violationCategory);
+  if (!category) return false;
 
-  if (sameTradeline && sameCategory) return true;
-
-  const sameCreditor = tradeline.creditorId && correction.patternCreditorId === tradeline.creditorId;
-  const sameBureau = tradeline.bureauId && correction.patternBureauId === tradeline.bureauId;
-  const fieldName = details.fieldName ?? details.field ?? details.issue ?? "";
-  const correctionReason = [
-    correction.correctionReason,
-    correction.correctedSummary,
-    correction.correctedExplanation,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  return Boolean(
-    sameCategory &&
-      (sameCreditor || sameBureau) &&
-      (tokenOverlap(fieldName, correctionReason) >= 0.25 ||
-        tokenOverlap(violation.userExplanation, correctionReason) >= 0.2)
+  return (
+    normalizeCategory(correction.correctedViolationType) === category ||
+    normalizeCategory(correction.originalViolationCategory) === category
   );
+}
+
+function violationFieldNames(violation: DetectedViolation): Set<string> {
+  const details = getTechnicalDetails(violation);
+  const rawFields = [
+    details.fieldName,
+    details.field,
+    details.matchedField,
+    details.evidenceLink && typeof details.evidenceLink === "object"
+      ? (details.evidenceLink as Record<string, unknown>).fieldName
+      : null,
+    ...(Array.isArray(details.sourceFields) ? details.sourceFields : []),
+    ...(details.deterministicRule &&
+    typeof details.deterministicRule === "object" &&
+    Array.isArray((details.deterministicRule as Record<string, unknown>).sourceFields)
+      ? (details.deterministicRule as { sourceFields: unknown[] }).sourceFields
+      : []),
+  ];
+
+  return new Set(
+    rawFields
+      .map(normalizeFieldName)
+      .filter((field): field is string => Boolean(field)),
+  );
+}
+
+function correctionEvidenceFieldNames(evidence: CorrectionEvidenceForMatch): Set<string> {
+  return new Set(
+    evidence
+      .map((entry) => normalizeFieldName(entry.fieldName))
+      .filter((field): field is string => Boolean(field)),
+  );
+}
+
+function hasExactFieldEvidenceMatch(
+  correctionEvidence: CorrectionEvidenceForMatch,
+  violation: DetectedViolation,
+): boolean {
+  const correctionFields = correctionEvidenceFieldNames(correctionEvidence);
+  if (correctionFields.size === 0) return false;
+
+  const fields = violationFieldNames(violation);
+  for (const field of fields) {
+    if (correctionFields.has(field)) return true;
+  }
+
+  return false;
+}
+
+function hasExactAccountIdentity(
+  correction: AdminCorrectionPatternForMatch,
+  tradeline: TradelineForAdminCorrectionMatch,
+): boolean {
+  const correctionAccount = normalizeAccountNumber(correction.patternAccountNumber);
+  const tradelineAccount = normalizeAccountNumber(tradeline.accountNumber);
+  if (!correctionAccount || !tradelineAccount || correctionAccount !== tradelineAccount) {
+    return false;
+  }
+
+  if (!correction.patternCreditorId || !tradeline.creditorId) return false;
+  if (Number(correction.patternCreditorId) !== Number(tradeline.creditorId)) return false;
+
+  if (correction.patternBureauId && tradeline.bureauId) {
+    return Number(correction.patternBureauId) === Number(tradeline.bureauId);
+  }
+
+  return true;
+}
+
+export function getDeterministicAdminCorrectionMatch(
+  correction: AdminCorrectionPatternForMatch,
+  correctionEvidence: CorrectionEvidenceForMatch,
+  violation: DetectedViolation,
+  tradeline: TradelineForAdminCorrectionMatch,
+): AdminCorrectionMatchResult {
+  if (!correctionCategoryMatches(correction, violation)) {
+    return {
+      applies: false,
+      kind: null,
+      reason: "category_mismatch",
+    };
+  }
+
+  if (Number(correction.tradelineId) === Number(tradeline.id)) {
+    return {
+      applies: true,
+      kind: "same_tradeline_exact_category",
+      reason: "same_tradeline_and_exact_violation_category",
+    };
+  }
+
+  if (
+    hasExactAccountIdentity(correction, tradeline) &&
+    hasExactFieldEvidenceMatch(correctionEvidence, violation)
+  ) {
+    return {
+      applies: true,
+      kind: "same_account_exact_field",
+      reason: "same_creditor_account_bureau_and_exact_evidence_field",
+    };
+  }
+
+  return {
+    applies: false,
+    kind: null,
+    reason: "no_exact_admin_truth_scope",
+  };
+}
+
+function getDeterministicMissedCorrectionMatch(
+  correction: AdminCorrectionPatternForMatch,
+  tradeline: TradelineForAdminCorrectionMatch,
+): AdminCorrectionMatchResult {
+  if (Number(correction.tradelineId) === Number(tradeline.id)) {
+    return {
+      applies: true,
+      kind: "same_tradeline_exact_category",
+      reason: "same_tradeline_false_negative_correction",
+    };
+  }
+
+  if (hasExactAccountIdentity(correction, tradeline)) {
+    return {
+      applies: true,
+      kind: "same_account_exact_identity",
+      reason: "same_creditor_account_bureau_false_negative_correction",
+    };
+  }
+
+  return {
+    applies: false,
+    kind: null,
+    reason: "no_exact_admin_truth_scope",
+  };
 }
 
 function referencesToTechnicalDetails(refs: Selectable<ViolationRegulationReference>[]) {
@@ -128,7 +294,8 @@ async function enrichWithRegulationReferences(
 function buildCanonicalViolationFromCorrection(
   correction: PatternCorrection,
   tradeline: Selectable<Tradeline>,
-  confidence: number
+  confidence: number,
+  match: AdminCorrectionMatchResult,
 ): DetectedViolation | null {
   if (!correction.correctedViolationType) return null;
 
@@ -147,6 +314,8 @@ function buildCanonicalViolationFromCorrection(
       reportArtifactId: tradeline.reportArtifactId ?? null,
       adminCorrectionReferenceIds: [correction.id],
       inferredFromAdminCorrection: correction.tradelineId !== tradeline.id,
+      adminTruthMatchKind: match.kind,
+      adminTruthMatchReason: match.reason,
       originalCorrectionTradelineId: correction.tradelineId,
       correctionReason: correction.correctionReason,
     },
@@ -170,26 +339,42 @@ export async function applyViolationCorrectionTruthLayer(
 
     if (corrections.length === 0) return violations;
 
+    const evidenceByCorrectionId = new Map<number, CorrectionEvidenceForMatch>();
+    await Promise.all(
+      corrections.map(async (correction) => {
+        evidenceByCorrectionId.set(correction.id, await getCorrectionEvidence(correction.id));
+      }),
+    );
+
     const output: DetectedViolation[] = [];
 
     for (const violation of violations) {
-      const matches = corrections.filter((correction) =>
-        correctionMatchesViolation(correction, violation, tradeline)
-      );
+      const matches = corrections
+        .map((correction) => ({
+          correction,
+          match: getDeterministicAdminCorrectionMatch(
+            correction,
+            evidenceByCorrectionId.get(correction.id) ?? [],
+            violation,
+            tradeline,
+          ),
+        }))
+        .filter((entry) => entry.match.applies);
 
       const sameTradelineRejection = matches.find(
-        (correction) =>
+        ({ correction }) =>
           correction.tradelineId === tradeline.id &&
           REJECTING_ACTIONS.has(correction.correctionAction as ViolationCorrectionAction)
       );
       if (sameTradelineRejection) continue;
 
-      const canonical = matches.find((correction) =>
+      const canonicalEntry = matches.find(({ correction }) =>
         POSITIVE_ACTIONS.has(correction.correctionAction as ViolationCorrectionAction)
       );
 
       let nextViolation = violation;
-      if (canonical) {
+      if (canonicalEntry) {
+        const { correction: canonical, match } = canonicalEntry;
         const correctedConfidence =
           canonical.correctedConfidence === null ? null : Number(canonical.correctedConfidence);
 
@@ -218,6 +403,8 @@ export async function applyViolationCorrectionTruthLayer(
               ]),
             ],
             adminTruthApplied: true,
+            adminTruthMatchKind: match.kind,
+            adminTruthMatchReason: match.reason,
             correctionAgreementBoost: matches.length,
           },
         };
@@ -229,17 +416,23 @@ export async function applyViolationCorrectionTruthLayer(
     }
 
     const existingCategories = new Set(output.map((violation) => violation.violationCategory));
-    const missedCanonicalCorrections = corrections.filter((correction) => {
-      const action = correction.correctionAction as ViolationCorrectionAction;
-      return (
-        POSITIVE_ACTIONS.has(action) &&
-        correction.correctedViolationType &&
-        !existingCategories.has(correction.correctedViolationType as DetectedViolation["violationCategory"]) &&
-        (correction.originalViolationId === null || correction.trainingLabel === "false_negative")
-      );
-    });
+    const missedCanonicalCorrections = corrections
+      .map((correction) => ({
+        correction,
+        match: getDeterministicMissedCorrectionMatch(correction, tradeline),
+      }))
+      .filter(({ correction, match }) => {
+        const action = correction.correctionAction as ViolationCorrectionAction;
+        return (
+          match.applies &&
+          POSITIVE_ACTIONS.has(action) &&
+          correction.correctedViolationType &&
+          !existingCategories.has(correction.correctedViolationType as DetectedViolation["violationCategory"]) &&
+          (correction.originalViolationId === null || correction.trainingLabel === "false_negative")
+        );
+      });
 
-    for (const correction of missedCanonicalCorrections) {
+    for (const { correction, match } of missedCanonicalCorrections) {
       const sameTradeline = correction.tradelineId === tradeline.id;
       const confidence =
         correction.correctedConfidence === null
@@ -247,7 +440,7 @@ export async function applyViolationCorrectionTruthLayer(
             ? 88
             : 74
           : Number(correction.correctedConfidence);
-      let inferred = buildCanonicalViolationFromCorrection(correction, tradeline, confidence);
+      let inferred = buildCanonicalViolationFromCorrection(correction, tradeline, confidence, match);
       if (!inferred) continue;
       inferred = await enrichWithRegulationReferences(inferred, correction);
       output.push(inferred);

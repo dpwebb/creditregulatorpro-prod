@@ -393,10 +393,16 @@ export async function listFinalizedCorrectionPatterns(input: {
   let query = db
     .selectFrom("violationCorrection")
     .leftJoin("tradeline", "tradeline.id", "violationCorrection.tradelineId")
+    .leftJoin(
+      "creditorObligationTest as originalViolation",
+      "originalViolation.id",
+      "violationCorrection.originalViolationId",
+    )
     .leftJoin("creditor", "creditor.id", "tradeline.creditorId")
     .leftJoin("bureau", "bureau.id", "tradeline.bureauId")
     .selectAll("violationCorrection")
     .select([
+      "originalViolation.violationCategory as originalViolationCategory",
       "tradeline.creditorId as patternCreditorId",
       "tradeline.bureauId as patternBureauId",
       "tradeline.accountNumber as patternAccountNumber",
