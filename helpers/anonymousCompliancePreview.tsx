@@ -2,6 +2,7 @@ import { calculateRetentionExpiry, AccountType } from "./provincialRetentionCalc
 import type { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import type { CanadianProvince } from "./schema";
 import { isAfter, isBefore, differenceInMonths, isValid, parseISO } from "./dateUtils";
+import { formatCurrency } from "./formatters";
 
 export type PreviewProblemUrgency = "expired" | "approaching" | "violation" | "warning" | "info";
 
@@ -216,7 +217,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
       tradelineSupportingProblems.push({
         type: "past_due",
         title: `${creditorName} — Past Due Balance`,
-        detail: `${creditorName} shows a past due amount of $${pastDue}. Even small errors here hurt your credit score.`,
+        detail: `${creditorName} shows a past due amount of ${formatCurrency(pastDue)}. Even small errors here hurt your credit score.`,
         solution: "If this amount is wrong, we can dispute it. Our deep scan checks 200+ rules to find errors.",
         urgency: "warning",
         severity: 60

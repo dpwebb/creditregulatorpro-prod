@@ -6,6 +6,7 @@ import { Button } from "./Button";
 import { Input } from "./Input";
 import { Textarea } from "./Textarea";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
+import { formatCurrency as formatDollarAmount } from "../helpers/formatters";
 import { EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE } from "../helpers/parserRulePromotionDecision";
 import styles from "./ParserTestSavedOutputPanel.module.css";
 
@@ -226,12 +227,58 @@ function humanizeKey(value: string): string {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+const MONEY_FIELD_HINTS = new Set([
+  "balance",
+  "currentbalance",
+  "amountscurrent",
+  "pastdue",
+  "amountpastdue",
+  "amountspastdue",
+  "highcredit",
+  "amountshigh",
+  "creditlimit",
+  "amountslimit",
+  "monthlypayment",
+  "scheduledpayment",
+  "scheduledmonthlypayment",
+  "originalbalance",
+  "balloonpayment",
+  "chargeoff",
+  "lastpaymentamount",
+  "payment",
+]);
+
+function normalizeFieldHint(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function isMoneyFieldHint(fieldHint?: string): boolean {
+  if (!fieldHint) return false;
+  const normalized = normalizeFieldHint(fieldHint);
+  if (MONEY_FIELD_HINTS.has(normalized)) return true;
+  return [
+    "balance",
+    "pastdue",
+    "creditlimit",
+    "highcredit",
+    "monthlypayment",
+    "scheduledpayment",
+    "scheduledmonthlypayment",
+    "originalbalance",
+    "lastpaymentamount",
+  ].some((suffix) => normalized.endsWith(suffix));
+}
+
 function formatDate(value: string): string | null {
   return formatDateOnlyEnCa(value);
 }
 
-function formatScalar(value: unknown): string {
+function formatScalar(value: unknown, fieldHint?: string): string {
   if (value == null || value === "") return "";
+  if (isMoneyFieldHint(fieldHint) && (typeof value === "number" || typeof value === "string")) {
+    const formatted = formatDollarAmount(value);
+    if (formatted) return formatted;
+  }
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
   if (typeof value === "string") {
@@ -241,7 +288,7 @@ function formatScalar(value: unknown): string {
   return "";
 }
 
-function summarizeValue(value: unknown): string {
+function summarizeValue(value: unknown, fieldHint?: string): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return "";
     return `${value.length} item${value.length === 1 ? "" : "s"}`;
@@ -249,13 +296,16 @@ function summarizeValue(value: unknown): string {
 
   if (isRecord(value)) {
     return Object.entries(value)
-      .map(([key, entryValue]) => `${humanizeKey(key)}: ${formatScalar(entryValue)}`)
+      .map(([key, entryValue]) => {
+        const nestedHint = fieldHint ? `${fieldHint}.${key}` : key;
+        return `${humanizeKey(key)}: ${summarizeValue(entryValue, nestedHint)}`;
+      })
       .filter((part) => !part.endsWith(": "))
       .slice(0, 4)
       .join("; ");
   }
 
-  return formatScalar(value);
+  return formatScalar(value, fieldHint);
 }
 
 function isUnknownResultValue(value: unknown): value is string {
@@ -522,7 +572,7 @@ function FieldTable({ rows }: { rows: Array<[string, unknown]> }) {
           {rows.map(([label, value]) => (
             <tr key={label}>
               <th>{label}</th>
-              <td>{truncate(summarizeValue(value))}</td>
+              <td>{truncate(summarizeValue(value, label))}</td>
             </tr>
           ))}
         </tbody>
@@ -561,7 +611,7 @@ function PaymentHistoryTable({ rows }: { rows: unknown }) {
             {records.map((record, index) => (
               <tr key={index}>
                 {columns.map((column) => (
-                  <td key={column}>{truncate(summarizeValue(record[column]))}</td>
+                  <td key={column}>{truncate(summarizeValue(record[column], column))}</td>
                 ))}
               </tr>
             ))}

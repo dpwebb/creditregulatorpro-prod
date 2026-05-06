@@ -1,4 +1,5 @@
 import type { TradelineDetails } from "./equifaxDisputeTemplate";
+import { formatCurrency as formatDollarAmount } from "./formatters";
 
 /**
  * Formats a date to a readable string, returning undefined if the date is null/undefined.
@@ -14,10 +15,8 @@ export function formatDate(date: Date | string | null | undefined): string | und
  * Formats a numeric string as a currency amount.
  */
 export function formatCurrency(value: string | number | null | undefined): string | undefined {
-  if (value == null) return undefined;
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(num)) return String(value);
-  return `$${num.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatted = formatDollarAmount(value);
+  return formatted || undefined;
 }
 
 /**

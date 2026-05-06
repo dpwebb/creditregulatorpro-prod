@@ -116,9 +116,10 @@ export const TradelineHeader: React.FC<TradelineHeaderProps> = ({
   ) => {
     if (value === null || value === undefined || value === "") return null;
     
-    // Handle number casting for formatters that expect numbers if input is string
+    // Handle number casting for formatters that expect numbers if input is string.
+    // Currency formatting accepts raw reported strings so commas and symbols are preserved correctly.
     let safeValue = value;
-    if (typeof value === 'string' && (formatter === formatCurrency || formatter === formatPercent)) {
+    if (typeof value === 'string' && formatter === formatPercent) {
         const parsed = parseFloat(value);
         if (!isNaN(parsed)) safeValue = parsed;
     }
@@ -204,7 +205,7 @@ export const TradelineHeader: React.FC<TradelineHeaderProps> = ({
             <label>{isCollectionAccount ? "Balance Owing" : "Balance"}</label>
             <span className={styles.statValue}>
               {balance !== null && balance !== undefined && balance !== "" 
-                ? formatCurrency(Number(balance)) 
+                ? formatCurrency(balance) 
                 : <Badge variant="error">PROBLEM</Badge>}
             </span>
           </div>

@@ -4,6 +4,7 @@ import type { Tradeline, ObligationInstance, ReportArtifact } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
 import { detectChanges, StandardizedCreditData } from "./changeDetector";
 import { regulationRegistry } from "./regulationRegistry";
+import { formatCurrency } from "./formatters";
 
 function isEcoaCode(value: string | undefined | null, codes: string[]): boolean {
   if (!value) return false;
@@ -112,7 +113,7 @@ export function detectFurnisherStatusCodeMismatch(
         tradelineId: tradeline.id,
         status: tradeline.status,
         amountPastDue: pastDue,
-        detectedValue: `${tradeline.status} / ${pastDue}`,
+        detectedValue: `${tradeline.status} / ${formatCurrency(pastDue)}`,
         regulationIds: ["PIPEDA_4_6"],
       },
       recommendedAction: "Ask the company to correct the overdue balance to zero since the account is marked as current.",
@@ -282,7 +283,7 @@ export function detectFurnisherPostDisputeRetaliation(
               postBalance: postData.balance,
               preStatus: preData.accountStatus,
               postStatus: postData.accountStatus,
-              detectedValue: `Balance: ${postData.balance}, Status: ${postData.accountStatus}`,
+              detectedValue: `Balance: ${formatCurrency(postData.balance)}, Status: ${postData.accountStatus}`,
               regulationIds: ["PIPEDA_4_10"],
             },
             recommendedAction: "Complain that the account was made to look worse after your dispute and demand they fix it.",

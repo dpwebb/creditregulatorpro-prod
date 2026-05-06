@@ -2,6 +2,7 @@ import type { ParsedTradeline } from "./reportParser";
 import type { InfractionFinding, ReportMetadata } from "./regulationInfractionScannerTypes";
 import { differenceInDays } from "./dateUtils";
 import { regulationRegistry } from "./regulationRegistry";
+import { formatCurrency } from "./formatters";
 
 export function detectCreditorViolations(
   tl: ParsedTradeline & { isCollectionAccount?: boolean }, 
@@ -44,7 +45,7 @@ export function detectCreditorViolations(
       severity: "HIGH",
       fcraSection: pipeda46 && accuracyReg ? `${pipeda46.statute} ${pipeda46.citation} / ${accuracyReg.statute} ${accuracyReg.citation}` : "PIPEDA / Provincial CRA — Balance accuracy requirement",
       description: "Reported past due amount exceeds current total balance",
-      evidenceDetails: `Past Due ($${amounts.pastDue}) > Current Balance ($${balance})`,
+      evidenceDetails: `Past Due (${formatCurrency(amounts.pastDue)}) > Current Balance (${formatCurrency(balance)})`,
       suggestedDisputeVector: "ACCURACY_ATTESTATION",
       autoChallengeable: true,
       regulationIds: [pipeda46?.id, accuracyReg?.id].filter(Boolean) as string[],

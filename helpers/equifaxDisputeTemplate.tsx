@@ -8,6 +8,7 @@ import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAc
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
 import type { LetterContent } from "./pdfGenerator";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { formatCurrency as formatDollarAmount } from "./formatters";
 
 /**
  * Rich tradeline details for building specific dispute content.
@@ -109,10 +110,8 @@ function formatDate(date: Date | null | undefined): string | undefined {
  * Formats a numeric string as a currency amount.
  */
 function formatCurrency(value: string | null | undefined): string | undefined {
-  if (!value) return undefined;
-  const num = parseFloat(value);
-  if (isNaN(num)) return value;
-  return `$${num.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatted = formatDollarAmount(value);
+  return formatted || undefined;
 }
 
 /**

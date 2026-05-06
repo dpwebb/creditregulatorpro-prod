@@ -117,6 +117,38 @@ describe("ParserTestSavedOutputPanel", () => {
     expect(screen.getAllByText("2026-04-16").length).toBeGreaterThan(0);
   });
 
+  it("shows saved reported money fields as fixed-cent dollar values", async () => {
+    const onAdjudicate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <ParserTestSavedOutputPanel
+        testCase={{
+          ...savedOutputTestCase,
+          expectedTradelines: [
+            {
+              creditorName: "CAPITAL ONE BANK",
+              accountNumber: "1234",
+              balance: 1234.5,
+              monthlyPayment: "CAD $45.6",
+              amounts: {
+                pastDue: 7,
+                high: "2000",
+                limit: "$3,500.4",
+              },
+            },
+          ],
+        }}
+        onAdjudicate={onAdjudicate}
+      />,
+    );
+
+    expect(screen.getAllByText("$1,234.50").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$45.60").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$7.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$2,000.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$3,500.40").length).toBeGreaterThan(0);
+  });
+
   it("marks a decision accepted locally when promotion reuses an existing active rule", async () => {
     const onPromoteParserRule = vi.fn().mockResolvedValue({
       activated: true,

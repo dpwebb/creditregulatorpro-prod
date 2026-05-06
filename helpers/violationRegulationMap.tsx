@@ -1,5 +1,6 @@
 import { regulationRegistry } from "./regulationRegistry";
 import { ViolationCategory } from "./schema";
+import { formatCurrency, parseCurrencyAmount } from "./formatters";
 import styles from "./violationRegulationMap.module.css";
 
 export interface RegulationReference {
@@ -84,6 +85,11 @@ function getAllRegulationsForViolation(violation: {
     }
   };
 
+  const formatCurrencyDetail = (value: unknown, fallback: string): string => {
+    if (value === undefined || value === null || value === "") return fallback;
+    return parseCurrencyAmount(value as string | number) === null ? String(value) : formatCurrency(value as string | number);
+  };
+
   return uniqueRefs.map((ref) => {
     let specificApplication = "";
     const fieldName = technicalDetails?.fieldName;
@@ -117,8 +123,8 @@ function getAllRegulationsForViolation(violation: {
         specificApplication = `The reporting of this account does not comply with regulations: ${technicalDetails.message}`;
       }
     } else if (violationCategory === "BALANCE_CALCULATION_VIOLATION") {
-      const balance = technicalDetails?.balance !== undefined ? technicalDetails.balance : "an unspecified amount";
-      const expected = technicalDetails?.expectedBalance !== undefined ? technicalDetails.expectedBalance : "a different amount";
+      const balance = formatCurrencyDetail(technicalDetails?.balance, "an unspecified amount");
+      const expected = formatCurrencyDetail(technicalDetails?.expectedBalance, "a different amount");
       specificApplication = `The reported balance of ${balance} does not match the expected calculation of ${expected}. This inaccuracy misrepresents your actual obligation.`;
     } else if (violationCategory === "PAYMENT_HISTORY_MANIPULATION") {
       const detailMsg = technicalDetails?.message || "Inconsistent payment history reported.";

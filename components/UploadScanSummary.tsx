@@ -18,6 +18,7 @@ import { Skeleton } from "./Skeleton";
 import { BureauBadge } from "./BureauBadge";
 import { OutputType } from "../endpoints/upload-results/get_GET.schema";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./Accordion";
+import { formatCurrency } from "../helpers/formatters";
 import styles from "./UploadScanSummary.module.css";
 
 interface UploadScanSummaryProps {
@@ -496,7 +497,7 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
                       {data.metadata.bureauName && <BureauBadge bureauName={data.metadata.bureauName} size="sm" />}
                     </div>
                     <div className={styles.groupedItemDetails}>
-                      Balance: ${account.currentBalance || "0"} • Status: {account.status || "N/A"}
+                      Balance: {formatCurrency(account.currentBalance ?? 0)} • Status: {account.status || "N/A"}
                     </div>
                   </Link>
                 ))}

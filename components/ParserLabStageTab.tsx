@@ -8,6 +8,7 @@ import { Spinner } from "./Spinner";
 import { useRunParserLabStage } from "../helpers/parserLabQueries";
 import { PARSER_LAB_STAGE_VERSION } from "../helpers/parserLabStageVersion";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
+import { formatCurrency } from "../helpers/formatters";
 import styles from "./ParserLabStageTab.module.css";
 
 type ParserLabResult = Awaited<ReturnType<ReturnType<typeof useRunParserLabStage>["mutateAsync"]>>;
@@ -95,13 +96,7 @@ function formatDateBlank(value: unknown): string {
 
 function formatMoneyBlank(value: unknown): string {
   if (!hasReportedValue(value)) return "";
-  const numeric = typeof value === "number" ? value : Number(String(value).replace(/[^0-9.-]/g, ""));
-  if (!Number.isFinite(numeric)) return String(value);
-  return new Intl.NumberFormat("en-CA", {
-    style: "currency",
-    currency: "CAD",
-    maximumFractionDigits: 0,
-  }).format(numeric);
+  return formatCurrency(value as string | number) || String(value);
 }
 
 function formatPaymentHistorySummaryBlank(value: any): string {

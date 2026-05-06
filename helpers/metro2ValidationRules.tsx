@@ -1,5 +1,6 @@
 import { isAfter, isBefore, isValid, parseISO } from "./dateUtils";
 import { ValidationSeverity } from "./schema";
+import { formatCurrency } from "./formatters";
 
 export type ValidationCategory =
   | "DATES"
@@ -181,8 +182,8 @@ const BalanceConsistencyPastDue: Metro2ValidationRule = {
       return {
         valid: false,
         message: "The overdue amount is more than the total balance, which doesn't add up.",
-        expectedValue: `<= ${current}`,
-        actualValue: `${pastDue}`,
+        expectedValue: `<= ${formatCurrency(current)}`,
+        actualValue: formatCurrency(pastDue),
       };
     }
     return { valid: true };
@@ -207,8 +208,8 @@ const BalancePaidZero: Metro2ValidationRule = {
       return {
         valid: false,
         message: "This account is marked as paid off but still shows money owed.",
-        expectedValue: "0",
-        actualValue: `Current: ${current}, PastDue: ${pastDue}`,
+        expectedValue: formatCurrency(0),
+        actualValue: `Current: ${formatCurrency(current)}, PastDue: ${formatCurrency(pastDue)}`,
       };
     }
     return { valid: true };

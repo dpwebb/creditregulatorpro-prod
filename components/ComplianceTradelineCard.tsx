@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, ShieldAlert } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
+import { formatCurrency } from "../helpers/formatters";
 import styles from "./ComplianceTradelineCard.module.css";
 
 type ComplianceTradelineSummary = {
@@ -59,7 +60,7 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
           <span className={styles.label}>Balance</span>
           <span className={styles.value}>
             {(tradeline.currentBalance ?? tradeline.balance) !== null && (tradeline.currentBalance ?? tradeline.balance) !== undefined
-              ? `$${Number(tradeline.currentBalance ?? tradeline.balance).toLocaleString()}` 
+              ? formatCurrency(tradeline.currentBalance ?? tradeline.balance)
               : "N/A"}
           </span>
         </div>

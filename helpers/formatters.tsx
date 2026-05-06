@@ -58,17 +58,28 @@ export function formatTime(date: string | Date | null | undefined): string {
   return format(d, "h:mm a");
 }
 
+export function parseCurrencyAmount(amount: string | number | null | undefined): number | null {
+  if (amount === null || amount === undefined || amount === "") return null;
+  if (typeof amount === "number") return Number.isFinite(amount) ? amount : null;
+  const normalized = String(amount).replace(/[^0-9.-]/g, "");
+  if (!/[0-9]/.test(normalized)) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 /**
- * Format as Canadian currency: "$1,234.56 CAD"
- * @example formatCurrency(1234.56) -> "$1,234.56 CAD"
+ * Format as a dollar amount with fixed cents: "$1,234.56"
+ * @example formatCurrency(1234.5) -> "$1,234.50"
  */
-export function formatCurrency(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return "";
-  const formatted = new Intl.NumberFormat("en-CA", {
+export function formatCurrency(amount: string | number | null | undefined): string {
+  const numeric = parseCurrencyAmount(amount);
+  if (numeric === null) return "";
+  return new Intl.NumberFormat("en-CA", {
     style: "currency",
     currency: "CAD",
-  }).format(amount);
-  return `${formatted} CAD`;
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numeric);
 }
 
 /**

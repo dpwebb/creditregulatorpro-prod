@@ -248,13 +248,13 @@ export const ParsedDataOverview: React.FC<ParsedDataOverviewProps> = ({
       <div className={styles.card}>
         <SectionHeader icon={DollarSign} title="Financial Amounts" />
         <div className={styles.grid4}>
-          <Field label="Current Balance" value={(tradeline.balance ?? tradeline.currentBalance) != null ? formatCurrency(Number(tradeline.balance ?? tradeline.currentBalance)) : <Badge variant="error">VIOLATION</Badge>} monospace />
-          <Field label="High Credit" value={tradeline.highCredit != null ? formatCurrency(Number(tradeline.highCredit)) : (tradeline.accountType?.toLowerCase().includes('revolving') || tradeline.accountType?.toLowerCase().includes('installment') || tradeline.accountType?.toLowerCase().includes('credit card') ? <Badge variant="error">VIOLATION</Badge> : null)} monospace />
-          <Field label="Credit Limit" value={tradeline.creditLimit != null ? formatCurrency(Number(tradeline.creditLimit)) : (tradeline.accountType?.toLowerCase().includes('revolving') || tradeline.accountType?.toLowerCase().includes('credit card') ? <Badge variant="error">VIOLATION</Badge> : null)} monospace />
-          <Field label="Past Due" value={formatCurrency(Number(tradeline.amountPastDue))} monospace />
-          <Field label="Original Balance" value={formatCurrency(Number(tradeline.originalBalance))} monospace />
-          <Field label="Monthly Payment" value={formatCurrency(Number(tradeline.monthlyPayment ?? tradeline.scheduledMonthlyPayment))} monospace />
-          <Field label="Last Payment" value={formatCurrency(Number(tradeline.lastPaymentAmount))} monospace />
+          <Field label="Current Balance" value={(tradeline.balance ?? tradeline.currentBalance) != null ? formatCurrency(tradeline.balance ?? tradeline.currentBalance) : <Badge variant="error">VIOLATION</Badge>} monospace />
+          <Field label="High Credit" value={tradeline.highCredit != null ? formatCurrency(tradeline.highCredit) : (tradeline.accountType?.toLowerCase().includes('revolving') || tradeline.accountType?.toLowerCase().includes('installment') || tradeline.accountType?.toLowerCase().includes('credit card') ? <Badge variant="error">VIOLATION</Badge> : null)} monospace />
+          <Field label="Credit Limit" value={tradeline.creditLimit != null ? formatCurrency(tradeline.creditLimit) : (tradeline.accountType?.toLowerCase().includes('revolving') || tradeline.accountType?.toLowerCase().includes('credit card') ? <Badge variant="error">VIOLATION</Badge> : null)} monospace />
+          <Field label="Past Due" value={formatCurrencyOrNull(tradeline.amountPastDue)} monospace />
+          <Field label="Original Balance" value={formatCurrencyOrNull(tradeline.originalBalance)} monospace />
+          <Field label="Monthly Payment" value={formatCurrencyOrNull(tradeline.monthlyPayment ?? tradeline.scheduledMonthlyPayment)} monospace />
+          <Field label="Last Payment" value={formatCurrencyOrNull(tradeline.lastPaymentAmount)} monospace />
           <Field label="Interest Rate" value={formatPercent(tradeline.interestRate ? Number(tradeline.interestRate) : null)} monospace />
         </div>
       </div>

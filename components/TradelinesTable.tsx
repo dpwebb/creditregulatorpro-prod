@@ -395,8 +395,8 @@ export const TradelinesTable = ({
                       </TableCell>
                       <TableCell>
                         <span className={styles.balanceText}>
-                          {tradeline.currentBalance !== null || tradeline.balance !== null
-                            ? formatCurrency(Number(tradeline.currentBalance ?? tradeline.balance))
+                          {(tradeline.currentBalance ?? tradeline.balance) != null
+                            ? formatCurrency(tradeline.currentBalance ?? tradeline.balance)
                             : "—"}
                         </span>
                       </TableCell>
@@ -540,8 +540,8 @@ export const TradelinesTable = ({
                       <div className={styles.mobileCardDetail}>
                         <span className={styles.mobileCardLabel}>Balance</span>
                         <span className={styles.balanceText}>
-                          {tradeline.currentBalance !== null || tradeline.balance !== null
-                            ? formatCurrency(Number(tradeline.currentBalance ?? tradeline.balance))
+                          {(tradeline.currentBalance ?? tradeline.balance) != null
+                            ? formatCurrency(tradeline.currentBalance ?? tradeline.balance)
                             : "—"}
                         </span>
                       </div>

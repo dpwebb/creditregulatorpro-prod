@@ -3,6 +3,7 @@ import type { InfractionFinding, ReportMetadata } from "./regulationInfractionSc
 import { isMedicalAccount, isStudentLoanAccount } from "./regulationInfractionScannerHelpers";
 import { differenceInDays, subYears, isBefore } from "./dateUtils";
 import { regulationRegistry } from "./regulationRegistry";
+import { formatCurrency } from "./formatters";
 
 /**
  * Detect medical debt specific violations
@@ -62,7 +63,7 @@ export function detectMedicalDebtViolations(
     if (hasInsuranceIndicator || isSmallBalanceMedical) {
       const reason = hasInsuranceIndicator
         ? `Remarks reference insurance-related terms: "${remarksText.substring(0, 120)}"`
-        : `Small medical collection balance (${balance}) suggests possible insurance copay/deductible`;
+        : `Small medical collection balance (${formatCurrency(balance)}) suggests possible insurance copay/deductible`;
       const pipeda46 = regulationRegistry.getRegulationById("PIPEDA_4_6");
 
       findings.push({
