@@ -12,12 +12,12 @@ import { persistTradelines } from "./ingestTradelinePersistence";
 import { validateTradelines } from "./ingestTradelineValidator";
 import { buildIngestResponse } from "./ingestResponseBuilder";
 import { ComprehensiveParseResult, ExtractedPaymentHistory } from "./reportParserTypes";
+import { deriveDeterministicDraftExtractions } from "./deterministicDraftExtraction";
 
 import { snapshotDisputedTradelines, detectAndRecordSilentCorrections } from "./silentCorrectionDetector";
 import { getLatestTwoSnapshots, createSnapshotsForBatch } from "./tradelineSnapshotManager";
 import { detectSnapshotChanges } from "./changeDetector";
 import { assessPendingPacketImpacts } from "./packetImpactAssessor";
-import { unifiedExtract } from "./unifiedExtractor";
 import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
 import { ResolvedUserSession } from "./ingestSessionResolver";
 import { ParserQualityAssessment } from "./parserQuality";
@@ -301,7 +301,11 @@ export async function executeIngestPipeline({
     );
   }
 
-  const extractionResult = unifiedExtract(llmData, parseResult.rawText, artifactId);
+  if (!parseResult) {
+    throw new IngestPipelineError("Credit report extraction failed.", "EXTRACTION_FAILED");
+  }
+
+  const extractionResult = deriveDeterministicDraftExtractions(parseResult, artifactId);
 
   const { passA, fullExtraction } = extractionResult;
   

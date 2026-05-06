@@ -3,8 +3,7 @@ import { schema, OutputType } from "./backfill-source-text_POST.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { NotAuthenticatedError } from "../../helpers/getSetServerSession";
-import { parseReport } from "../../helpers/reportParser";
+import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
 
 export async function handle(request: Request) {
   try {
@@ -78,9 +77,14 @@ export async function handle(request: Request) {
           continue;
         }
 
-        // Parse the report
-        // storageUrl contains the base64 PDF content
-        const parseResult = await parseReport(storageUrl, 'application/pdf');
+        // Parse the report through the same canonical deterministic path used by ingest.
+        // storageUrl contains the base64 PDF content.
+        const extraction = await extractCanonicalCreditReport({
+          bytesBase64: storageUrl,
+          mimeType: "application/pdf",
+          allowAiFallback: false,
+        });
+        const parseResult = extraction.parseResult;
         
         if (!parseResult.tradelines || parseResult.tradelines.length === 0) {
           errors.push(`Artifact ${artifactId} parsed but yielded no tradelines`);

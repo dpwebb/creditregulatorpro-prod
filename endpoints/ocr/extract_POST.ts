@@ -1,6 +1,6 @@
 import { schema, OutputType } from "./extract_POST.schema";
 
-import { parseReport } from "../../helpers/reportParser";
+import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
 import { normalizeTradelines } from "../../helpers/normalization";
 import { scoreTradelines } from "../../helpers/confidenceScorer";
 import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
@@ -52,8 +52,12 @@ export async function handle(request: Request) {
     // Note: We are not persisting anything yet.
     let parsedTradelines = [];
     try {
-      const parseResult = await parseReport(input.bytesBase64, input.mimeType);
-      parsedTradelines = parseResult.tradelines;
+      const extraction = await extractCanonicalCreditReport({
+        bytesBase64: input.bytesBase64,
+        mimeType: input.mimeType,
+        allowAiFallback: false,
+      });
+      parsedTradelines = extraction.parseResult.tradelines;
     } catch (e) {
       console.error("OCR Extraction failed:", e);
       throw new Error("Failed to parse document");
