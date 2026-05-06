@@ -247,8 +247,8 @@ async function evaluateTestCase(
   const { parseResult, rawExtractedText } = await parsePdfThroughProductionHtmlPipeline(
     testCase.pdfBase64,
     {
-      allowAiFallback: testCase.allowAiFallback,
-      parserMode: testCase.parserMode,
+      allowAiFallback: false,
+      parserMode: "deterministic",
     },
   );
   const effectiveParseResult =

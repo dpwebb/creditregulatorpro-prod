@@ -13,6 +13,8 @@ export type OutputType = {
   errors: string[];
   reparsedArtifacts?: number;
   tradelinesUpdated?: number;
+  legacyDocStrangeReparseDisabled?: boolean;
+  legacyDocStrangeArtifactsSkipped?: number;
 };
 
 export const postBackfillCompliance = async (body: InputType, init?: RequestInit): Promise<OutputType> => {

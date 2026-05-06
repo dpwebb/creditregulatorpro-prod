@@ -3,7 +3,6 @@ import { assessParserQuality, ParserQualityAssessment } from "./parserQuality";
 import { parseReport } from "./reportParser";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import { sha256HexOfBase64Payload } from "./reportBinaryUtils";
-import { AI_FALLBACK_AVAILABLE } from "./aiFallbackAvailability";
 import {
   buildDeterministicCreditReportPipelinePackage,
   DeterministicNormalizedReport,
@@ -396,7 +395,7 @@ export async function extractCanonicalCreditReport(
       canonicalResultSha256: deterministicPipeline.canonicalResultSha256,
       replayHash: deterministicPipeline.replayHash,
       deterministicPipelineVersion: deterministicPipeline.version,
-      aiFallbackAvailable: AI_FALLBACK_AVAILABLE,
+      aiFallbackAvailable: false,
       aiFallbackRequested: requestedAiFallback,
       aiFallbackCanonicalEligibility: "disabled",
       attempts,

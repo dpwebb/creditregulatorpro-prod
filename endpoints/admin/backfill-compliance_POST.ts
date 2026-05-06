@@ -2,7 +2,6 @@ import { schema, OutputType } from "./backfill-compliance_POST.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { tradelineReparseSync } from "../../helpers/tradelineReparseSync";
 import { sql } from "kysely";
 
 
@@ -137,9 +136,9 @@ export async function handle(request: Request) {
       }
     }
 
-    // 4. Reparse sync: find all artifacts with raw HTML and run tradelineReparseSync on each
-    let reparsedArtifacts = 0;
-    let tradelinesUpdated = 0;
+    // 4. Legacy DocStrange reparse is intentionally disabled. Backfill may repair
+    // packet compliance audit rows, but it must not update tradelines from
+    // DocStrange-shaped HTML or AI-adjacent artifacts.
 
     const artifactsWithHtml = await db
       .selectFrom("reportArtifact")
@@ -147,35 +146,19 @@ export async function handle(request: Request) {
       .where(sql`data->>'docstrangeRawHtml'`, "is not", null)
       .execute();
 
-    console.log(`[BackfillCompliance] Found ${artifactsWithHtml.length} artifacts with raw HTML to reparse.`);
-
-    for (const artifact of artifactsWithHtml) {
-      try {
-        const reparseResult = await tradelineReparseSync(artifact.id);
-        reparsedArtifacts++;
-        tradelinesUpdated += reparseResult.updated;
-
-        if (reparseResult.errors.length > 0) {
-          console.warn(`[BackfillCompliance] tradelineReparseSync errors for artifact ${artifact.id}:`, reparseResult.errors);
-          for (const reparseError of reparseResult.errors) {
-            errors.push(`Artifact ${artifact.id} reparse: ${reparseError}`);
-          }
-        }
-      } catch (reparseErr) {
-        console.error(`[BackfillCompliance] tradelineReparseSync failed for artifact ${artifact.id}:`, reparseErr);
-        errors.push(`Artifact ${artifact.id} reparse failed: ${reparseErr instanceof Error ? reparseErr.message : "Unknown error"}`);
-      }
-    }
-
-    console.log(`[BackfillCompliance] Reparse sync complete: reparsedArtifacts=${reparsedArtifacts}, tradelinesUpdated=${tradelinesUpdated}`);
+    console.log(
+      `[BackfillCompliance] Legacy DocStrange reparse disabled; skipped ${artifactsWithHtml.length} artifact(s).`,
+    );
 
     return new Response(
       JSON.stringify({
         processedPackets,
         recordsCreated,
         errors,
-        reparsedArtifacts,
-        tradelinesUpdated,
+        reparsedArtifacts: 0,
+        tradelinesUpdated: 0,
+        legacyDocStrangeReparseDisabled: true,
+        legacyDocStrangeArtifactsSkipped: artifactsWithHtml.length,
       } satisfies OutputType),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );

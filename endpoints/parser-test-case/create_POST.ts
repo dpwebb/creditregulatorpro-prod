@@ -28,8 +28,8 @@ export async function handle(request: Request) {
       input.rawExtractedText === undefined;
     const parserFallback = needsParserFallback
       ? await parsePdfThroughProductionHtmlPipeline(input.pdfBase64, {
-          allowAiFallback: input.allowAiFallback,
-          parserMode: input.parserMode,
+          allowAiFallback: false,
+          parserMode: "deterministic",
         })
       : null;
 
@@ -72,8 +72,8 @@ export async function handle(request: Request) {
         expectedConsumerInfo: expectedConsumerInfo as unknown as Json,
         expectedTradelines: expectedTradelines as unknown as Json,
         bureau: input.bureau ?? null,
-        parserMode: input.parserMode ?? null,
-        allowAiFallback: input.allowAiFallback ?? null,
+        parserMode: "deterministic",
+        allowAiFallback: false,
         stageVersion: input.stageVersion ?? null,
         extractionSource: input.extractionSource ?? null,
         parserContext: parserContext as unknown as Json,

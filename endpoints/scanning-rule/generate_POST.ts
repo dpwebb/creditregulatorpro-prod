@@ -5,7 +5,6 @@ import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpoi
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { validateOrigin } from "../../helpers/domainGuard";
-import { generateRuleFromUpdate } from "../../helpers/dynamicRuleGenerator";
 import { logAudit } from "../../helpers/auditLogger";
 
 export async function handle(request: Request) {
@@ -37,52 +36,24 @@ export async function handle(request: Request) {
       });
     }
 
-    const generatedRule = await generateRuleFromUpdate({
-      title: updateLog.title,
-      description: updateLog.description,
-      jurisdiction: updateLog.jurisdiction,
-      changeType: updateLog.changeType,
-      statutoryReference: updateLog.statutoryReference,
-      effectiveDate: updateLog.effectiveDate instanceof Date 
-        ? updateLog.effectiveDate.toISOString() 
-        : updateLog.effectiveDate,
-    });
-
-    const insertedRule = await db
-      .insertInto("dynamicScanningRule")
-      .values({
-        regulatoryUpdateId: updateLog.id,
-        title: generatedRule.title,
-        description: generatedRule.description,
-        ruleDefinition: JSON.stringify(generatedRule.ruleDefinition),
-        violationCategory: generatedRule.violationCategory,
-        severity: generatedRule.severity,
-        confidenceScore: String(generatedRule.confidenceScore),
-        userExplanationTemplate: generatedRule.userExplanationTemplate,
-        recommendedActionTemplate: generatedRule.recommendedActionTemplate,
-        statutoryBasis: generatedRule.statutoryBasis,
-        status: "PROPOSED",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
     await logAudit({
       action: "SYSTEM_CHANGE",
       entityType: "SYSTEM",
-      entityId: insertedRule.id,
+      entityId: updateLog.id,
       userId: user.id,
-      details: { title: insertedRule.title },
+      details: {
+        regulatoryUpdateId: updateLog.id,
+        reason: "AI scanning rule generation disabled by deterministic policy",
+      },
       status: "SUCCESS",
       request,
     });
 
     return new Response(
       JSON.stringify({
-        success: true,
-        rule: insertedRule,
-      } satisfies OutputType)
+        error: "AI scanning rule generation is disabled. Create an explicit deterministic rule instead.",
+      }),
+      { status: 409, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
     return handleEndpointError(error);

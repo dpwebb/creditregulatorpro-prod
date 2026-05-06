@@ -3,6 +3,12 @@ created: 2026-04-15T23:58:51.619Z
 updated: 2026-04-16T00:02:19.738Z
 ---
 
+# RETIRED - DO NOT IMPLEMENT LEGACY REPARSE
+
+The DocStrange reparse/backfill portions of this plan are superseded by the
+deterministic credit ingestion policy. Stored tradeline repairs must come from
+explicit parser rules, aliases, validation rules, or admin-corrected fixtures.
+
 ## Summary
 Fix parsing/mapping errors that cause tradeline fields (accountType, responsibilityCode, highCredit, mop) to persist with incorrect values. Two root causes: falsy-value mapping bugs in `docstrangeParser.tsx` and stale data from older parser versions with no re-parse mechanism.
 

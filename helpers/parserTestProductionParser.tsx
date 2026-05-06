@@ -1,5 +1,4 @@
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
-import { AI_FALLBACK_AVAILABLE } from "./aiFallbackAvailability";
 import { ParserPipelineFieldAudit } from "./parserPipelineFieldReconciliation";
 import { ComprehensiveParseResult } from "./reportParserTypes";
 import type {
@@ -13,11 +12,8 @@ export interface ParserTestRunOptions {
 }
 
 export function resolveParserTestAllowAiFallback(options: ParserTestRunOptions = {}): boolean {
-  if (!AI_FALLBACK_AVAILABLE) return false;
-  if (typeof options.allowAiFallback === "boolean") return options.allowAiFallback;
-  if (options.parserMode === "deterministic") return false;
-  if (options.parserMode === "ai_fallback_enabled") return true;
-  return true;
+  void options;
+  return false;
 }
 
 export async function parsePdfThroughProductionHtmlPipeline(

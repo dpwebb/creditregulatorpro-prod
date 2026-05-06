@@ -5,7 +5,6 @@ import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpoi
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { validateOrigin } from "../../helpers/domainGuard";
-import { generateRuleFromUpdate } from "../../helpers/dynamicRuleGenerator";
 
 export async function handle(request: Request) {
   try {
@@ -60,69 +59,9 @@ export async function handle(request: Request) {
       }
     }
 
-    const CONCURRENCY = 3;
-
-    // Process in batches of CONCURRENCY to balance speed vs. API rate limits
-    for (let i = 0; i < pendingUpdates.length; i += CONCURRENCY) {
-      const batch = pendingUpdates.slice(i, i + CONCURRENCY);
-
-      const results = await Promise.allSettled(
-        batch.map(async (updateLog) => {
-          const generatedRule = await generateRuleFromUpdate({
-            title: updateLog.title,
-            description: updateLog.description,
-            jurisdiction: updateLog.jurisdiction,
-            changeType: updateLog.changeType,
-            statutoryReference: updateLog.statutoryReference,
-            effectiveDate:
-              updateLog.effectiveDate instanceof Date
-                ? updateLog.effectiveDate.toISOString()
-                : updateLog.effectiveDate,
-          });
-
-          await db
-            .insertInto("dynamicScanningRule")
-            .values({
-              regulatoryUpdateId: updateLog.id,
-              title: generatedRule.title,
-              description: generatedRule.description,
-              ruleDefinition: JSON.stringify(generatedRule.ruleDefinition),
-              violationCategory: generatedRule.violationCategory,
-              severity: generatedRule.severity,
-              confidenceScore: String(generatedRule.confidenceScore),
-              userExplanationTemplate: generatedRule.userExplanationTemplate,
-              recommendedActionTemplate: generatedRule.recommendedActionTemplate,
-              statutoryBasis: generatedRule.statutoryBasis,
-              status: "PROPOSED",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .execute();
-
-          return updateLog.id;
-        })
-      );
-
-      for (let j = 0; j < results.length; j++) {
-        const result = results[j];
-        if (result.status === "fulfilled") {
-          generated++;
-        } else {
-          console.error(
-            `Failed to generate rule for update ID ${batch[j].id}:`,
-            result.reason
-          );
-          errors++;
-        }
-      }
-    }
-
     if (pendingUpdates.length > 0) {
-      if (errors > 0) {
-        message = `Generated ${generated} rule${generated === 1 ? "" : "s"} with ${errors} error${errors === 1 ? "" : "s"}.`;
-      } else {
-        message = `Generated ${generated} rule${generated === 1 ? "" : "s"} successfully.`;
-      }
+      skipped = pendingUpdates.length;
+      message = "AI scanning rule generation is disabled. Create explicit deterministic rules for pending regulatory updates.";
     }
 
     return new Response(

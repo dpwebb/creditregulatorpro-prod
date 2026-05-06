@@ -32,7 +32,7 @@ Other parser entry points:
 
 1. anonymous preview uses `endpoints/ingest/anonymous-report_POST.ts`
 2. parser lab uses `helpers/parserLabStage.tsx`
-3. OCR review and source-text backfill call `parseReport` directly
+3. OCR review and source-text backfill call `extractCanonicalCreditReport`
 4. parser mapping tests still exercise DocStrange HTML mapping for admin diagnostics, not canonical ingestion
 
 Violation search path:
@@ -111,17 +111,19 @@ This refactor does not rename or migrate violation IDs, violation categories, re
 
 Regression coverage in `tests/unit/violation-search-preservation.spec.ts` asserts the upload-results and creditor-validation lookup fields, joins, filters, and response assumptions remain present.
 
-## Remaining Nondeterministic Components
+## Hard-Isolated Legacy Components
 
-These components are still present but are no longer canonical ingestion authority:
+These components are retained only as compatibility shims or admin diagnostics; they cannot update canonical ingestion output:
 
 1. DocStrange/LLM HTML mapping in parser mapping diagnostics
-2. Gemini OCR fallback in `pdfTextExtractor` when a caller explicitly enables OCR fallback
-3. Gemini-enhanced tradeline amount/date augmentation when a caller explicitly enables `enableAiAugmentation`
-4. Metro2 detector paths that parse stored `docstrangeRawHtml` for supplemental analysis
-5. admin-generated scanning rules outside the credit report field normalization path
+2. DocStrange submission/polling helpers, which now fail closed
+3. OpenAI/Gemini PDF fallback helpers, which now return `null`
+4. Gemini OCR and payment-grid parser helpers, which now return empty diagnostic output
+5. Gemini tradeline gap-fill, which now returns zero updates
+6. AI scanning-rule generation, which is disabled so rules must be explicit deterministic definitions
+7. legacy stored `docstrangeRawHtml` artifacts, which are counted and skipped by compliance backfill
 
-Direct `parseReport` defaults are now deterministic: OCR fallback and AI augmentation default to `false`.
+Direct `parseReport` and `extractTextFromPdf` defaults are now deterministic: OCR fallback and AI augmentation default to `false`.
 
 ## Remaining Parser Risks
 

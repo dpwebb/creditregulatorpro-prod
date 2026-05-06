@@ -1,11 +1,12 @@
 /**
  * Amount extractors for tradeline parsing.
  * Handles balances, credit limits, payments, and other monetary values.
- * 
- * Provides both sync (regex-based) and async (Gemini-enhanced) extractors.
+ *
+ * Async exports are retained for backward compatibility, but they delegate to
+ * deterministic extractors only. Gemini/LLM enrichment is disabled for
+ * authoritative credit ingestion.
  */
 
-import { parsePaymentGridWithGemini } from "./geminiTableParser";
 import {
   extractLatestTransUnionPaymentGridBalance,
   extractTransUnionPaymentGridRows,
@@ -39,24 +40,9 @@ export function extractBalance(text: string): number {
 }
 
 /**
- * Extracts the current balance from a tradeline section (async, Gemini-enhanced).
- * Falls back to regex-based extraction if Gemini fails.
+ * Extracts the current balance from a tradeline section through the deterministic path.
  */
 export async function extractBalanceAsync(text: string): Promise<number> {
-  // Try Gemini first
-  try {
-    const parsed = await parsePaymentGridWithGemini(text);
-    
-    if (parsed?.balance !== undefined) {
-      console.log(`[Amount Extractor] Extracted balance from Gemini: ${parsed.balance}`);
-      return parsed.balance;
-    }
-  } catch (error) {
-    console.warn("[Amount Extractor] Gemini balance extraction failed:", error);
-  }
-
-  // Fallback to regex-based extraction
-  console.log("[Amount Extractor] Falling back to regex-based balance extraction");
   return extractBalance(text);
 }
 
@@ -120,52 +106,12 @@ export function extractAmounts(text: string): {
 }
 
 /**
- * Extracts amounts (high credit, past due, etc.) from a tradeline section (async, Gemini-enhanced).
- * Falls back to regex-based extraction if Gemini fails.
+ * Extracts amounts (high credit, past due, etc.) through the deterministic path.
  */
 export async function extractAmountsAsync(text: string): Promise<{
   high?: number;
   pastDue?: number;
 }> {
-  const amounts: {
-    high?: number;
-    pastDue?: number;
-  } = {
-    high: undefined,
-    pastDue: undefined,
-  };
-
-  // Try Gemini first
-  try {
-    const parsed = await parsePaymentGridWithGemini(text);
-    
-    if (parsed) {
-      if (parsed.highCredit !== undefined) {
-        amounts.high = parsed.highCredit;
-        console.log(`[Amount Extractor] Extracted high credit from Gemini: ${parsed.highCredit}`);
-      }
-      if (parsed.pastDue !== undefined) {
-        amounts.pastDue = parsed.pastDue;
-        console.log(`[Amount Extractor] Extracted past due from Gemini: ${parsed.pastDue}`);
-      }
-
-      // If we got at least one value from Gemini, return
-      if (amounts.high !== undefined || amounts.pastDue !== undefined) {
-        // Fill in missing values with regex fallback
-        if (amounts.high === undefined || amounts.pastDue === undefined) {
-          const regexAmounts = extractAmounts(text);
-          amounts.high = amounts.high ?? regexAmounts.high;
-          amounts.pastDue = amounts.pastDue ?? regexAmounts.pastDue;
-        }
-        return amounts;
-      }
-    }
-  } catch (error) {
-    console.warn("[Amount Extractor] Gemini amounts extraction failed:", error);
-  }
-
-  // Fallback to regex-based extraction
-  console.log("[Amount Extractor] Falling back to regex-based amounts extraction");
   return extractAmounts(text);
 }
 
@@ -196,42 +142,17 @@ export function extractCreditLimit(text: string): number | null {
 }
 
 /**
- * Extracts the Manner of Payment (MOP) code (async, Gemini-enhanced).
+ * Extracts the Manner of Payment (MOP) code.
  */
 export async function extractMopAsync(text: string): Promise<string | undefined> {
-  try {
-    const parsed = await parsePaymentGridWithGemini(text);
-    
-    if (parsed?.mop !== undefined) {
-      console.log(`[Amount Extractor] Extracted MOP from Gemini: ${parsed.mop}`);
-      return parsed.mop;
-    }
-  } catch (error) {
-    console.warn("[Amount Extractor] Gemini MOP extraction failed:", error);
-  }
-
+  void text;
   return undefined;
 }
 
 /**
- * Extracts the credit limit (async, Gemini-enhanced).
- * Falls back to regex-based extraction if Gemini fails.
+ * Extracts the credit limit through the deterministic path.
  */
 export async function extractCreditLimitAsync(text: string): Promise<number | null> {
-  // Try Gemini first
-  try {
-    const parsed = await parsePaymentGridWithGemini(text);
-    
-    if (parsed?.creditLimit !== undefined) {
-      console.log(`[Amount Extractor] Extracted credit limit from Gemini: ${parsed.creditLimit}`);
-      return parsed.creditLimit;
-    }
-  } catch (error) {
-    console.warn("[Amount Extractor] Gemini credit limit extraction failed:", error);
-  }
-
-  // Fallback to regex-based extraction
-  console.log("[Amount Extractor] Falling back to regex-based credit limit extraction");
   return extractCreditLimit(text);
 }
 

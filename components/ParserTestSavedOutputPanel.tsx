@@ -6,7 +6,6 @@ import { Button } from "./Button";
 import { Input } from "./Input";
 import { Textarea } from "./Textarea";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
-import { AI_FALLBACK_AVAILABLE } from "../helpers/aiFallbackAvailability";
 import { EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE } from "../helpers/parserRulePromotionDecision";
 import styles from "./ParserTestSavedOutputPanel.module.css";
 
@@ -633,17 +632,14 @@ function parserModeLabel(value: unknown): string {
   const mode = formatScalar(value);
   if (mode === "deterministic") return "Deterministic only";
   if (mode === "ai_fallback_enabled") {
-    return AI_FALLBACK_AVAILABLE ? "AI fallback enabled" : "AI fallback suspended";
+    return "Deterministic only";
   }
   return mode || "Mode not recorded";
 }
 
 function aiFallbackStatusLabel(value: unknown): string {
-  if (!AI_FALLBACK_AVAILABLE) {
-    return value === true ? "Suspended (saved allowed)" : "Suspended";
-  }
-
-  return value === true ? "Allowed" : "Off";
+  void value;
+  return "Disabled by deterministic policy";
 }
 
 function coerceCorrectValue(value: string, parsedValue: unknown, fieldPath: string): unknown {

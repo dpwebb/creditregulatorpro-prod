@@ -24,7 +24,7 @@ export async function handle(request: Request) {
       fileName: input.fileName ?? "credit-report.pdf",
       mimeType: input.mimeType ?? "application/pdf",
       bytesBase64: input.bytesBase64 ?? "",
-      allowAiFallback: input.allowAiFallback,
+      allowAiFallback: false,
     });
 
     return new Response(JSON.stringify(output satisfies OutputType), {

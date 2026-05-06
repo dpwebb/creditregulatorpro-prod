@@ -276,7 +276,6 @@ export async function executeIngestPipeline({
 
   let llmData;
   let extractionProvenance: Record<string, unknown> | null = null;
-  let rawHtml: string | null = null;
   let deterministicPipeline: DeterministicPipelinePackage | null = null;
   try {
     const canonicalExtraction = await extractCanonicalCreditReport({
@@ -291,7 +290,6 @@ export async function executeIngestPipeline({
     detectedBureauInfo = canonicalExtraction.parseResult.sourceBureau || null;
     parserQuality = canonicalExtraction.parserQuality;
     extractionProvenance = canonicalExtraction.provenance as unknown as Record<string, unknown>;
-    rawHtml = canonicalExtraction.rawHtml;
     deterministicPipeline = canonicalExtraction.deterministicPipeline;
   } catch (error: unknown) {
     console.error(`[Ingest] Canonical extraction failed:`, error);
@@ -329,7 +327,6 @@ export async function executeIngestPipeline({
     .set({
       data: JSON.parse(JSON.stringify({
         ...currentQualityData,
-        ...(rawHtml ? { docstrangeRawHtml: rawHtml } : {}),
         extractionStatus: "extracted",
         extractionSource: extractionProvenance?.selectedMethod ?? "pdf_text",
         extractionProvenance,

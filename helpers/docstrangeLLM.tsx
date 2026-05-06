@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { SSEEvent } from "./sseStreamBuilder";
+import type { SSEEvent } from "./sseStreamBuilder";
 
 /**
- * Zod schema for the structured output expected from DocStrange API.
- * This matches the response from extraction-api.nanonets.com
+ * Zod schema for the legacy DocStrange-shaped compatibility envelope.
+ * This shape is retained for deterministic parser diagnostics and old type imports.
  */
 
 const DocStrangePersonalInfoSchema = z.object({
@@ -178,114 +178,22 @@ export type DocStrangeSubmitResult =
   | { mode: "failed"; error: string };
 
 /**
- * Converts base64 PDF data to a File object for multipart/form-data upload.
- */
-function base64ToFile(base64Data: string, filename: string): File {
-  // Remove data URL prefix if present
-  const base64Clean = base64Data.replace(/^data:application\/pdf;base64,/, "");
-
-  // Convert base64 to binary
-  const binaryString = atob(base64Clean);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  // Create File object
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  return new File([blob], filename, { type: "application/pdf" });
-}
-
-/**
- * Processes raw DocStrange response object, extracting HTML content.
- */
-function processDocStrangeResponseData(data: any): { html: string | null } {
-  let html: string | null = null;
-
-  if (data.result && data.result.html) {
-    if (typeof data.result.html === "object" && data.result.html.content) {
-      html = data.result.html.content;
-    } else if (typeof data.result.html === "string") {
-      html = data.result.html;
-    }
-  } else if (data.html) {
-    if (typeof data.html === "object" && data.html.content) {
-      html = data.html.content;
-    } else if (typeof data.html === "string") {
-      html = data.html;
-    }
-  }
-
-  return { html };
-}
-
-/**
- * Submits PDF data to DocStrange API for extraction using the async endpoint.
+ * Legacy DocStrange submission is disabled for deterministic credit ingestion.
  */
 export async function submitDocStrangeExtraction(
   base64PdfData: string,
   sendSSE?: (event: SSEEvent) => void
 ): Promise<DocStrangeSubmitResult> {
-  const apiKey = process.env.DOCSTRANGE_API_KEY;
-
-  if (!apiKey) {
-    console.error("[DocStrange API] Missing DOCSTRANGE_API_KEY");
-    return { mode: "failed", error: "Missing API Key" };
-  }
-
-  try {
-    console.log("[DocStrange API] Preparing PDF for upload to async endpoint...");
-    const pdfFile = base64ToFile(base64PdfData, "credit-report.pdf");
-
-    const asyncFormData = new FormData();
-    asyncFormData.append("file", pdfFile);
-    asyncFormData.append("output_format", "html");
-
-    let heartbeatInterval: NodeJS.Timeout | null = null;
-    if (sendSSE) {
-      heartbeatInterval = setInterval(() => {
-        sendSSE({
-          type: "progress",
-          stage: "docstrange_processing",
-          message: "Processing with XApp proprietary AI...",
-        });
-      }, 5000);
-    }
-
-    let asyncResponse: Response;
-    try {
-      asyncResponse = await fetch("https://extraction-api.nanonets.com/api/v1/extract/async", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}` },
-        body: asyncFormData,
-      });
-    } finally {
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
-    }
-
-    if (!asyncResponse.ok) {
-      const asyncErrorText = await asyncResponse.text();
-      console.error(`[DocStrange API] Async API error: ${asyncResponse.status} ${asyncResponse.statusText}`, asyncErrorText);
-      return { mode: "failed", error: `Async API returned ${asyncResponse.status}` };
-    }
-
-    const asyncData = await asyncResponse.json();
-    const recordId = asyncData.record_id;
-    if (!recordId) {
-      console.error("[DocStrange API] Async API did not return a record_id");
-      return { mode: "failed", error: "Async API missing record_id" };
-    }
-
-    console.log(`[DocStrange API] Successfully submitted to async endpoint. Record ID: ${recordId}`);
-    return { mode: "async", recordId };
-  } catch (error) {
-    console.error("[DocStrange API] Unexpected error", error);
-    return { mode: "failed", error: error instanceof Error ? error.message : "Unknown error" };
-  }
+  void base64PdfData;
+  void sendSSE;
+  return {
+    mode: "failed",
+    error: "DocStrange extraction is disabled by deterministic ingestion policy.",
+  };
 }
 
 /**
- * Polls DocStrange async results endpoint until processing is complete.
+ * Legacy DocStrange polling is disabled for deterministic credit ingestion.
  */
 export async function pollDocStrangeResult(
   recordId: string,
@@ -293,63 +201,22 @@ export async function pollDocStrangeResult(
   maxAttempts: number = 50,
   intervalMs: number = 3000
 ): Promise<{ html: string | null } | null> {
-  const apiKey = process.env.DOCSTRANGE_API_KEY;
-  if (!apiKey) {
-    console.error("[DocStrange API] Missing DOCSTRANGE_API_KEY");
-    return null;
-  }
-
-    let pollData: any = { status: "processing" };
-  let attempts = 0;
-
-  while (pollData.status === "processing" && attempts < maxAttempts) {
-    attempts++;
-    if (sendSSE) {
-      // Progress from 15% to 34% across all polling attempts
-      const percent = Math.min(15 + Math.round((attempts / maxAttempts) * 19), 34);
-      sendSSE({
-        type: "progress",
-        stage: "docstrange_processing",
-        message: `Processing with XApp proprietary AI (Async attempt ${attempts}/${maxAttempts})...`,
-        percent,
-      });
-    }
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
-
-    const pollResponse = await fetch(`https://extraction-api.nanonets.com/api/v1/extract/results/${recordId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-
-    if (pollResponse.ok) {
-      pollData = await pollResponse.json();
-    } else {
-      console.error(`[DocStrange API] Poll failed with status ${pollResponse.status}`);
-    }
-  }
-
-  if (pollData.status === "processing") {
-    console.error(`[DocStrange API] Async polling exhausted all ${maxAttempts} attempts without completion.`);
-    return null;
-  }
-
-  console.log("[DocStrange API] Successfully polled async results");
-  return processDocStrangeResponseData(pollData);
+  void recordId;
+  void sendSSE;
+  void maxAttempts;
+  void intervalMs;
+  return null;
 }
 
 /**
- * Calls DocStrange API to extract structured data from a PDF credit report.
- * Provides backwards compatibility for legacy calls.
+ * Legacy DocStrange extraction is disabled for deterministic credit ingestion.
  */
 export async function extractStructuredDataWithDocStrange(
   base64PdfData: string,
   sendSSE?: (event: SSEEvent) => void
 ): Promise<{ html: string | null } | null> {
-  const submitResult = await submitDocStrangeExtraction(base64PdfData, sendSSE);
-
-  if (submitResult.mode === "async") {
-    return await pollDocStrangeResult(submitResult.recordId, sendSSE, 28, 5000); // legacy equivalent timeout settings
-  }
-
+  void base64PdfData;
+  void sendSSE;
   return null;
 }
 

@@ -41,8 +41,8 @@ export async function handle(request: Request) {
     const { parseResult, rawExtractedText, parserPipelineAudit, canonicalOutput, replayHash } = await parsePdfThroughProductionHtmlPipeline(
       testCase.pdfBase64,
       {
-        allowAiFallback: testCase.allowAiFallback,
-        parserMode: testCase.parserMode,
+        allowAiFallback: false,
+        parserMode: "deterministic",
       },
     );
     const expectedConsumerInfo = testCase.approvedConsumerInfo ?? testCase.expectedConsumerInfo;

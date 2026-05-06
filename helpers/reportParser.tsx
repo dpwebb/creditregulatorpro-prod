@@ -127,7 +127,7 @@ export async function parseReport(
   options: ParseReportOptions = {},
 ): Promise<ComprehensiveParseResult> {
   const allowOcrFallback = options.allowOcrFallback ?? false;
-  const enableAiAugmentation = options.enableAiAugmentation ?? false;
+  const enableAiAugmentation = false;
   const logRawTextPreview = options.logRawTextPreview ?? DEFAULT_LOG_RAW_TEXT_PREVIEW;
 
   console.log(
@@ -308,8 +308,9 @@ export async function parseReport(
       rawTradelines = extractTradelines(text);
     }
 
-    // Augment tradelines with additional fields extracted from source text
-    // Use async processing to leverage Gemini-enhanced extractors for tradelines with payment grids
+    // Augment tradelines with additional fields extracted from source text.
+    // AI augmentation is disabled; async extractor calls are retained only as
+    // deterministic compatibility wrappers if a legacy caller enables the flag.
     const tradelines = await Promise.all(
       rawTradelines.map(async (tradeline) => {
         if (!tradeline.sourceText) return tradeline;
@@ -377,93 +378,89 @@ export async function parseReport(
         const resolvedEntity = resolveCreditorEntity(tradeline.creditorName);
         console.log(`[Report Parser]   Creditor '${tradeline.creditorName}' resolved to canonical entity: ${resolvedEntity.canonicalName} (${resolvedEntity.entityType})`);
 
-        // If payment grid detected, use Gemini-enhanced extraction for more accurate financial data
+        // Legacy AI augmentation is disabled for authoritative ingestion.
         if (enableAiAugmentation && hasPaymentGrid) {
           console.log(
-            `[Report Parser]   Tradeline "${tradeline.creditorName}" has payment grid - using Gemini-enhanced extraction`,
+            `[Report Parser]   Tradeline "${tradeline.creditorName}" has payment grid - using deterministic async compatibility extraction`,
           );
 
           const deterministicBalance = extractBalance(sourceText);
 
-          // Extract balance with Gemini
-          const geminiBalance = await extractBalanceAsync(sourceText);
-          const shouldUseGeminiBalance =
-            geminiBalance > 0 &&
+          const asyncBalance = await extractBalanceAsync(sourceText);
+          const shouldUseAsyncBalance =
+            asyncBalance > 0 &&
             (
               deterministicBalance <= 0 ||
               tradeline.balance <= 0 ||
-              amountsWithinTolerance(geminiBalance, deterministicBalance)
+              amountsWithinTolerance(asyncBalance, deterministicBalance)
             );
 
-          if (shouldUseGeminiBalance && geminiBalance !== tradeline.balance) {
+          if (shouldUseAsyncBalance && asyncBalance !== tradeline.balance) {
             console.log(
-              `[Report Parser]   Balance updated from ${tradeline.balance} to ${geminiBalance} (Gemini)`,
+              `[Report Parser]   Balance updated from ${tradeline.balance} to ${asyncBalance} (deterministic compatibility)`,
             );
-            augmented.balance = geminiBalance;
+            augmented.balance = asyncBalance;
           } else if (deterministicBalance > 0 && deterministicBalance !== tradeline.balance) {
             console.log(
               `[Report Parser]   Balance corrected from ${tradeline.balance} to ${deterministicBalance} (deterministic grid)`,
             );
             augmented.balance = deterministicBalance;
-          } else if (geminiBalance > 0 && !shouldUseGeminiBalance) {
+          } else if (asyncBalance > 0 && !shouldUseAsyncBalance) {
             console.log(
-              `[Report Parser]   Ignored Gemini balance ${geminiBalance}; keeping deterministic ${deterministicBalance || tradeline.balance}`,
+              `[Report Parser]   Ignored compatibility balance ${asyncBalance}; keeping deterministic ${deterministicBalance || tradeline.balance}`,
             );
           }
 
-          // Extract amounts with Gemini
-          const geminiAmounts = await extractAmountsAsync(sourceText);
-          if (geminiAmounts.high !== undefined || geminiAmounts.pastDue !== undefined) {
+          const asyncAmounts = await extractAmountsAsync(sourceText);
+          if (asyncAmounts.high !== undefined || asyncAmounts.pastDue !== undefined) {
             const currentHigh = tradeline.amounts.high;
-            const geminiHigh = geminiAmounts.high;
+            const asyncHigh = asyncAmounts.high;
             if (
-              geminiHigh !== undefined &&
+              asyncHigh !== undefined &&
               (
                 currentHigh == null ||
                 currentHigh <= 0 ||
-                amountsWithinTolerance(geminiHigh, currentHigh)
+                amountsWithinTolerance(asyncHigh, currentHigh)
               ) &&
-              geminiHigh !== currentHigh
+              asyncHigh !== currentHigh
             ) {
               console.log(
-                `[Report Parser]   High credit updated from ${tradeline.amounts.high} to ${geminiHigh} (Gemini)`,
+                `[Report Parser]   High credit updated from ${tradeline.amounts.high} to ${asyncHigh} (deterministic compatibility)`,
               );
-              augmented.amounts.high = geminiHigh;
+              augmented.amounts.high = asyncHigh;
             }
             const currentPastDue = tradeline.amounts.pastDue;
-            const geminiPastDue = geminiAmounts.pastDue;
+            const asyncPastDue = asyncAmounts.pastDue;
             if (
-              geminiPastDue !== undefined &&
+              asyncPastDue !== undefined &&
               (
                 currentPastDue == null ||
-                amountsWithinTolerance(geminiPastDue, currentPastDue, 0.5)
+                amountsWithinTolerance(asyncPastDue, currentPastDue, 0.5)
               ) &&
-              geminiPastDue !== currentPastDue
+              asyncPastDue !== currentPastDue
             ) {
               console.log(
-                `[Report Parser]   Past due updated from ${tradeline.amounts.pastDue} to ${geminiPastDue} (Gemini)`,
+                `[Report Parser]   Past due updated from ${tradeline.amounts.pastDue} to ${asyncPastDue} (deterministic compatibility)`,
               );
-              augmented.amounts.pastDue = geminiPastDue;
+              augmented.amounts.pastDue = asyncPastDue;
             }
           }
 
-          // Extract credit limit with Gemini
-          const geminiCreditLimit = await extractCreditLimitAsync(sourceText);
+          const asyncCreditLimit = await extractCreditLimitAsync(sourceText);
           if (
-            geminiCreditLimit &&
+            asyncCreditLimit &&
             (
               !tradeline.creditLimit ||
               tradeline.creditLimit <= 0 ||
-              amountsWithinTolerance(geminiCreditLimit, tradeline.creditLimit)
+              amountsWithinTolerance(asyncCreditLimit, tradeline.creditLimit)
             )
           ) {
-            augmented.creditLimit = geminiCreditLimit;
+            augmented.creditLimit = asyncCreditLimit;
           }
 
-          // Extract MOP with Gemini
-          const geminiMop = await extractMopAsync(sourceText);
-          if (geminiMop !== undefined) {
-            augmented.mop = geminiMop;
+          const asyncMop = await extractMopAsync(sourceText);
+          if (asyncMop !== undefined) {
+            augmented.mop = asyncMop;
           }
         } else {
           // No payment grid - use synchronous extractor for credit limit

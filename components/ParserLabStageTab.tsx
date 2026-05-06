@@ -5,11 +5,9 @@ import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { FileDropzone } from "./FileDropzone";
 import { Spinner } from "./Spinner";
-import { Switch } from "./Switch";
 import { useRunParserLabStage } from "../helpers/parserLabQueries";
 import { PARSER_LAB_STAGE_VERSION } from "../helpers/parserLabStageVersion";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
-import { AI_FALLBACK_AVAILABLE } from "../helpers/aiFallbackAvailability";
 import styles from "./ParserLabStageTab.module.css";
 
 type ParserLabResult = Awaited<ReturnType<ReturnType<typeof useRunParserLabStage>["mutateAsync"]>>;
@@ -259,13 +257,12 @@ function buildStageLabTestCaseName(result: ParserLabResult): string {
 }
 
 function buildStageLabTestCaseDescription(result: ParserLabResult): string {
-  const allowAiFallback = Boolean((result.provenance as any)?.allowAiFallback);
   return [
     "Created from Stage Lab parser run.",
     `Source file: ${result.fileName}`,
     `Stage version: ${result.stageVersion}`,
     `Bureau: ${formatValue(result.bureauName)}`,
-    `Parser mode: ${allowAiFallback ? "AI fallback enabled" : "Deterministic only"}`,
+    "Parser mode: Deterministic only",
     `Confidence: ${result.quality.confidenceScore}%`,
     `Original SHA-256: ${result.retention.originalDocumentSha256}`,
     `Canonical SHA-256: ${result.retention.canonicalResultSha256}`,
@@ -279,7 +276,6 @@ function buildStageLabTestCasePayload(
   const parsedResult = isPlainRecord(result.audit?.parsedResult)
     ? result.audit.parsedResult
     : {};
-  const allowAiFallback = Boolean((result.provenance as any)?.allowAiFallback);
 
   return {
     name: buildStageLabTestCaseName(result),
@@ -291,15 +287,15 @@ function buildStageLabTestCasePayload(
       : result.parsed.tradelines,
     rawExtractedText: result.rawExtractedText || result.rawTextPreview || null,
     bureau: hasReportedValue(result.bureauName) ? String(result.bureauName) : null,
-    parserMode: allowAiFallback ? "ai_fallback_enabled" : "deterministic",
-    allowAiFallback,
+    parserMode: "deterministic",
+    allowAiFallback: false,
     stageVersion: result.stageVersion,
     extractionSource: result.extractionSource,
     parserContext: {
       sourceFileName: result.fileName,
       bureauName: result.bureauName,
-      parserMode: allowAiFallback ? "ai_fallback_enabled" : "deterministic",
-      allowAiFallback,
+      parserMode: "deterministic",
+      allowAiFallback: false,
       stageVersion: result.stageVersion,
       extractionSource: result.extractionSource,
       quality: result.quality,
@@ -835,7 +831,6 @@ export function ParserLabStageTab({
   isSavingTestCase = false,
 }: ParserLabStageTabProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [allowAiFallback, setAllowAiFallback] = useState(AI_FALLBACK_AVAILABLE);
   const [result, setResult] = useState<ParserLabResult | null>(null);
   const [resultPdfBase64, setResultPdfBase64] = useState<string | null>(null);
   const [savedTestCaseId, setSavedTestCaseId] = useState<number | null>(null);
@@ -865,7 +860,7 @@ export function ParserLabStageTab({
         fileName: selectedFile.name,
         mimeType: selectedFile.type || "application/pdf",
         bytesBase64,
-        allowAiFallback: AI_FALLBACK_AVAILABLE && allowAiFallback,
+        allowAiFallback: false,
       });
       setResult(nextResult);
       setResultPdfBase64(bytesBase64);
@@ -929,18 +924,12 @@ export function ParserLabStageTab({
 
           <div className={styles.controlRow}>
             <div>
-              <span className={styles.controlLabel}>AI fallback</span>
+              <span className={styles.controlLabel}>Deterministic parser only</span>
               <span className={styles.controlHelp}>
-                {AI_FALLBACK_AVAILABLE
-                  ? "Only used when deterministic extraction needs help."
-                  : "Suspended pending controlled parser testing."}
+                AI and DocStrange output is diagnostic-only and cannot be saved as parser truth.
               </span>
             </div>
-            <Switch
-              checked={AI_FALLBACK_AVAILABLE && allowAiFallback}
-              disabled={!AI_FALLBACK_AVAILABLE}
-              onCheckedChange={setAllowAiFallback}
-            />
+            <Badge variant="info">Locked</Badge>
           </div>
 
           <div className={styles.actions}>

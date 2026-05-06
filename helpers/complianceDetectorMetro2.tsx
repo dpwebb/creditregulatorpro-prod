@@ -1,6 +1,4 @@
 import type { Selectable } from "kysely";
-import { routeHtmlToLLMResponseWithOverrides } from "./bureauDetectionRouter";
-import { db } from "./db";
 import type { Tradeline } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
 import { isEffectivelyCollectionAccount } from "./complianceDetectorTypes";
@@ -13,81 +11,6 @@ export async function detectMetro2FieldViolations(
   tradeline: Selectable<Tradeline>
 ): Promise<DetectedViolation[]> {
   const violations: DetectedViolation[] = [];
-
-  let matchingRawAccount: any = null;
-  if (tradeline.reportArtifactId) {
-    const artifactForRating = await db
-      .selectFrom("reportArtifact")
-      .select("data")
-      .where("id", "=", tradeline.reportArtifactId)
-      .executeTakeFirst();
-
-    if (artifactForRating?.data) {
-      const data = artifactForRating.data as any;
-      let creditorName = (tradeline as any).creditorName || tradeline.originalCreditorName || "";
-      if (!creditorName && tradeline.creditorId) {
-        const creditorRow = await db
-          .selectFrom("creditor")
-          .select("name")
-          .where("id", "=", tradeline.creditorId)
-          .executeTakeFirst();
-        creditorName = creditorRow?.name || "";
-      }
-      
-      let accountsToSearch: any[] = [];
-      if (data?.docstrangeRawHtml) {
-        const parsedData = await routeHtmlToLLMResponseWithOverrides(data.docstrangeRawHtml);
-        if (parsedData?.tradelines && Array.isArray(parsedData.tradelines)) {
-          accountsToSearch = parsedData.tradelines;
-        }
-      } else {
-        const rawJson = data?.docstrangeRawJson;
-        if (rawJson?.accounts && Array.isArray(rawJson.accounts)) {
-          accountsToSearch = rawJson.accounts;
-        }
-      }
-
-      if (accountsToSearch.length > 0) {
-        matchingRawAccount = accountsToSearch.find((acct: any) => {
-          if (!acct.creditorName) return false;
-          return acct.creditorName.toUpperCase().includes(creditorName.toUpperCase()) ||
-                 creditorName.toUpperCase().includes(acct.creditorName.toUpperCase());
-        });
-
-        if (!matchingRawAccount) {
-          const targetWords = creditorName.toUpperCase().split(/\s+/).filter(Boolean);
-          let bestMatch = null;
-          let bestOverlapCount = 0;
-          
-          for (const acct of accountsToSearch) {
-            if (!acct.creditorName) continue;
-            const acctWords = acct.creditorName.toUpperCase().split(/\s+/).filter(Boolean);
-            
-            let overlapCount = 0;
-            const targetWordsCopy = [...targetWords];
-            for (const word of acctWords) {
-              const idx = targetWordsCopy.indexOf(word);
-              if (idx !== -1) {
-                overlapCount++;
-                targetWordsCopy.splice(idx, 1);
-              }
-            }
-            
-            const minWords = Math.min(targetWords.length, acctWords.length);
-            if (overlapCount >= 2 && (overlapCount / minWords) >= 0.5) {
-              if (overlapCount > bestOverlapCount) {
-                bestOverlapCount = overlapCount;
-                bestMatch = acct;
-              }
-            }
-          }
-          if (bestMatch) {
-            matchingRawAccount = bestMatch;
-          }
-        }
-      }
-    }
-  }
 
   const isCollection = isEffectivelyCollectionAccount(tradeline);
 
@@ -186,7 +109,7 @@ export async function detectMetro2FieldViolations(
   const isClosed = tradeline.dateClosed !== null;
   // const hasBalance = balance > 0; // Removed per new requirements to check all open accounts
 
-    const hasDateOfLastPayment = tradeline.dateOfLastPayment || (matchingRawAccount?.lastPaymentDate && matchingRawAccount.lastPaymentDate.trim() !== "");
+    const hasDateOfLastPayment = Boolean(tradeline.dateOfLastPayment);
 
   // Exclude collection, charge-off, MOP 9, and transferred accounts — these legitimately lack payment activity
   const statusForActivity = (tradeline.status || "").toUpperCase();
@@ -418,26 +341,13 @@ export async function detectMetro2FieldViolations(
   }
 
   // 16. Missing Charge-off Date for write-off/charge-off accounts
-  const legendUpper = (matchingRawAccount?.legend || "").toUpperCase();
-  const narrativeUpper = Array.isArray(matchingRawAccount?.narrative) 
-    ? matchingRawAccount.narrative.join(" ").toUpperCase() 
-    : (matchingRawAccount?.narrative || "").toString().toUpperCase();
-
   const isChargeOffStatus = status.includes("WO") ||
     status.includes("WRITE-OFF") ||
     status.includes("WRITEOFF") ||
     status.includes("WRITE OFF") ||
     status.includes("CHARGE-OFF") ||
     status.includes("CHARGEOFF") ||
-    status.includes("CHARGED OFF") ||
-    legendUpper.includes("WO") ||
-    legendUpper.includes("WRITE-OFF") ||
-    legendUpper.includes("WRITEOFF") ||
-    legendUpper.includes("WRITE OFF") ||
-    legendUpper.includes("CHARGE-OFF") ||
-    legendUpper.includes("CHARGEOFF") ||
-    legendUpper.includes("CHARGED OFF") ||
-    narrativeUpper.includes("WO");
+    status.includes("CHARGED OFF");
 
   if (isChargeOffStatus && !tradeline.chargeOffDate) {
     violations.push({

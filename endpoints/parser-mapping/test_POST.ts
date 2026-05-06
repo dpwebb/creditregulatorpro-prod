@@ -58,6 +58,10 @@ export async function handle(request: Request) {
 
     return new Response(
       superjson.stringify({
+        diagnosticOnly: true,
+        authoritative: false,
+        canonical: false,
+        sourceStage: "PARSER_MAPPING_DIAGNOSTIC",
         defaultResult,
         overriddenResult,
         detectedBureau,

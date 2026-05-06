@@ -1,10 +1,10 @@
 /**
  * TypeScript types for Pass-A draft extraction conforming to schema "urn:compnd:schemas:pass-a-draft-extraction:v1".
- * This defines the structure for the AI-first extraction of consumer profile and bureau metadata.
+ * This defines deterministic extraction of consumer profile and bureau metadata.
  */
 
 // Source method enum for provenance tracking
-export type ExtractionSourceMethod = 'pdf_text' | 'ocr_text' | 'ai_text' | 'ai_ocr' | 'ai_vision';
+export type ExtractionSourceMethod = 'pdf_text' | 'ocr_text';
 
 // Provenance evidence - REQUIRED for every extracted value
 export interface ProvenanceEvidence {

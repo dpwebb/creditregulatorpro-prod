@@ -3,6 +3,12 @@ created: 2026-04-18T10:48:10.045Z
 updated: 2026-04-18T10:51:26.182Z
 ---
 
+# RETIRED - DO NOT IMPLEMENT
+
+This plan is superseded by the deterministic credit ingestion policy. OpenAI,
+Gemini, DocStrange, or any other AI extraction output must not become
+authoritative credit ingestion data.
+
 # AI Fallback Extractors for Credit Report Ingestion
 
 ## Summary

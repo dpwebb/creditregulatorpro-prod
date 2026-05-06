@@ -11,6 +11,10 @@ export const schema = z.object({
 export type InputType = z.infer<typeof schema>;
 
 export type OutputType = {
+  diagnosticOnly: true;
+  authoritative: false;
+  canonical: false;
+  sourceStage: "PARSER_MAPPING_DIAGNOSTIC";
   defaultResult: ComprehensiveParseResult;
   overriddenResult: ComprehensiveParseResult;
   detectedBureau: string;
