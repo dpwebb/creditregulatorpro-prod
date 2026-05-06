@@ -1,4 +1,5 @@
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
+import { resolveAiFallbackAvailability } from "./aiFallbackAvailability";
 import {
   ComprehensiveParseResult,
   ParsedPaymentHistoryDetail,
@@ -359,10 +360,11 @@ function toAuditValue(value: unknown): unknown {
 }
 
 export async function runParserLabStage(input: ParserLabStageInput): Promise<ParserLabStageOutput> {
+  const allowAiFallback = resolveAiFallbackAvailability(input.allowAiFallback);
   const extraction = await extractCanonicalCreditReport({
     bytesBase64: input.bytesBase64,
     mimeType: input.mimeType,
-    allowAiFallback: input.allowAiFallback ?? true,
+    allowAiFallback,
   });
 
   const { parseResult, parserQuality, provenance } = extraction;
@@ -430,8 +432,8 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
     },
     provenance: {
       ...(provenance as unknown as Record<string, unknown>),
-      allowAiFallback: input.allowAiFallback ?? true,
-      parserMode: input.allowAiFallback === false ? "deterministic" : "ai_fallback_enabled",
+      allowAiFallback,
+      parserMode: allowAiFallback ? "ai_fallback_enabled" : "deterministic",
     },
     rawExtractedText: extraction.rawText,
     rawTextPreview: previewText(extraction.rawText, 5000),

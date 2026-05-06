@@ -280,7 +280,7 @@ export async function executeIngestPipeline({
     const canonicalExtraction = await extractCanonicalCreditReport({
       bytesBase64,
       mimeType,
-      allowAiFallback: true,
+      allowAiFallback: false,
     });
 
     llmData = canonicalExtraction.llmData;

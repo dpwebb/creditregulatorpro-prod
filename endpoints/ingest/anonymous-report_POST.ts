@@ -63,7 +63,7 @@ export async function handle(request: Request) {
     const extraction = await extractCanonicalCreditReport({
       bytesBase64: input.bytesBase64,
       mimeType: input.mimeType,
-      allowAiFallback: true,
+      allowAiFallback: false,
     });
     const parseResult = extraction.parseResult;
 

@@ -43,7 +43,7 @@ async function runForFile(filePath: string): Promise<SmokeSummary> {
   const extraction = await extractCanonicalCreditReport({
     bytesBase64: bytes.toString("base64"),
     mimeType: "application/pdf",
-    allowAiFallback: true,
+    allowAiFallback: false,
   }).finally(() => {
     console.log = originalLog;
     console.warn = originalWarn;

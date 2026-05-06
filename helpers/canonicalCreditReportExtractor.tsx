@@ -7,8 +7,9 @@ import { assessParserQuality, ParserQualityAssessment } from "./parserQuality";
 import { parseReport } from "./reportParser";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import { sha256HexOfBase64Payload, sha256HexOfJson } from "./reportBinaryUtils";
+import { AI_FALLBACK_AVAILABLE, resolveAiFallbackAvailability } from "./aiFallbackAvailability";
 
-export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "parser-first-2026-05-v1";
+export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "parser-first-2026-05-v2-ai-fallback-suspended";
 
 export type CanonicalExtractionMethod = "pdf_text" | "gemini" | "openai";
 
@@ -29,6 +30,8 @@ export interface CanonicalExtractionProvenance {
   sourceEvidence: "pdf_text" | "ai_generated_html";
   documentBinarySha256: string;
   canonicalResultSha256: string;
+  aiFallbackAvailable: boolean;
+  aiFallbackRequested: boolean;
   attempts: CanonicalExtractionAttempt[];
   extractedAt: string;
 }
@@ -339,7 +342,8 @@ export async function extractCanonicalCreditReport(
 
   const attempts: CanonicalExtractionAttempt[] = [];
   const documentBinarySha256 = sha256HexOfBase64Payload(input.bytesBase64);
-  const allowAiFallback = input.allowAiFallback ?? true;
+  const requestedAiFallback = input.allowAiFallback ?? true;
+  const allowAiFallback = resolveAiFallbackAvailability(input.allowAiFallback);
 
   let deterministic: CandidateExtraction | null = null;
 
@@ -405,7 +409,17 @@ export async function extractCanonicalCreditReport(
       attempts.push(summarizeAttempt("gemini", "failed", null, 0, error));
     }
   } else {
-    attempts.push(summarizeAttempt("gemini", "skipped", null, 0));
+    attempts.push(
+      summarizeAttempt(
+        "gemini",
+        "skipped",
+        null,
+        0,
+        !AI_FALLBACK_AVAILABLE && requestedAiFallback
+          ? "AI fallback is suspended pending parser testing."
+          : undefined,
+      ),
+    );
   }
 
   if (!deterministic && !aiCandidate) {
@@ -437,6 +451,8 @@ export async function extractCanonicalCreditReport(
       sourceEvidence: selected.method === "pdf_text" ? "pdf_text" : "ai_generated_html",
       documentBinarySha256,
       canonicalResultSha256,
+      aiFallbackAvailable: AI_FALLBACK_AVAILABLE,
+      aiFallbackRequested: requestedAiFallback,
       attempts,
       extractedAt: new Date().toISOString(),
     },

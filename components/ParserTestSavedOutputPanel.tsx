@@ -6,6 +6,7 @@ import { Button } from "./Button";
 import { Input } from "./Input";
 import { Textarea } from "./Textarea";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
+import { AI_FALLBACK_AVAILABLE } from "../helpers/aiFallbackAvailability";
 import styles from "./ParserTestSavedOutputPanel.module.css";
 
 interface ParserTestSavedOutputPanelProps {
@@ -401,7 +402,7 @@ function buildFieldOptions(testCase: any, consumerInfo: JsonRecord, tradelines: 
   [
     ["bureau", "Bureau", testCase?.bureau],
     ["parserMode", "Parser Mode", parserModeLabel(testCase?.parserMode)],
-    ["allowAiFallback", "AI Fallback", testCase?.allowAiFallback === true ? "Allowed" : "Off"],
+    ["allowAiFallback", "AI Fallback", aiFallbackStatusLabel(testCase?.allowAiFallback)],
     ["stageVersion", "Stage Version", testCase?.stageVersion],
     ["extractionSource", "Extraction Source", testCase?.extractionSource],
   ].forEach(([fieldPath, label, parsedValue]) => {
@@ -622,8 +623,18 @@ function statusLabel(status: string): string {
 function parserModeLabel(value: unknown): string {
   const mode = formatScalar(value);
   if (mode === "deterministic") return "Deterministic only";
-  if (mode === "ai_fallback_enabled") return "AI fallback enabled";
+  if (mode === "ai_fallback_enabled") {
+    return AI_FALLBACK_AVAILABLE ? "AI fallback enabled" : "AI fallback suspended";
+  }
   return mode || "Mode not recorded";
+}
+
+function aiFallbackStatusLabel(value: unknown): string {
+  if (!AI_FALLBACK_AVAILABLE) {
+    return value === true ? "Suspended (saved allowed)" : "Suspended";
+  }
+
+  return value === true ? "Allowed" : "Off";
 }
 
 function coerceCorrectValue(value: string, parsedValue: unknown, fieldPath: string): unknown {
@@ -877,7 +888,7 @@ export function ParserTestSavedOutputPanel({
         </div>
         <div>
           <span>AI Fallback</span>
-          <strong>{testCase?.allowAiFallback === true ? "Allowed" : "Off"}</strong>
+          <strong>{aiFallbackStatusLabel(testCase?.allowAiFallback)}</strong>
         </div>
         <div>
           <span>Stage Version</span>

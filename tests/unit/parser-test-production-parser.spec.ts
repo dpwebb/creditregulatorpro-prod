@@ -37,7 +37,7 @@ function mockExtraction() {
 }
 
 describe("parsePdfThroughProductionHtmlPipeline", () => {
-  it("passes saved AI fallback settings through to canonical extraction", async () => {
+  it("passes saved AI fallback off through to canonical extraction", async () => {
     mockExtraction();
 
     await parsePdfThroughProductionHtmlPipeline("pdf-base64", { allowAiFallback: false });
@@ -49,7 +49,7 @@ describe("parsePdfThroughProductionHtmlPipeline", () => {
     });
   });
 
-  it("defaults to AI fallback enabled when no test case setting exists", async () => {
+  it("defaults to AI fallback suspended when no test case setting exists", async () => {
     mockExtraction();
 
     await parsePdfThroughProductionHtmlPipeline("pdf-base64");
@@ -57,7 +57,7 @@ describe("parsePdfThroughProductionHtmlPipeline", () => {
     expect(extractCanonicalCreditReportMock).toHaveBeenCalledWith({
       bytesBase64: "pdf-base64",
       mimeType: "application/pdf",
-      allowAiFallback: true,
+      allowAiFallback: false,
     });
   });
 });
@@ -74,6 +74,13 @@ describe("resolveParserTestAllowAiFallback", () => {
     expect(resolveParserTestAllowAiFallback({
       allowAiFallback: null,
       parserMode: "deterministic",
+    })).toBe(false);
+  });
+
+  it("suspends AI fallback even when an older case saved it as enabled", () => {
+    expect(resolveParserTestAllowAiFallback({
+      allowAiFallback: true,
+      parserMode: "ai_fallback_enabled",
     })).toBe(false);
   });
 });

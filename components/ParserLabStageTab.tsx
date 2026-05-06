@@ -9,6 +9,7 @@ import { Switch } from "./Switch";
 import { useRunParserLabStage } from "../helpers/parserLabQueries";
 import { PARSER_LAB_STAGE_VERSION } from "../helpers/parserLabStageVersion";
 import { formatDateOnlyEnCa } from "../helpers/dateOnly";
+import { AI_FALLBACK_AVAILABLE } from "../helpers/aiFallbackAvailability";
 import styles from "./ParserLabStageTab.module.css";
 
 type ParserLabResult = Awaited<ReturnType<ReturnType<typeof useRunParserLabStage>["mutateAsync"]>>;
@@ -834,7 +835,7 @@ export function ParserLabStageTab({
   isSavingTestCase = false,
 }: ParserLabStageTabProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [allowAiFallback, setAllowAiFallback] = useState(true);
+  const [allowAiFallback, setAllowAiFallback] = useState(AI_FALLBACK_AVAILABLE);
   const [result, setResult] = useState<ParserLabResult | null>(null);
   const [resultPdfBase64, setResultPdfBase64] = useState<string | null>(null);
   const [savedTestCaseId, setSavedTestCaseId] = useState<number | null>(null);
@@ -864,7 +865,7 @@ export function ParserLabStageTab({
         fileName: selectedFile.name,
         mimeType: selectedFile.type || "application/pdf",
         bytesBase64,
-        allowAiFallback,
+        allowAiFallback: AI_FALLBACK_AVAILABLE && allowAiFallback,
       });
       setResult(nextResult);
       setResultPdfBase64(bytesBase64);
@@ -929,9 +930,17 @@ export function ParserLabStageTab({
           <div className={styles.controlRow}>
             <div>
               <span className={styles.controlLabel}>AI fallback</span>
-              <span className={styles.controlHelp}>Only used when deterministic extraction needs help.</span>
+              <span className={styles.controlHelp}>
+                {AI_FALLBACK_AVAILABLE
+                  ? "Only used when deterministic extraction needs help."
+                  : "Suspended pending controlled parser testing."}
+              </span>
             </div>
-            <Switch checked={allowAiFallback} onCheckedChange={setAllowAiFallback} />
+            <Switch
+              checked={AI_FALLBACK_AVAILABLE && allowAiFallback}
+              disabled={!AI_FALLBACK_AVAILABLE}
+              onCheckedChange={setAllowAiFallback}
+            />
           </div>
 
           <div className={styles.actions}>

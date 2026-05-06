@@ -156,7 +156,7 @@ Use Test Cases when you need to:
 | Status badge: `Fail` | Last run did not match expectations or approved truth | Requires parser, baseline, or adjudication review |
 | Status badge: `Review` | Latest in-session result passed but has unapproved data | The parser found additional data not covered by the baseline |
 | Last Run | Timestamp of the most recent parser test run | Shows how fresh the regression result is |
-| Run icon | Runs that single test case through the canonical parser using that case's saved parser settings, including AI fallback on/off | Fastest way to validate one baseline under the same mode used to create it |
+| Run icon | Runs that single test case through the canonical parser using deterministic extraction while AI fallback is suspended | Fastest way to validate one baseline under the currently approved parser mode |
 | Edit icon | Opens the editor for name, description, and expected values | Used for manual baseline maintenance |
 | Delete icon | Deletes the test case and generated parser run output after confirmation | Removes obsolete cases; preserves training-marked artifacts before deletion |
 
@@ -201,12 +201,12 @@ When a test case is selected and no new run result is currently open, the detail
 | Card | Meaning | Admin Use |
 | --- | --- | --- |
 | Bureau | Bureau detected or stored for the test case | Confirms the parser routed the report correctly |
-| Parser Mode | `Deterministic only`, `AI fallback enabled`, or mode not recorded | Shows whether the baseline relied on fallback assistance |
-| AI Fallback | `Allowed` or `Off` | Important when comparing deterministic behavior against fallback behavior |
+| Parser Mode | `Deterministic only`, `AI fallback suspended`, or mode not recorded | Shows whether a saved baseline previously relied on fallback assistance |
+| AI Fallback | `Suspended`, `Suspended (saved allowed)`, or `Off` | Confirms fallback is currently unavailable even for older cases saved with it allowed |
 | Stage Version | Stage Lab parser version that generated the saved output | Stale versions should be rerun before becoming trusted |
 | Extraction Source | Source path such as PDF text | Helps diagnose differences between text extraction, HTML mapping, and fallback |
 
-The Run button reuses the parser parameters stored on the test case. For example, a Stage Lab case saved with AI Fallback `Off` reruns with AI fallback disabled. If an older imported case has no explicit AI fallback setting but its parser mode is `Deterministic only`, the run also keeps AI fallback disabled. Cases with no saved mode or fallback setting default to AI fallback enabled.
+AI fallback is currently suspended globally pending controlled parser testing. The Run button still reads the parser parameters stored on the test case for audit context, but every parser test run executes with AI fallback disabled while the suspension flag is off.
 
 ### Admin Adjudication Settings in Test Cases
 
@@ -312,7 +312,7 @@ Stage Lab is the safest first stop for a new PDF. It runs the shadow parser and 
 Use Stage Lab when you need to:
 
 - Evaluate a new bureau PDF.
-- Compare deterministic extraction with AI fallback allowed.
+- Compare deterministic extraction while AI fallback is suspended.
 - Inspect source-backed tradelines and quality gates.
 - Capture parser context and hashes.
 - Create a new test case from a verified parser run.
@@ -321,8 +321,8 @@ Use Stage Lab when you need to:
 
 ```mermaid
 flowchart TB
-  Upload["Upload bureau PDF"] --> Fallback{"AI fallback setting"}
-  Fallback --> Run["Run Shadow Parse"]
+  Upload["Upload bureau PDF"] --> Suspended["AI fallback suspended"]
+  Suspended --> Run["Run Shadow Parse"]
   Run --> Results["Stage Lab Results"]
   Run --> Review["Review Queue"]
   Run --> Tradelines["Parsed Tradelines"]
@@ -341,7 +341,7 @@ flowchart TB
 | Upload bureau PDF | Accepts a PDF file through the file dropzone | Starts a shadow parse from a source report |
 | Selected file display | Shows the chosen file name | Confirms the correct report was selected |
 | Clear | Removes the selected file and current result | Prevents saving or inspecting the wrong result |
-| AI fallback switch | Allows fallback extraction only when deterministic extraction needs help | Useful for exploratory parsing; note whether the saved baseline used fallback |
+| AI fallback switch | Disabled while AI fallback is suspended | Confirms Stage Lab cannot invoke fallback output until it is tested |
 | Run Shadow Parse | Runs the Stage Lab parser for the selected PDF | Produces quality, retention, parsed, raw, and audit output |
 | Export JSON | Downloads the complete Stage Lab result | Useful for debugging and developer handoff |
 | Save to Test Cases | Saves the Stage Lab result and original PDF as a test case | Creates a durable regression baseline |
@@ -351,10 +351,10 @@ flowchart TB
 
 | State | Meaning | Recommended Use |
 | --- | --- | --- |
-| On | The Stage Lab may use AI fallback if deterministic extraction needs help | Use for initial exploration of difficult PDFs |
-| Off | Deterministic extraction only | Use when verifying whether parser rules alone are sufficient |
+| On | Temporarily unavailable while fallback is suspended | Do not use until fallback has its own controlled regression suite |
+| Off | Deterministic extraction only | Current enforced behavior for Stage Lab, parser tests, and ingestion |
 
-When a Stage Lab result is saved to Test Cases, the test case stores `parserMode` and `allowAiFallback`. This matters because deterministic-only baselines and fallback-assisted baselines should not be interpreted the same way.
+When a Stage Lab result is saved to Test Cases, the test case stores `parserMode` and `allowAiFallback`. While fallback is suspended, new Stage Lab cases save as deterministic-only. Older fallback-assisted baselines should be treated as historical records until fallback testing is restored.
 
 ### Stage Lab Result Tabs
 
@@ -632,7 +632,7 @@ This means a confirmed or corrected actionable violation normally needs both sou
 
 ### Relevance
 
-Run All Tests is the regression gate. It runs every parser test case through the same canonical parser path used by single test runs, reusing each case's saved parser settings, compares results to expected or approved truth, stores each run result, and reports pass/fail totals.
+Run All Tests is the regression gate. It runs every parser test case through the same canonical deterministic parser path used by single test runs while AI fallback is suspended, compares results to expected or approved truth, stores each run result, and reports pass/fail totals.
 
 Use Run All Tests:
 
@@ -646,7 +646,7 @@ Use Run All Tests:
 
 | Control or Output | Meaning | Admin Action |
 | --- | --- | --- |
-| Run All Tests | Starts sequential regression execution across every test case with each case's saved parser settings | Click when ready to validate full parser behavior |
+| Run All Tests | Starts sequential regression execution across every test case with AI fallback disabled while suspended | Click when ready to validate full parser behavior |
 | Total | Number of test cases executed | Confirms the expected suite size |
 | Passed | Count of cases that matched baselines | Should stay stable or increase after fixes |
 | Failed | Count of cases that failed | Must be triaged before parser release |
@@ -700,7 +700,7 @@ The exported JSON includes:
 - PDF base64.
 - Expected consumer info and tradelines.
 - Raw extracted text.
-- Bureau, parser mode, AI fallback, stage version, extraction source.
+- Bureau, parser mode, AI fallback suspension state, stage version, extraction source.
 - Parser context.
 - Admin review status.
 - Approved consumer info and tradelines.
@@ -747,7 +747,7 @@ Use this checklist for the first parser testing session.
 1. Open `/admin-parser-testing`.
 2. Go to Stage Lab.
 3. Upload a known TransUnion or Equifax PDF.
-4. Leave AI fallback on for initial exploration.
+4. Confirm AI fallback is suspended and unavailable.
 5. Click Run Shadow Parse.
 6. Review Stage Lab Results for confidence, review queue count, source coverage, blockers, and extracted counts.
 7. Open Parsed Tradelines and verify at least one account against the PDF.
