@@ -126,8 +126,8 @@ export async function parseReport(
   mimeType: string,
   options: ParseReportOptions = {},
 ): Promise<ComprehensiveParseResult> {
-  const allowOcrFallback = options.allowOcrFallback ?? true;
-  const enableAiAugmentation = options.enableAiAugmentation ?? true;
+  const allowOcrFallback = options.allowOcrFallback ?? false;
+  const enableAiAugmentation = options.enableAiAugmentation ?? false;
   const logRawTextPreview = options.logRawTextPreview ?? DEFAULT_LOG_RAW_TEXT_PREVIEW;
 
   console.log(

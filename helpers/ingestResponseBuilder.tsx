@@ -2,6 +2,10 @@ import { ParsedTradeline } from "./reportParser";
 import { PassADraftExtraction } from "./passAExtractorTypes";
 import { ConsumerInfoComparison } from "./fuzzyMatcher";
 import { ParserQualityAssessment } from "./parserQuality";
+import type {
+  DeterministicNormalizedReport,
+  DeterministicPipelinePackage,
+} from "./deterministicCreditReportPipeline";
 
 export interface BuildResponseInput {
   artifactId: number;
@@ -33,6 +37,7 @@ export interface BuildResponseInput {
   } | null;
   consumerInfoComparison: ConsumerInfoComparison | null;
   parserQuality?: ParserQualityAssessment | null;
+  deterministicPipeline?: DeterministicPipelinePackage | null;
 }
 
 export interface IngestResponseData {
@@ -89,6 +94,8 @@ export interface IngestResponseData {
     };
   };
   parserQuality?: ParserQualityAssessment;
+  canonicalOutput?: DeterministicNormalizedReport;
+  replayHash?: string;
 }
 
 /**
@@ -110,6 +117,7 @@ export function buildIngestResponse(
     parseResult,
     consumerInfoComparison,
     parserQuality,
+    deterministicPipeline,
   } = input;
 
   const responseData: IngestResponseData = {
@@ -185,6 +193,11 @@ export function buildIngestResponse(
 
   if (parserQuality) {
     responseData.parserQuality = parserQuality;
+  }
+
+  if (deterministicPipeline) {
+    responseData.canonicalOutput = deterministicPipeline.finalOutput;
+    responseData.replayHash = deterministicPipeline.replayHash;
   }
 
   return responseData;

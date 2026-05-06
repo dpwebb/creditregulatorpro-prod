@@ -2,6 +2,7 @@ import { z } from "zod";
 import { UploadReportInput } from "../../helpers/schemas";
 import { ParsedTradeline } from "../../helpers/reportParser";
 import { ParserQualityAssessment } from "../../helpers/parserQuality";
+import type { DeterministicNormalizedReport } from "../../helpers/deterministicCreditReportPipeline";
 
 
 export const schema = UploadReportInput;
@@ -74,6 +75,8 @@ export type OutputType = {
     };
   };
   parserQuality?: ParserQualityAssessment;
+  canonicalOutput?: DeterministicNormalizedReport;
+  replayHash?: string;
 };
 
 /**

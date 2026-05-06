@@ -421,7 +421,7 @@ function resolveSshKeyFile(env, outputDir) {
     return path.resolve(key);
   }
 
-  const keyPath = path.join(outputDir, "staging_ssh_key");
+  const keyPath = path.join(outputDir, `staging_ssh_key_${process.pid}_${Date.now()}`);
   const keyContents = normalizePrivateKeyValue(key);
   removeExistingGeneratedKey(keyPath);
   fs.writeFileSync(keyPath, keyContents.endsWith("\n") ? keyContents : `${keyContents}\n`, { mode: 0o600 });
@@ -609,10 +609,10 @@ exit 31
 function removeGeneratedSshKeyFile(keyFile, outputDir) {
   const resolvedKey = path.resolve(keyFile);
   const resolvedOutput = path.resolve(outputDir);
-  if (
-    !resolvedKey.startsWith(`${resolvedOutput}${path.sep}`) ||
-    !path.basename(resolvedKey).startsWith("staging_ssh_key_")
-  ) {
+  const keyName = path.basename(resolvedKey);
+  const isGeneratedRefreshKey =
+    keyName === "staging_ssh_key" || keyName.startsWith("staging_ssh_key_");
+  if (!resolvedKey.startsWith(`${resolvedOutput}${path.sep}`) || !isGeneratedRefreshKey) {
     return;
   }
 

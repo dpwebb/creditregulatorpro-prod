@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ParsedTradeline } from "../../helpers/reportParser";
+import type { DeterministicNormalizedReport } from "../../helpers/deterministicCreditReportPipeline";
 
 export const schema = z.object({
   artifactId: z.number()
@@ -60,6 +61,8 @@ export type OutputType = {
       phone: string | null;
     };
   };
+  canonicalOutput?: DeterministicNormalizedReport;
+  replayHash?: string;
 };
 
 /**

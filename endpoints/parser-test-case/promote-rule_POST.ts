@@ -8,6 +8,7 @@ import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdju
 import { ensureParserRulePromotionSchema } from "../../helpers/parserRulePromotionSchema";
 import {
   applyParserExtractionRules,
+  MISSING_TRADELINE_FIELD_RULE,
   parserExtractionRuleConfigToJson,
   ParserExtractionRuleLike,
   SOURCE_LABEL_TO_TRADELINE_FIELD_RULE,
@@ -106,6 +107,41 @@ function extractSourceLabel(decision: ParserDecisionRecord): string | null {
   return null;
 }
 
+function normalizedToken(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function valueMeansNotProvided(value: unknown): boolean {
+  const token = normalizedToken(value);
+  return (
+    token === "notprovided" ||
+    token === "notprovidedbybureau" ||
+    token === "notreported" ||
+    token === "notreportedbybureau" ||
+    token === "notoncreditreport" ||
+    token === "notavailable"
+  );
+}
+
+function decisionSaysBureauDidNotProvideField(decision: ParserDecisionRecord): boolean {
+  if (valueMeansNotProvided(decision.correctValue)) return true;
+
+  const haystack = [
+    stringValue(decision.sourceEvidence),
+    stringValue(decision.reason),
+  ].join("\n");
+
+  return (
+    /not\s+(?:on|in)\s+(?:the\s+)?(?:credit\s+)?report/i.test(haystack) ||
+    /(?:does\s+not|do\s+not|did\s+not)\s+include/i.test(haystack) ||
+    /not\s+provided\s+by\s+bureau/i.test(haystack) ||
+    /not\s+reported\s+by\s+bureau/i.test(haystack)
+  );
+}
+
 function deriveRule(testCase: Selectable<ParserTestCase>, decision: ParserDecisionRecord): DerivedRule {
   const decisionType = stringValue(decision.decision);
   const entityType = stringValue(decision.entityType);
@@ -149,6 +185,26 @@ function deriveRule(testCase: Selectable<ParserTestCase>, decision: ParserDecisi
         overwriteExisting: true,
       },
       description: "TransUnion tradeline Legend line maps to remarkCodes.",
+    };
+  }
+
+  if (
+    isTransUnionBureau(testCase.bureau) &&
+    targetField === "accountNumber" &&
+    decisionSaysBureauDidNotProvideField(decision)
+  ) {
+    const replacementValue = stringValue(decision.correctValue) || "Not Provided by Bureau";
+    return {
+      supported: true,
+      ruleType: MISSING_TRADELINE_FIELD_RULE,
+      fieldPath: "tradelines[].accountNumber",
+      targetField: "accountNumber",
+      config: {
+        replacementValue,
+        missingValues: ["Unknown", "Not Reported", "Not Provided", "Not Available", "N/A", "NA"],
+        overwriteExisting: false,
+      },
+      description: "TransUnion missing tradeline account numbers normalize to a bureau-not-provided value.",
     };
   }
 

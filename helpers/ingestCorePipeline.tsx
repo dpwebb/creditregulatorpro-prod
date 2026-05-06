@@ -23,6 +23,7 @@ import { ResolvedUserSession } from "./ingestSessionResolver";
 import { ParserQualityAssessment } from "./parserQuality";
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { evaluateDisputeOutcomesForTradeline } from "./disputeOutcomeEvaluator";
+import type { DeterministicPipelinePackage } from "./deterministicCreditReportPipeline";
 
 export class IngestPipelineError extends Error {
   constructor(message: string, public code: string) {
@@ -276,6 +277,7 @@ export async function executeIngestPipeline({
   let llmData;
   let extractionProvenance: Record<string, unknown> | null = null;
   let rawHtml: string | null = null;
+  let deterministicPipeline: DeterministicPipelinePackage | null = null;
   try {
     const canonicalExtraction = await extractCanonicalCreditReport({
       bytesBase64,
@@ -290,6 +292,7 @@ export async function executeIngestPipeline({
     parserQuality = canonicalExtraction.parserQuality;
     extractionProvenance = canonicalExtraction.provenance as unknown as Record<string, unknown>;
     rawHtml = canonicalExtraction.rawHtml;
+    deterministicPipeline = canonicalExtraction.deterministicPipeline;
   } catch (error: unknown) {
     console.error(`[Ingest] Canonical extraction failed:`, error);
     throw new IngestPipelineError(
@@ -326,6 +329,9 @@ export async function executeIngestPipeline({
         extractionStatus: "extracted",
         extractionSource: extractionProvenance?.selectedMethod ?? "pdf_text",
         extractionProvenance,
+        deterministicPipeline,
+        canonicalOutput: deterministicPipeline?.finalOutput ?? null,
+        replayHash: deterministicPipeline?.replayHash ?? extractionProvenance?.replayHash ?? null,
         parserQuality,
         extractionConfidence: parserQuality.confidenceScore,
         parseConfidence: parserQuality.confidenceScore,
@@ -823,6 +829,7 @@ export async function executeIngestPipeline({
     parseResult,
     consumerInfoComparison,
     parserQuality,
+    deterministicPipeline,
   });
 
   if (silentResults && silentResults.totalDetected > 0) {

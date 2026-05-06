@@ -22,6 +22,39 @@
 - Give exact test steps after each task
 - If uncertain, inspect first and summarize before editing
 
+## Model routing rules (Codex Windows App)
+- Do not use one model for everything; route by complexity, risk, and required reasoning depth.
+- Before starting any task:
+- inspect relevant files first
+- state selected model and why
+- state risk level: low / medium / high
+- do not modify files until model path is clear
+
+### GPT-5.5 Extra High / Fast Mode
+- Use for architecture decisions, full-project audits, workflow planning, unclear multi-system debugging, schema/database design, compliance/regulation reasoning, admin truth-layer design, security/auth decisions, testing strategy, and deployment/staging diagnosis.
+- For CreditRegulatorPro, use for violation detection architecture, admin correction truth-layer design, regulatory citation mapping, training feedback loops, E2E testing strategy, and extraction engine improvement strategy.
+- Do not use for tiny copy edits or repetitive simple changes.
+
+### GPT-5.3 Codex
+- Use for production code implementation, backend endpoints, migrations, API validation, service-layer refactors, frontend/admin implementation, tests, and concrete bug fixes.
+- For CreditRegulatorPro, use for implementing approved admin correction systems, migrations, endpoints, validation, tests, and frontend/backend wiring.
+- Prefer this when correctness matters more than speed.
+
+### GPT-5.3 Codex Spark
+- Use only for small non-critical edits: wording changes, admin UI labels, CSS spacing/layout, simple display-only tweaks, and isolated cleanup.
+- Do not use for database/auth/compliance/violation extraction/regulation mapping/PDF extraction/admin truth-layer/production deployment/security/multi-file refactors.
+
+### Decision rule
+- High-risk, system-level, or unclear tasks: use GPT-5.5 Extra High.
+- Clear implementation or test writing tasks: use GPT-5.3 Codex.
+- Small cosmetic isolated edits: use GPT-5.3 Codex Spark.
+- When in doubt, escalate upward.
+
+### Guardrails
+- Prefer minimal diffs.
+- Preserve existing behavior unless explicitly changing it.
+- Do not touch production, secrets, environment files, or deployment config unless explicitly instructed.
+
 ## Git workflow
 - Treat this local directory as the working copy for Codex chat changes
 - GitHub remains the source of truth for deployment after commits are pushed

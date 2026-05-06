@@ -50,9 +50,15 @@ export async function handle(request: Request) {
         ? {
             ...(input.parserContext as Record<string, unknown>),
             ...(parserFallback?.parserPipelineAudit ? { pipelineAudit: parserFallback.parserPipelineAudit } : {}),
+            ...(parserFallback?.canonicalOutput ? { canonicalOutput: parserFallback.canonicalOutput } : {}),
+            ...(parserFallback?.replayHash ? { replayHash: parserFallback.replayHash } : {}),
           }
         : parserFallback?.parserPipelineAudit
-          ? { pipelineAudit: parserFallback.parserPipelineAudit }
+          ? {
+              pipelineAudit: parserFallback.parserPipelineAudit,
+              ...(parserFallback.canonicalOutput ? { canonicalOutput: parserFallback.canonicalOutput } : {}),
+              ...(parserFallback.replayHash ? { replayHash: parserFallback.replayHash } : {}),
+            }
           : {};
 
     // 3. Create test case

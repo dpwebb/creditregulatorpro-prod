@@ -6,6 +6,7 @@ const args = process.argv.slice(2);
 let message = "";
 let skipChecks = false;
 let dryRun = false;
+let refreshLocalAfterPush = true;
 
 function fail(reason) {
   console.error(`ERROR: ${reason}`);
@@ -24,12 +25,20 @@ function runGit(commandArgs, options = {}) {
   return run("git", commandArgs, options);
 }
 
-function runPnpmScript(scriptName) {
+function quoteCmdArg(value) {
+  if (/^[A-Za-z0-9_./:=@-]+$/.test(value)) return value;
+  return `"${String(value).replace(/"/g, '\\"')}"`;
+}
+
+function runPnpmScript(scriptName, scriptArgs = []) {
   if (process.platform === "win32") {
-    run("cmd.exe", ["/d", "/s", "/c", `pnpm run ${scriptName}`], { stdio: "inherit" });
+    const commandLine = ["pnpm", "run", scriptName, ...scriptArgs]
+      .map(quoteCmdArg)
+      .join(" ");
+    run("cmd.exe", ["/d", "/s", "/c", commandLine], { stdio: "inherit" });
     return;
   }
-  run("pnpm", ["run", scriptName], { stdio: "inherit" });
+  run("pnpm", ["run", scriptName, ...scriptArgs], { stdio: "inherit" });
 }
 
 for (let i = 0; i < args.length; i += 1) {
@@ -42,6 +51,11 @@ for (let i = 0; i < args.length; i += 1) {
 
   if (arg === "--dry-run") {
     dryRun = true;
+    continue;
+  }
+
+  if (arg === "--skip-local-refresh") {
+    refreshLocalAfterPush = false;
     continue;
   }
 
@@ -63,7 +77,7 @@ for (let i = 0; i < args.length; i += 1) {
   }
 
   if (arg === "--help" || arg === "-h") {
-    console.log("Usage: node scripts/commit-push-staging.mjs [--message <text>] [--skip-checks] [--dry-run]");
+    console.log("Usage: node scripts/commit-push-staging.mjs [--message <text>] [--skip-checks] [--skip-local-refresh] [--dry-run]");
     process.exit(0);
   }
 
@@ -118,6 +132,7 @@ if (dryRun) {
   console.log(`- Commit message: ${message}`);
   console.log(`- Files staged: ${stagedFiles.length}`);
   console.log("- Push target: origin/staging");
+  console.log(`- Refresh localhost from staging after push: ${refreshLocalAfterPush ? "yes" : "no"}`);
   process.exit(0);
 }
 
@@ -126,5 +141,12 @@ runGit(["commit", "-m", message], { stdio: "inherit" });
 
 console.log(`Pushing to origin/${DEFAULT_BRANCH}...`);
 runGit(["push", "origin", DEFAULT_BRANCH], { stdio: "inherit" });
+
+if (refreshLocalAfterPush) {
+  console.log("Refreshing localhost database from staging...");
+  runPnpmScript("refresh:local-from-staging", ["--", "--confirm"]);
+} else {
+  console.log("Skipping localhost database refresh (--skip-local-refresh).");
+}
 
 console.log("commit-push completed.");

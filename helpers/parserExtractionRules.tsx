@@ -5,6 +5,17 @@ import { ensureParserRulePromotionSchema } from "./parserRulePromotionSchema";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 
 export const SOURCE_LABEL_TO_TRADELINE_FIELD_RULE = "source_label_to_tradeline_field";
+export const MISSING_TRADELINE_FIELD_RULE = "missing_tradeline_field";
+
+const DEFAULT_MISSING_FIELD_VALUES = [
+  "",
+  "unknown",
+  "not reported",
+  "not provided",
+  "not available",
+  "n/a",
+  "na",
+];
 
 export type ParserExtractionRuleLike = Pick<
   Selectable<ParserExtractionRule>,
@@ -76,6 +87,36 @@ function normalizeValueForField(value: string, targetField: string, config: Reco
   }
 
   return value.trim();
+}
+
+function normalizeComparableText(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function getMissingValueTokens(config: Record<string, unknown>): Set<string> {
+  const configuredValues = Array.isArray(config.missingValues)
+    ? config.missingValues
+    : [];
+  return new Set(
+    [...DEFAULT_MISSING_FIELD_VALUES, ...configuredValues]
+      .map(normalizeComparableText)
+      .filter((value) => value.length > 0),
+  );
+}
+
+function shouldReplaceMissingField(currentValue: unknown, replacementValue: unknown, config: Record<string, unknown>): boolean {
+  if (config.overwriteExisting === true) return true;
+
+  const currentToken = normalizeComparableText(currentValue);
+  if (!currentToken) return true;
+
+  const replacementToken = normalizeComparableText(replacementValue);
+  if (replacementToken && currentToken === replacementToken) return false;
+
+  return getMissingValueTokens(config).has(currentToken);
 }
 
 function hasMeaningfulValue(value: unknown): boolean {
@@ -187,28 +228,51 @@ export function applyParserExtractionRules(
 
   for (const rule of [...rules].sort((a, b) => b.priority - a.priority || a.id - b.id)) {
     if (!rule.isActive && rule.id > 0) continue;
-    if (rule.ruleType !== SOURCE_LABEL_TO_TRADELINE_FIELD_RULE) continue;
 
     const config = asRecord(rule.config);
-    const labels = getRuleLabels(config);
     const targetField = rule.targetField;
-    const overwriteExisting = config.overwriteExisting === true;
 
-    if (!targetField || labels.length === 0) continue;
+    if (!targetField) continue;
 
-    nextResult.tradelines.forEach((tradeline) => {
-      const sourceValue = extractLabeledLineValue(tradeline.sourceText, labels);
-      if (!sourceValue) return;
+    if (rule.ruleType === SOURCE_LABEL_TO_TRADELINE_FIELD_RULE) {
+      const labels = getRuleLabels(config);
+      const overwriteExisting = config.overwriteExisting === true;
 
-      const currentValue = getValueAtPath(tradeline as unknown as Record<string, unknown>, targetField);
-      if (!overwriteExisting && hasMeaningfulValue(currentValue)) return;
+      if (labels.length === 0) continue;
 
-      const normalizedValue = normalizeValueForField(sourceValue, targetField, config);
-      if (!hasMeaningfulValue(normalizedValue)) return;
+      nextResult.tradelines.forEach((tradeline) => {
+        const sourceValue = extractLabeledLineValue(tradeline.sourceText, labels);
+        if (!sourceValue) return;
 
-      setValueAtPath(tradeline as unknown as Record<string, unknown>, targetField, normalizedValue);
-      appliedRuleIds.add(rule.id);
-    });
+        const currentValue = getValueAtPath(tradeline as unknown as Record<string, unknown>, targetField);
+        if (!overwriteExisting && hasMeaningfulValue(currentValue)) return;
+
+        const normalizedValue = normalizeValueForField(sourceValue, targetField, config);
+        if (!hasMeaningfulValue(normalizedValue)) return;
+
+        setValueAtPath(tradeline as unknown as Record<string, unknown>, targetField, normalizedValue);
+        appliedRuleIds.add(rule.id);
+      });
+
+      continue;
+    }
+
+    if (rule.ruleType === MISSING_TRADELINE_FIELD_RULE) {
+      const replacementValue =
+        config.replacementValue !== undefined
+          ? config.replacementValue
+          : config.defaultValue;
+
+      if (!hasMeaningfulValue(replacementValue)) continue;
+
+      nextResult.tradelines.forEach((tradeline) => {
+        const currentValue = getValueAtPath(tradeline as unknown as Record<string, unknown>, targetField);
+        if (!shouldReplaceMissingField(currentValue, replacementValue, config)) return;
+
+        setValueAtPath(tradeline as unknown as Record<string, unknown>, targetField, replacementValue);
+        appliedRuleIds.add(rule.id);
+      });
+    }
   }
 
   return {

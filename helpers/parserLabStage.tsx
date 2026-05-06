@@ -42,6 +42,7 @@ export interface ParserLabStageOutput {
   retention: {
     originalDocumentSha256: string;
     canonicalResultSha256: string;
+    replayHash: string;
     rawTextCharacters: number;
     rawHtmlCharacters: number;
     tradelinesWithSourceText: number;
@@ -72,6 +73,7 @@ export interface ParserLabStageOutput {
     parsedResult: Record<string, unknown>;
     mappedResult: Record<string, unknown>;
     fieldReconciliation: Record<string, unknown>;
+    deterministicPipeline: Record<string, unknown>;
   };
   provenance: Record<string, unknown>;
   rawExtractedText: string;
@@ -401,6 +403,7 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
     retention: {
       originalDocumentSha256: provenance.documentBinarySha256,
       canonicalResultSha256: provenance.canonicalResultSha256,
+      replayHash: provenance.replayHash,
       rawTextCharacters: extraction.rawText.length,
       rawHtmlCharacters: extraction.rawHtml?.length ?? 0,
       tradelinesWithSourceText,
@@ -431,6 +434,7 @@ export async function runParserLabStage(input: ParserLabStageInput): Promise<Par
       parsedResult: toAuditValue(parseResult) as Record<string, unknown>,
       mappedResult: toAuditValue(extraction.llmData) as Record<string, unknown>,
       fieldReconciliation: toAuditValue(extraction.fieldReconciliation) as Record<string, unknown>,
+      deterministicPipeline: toAuditValue(extraction.deterministicPipeline) as Record<string, unknown>,
     },
     provenance: {
       ...(provenance as unknown as Record<string, unknown>),

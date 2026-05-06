@@ -1,13 +1,14 @@
-import { extractHtmlWithFallbackChain } from "./fallbackPdfExtractor";
-import { routeHtmlToLLMResponseWithOverrides } from "./bureauDetectionRouter";
-import { parseHtmlToRawText } from "./_htmlParserUtils";
-import { mapDocStrangeResponseToResult } from "./docstrangeParser";
 import { LLMResponse } from "./docstrangeLLM";
 import { assessParserQuality, ParserQualityAssessment } from "./parserQuality";
 import { parseReport } from "./reportParser";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
-import { sha256HexOfBase64Payload, sha256HexOfJson } from "./reportBinaryUtils";
-import { AI_FALLBACK_AVAILABLE, resolveAiFallbackAvailability } from "./aiFallbackAvailability";
+import { sha256HexOfBase64Payload } from "./reportBinaryUtils";
+import { AI_FALLBACK_AVAILABLE } from "./aiFallbackAvailability";
+import {
+  buildDeterministicCreditReportPipelinePackage,
+  DeterministicNormalizedReport,
+  DeterministicPipelinePackage,
+} from "./deterministicCreditReportPipeline";
 import {
   applyParserExtractionRules,
   loadActiveParserExtractionRules,
@@ -18,7 +19,7 @@ import {
   reconcileParserPipelineFields,
 } from "./parserPipelineFieldReconciliation";
 
-export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "parser-first-2026-05-v2-ai-fallback-suspended";
+export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "deterministic-state-machine-2026-05-v1";
 
 export type CanonicalExtractionMethod = "pdf_text" | "gemini" | "openai";
 
@@ -32,18 +33,20 @@ export interface CanonicalExtractionAttempt {
 }
 
 export interface CanonicalExtractionProvenance {
-  strategy: "pdf_text_first_ai_html_fallback";
+  strategy: "deterministic_pdf_text_state_machine";
   version: string;
   selectedMethod: CanonicalExtractionMethod;
   normalizedByAi: boolean;
   sourceEvidence: "pdf_text" | "ai_generated_html";
   documentBinarySha256: string;
   canonicalResultSha256: string;
+  replayHash: string;
+  deterministicPipelineVersion: string;
   aiFallbackAvailable: boolean;
   aiFallbackRequested: boolean;
+  aiFallbackCanonicalEligibility: "disabled";
   attempts: CanonicalExtractionAttempt[];
   fieldReconciliation: ParserPipelineFieldAudit;
-  extractedAt: string;
 }
 
 export interface CanonicalCreditReportExtraction {
@@ -55,6 +58,8 @@ export interface CanonicalCreditReportExtraction {
   parserQuality: ParserQualityAssessment;
   provenance: CanonicalExtractionProvenance;
   fieldReconciliation: ParserPipelineFieldAudit;
+  deterministicPipeline: DeterministicPipelinePackage;
+  canonicalOutput: DeterministicNormalizedReport;
 }
 
 export interface ExtractCanonicalCreditReportInput {
@@ -253,97 +258,6 @@ function summarizeAttempt(
   };
 }
 
-function isLikelyCreditAccountType(accountType: string | null | undefined): boolean {
-  const type = (accountType || "").toLowerCase();
-  if (!type) return false;
-  return (
-    type.includes("revolving") ||
-    type.includes("installment") ||
-    type.includes("mortgage") ||
-    type.includes("line") ||
-    type.includes("loan") ||
-    type.includes("credit")
-  );
-}
-
-function hasMeaningfulText(value: string | null | undefined): boolean {
-  const normalized = (value || "").trim().toLowerCase();
-  if (!normalized) return false;
-  if (["unknown", "not reported", "n/a", "na", "-", "missing"].includes(normalized)) return false;
-  return true;
-}
-
-function estimateTradelineDetailCoverage(tradelines: ParsedTradeline[]): number {
-  if (tradelines.length === 0) return 0;
-
-  let total = 0;
-  for (const tradeline of tradelines) {
-    let score = 0;
-    const likelyCredit = isLikelyCreditAccountType(tradeline.accountType);
-
-    if (hasMeaningfulText(tradeline.creditorName)) score += 15;
-    if (hasMeaningfulText(tradeline.accountNumber)) score += 10;
-    if (tradeline.dates?.reported || tradeline.postedDate) score += 10;
-    if (tradeline.lastPaymentDate || tradeline.dateAssignedToCollection) score += 10;
-    if (likelyCredit && typeof tradeline.creditLimit === "number" && tradeline.creditLimit > 0) score += 15;
-    if (likelyCredit && typeof tradeline.amounts?.high === "number" && tradeline.amounts.high > 0) score += 15;
-    if (typeof tradeline.amounts?.pastDue === "number") score += 5;
-    if (hasMeaningfulText(tradeline.terms)) score += 10;
-    if (hasMeaningfulText(tradeline.paymentPattern)) score += 10;
-
-    total += score;
-  }
-
-  return Math.max(0, Math.min(100, Math.round(total / tradelines.length)));
-}
-
-function shouldAttemptAiFallback(candidate: CandidateExtraction): boolean {
-  if (candidate.parseResult.tradelines.length === 0) return true;
-  if (candidate.parserQuality.requiresManualReview) return true;
-  if (candidate.parserQuality.confidenceScore < 78) return true;
-  const detailCoverage = estimateTradelineDetailCoverage(candidate.parseResult.tradelines);
-  if (detailCoverage < 65) return true;
-  if (
-    detailCoverage < 78 &&
-    candidate.parseResult.tradelines.some((tradeline) => {
-      if (!isLikelyCreditAccountType(tradeline.accountType)) return false;
-      const missingLimit = !(typeof tradeline.creditLimit === "number" && tradeline.creditLimit > 0);
-      const missingHighCredit = !(typeof tradeline.amounts?.high === "number" && tradeline.amounts.high > 0);
-      return missingLimit && missingHighCredit;
-    })
-  ) {
-    return true;
-  }
-  return candidate.parserQuality.issues.some((issue) =>
-    [
-      "PARSER_ACCOUNT_COUNT_MISMATCH",
-      "TRADELINE_FIELD_COMPLETENESS_LOW",
-      "CORE_DATE_COMPLETENESS_LOW",
-    ].includes(issue.code)
-  );
-}
-
-function chooseCandidate(
-  deterministic: CandidateExtraction,
-  aiCandidate: CandidateExtraction | null,
-): CandidateExtraction {
-  if (!aiCandidate) return deterministic;
-  if (deterministic.parseResult.tradelines.length === 0 && aiCandidate.parseResult.tradelines.length > 0) {
-    return aiCandidate;
-  }
-
-  const aiScore = aiCandidate.parserQuality.confidenceScore;
-  const deterministicScore = deterministic.parserQuality.confidenceScore;
-  const aiHasComparableCoverage =
-    aiCandidate.parseResult.tradelines.length >= Math.max(1, deterministic.parseResult.tradelines.length);
-
-  if (aiHasComparableCoverage && aiScore >= deterministicScore + 8) {
-    return aiCandidate;
-  }
-
-  return deterministic;
-}
-
 export async function extractCanonicalCreditReport(
   input: ExtractCanonicalCreditReportInput,
 ): Promise<CanonicalCreditReportExtraction> {
@@ -353,8 +267,7 @@ export async function extractCanonicalCreditReport(
 
   const attempts: CanonicalExtractionAttempt[] = [];
   const documentBinarySha256 = sha256HexOfBase64Payload(input.bytesBase64);
-  const requestedAiFallback = input.allowAiFallback ?? true;
-  const allowAiFallback = resolveAiFallbackAvailability(input.allowAiFallback);
+  const requestedAiFallback = input.allowAiFallback ?? false;
 
   let deterministic: CandidateExtraction | null = null;
 
@@ -386,62 +299,28 @@ export async function extractCanonicalCreditReport(
     attempts.push(summarizeAttempt("pdf_text", "failed", null, 0, error));
   }
 
-  let aiCandidate: CandidateExtraction | null = null;
-  const needsAiFallback = allowAiFallback && (!deterministic || shouldAttemptAiFallback(deterministic));
+  attempts.push(
+    summarizeAttempt(
+      "gemini",
+      "skipped",
+      null,
+      0,
+      requestedAiFallback
+        ? "AI fallback was requested but is diagnostic-only and cannot become canonical."
+        : "AI fallback is disabled for deterministic canonical extraction.",
+    ),
+  );
 
-  if (needsAiFallback) {
-    try {
-      const fallbackResult = await extractHtmlWithFallbackChain(input.bytesBase64);
-      if (fallbackResult) {
-        const llmData = await routeHtmlToLLMResponseWithOverrides(fallbackResult.html);
-        const rawText = parseHtmlToRawText(fallbackResult.html);
-        const parseResult = mapDocStrangeResponseToResult(llmData, rawText);
-        const parserQuality = assessParserQuality({
-          rawHtml: fallbackResult.html,
-          llmData,
-          parseResult,
-          parsedTradelines: parseResult.tradelines,
-          extractionSource: fallbackResult.source,
-        });
-
-        aiCandidate = {
-          method: fallbackResult.source,
-          parseResult,
-          llmData,
-          rawHtml: fallbackResult.html,
-          rawText,
-          parserQuality,
-        };
-        attempts.push(summarizeAttempt(fallbackResult.source, "succeeded", parserQuality, parseResult.tradelines.length));
-      } else {
-        attempts.push(summarizeAttempt("gemini", "failed", null, 0, "AI extraction fallback returned no HTML."));
-      }
-    } catch (error) {
-      attempts.push(summarizeAttempt("gemini", "failed", null, 0, error));
-    }
-  } else {
-    attempts.push(
-      summarizeAttempt(
-        "gemini",
-        "skipped",
-        null,
-        0,
-        !AI_FALLBACK_AVAILABLE && requestedAiFallback
-          ? "AI fallback is suspended pending parser testing."
-          : undefined,
-      ),
-    );
+  if (!deterministic) {
+    throw new Error("Credit report extraction failed. The deterministic PDF parser produced no usable report data.");
   }
 
-  if (!deterministic && !aiCandidate) {
-    throw new Error("Credit report extraction failed. No parser produced usable report data.");
-  }
-
-  const selected = deterministic ? chooseCandidate(deterministic, aiCandidate) : aiCandidate!;
+  const selected = deterministic;
   let selectedParseResult = selected.parseResult;
   let selectedLlmData = selected.llmData;
   let selectedParserQuality = selected.parserQuality;
-  const rawFieldBaseline = deterministic?.parseResult ?? extractRawParserFieldBaseline(selected.rawText);
+  const rawFieldBaseline = extractRawParserFieldBaseline(selected.rawText);
+  const appliedParserRuleIds: number[] = [];
 
   try {
     const activeRules = await loadActiveParserExtractionRules(
@@ -450,6 +329,7 @@ export async function extractCanonicalCreditReport(
     if (activeRules.length > 0) {
       const applied = applyParserExtractionRules(selectedParseResult, activeRules);
       if (applied.appliedRuleIds.length > 0) {
+        appliedParserRuleIds.push(...applied.appliedRuleIds);
         selectedParseResult = applied.parseResult;
         selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
         selectedParserQuality = assessParserQuality({
@@ -489,13 +369,11 @@ export async function extractCanonicalCreditReport(
     selectedParseResult = fieldReconciliation.parseResult;
   }
 
-  const canonicalResultSha256 = sha256HexOfJson({
-    ...selectedParseResult,
-    rawText: undefined,
-    tradelines: selectedParseResult.tradelines.map((tradeline) => ({
-      ...tradeline,
-      sourceText: undefined,
-    })),
+  const deterministicPipeline = buildDeterministicCreditReportPipelinePackage({
+    parseResult: selectedParseResult,
+    rawText: selected.rawText,
+    documentBinarySha256,
+    appliedParserRuleIds,
   });
 
   return {
@@ -506,19 +384,23 @@ export async function extractCanonicalCreditReport(
     extractionSource: selected.method,
     parserQuality: selectedParserQuality,
     fieldReconciliation: fieldReconciliation.audit,
+    deterministicPipeline,
+    canonicalOutput: deterministicPipeline.finalOutput,
     provenance: {
-      strategy: "pdf_text_first_ai_html_fallback",
+      strategy: "deterministic_pdf_text_state_machine",
       version: CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION,
       selectedMethod: selected.method,
-      normalizedByAi: selected.method !== "pdf_text",
-      sourceEvidence: selected.method === "pdf_text" ? "pdf_text" : "ai_generated_html",
+      normalizedByAi: false,
+      sourceEvidence: "pdf_text",
       documentBinarySha256,
-      canonicalResultSha256,
+      canonicalResultSha256: deterministicPipeline.canonicalResultSha256,
+      replayHash: deterministicPipeline.replayHash,
+      deterministicPipelineVersion: deterministicPipeline.version,
       aiFallbackAvailable: AI_FALLBACK_AVAILABLE,
       aiFallbackRequested: requestedAiFallback,
+      aiFallbackCanonicalEligibility: "disabled",
       attempts,
       fieldReconciliation: fieldReconciliation.audit,
-      extractedAt: new Date().toISOString(),
     },
   };
 }

@@ -145,9 +145,16 @@ What it does:
 * stages all local changes
 * creates a commit
 * pushes to `origin/staging`
+* refreshes the localhost database from staging so local test cases and report
+  data match the staging database after the push
 
 Quick mode (skips checks):
 
 ```bash
 pnpm run commit-push:quick -- --message "your short summary"
 ```
+
+If you need to preserve a local-only database experiment, add
+`--skip-local-refresh` to the commit-push command. Otherwise the normal Codex
+publish workflow replaces the local database with a staging copy, clears copied
+sessions/tokens, and reseeds the localhost admin account.

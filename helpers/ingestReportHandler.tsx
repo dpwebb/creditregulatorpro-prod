@@ -79,12 +79,11 @@ export async function handleIngestSubmit(
         extractionStatus: "ready",
         extractionSource: "pending",
         extractionProvenance: {
-          strategy: "pdf_text_first_ai_html_fallback",
+          strategy: "deterministic_pdf_text_state_machine",
           source: "pending",
           normalizedByAi: false,
           sourceEvidence: "pdf_bytes",
           artifactSha256: artifactResult.sha256,
-          queuedAt: new Date().toISOString(),
         },
       })) as Json,
     })

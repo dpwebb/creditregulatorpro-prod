@@ -36,6 +36,7 @@ export type OutputType = {
   retention: {
     originalDocumentSha256: string;
     canonicalResultSha256: string;
+    replayHash: string;
     rawTextCharacters: number;
     rawHtmlCharacters: number;
     tradelinesWithSourceText: number;
@@ -65,6 +66,7 @@ export type OutputType = {
     parsedResult: Record<string, unknown>;
     mappedResult: Record<string, unknown>;
     fieldReconciliation: Record<string, unknown>;
+    deterministicPipeline: Record<string, unknown>;
   };
   provenance: Record<string, unknown>;
   rawExtractedText: string;

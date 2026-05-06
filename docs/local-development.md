@@ -92,6 +92,33 @@ user-agent fields where those tables exist, reseeds the local admin account, and
 deletes the temporary dump file after restore. Use `--keep-dump` only when you
 need to inspect the dump; treat retained dumps as sensitive data.
 
+## Commit-Push Local Sync
+
+The integrated staging publish command refreshes localhost from staging after a
+successful push:
+
+```powershell
+pnpm run commit-push -- --message "your short summary"
+```
+
+After the push succeeds, it runs:
+
+```powershell
+pnpm run refresh:local-from-staging -- --confirm
+```
+
+This means `http://localhost:5175` is reset to the current staging database,
+including staging parser test cases and report data. The copied local sessions,
+tokens, OAuth rows, IP addresses, and user-agent fields are stripped where those
+tables exist, and the localhost admin account is reseeded for local access.
+
+Use this only when replacing local data is expected. To keep local-only
+experiments, publish with:
+
+```powershell
+pnpm run commit-push -- --message "your short summary" --skip-local-refresh
+```
+
 ## Run
 
 Start the backend:

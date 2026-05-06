@@ -41,7 +41,7 @@ export async function handle(request: Request) {
     // Run tests sequentially to avoid overwhelming the server
     for (const testCase of testCases) {
       try {
-        const { parseResult, rawExtractedText, parserPipelineAudit } = await parsePdfThroughProductionHtmlPipeline(
+        const { parseResult, rawExtractedText, parserPipelineAudit, canonicalOutput, replayHash } = await parsePdfThroughProductionHtmlPipeline(
           testCase.pdfBase64,
           {
             allowAiFallback: testCase.allowAiFallback,
@@ -118,6 +118,8 @@ export async function handle(request: Request) {
           consumerInfo: consumerInfoResults,
           tradelines: tradelineResults,
           pipelineAudit: parserPipelineAudit,
+          canonicalOutput,
+          replayHash,
         };
 
         // Store run result
@@ -151,6 +153,8 @@ export async function handle(request: Request) {
               consumerInfo: consumerInfoResults,
               tradelines: tradelineResults,
               pipelineAudit: finalPipelineAudit,
+              canonicalOutput,
+              replayHash,
             } as unknown as Json,
           })
           .where("id", "=", persistedRun.id)

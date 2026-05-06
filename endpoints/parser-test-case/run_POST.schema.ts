@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { ComparisonSummary } from "../../helpers/parserPatternAnalyzer";
+import type { DeterministicNormalizedReport } from "../../helpers/deterministicCreditReportPipeline";
 
 export const schema = z.object({
   testCaseId: z.number(),
@@ -16,6 +17,8 @@ export type OutputType = {
   actualConsumerInfo: any;
   actualTradelines: any[];
   parserPipelineAudit?: unknown;
+  canonicalOutput?: DeterministicNormalizedReport;
+  replayHash?: string;
 };
 
 export const runParserTest = async (

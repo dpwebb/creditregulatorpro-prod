@@ -33,6 +33,11 @@ function mockExtraction() {
     extractionSource: "pdf_text",
     parserQuality: {} as any,
     fieldReconciliation: {} as any,
+    deterministicPipeline: {
+      replayHash: "replay-hash",
+      finalOutput: { version: "deterministic-credit-report-pipeline-v1", fields: {}, reportMetadata: {}, consumerInfo: null, tradelines: [] },
+    } as any,
+    canonicalOutput: { version: "deterministic-credit-report-pipeline-v1", fields: {}, reportMetadata: {}, consumerInfo: null, tradelines: [] } as any,
     provenance: {} as any,
   });
 }
@@ -49,6 +54,7 @@ describe("parsePdfThroughProductionHtmlPipeline", () => {
       allowAiFallback: false,
     });
     expect(result.parserPipelineAudit).toEqual({});
+    expect(result.replayHash).toBe("replay-hash");
   });
 
   it("defaults to AI fallback suspended when no test case setting exists", async () => {
