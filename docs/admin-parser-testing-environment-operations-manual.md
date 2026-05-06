@@ -36,11 +36,22 @@ flowchart LR
 
 Treat the parser as untrusted until a human admin confirms the result against the original bureau report. A passing test means the current parser matches the stored expected or approved baseline. It does not automatically mean the baseline itself is correct.
 
+### Deterministic Operation Rule
+
+Current parser testing, Stage Lab, Run All, and ingestion storage are deterministic-only for authoritative extraction. The canonical parser package is the shared object that carries `canonicalOutput`, deterministic field evidence, alternatives, history, and `replayHash` through parser tests and ingest storage.
+
+Operationally this means:
+
+- The same PDF bytes, source text, parser version, and active parser-rule set should produce the same normalized result and the same `replayHash`.
+- Admin decisions do not silently overwrite parser output. They create approved truth and, where supported, parser-rule candidates that must pass deterministic validation before activation.
+- Null, blank, or missing values should not replace non-null extracted values unless the admin decision or parser rule explicitly says the bureau did not report the field.
+- AI, LLM, DocStrange, and OCR-assisted outputs are diagnostic only unless a deterministic rule validates and adopts the behavior later.
+
 ### Recommended Admin Flow
 
 1. Use Stage Lab for exploratory parsing of a bureau PDF.
-2. Review quality, source coverage, review queue items, raw text, and complete mapped output.
-3. Save a useful Stage Lab run to Test Cases.
+2. Review quality, source coverage, review queue items, raw text, canonical hashes, and complete mapped output.
+3. Save a useful deterministic Stage Lab run to Test Cases.
 4. In Test Cases, accept or correct parser output until the saved baseline represents bureau truth.
 5. Run the single test to confirm the parser can reproduce that truth.
 6. Use Violation Corrections to confirm, reject, correct, or add violation outcomes for the same source reports.
@@ -73,6 +84,10 @@ Use PDF files that represent real bureau structures. Strong coverage needs:
 | Large PDFs | Confirms parser timing, file handling, and raw text retention under load |
 | Reports with missing account numbers | Tests identity matching by creditor, account type, dates, and amounts |
 | Reports with duplicated creditors | Tests tradeline matching and duplicate violation handling |
+| Creditor statements and collection letters | Validates non-bureau layouts without mixing them into bureau-only expectations |
+| Scanned or OCR-derived PDFs | Confirms text extraction failure is explicit; trust only deterministic text/OCR output |
+| Exported portal PDFs | Validates generated PDF text order and semantic zone detection |
+| Older and regional bureau layouts | Validates template/rule-pack coverage without fixed line-number assumptions |
 | Known false positives | Trains violation rejection and irrelevant issue workflows |
 | Known false negatives | Trains missed issue creation |
 
@@ -91,6 +106,12 @@ Use PDF files that represent real bureau structures. Strong coverage needs:
 | Extraction source | The parser extraction path used to produce the output, such as `pdf_text` |
 | Original SHA-256 | Hash of the uploaded PDF, used to link test case source documents to violation correction runs |
 | Canonical SHA-256 | Hash of the normalized parser result, used to detect output changes |
+| Replay hash | Stable hash of the deterministic replay package, used to prove the same inputs and active rules reproduce the same output |
+| Canonical output | Shared normalized result object stored by parser tests and ingest storage; includes deterministic field objects, evidence, alternatives, and history |
+| Candidate pool | All deterministic candidates considered for a canonical field before selection |
+| Semantic zone | Structural area such as report header, consumer identity, tradeline accounts, inquiries, public records, or employment |
+| Non-canonical diagnostic | LLM, DocStrange, or diagnostic-only candidate that can inform review but cannot become authoritative output by itself |
+| Parser rule candidate | Admin-correction-derived rule proposal that must pass target validation and the regression gate before activation |
 | Violation correction | Admin correction record for a machine-generated or manually added compliance issue |
 | Evidence | A source quote, page, field, normalized value, and reason supporting a violation correction |
 | Regulation mapping | Legal or internal authority linked to a correction |
@@ -196,6 +217,8 @@ When a test case is selected and no new run result is currently open, the detail
 | Saved Tradelines / Approved Tradelines | Saved or approved tradeline cards | Shows account-level parser output and admin-confirmed values |
 | Raw Extracted Text | Stored raw source text | Lets admins verify fields against source text |
 
+Parser context and parser-test run results may also include `canonicalOutput` and `replayHash`. These are developer-facing audit fields, not manual edit targets. If an admin sees a field disappear between Saved Parser Output, a single run, Run All, or ingest storage, treat that as a deterministic pipeline defect and preserve the source PDF, raw text, test case ID, and replay hash for developer review.
+
 ### Saved Parser Output Context Cards
 
 | Card | Meaning | Admin Use |
@@ -250,6 +273,20 @@ flowchart LR
 | Not Reported By Bureau | The field is not present on the bureau report | Stores an approved empty or null value where appropriate |
 | Ignore | The field should not drive parser test truth | Keeps an audit note without turning it into a required baseline value |
 
+### Parser Rule Promotion from Admin Decisions
+
+Corrected and Missing From Parser decisions can show `Promote Rule`. This creates a deterministic parser-rule candidate from the admin decision and validates it before activation.
+
+The promotion flow is:
+
+1. Create a `parserRuleCandidate` from the decision, source evidence, parser instruction, bureau, field path, parsed value, and approved value.
+2. Derive an explicit supported rule template when one exists.
+3. Re-run the originating test case with the candidate rule.
+4. Run the regression gate across all parser test cases unless disabled by the caller.
+5. Activate the parser rule only if the originating case passes and no new regression failures are introduced.
+
+Current automatic promotion is intentionally narrow. Supported examples include TransUnion tradeline `Legend` to `remarkCodes` and TransUnion missing account numbers normalized to a bureau-not-provided value. Unsupported corrections remain saved admin truth and a blocked candidate for developer review; they must not be treated as hidden parser behavior.
+
 ### Single Test Result Panel
 
 After clicking Run for a single case, the detail panel shows Test Results.
@@ -300,6 +337,8 @@ Before deletion, training-marked artifacts are preserved into the parser test tr
 | Prefer Stage Lab save for complex PDFs | Captures parser context, hashes, quality metrics, and raw text |
 | Do not use Accept All blindly | It can turn parser errors into the approved baseline |
 | Use evidence and reasons when correcting | Future admins and developers need audit context |
+| Promote only source-backed corrections | Parser-rule candidates should come from clear report evidence and an explicit parser instruction |
+| Preserve replay details for anomalies | `replayHash`, original SHA, raw text, and test case ID make parser drops reproducible |
 | Keep exact matching for stable fields only | Reduces brittle regressions from harmless formatting changes |
 | Run a single test after each baseline edit | Confirms the edited baseline behaves as intended |
 
@@ -307,7 +346,7 @@ Before deletion, training-marked artifacts are preserved into the parser test tr
 
 ### Relevance
 
-Stage Lab is the safest first stop for a new PDF. It runs the shadow parser and displays extraction quality, review items, parsed tradelines, raw text, and complete mapped output. It does not become a regression baseline unless an admin saves it to Test Cases.
+Stage Lab is the safest first stop for a new PDF. It runs the deterministic shadow parser and displays extraction quality, review items, parsed tradelines, raw text, and complete mapped output. It does not become a regression baseline unless an admin saves it to Test Cases.
 
 Use Stage Lab when you need to:
 
@@ -323,6 +362,8 @@ Use Stage Lab when you need to:
 flowchart TB
   Upload["Upload bureau PDF"] --> Suspended["AI fallback suspended"]
   Suspended --> Run["Run Shadow Parse"]
+  Run --> Pipeline["Deterministic canonical package"]
+  Pipeline --> Hashes["Canonical SHA and replay hash"]
   Run --> Results["Stage Lab Results"]
   Run --> Review["Review Queue"]
   Run --> Tradelines["Parsed Tradelines"]
@@ -342,9 +383,9 @@ flowchart TB
 | Selected file display | Shows the chosen file name | Confirms the correct report was selected |
 | Clear | Removes the selected file and current result | Prevents saving or inspecting the wrong result |
 | AI fallback switch | Disabled while AI fallback is suspended | Confirms Stage Lab cannot invoke fallback output until it is tested |
-| Run Shadow Parse | Runs the Stage Lab parser for the selected PDF | Produces quality, retention, parsed, raw, and audit output |
-| Export JSON | Downloads the complete Stage Lab result | Useful for debugging and developer handoff |
-| Save to Test Cases | Saves the Stage Lab result and original PDF as a test case | Creates a durable regression baseline |
+| Run Shadow Parse | Runs the Stage Lab parser for the selected PDF | Produces quality, retention, parsed, raw, deterministic pipeline, and audit output |
+| Export JSON | Downloads the complete Stage Lab result | Useful for debugging, including `audit.deterministicPipeline`, canonical hashes, and `replayHash` |
+| Save to Test Cases | Saves the Stage Lab result and original PDF as a test case | Creates a durable regression baseline with parser context, `canonicalOutput`, and `replayHash` when available |
 | Saved to Test Cases | Disabled state after successful save | Prevents accidental duplicate saves from the same result |
 
 ### AI Fallback Setting
@@ -355,6 +396,8 @@ flowchart TB
 | Off | Deterministic extraction only | Current enforced behavior for Stage Lab, parser tests, and ingestion |
 
 When a Stage Lab result is saved to Test Cases, the test case stores `parserMode` and `allowAiFallback`. While fallback is suspended, new Stage Lab cases save as deterministic-only. Older fallback-assisted baselines should be treated as historical records until fallback testing is restored.
+
+DocStrange, LLM, and AI-assisted values can be useful diagnostics, but they are not authoritative parser output in this environment. Do not accept a value only because a diagnostic path suggested it; accept or correct it only after verifying the source PDF and, where possible, promoting an explicit deterministic rule.
 
 ### Stage Lab Result Tabs
 
@@ -381,6 +424,7 @@ When a Stage Lab result is saved to Test Cases, the test case stores `parserMode
 | Raw text chars | Number of raw text characters extracted | Very low counts suggest OCR/text extraction failure |
 | Original SHA-256 | Hash of uploaded PDF | Links the test case source to correction runs |
 | Canonical SHA-256 | Hash of normalized result | Detects parser output changes |
+| Replay hash | Stable hash in the run payload and export JSON | Same PDF, source text, parser version, and active rules should reproduce this value |
 | Source-backed tradelines | Tradelines with source text over total tradelines | Confirms whether accounts can be traced back to raw text |
 | Extracted counts | Counts of tradelines, inquiries, employment records, scores, and related sections | Validates report completeness |
 | Quality Gates | Blockers and issues with severity | Must be reviewed before saving as a trusted baseline |
@@ -409,7 +453,9 @@ When a Stage Lab result is saved to Test Cases, the test case stores `parserMode
 
 ### Raw Text Preview Tab
 
-Use this tab to verify whether a missing field was present in the text extraction layer. If the source text does not contain the field, parser rules may not be able to extract it without OCR or an alternate extraction path. If the source text does contain the value, the parser rule or mapping likely needs work.
+Use this tab to verify whether a missing field was present in the text extraction layer. If the source text does not contain the field, parser rules may not be able to extract it without deterministic OCR or an alternate extraction path. If the source text does contain the value, the parser rule or mapping likely needs work.
+
+For scanned image-only PDFs, do not treat an AI/OCR guess as canonical parser truth. Record the gap, preserve the PDF and Stage Lab export, and add deterministic OCR/template work before relying on that layout in regression testing.
 
 ### Complete Parsed Output Tab
 
@@ -435,6 +481,8 @@ This tab is for detailed audit and developer handoff.
 | Canonical Mapped Output: Mapped Employments | Normalized employment rows |
 | Canonical Mapped Output: Mapped Scores | Normalized score rows |
 
+The Stage Lab export also includes `audit.deterministicPipeline`. Use that object for developer handoff when the question is why one canonical field won, why an alternative was rejected, which semantic zone supplied evidence, or whether an LLM/DocStrange diagnostic was correctly blocked from canonical output.
+
 ### Stale Stage Lab Result
 
 If the page says the parser result needs rerun, the result was generated by an older Stage Lab version. Clear the stale result, rerun the PDF, and inspect the new output before saving.
@@ -446,6 +494,8 @@ If the page says the parser result needs rerun, the result was generated by an o
 Violation Corrections turn machine-generated compliance findings into admin-reviewed truth. This section is also where admins add missed issues, attach evidence, map regulation references, finalize corrections, and export training examples.
 
 Within the Parser Testing Environment, Violation Corrections are scoped to source documents from active parser test cases when source hashes are available. If there are no active parser test case sources, the panel shows `No active parser test case sources`.
+
+Violation search compatibility must be preserved during parser normalization work. Admin corrections should not rename violation IDs, violation types, regulation references, evidence-link fields, review status fields, or existing search assumptions. New deterministic violation details must still map back to the current violation search model and include source evidence that can be searched by consumer/report, tradeline, creditor, collection agency, regulation reference, review status, and date where applicable.
 
 ### Violation Correction Flow
 
@@ -591,6 +641,8 @@ The Finalize button is enabled only when:
 
 This means a confirmed or corrected actionable violation normally needs both source evidence and an active regulation reference before finalization.
 
+Do not invent a violation, citation, or evidence excerpt to satisfy finalization. If the factual trigger is unclear, use Rejected, Irrelevant, Duplicate, Insufficient Evidence, or Training note only as appropriate and keep the correction available for future deterministic rule work.
+
 ### Recommended Violation Correction Procedures
 
 #### Confirm a Correct Machine Violation
@@ -638,6 +690,7 @@ Use Run All Tests:
 
 - Before merging parser changes.
 - After changing extraction, mapping, date handling, tradeline identity, or parser validation logic.
+- After activating parser rules from admin corrections.
 - After importing test cases.
 - After large admin baseline updates.
 - Before staging signoff.
@@ -652,6 +705,8 @@ Use Run All Tests:
 | Failed | Count of cases that failed | Must be triaged before parser release |
 | Failures list | Failed case name and reason | Use to identify what broke |
 | View | Opens the failed case in Test Cases | Inspect details, rerun, and adjudicate |
+
+Each stored run result can carry the same `canonicalOutput` and `replayHash` contract as single test runs and ingest storage. When investigating a regression, compare expected/approved values first, then use raw text, parser context, canonical hashes, and replay hash to determine whether the parser changed, the baseline changed, or the source document fixture changed.
 
 ### Failure Reasons
 
@@ -701,7 +756,7 @@ The exported JSON includes:
 - Expected consumer info and tradelines.
 - Raw extracted text.
 - Bureau, parser mode, AI fallback suspension state, stage version, extraction source.
-- Parser context.
+- Parser context, including `canonicalOutput` and `replayHash` when available.
 - Admin review status.
 - Approved consumer info and tradelines.
 - Adjudication decisions.
@@ -736,6 +791,7 @@ flowchart LR
 | --- | --- |
 | Export before deleting or bulk editing cases | Gives rollback data |
 | Export after major adjudication work | Preserves admin-reviewed truth |
+| Export after parser-rule promotion | Preserves the source decisions and replay context for activated or blocked candidates |
 | Run All Tests after import | Confirms imported cases are executable in the target environment |
 | Watch for duplicates | Import creates new rows and does not merge with existing names |
 | Protect exported JSON | It includes PDF contents as base64 and may contain sensitive report data |
@@ -749,30 +805,31 @@ Use this checklist for the first parser testing session.
 3. Upload a known TransUnion or Equifax PDF.
 4. Confirm AI fallback is suspended and unavailable.
 5. Click Run Shadow Parse.
-6. Review Stage Lab Results for confidence, review queue count, source coverage, blockers, and extracted counts.
+6. Review Stage Lab Results for confidence, review queue count, source coverage, blockers, canonical hashes, and extracted counts.
 7. Open Parsed Tradelines and verify at least one account against the PDF.
 8. Open Raw Text Preview if fields look missing.
-9. Open Complete Parsed Output if canonical mapping needs developer review.
+9. Export JSON or open Complete Parsed Output if canonical mapping, candidate selection, or replay behavior needs developer review.
 10. If the result is useful, click Save to Test Cases.
 11. Go to Test Cases and open the saved case.
 12. Review Saved Parser Output.
 13. Use Accept Saved Output only if the saved parser output matches the bureau report.
 14. Otherwise, use Admin Adjudication to correct fields one at a time with source evidence.
-15. Click Run for the test case.
-16. Resolve Failed or Needs Review items.
-17. Go to Violation Corrections and review linked runs for that source report.
-18. Confirm, correct, reject, or add violation outcomes.
-19. Link evidence and regulation references.
-20. Finalize completed corrections.
-21. Go to Run All Tests and run the full suite.
-22. Export test cases and training examples after successful review.
+15. Use Promote Rule only for source-backed Corrected or Missing From Parser decisions that should become future deterministic behavior.
+16. Click Run for the test case.
+17. Resolve Failed or Needs Review items.
+18. Go to Violation Corrections and review linked runs for that source report.
+19. Confirm, correct, reject, or add violation outcomes.
+20. Link evidence and regulation references.
+21. Finalize completed corrections.
+22. Go to Run All Tests and run the full suite.
+23. Export test cases and training examples after successful review.
 
 ## 11. Operational Recipes
 
 ### Turn a New PDF Into a Regression Test
 
 1. Stage Lab: upload PDF and run shadow parse.
-2. Review quality gates, review queue, parsed tradelines, and raw text.
+2. Review quality gates, review queue, parsed tradelines, raw text, canonical SHA, and replay hash.
 3. Save to Test Cases.
 4. Test Cases: open the new case.
 5. Accept saved output if fully correct, or correct individual fields with adjudication.
@@ -799,8 +856,9 @@ Use this checklist for the first parser testing session.
 5. Enter the exact bureau-supported value.
 6. Add Source Evidence and Reason.
 7. Save Decision.
-8. Run the single test.
-9. If the test now fails because the parser still emits the old value, create a parser fix and rerun.
+8. Promote Rule if the correction matches a supported deterministic template and should apply to future documents.
+9. Run the single test.
+10. If the test now fails because the parser still emits the old value, create a parser fix and rerun.
 
 ### Review a False Positive Violation
 
@@ -832,11 +890,13 @@ Use this checklist for the first parser testing session.
 1. Import or create any new test cases needed for the change.
 2. Run single tests for changed scenarios.
 3. Resolve Failed and Needs Review results.
-4. Review violation corrections for affected reports.
-5. Run All Tests.
-6. Confirm zero unexpected failures.
-7. Export updated test cases and training examples.
-8. Record any accepted blocked or known-failing cases separately before promotion.
+4. Promote or document admin correction rules needed by the change.
+5. Review violation corrections for affected reports.
+6. Confirm violation search behavior still works for affected violation types, regulation references, tradelines, creditors, collection agencies, evidence links, review statuses, and dates.
+7. Run All Tests.
+8. Confirm zero unexpected failures.
+9. Export updated test cases and training examples.
+10. Record any accepted blocked or known-failing cases separately before promotion.
 
 ## 12. Common States and Messages
 
@@ -851,6 +911,9 @@ Use this checklist for the first parser testing session.
 | No runs | No extraction runs match the filter | Change filter or create/run source reports |
 | Save the correction before linking evidence | Evidence requires a persisted correction ID | Click Save correction first |
 | Save the correction before linking a reference | Regulation references require a persisted correction ID | Click Save correction first |
+| Parser rule candidate blocked | The correction does not match a supported automatic rule template | Keep the decision as admin truth and send the candidate details to developers |
+| Parser rule candidate failed validation | The candidate did not make the originating test pass or introduced new regression failures | Do not activate it; inspect source evidence, rule scope, and Run All failures |
+| Replay hash changed unexpectedly | Same source fixture produced a different deterministic package | Compare active parser rules, stage version, raw text, canonical output, and source PDF hash |
 | Parser result needs rerun | Stage Lab result was created by an older stage version | Clear stale result and rerun |
 | Import preview shows zero cases | JSON does not contain a valid `testCases` array | Use a valid parser test export |
 
@@ -863,6 +926,7 @@ A high-quality test case has:
 - Clear name and description.
 - Original PDF attached.
 - Bureau and parser context recorded.
+- Canonical output and replay hash retained when available.
 - Raw extracted text retained when available.
 - Expected or approved consumer fields.
 - Representative tradelines.
@@ -879,6 +943,7 @@ A high-quality field correction has:
 - Corrected value copied from the bureau report.
 - Source evidence with report location or quote.
 - Parser instruction explaining the expected behavior.
+- Parser-rule promotion attempted only when the correction should become explicit future behavior.
 
 ### Good Violation Correction
 
@@ -889,6 +954,7 @@ A high-quality violation correction has:
 - Correction reason that explains the admin judgment.
 - Linked evidence unless it is training-note-only.
 - Active regulation reference for actionable confirmed/corrected findings.
+- Existing violation type, regulation reference, evidence link, and status semantics preserved for search.
 - Finalized status after review is complete.
 
 ### Good Regulation Mapping
@@ -913,12 +979,13 @@ This map is for admins coordinating with developers. It shows what UI actions ca
 | Create test case | `/_api/parser-test-case/create` | Saves PDF and baseline fields |
 | Update test case | `/_api/parser-test-case/update` | Updates name, description, expected fields, and tradelines |
 | Delete test case | `/_api/parser-test-case/delete` | Deletes test case and linked generated outputs while archiving training-marked artifacts |
-| Run one test | `/_api/parser-test-case/run` | Runs one PDF through production parser and compares against baseline |
-| Run all tests | `/_api/parser-test-case/run-all` | Runs all parser test cases sequentially |
+| Run one test | `/_api/parser-test-case/run` | Runs one PDF through production parser, stores canonical output/replay hash when available, and compares against baseline |
+| Run all tests | `/_api/parser-test-case/run-all` | Runs all parser test cases sequentially and stores canonical output/replay hash per run when available |
 | Export test cases | `/_api/parser-test-case/export` | Downloads selected parser test case JSON |
 | Import test cases | `/_api/parser-test-case/import` | Creates test cases from exported JSON |
 | Adjudicate parser output | `/_api/parser-test-case/adjudicate` | Saves approved values and field decisions |
-| Stage Lab run | `/_api/parser-lab/run` | Runs shadow parser and returns quality, retention, raw, parsed, and audit output |
+| Promote parser rule | `/_api/parser-test-case/promote-rule` | Creates a parser-rule candidate from an admin decision and activates it only after deterministic validation |
+| Stage Lab run | `/_api/parser-lab/run` | Runs shadow parser and returns quality, retention, replay hash, raw, parsed, deterministic pipeline, and audit output |
 | Violation correction runs | `/_api/admin/violation-correction/runs` | Lists extraction runs for correction review |
 | Violation correction detail | `/_api/admin/violation-correction/detail` | Loads tradelines, violations, corrections, evidence, and references for a run |
 | Create correction | `/_api/admin/violation-correction/create` | Creates admin correction record |
@@ -939,12 +1006,15 @@ Use this checklist before considering parser testing work complete.
 | Baseline approved | Expected or approved truth matches the bureau report |
 | Single test run | Target case passes or has documented expected failure |
 | Needs Review resolved | Additional extracted data approved, skipped, or adjudicated |
+| Parser-rule candidates handled | Supported correction rules promoted or blocked candidates documented for developer review |
+| Replay context preserved | Original SHA, canonical SHA, replay hash, raw text, and export JSON available for anomalies |
 | Violation corrections reviewed | Relevant machine issues confirmed, corrected, rejected, or classified |
 | Missed issues added | Known false negatives are manually added |
 | Evidence linked | Evidence exists for finalized actionable corrections |
 | Regulation mapped | Active references exist for actionable confirmed/corrected violations |
 | Training examples exported | Training-relevant corrections are exported |
 | Run All Tests completed | Full suite run reviewed and failures triaged |
+| Violation search spot-check completed | Search behavior verified for affected violation categories, references, entities, evidence, status, and date filters |
 | Test cases exported | Updated regression library backed up |
 
 ## 16. Troubleshooting Guide
