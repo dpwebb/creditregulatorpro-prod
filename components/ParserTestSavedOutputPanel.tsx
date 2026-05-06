@@ -53,6 +53,12 @@ type FieldOption = {
   parsedValue: unknown;
 };
 
+type PromotionFeedback = {
+  status: "pending" | "activated" | "blocked" | "failed";
+  message: string;
+  detail?: string;
+};
+
 const ENTITY_LABELS: Record<string, string> = {
   report: "Report",
   consumerInfo: "Consumer Info",
@@ -696,6 +702,7 @@ export function ParserTestSavedOutputPanel({
     : [];
   const rawText = typeof testCase?.rawExtractedText === "string" ? testCase.rawExtractedText : "";
   const [decisionDraft, setDecisionDraft] = React.useState<DecisionDraft>(EMPTY_DECISION_DRAFT);
+  const [promotionFeedbackByDecisionId, setPromotionFeedbackByDecisionId] = React.useState<Record<string, PromotionFeedback>>({});
   const fieldOptions = React.useMemo(
     () => buildFieldOptions(testCase, consumerInfo, tradelines),
     [testCase, consumerInfo, tradelines],
@@ -868,10 +875,46 @@ export function ParserTestSavedOutputPanel({
   const handlePromoteDecision = async (decision: JsonRecord) => {
     const decisionId = formatScalar(decision.id);
     if (!onPromoteParserRule || !testCase?.id || !decisionId) return;
-    await onPromoteParserRule({
-      testCaseId: testCase.id,
-      decisionId,
-    });
+    setPromotionFeedbackByDecisionId((current) => ({
+      ...current,
+      [decisionId]: {
+        status: "pending",
+        message: "Creating candidate and running parser validation...",
+      },
+    }));
+
+    try {
+      const result = await onPromoteParserRule({
+        testCaseId: testCase.id,
+        decisionId,
+      });
+      const candidateStatus = formatScalar(result?.candidate?.status);
+      const newFailureCount = Array.isArray(result?.regressionGate?.newFailures)
+        ? result.regressionGate.newFailures.length
+        : 0;
+
+      setPromotionFeedbackByDecisionId((current) => ({
+        ...current,
+        [decisionId]: {
+          status: result?.activated ? "activated" : candidateStatus === "blocked" ? "blocked" : "failed",
+          message: formatScalar(result?.message) || (result?.activated ? "Parser rule activated." : "Parser rule was not activated."),
+          detail:
+            newFailureCount > 0
+              ? `${newFailureCount} new regression failure${newFailureCount === 1 ? "" : "s"} blocked activation.`
+              : result?.targetValidation?.reason
+                ? formatScalar(result.targetValidation.reason)
+                : undefined,
+        },
+      }));
+    } catch (error) {
+      setPromotionFeedbackByDecisionId((current) => ({
+        ...current,
+        [decisionId]: {
+          status: "failed",
+          message: error instanceof Error ? error.message : "Parser rule promotion failed.",
+        },
+      }));
+    }
   };
 
   if (!hasSavedOutput) {
@@ -1071,6 +1114,13 @@ export function ParserTestSavedOutputPanel({
           <div className={styles.decisionList}>
             {decisions.map((decision, index) => (
               <div key={formatScalar(decision.id) || index} className={styles.decisionItem}>
+                {(() => {
+                  const decisionId = formatScalar(decision.id);
+                  const promotionFeedback = decisionId ? promotionFeedbackByDecisionId[decisionId] : undefined;
+                  const isThisDecisionPromoting = promotionFeedback?.status === "pending";
+
+                  return (
+                    <>
                 <div className={styles.decisionHeader}>
                   <strong>{formatScalar(decision.fieldPath) || "Field"}</strong>
                   <div className={styles.decisionHeaderActions}>
@@ -1082,15 +1132,24 @@ export function ParserTestSavedOutputPanel({
                         size="sm"
                         variant="outline"
                         onClick={() => handlePromoteDecision(decision)}
-                        disabled={isPromotingParserRule}
+                        disabled={isPromotingParserRule || isThisDecisionPromoting}
                         title="Create and validate a global parser rule from this decision"
                       >
                         <Wand2 size={14} />
-                        {isPromotingParserRule ? "Promoting..." : "Promote Rule"}
+                        {isThisDecisionPromoting ? "Promoting..." : "Promote Rule"}
                       </Button>
                     )}
                   </div>
                 </div>
+                {promotionFeedback && (
+                  <div className={`${styles.promotionFeedback} ${styles[`promotionFeedback_${promotionFeedback.status}`]}`}>
+                    <strong>{promotionFeedback.message}</strong>
+                    {promotionFeedback.detail && <span>{promotionFeedback.detail}</span>}
+                  </div>
+                )}
+                    </>
+                  );
+                })()}
                 <p>{truncate(formatScalar(decision.reason) || formatScalar(decision.sourceEvidence) || "No note recorded.", 220)}</p>
                 <div className={styles.decisionValues}>
                   <div>

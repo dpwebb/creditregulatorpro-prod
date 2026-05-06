@@ -206,6 +206,43 @@
   font-size: 0.875rem;
 }
 
+.promotionFeedback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  font-size: 0.8125rem;
+}
+
+.promotionFeedback strong,
+.promotionFeedback span {
+  overflow-wrap: anywhere;
+}
+
+.promotionFeedback span {
+  color: var(--muted-foreground);
+}
+
+.promotionFeedback_pending {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--background));
+}
+
+.promotionFeedback_activated {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, var(--background));
+}
+
+.promotionFeedback_blocked,
+.promotionFeedback_failed {
+  border-color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, var(--background));
+}
+
 .decisionValues {
   display: grid;
   grid-template-columns: repeat(2, minmax(120px, 1fr));
