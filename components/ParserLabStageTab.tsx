@@ -8,6 +8,7 @@ import { Spinner } from "./Spinner";
 import { Switch } from "./Switch";
 import { useRunParserLabStage } from "../helpers/parserLabQueries";
 import { PARSER_LAB_STAGE_VERSION } from "../helpers/parserLabStageVersion";
+import { formatDateOnlyEnCa } from "../helpers/dateOnly";
 import styles from "./ParserLabStageTab.module.css";
 
 type ParserLabResult = Awaited<ReturnType<ReturnType<typeof useRunParserLabStage>["mutateAsync"]>>;
@@ -90,8 +91,7 @@ function formatBlankValue(value: unknown): string {
 
 function formatDateBlank(value: unknown): string {
   if (!hasReportedValue(value)) return "";
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("en-CA");
+  return formatDateOnlyEnCa(String(value)) ?? String(value);
 }
 
 function formatMoneyBlank(value: unknown): string {
@@ -145,9 +145,8 @@ function formatAuditScalar(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") {
     if (!hasReportedValue(value)) return "";
-    const date = new Date(value);
-    if (/^\d{4}-\d{2}-\d{2}T/.test(value) && !Number.isNaN(date.getTime())) {
-      return date.toLocaleDateString("en-CA");
+    if (/^\d{4}-\d{2}-\d{2}(?:$|[T\s])/.test(value)) {
+      return formatDateOnlyEnCa(value) ?? value;
     }
     return value;
   }

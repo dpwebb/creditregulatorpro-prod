@@ -84,4 +84,35 @@ describe("ParserTestSavedOutputPanel", () => {
       }),
     );
   });
+
+  it("shows ISO parser dates as the bureau calendar date", async () => {
+    const onAdjudicate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <ParserTestSavedOutputPanel
+        testCase={{
+          ...savedOutputTestCase,
+          expectedTradelines: [
+            {
+              creditorName: "CAPITAL ONE BANK",
+              accountNumber: "1234",
+              dates: {
+                opened: "2026-04-16T00:00:00.000Z",
+              },
+            },
+          ],
+        }}
+        onAdjudicate={onAdjudicate}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Field to Review"), {
+      target: { value: "tradeline|CAPITAL ONE BANK|tradelines[0].dates.opened" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Corrected / Approved Value")).toHaveValue("2026-04-16");
+    });
+    expect(screen.getAllByText("2026-04-16").length).toBeGreaterThan(0);
+  });
 });

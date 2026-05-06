@@ -5,6 +5,7 @@ import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { Textarea } from "./Textarea";
+import { formatDateOnlyEnCa } from "../helpers/dateOnly";
 import styles from "./ParserTestSavedOutputPanel.module.css";
 
 interface ParserTestSavedOutputPanelProps {
@@ -217,9 +218,7 @@ function humanizeKey(value: string): string {
 }
 
 function formatDate(value: string): string | null {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-CA");
+  return formatDateOnlyEnCa(value);
 }
 
 function formatScalar(value: unknown): string {
