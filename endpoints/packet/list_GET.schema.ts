@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { Selectable } from "kysely";
 import { Packet } from "../../helpers/schema";
+import type { PacketLifecycleSummary } from "../../helpers/packetLifecycle";
 
 export const schema = z.object({
   limit: z.coerce.number().min(1).optional(),
@@ -21,6 +22,7 @@ export type PacketWithDetails = Omit<Selectable<Packet>, 'userId' | 'pdfStorageU
   recipientCity: string | null;
   recipientProvince: string | null;
   recipientPostalCode: string | null;
+  lifecycle: PacketLifecycleSummary;
 };
 
 export type OutputType = {

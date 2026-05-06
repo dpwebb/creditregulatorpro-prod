@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { resolvePdfStorageUrl } from "../../helpers/documentStorage";
+import { buildPacketLifecycleSummary } from "../../helpers/packetLifecycle";
 
 export async function handle(request: Request) {
   try {
@@ -22,6 +23,7 @@ export async function handle(request: Request) {
       .selectFrom('packet')
       .leftJoin('tradeline', 'tradeline.id', 'packet.tradelineId')
       .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
+      .leftJoin('statuteVersion', 'statuteVersion.id', 'packet.statuteVersionId')
       .select([
         'packet.id',
         'packet.status',
@@ -29,6 +31,10 @@ export async function handle(request: Request) {
         'packet.createdAt',
         'packet.pdfStorageUrl',
         'packet.sentDate',
+        'packet.bureauResponseDate',
+        'packet.responseType',
+        'packet.successOutcome',
+        'packet.processingStatus',
         'packet.deliveryMethod',
         'packet.trackingNumber',
         'packet.letterDate',
@@ -36,7 +42,8 @@ export async function handle(request: Request) {
         'packet.recipientName',
         'packet.userId',
         'tradeline.accountNumber as tradelineAccountNumber',
-        'bureau.name as bureauName'
+        'bureau.name as bureauName',
+        'statuteVersion.responseClockDays as responseClockDays'
       ])
       .where('packet.id', '=', input.packetId)
       .executeTakeFirst();
@@ -51,12 +58,28 @@ export async function handle(request: Request) {
     }
 
     // Remove userId from output to match OutputType and avoid leaking internal IDs if not needed
-    const { userId, ...safePacket } = packet;
+    const { userId, responseClockDays, ...safePacket } = packet;
 
     // Keep storage details behind the packet PDF endpoint.
     const resolvedPdfStorageUrl = await resolvePdfStorageUrl(safePacket.pdfStorageUrl ?? null);
 
-    return new Response(JSON.stringify({ packet: { ...safePacket, pdfStorageUrl: resolvedPdfStorageUrl } } satisfies OutputType));
+    return new Response(JSON.stringify({
+      packet: {
+        ...safePacket,
+        pdfStorageUrl: resolvedPdfStorageUrl,
+        lifecycle: buildPacketLifecycleSummary({
+          status: safePacket.status,
+          processingStatus: safePacket.processingStatus,
+          sentDate: safePacket.sentDate,
+          bureauResponseDate: safePacket.bureauResponseDate,
+          responseType: safePacket.responseType,
+          successOutcome: safePacket.successOutcome,
+          trackingNumber: safePacket.trackingNumber,
+          deliveryMethod: safePacket.deliveryMethod,
+          responseClockDays,
+        }),
+      },
+    } satisfies OutputType));
   } catch (error) {
     return handleEndpointError(error);
   }

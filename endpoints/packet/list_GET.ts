@@ -3,6 +3,7 @@ import { OutputType, schema } from "./list_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { buildPacketLifecycleSummary } from "../../helpers/packetLifecycle";
 
 export async function handle(request: Request) {
   try {
@@ -19,7 +20,8 @@ export async function handle(request: Request) {
         .selectFrom('packet')
         .leftJoin('tradeline', 'tradeline.id', 'packet.tradelineId')
         .leftJoin('creditor', 'creditor.id', 'tradeline.creditorId')
-        .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId');
+        .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
+        .leftJoin('statuteVersion', 'statuteVersion.id', 'packet.statuteVersionId');
 
     // Count query
     let countQuery = buildBaseQuery().select((eb) => eb.fn.countAll<string>().as('total'));
@@ -67,6 +69,7 @@ export async function handle(request: Request) {
         'tradeline.originalCreditorName as tradelineOriginalCreditorName',
         'creditor.name as tradelineCreditorNameFromTable',
         'bureau.name as bureauName',
+        'statuteVersion.responseClockDays as responseClockDays',
       ])
       .orderBy('packet.createdAt', 'desc');
 
@@ -86,9 +89,10 @@ export async function handle(request: Request) {
     const rawPackets = await dataQuery.execute();
 
     const packets = rawPackets.map((p) => {
-      const { tradelineOriginalCreditorName, tradelineCreditorNameFromTable, ...rest } = p as typeof p & {
+      const { tradelineOriginalCreditorName, tradelineCreditorNameFromTable, responseClockDays, ...rest } = p as typeof p & {
         tradelineOriginalCreditorName: string | null;
         tradelineCreditorNameFromTable: string | null;
+        responseClockDays: number | null;
       };
       return {
         ...rest,
@@ -100,6 +104,17 @@ export async function handle(request: Request) {
         recipientCity: (p as typeof p & { recipientCity: string | null }).recipientCity ?? null,
         recipientProvince: (p as typeof p & { recipientProvince: string | null }).recipientProvince ?? null,
         recipientPostalCode: (p as typeof p & { recipientPostalCode: string | null }).recipientPostalCode ?? null,
+        lifecycle: buildPacketLifecycleSummary({
+          status: p.status,
+          processingStatus: p.processingStatus,
+          sentDate: p.sentDate,
+          bureauResponseDate: p.bureauResponseDate,
+          responseType: p.responseType,
+          successOutcome: p.successOutcome,
+          trackingNumber: p.trackingNumber,
+          deliveryMethod: p.deliveryMethod,
+          responseClockDays,
+        }),
       };
     });
 

@@ -379,6 +379,13 @@ export default function PacketsPage() {
                         To: {packet.recipientName}
                       </span>
                     )}
+                    {packet.lifecycle && (
+                      <span className={styles.lifecycleLine}>
+                        <FileCheck size={12} className={styles.lifecycleIcon} />
+                        {packet.lifecycle.label}
+                        {packet.lifecycle.responseDueDate ? `: ${packet.lifecycle.responseDueDate}` : ""}
+                      </span>
+                    )}
                     {isAdmin && <span className={styles.packetId}>ID: #{packet.id}</span>}
                   </div>
                 </div>

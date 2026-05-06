@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { Selectable } from "kysely";
 import { Packet } from "../../helpers/schema";
+import type { PacketLifecycleSummary } from "../../helpers/packetLifecycle";
 
 export const schema = z.object({
   packetId: z.coerce.number()
@@ -12,6 +13,7 @@ export type InputType = z.infer<typeof schema>;
 export type PacketDetail = Pick<Selectable<Packet>, 'id' | 'status' | 'terminalLabel' | 'createdAt' | 'pdfStorageUrl' | 'sentDate' | 'deliveryMethod' | 'trackingNumber' | 'letterDate' | 'consumerCertification' | 'recipientName'> & {
   tradelineAccountNumber: string | null;
   bureauName: string | null;
+  lifecycle: PacketLifecycleSummary;
 };
 
 export type OutputType = {

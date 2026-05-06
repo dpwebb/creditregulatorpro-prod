@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPacket, PacketDetail } from "../endpoints/packet/get_GET.schema";
 import type { PreviewPacket } from "../endpoints/packet/create_POST.schema";
+import { buildPacketLifecycleSummary } from "./packetLifecycle";
 
 interface UsePacketViewerResult {
   packet: PacketDetail | null;
@@ -36,8 +37,12 @@ export const usePacketViewer = (
         letterDate: previewData.letterDate || null,
         consumerCertification: null,
         tradelineAccountNumber: null,
-                                bureauName: null,
+        bureauName: null,
         recipientName: previewData.recipientName ?? null,
+        lifecycle: buildPacketLifecycleSummary({
+          status: previewData.status || "Draft",
+          sentDate: null,
+        }),
       },
       isLoading: false,
       error: null,
