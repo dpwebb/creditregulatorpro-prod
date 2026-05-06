@@ -71,6 +71,7 @@ export default function AdminParserTestingPage() {
   const [selectedTestCase, setSelectedTestCase] = useState<any>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [runResults, setRunResults] = useState<Record<number, any>>({});
+  const [runningTestCaseId, setRunningTestCaseId] = useState<number | null>(null);
   // Track locally approved fields because the list query doesn't return full details
   const [approvedFields, setApprovedFields] = useState<Record<number, { consumerInfo: any; tradelines: any[] }>>({});
   const [runAllSummary, setRunAllSummary] = useState<any>(null);
@@ -167,12 +168,15 @@ export default function AdminParserTestingPage() {
   };
 
   const handleRun = async (id: number) => {
+    setRunningTestCaseId(id);
     try {
       const result = await runMutation.mutateAsync({ testCaseId: id });
       setRunResults(prev => ({ ...prev, [id]: result }));
       toast.success(result.passed ? "Test Passed" : "Test Failed");
     } catch (error) {
-      toast.error("Failed to run test");
+      toast.error(error instanceof Error ? error.message : "Failed to run test");
+    } finally {
+      setRunningTestCaseId(null);
     }
   };
 
@@ -480,6 +484,7 @@ export default function AdminParserTestingPage() {
             testCases={testCases}
             isLoading={isLoadingList}
             runResults={runResults}
+            runningTestCaseId={runningTestCaseId}
             onRun={handleRun}
             onEdit={(tc) => { setSelectedTestCase(tc); setIsEditorOpen(true); }}
             onDelete={handleDelete}

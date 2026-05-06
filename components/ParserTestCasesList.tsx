@@ -15,6 +15,7 @@ interface ParserTestCasesListProps {
   testCases: any[];
   isLoading: boolean;
   runResults: Record<number, any>;
+  runningTestCaseId?: number | null;
   onRun: (id: number) => void;
   onEdit: (testCase: any) => void;
   onDelete: (id: number) => void;
@@ -28,6 +29,7 @@ export function ParserTestCasesList({
   testCases,
   isLoading,
   runResults,
+  runningTestCaseId = null,
   onRun,
   onEdit,
   onDelete,
@@ -40,6 +42,8 @@ export function ParserTestCasesList({
   const [selectedTestCase, setSelectedTestCase] = React.useState<any>(null);
   const debouncedSearch = useDebounce(search, 300);
   const selectedTestCaseId = selectedTestCase?.id;
+  const isRunningTest = (id: number) => runningTestCaseId === id;
+  const isRunDisabled = runningTestCaseId !== null;
 
   const filteredTestCases = testCases.filter(tc =>
     tc.name.toLowerCase().includes(debouncedSearch.toLowerCase())
@@ -127,9 +131,10 @@ export function ParserTestCasesList({
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => onRun(tc.id)}
+                          disabled={isRunDisabled}
                           title="Run Test"
                         >
-                          <Play size={14} />
+                          {isRunningTest(tc.id) ? <Spinner size="sm" /> : <Play size={14} />}
                         </Button>
                         <Button
                           variant="ghost"
@@ -170,8 +175,9 @@ export function ParserTestCasesList({
           <Button size="sm" variant="outline" onClick={() => onEdit(selectedTestCase)}>
             <Edit size={14} /> Edit
           </Button>
-          <Button size="sm" onClick={() => onRun(selectedTestCase.id)}>
-            <Play size={14} /> Run
+          <Button size="sm" onClick={() => onRun(selectedTestCase.id)} disabled={isRunDisabled}>
+            {isRunningTest(selectedTestCase.id) ? <Spinner size="sm" /> : <Play size={14} />}
+            {isRunningTest(selectedTestCase.id) ? "Running..." : "Run"}
           </Button>
         </div>
       </div>
