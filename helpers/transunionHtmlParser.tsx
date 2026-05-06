@@ -2,6 +2,7 @@ import { LLMResponse } from "./docstrangeLLM";
 import { extractMappedRecords } from "./_htmlParserUtils";
 import { extractAccounts } from "./transunionAccountParser";
 import { parseHtmlToRawText } from "./_htmlParserUtils";
+import { extractTransUnionCaseId } from "./reportMetadataExtractor";
 
 /**
  * Central deterministic parser bridging DocStrange raw HTML strings to our strictly typed LLMResponse.
@@ -51,10 +52,7 @@ export function parseHtmlToLLMResponse(html: string): LLMResponse {
     }
   }
 
-  const tuCaseMatch = html.match(/TU Case ID\s*[:\s]?\s*([A-Z0-9]+)/i);
-  if (tuCaseMatch) {
-    response.tuCaseId = tuCaseMatch[1];
-  }
+  response.tuCaseId = extractTransUnionCaseId(parseHtmlToRawText(html) || html);
 
   // Extract first reported date, last reviewed by, and last reviewed date
   // from paragraph like: "first reported to TransUnion on <strong>Sep 06, 1989</strong> and was last reviewed by [*CONSUMER DISCLOSURE *] on <strong>Jan 10, 2026</strong>"

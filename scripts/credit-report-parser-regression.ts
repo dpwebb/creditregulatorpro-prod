@@ -24,6 +24,7 @@ function isoDate(date: Date | null | undefined): string | null {
 const transUnionText = `
 TransUnion Canada Consumer Disclosure
 Your file as of Jan 10, 2026
+TU Case IDL121322
 first reported to TransUnion on Sep 06, 1989 and was last reviewed by [*CONSUMER DISCLOSURE *] on Jan 10, 2026
 
 Personal Information:
@@ -97,6 +98,7 @@ Personal Information:
 function runFieldExtractionRegression(): void {
   const metadata = extractReportMetadata(transUnionText);
   assert(isoDate(metadata.reportDate) === "2026-01-10", "TransUnion report date should be extracted from file-as-of text.");
+  assert(metadata.transUnionCaseId === "L121322", "TransUnion case ID should be extracted from the page-one header.");
 
   const delayedTransUnionMetadata = extractReportMetadata(transUnionDelayedHeaderText);
   assert(isoDate(delayedTransUnionMetadata.reportDate) === "2026-01-10", "TransUnion report date should be found when boilerplate pushes the file-as-of header past the first page text.");
@@ -311,6 +313,7 @@ function runPreviewRegression(): void {
       reportNumber: null,
       fileNumber: null,
       bureauFileId: null,
+      transUnionCaseId: null,
       bureauName: "TransUnion Canada",
       bureauPhone: "1-800-663-9980",
       bureauAddress: null,

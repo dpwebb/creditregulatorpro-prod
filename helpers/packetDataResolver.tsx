@@ -2,6 +2,7 @@ import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { calculateTerminalLabel, type TerminalLabelPhase } from "./terminalLabelProgression";
 import type { TradelineDetails, ViolationDetails } from "./equifaxDisputeTemplate";
+import { fetchTransUnionCaseIdForReportArtifact } from "./bureauContextReferences";
 
 export interface PacketDataResolverParams {
   user: {
@@ -28,6 +29,7 @@ export interface PacketDataResolverParams {
 export interface PacketDataResolverResult {
   accountNumber?: string;
   creditorName?: string;
+  transunionCaseId?: string;
   terminalLabel: TerminalLabelPhase | null;
   tradelineDetails?: TradelineDetails;
   violationDetails?: ViolationDetails;
@@ -97,6 +99,7 @@ export async function packetDataResolver(
   let creditorName: string | undefined;
   let terminalLabel: TerminalLabelPhase | null = null;
   let tradelineDetails: TradelineDetails | undefined;
+  let transunionCaseId: string | undefined;
 
   // 1. Fetch full tradeline data if provided
   if (params.tradelineId) {
@@ -112,6 +115,7 @@ export async function packetDataResolver(
         "tradeline.currentBalance",
         "tradeline.status",
         "tradeline.accountType",
+        "tradeline.reportArtifactId",
         "tradeline.openedDate",
         "tradeline.dateClosed",
         "tradeline.dateOfFirstDelinquency",
@@ -171,6 +175,8 @@ export async function packetDataResolver(
         isCollectionAccount: tradeline.isCollectionAccount,
         collectionAgencyName: tradeline.collectionAgencyName,
       };
+
+      transunionCaseId = await fetchTransUnionCaseIdForReportArtifact(tradeline.reportArtifactId);
 
       console.log(
         `Fetched full tradeline details for ID ${params.tradelineId}: creditorName=${tradeline.creditorName}, originalCreditorName=${tradeline.originalCreditorName}, resolvedCreditorName=${resolvedCreditorName}, status=${tradeline.status}, balance=${tradeline.balance}, isCollection=${tradeline.isCollectionAccount}`
@@ -362,6 +368,7 @@ export async function packetDataResolver(
     creditorName,
     terminalLabel,
     tradelineDetails,
+    transunionCaseId,
     violationDetails,
     recipientName,
     recipientAddress,

@@ -166,6 +166,7 @@ export function mapComprehensiveResultToLLMResponse(parseResult: ComprehensivePa
   return {
     bureau: parseResult.sourceBureau?.bureauName || parseResult.reportMetadata?.bureauName || null,
     reportDate: formatDate(parseResult.reportMetadata?.reportDate),
+    tuCaseId: parseResult.reportMetadata?.transUnionCaseId ?? null,
     consumerInfo: consumer
       ? {
           fullName: consumer.fullName,

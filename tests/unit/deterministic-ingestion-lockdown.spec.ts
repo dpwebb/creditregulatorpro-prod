@@ -33,6 +33,7 @@ function parseResult(): ComprehensiveParseResult {
       reportNumber: null,
       fileNumber: null,
       bureauFileId: null,
+      transUnionCaseId: "L121322",
       bureauName: "TransUnion Canada",
       bureauPhone: null,
       bureauAddress: null,
@@ -103,6 +104,8 @@ describe("deterministic ingestion lockdown", () => {
     expect(result.passA.raw_evidence.length).toBeGreaterThan(0);
     expect(result.passA.raw_evidence.every((item) => item.evidence.source_method === "pdf_text")).toBe(true);
     expect(result.passA.consumer_profile.date_of_birth?.evidence.source_method).toBe("pdf_text");
+    expect(result.passA.bureau_context.tu_case_id?.value).toBe("L121322");
+    expect(result.fullExtraction.bureau_context.tu_case_id?.value).toBe("L121322");
     expect(result.fullExtraction.accounts[0].creditor_name.value).toBe("BANK OF NOVA SCOTIA");
     expect(result.fullExtraction.accounts[0].creditor_name.evidence.source_method).toBe("pdf_text");
   });

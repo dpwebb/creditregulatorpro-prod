@@ -34,6 +34,7 @@ export interface TransUnionDisputeContext {
 
   // Optional specifics for the dispute body
   expectedCorrectValue?: string;
+  transunionCaseId?: string;
   transunionFileNumber?: string;
   additionalNotes?: string;
 
@@ -150,7 +151,9 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
     closing,
   };
 
-  if (ctx.transunionFileNumber) {
+  if (ctx.transunionCaseId) {
+    letterContent.supportingDocumentation = `TransUnion Case ID: ${ctx.transunionCaseId}`;
+  } else if (ctx.transunionFileNumber) {
     letterContent.supportingDocumentation = `TransUnion File Number: ${ctx.transunionFileNumber}`;
   }
 

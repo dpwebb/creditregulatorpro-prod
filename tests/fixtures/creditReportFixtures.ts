@@ -1,6 +1,7 @@
 export const transUnionTextFixture = `
 TransUnion Canada Consumer Disclosure
 Your file as of Jan 10, 2026
+TU Case IDL121322
 
 Personal Information:
 Consumer Name: TEST CONSUMER

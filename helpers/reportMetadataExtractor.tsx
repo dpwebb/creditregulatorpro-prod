@@ -7,6 +7,7 @@ export type ExtractedReportMetadata = {
   reportNumber: string | null;
   fileNumber: string | null;
   bureauFileId: string | null;
+  transUnionCaseId: string | null;
 
   // Bureau Information
   bureauName: string | null;
@@ -112,6 +113,41 @@ function extractTransUnionReportDate(headerText: string): Date | null {
   return null;
 }
 
+function normalizeTransUnionCaseId(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.replace(/[^A-Za-z0-9-]/g, "").trim().toUpperCase();
+  if (normalized.length < 4 || normalized.length > 40) return null;
+  if (!/[0-9]/.test(normalized)) return null;
+  if (/^(TRANSUNION|CASE|ID|TU)$/i.test(normalized)) return null;
+  return normalized;
+}
+
+export function extractTransUnionCaseId(headerText: string): string | null {
+  if (!headerText) return null;
+
+  const searchText = headerText.substring(0, 5000);
+  const isTransUnionHeader =
+    /Trans\s*Union|TransUnion|transunion\.ca|1-800-663-9980|CONSUMER RELATIONS CENTRE/i.test(searchText);
+  const explicitPatterns = [
+    /\bTU\s*Case\s*ID\s*[:#-]?\s*([A-Za-z0-9][A-Za-z0-9-]{3,40})\b/i,
+    /\bTrans\s*Union\s*Case\s*ID\s*[:#-]?\s*([A-Za-z0-9][A-Za-z0-9-]{3,40})\b/i,
+    /\bTransUnion\s*Case\s*ID\s*[:#-]?\s*([A-Za-z0-9][A-Za-z0-9-]{3,40})\b/i,
+  ];
+
+  for (const pattern of explicitPatterns) {
+    const match = searchText.match(pattern);
+    const normalized = normalizeTransUnionCaseId(match?.[1]);
+    if (normalized) return normalized;
+  }
+
+  if (!isTransUnionHeader) return null;
+
+  const scopedCaseIdMatch = searchText.match(
+    /\bCase\s*ID\s*[:#-]?\s*([A-Za-z0-9][A-Za-z0-9-]{3,40})\b/i,
+  );
+  return normalizeTransUnionCaseId(scopedCaseIdMatch?.[1]);
+}
+
 /**
  * Helper to extract currency or number values
  */
@@ -134,6 +170,7 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
     reportNumber: null,
     fileNumber: null,
     bureauFileId: null,
+    transUnionCaseId: null,
     bureauName: null,
     bureauPhone: null,
     bureauAddress: null,
@@ -202,6 +239,8 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
     // Often report number and file number are used interchangeably in headers
     result.reportNumber = matchFileNum[1];
   }
+
+  result.transUnionCaseId = extractTransUnionCaseId(headerText);
 
   // --- 2. Bureau Information ---
 
@@ -312,7 +351,7 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
 
   let score = 0;
   if (result.reportDate) score += 20;
-  if (result.fileNumber || result.reportNumber) score += 20;
+  if (result.fileNumber || result.reportNumber || result.transUnionCaseId) score += 20;
   if (result.bureauName) score += 20;
   if (result.totalAccounts !== null) score += 10;
   if (result.totalBalances !== null) score += 10;

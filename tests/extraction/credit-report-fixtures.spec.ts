@@ -17,9 +17,20 @@ describe("credit report fixture extraction", () => {
     const tradelines = extractTradelines(transUnionTextFixture);
 
     expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-01-10");
+    expect(metadata.transUnionCaseId).toBe("L121322");
     expect(consumerInfo.fullName).toContain("TEST CONSUMER");
     expect(tradelines.length).toBeGreaterThan(0);
     expect(tradelines[0].creditorName).toBe("BANK OF NOVA SCOTIA");
+  });
+
+  it("does not map plain case IDs outside TransUnion report context", () => {
+    const metadata = extractReportMetadata(`
+Equifax Canada
+Case ID ABC12345
+Credit Report Request Date 2026/04/16
+`);
+
+    expect(metadata.transUnionCaseId).toBeNull();
   });
 
   it("extracts TransUnion DOB when personal-info cells are collapsed together", () => {

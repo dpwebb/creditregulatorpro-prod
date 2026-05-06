@@ -33,6 +33,7 @@ import { buildPacketStorageObjectName } from "../../helpers/packetFileNaming";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { letterHumanizer } from "../../helpers/letterHumanizer";
 import { packetDataResolver } from "../../helpers/packetDataResolver";
+import { fetchTransUnionCaseIdForReportArtifact } from "../../helpers/bureauContextReferences";
 
 function extractComplianceViolationId(notes: string | null): number | null {
   const match = notes?.match(/compliance violation #(\d+)/i);
@@ -94,6 +95,7 @@ export async function handle(request: Request) {
         "obligation.obligationType",
         "tradeline.accountNumber",
         "tradeline.id as tradelineId",
+        "tradeline.reportArtifactId",
         "tradeline.userId as tradelineUserId",
         "tradeline.accountType",
         "tradeline.openedDate",
@@ -354,6 +356,7 @@ export async function handle(request: Request) {
 
     } else if (bureauNameNormalized.includes("transunion") || bureauNameNormalized.includes("trans union")) {
       console.log(`Bureau "${instance.bureauName}" identified as TransUnion — using TransUnion bureau-specific dispute template (reason code: ${disputeReasonCode})`);
+      const transunionCaseId = await fetchTransUnionCaseIdForReportArtifact(instance.reportArtifactId);
       const transunionCtx: TransUnionDisputeContext = {
         consumerName: consumerName,
         consumerAddress: input.consumerAddress ?? consumerAddress,
@@ -362,6 +365,7 @@ export async function handle(request: Request) {
         consumerEmail: input.consumerEmail ?? userAccount.email ?? undefined,
         creditorName: resolvedCreditorName,
         accountNumber: resolvedAccountNumber ?? "",
+        transunionCaseId,
         disputeReasonCode: disputeReasonCode,
         additionalNotes: instance.notes ?? undefined,
         tradelineDetails,

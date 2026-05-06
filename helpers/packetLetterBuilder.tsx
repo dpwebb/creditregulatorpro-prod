@@ -30,6 +30,7 @@ export interface PacketLetterBuilderParams {
   consumerEmail?: string;
   creditorName?: string;
   accountNumber?: string;
+  transunionCaseId?: string;
   tradelineDetails?: TradelineDetails;
   violationDetails?: ViolationDetails;
   effectiveViolationCategory: string | null;
@@ -95,6 +96,7 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       consumerEmail: params.consumerEmail,
       creditorName: displayCreditorName,
       accountNumber: displayAccountNumber,
+      transunionCaseId: params.transunionCaseId,
       disputeReasonCode: params.disputeReasonCode,
       additionalNotes: params.additionalNotes,
       tradelineDetails: params.tradelineDetails,

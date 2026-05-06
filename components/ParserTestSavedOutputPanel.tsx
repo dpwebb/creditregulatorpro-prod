@@ -90,6 +90,7 @@ const REPORT_FIELD_TEMPLATES = [
   ["reportMetadata.bureauName", "Bureau Name"],
   ["reportMetadata.fileNumber", "File Number"],
   ["reportMetadata.reportNumber", "Report Number"],
+  ["reportMetadata.transUnionCaseId", "TransUnion Case ID"],
   ["reportMetadata.generatedAt", "Generated At"],
 ];
 

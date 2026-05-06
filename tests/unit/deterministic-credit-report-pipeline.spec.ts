@@ -43,6 +43,7 @@ function parseResult(rawText: string, overrides: Partial<ComprehensiveParseResul
       reportNumber: null,
       fileNumber: "TU-123",
       bureauFileId: null,
+      transUnionCaseId: "L121322",
       bureauName: "TransUnion Canada",
       bureauPhone: null,
       bureauAddress: null,
@@ -135,6 +136,24 @@ Creditor Name BANK OF NOVA SCOTIA
     expect(first.replayHash).toBe(second.replayHash);
     expect(first.canonicalResultSha256).toBe(second.canonicalResultSha256);
     expect(first.finalOutput).toEqual(second.finalOutput);
+  });
+
+  it("carries the TransUnion case ID through report metadata candidate selection", () => {
+    const packageResult = build(`
+TransUnion Canada Consumer Disclosure
+TU Case IDL121322
+Your file as of Jan 10, 2026
+`);
+
+    const field = packageResult.finalOutput.fields["reportMetadata.transUnionCaseId"];
+    const pool = packageResult.candidatePools.find((candidatePool) => candidatePool.fieldKey === "reportMetadata.transUnionCaseId");
+
+    expect(packageResult.finalOutput.reportMetadata.transUnionCaseId).toBe("L121322");
+    expect(field.value).toBe("L121322");
+    expect(field.deterministic).toBe(true);
+    expect(field.evidence.zoneName).toBe("report_header");
+    expect(pool?.selectedCandidateId).toBeTruthy();
+    expect(pool?.candidates.some((candidate) => candidate.value === "L121322")).toBe(true);
   });
 
   it("rejects null updates over valid canonical values", () => {

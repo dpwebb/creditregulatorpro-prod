@@ -211,6 +211,7 @@ export async function handle(request: Request) {
       recipientName,
       recipientAddress,
       bureauNameRaw,
+      transunionCaseId,
     } = resolvedData;
 
     // Determine the dispute reason code: prefer explicit input, fall back to mapping from violationCategory
@@ -247,6 +248,7 @@ export async function handle(request: Request) {
       consumerEmail: userAccount.email ?? undefined,
       creditorName,
       accountNumber,
+      transunionCaseId,
       tradelineDetails,
       violationDetails,
       effectiveViolationCategory,

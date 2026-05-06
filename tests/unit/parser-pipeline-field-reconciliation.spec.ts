@@ -18,6 +18,7 @@ function metadata(overrides: Partial<ExtractedReportMetadata> = {}): ExtractedRe
     reportNumber: null,
     fileNumber: null,
     bureauFileId: null,
+    transUnionCaseId: null,
     bureauName: null,
     bureauPhone: null,
     bureauAddress: null,
@@ -122,6 +123,7 @@ Cross Reference(s):
         reportDate: new Date(2026, 0, 10),
         bureauName: "TransUnion Canada",
         fileNumber: "TU-123",
+        transUnionCaseId: "L121322",
       }),
       consumerInfo: {
         fullName: "DAVID PHILIP WEBB",
@@ -189,6 +191,7 @@ Cross Reference(s):
     expect(reconciled.sourceBureau?.bureauName).toBe("TransUnion Canada");
     expect(reconciled.reportMetadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-01-10");
     expect(reconciled.reportMetadata.fileNumber).toBe("TU-123");
+    expect(reconciled.reportMetadata.transUnionCaseId).toBe("L121322");
     expect(reconciled.consumerInfo?.fullName).toBe("DAVID PHILIP WEBB");
     expect(reconciled.consumerInfo?.sinLastDigits).toBe("123");
     expect(reconciled.tradelines[0].accountNumber).toBe("Not Provided by Bureau");
@@ -202,6 +205,7 @@ Cross Reference(s):
       expect.arrayContaining([
         "sourceBureau.bureauName",
         "reportMetadata.reportDate",
+        "reportMetadata.transUnionCaseId",
         "consumerInfo.fullName",
         "consumerInfo.sinLastDigits",
         "tradelines[0].balance",

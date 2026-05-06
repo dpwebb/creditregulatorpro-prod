@@ -65,6 +65,7 @@ const COMMON_EMPLOYMENT: Omit<DefaultMappingEntry, "bureau">[] = [
 const COMMON_METADATA: Omit<DefaultMappingEntry, "bureau">[] = [
   { section: "metadata", sourcePath: "reportDate", targetField: "reportDate", transformType: "date_parse", description: "Applies date_parse to report date. Note: EQ uses YYYY/MM/DD, TU uses MMM DD, YYYY." },
   { section: "metadata", sourcePath: "bureau", targetField: "bureauName", transformType: "direct", description: "Direct map to bureau name." },
+  { section: "metadata", sourcePath: "tuCaseId/transUnionCaseId", targetField: "transUnionCaseId", transformType: "fallback_chain", description: "Maps the TransUnion bureau case reference when explicitly labeled on a TransUnion disclosure." },
 ];
 
 /**

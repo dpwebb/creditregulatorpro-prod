@@ -268,6 +268,7 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
     reportNumber: null,
     fileNumber: null,
     bureauFileId: null,
+    transUnionCaseId: docStrangeData.tuCaseId ?? null,
     bureauPhone: null,
     bureauAddress: null,
     totalAccounts: tradelines.length,

@@ -816,6 +816,7 @@ const REPORT_FIELD_PATHS = [
   "reportNumber",
   "fileNumber",
   "bureauFileId",
+  "transUnionCaseId",
   "bureauName",
 ] as const;
 

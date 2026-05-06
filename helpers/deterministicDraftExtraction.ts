@@ -125,6 +125,7 @@ export function deriveDeterministicDraftExtractions(
     parseResult.reportMetadata?.bureauName ||
     null;
   const reportDateIso = formatDate(parseResult.reportMetadata?.reportDate);
+  const transUnionCaseId = parseResult.reportMetadata?.transUnionCaseId ?? null;
 
   const bureau_context: PassADraftExtraction["bureau_context"] = {};
   if (sourceBureauName) {
@@ -134,6 +135,10 @@ export function deriveDeterministicDraftExtractions(
   if (reportDateIso) {
     bureau_context.report_generated_at = createValue(reportDateIso, parseResult.reportMetadata?.rawHeaderText);
     addRawEvidence(rawEvidence, "bureau_context.report_generated_at", reportDateIso, parseResult.reportMetadata?.rawHeaderText);
+  }
+  if (transUnionCaseId) {
+    bureau_context.tu_case_id = createValue(transUnionCaseId, parseResult.reportMetadata?.rawHeaderText);
+    addRawEvidence(rawEvidence, "bureau_context.tu_case_id", transUnionCaseId, parseResult.reportMetadata?.rawHeaderText);
   }
 
   const consumer_profile: PassADraftExtraction["consumer_profile"] = {

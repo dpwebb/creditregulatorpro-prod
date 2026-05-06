@@ -76,6 +76,7 @@ const REPORT_METADATA_FIELDS = [
   "reportNumber",
   "fileNumber",
   "bureauFileId",
+  "transUnionCaseId",
   "bureauName",
 ] as const;
 
