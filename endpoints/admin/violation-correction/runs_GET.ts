@@ -11,6 +11,7 @@ import {
   countTradelinesByArtifact,
   countViolationsByArtifact,
 } from "../../../helpers/violationCorrectionArtifactLinks";
+import { selectCanonicalViolationReviewRuns } from "../../../helpers/violationCorrectionRunSelection";
 import { schema, OutputType } from "./runs_GET.schema";
 
 function idKey(value: number | string | null | undefined): string | null {
@@ -89,10 +90,12 @@ export async function handle(request: Request) {
       }
     }
 
-    const baseRuns = await runsQuery.execute();
+    const rawRuns = await runsQuery.execute();
+    const baseRuns = selectCanonicalViolationReviewRuns(rawRuns);
 
-    const runIds = baseRuns.map((run) => run.id);
+    const runIds = rawRuns.map((run) => run.id);
     const artifactIds = baseRuns.map((run) => run.reportArtifactId);
+    const artifactIdByRunId = new Map(rawRuns.map((run) => [String(run.id), run.reportArtifactId]));
 
     const [tradelineLinks, corrections] = await Promise.all([
       listTradelineArtifactLinks(artifactIds),
@@ -118,6 +121,7 @@ export async function handle(request: Request) {
     const violationsByArtifact = countViolationsByArtifact(tradelineLinks, violations);
 
     const correctionsByRun = new Map<string, { total: number; finalized: number }>();
+    const correctionsByArtifact = new Map<string, { total: number; finalized: number }>();
     for (const correction of corrections) {
       const runKey = idKey(correction.extractionRunId);
       if (!runKey) continue;
@@ -125,10 +129,21 @@ export async function handle(request: Request) {
       current.total += 1;
       if (correction.status === "finalized") current.finalized += 1;
       correctionsByRun.set(runKey, current);
+
+      const artifactId = artifactIdByRunId.get(runKey);
+      if (!artifactId) continue;
+      const artifactKey = String(artifactId);
+      const artifactCurrent = correctionsByArtifact.get(artifactKey) ?? { total: 0, finalized: 0 };
+      artifactCurrent.total += 1;
+      if (correction.status === "finalized") artifactCurrent.finalized += 1;
+      correctionsByArtifact.set(artifactKey, artifactCurrent);
     }
 
     const allRuns = baseRuns.map((run) => {
-      const correctionCounts = correctionsByRun.get(String(run.id)) ?? { total: 0, finalized: 0 };
+      const correctionCounts =
+        correctionsByArtifact.get(String(run.reportArtifactId)) ??
+        correctionsByRun.get(String(run.id)) ??
+        { total: 0, finalized: 0 };
       const violationCount = violationsByArtifact.get(String(run.reportArtifactId)) ?? 0;
       const tradelineCount = tradelinesByArtifact.get(String(run.reportArtifactId)) ?? 0;
       const needsReviewCount = Math.max(0, violationCount - correctionCounts.finalized);

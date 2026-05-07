@@ -348,6 +348,7 @@ export function AdminViolationCorrectionPanel({
       toast.error("Save the correction before linking evidence");
       return;
     }
+    const evidenceRunId = activeCorrection?.extractionRunId ?? detail.run.id;
 
     try {
       await updateEvidence.mutateAsync({
@@ -355,7 +356,7 @@ export function AdminViolationCorrectionPanel({
         correctionId: correctionForm.id,
         evidence: {
           sourceDocumentId: detail.run.reportArtifactId,
-          extractionRunId: detail.run.id,
+          extractionRunId: evidenceRunId,
           tradelineId: selectedTradeline.id,
           pageNumber: Number(evidenceForm.pageNumber || 1),
           fieldName: evidenceForm.fieldName || null,
@@ -391,6 +392,7 @@ export function AdminViolationCorrectionPanel({
       toast.error("Save the correction before linking a reference");
       return;
     }
+    const referenceRunId = activeCorrection?.extractionRunId ?? detail.run.id;
 
     const form = source ? regulationSuggestionToForm(source) : regulationForm;
     try {
@@ -399,7 +401,7 @@ export function AdminViolationCorrectionPanel({
         correctionId: correctionForm.id,
         reference: {
           violationId: correctionForm.originalViolationId,
-          extractionRunId: detail.run.id,
+          extractionRunId: referenceRunId,
           tradelineId: selectedTradeline.id,
           jurisdiction: form.jurisdiction,
           country: "Canada",

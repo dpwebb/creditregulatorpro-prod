@@ -82,6 +82,12 @@ export async function handle(request: Request) {
     });
 
     const run = await requireExtractionRun(input.extractionRunId);
+    const siblingRuns = await db
+      .selectFrom("passExtraction")
+      .select("id")
+      .where("reportArtifactId", "=", run.reportArtifactId)
+      .execute();
+    const correctionRunIds = Array.from(new Set([run.id, ...siblingRuns.map((sibling) => sibling.id)]));
 
     const linkedTradelineIds = await listTradelineIdsForReportArtifact(run.reportArtifactId);
     const tradelines = linkedTradelineIds.length > 0
@@ -127,7 +133,7 @@ export async function handle(request: Request) {
       db
         .selectFrom("violationCorrection")
         .selectAll()
-        .where("extractionRunId", "=", input.extractionRunId)
+        .where("extractionRunId", "in", correctionRunIds)
         .orderBy("updatedAt", "desc")
         .execute(),
     ]);
