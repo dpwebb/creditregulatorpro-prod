@@ -9,6 +9,13 @@ import {
   isSamePaymentAmount,
   parseTransUnionPaymentAmountFrequency,
 } from "./transunionPaymentTerms";
+import {
+  extractCollectionAgencyName,
+  extractCollectionTurnoverSignal,
+  extractIsCollectionAccount,
+  extractOriginalCreditor,
+} from "./tradelineBasicInfoExtractors";
+import { extractDateAssignedToCollection } from "./tradelineDateExtractors";
 
 /**
  * Parses an individual Tradeline account block deterministically.
@@ -442,6 +449,23 @@ export function parseAccount(accHtml: string) {
     }
   }
 
+  const isCollectionAccount = extractIsCollectionAccount(rawText);
+  const collectionAgencyName = isCollectionAccount
+    ? extractCollectionAgencyName(rawText)
+    : null;
+  const hasCollectionTurnoverSignal = extractCollectionTurnoverSignal(rawText);
+  const dateAssignedToCollection = isCollectionAccount
+    ? extractDateAssignedToCollection(rawText)
+    : null;
+  const collectionAgencyMissingFromReport =
+    isCollectionAccount && hasCollectionTurnoverSignal && !collectionAgencyName;
+  const dateAssignedToCollectionMissingFromReport =
+    isCollectionAccount && hasCollectionTurnoverSignal && !dateAssignedToCollection;
+  const originalCreditorName = isCollectionAccount
+    ? extractOriginalCreditor(rawText) ||
+      (collectionAgencyMissingFromReport && creditorName ? creditorName : null)
+    : null;
+
   // Derive last payment date from payment history if missing
   if (!lastPaymentDate && paymentHistoryDetails.length > 0) {
     let latestTime = -1;
@@ -510,6 +534,12 @@ export function parseAccount(accHtml: string) {
     paymentHistoryDetails:
       paymentHistoryDetails.length > 0 ? paymentHistoryDetails : null,
     mop,
+    isCollectionAccount,
+    originalCreditorName,
+    collectionAgencyName,
+    collectionAgencyMissingFromReport,
+    dateAssignedToCollection,
+    dateAssignedToCollectionMissingFromReport,
     sourceText: rawText,
   };
 }

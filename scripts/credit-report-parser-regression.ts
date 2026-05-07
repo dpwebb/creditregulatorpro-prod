@@ -164,6 +164,11 @@ Mar 202534103419000TC / CG
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.pastDue === 341, "TransUnion compact monthly detail should preserve past due from the visible column.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.mop === "9", "TransUnion compact monthly detail should preserve MOP from the visible column.");
   assert(fidoTradeline.paymentHistoryDetails?.[0]?.narrative === "TC / CG", "TransUnion compact monthly detail should preserve narrative code.");
+  assert(fidoTradeline.isCollectionAccount === true, "TransUnion TC narrative should mark a collection-turnover account.");
+  assert(fidoTradeline.originalCreditorName === "FIDO", "Creditor-reported collection turnover should keep FIDO as original creditor.");
+  assert(!fidoTradeline.collectionAgencyName, "Missing collection agency should not be inferred from creditor name.");
+  assert(fidoTradeline.collectionAgencyMissingFromReport === true, "Missing collection agency should be recorded explicitly.");
+  assert(fidoTradeline.dateAssignedToCollectionMissingFromReport === true, "Missing collection assignment date should be recorded explicitly.");
 
   const bankOfNovaScotiaSection = `
 Creditor Name

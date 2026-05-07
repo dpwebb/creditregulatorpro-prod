@@ -75,8 +75,12 @@ export interface ParsedTradeline {
   isCollectionAccount?: boolean;
   /** Name of the collection agency (if different from creditor) */
   collectionAgencyName?: string;
+  /** True when the source indicates collection turnover but does not name an agency */
+  collectionAgencyMissingFromReport?: boolean;
   /** When the debt was assigned to collection */
   dateAssignedToCollection?: Date | null;
+  /** True when the source indicates collection turnover but does not provide the assignment date */
+  dateAssignedToCollectionMissingFromReport?: boolean;
   /** Original balance/principal before collection */
   originalBalance?: number;
   /** Interest rate (if applicable) */

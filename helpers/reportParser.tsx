@@ -3,6 +3,7 @@ import { extractTradelines } from "./transunionPdfExtractor";
 import {
   extractIsCollectionAccount,
   extractCollectionAgencyName,
+  extractCollectionTurnoverSignal,
 } from "./tradelineBasicInfoExtractors";
 import {
   extractResponsibilityCode,
@@ -324,6 +325,8 @@ export async function parseReport(
           extractCollectionAgencyName(sourceText) || undefined;
         const extractedDateAssignedToCollection =
           extractDateAssignedToCollection(sourceText);
+        const hasCollectionTurnoverSignal =
+          extractCollectionTurnoverSignal(sourceText);
         const accountTypeLooksCollection =
           typeof tradeline.accountType === "string" &&
           tradeline.accountType.toUpperCase().includes("COLLECTION");
@@ -339,22 +342,40 @@ export async function parseReport(
           scheduledMonthlyPayment: tradeline.scheduledMonthlyPayment,
           paymentFrequency: tradeline.paymentFrequency,
         });
+        const resolvedIsCollection =
+          tradeline.isCollectionAccount === true ||
+          accountTypeLooksCollection ||
+          extractedIsCollection;
+        const collectionAgencyMissingFromReport =
+          tradeline.collectionAgencyMissingFromReport === true ||
+          (resolvedIsCollection &&
+            hasCollectionTurnoverSignal &&
+            !tradeline.collectionAgencyName &&
+            !extractedCollectionAgencyName);
+        const dateAssignedToCollectionMissingFromReport =
+          tradeline.dateAssignedToCollectionMissingFromReport === true ||
+          (resolvedIsCollection &&
+            hasCollectionTurnoverSignal &&
+            !tradeline.dateAssignedToCollection &&
+            !extractedDateAssignedToCollection);
 
         // Base augmentation (synchronous fields)
         const augmented = {
           ...tradeline,
           // Preserve explicit collection fields produced by bureau-specific extractors.
           // Generic extractors are used as fallback enrichment only.
-          isCollectionAccount:
-            tradeline.isCollectionAccount === true ||
-            accountTypeLooksCollection ||
-            extractedIsCollection,
+          isCollectionAccount: resolvedIsCollection,
           collectionAgencyName:
             tradeline.collectionAgencyName ||
             extractedCollectionAgencyName,
+          originalCreditorName:
+            tradeline.originalCreditorName ||
+            (collectionAgencyMissingFromReport ? tradeline.creditorName : undefined),
+          collectionAgencyMissingFromReport,
           dateAssignedToCollection:
             tradeline.dateAssignedToCollection ??
             extractedDateAssignedToCollection,
+          dateAssignedToCollectionMissingFromReport,
           originalBalance: extractOriginalBalance(sourceText) || undefined,
           interestRate: extractInterestRate(sourceText) || undefined,
           terms: normalizedPaymentTerms.terms ?? undefined,

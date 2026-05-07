@@ -2,6 +2,7 @@ import { ComprehensiveParseResult, ParsedTradeline, ExtractedReportMetadata, Ext
 import { LLMResponse } from "./docstrangeLLM";
 import { parse, isValid } from "./dateUtils";
 import { normalizeTransUnionPaymentTerms } from "./transunionPaymentTerms";
+import { extractCollectionTurnoverSignal } from "./tradelineBasicInfoExtractors";
 
 // --- Helper: Map DocStrange Response to ComprehensiveParseResult ---
 
@@ -100,16 +101,25 @@ export function mapDocStrangeResponseToResult(docStrangeData: LLMResponse, rawTe
       scheduledMonthlyPayment: parseAmount(t.scheduledMonthlyPayment),
       paymentFrequency: t.paymentFrequency ?? undefined,
     });
+    const parsedIsCollection = t.isCollectionAccount === true || (t.accountType || "").toUpperCase() === "COLLECTION";
+    const parsedDateAssignedToCollection = parseDate(t.dateAssignedToCollection);
+    const hasCollectionTurnoverSignal = extractCollectionTurnoverSignal(t.sourceText || rawText || "");
+    const collectionAgencyMissingFromReport =
+      parsedIsCollection && hasCollectionTurnoverSignal && !t.collectionAgencyName;
+    const dateAssignedToCollectionMissingFromReport =
+      parsedIsCollection && hasCollectionTurnoverSignal && !parsedDateAssignedToCollection;
     const parsed: ParsedTradeline = {
       creditorName: t.creditorName || "Unknown Creditor",
     accountNumber: t.accountNumber || "",
     accountType: (t.accountType ?? "Unknown").toUpperCase(),
     balance: t.balance ?? 0,
     status: t.status || "",
-    isCollectionAccount: t.isCollectionAccount === true || (t.accountType || "").toUpperCase() === "COLLECTION",
-    dateAssignedToCollection: parseDate(t.dateAssignedToCollection),
+    isCollectionAccount: parsedIsCollection,
+    dateAssignedToCollection: parsedDateAssignedToCollection,
+    dateAssignedToCollectionMissingFromReport,
     collectionAgencyName: t.collectionAgencyName ?? undefined,
-    originalCreditorName: t.originalCreditorName || t.memberName || undefined,
+    collectionAgencyMissingFromReport,
+    originalCreditorName: t.originalCreditorName || t.memberName || (collectionAgencyMissingFromReport ? t.creditorName : undefined),
     dates: {
       opened: parseDate(t.dateOpened || t.openedDate),
       reported: parseDate(t.dateReported || t.reportedDate),

@@ -4,6 +4,10 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { findCrossBureauSibling } from "../../helpers/crossBureauMatcher";
+import {
+  extractCollectionAgencyName,
+  extractCollectionTurnoverSignal,
+} from "../../helpers/tradelineBasicInfoExtractors";
 
 function toNumberOrNull(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
@@ -16,6 +20,42 @@ function isMeaningfulText(value: unknown): value is string {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return false;
   return !['unknown', 'n/a', 'na', '-', 'not reported'].includes(normalized);
+}
+
+function normalizeCollectionTurnoverDisplay<T extends {
+  sourceText?: string | null;
+  isCollectionAccount?: boolean | null;
+  collectionAgencyName?: string | null;
+  originalCreditorName?: string | null;
+  creditorName?: string | null;
+}>(tradeline: T): T {
+  const sourceText = tradeline.sourceText ?? "";
+  if (
+    tradeline.isCollectionAccount !== true ||
+    !sourceText ||
+    !extractCollectionTurnoverSignal(sourceText)
+  ) {
+    return tradeline;
+  }
+
+  const explicitAgency = extractCollectionAgencyName(sourceText);
+  const reportedAgency = tradeline.collectionAgencyName?.trim() || null;
+  const creditorName = tradeline.creditorName?.trim() || null;
+  const agencyWasInferredFromCreditor =
+    reportedAgency &&
+    creditorName &&
+    reportedAgency.toLowerCase() === creditorName.toLowerCase() &&
+    !explicitAgency;
+
+  if (!agencyWasInferredFromCreditor) {
+    return tradeline;
+  }
+
+  return {
+    ...tradeline,
+    collectionAgencyName: null,
+    originalCreditorName: tradeline.originalCreditorName || creditorName,
+  };
 }
 
 function buildSummaryPaymentPattern(
@@ -266,6 +306,8 @@ export async function handle(request: Request) {
       mergedTradeline.dateOfLastPayment = latestPaymentHistory.dateOfLastPayment;
     }
 
+    const responseTradeline = normalizeCollectionTurnoverDisplay(mergedTradeline);
+
     // Fetch related collection tradelines if this is a collection account
     let relatedCollectionTradelines: RelatedCollectionTradeline[] = [];
 
@@ -515,7 +557,7 @@ export async function handle(request: Request) {
 
     return new Response(JSON.stringify({
       tradeline: {
-        ...mergedTradeline,
+        ...responseTradeline,
         tuCaseId,
         firstReportedDate,
         lastReviewedBy,

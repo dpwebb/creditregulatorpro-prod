@@ -6,6 +6,7 @@ import {
   extractOriginalCreditor,
   extractIsCollectionAccount,
   extractCollectionAgencyName,
+  extractCollectionTurnoverSignal,
 } from "./tradelineBasicInfoExtractors";
 import {
   extractAccountType,
@@ -109,11 +110,11 @@ function parseTradelineSection(
 
   // Check if this is a collection account
   const isCollectionAccount = extractIsCollectionAccount(section);
+  const hasCollectionTurnoverSignal = extractCollectionTurnoverSignal(section);
 
   // Extract all fields
   const accountNumber = extractAccountNumber(section);
   const creditorName = extractCreditorName(section);
-  const originalCreditorName = isCollectionAccount ? extractOriginalCreditor(section) : null;
   const accountType = extractAccountType(section);
   const balance = extractBalance(section);
   const status = extractStatus(section);
@@ -125,6 +126,14 @@ function parseTradelineSection(
   const collectionAgencyName = isCollectionAccount ? extractCollectionAgencyName(section) : null;
   const dateAssignedToCollection = isCollectionAccount ? extractDateAssignedToCollection(section) : null;
   const originalBalance = isCollectionAccount ? extractOriginalBalance(section) : null;
+  const collectionAgencyMissingFromReport =
+    isCollectionAccount && hasCollectionTurnoverSignal && !collectionAgencyName;
+  const dateAssignedToCollectionMissingFromReport =
+    isCollectionAccount && hasCollectionTurnoverSignal && !dateAssignedToCollection;
+  const originalCreditorName = isCollectionAccount
+    ? extractOriginalCreditor(section) ||
+      (collectionAgencyMissingFromReport && creditorName ? creditorName : null)
+    : null;
   
   // Extract financial details (applicable to both regular and collection accounts)
   const interestRate = extractInterestRate(section);
@@ -217,7 +226,9 @@ function parseTradelineSection(
     isCollectionAccount: isCollectionAccount,
     originalCreditorName: originalCreditorName || undefined,
     collectionAgencyName: collectionAgencyName || undefined,
+    collectionAgencyMissingFromReport,
     dateAssignedToCollection: dateAssignedToCollection,
+    dateAssignedToCollectionMissingFromReport,
     originalBalance: originalBalance || undefined,
     // Financial details
     interestRate: interestRate || undefined,

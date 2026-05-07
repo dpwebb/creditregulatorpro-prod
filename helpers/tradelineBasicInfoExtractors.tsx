@@ -205,7 +205,7 @@ export function extractIsCollectionAccount(text: string): boolean {
     /\boriginal\s+debt\b/i,
     /\bplaced\s+for\s+collection\b/i,
     /\bthird[\s-]party\s+collector\b/i,
-    /\bTC\s*[-\/]\s*/i,
+    /(?:^|[^A-Z])TC\s*[-\/]\s*/i,
     /(?:Narrative|Remarks?|Comments?|Status)[\s\S]{0,50}\bTC\b/i,
   ];
 
@@ -238,6 +238,19 @@ export function extractIsCollectionAccount(text: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Detects report language/codes showing the account was turned over to a
+ * collection agency, even when the agency name itself is not reported.
+ */
+export function extractCollectionTurnoverSignal(text: string): boolean {
+  return (
+    /(?:^|[^A-Z])TC\s*[-\/]\s*/i.test(text) ||
+    /\bTC\s*-\s*Third\s+party\s+collection\/account\s+turned\s+over\s+to\s+collection\s+agency\b/i.test(text) ||
+    /\b(?:sent|turned\s+over|assigned|placed)\s+(?:to|for)\s+collection(?:s|\s+agency)?\b/i.test(text) ||
+    /\bthird[\s-]party\s+collection\b/i.test(text)
+  );
 }
 
 /**
@@ -379,6 +392,10 @@ export function extractOriginalCreditor(text: string): string | null {
   const patterns = [
     // "Original Creditor: CIBC"
     /Original\s+Creditor[\s:]+([A-Z][A-Za-z\s&,.\-']{2,})(?:\n|$)/i,
+    // TransUnion table/text extraction: label on one line, value on next line
+    /Original\s+Creditor\s*\n\s*([A-Z][A-Za-z\s&,.\-']{2,})(?:\n|Account|Balance|Status|Payment|$)/i,
+    // Collapsed extraction: "Original CreditorFIDO"
+    /Original\s+Creditor\s*([A-Z][A-Za-z\s&,.\-']{2,}?)(?=Account|Balance|Status|Payment|Collection|$)/i,
     // "On behalf of: CIBC"
     /On\s+behalf\s+of[\s:]+([A-Z][A-Za-z\s&,.\-']{2,})(?:\n|$)/i,
     // "Collecting for: CIBC"

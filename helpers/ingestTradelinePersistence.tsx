@@ -393,12 +393,18 @@ async function findExistingCollectionTradelineFallback(
 function mergeTradelineData(
   existingAccountNumber: string,
   newAccountNumber: string,
-  newData: Record<string, any>
+  newData: Record<string, any>,
+  clearNullFields: Set<string> = new Set()
 ): { accountNumber?: string; updatedFields: Record<string, any> } {
   const updatedFields: Record<string, any> = {};
 
   for (const [key, value] of Object.entries(newData)) {
-    if (value === null || value === undefined || value === "") continue;
+    if (value === null || value === undefined || value === "") {
+      if (clearNullFields.has(key)) {
+        updatedFields[key] = null;
+      }
+      continue;
+    }
     updatedFields[key] = value;
   }
 
@@ -410,6 +416,26 @@ function mergeTradelineData(
       : undefined;
 
   return { accountNumber, updatedFields };
+}
+
+function buildCollectionTurnoverNote(parsedTradeline: ParsedTradeline): string | null {
+  const missingFields: string[] = [];
+  if (parsedTradeline.collectionAgencyMissingFromReport) missingFields.push("collection agency");
+  if (parsedTradeline.dateAssignedToCollectionMissingFromReport) missingFields.push("assignment date");
+  if (missingFields.length === 0) return null;
+
+  const missingText =
+    missingFields.length === 1
+      ? missingFields[0]
+      : `${missingFields.slice(0, -1).join(", ")} and ${missingFields[missingFields.length - 1]}`;
+  return `Report indicates this account was turned over to collection, but no ${missingText} was reported.`;
+}
+
+function mergeNotes(existingNotes: string | null | undefined, noteToAdd: string | null): string | null {
+  const base = existingNotes?.trim() || "";
+  if (!noteToAdd) return base || null;
+  if (base.includes(noteToAdd)) return base;
+  return [base, noteToAdd].filter(Boolean).join("\n");
 }
 
 /**
@@ -446,9 +472,15 @@ export async function persistTradelines(
 
     const isCollection = parsedTradeline.isCollectionAccount || entity.entityType === "collection";
 
+    const isCreditorReportedCollectionTurnover =
+      isCollection &&
+      entity.entityType !== "collection" &&
+      !parsedTradeline.collectionAgencyName;
+
     // Ensure all tradelines have a denormalized originalCreditorName.
-    // Use creditorNameForDb as the base if the parsed tradeline doesn't supply one, EXCEPT for collection accounts.
-    if (!parsedTradeline.originalCreditorName && !isCollection) {
+    // For a creditor-reported turnover narrative, the reporting creditor is
+    // also the original creditor; the report did not name a separate agency.
+    if (!parsedTradeline.originalCreditorName && (!isCollection || isCreditorReportedCollectionTurnover)) {
       parsedTradeline.originalCreditorName = creditorNameForDb;
       console.log(
         `[Ingest] Set originalCreditorName="${creditorNameForDb}" from resolved creditor for account ${parsedTradeline.accountNumber}`
@@ -495,6 +527,8 @@ export async function persistTradelines(
       const paymentPattern = (parsedTradeline.paymentPattern || parsedTradeline.paymentHistoryProfile || null)?.substring(0, 255) ?? null;
       const paymentHistoryProfile = (parsedTradeline.paymentHistoryProfile || parsedTradeline.paymentPattern || null)?.substring(0, 255) ?? null;
       const monthsReviewed = parsedTradeline.monthsReviewed != null ? String(parsedTradeline.monthsReviewed).substring(0, 50) : null;
+      const collectionTurnoverNote = buildCollectionTurnoverNote(parsedTradeline);
+      const notes = mergeNotes(parsedTradeline.notes, collectionTurnoverNote);
 
       const tradelineData = {
         accountType: parsedTradeline.accountType ? parsedTradeline.accountType.substring(0, 100) : null,
@@ -539,7 +573,7 @@ export async function persistTradelines(
         ratingCode: parsedTradeline.ratingCode ?? null,
         ratingCodeDescription: parsedTradeline.ratingCodeDescription ?? null,
         amountWrittenOff: normalizeCreditReportAmount(parsedTradeline.amountWrittenOff, "tradeline.amountWrittenOff"),
-        notes: parsedTradeline.notes ?? null,
+        notes,
         dateVerified: parsedTradeline.dateVerified ?? null,
         datePaidSettled: parsedTradeline.datePaidSettled ?? null,
       };
@@ -559,9 +593,16 @@ export async function persistTradelines(
         console.log(`[Ingest] Inferred isCollectionAccount=true from known collection entity type for account ${parsedTradeline.accountNumber}`);
       }
 
-      if (tradelineData.isCollectionAccount && !tradelineData.collectionAgencyName) {
+      if (entity.entityType === "collection" && tradelineData.isCollectionAccount && !tradelineData.collectionAgencyName) {
         tradelineData.collectionAgencyName = creditorNameForDb;
         console.log(`[Ingest] Set collectionAgencyName="${creditorNameForDb}" for collection account ${parsedTradeline.accountNumber}`);
+      }
+      const clearNullFields = new Set<string>();
+      if (parsedTradeline.collectionAgencyMissingFromReport) {
+        clearNullFields.add("collectionAgencyName");
+      }
+      if (parsedTradeline.dateAssignedToCollectionMissingFromReport) {
+        clearNullFields.add("dateAssignedToCollection");
       }
 
       if (resolvedExistingTradeline) {
@@ -572,7 +613,8 @@ export async function persistTradelines(
         const { accountNumber: updatedAccountNumber, updatedFields } = mergeTradelineData(
           resolvedExistingTradeline.accountNumber,
           parsedTradeline.accountNumber,
-          tradelineData
+          tradelineData,
+          clearNullFields
         );
 
         console.log(
