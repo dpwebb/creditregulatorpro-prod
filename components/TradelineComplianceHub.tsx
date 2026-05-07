@@ -34,7 +34,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { USER_PROFILE_QUERY_KEY } from "../helpers/useUserProfile";
 import { getViolationLabel } from "../helpers/getViolationLabel";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
-import { isIneligibleForStaleReportingViolation } from "../helpers/staleReportingGuard";
+import { summarizeVisibleProblemReviews } from "../helpers/problemReviewVisibility";
 
 import styles from "./TradelineComplianceHub.module.css";
 
@@ -151,6 +151,10 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     return violations.filter(v => !v.userStatus || v.userStatus === "active");
   }, [violations]);
 
+  const visibleProblemReviews = useMemo(() => {
+    return summarizeVisibleProblemReviews(activeViolations, currentTradeline);
+  }, [activeViolations, currentTradeline]);
+
   const dismissedViolations = useMemo(() => {
     return violations.filter(v => v.userStatus === "dismissed" || v.userStatus === "verified");
   }, [violations]);
@@ -161,7 +165,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   }, [challengesData]);
 
   // Stats
-  const activeIssuesCount = activeViolations.length;
+  const activeIssuesCount = isAdmin ? activeViolations.length : visibleProblemReviews.visibleReviewCount;
   const challengesSentCount = challenges.filter(c => !!c.challengeSentDate).length;
   const responsesReceivedCount = challenges.filter(c => c.state === "RESPONSE_RECORDED").length;
 
@@ -170,12 +174,12 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   }, [activeViolations]);
 
   const approachingViolation = useMemo(() => {
-    return activeViolations.find(v => v.violationCategory === 'STATUTE_APPROACHING');
-  }, [activeViolations]);
+    return visibleProblemReviews.approachingIssue;
+  }, [visibleProblemReviews]);
 
   const displayViolations = useMemo(() => {
-    return activeViolations.filter(v => v.violationCategory !== 'STATUTE_APPROACHING');
-  }, [activeViolations]);
+    return visibleProblemReviews.displayIssues;
+  }, [visibleProblemReviews]);
 
   const solPacket = useMemo(() => {
     if (!statuteOfLimitationsViolation || !packetsData?.packets) return null;
@@ -248,59 +252,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     await queryClient.invalidateQueries({ queryKey: USER_PROFILE_QUERY_KEY });
   };
 
-  const nonAdminDisplayViolations = useMemo(() => {
-    const hasStatuteTimingIssue = activeViolations.some(
-      v => v.violationCategory === "STATUTE_OF_LIMITATIONS" || v.violationCategory === "STATUTE_APPROACHING"
-    );
-    const shouldSuppressStaleForCurrentTradeline = !!(
-      currentTradeline &&
-      isIneligibleForStaleReportingViolation({
-        status: currentTradeline.status,
-        dateClosed: currentTradeline.dateClosed,
-        datePaidSettled: currentTradeline.datePaidSettled,
-        isCollectionAccount: currentTradeline.isCollectionAccount,
-        collectionAgencyName: currentTradeline.collectionAgencyName,
-        accountType: currentTradeline.accountType,
-      })
-    );
-    const hasKnownCreditorIdentity = !!(
-      currentTradeline &&
-      (
-        currentTradeline.creditorId != null ||
-        (currentTradeline.originalCreditorName && currentTradeline.originalCreditorName.trim().length > 0) ||
-        (currentTradeline.collectionAgencyName && currentTradeline.collectionAgencyName.trim().length > 0)
-      )
-    );
-
-    // Reduce confusing duplicates for consumer-facing view.
-    const filtered = displayViolations.filter(v => {
-      // Already represented by related collections UI
-      if (v.violationCategory === "MULTIPLE_COLLECTOR_VIOLATION") return false;
-
-      // "Information Wasn't Kept Up-to-Date" overlaps with statute timing cards.
-      if (v.violationCategory === "STALE_REPORTING_FAILURE") {
-        if (hasStatuteTimingIssue || shouldSuppressStaleForCurrentTradeline) return false;
-      }
-
-      // Hide known false-positive style when creditor identity is already present on the tradeline.
-      if (v.violationCategory === "DISCLOSURE_DEFICIENCY") {
-        const fieldPath = String(v.technicalDetails?.fieldPath || "").toLowerCase();
-        if ((fieldPath === "accounts[].creditor_name" || fieldPath === "accounts.creditor_name") && hasKnownCreditorIdentity) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-
-    const seen = new Set<string>();
-    return filtered.filter(v => {
-      if (!v.violationCategory) return true;
-      if (seen.has(v.violationCategory)) return false;
-      seen.add(v.violationCategory);
-      return true;
-    });
-  }, [displayViolations, activeViolations, currentTradeline]);
+  const nonAdminDisplayViolations = visibleProblemReviews.nonAdminDisplayIssues;
 
   const topViolation = nonAdminDisplayViolations[0];
   const otherViolations = nonAdminDisplayViolations.slice(1);

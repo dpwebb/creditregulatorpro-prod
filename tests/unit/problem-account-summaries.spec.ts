@@ -5,6 +5,7 @@ import {
   type ProblemAccountIssue,
   type ProblemAccountTradeline,
 } from "../../helpers/problemAccountSummaries";
+import { getViolationLabel } from "../../helpers/getViolationLabel";
 
 function issue(overrides: Partial<ProblemAccountIssue> = {}): ProblemAccountIssue {
   return {
@@ -22,6 +23,7 @@ function issue(overrides: Partial<ProblemAccountIssue> = {}): ProblemAccountIssu
     obligationState: "OBLIGATION_PENDING",
     violationCategory: "BALANCE_CALCULATION_VIOLATION",
     userStatus: "active",
+    technicalDetails: null,
     ...overrides,
   };
 }
@@ -36,6 +38,9 @@ function tradeline(overrides: Partial<ProblemAccountTradeline> = {}): ProblemAcc
     currentBalance: "1234.00",
     balance: "1234.00",
     accountType: "Revolving",
+    creditorId: 7,
+    dateClosed: null,
+    datePaidSettled: null,
     collectionAgencyName: null,
     originalCreditorName: null,
     isCollectionAccount: false,
@@ -87,5 +92,34 @@ describe("problem account summaries", () => {
     expect(summaries[0].highPriorityCount).toBe(1);
     expect(summaries[0].problemLabels).toEqual(["Account Status Doesn't Match"]);
   });
-});
 
+  it("counts only consumer-visible review items so cards match the tradeline drilldown", () => {
+    const [summary] = buildProblemAccountSummaries(
+      [
+        issue({ violationCategory: "DOCUMENTATION_CHAIN_FAILURE", obligationState: "NO_RESPONSE" }),
+        issue({ violationCategory: "STATUTE_APPROACHING" }),
+        issue({ violationCategory: "STALE_REPORTING_FAILURE" }),
+        issue({
+          violationCategory: "DISCLOSURE_DEFICIENCY",
+          technicalDetails: { fieldPath: "accounts[].creditor_name" },
+        }),
+        issue({ violationCategory: "DOCUMENTATION_CHAIN_FAILURE" }),
+        issue({ violationCategory: "MULTIPLE_COLLECTOR_VIOLATION" }),
+      ],
+      [
+        tradeline({
+          status: "Cancelled by Credit Grantor",
+          dateClosed: "2026-01-01",
+          originalCreditorName: "FIDO",
+        }),
+      ],
+    );
+
+    expect(summary.issueCount).toBe(2);
+    expect(summary.highPriorityCount).toBe(1);
+    expect(summary.problemLabels).toEqual([
+      getViolationLabel("DOCUMENTATION_CHAIN_FAILURE"),
+      getViolationLabel("STATUTE_APPROACHING"),
+    ]);
+  });
+});

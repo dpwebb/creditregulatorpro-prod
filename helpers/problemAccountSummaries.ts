@@ -1,7 +1,12 @@
 import { getViolationLabel } from "./getViolationLabel";
 import { hasReportedAccountValue } from "./accountDisplayLabels";
+import {
+  isActiveProblemReviewIssue,
+  summarizeVisibleProblemReviews,
+  type ProblemReviewIssue,
+} from "./problemReviewVisibility";
 
-export type ProblemAccountIssue = {
+export type ProblemAccountIssue = ProblemReviewIssue & {
   tradelineId: number | null;
   creditorName: string | null;
   tradelineAccountNumber: string | null;
@@ -14,16 +19,17 @@ export type ProblemAccountIssue = {
   tradelineOriginalCreditorName?: string | null;
   tradelineIsCollectionAccount?: boolean | null;
   obligationState: string | null;
-  violationCategory: string | null;
-  userStatus?: string | null;
 };
 
 export type ProblemAccountTradeline = {
   id: number;
+  creditorId?: number | string | null;
   creditorName: string | null;
   accountNumber: string | null;
   bureauName: string | null;
   status: string | null;
+  dateClosed?: Date | string | null;
+  datePaidSettled?: Date | string | null;
   currentBalance: string | number | null;
   balance: string | number | null;
   accountType?: string | null;
@@ -54,10 +60,6 @@ function firstReportedValue<T extends string | number | null | undefined>(...val
   return values.find((value) => hasReportedAccountValue(value)) ?? null;
 }
 
-function isActiveIssue(issue: ProblemAccountIssue): boolean {
-  return !issue.userStatus || issue.userStatus === "active";
-}
-
 function uniqueProblemLabels(issues: ProblemAccountIssue[]): string[] {
   const labels: string[] = [];
   for (const issue of issues) {
@@ -76,7 +78,7 @@ export function buildProblemAccountSummaries(
   const issuesByTradeline = new Map<number, ProblemAccountIssue[]>();
 
   for (const issue of issues) {
-    if (issue.tradelineId == null || !isActiveIssue(issue)) continue;
+    if (issue.tradelineId == null || !isActiveProblemReviewIssue(issue)) continue;
     const existing = issuesByTradeline.get(issue.tradelineId) ?? [];
     existing.push(issue);
     issuesByTradeline.set(issue.tradelineId, existing);
@@ -88,6 +90,7 @@ export function buildProblemAccountSummaries(
       const tradeline = tradelineById.get(tradelineId);
       const isCollectionAccount =
         issueSeed.tradelineIsCollectionAccount ?? tradeline?.isCollectionAccount ?? null;
+      const visibleReviewSummary = summarizeVisibleProblemReviews(accountIssues, tradeline);
 
       return {
         tradeline: {
@@ -109,13 +112,16 @@ export function buildProblemAccountSummaries(
           isCollectionAccount,
         },
         issues: accountIssues,
-        issueCount: accountIssues.length,
-        highPriorityCount: accountIssues.filter((issue) =>
+        issueCount: visibleReviewSummary.visibleReviewCount,
+        highPriorityCount: visibleReviewSummary.visibleReviewIssues.filter((issue) =>
           ["NO_RESPONSE", "INSUFFICIENT_RESPONSE"].includes(issue.obligationState || ""),
         ).length,
-        problemLabels: uniqueProblemLabels(accountIssues),
+        problemLabels:
+          visibleReviewSummary.visibleProblemLabels.length > 0
+            ? visibleReviewSummary.visibleProblemLabels
+            : uniqueProblemLabels(accountIssues),
       } satisfies ProblemAccountSummary;
     })
+    .filter((summary) => summary.issueCount > 0)
     .sort((a, b) => b.issueCount - a.issueCount || a.tradeline.id - b.tradeline.id);
 }
-
