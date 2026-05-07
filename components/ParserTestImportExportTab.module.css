@@ -6,8 +6,6 @@
 }
 
 .exportList {
-  max-height: 400px;
-  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: var(--spacing-3);

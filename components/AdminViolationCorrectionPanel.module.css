@@ -1,8 +1,8 @@
 .panel {
-  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+  min-width: 0;
 }
 
 .toolbar {
@@ -10,6 +10,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-3);
+  flex-wrap: wrap;
   padding: var(--spacing-3) 0;
 }
 
@@ -24,11 +25,11 @@
 }
 
 .layout {
-  min-height: 0;
+  min-width: 0;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: var(--spacing-4);
-  flex: 1;
+  align-items: start;
 }
 
 .runList,
@@ -38,6 +39,7 @@
 .evidenceColumn,
 .regulationColumn {
   min-height: 0;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
@@ -51,11 +53,11 @@
 
 .reviewGrid {
   min-width: 0;
-  min-height: 0;
   display: grid;
   grid-template-columns: minmax(210px, 0.75fr) minmax(260px, 1fr) minmax(340px, 1.15fr);
-  grid-template-rows: minmax(330px, 1fr) minmax(360px, 1.1fr);
+  grid-template-rows: auto auto;
   gap: var(--spacing-4);
+  align-items: stretch;
 }
 
 .tradelineColumn,
@@ -155,7 +157,7 @@
 .originalStack,
 .linkedList,
 .suggestionList {
-  overflow: auto;
+  overflow: visible;
 }
 
 .tradelineButton {
@@ -193,8 +195,6 @@
 .truthColumn,
 .evidenceColumn,
 .regulationColumn {
-  overflow-x: hidden;
-  overflow-y: auto;
   padding-bottom: var(--spacing-3);
 }
 
@@ -206,7 +206,7 @@
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: var(--spacing-3);
   padding: 0 var(--spacing-3) var(--spacing-3);
 }
@@ -300,7 +300,6 @@
 .suggestionList {
   display: grid;
   gap: 6px;
-  max-height: 104px;
   padding: 0 var(--spacing-3) var(--spacing-3);
 }
 

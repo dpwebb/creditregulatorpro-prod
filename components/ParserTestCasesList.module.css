@@ -1,24 +1,23 @@
 .layout {
   display: block;
-  height: 100%;
   min-width: 0;
 }
 
 .listPanel {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
 }
 
 .detailPanel {
-  height: 100%;
+  min-width: 0;
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   animation: slideIn var(--animation-duration-normal);
 }
 
@@ -48,8 +47,7 @@
 }
 
 .tableContainer {
-  flex: 1;
-  overflow: auto;
+  overflow-x: auto;
 }
 
 .selectedRow {
@@ -82,8 +80,6 @@
 }
 
 .detailContent {
-  flex: 1;
-  overflow-y: auto;
   padding: var(--spacing-4);
 }
 
@@ -92,6 +88,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  min-height: 320px;
   color: var(--muted-foreground);
 }

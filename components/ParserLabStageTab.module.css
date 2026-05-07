@@ -1,7 +1,6 @@
 .container {
-  height: 100%;
-  overflow: auto;
-  padding-right: var(--spacing-2);
+  min-width: 0;
+  overflow: visible;
 }
 
 .layout {

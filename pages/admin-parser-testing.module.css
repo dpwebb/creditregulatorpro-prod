@@ -2,23 +2,22 @@
   padding: var(--spacing-6);
   max-width: 1600px;
   margin: 0 auto;
-  height: calc(100vh - 64px); /* Adjust based on header height */
-  display: flex;
-  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .tabs {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
   margin-top: var(--spacing-4);
 }
 
 .tabContent {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  min-width: 0;
+  overflow: visible;
   padding-top: var(--spacing-4);
   padding-bottom: var(--spacing-4);
 }
@@ -27,8 +26,6 @@
 
 @media (max-width: 768px) {
   .container {
-    height: auto;
-    min-height: calc(100vh - 64px);
     padding: var(--spacing-4);
   }
 }
