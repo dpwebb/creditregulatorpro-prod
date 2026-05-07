@@ -2,7 +2,7 @@ import { schema, OutputType } from "./reset-user_POST.schema";
 import { db } from "../../helpers/db";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
-import { deleteReportArtifactCascade } from "../../helpers/deleteReportArtifactCascade";
+import { deleteUserReportDataCascade } from "../../helpers/deleteReportArtifactCascade";
 import { logAudit } from "../../helpers/auditLogger";
 
 export async function handle(request: Request) {
@@ -36,21 +36,10 @@ export async function handle(request: Request) {
       throw new BusinessRuleError("Cannot reset the current admin account", 400);
     }
 
-    // 3. Query all report_artifact records for the given userId
-    const artifacts = await db
-      .selectFrom("reportArtifact")
-      .select("id")
-      .where("userId", "=", input.userId)
-      .execute();
+    // 3. Delete report artifacts, tradelines, and all downstream report-derived data.
+    const resetCounts = await deleteUserReportDataCascade(input.userId, adminUser.id, request);
 
-    // 4. Delete each report artifact using the cascade helper
-    let deletedReportArtifacts = 0;
-    for (const artifact of artifacts) {
-      await deleteReportArtifactCascade(artifact.id, adminUser.id, request);
-      deletedReportArtifacts++;
-    }
-
-    // 5. Delete fraud freeze records (identityTheftFreeze)
+    // 4. Delete fraud freeze records (identityTheftFreeze)
     const deleteFreezesResult = await db
       .deleteFrom("identityTheftFreeze")
       .where("userId", "=", input.userId)
@@ -58,9 +47,9 @@ export async function handle(request: Request) {
 
     const deletedFreezeRecords = Number(deleteFreezesResult.numDeletedRows || 0);
 
-    // 6. change_detection_snapshot does not exist in the current DB schema, skipped.
+    // 5. change_detection_snapshot does not exist in the current DB schema, skipped.
 
-    // 7. Log the reset action
+    // 6. Log the reset action
     await logAudit({
       action: "DELETE",
       entityType: "USER_ACCOUNT",
@@ -68,7 +57,7 @@ export async function handle(request: Request) {
       userId: adminUser.id,
       details: {
         action: "ACCOUNT_DATA_RESET",
-        deletedReportArtifacts,
+        ...resetCounts,
         deletedFreezeRecords,
         targetEmail: targetUser.email,
       },
@@ -76,10 +65,10 @@ export async function handle(request: Request) {
       request,
     });
 
-    // 8. Return response
+    // 7. Return response
     const output: OutputType = {
       success: true,
-      deletedReportArtifacts,
+      ...resetCounts,
       deletedFreezeRecords,
       userEmail: targetUser.email,
     };

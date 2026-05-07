@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Helmet } from "react-helmet";
-import { AlertCircle, FileText, AlertTriangle, ShieldAlert } from "lucide-react";
+import { AlertCircle, AlertTriangle, ListChecks, ShieldAlert } from "lucide-react";
 import { PageHeader } from "../components/PageHeader";
 
 import { DashboardStatCard } from "../components/DashboardStatCard";
@@ -8,6 +8,7 @@ import { ComplianceTradelineCard } from "../components/ComplianceTradelineCard";
 import { Skeleton } from "../components/Skeleton";
 import { useCreditorValidationList } from "../helpers/creditorValidationQueries";
 import { useTradelineList } from "../helpers/tradelineQueries";
+import { bureauDisplayName } from "../helpers/accountDisplayLabels";
 
 import styles from "./creditor-validations.module.css";
 
@@ -59,9 +60,9 @@ export default function CreditorValidationsPage() {
 
         const tradeline = {
           id: tradelineId,
-          creditorName: issueSeed.creditorName ?? "Unknown Creditor",
-          accountNumber: issueSeed.tradelineAccountNumber ?? "Unknown",
-          bureauName: issueSeed.tradelineBureauName ?? "Unknown Bureau",
+          creditorName: issueSeed.creditorName ?? null,
+          accountNumber: issueSeed.tradelineAccountNumber ?? null,
+          bureauName: issueSeed.tradelineBureauName ?? null,
           status: issueSeed.tradelineDisplayStatus ?? null,
           currentBalance: issueSeed.tradelineCurrentBalance ?? issueSeed.tradelineBalance ?? null,
           balance: issueSeed.tradelineBalance ?? null,
@@ -86,7 +87,7 @@ export default function CreditorValidationsPage() {
     ).length;
 
     const groupedByBureau = affectedTradelinesList.reduce((acc, item) => {
-      const bureauName = item.tradeline.bureauName || "Other";
+      const bureauName = bureauDisplayName(item.tradeline.bureauName);
       if (!acc[bureauName]) {
         acc[bureauName] = [];
       }
@@ -106,15 +107,15 @@ export default function CreditorValidationsPage() {
   return (
     <div className={styles.container}>
       <Helmet>
-        <title>Errors We Found | Credit Regulator Pro</title>
+        <title>Problems to Review | Credit Regulator Pro</title>
       </Helmet>
 
       <PageHeader
-        title="Errors We Found"
+        title="Problems to Review"
         subtitle={
           stats.totalAccounts > 0
-            ? `We checked your accounts against the rules. ${stats.affectedTradelines} of ${stats.totalAccounts} account${stats.totalAccounts !== 1 ? "s" : ""} currently show errors.`
-            : "We checked your accounts against the rules. Here's what we found."
+            ? `We found possible reporting problems on ${stats.affectedTradelines} of ${stats.totalAccounts} account${stats.totalAccounts !== 1 ? "s" : ""}. Open an account to see what is missing or wrong.`
+            : "We checked your accounts and will list possible reporting problems here."
         }
         
       />
@@ -122,7 +123,7 @@ export default function CreditorValidationsPage() {
       {/* Stats Row */}
       <div className={styles.statsGrid}>
         <DashboardStatCard
-          title="Total Errors"
+          title="Problems Found"
           value={stats.totalIssues}
           icon={AlertTriangle}
           link="#"
@@ -131,11 +132,11 @@ export default function CreditorValidationsPage() {
           className={styles.statCard}
         />
         <DashboardStatCard
-          title="Needs Your Attention"
-          value={stats.highPriority}
-          icon={ShieldAlert}
+          title="Accounts to Review"
+          value={stats.affectedTradelines}
+          icon={ListChecks}
           link="#"
-          accentColor="destructive"
+          accentColor="info"
           loading={isLoading}
           className={styles.statCard}
         />
@@ -145,16 +146,16 @@ export default function CreditorValidationsPage() {
       <div className={styles.infoPanel}>
         <AlertCircle size={20} className={styles.infoIcon} />
         <div>
-          <h4>How This Works</h4>
+          <h4>What this means</h4>
           <p>
-            We look at each account on your credit report and check if the company is following the rules. If we find a problem, it shows up here. Tap on an account to learn more.
+            These are possible reporting problems grouped by account. Some reports do not clearly show the company name, bureau, status, or balance. When that happens, we show that the information was not reported instead of guessing.
           </p>
         </div>
       </div>
 
       {/* Tradelines Grid */}
       <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>Accounts with Errors</h2>
+        <h2 className={styles.sectionTitle}>Accounts to Review</h2>
         
         {isLoading ? (
           <div className={styles.tradelineGrid}>
@@ -167,7 +168,7 @@ export default function CreditorValidationsPage() {
             {bureauGroups.map(([bureauName, items]) => (
               <div key={bureauName} className={styles.bureauGroup}>
                 <h3 className={styles.bureauHeading}>
-                  {bureauName} — {items.length} account{items.length !== 1 ? 's' : ''}
+                  {bureauName} - {items.length} account{items.length !== 1 ? 's' : ''}
                 </h3>
                 <div className={styles.tradelineGrid}>
                   {items.map(({ tradeline, issueCount, highPriorityCount }) => (
@@ -187,8 +188,8 @@ export default function CreditorValidationsPage() {
             <div className={styles.emptyStateIcon}>
               <ShieldAlert size={48} />
             </div>
-            <h3>No Errors Found!</h3>
-            <p>Great news! We checked everything and didn't find any errors.</p>
+            <h3>No Problems Found</h3>
+            <p>We checked your accounts and did not find any reporting problems.</p>
           </div>
         )}
       </div>

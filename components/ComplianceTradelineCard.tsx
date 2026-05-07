@@ -4,6 +4,14 @@ import { ArrowRight, ShieldAlert } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
 import { formatCurrency } from "../helpers/formatters";
+import {
+  accountDisplayName,
+  accountDisplayNameNote,
+  accountNumberDisplay,
+  bureauDisplayName,
+  hasReportedAccountValue,
+  reportedFieldDisplay,
+} from "../helpers/accountDisplayLabels";
 import styles from "./ComplianceTradelineCard.module.css";
 
 type ComplianceTradelineSummary = {
@@ -27,20 +35,27 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
   issueCount,
   priorityIssueCount = 0,
 }) => {
+  const accountName = accountDisplayName(tradeline.creditorName);
+  const accountNameNote = accountDisplayNameNote(tradeline.creditorName);
+  const accountNumber = accountNumberDisplay(tradeline.accountNumber);
+  const bureauName = bureauDisplayName(tradeline.bureauName);
+  const balanceValue = tradeline.currentBalance ?? tradeline.balance;
+
   return (
     <div className={styles.card}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <div className={styles.accountInfo}>
-            <h3 className={styles.creditorName}>{tradeline.creditorName || "Unknown Creditor"}</h3>
+            <h3 className={styles.creditorName}>{accountName}</h3>
+            {accountNameNote && <span className={styles.accountNote}>{accountNameNote}</span>}
             <div className={styles.secondaryInfo}>
-              <span className={styles.accountNumber}>{tradeline.accountNumber}</span>
+              <span className={styles.accountNumber}>{accountNumber}</span>
               <span className={styles.bullet}>&bull;</span>
-              <span className={styles.bureauName}>{tradeline.bureauName || "Unknown Bureau"}</span>
+              <span className={styles.bureauName}>{bureauName}</span>
             </div>
           </div>
           <Badge variant="error" className={styles.badge}>
-            {issueCount} Issue{issueCount !== 1 ? "s" : ""}
+            {issueCount} Problem{issueCount !== 1 ? "s" : ""}
           </Badge>
         </div>
       </div>
@@ -49,19 +64,19 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
         {priorityIssueCount > 0 && (
           <div className={styles.priorityAlert}>
             <ShieldAlert size={16} />
-            <span>{priorityIssueCount} High Priority</span>
+            <span>{priorityIssueCount} need a closer look</span>
           </div>
         )}
         <div className={styles.statusRow}>
           <span className={styles.label}>Status</span>
-          <span className={styles.value}>{tradeline.status || "N/A"}</span>
+          <span className={styles.value}>{reportedFieldDisplay(tradeline.status)}</span>
         </div>
         <div className={styles.statusRow}>
           <span className={styles.label}>Balance</span>
           <span className={styles.value}>
-            {(tradeline.currentBalance ?? tradeline.balance) !== null && (tradeline.currentBalance ?? tradeline.balance) !== undefined
-              ? formatCurrency(tradeline.currentBalance ?? tradeline.balance)
-              : "N/A"}
+            {hasReportedAccountValue(balanceValue)
+              ? formatCurrency(balanceValue)
+              : "Not reported"}
           </span>
         </div>
       </div>
@@ -69,7 +84,7 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
       <div className={styles.footer}>
         <Button asChild variant="outline" className={styles.viewButton}>
           <Link to={`/tradelines/${tradeline.id}?tab=compliance`}>
-            View Details
+            Review Account
             <ArrowRight size={16} />
           </Link>
         </Button>

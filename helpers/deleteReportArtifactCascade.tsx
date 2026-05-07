@@ -24,6 +24,19 @@ async function runOptionalStep(stepName: string, fn: () => Promise<void>): Promi
   }
 }
 
+function deletedCount(result: { numDeletedRows?: bigint | number | string | null }): number {
+  return Number(result.numDeletedRows || 0);
+}
+
+export type UserReportDataResetCounts = {
+  deletedReportArtifacts: number;
+  deletedTradelines: number;
+  deletedPackets: number;
+  deletedObligationInstances: number;
+  deletedBankruptcyRecords: number;
+  deletedPostalTransactions: number;
+};
+
 /**
  * Cascade delete all data associated with a report artifact.
  * This function deletes all downstream records in the correct order to respect foreign key constraints.
@@ -67,10 +80,21 @@ export async function deleteReportArtifactCascade(
     console.log(`Found ${tradelineIds.length} tradelines to delete:`, tradelineIds);
 
     // Step 2: For each tradeline, delete all child records in the correct order
-    // Note: We don't delete the tradeline itself - the CASCADE will do that when we delete the report artifact
+    // Delete the tradeline itself. The DB relation from tradeline.report_artifact_id can be SET NULL,
+    // so relying on the report artifact delete can leave stale accounts behind.
+    if (tradelineIds.length > 0) {
+      await runOptionalStep("reportArtifact.tradelineId nullification", async () => {
+        await trx
+          .updateTable("reportArtifact")
+          .set({ tradelineId: null })
+          .where("tradelineId", "in", tradelineIds)
+          .executeTakeFirst();
+      });
+    }
+
     for (const tradelineId of tradelineIds) {
       console.log(`Processing tradeline ${tradelineId}`);
-      await deleteTradeline(trx, tradelineId, userId, reportArtifactId, true);
+      await deleteTradeline(trx, tradelineId, userId, reportArtifactId);
     }
 
     // Catch-all: Delete any remaining tradeline_snapshots for this report artifact
@@ -192,6 +216,12 @@ export async function deleteReportArtifactCascade(
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
     });
+    await runOptionalStep("obligationChallengeLog cleanup (artifact)", async () => {
+      await trx
+        .deleteFrom("obligationChallengeLog")
+        .where("reportArtifactId", "=", reportArtifactId)
+        .executeTakeFirst();
+    });
 
     // Step 3: Delete the report artifact itself
     console.log(`Deleting report artifact ${reportArtifactId}`);
@@ -224,6 +254,199 @@ export async function deleteReportArtifactCascade(
   });
 
   console.log(`Cascade delete complete for report artifact ${reportArtifactId}`);
+}
+
+/**
+ * Reset all credit-report-derived data owned by a user while leaving the user account intact.
+ * This is intentionally broader than deleting current report artifacts because older bad resets
+ * can leave tradelines or packets with no surviving reportArtifact linkage.
+ */
+export async function deleteUserReportDataCascade(
+  targetUserId: number,
+  adminUserId: number,
+  request?: Request
+): Promise<UserReportDataResetCounts> {
+  const counts: UserReportDataResetCounts = {
+    deletedReportArtifacts: 0,
+    deletedTradelines: 0,
+    deletedPackets: 0,
+    deletedObligationInstances: 0,
+    deletedBankruptcyRecords: 0,
+    deletedPostalTransactions: 0,
+  };
+
+  const startingTradelines = await db
+    .selectFrom("tradeline")
+    .select("id")
+    .where("userId", "=", targetUserId)
+    .execute();
+
+  const artifacts = await db
+    .selectFrom("reportArtifact")
+    .select("id")
+    .where("userId", "=", targetUserId)
+    .execute();
+
+  for (const artifact of artifacts) {
+    await deleteReportArtifactCascade(artifact.id, adminUserId, request);
+    counts.deletedReportArtifacts++;
+  }
+
+  // Clean up stale tradelines left by previous resets or manual/import paths without an artifact.
+  const remainingTradelines = await db
+    .selectFrom("tradeline")
+    .select("id")
+    .where("userId", "=", targetUserId)
+    .execute();
+
+  for (const tradeline of remainingTradelines) {
+    await db.transaction().execute(async (trx: Transaction<DB>) => {
+      await deleteTradeline(trx, tradeline.id, adminUserId);
+    });
+  }
+
+  counts.deletedTradelines = startingTradelines.length;
+
+  const residualCounts = await db.transaction().execute(async (trx: Transaction<DB>) => {
+    const residual: Omit<UserReportDataResetCounts, "deletedReportArtifacts" | "deletedTradelines"> = {
+      deletedPackets: 0,
+      deletedObligationInstances: 0,
+      deletedBankruptcyRecords: 0,
+      deletedPostalTransactions: 0,
+    };
+
+    await runOptionalStep("orphan packet cleanup by user", async () => {
+      const packets = await trx
+        .selectFrom("packet")
+        .select("id")
+        .where("userId", "=", targetUserId)
+        .execute();
+      const packetIds = packets.map((p) => p.id);
+
+      if (packetIds.length === 0) {
+        return;
+      }
+
+      await trx
+        .deleteFrom("packetComplianceAudit")
+        .where("packetId", "in", packetIds)
+        .executeTakeFirst();
+
+      await runOptionalStep("packetImpactAssessment cleanup (orphan packets)", async () => {
+        await trx
+          .deleteFrom("packetImpactAssessment")
+          .where("packetId", "in", packetIds)
+          .executeTakeFirst();
+      });
+
+      await trx
+        .deleteFrom("evidenceEvent")
+        .where("packetId", "in", packetIds)
+        .executeTakeFirst();
+
+      await trx
+        .deleteFrom("deadlineEvent")
+        .where("packetId", "in", packetIds)
+        .executeTakeFirst();
+
+      await trx
+        .deleteFrom("evidenceAttachment")
+        .where("packetId", "in", packetIds)
+        .executeTakeFirst();
+
+      await runOptionalStep("discriminationClaim cleanup (orphan packets)", async () => {
+        await trx
+          .deleteFrom("discriminationClaim")
+          .where("packetId", "in", packetIds)
+          .executeTakeFirst();
+      });
+
+      await runOptionalStep("obligationChallengeLog cleanup (orphan packets)", async () => {
+        await trx
+          .deleteFrom("obligationChallengeLog")
+          .where("packetId", "in", packetIds)
+          .executeTakeFirst();
+      });
+
+      const packetPostalResult = await trx
+        .deleteFrom("postalTransaction")
+        .where("packetId", "in", packetIds)
+        .executeTakeFirst();
+      residual.deletedPostalTransactions += deletedCount(packetPostalResult);
+
+      const packetResult = await trx
+        .deleteFrom("packet")
+        .where("id", "in", packetIds)
+        .executeTakeFirst();
+      residual.deletedPackets += deletedCount(packetResult);
+    });
+
+    await runOptionalStep("orphan obligationInstance cleanup by user", async () => {
+      const obligationInstances = await trx
+        .selectFrom("obligationInstance")
+        .select("id")
+        .where("userId", "=", targetUserId)
+        .execute();
+      const obligationInstanceIds = obligationInstances.map((o) => o.id);
+
+      if (obligationInstanceIds.length === 0) {
+        return;
+      }
+
+      await trx
+        .deleteFrom("deadlineEvent")
+        .where("obligationInstanceId", "in", obligationInstanceIds)
+        .executeTakeFirst();
+
+      await trx
+        .deleteFrom("evidenceAttachment")
+        .where("obligationInstanceId", "in", obligationInstanceIds)
+        .executeTakeFirst();
+
+      await trx
+        .deleteFrom("successMetric")
+        .where("obligationInstanceId", "in", obligationInstanceIds)
+        .executeTakeFirst();
+
+      await runOptionalStep("discriminationClaim cleanup (orphan obligations)", async () => {
+        await trx
+          .deleteFrom("discriminationClaim")
+          .where("obligationInstanceId", "in", obligationInstanceIds)
+          .executeTakeFirst();
+      });
+
+      const obligationResult = await trx
+        .deleteFrom("obligationInstance")
+        .where("id", "in", obligationInstanceIds)
+        .executeTakeFirst();
+      residual.deletedObligationInstances += deletedCount(obligationResult);
+    });
+
+    await runOptionalStep("bankruptcyRecord cleanup by user", async () => {
+      const bankruptcyResult = await trx
+        .deleteFrom("bankruptcyRecord")
+        .where("userId", "=", targetUserId)
+        .executeTakeFirst();
+      residual.deletedBankruptcyRecords += deletedCount(bankruptcyResult);
+    });
+
+    await runOptionalStep("postalTransaction cleanup by user", async () => {
+      const postalResult = await trx
+        .deleteFrom("postalTransaction")
+        .where("userId", "=", targetUserId)
+        .executeTakeFirst();
+      residual.deletedPostalTransactions += deletedCount(postalResult);
+    });
+
+    return residual;
+  });
+
+  counts.deletedPackets += residualCounts.deletedPackets;
+  counts.deletedObligationInstances += residualCounts.deletedObligationInstances;
+  counts.deletedBankruptcyRecords += residualCounts.deletedBankruptcyRecords;
+  counts.deletedPostalTransactions += residualCounts.deletedPostalTransactions;
+
+  return counts;
 }
 
 /**

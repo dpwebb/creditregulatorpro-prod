@@ -40,7 +40,7 @@ export default function MyAccountsPage() {
         <div className={styles.tabsListWrapper}>
           <TabsList className={styles.tabsList}>
             <TabsTrigger value="accounts">Your Accounts</TabsTrigger>
-            <TabsTrigger value="problems">Errors We Found</TabsTrigger>
+            <TabsTrigger value="problems">Problems to Review</TabsTrigger>
             <TabsTrigger value="reports">Your Files</TabsTrigger>
           </TabsList>
         </div>

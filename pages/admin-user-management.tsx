@@ -110,7 +110,7 @@ export default function AdminUserManagementPage() {
       {
         onSuccess: (data) => {
           showSuccess(
-            `Successfully reset user data. Deleted ${data.deletedReportArtifacts} reports and ${data.deletedFreezeRecords} freezes.`,
+            `Successfully reset user data. Deleted ${data.deletedReportArtifacts} reports, ${data.deletedTradelines} accounts, and ${data.deletedFreezeRecords} freezes.`,
             { description: `User email: ${data.userEmail}` }
           );
           setResetTarget(null);

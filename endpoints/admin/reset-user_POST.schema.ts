@@ -9,6 +9,11 @@ export type InputType = z.infer<typeof schema>;
 export type OutputType = {
   success: boolean;
   deletedReportArtifacts: number;
+  deletedTradelines: number;
+  deletedPackets: number;
+  deletedObligationInstances: number;
+  deletedBankruptcyRecords: number;
+  deletedPostalTransactions: number;
   deletedFreezeRecords: number;
   userEmail: string;
 };
