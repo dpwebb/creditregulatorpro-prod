@@ -120,3 +120,82 @@ Status Open
 Opened Date 2021-06-01
 Reported Date 2026-01-10
 `;
+
+export const transUnionLegacyDisclosureFixture = `
+TRANSUNION CANADA CONSUMER DISCLOSURE
+TU Case ID: L999888
+Last reviewed on Monday 10 January 2026
+
+Personal Information:
+Consumer Name: SAMPLE CONSUMER
+Date of Birth: 1961-01-30
+Current Address: 101 TEST AVE HALIFAX NS B3J 1A1
+
+7. REVOLVING CREDIT
+Creditor Name SAMPLE BANK VISA
+Account Number ********1111
+Account Type REVOLVING / INDIVIDUAL
+Balance $2,345.67
+Status Open
+Opened Date 2020-01-15
+Reported Date 2026-01-10
+Payment History
+Jan 2026 2345 100 0 R1 100 5000 0 0 AC /
+`;
+
+export const equifaxInstallmentTextFixture = `
+Equifax Canada Co.
+Credit ReportRequest Date 2026/04/16
+
+Personal Information
+Name SAMPLE CONSUMER
+Date of Birth 1961-01-30
+Current Address
+101 TEST AVE
+HALIFAX NS B3J 1A1
+
+Accounts - Installment
+SAMPLE AUTO FINANCE
+Account
+Number
+********2222
+Status
+Installment - Pays as agreed
+Balance And Amounts
+Balance
+$12,345.00
+Highest Balance
+$20,000.00
+Past Due
+$0.00
+Account Dates
+Opened
+2022/06/15
+Last Reported
+2026/04/16
+Payment Responsibility
+Individual
+`;
+
+export const equifaxAccountOnlyTextFixture = `
+Equifax Canada Co.
+Credit ReportRequest Date 2026/04/16
+
+Accounts - Open
+SAMPLE TELCO
+Account
+Number
+********3333
+Status
+Open - Too new to rate
+Balance And Amounts
+Balance
+$89.10
+Credit Limit
+$0.00
+Account Dates
+Opened
+2025/12/01
+Last Reported
+2026/04/16
+`;

@@ -13,6 +13,17 @@ type AddressExtractionResult = {
   confidence: number;
 };
 
+function isConsumerInfoSearchBoundary(line: string): boolean {
+  return (
+    /^Accounts?\s*-\s*(?:Revolving|Mortgage|Installment|Open)\b/i.test(line) ||
+    /^Account\(s\)\s*:?$/i.test(line) ||
+    /^\d+\.\s*(?:REVOLVING|INSTALLMENT|MORTGAGE|OPEN|COLLECTION)\b/i.test(line) ||
+    /^(?:REVOLVING CREDIT|INSTALLMENT LOANS?|MORTGAGE|OPEN ACCOUNTS?|COLLECTIONS)$/i.test(line) ||
+    /^(?:Creditor Name|Member Name|Account Number)\b/i.test(line) ||
+    /^(?:Inquiries|Credit Related Inquiries|Public Records|Consumer Statement)\b/i.test(line)
+  );
+}
+
 /**
  * Check if an address text contains bureau corporate address indicators
  */
@@ -54,6 +65,7 @@ function findConsumerNameIndex(lines: string[]): number {
 
   for (let i = 0; i < Math.min(30, lines.length); i++) {
     const line = lines[i];
+    if (isConsumerInfoSearchBoundary(line)) break;
     for (const pattern of nameLabels) {
       if (pattern.test(line)) {
         return i;
@@ -101,6 +113,7 @@ export function extractCurrentAddress(lines: string[]): AddressExtractionResult 
   const searchStartIndex = consumerNameIndex >= 0 ? consumerNameIndex : 0;
   
   for (let i = searchStartIndex; i < lines.length; i++) {
+    if (i > searchStartIndex && isConsumerInfoSearchBoundary(lines[i])) break;
     const headerMatch = lines[i].match(addressHeaderPattern);
     if (headerMatch) {
       inlineAddressText = headerMatch[1] ? headerMatch[1].trim() : "";
@@ -490,6 +503,7 @@ function fallbackPostalCodeSearch(lines: string[], result: AddressExtractionResu
   
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
+    if (i > startIndex && isConsumerInfoSearchBoundary(line)) break;
     const postalMatch = line.match(POSTAL_CODE_PATTERN);
     
     if (postalMatch) {

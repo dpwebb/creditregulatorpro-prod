@@ -1,5 +1,16 @@
 import { NAME_BLACKLIST } from "./consumerInfoExtractorConstants";
 
+function isConsumerNameSearchBoundary(line: string): boolean {
+  return (
+    /^Accounts?\s*-\s*(?:Revolving|Mortgage|Installment|Open)\b/i.test(line) ||
+    /^Account\(s\)\s*:?$/i.test(line) ||
+    /^\d+\.\s*(?:REVOLVING|INSTALLMENT|MORTGAGE|OPEN|COLLECTION)\b/i.test(line) ||
+    /^(?:REVOLVING CREDIT|INSTALLMENT LOANS?|MORTGAGE|OPEN ACCOUNTS?|COLLECTIONS)$/i.test(line) ||
+    /^(?:Creditor Name|Member Name|Account Number)\b/i.test(line) ||
+    /^(?:Inquiries|Credit Related Inquiries|Public Records|Consumer Statement)\b/i.test(line)
+  );
+}
+
 export function extractName(lines: string[]): { name: string | null; confidence: number } {
   let fullName: string | null = null;
   let confidence = 0;
@@ -152,6 +163,7 @@ export function extractName(lines: string[]): { name: string | null; confidence:
   if (!fullName) {
     for (let i = 0; i < Math.min(15, lines.length); i++) {
       const line = lines[i];
+      if (isConsumerNameSearchBoundary(line)) break;
       
       const allCapsNamePattern = /^([A-ZÀ-Ÿ][A-ZÀ-Ÿ.''-]*(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿ.''-]*){1,3})$/;
       const match = line.match(allCapsNamePattern);

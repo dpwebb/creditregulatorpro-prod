@@ -16,6 +16,24 @@ All future work should protect this promise before adding breadth or convenience
 6. Personal PDFs and personal extracted text must not be committed as fixtures; convert observed layouts into anonymized synthetic fixtures.
 7. Every phase must include targeted regression tests and a pass/fail report before moving to the next phase.
 
+## Current Implementation Status
+
+Updated May 7, 2026.
+
+Started and partially implemented:
+
+1. Phase 1: Added anonymized TransUnion legacy numbered-section coverage, Equifax installment coverage, and Equifax account-only coverage. Hardened consumer identity fallback so account-section creditor names are not promoted to consumer names.
+2. Phase 3: Added stable canonical evidence IDs to field evidence for downstream violation and packet traceability.
+3. Phase 8: Added `pnpm run test:deterministic-ingestion-report` and included it in `pnpm run check` so replay stability, required evidence coverage, fixture support, and violation-search preservation are visible before publish.
+
+Remaining high-priority work:
+
+1. Deterministic OCR evaluation and scanned-PDF fixtures.
+2. More anonymized older/regional bureau layouts.
+3. Page-aware and bounding-box evidence.
+4. Dedicated deterministic rule packs for creditor statements and collection letters.
+5. Deeper admin-correction promotion into future parser, validation, violation, exception, and regression rules.
+
 ## Phase 1: Deterministic Extraction Coverage
 
 Goal: improve supported report layouts without loosening parser behavior.

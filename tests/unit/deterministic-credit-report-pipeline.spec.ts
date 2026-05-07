@@ -217,7 +217,9 @@ ${tradelineSource}
     const evidence = packageResult.finalOutput.evidence;
 
     expect(evidence.fieldIndex["consumerInfo.dateOfBirth"].textSnippet).toContain("Date of Birth");
+    expect(evidence.fieldIndex["consumerInfo.dateOfBirth"].evidenceId).toMatch(/^evidence-/);
     expect(evidence.fieldIndex["tradelines[0].creditorName"].textSnippet).toContain("BANK OF NOVA SCOTIA");
+    expect(evidence.fieldIndex["tradelines[0].creditorName"].evidenceId).toMatch(/^evidence-/);
     expect(evidence.coverage.requiredFieldKeys).toContain("consumerInfo.dateOfBirth");
     expect(evidence.coverage.requiredFieldKeys).toContain("tradelines[0].creditorName");
     expect(evidence.coverage.requiredFieldsMissingEvidence).toEqual([]);

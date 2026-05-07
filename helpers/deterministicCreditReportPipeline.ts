@@ -33,6 +33,7 @@ export type TokenClass =
   | "text";
 
 export interface CanonicalFieldEvidence {
+  evidenceId?: string;
   pageNumber?: number;
   textSnippet?: string;
   tokenIndexes?: number[];
@@ -1039,7 +1040,27 @@ function buildAlternative(
     reasonNotSelected: candidate.canonicalEligible
       ? scoreReason
       : candidate.reason ?? "Candidate is diagnostic-only and cannot become canonical.",
-    evidence: candidate.evidence,
+    evidence: attachEvidenceId(candidate.fieldKey, candidate.evidence),
+  };
+}
+
+function attachEvidenceId(
+  fieldKey: string,
+  evidence: CanonicalFieldEvidence,
+): CanonicalFieldEvidence {
+  const seed = {
+    fieldKey,
+    pageNumber: evidence.pageNumber ?? null,
+    tokenIndexes: evidence.tokenIndexes ?? [],
+    textSnippet: evidence.textSnippet ?? null,
+    sectionName: evidence.sectionName ?? null,
+    zoneName: evidence.zoneName ?? null,
+    ruleId: evidence.ruleId ?? null,
+  };
+
+  return {
+    ...evidence,
+    evidenceId: evidence.evidenceId ?? `evidence-${sha256Hex(stableCanonicalJson(seed)).slice(0, 16)}`,
   };
 }
 
@@ -1079,7 +1100,7 @@ function buildFieldFromPool(
     sourceStage: "DETERMINISTIC_CANONICAL_SELECTION",
     sourceMethod: selected.sourceMethod,
     ...(selected.parserRuleId ? { parserRuleId: selected.parserRuleId } : {}),
-    evidence: selected.evidence,
+    evidence: attachEvidenceId(fieldKey, selected.evidence),
     alternatives,
     history: [
       {

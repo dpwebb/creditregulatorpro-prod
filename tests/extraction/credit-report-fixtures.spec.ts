@@ -7,8 +7,11 @@ import { extractEquifaxTradelines } from "../../helpers/equifaxPdfExtractor";
 import { buildDeterministicCreditReportPipelinePackage } from "../../helpers/deterministicCreditReportPipeline";
 import { parseHtmlToRawText } from "../../helpers/_htmlParserUtils";
 import {
+  equifaxAccountOnlyTextFixture,
+  equifaxInstallmentTextFixture,
   equifaxTextFixture,
   equifaxHtmlFixture,
+  transUnionLegacyDisclosureFixture,
   transUnionPortalLayoutFixture,
   transUnionHtmlFixture,
   transUnionTextFixture,
@@ -66,6 +69,43 @@ Cross Reference(s):
     expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1961-01-30");
     expect(tradelines.map((tradeline) => tradeline.creditorName)).toContain("CAPITAL ONE BANK");
     expect(tradelines.some((tradeline) => tradeline.isCollectionAccount)).toBe(true);
+  });
+
+  it("extracts TransUnion legacy numbered section layouts without fixed line positions", () => {
+    const metadata = extractReportMetadata(transUnionLegacyDisclosureFixture);
+    const consumerInfo = extractConsumerInfo(transUnionLegacyDisclosureFixture);
+    const tradelines = extractTradelines(transUnionLegacyDisclosureFixture);
+
+    expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-01-10");
+    expect(metadata.transUnionCaseId).toBe("L999888");
+    expect(consumerInfo.fullName).toBe("SAMPLE CONSUMER");
+    expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1961-01-30");
+    expect(consumerInfo.postalCode).toBe("B3J 1A1");
+    expect(tradelines).toHaveLength(1);
+    expect(tradelines[0].creditorName).toBe("SAMPLE BANK VISA");
+    expect(tradelines[0].balance).toBe(2345.67);
+    expect(tradelines[0].dates.reported?.toISOString().slice(0, 10)).toBe("2026-01-10");
+  });
+
+  it("extracts Equifax installment sections and does not promote account-only creditors to consumer identity", () => {
+    const installmentConsumerInfo = extractConsumerInfo(equifaxInstallmentTextFixture);
+    const installmentTradelines = extractEquifaxTradelines(equifaxInstallmentTextFixture);
+    const accountOnlyConsumerInfo = extractConsumerInfo(equifaxAccountOnlyTextFixture);
+    const accountOnlyTradelines = extractEquifaxTradelines(equifaxAccountOnlyTextFixture);
+
+    expect(installmentConsumerInfo.fullName).toBe("SAMPLE CONSUMER");
+    expect(installmentConsumerInfo.postalCode).toBe("B3J 1A1");
+    expect(installmentTradelines).toHaveLength(1);
+    expect(installmentTradelines[0].creditorName).toBe("SAMPLE AUTO FINANCE");
+    expect(installmentTradelines[0].accountType).toBe("Installment");
+    expect(installmentTradelines[0].balance).toBe(12345);
+    expect(installmentTradelines[0].dates.reported?.toISOString().slice(0, 10)).toBe("2026-04-16");
+
+    expect(accountOnlyConsumerInfo.fullName).toBeNull();
+    expect(accountOnlyConsumerInfo.postalCode).toBeNull();
+    expect(accountOnlyTradelines).toHaveLength(1);
+    expect(accountOnlyTradelines[0].creditorName).toBe("SAMPLE TELCO");
+    expect(accountOnlyTradelines[0].balance).toBe(89.1);
   });
 
   it("detects semantic zones for Equifax and exported portal layouts", () => {
