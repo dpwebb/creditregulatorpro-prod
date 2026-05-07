@@ -2,8 +2,8 @@ export function getViolationLabel(category: string | null | undefined): string {
   if (!category) return "Unknown Problem";
 
   const labels: Record<string, string> = {
-    DOCUMENTATION_CHAIN_FAILURE: "Missing Required Information",
-    DISCLOSURE_DEFICIENCY: "Required Info Not Shared with You",
+    DOCUMENTATION_CHAIN_FAILURE: "Missing Account Information",
+    DISCLOSURE_DEFICIENCY: "Important Info Was Not Shared",
     STATUTE_OF_LIMITATIONS: "Too Old to Be on Your Report — Must Be Removed",
     STATUTE_APPROACHING: "Almost Too Old for Your Report — Removal Coming Soon",
     TEMPORAL_MANIPULATION: "Dates Were Changed Suspiciously",

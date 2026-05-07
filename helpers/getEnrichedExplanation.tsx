@@ -1,8 +1,100 @@
+const FIELD_LABELS: Record<string, string> = {
+  accountType: "account type",
+  chargeOffDate: "date the account was written off",
+  creditorId: "company name",
+  dateAssignedToCollection: "date it was sent to collections",
+  dateClosed: "date closed",
+  dateOfFirstDelinquency: "date it first fell behind",
+  dateOfLastPayment: "last payment date",
+  lastReportedDate: "date it was last reported",
+  originalCreditorName: "original company you owed",
+  paymentRating: "payment rating",
+  scheduledMonthlyPayment: "monthly payment amount",
+  terms: "loan length",
+};
+
+const humanizeFieldName = (fieldName: string | null | undefined): string => {
+  if (!fieldName) return "missing information";
+  if (FIELD_LABELS[fieldName]) return FIELD_LABELS[fieldName];
+
+  return fieldName
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+};
+
+const stripInternalDetails = (text: string): string => {
+  return text
+    .replace(/\s*Review basis:[\s\S]*$/i, "")
+    .replace(/\s*reference ids?[:\s][^.;]+[.;]?/gi, "")
+    .replace(/\s*rule names?[:\s][^.;]+[.;]?/gi, "")
+    .replace(/\s*regulatory basis[:\s][^.;]+[.;]?/gi, "");
+};
+
 export const simplifyForUser = (text: string | null | undefined): string => {
   if (!text) return "";
-  let simplified = text.replace(/under\s+[A-Z][A-Za-z.\s]+\d{4}(?:(?:,\s*)?[a-z]\.\s*\d+(?:\(\d+\))?)*/g, '');
-  simplified = simplified.replace(/\s+/g, ' ').replace(/\s+([.,)])/g, '$1').trim();
+
+  let simplified = stripInternalDetails(text);
+  simplified = simplified.replace(/under\s+[A-Z][A-Za-z.\s]+\d{4}(?:(?:,\s*)?[a-z]\.\s*\d+(?:\(\d+\))?)*/g, "");
+
+  const replacements: Array<{ pattern: RegExp; replacement: string }> = [
+    { pattern: /\bThe available report data indicates:\s*/gi, replacement: "" },
+    { pattern: /\bavailable report data\b/gi, replacement: "your credit report" },
+    { pattern: /\btradeline\b/gi, replacement: "account" },
+    { pattern: /\bfurnisher\b/gi, replacement: "company reporting this" },
+    { pattern: /\boriginal creditor\b/gi, replacement: "original company you owed" },
+    { pattern: /\bcreditor\b/gi, replacement: "company" },
+    { pattern: /\bMetro-?2\b/gi, replacement: "credit reporting" },
+    { pattern: /\bPIPEDA\b/gi, replacement: "privacy law" },
+    { pattern: /\bDate of First Delinquency\b/gi, replacement: "date it first fell behind" },
+    { pattern: /\bDate Assigned (?:To|to) Collection\b/gi, replacement: "date it was sent to collections" },
+    { pattern: /\bsource documentation\b/gi, replacement: "proof" },
+    { pattern: /\breporting basis\b/gi, replacement: "reason they reported it" },
+    { pattern: /\bcorrection pathway\b/gi, replacement: "way to fix it" },
+    { pattern: /\bclarification request\b/gi, replacement: "letter asking them to explain or fix it" },
+    { pattern: /\bpotential inconsistency\b/gi, replacement: "possible mistake" },
+    { pattern: /\bdiscrepancy\b/gi, replacement: "difference" },
+    { pattern: /\bapplicable requirements\b/gi, replacement: "the rules" },
+    { pattern: /\bstatute-barred\b/gi, replacement: "too old for collection action" },
+    { pattern: /\blimitation period\b/gi, replacement: "time limit" },
+  ];
+
+  for (const { pattern, replacement } of replacements) {
+    simplified = simplified.replace(pattern, replacement);
+  }
+
+  simplified = simplified.replace(/\s+/g, " ").replace(/\s+([.,)])/g, "$1").trim();
   return simplified;
+};
+
+const getMissingInfoExplanation = (technicalDetails: any): string | null => {
+  const fieldName = technicalDetails?.fieldName || technicalDetails?.missingField;
+
+  switch (fieldName) {
+    case "dateAssignedToCollection":
+      return "This collection account is missing the date it was sent to collections. That date helps show whether the account is being reported correctly.";
+    case "dateOfFirstDelinquency":
+      return "This account is missing the date it first fell behind. That date helps decide how long the account can stay on your report.";
+    case "originalCreditorName":
+      return "This collection account does not list the original company you owed.";
+    case "terms":
+      return "This loan account is missing the loan length, like 36 months or 60 months.";
+    case "lastReportedDate":
+      return "This account is missing the date it was last reported. That date shows whether the information is up to date.";
+    case "chargeOffDate":
+      return "This account says the debt was written off, but it does not show when that happened.";
+    case "scheduledMonthlyPayment":
+      return "This account is missing the normal monthly payment amount.";
+    case "accountType":
+      return "This account is missing the account type, like loan, credit card, or collection.";
+    case "creditorId":
+      return "This account does not clearly name the company reporting it.";
+    default:
+      if (!fieldName) return null;
+      return `This account is missing the ${humanizeFieldName(String(fieldName))}. That information is needed to check if the account is correct.`;
+  }
 };
 
 export const getEnrichedExplanation = (violation: {
@@ -63,7 +155,11 @@ export const getEnrichedExplanation = (violation: {
       return "The collection agency didn't respond to the debt validation request within 30 days.";
     }
     if (technicalDetails?.missingField === 'originalCreditorName') {
-      return "This collection account doesn't list who the original creditor was.";
+      return "This collection account does not list the original company you owed.";
+    }
+    const missingInfoExplanation = getMissingInfoExplanation(technicalDetails);
+    if (missingInfoExplanation) {
+      return missingInfoExplanation;
     }
     // For field-level violations (e.g. missing dates), use the stored explanation
     if (userExplanation) {
@@ -100,7 +196,7 @@ export const getEnrichedExplanation = (violation: {
   
   if (responsibleEntity) {
     if (baseExplanation) {
-      return `Issue with ${entityName}: ${baseExplanation}`;
+      return `Problem with ${entityName}: ${baseExplanation}`;
     }
     return `We found a problem with how ${entityName} is reporting this account.`;
   }
@@ -116,14 +212,14 @@ export const getEnrichedRecommendedAction = (violation: {
   const responsibleEntity = violation.responsibleEntity || violation.technicalDetails?.responsibleEntity;
   
   if (responsibleEntity === "BUREAU") {
-    return "File a dispute with the credit bureau to remove this inaccuracy.";
+    return "Ask the credit bureau to check this and fix or remove anything that is wrong.";
   }
   if (responsibleEntity === "CREDITOR") {
-    return "Send a letter to the company reporting this account to correct the reporting.";
+    return "Send a letter asking the company to fix this account or show proof that it is correct.";
   }
   if (responsibleEntity === "COLLECTOR") {
-    return "Challenge the collection agency by demanding debt validation.";
+    return "Send a letter asking the collection agency to prove the debt and fix any missing or wrong information.";
   }
 
-  return violation.recommendedAction || "Review and take appropriate action to correct this reporting issue.";
+  return simplifyForUser(violation.recommendedAction) || "Ask them to check the account and fix anything that is wrong.";
 };

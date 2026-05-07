@@ -40,7 +40,7 @@ import styles from "./TradelineComplianceHub.module.css";
 
 const getEntityBadgeLabel = (entity?: string | null) => {
   if (entity === "BUREAU") return "Credit Bureau Issue";
-  if (entity === "CREDITOR") return "Creditor Issue";
+  if (entity === "CREDITOR") return "Company Issue";
   if (entity === "COLLECTOR") return "Collection Agency Issue";
   return null;
 };

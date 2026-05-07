@@ -108,7 +108,7 @@ export const ComplianceViolationCard = ({
               )}
               {violation.technicalDetails?.responsibleEntity === "CREDITOR" && (
                 <Badge variant="default" className={styles.categoryBadge}>
-                  CREDITOR ISSUE
+                  COMPANY ISSUE
                 </Badge>
               )}
               {violation.technicalDetails?.responsibleEntity === "COLLECTOR" && (
