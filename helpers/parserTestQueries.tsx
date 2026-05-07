@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParserTestCases } from "../endpoints/parser-test-case/list_GET.schema";
+import type { OutputType as ParserTestCasesOutput } from "../endpoints/parser-test-case/list_GET.schema";
 import { createParserTestCase } from "../endpoints/parser-test-case/create_POST.schema";
 import { updateParserTestCase } from "../endpoints/parser-test-case/update_POST.schema";
 import { deleteParserTestCase } from "../endpoints/parser-test-case/delete_POST.schema";
@@ -52,6 +53,25 @@ export function useDeleteParserTestCase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: Parameters<typeof deleteParserTestCase>[0]) => deleteParserTestCase(input),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: PARSER_TEST_KEYS.lists() });
+      const previousList = queryClient.getQueryData<ParserTestCasesOutput>(PARSER_TEST_KEYS.lists());
+
+      if (previousList) {
+        queryClient.setQueryData<ParserTestCasesOutput>(PARSER_TEST_KEYS.lists(), {
+          ...previousList,
+          testCases: previousList.testCases.filter((testCase) => testCase.id !== input.id),
+        });
+      }
+
+      queryClient.removeQueries({ queryKey: VIOLATION_CORRECTION_KEYS.all });
+      return { previousList };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData(PARSER_TEST_KEYS.lists(), context.previousList);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: VIOLATION_CORRECTION_KEYS.all });

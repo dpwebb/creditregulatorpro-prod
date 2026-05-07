@@ -210,9 +210,11 @@ export function AdminViolationCorrectionPanel({
     sourceSha256s,
     canLoadRuns,
   );
-  const runs = runsData?.runs ?? [];
+  const runs = canLoadRuns ? runsData?.runs ?? [] : [];
+  const runTotal = canLoadRuns ? runsData?.total ?? 0 : 0;
   const [selectedRunId, setSelectedRunId] = useState<number | null>(null);
-  const { data: detail, isLoading: isLoadingDetail } = useViolationCorrectionRunDetail(selectedRunId);
+  const activeRunId = canLoadRuns ? selectedRunId : null;
+  const { data: detail, isLoading: isLoadingDetail } = useViolationCorrectionRunDetail(activeRunId);
   const [selectedTradelineId, setSelectedTradelineId] = useState<number | null>(null);
   const [selectedViolationId, setSelectedViolationId] = useState<number | null>(null);
   const [manualMode, setManualMode] = useState(false);
@@ -228,7 +230,7 @@ export function AdminViolationCorrectionPanel({
   const exportTraining = useExportViolationTrainingExamples();
 
   useEffect(() => {
-    if (runs.length === 0) {
+    if (!canLoadRuns || runs.length === 0) {
       setSelectedRunId(null);
       return;
     }
@@ -236,7 +238,7 @@ export function AdminViolationCorrectionPanel({
     if (!selectedRunId || !runs.some((run) => run.id === selectedRunId)) {
       setSelectedRunId(runs[0].id);
     }
-  }, [runs, selectedRunId]);
+  }, [canLoadRuns, runs, selectedRunId]);
 
   useEffect(() => {
     const firstTradeline = detail?.tradelines[0];
@@ -494,7 +496,7 @@ export function AdminViolationCorrectionPanel({
               <SelectItem value="all">All runs</SelectItem>
             </SelectContent>
           </Select>
-          <Badge variant="info">{runsData?.total ?? 0} runs</Badge>
+          <Badge variant="info">{runTotal} runs</Badge>
         </div>
         <Button variant="outline" size="sm" onClick={downloadTrainingExamples} disabled={exportTraining.isPending}>
           <Download size={16} /> Export training
