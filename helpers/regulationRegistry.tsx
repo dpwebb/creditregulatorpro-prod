@@ -8,11 +8,46 @@ export interface RegulationEntry {
   shortLabel: string;
   description: string;
   violationCategories: ViolationCategory[];
+  authorityType?: "statute" | "privacy_principle" | "reporting_standard" | "procedural_rule" | "local_registry_entry";
+  sourceQuality?: "official" | "private_standard" | "local_registry";
+  supportLevel?: "field_requirement" | "category_principle" | "procedural_requirement" | "reporting_standard" | "registry_placeholder";
+  jurisdiction?: string;
+  province?: CanadianProvince;
+  sourceUrl?: string | null;
+  effectiveDate?: string | null;
+  fieldNames?: string[];
+  allowsFieldRequiredLanguage?: boolean;
 }
 
-const PROVINCIAL_CRA_MAPPING: Record<CanadianProvince, any> = {
+type ProvincialAuthorityMapping = {
+  statuteName: string;
+  creditReportingSourceUrl: string;
+  collectionStatuteName: string;
+  collectionSourceUrl: string;
+  limitationsStatuteName: string;
+  limitationsSourceUrl: string;
+  sections: {
+    accuracy: string;
+    corroboration: string;
+    reportingLimit: string;
+    bankruptcy: string;
+    identityTheft: string;
+    dispute: string;
+    collection: string;
+    disclosure: string;
+    bureauObligations: string;
+    permissiblePurpose: string;
+  };
+};
+
+const PROVINCIAL_CRA_MAPPING: Record<CanadianProvince, ProvincialAuthorityMapping> = {
   ON: {
-    statuteName: "Ontario CRA",
+    statuteName: "Ontario Consumer Reporting Act",
+    creditReportingSourceUrl: "https://www.ontario.ca/laws/statute/90c33",
+    collectionStatuteName: "Ontario Collection and Debt Settlement Services Act",
+    collectionSourceUrl: "https://www.ontario.ca/laws/statute/90c14",
+    limitationsStatuteName: "Ontario Limitations Act, 2002",
+    limitationsSourceUrl: "https://www.ontario.ca/laws/statute/02l24",
     sections: {
       accuracy: "R.S.O. 1990, c. C.33, s. 9(3)(a)",
       corroboration: "R.S.O. 1990, c. C.33, s. 9(3)(b)",
@@ -20,13 +55,19 @@ const PROVINCIAL_CRA_MAPPING: Record<CanadianProvince, any> = {
       bankruptcy: "R.S.O. 1990, c. C.33, s. 9(3)(e)",
       identityTheft: "R.S.O. 1990, c. C.33, s. 12.1(1)",
       dispute: "R.S.O. 1990, c. C.33, s. 13",
-      collection: "Ontario Collection Agencies Act",
+      collection: "R.S.O. 1990, c. C.14",
       disclosure: "R.S.O. 1990, c. C.33, s. 12",
       bureauObligations: "R.S.O. 1990, c. C.33, s. 9",
+      permissiblePurpose: "R.S.O. 1990, c. C.33, s. 8",
     },
   },
   BC: {
-    statuteName: "BC BPCPA",
+    statuteName: "BC Business Practices and Consumer Protection Act",
+    creditReportingSourceUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/04002_00_multi",
+    collectionStatuteName: "BC Business Practices and Consumer Protection Act",
+    collectionSourceUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/04002_00_multi",
+    limitationsStatuteName: "BC Limitation Act",
+    limitationsSourceUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/12013_01",
     sections: {
       accuracy: "S.B.C. 2004, c. 2, s. 109(1)",
       corroboration: "S.B.C. 2004, c. 2, s. 109(2)",
@@ -37,160 +78,227 @@ const PROVINCIAL_CRA_MAPPING: Record<CanadianProvince, any> = {
       collection: "S.B.C. 2004, c. 2, Part 7",
       disclosure: "S.B.C. 2004, c. 2, s. 107",
       bureauObligations: "S.B.C. 2004, c. 2, s. 109",
+      permissiblePurpose: "S.B.C. 2004, c. 2, s. 108",
     },
   },
   AB: {
-    statuteName: "Alberta Fair Trading Act",
+    statuteName: "Alberta Consumer Protection Act",
+    creditReportingSourceUrl: "https://kings-printer.alberta.ca/1266.cfm?page=c26p3.cfm&leg_type=Acts&isbncln=978",
+    collectionStatuteName: "Alberta Consumer Protection Act",
+    collectionSourceUrl: "https://kings-printer.alberta.ca/1266.cfm?page=c26p3.cfm&leg_type=Acts&isbncln=978",
+    limitationsStatuteName: "Alberta Limitations Act",
+    limitationsSourceUrl: "https://kings-printer.alberta.ca/1266.cfm?page=L12.cfm&leg_type=Acts&isbncln=978",
     sections: {
-      accuracy: "Part 6.1 (Accuracy)",
-      corroboration: "Part 6.1 (Corroboration)",
-      reportingLimit: "R.S.A. 2000, c. F-2, Part 6.1",
-      bankruptcy: "Part 6.1 (Bankruptcy)",
-      identityTheft: "Part 6.1 (Identity Theft)",
-      dispute: "Part 6.1 (Dispute)",
-      collection: "Part 9 (Collection Agencies)",
-      disclosure: "Part 6.1 (Disclosure)",
-      bureauObligations: "Part 6.1 (Bureau Obligations)",
+      accuracy: "R.S.A. 2000, c. C-26.3, Part 5",
+      corroboration: "R.S.A. 2000, c. C-26.3, Part 5",
+      reportingLimit: "R.S.A. 2000, c. C-26.3, Part 5",
+      bankruptcy: "R.S.A. 2000, c. C-26.3, Part 5",
+      identityTheft: "R.S.A. 2000, c. C-26.3, Part 5",
+      dispute: "R.S.A. 2000, c. C-26.3, Part 5",
+      collection: "R.S.A. 2000, c. C-26.3, Part 8",
+      disclosure: "R.S.A. 2000, c. C-26.3, Part 5",
+      bureauObligations: "R.S.A. 2000, c. C-26.3, Part 5",
+      permissiblePurpose: "R.S.A. 2000, c. C-26.3, Part 5",
     },
   },
   QC: {
-    statuteName: "Quebec Consumer Protection Act",
+    statuteName: "Quebec Credit Assessment Agents Act",
+    creditReportingSourceUrl: "https://www.legisquebec.gouv.qc.ca/en/ShowDoc/cs/A-8.2",
+    collectionStatuteName: "Quebec Act respecting the collection of certain debts",
+    collectionSourceUrl: "https://www.legisquebec.gouv.qc.ca/en/ShowDoc/cs/R-2.2",
+    limitationsStatuteName: "Civil Code of Quebec",
+    limitationsSourceUrl: "https://www.legisquebec.gouv.qc.ca/en/ShowDoc/cs/CCQ-1991",
     sections: {
-      accuracy: "C.Q.L.R., c. P-40.1 (Accuracy)",
-      corroboration: "C.Q.L.R., c. P-40.1 (Corroboration)",
-      reportingLimit: "C.Q.L.R., c. P-40.1",
-      bankruptcy: "C.Q.L.R., c. P-40.1 (Bankruptcy)",
-      identityTheft: "C.Q.L.R., c. P-40.1 (Identity Theft)",
-      dispute: "C.Q.L.R., c. P-40.1 (Dispute)",
-      collection: "Collection of Certain Debts Act",
-      disclosure: "C.Q.L.R., c. P-40.1 (Disclosure)",
-      bureauObligations: "C.Q.L.R., c. P-40.1 (Bureau Obligations)",
+      accuracy: "CQLR c. A-8.2, ss. 13-23",
+      corroboration: "CQLR c. A-8.2, ss. 13-23",
+      reportingLimit: "CQLR c. A-8.2, ss. 13-23",
+      bankruptcy: "CQLR c. A-8.2, ss. 13-23",
+      identityTheft: "CQLR c. A-8.2, ss. 8-12",
+      dispute: "CQLR c. A-8.2, ss. 24-27",
+      collection: "CQLR c. R-2.2",
+      disclosure: "CQLR c. A-8.2, ss. 13-23",
+      bureauObligations: "CQLR c. A-8.2, ss. 35-47",
+      permissiblePurpose: "CQLR c. A-8.2, ss. 13-23",
     },
   },
   SK: {
-    statuteName: "Saskatchewan CRA",
+    statuteName: "Saskatchewan Credit Reporting Act",
+    creditReportingSourceUrl: "https://pubsaskdev.blob.core.windows.net/pubsask-prod/archived/14015/C43-2.pdf",
+    collectionStatuteName: "Saskatchewan Collection Agents Act",
+    collectionSourceUrl: "https://fcaa.gov.sk.ca/regulated-businesses-persons/persons/collection-agents",
+    limitationsStatuteName: "Saskatchewan Limitations Act",
+    limitationsSourceUrl: "https://www.saskatchewan.ca/government/government-structure/ministries/justice",
     sections: {
-      accuracy: "S.S. 2004, c. C-43.2 (Accuracy)",
-      corroboration: "S.S. 2004, c. C-43.2 (Corroboration)",
+      accuracy: "S.S. 2004, c. C-43.2, Part III",
+      corroboration: "S.S. 2004, c. C-43.2, Part III",
       reportingLimit: "S.S. 2004, c. C-43.2, s. 22",
-      bankruptcy: "S.S. 2004, c. C-43.2 (Bankruptcy)",
-      identityTheft: "S.S. 2004, c. C-43.2 (Identity Theft)",
-      dispute: "S.S. 2004, c. C-43.2 (Dispute)",
-      collection: "Saskatchewan Collection Agents Act",
-      disclosure: "S.S. 2004, c. C-43.2 (Disclosure)",
-      bureauObligations: "S.S. 2004, c. C-43.2 (Bureau Obligations)",
+      bankruptcy: "S.S. 2004, c. C-43.2, s. 22",
+      identityTheft: "S.S. 2004, c. C-43.2, Part III",
+      dispute: "S.S. 2004, c. C-43.2, Part III",
+      collection: "The Collection Agents Act",
+      disclosure: "S.S. 2004, c. C-43.2, Part III",
+      bureauObligations: "S.S. 2004, c. C-43.2, Part III",
+      permissiblePurpose: "S.S. 2004, c. C-43.2, Part III",
     },
   },
   MB: {
-    statuteName: "Manitoba CPA",
+    statuteName: "Manitoba Consumer Protection Act",
+    creditReportingSourceUrl: "https://web2.gov.mb.ca/laws/statutes/ccsm/c200e.php",
+    collectionStatuteName: "Manitoba Consumer Protection Act",
+    collectionSourceUrl: "https://web2.gov.mb.ca/laws/statutes/ccsm/c200e.php",
+    limitationsStatuteName: "Manitoba Limitations Act",
+    limitationsSourceUrl: "https://web2.gov.mb.ca/laws/statutes/ccsm/l150e.php",
     sections: {
-      accuracy: "C.C.S.M. c. C200 (Accuracy)",
-      corroboration: "C.C.S.M. c. C200 (Corroboration)",
+      accuracy: "C.C.S.M. c. C200, Part XIII",
+      corroboration: "C.C.S.M. c. C200, Part XIII",
       reportingLimit: "C.C.S.M. c. C200, s. 103(1)",
-      bankruptcy: "C.C.S.M. c. C200 (Bankruptcy)",
-      identityTheft: "C.C.S.M. c. C200 (Identity Theft)",
-      dispute: "C.C.S.M. c. C200 (Dispute)",
+      bankruptcy: "C.C.S.M. c. C200, s. 103(1)",
+      identityTheft: "C.C.S.M. c. C200, Part XIII",
+      dispute: "C.C.S.M. c. C200, Part XIII",
       collection: "C.C.S.M. c. C200 Part XII",
-      disclosure: "C.C.S.M. c. C200 (Disclosure)",
-      bureauObligations: "C.C.S.M. c. C200 (Bureau Obligations)",
+      disclosure: "C.C.S.M. c. C200, Part XIII",
+      bureauObligations: "C.C.S.M. c. C200, Part XIII",
+      permissiblePurpose: "C.C.S.M. c. C200, Part XIII",
     },
   },
   NB: {
-    statuteName: "NB Consumer Reporting Agencies Act",
+    statuteName: "New Brunswick Consumer Protection Act",
+    creditReportingSourceUrl: "https://laws.gnb.ca/en/document/cs/2024%2C%20c.1",
+    collectionStatuteName: "New Brunswick Consumer Protection Act",
+    collectionSourceUrl: "https://laws.gnb.ca/en/document/cs/2024%2C%20c.1",
+    limitationsStatuteName: "New Brunswick Limitation of Actions Act",
+    limitationsSourceUrl: "https://laws.gnb.ca/en/document/cs/L-8.5",
     sections: {
-      accuracy: "S.N.B. 2011, c. 146 (Accuracy)",
-      corroboration: "S.N.B. 2011, c. 146 (Corroboration)",
-      reportingLimit: "S.N.B. 2011, c. 146, s. 14",
-      bankruptcy: "S.N.B. 2011, c. 146 (Bankruptcy)",
-      identityTheft: "S.N.B. 2011, c. 146 (Identity Theft)",
-      dispute: "S.N.B. 2011, c. 146 (Dispute)",
-      collection: "Collection Agencies Act",
-      disclosure: "S.N.B. 2011, c. 146 (Disclosure)",
-      bureauObligations: "S.N.B. 2011, c. 146 (Bureau Obligations)",
+      accuracy: "S.N.B. 2024, c. 1, ss. 252-263",
+      corroboration: "S.N.B. 2024, c. 1, ss. 252-263",
+      reportingLimit: "S.N.B. 2024, c. 1, s. 254",
+      bankruptcy: "S.N.B. 2024, c. 1, s. 254",
+      identityTheft: "S.N.B. 2024, c. 1, s. 263",
+      dispute: "S.N.B. 2024, c. 1, s. 261",
+      collection: "S.N.B. 2024, c. 1",
+      disclosure: "S.N.B. 2024, c. 1, s. 260",
+      bureauObligations: "S.N.B. 2024, c. 1, ss. 252-263",
+      permissiblePurpose: "S.N.B. 2024, c. 1, s. 253",
     },
   },
   NS: {
-    statuteName: "NS Consumer Reporting Act",
+    statuteName: "Nova Scotia Consumer Reporting Act",
+    creditReportingSourceUrl: "https://nslegislature.ca/legc/bills/rulesstatutes/statutes/consumers/consumr.htm",
+    collectionStatuteName: "Nova Scotia Collection and Debt Management Agencies Act",
+    collectionSourceUrl: "https://nslegislature.ca/legc/statutes/collection%20and%20debt%20management%20agencies.pdf",
+    limitationsStatuteName: "Nova Scotia Limitation of Actions Act",
+    limitationsSourceUrl: "https://nslegislature.ca/legc/statutes/limitation%20of%20actions.pdf",
     sections: {
       accuracy: "R.S.N.S. 1989, c. 93, s. 9(3)(a)",
       corroboration: "R.S.N.S. 1989, c. 93, s. 9(3)(b)",
       reportingLimit: "R.S.N.S. 1989, c. 93, s. 9(3)(f)",
       bankruptcy: "R.S.N.S. 1989, c. 93, s. 9(3)(e)",
-      identityTheft: "R.S.N.S. 1989, c. 93 (Identity Theft)",
+      identityTheft: "R.S.N.S. 1989, c. 93, s. 12A",
       dispute: "R.S.N.S. 1989, c. 93, s. 13",
-      collection: "Collection Agencies Act",
+      collection: "R.S.N.S. 1989, c. 77",
       disclosure: "R.S.N.S. 1989, c. 93, s. 11",
       bureauObligations: "R.S.N.S. 1989, c. 93, s. 9",
+      permissiblePurpose: "R.S.N.S. 1989, c. 93, s. 8",
     },
   },
   PE: {
-    statuteName: "PEI Consumer Reporting Act",
+    statuteName: "Prince Edward Island Consumer Reporting Act",
+    creditReportingSourceUrl: "https://www.princeedwardisland.ca/sites/default/files/legislation/C-20-Consumer%20Reporting%20Act.pdf",
+    collectionStatuteName: "Prince Edward Island Collection Agencies Act",
+    collectionSourceUrl: "https://www.princeedwardisland.ca/sites/default/files/legislation/c-11-collection_agencies_act.pdf",
+    limitationsStatuteName: "Prince Edward Island Statute of Limitations",
+    limitationsSourceUrl: "https://www.princeedwardisland.ca/sites/default/files/legislation/s-07-statute_of_limitations.pdf",
     sections: {
       accuracy: "R.S.P.E.I. 1988, c. C-20, s. 10(3)(a)",
       corroboration: "R.S.P.E.I. 1988, c. C-20, s. 10(3)(b)",
       reportingLimit: "R.S.P.E.I. 1988, c. C-20, s. 10(3)(f)",
       bankruptcy: "R.S.P.E.I. 1988, c. C-20, s. 10(3)(e)",
-      identityTheft: "R.S.P.E.I. 1988, c. C-20 (Identity Theft)",
+      identityTheft: "R.S.P.E.I. 1988, c. C-20, s. 10",
       dispute: "R.S.P.E.I. 1988, c. C-20, s. 14",
-      collection: "Collection Agencies Act",
+      collection: "R.S.P.E.I. 1988, c. C-11",
       disclosure: "R.S.P.E.I. 1988, c. C-20, s. 12",
       bureauObligations: "R.S.P.E.I. 1988, c. C-20, s. 10",
+      permissiblePurpose: "R.S.P.E.I. 1988, c. C-20, s. 8",
     },
   },
   NL: {
-    statuteName: "NL Consumer Reporting Agencies Act",
+    statuteName: "Newfoundland and Labrador Consumer Reporting Agencies Act",
+    creditReportingSourceUrl: "https://www.assembly.nl.ca/Legislation/sr/statutes/c09-02.htm",
+    collectionStatuteName: "Newfoundland and Labrador Collections Act",
+    collectionSourceUrl: "https://www.assembly.nl.ca/legislation/sr/statutes/c22.htm",
+    limitationsStatuteName: "Newfoundland and Labrador Limitations Act",
+    limitationsSourceUrl: "https://assembly.nl.ca/Legislation/sr/statutes/l16-1.htm",
     sections: {
       accuracy: "R.S.N.L. 1990, c. C-32, s. 10(3)(a)",
       corroboration: "R.S.N.L. 1990, c. C-32, s. 10(3)(b)",
       reportingLimit: "R.S.N.L. 1990, c. C-32, s. 10(3)(f)",
       bankruptcy: "R.S.N.L. 1990, c. C-32, s. 10(3)(e)",
-      identityTheft: "R.S.N.L. 1990, c. C-32 (Identity Theft)",
+      identityTheft: "R.S.N.L. 1990, c. C-32, s. 10",
       dispute: "R.S.N.L. 1990, c. C-32, s. 14",
-      collection: "Collections Act",
+      collection: "R.S.N.L. 1990, c. C-22",
       disclosure: "R.S.N.L. 1990, c. C-32, s. 12",
       bureauObligations: "R.S.N.L. 1990, c. C-32, s. 10",
+      permissiblePurpose: "R.S.N.L. 1990, c. C-32, s. 8",
     },
   },
   NT: {
-    statuteName: "NT Consumer Protection Act",
+    statuteName: "Northwest Territories Consumer Protection Act",
+    creditReportingSourceUrl: "https://www.justice.gov.nt.ca/en/files/legislation/consumer-protection/consumer-protection.a.pdf",
+    collectionStatuteName: "Northwest Territories Consumer Protection Act",
+    collectionSourceUrl: "https://www.justice.gov.nt.ca/en/files/legislation/consumer-protection/consumer-protection.r2.pdf",
+    limitationsStatuteName: "Northwest Territories Limitation of Actions Act",
+    limitationsSourceUrl: "https://www.justice.gov.nt.ca/en/files/legislation/limitation-of-actions/limitation-of-actions.a.pdf",
     sections: {
-      accuracy: "R.S.N.W.T. 1988, c. C-17 (Accuracy)",
-      corroboration: "R.S.N.W.T. 1988, c. C-17 (Corroboration)",
+      accuracy: "R.S.N.W.T. 1988, c. C-17",
+      corroboration: "R.S.N.W.T. 1988, c. C-17",
       reportingLimit: "R.S.N.W.T. 1988, c. C-17",
-      bankruptcy: "R.S.N.W.T. 1988, c. C-17 (Bankruptcy)",
-      identityTheft: "R.S.N.W.T. 1988, c. C-17 (Identity Theft)",
-      dispute: "R.S.N.W.T. 1988, c. C-17 (Dispute)",
-      collection: "R.S.N.W.T. 1988, c. C-17 (Collection)",
-      disclosure: "R.S.N.W.T. 1988, c. C-17 (Disclosure)",
-      bureauObligations: "R.S.N.W.T. 1988, c. C-17 (Bureau Obligations)",
+      bankruptcy: "R.S.N.W.T. 1988, c. C-17",
+      identityTheft: "R.S.N.W.T. 1988, c. C-17",
+      dispute: "R.S.N.W.T. 1988, c. C-17",
+      collection: "Consumer Protection Regulations, Debt Collection Practices",
+      disclosure: "R.S.N.W.T. 1988, c. C-17",
+      bureauObligations: "R.S.N.W.T. 1988, c. C-17",
+      permissiblePurpose: "R.S.N.W.T. 1988, c. C-17",
     },
   },
   NU: {
-    statuteName: "NU Consumer Protection Act",
+    statuteName: "Nunavut Consumer Protection Act",
+    creditReportingSourceUrl: "https://www.nunavutlegislation.ca/en/consolidated-law/current?title=C",
+    collectionStatuteName: "Nunavut Consumer Protection Act",
+    collectionSourceUrl: "https://www.nunavutlegislation.ca/en/consolidated-law/current?title=C",
+    limitationsStatuteName: "Nunavut Limitation of Actions Act",
+    limitationsSourceUrl: "https://www.nunavutlegislation.ca/en/consolidated-law/current?title=L",
     sections: {
-      accuracy: "R.S.N.W.T. (Nu) 1988, c. C-17 (Accuracy)",
-      corroboration: "R.S.N.W.T. (Nu) 1988, c. C-17 (Corroboration)",
+      accuracy: "C.S.Nu., c. C-160",
+      corroboration: "C.S.Nu., c. C-160",
       reportingLimit: "R.S.N.W.T. (Nu) 1988, c. C-17",
-      bankruptcy: "R.S.N.W.T. (Nu) 1988, c. C-17 (Bankruptcy)",
-      identityTheft: "R.S.N.W.T. (Nu) 1988, c. C-17 (Identity Theft)",
-      dispute: "R.S.N.W.T. (Nu) 1988, c. C-17 (Dispute)",
-      collection: "R.S.N.W.T. (Nu) 1988, c. C-17 (Collection)",
-      disclosure: "R.S.N.W.T. (Nu) 1988, c. C-17 (Disclosure)",
-      bureauObligations: "R.S.N.W.T. (Nu) 1988, c. C-17 (Bureau Obligations)",
+      bankruptcy: "C.S.Nu., c. C-160",
+      identityTheft: "C.S.Nu., c. C-160",
+      dispute: "C.S.Nu., c. C-160",
+      collection: "C.S.Nu., c. C-160",
+      disclosure: "C.S.Nu., c. C-160",
+      bureauObligations: "C.S.Nu., c. C-160",
+      permissiblePurpose: "C.S.Nu., c. C-160",
     },
   },
   YT: {
-    statuteName: "YT Consumers Protection Act",
+    statuteName: "Yukon Consumers Protection Act",
+    creditReportingSourceUrl: "https://laws.yukon.ca/cms/images/LEGISLATION/PRINCIPAL/2002/2002-0040/2002-0040.pdf",
+    collectionStatuteName: "Yukon Consumers Protection Act",
+    collectionSourceUrl: "https://laws.yukon.ca/cms/images/LEGISLATION/PRINCIPAL/2002/2002-0040/2002-0040.pdf",
+    limitationsStatuteName: "Yukon Limitation of Actions Act",
+    limitationsSourceUrl: "https://laws.yukon.ca/cms/images/LEGISLATION/PRINCIPAL/2002/2002-0139/2002-0139.pdf",
     sections: {
-      accuracy: "R.S.Y. 2002, c. 40 (Accuracy)",
-      corroboration: "R.S.Y. 2002, c. 40 (Corroboration)",
+      accuracy: "R.S.Y. 2002, c. 40",
+      corroboration: "R.S.Y. 2002, c. 40",
       reportingLimit: "R.S.Y. 2002, c. 40",
-      bankruptcy: "R.S.Y. 2002, c. 40 (Bankruptcy)",
-      identityTheft: "R.S.Y. 2002, c. 40 (Identity Theft)",
-      dispute: "R.S.Y. 2002, c. 40 (Dispute)",
-      collection: "R.S.Y. 2002, c. 40 (Collection)",
-      disclosure: "R.S.Y. 2002, c. 40 (Disclosure)",
-      bureauObligations: "R.S.Y. 2002, c. 40 (Bureau Obligations)",
+      bankruptcy: "R.S.Y. 2002, c. 40",
+      identityTheft: "R.S.Y. 2002, c. 40",
+      dispute: "R.S.Y. 2002, c. 40",
+      collection: "R.S.Y. 2002, c. 40",
+      disclosure: "R.S.Y. 2002, c. 40",
+      bureauObligations: "R.S.Y. 2002, c. 40",
+      permissiblePurpose: "R.S.Y. 2002, c. 40",
     },
   },
 };
@@ -350,6 +458,9 @@ const generalEntries: Record<string, RegulationEntry> = {
       "BUREAU_INVESTIGATION_FAILURE",
       "PROCEDURAL_TIMING_VIOLATION",
     ],
+    authorityType: "procedural_rule",
+    sourceQuality: "local_registry",
+    supportLevel: "procedural_requirement",
   },
   ON_FAIRNESS_CRA_2017: {
     id: "ON_FAIRNESS_CRA_2017",
@@ -371,6 +482,9 @@ const generalEntries: Record<string, RegulationEntry> = {
     shortLabel: "Metro2 Base Segment",
     description: "Data furnishers must report complete and accurate information",
     violationCategories: ["DOCUMENTATION_CHAIN_FAILURE"],
+    authorityType: "reporting_standard",
+    sourceQuality: "private_standard",
+    supportLevel: "reporting_standard",
   },
   METRO2_J1_SEGMENT: {
     id: "METRO2_J1_SEGMENT",
@@ -379,6 +493,9 @@ const generalEntries: Record<string, RegulationEntry> = {
     shortLabel: "Metro2 J1 Segment",
     description: "Joint account reporting requirements",
     violationCategories: ["FURNISHER_JOINT_ACCOUNT_VIOLATION"],
+    authorityType: "reporting_standard",
+    sourceQuality: "private_standard",
+    supportLevel: "reporting_standard",
   },
   METRO2_J2_SEGMENT: {
     id: "METRO2_J2_SEGMENT",
@@ -387,6 +504,9 @@ const generalEntries: Record<string, RegulationEntry> = {
     shortLabel: "Metro2 J2 Segment",
     description: "Authorized user reporting requirements",
     violationCategories: ["FURNISHER_AUTHORIZED_USER_MISREPRESENTATION"],
+    authorityType: "reporting_standard",
+    sourceQuality: "private_standard",
+    supportLevel: "reporting_standard",
   },
   METRO2_CLASSIFICATION: {
     id: "METRO2_CLASSIFICATION",
@@ -395,6 +515,9 @@ const generalEntries: Record<string, RegulationEntry> = {
     shortLabel: "Metro2 Classification",
     description: "Account type and classification accuracy",
     violationCategories: [],
+    authorityType: "reporting_standard",
+    sourceQuality: "private_standard",
+    supportLevel: "reporting_standard",
   },
   METRO2_PAYMENT_RATING: {
     id: "METRO2_PAYMENT_RATING",
@@ -403,6 +526,9 @@ const generalEntries: Record<string, RegulationEntry> = {
     shortLabel: "Metro2 Payment Rating",
     description: "Payment history profile reporting requirements",
     violationCategories: ["PAYMENT_HISTORY_MANIPULATION"],
+    authorityType: "reporting_standard",
+    sourceQuality: "private_standard",
+    supportLevel: "reporting_standard",
   },
 };
 
@@ -432,12 +558,23 @@ const STATUTE_ENTRIES: Record<string, RegulationEntry> = {
 PROVINCES.forEach((prov) => {
   const map = PROVINCIAL_CRA_MAPPING[prov];
   if (!map) return;
+  const officialAuthority = {
+    authorityType: "statute" as const,
+    sourceQuality: "official" as const,
+    supportLevel: "category_principle" as const,
+    jurisdiction: prov,
+    province: prov,
+    effectiveDate: null,
+    allowsFieldRequiredLanguage: false,
+  };
 
   STATUTE_ENTRIES[`${prov}_CRA_ACCURACY`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_ACCURACY`,
     statute: map.statuteName,
     citation: map.sections.accuracy,
     shortLabel: `${prov} CRA Accuracy`,
+    sourceUrl: map.creditReportingSourceUrl,
     description:
       "Credit information must be based on best evidence reasonably available.",
     violationCategories: [
@@ -447,10 +584,12 @@ PROVINCES.forEach((prov) => {
   };
 
   STATUTE_ENTRIES[`${prov}_CRA_REPORTING_LIMIT`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_REPORTING_LIMIT`,
     statute: map.statuteName,
     citation: map.sections.reportingLimit,
     shortLabel: `${prov} CRA Limits`,
+    sourceUrl: map.creditReportingSourceUrl,
     description: "Prohibits reporting of information beyond statutory limits.",
     violationCategories: [
       "STATUTE_OF_LIMITATIONS",
@@ -463,10 +602,12 @@ PROVINCES.forEach((prov) => {
   };
 
   STATUTE_ENTRIES[`${prov}_CRA_REINVESTIGATION`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_REINVESTIGATION`,
     statute: map.statuteName,
     citation: map.sections.dispute,
     shortLabel: `${prov} CRA Reinvestigation`,
+    sourceUrl: map.creditReportingSourceUrl,
     description:
       "CRA must investigate disputed information within reasonable timeframe.",
     violationCategories: [
@@ -477,10 +618,12 @@ PROVINCES.forEach((prov) => {
   };
 
   STATUTE_ENTRIES[`${prov}_CRA_REINSERTION`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_REINSERTION`,
     statute: map.statuteName,
     citation: map.sections.bureauObligations,
     shortLabel: `${prov} CRA Reinsertion`,
+    sourceUrl: map.creditReportingSourceUrl,
     description:
       "CRA obligations around reinserting previously deleted information.",
     violationCategories: [
@@ -490,37 +633,45 @@ PROVINCES.forEach((prov) => {
   };
 
   STATUTE_ENTRIES[`${prov}_CRA_CONSUMER_STATEMENT`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_CONSUMER_STATEMENT`,
     statute: map.statuteName,
     citation: map.sections.dispute,
     shortLabel: `${prov} CRA Consumer Statement`,
+    sourceUrl: map.creditReportingSourceUrl,
     description: "Consumer right to add a statement to their file.",
     violationCategories: ["CONSUMER_STATEMENT_SUPPRESSION"],
   };
 
   STATUTE_ENTRIES[`${prov}_CRA_PERMISSIBLE_PURPOSE`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_PERMISSIBLE_PURPOSE`,
     statute: map.statuteName,
-    citation: `${map.statuteName} (Permissible Purpose)`,
+    citation: map.sections.permissiblePurpose,
     shortLabel: `${prov} CRA Permissible Purpose`,
+    sourceUrl: map.creditReportingSourceUrl,
     description: "Limits access to credit reports to permissible purposes.",
     violationCategories: ["BUREAU_ACCESS_VIOLATION"],
   };
 
   STATUTE_ENTRIES[`${prov}_CRA_DISCLOSURE`] = {
+    ...officialAuthority,
     id: `${prov}_CRA_DISCLOSURE`,
     statute: map.statuteName,
     citation: map.sections.disclosure,
     shortLabel: `${prov} CRA Disclosure`,
+    sourceUrl: map.creditReportingSourceUrl,
     description: "Right to access and review information in file.",
     violationCategories: ["DISCLOSURE_DEFICIENCY"],
   };
 
   STATUTE_ENTRIES[`${prov}_COLLECTION_ACT`] = {
+    ...officialAuthority,
     id: `${prov}_COLLECTION_ACT`,
-    statute: "Provincial Collection Agency Act",
+    statute: map.collectionStatuteName,
     citation: map.sections.collection,
     shortLabel: `${prov} Collection Act`,
+    sourceUrl: map.collectionSourceUrl,
     description:
       "Collection agencies must identify original creditor, be licensed, and not use unauthorized fees.",
     violationCategories: [
@@ -535,10 +686,12 @@ PROVINCES.forEach((prov) => {
   };
 
   STATUTE_ENTRIES[`${prov}_LIMITATIONS_ACT`] = {
+    ...officialAuthority,
     id: `${prov}_LIMITATIONS_ACT`,
-    statute: "Provincial Limitations Act",
-    citation: "Limitations Act",
+    statute: map.limitationsStatuteName,
+    citation: map.limitationsStatuteName,
     shortLabel: `${prov} Limitations Act`,
+    sourceUrl: map.limitationsSourceUrl,
     description: "Statute of limitations for commencing legal action for debt.",
     violationCategories: ["COLLECTOR_STATUTE_REVIVAL_ATTEMPT"],
   };
@@ -561,7 +714,6 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     ...getProvKeys("CRA_REINVESTIGATION"),
   ],
   BUREAU_INVESTIGATION_FAILURE: [
-    "INVESTIGATION_30_DAY",
     ...getProvKeys("CRA_REINVESTIGATION"),
   ],
   BUREAU_NOTIFICATION_FAILURE: ["PIPEDA_4_9"],
@@ -633,7 +785,9 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
   ],
   PAYMENT_HISTORY_MANIPULATION: ["PIPEDA_4_6", "METRO2_PAYMENT_RATING"],
   PHANTOM_DEBT_UNVERIFIABLE: ["PIPEDA_4_6", ...getProvKeys("COLLECTION_ACT")],
-  PROCEDURAL_TIMING_VIOLATION: ["INVESTIGATION_30_DAY"],
+  PROCEDURAL_TIMING_VIOLATION: [
+    ...getProvKeys("CRA_REINVESTIGATION"),
+  ],
   RESPONSE_ADDRESS_MISMATCH: ["PIPEDA_4_10"],
   RESPONSE_INCOMPLETE: ["PIPEDA_4_10"],
   RESPONSE_MOV_MISSING: ["PIPEDA_4_9", "PIPEDA_4_10"],

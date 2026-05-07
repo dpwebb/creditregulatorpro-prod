@@ -9,6 +9,24 @@ import {
   searchLegalAuthorities,
 } from "../../helpers/legalAuthorityRegistry";
 import { regulationRegistry } from "../../helpers/regulationRegistry";
+import { buildDeterministicViolationRuleEnvelope } from "../../helpers/violationRuleEvidence";
+import { ViolationCategoryArrayValues, type CanadianProvince } from "../../helpers/schema";
+
+const PROVINCES: CanadianProvince[] = [
+  "AB",
+  "BC",
+  "MB",
+  "NB",
+  "NL",
+  "NS",
+  "NT",
+  "NU",
+  "ON",
+  "PE",
+  "QC",
+  "SK",
+  "YT",
+];
 
 describe("local legal authority registry", () => {
   it("searches locally stored authority text and metadata", () => {
@@ -69,6 +87,56 @@ describe("local legal authority registry", () => {
       .filter((id) => !getLegalAuthorityById(id));
 
     expect(missing).toEqual([]);
+  });
+
+  it("keeps generated provincial authority records official and source-backed", () => {
+    const generatedProvinceIds = Object.keys(regulationRegistry.STATUTE_ENTRIES)
+      .filter((id) => /^[A-Z]{2}_(CRA_|COLLECTION_ACT|LIMITATIONS_ACT)/.test(id))
+      .sort();
+
+    expect(generatedProvinceIds).toHaveLength(PROVINCES.length * 9);
+
+    for (const id of generatedProvinceIds) {
+      expect(getLegalAuthorityById(id)).toEqual(
+        expect.objectContaining({
+          sourceQuality: "official",
+          supportLevel: "category_principle",
+          sourceUrl: expect.stringMatching(/^https:\/\//),
+          allowsFieldRequiredLanguage: false,
+        }),
+      );
+    }
+  });
+
+  it("resolves every active violation category to federal, reporting-standard, or consumer-province authority", () => {
+    for (const province of PROVINCES) {
+      for (const violationCategory of ViolationCategoryArrayValues) {
+        const envelope = buildDeterministicViolationRuleEnvelope({
+          violationCategory,
+          severity: "WARNING",
+          confidenceScore: 80,
+          userExplanation: "Synthetic coverage issue.",
+          recommendedAction: "Review mapped authority.",
+          responsibleEntity: "BUREAU",
+          technicalDetails: { province },
+        });
+
+        expect(envelope, `${violationCategory} should build an evidence envelope`).not.toBeNull();
+        expect(
+          envelope?.regulationReferences.length,
+          `${violationCategory} should resolve authority for ${province}`,
+        ).toBeGreaterThan(0);
+
+        for (const ref of envelope?.regulationReferences ?? []) {
+          const refProvince = ref.id.match(/^([A-Z]{2})_/)?.[1] ?? null;
+          expect(ref.sourceQuality, `${ref.id} should be official or private`).toMatch(/^(official|private_standard)$/);
+          expect(ref.supportLevel, `${ref.id} should not be a registry placeholder`).not.toBe("registry_placeholder");
+          if (refProvince) {
+            expect(refProvince, `${ref.id} should match consumer province ${province}`).toBe(province);
+          }
+        }
+      }
+    }
   });
 
   it("keeps active detector string regulation ids resolvable locally", () => {

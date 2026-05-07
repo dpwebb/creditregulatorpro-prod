@@ -106,6 +106,37 @@ describe("deterministic violation rule evidence", () => {
     );
   });
 
+  it("limits category fallback authority to the consumer province", () => {
+    const envelope = buildDeterministicViolationRuleEnvelope(
+      violation({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        technicalDetails: {
+          province: "ON",
+          fieldName: "originalCreditorName",
+        },
+      }),
+    );
+
+    const ids = envelope?.regulationReferences.map((ref) => ref.id) ?? [];
+    expect(ids).toEqual(expect.arrayContaining(["PIPEDA_4_6", "METRO2_BASE_SEGMENT", "ON_CRA_ACCURACY"]));
+    expect(ids.some((id) => /^BC_/.test(id))).toBe(false);
+    expect(ids.some((id) => /^[A-Z]{2}_/.test(id) && !id.startsWith("ON_"))).toBe(false);
+  });
+
+  it("does not add provincial fallback authority when the consumer province is unknown", () => {
+    const envelope = buildDeterministicViolationRuleEnvelope(
+      violation({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        technicalDetails: {
+          fieldName: "originalCreditorName",
+        },
+      }),
+    );
+
+    const ids = envelope?.regulationReferences.map((ref) => ref.id) ?? [];
+    expect(ids).toEqual(["PIPEDA_4_6", "METRO2_BASE_SEGMENT"]);
+  });
+
   it("drops violations whose explicit regulation ids do not resolve to local authority", () => {
     const unsupported = violation({
       technicalDetails: {

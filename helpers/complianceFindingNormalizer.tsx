@@ -11,6 +11,8 @@ const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /\bdispute\s+(this|the)\s+(account|tradeline|item|inquiry)\s+because\b/gi, replacement: "the $2 needs clarification because" },
   { pattern: /\bdispute\s+(this|the)\s+(account|tradeline|item|inquiry)\b/gi, replacement: "request clarification about this $2" },
   { pattern: /\bviolates?\s+(?:the\s+)?law\b/gi, replacement: "may not align with applicable requirements" },
+  { pattern: /\bconfirmed\s+violations?\b/gi, replacement: "mapped compliance issues" },
+  { pattern: /\bactual\s+violations?\b/gi, replacement: "mapped compliance issues" },
   { pattern: /\bviolation\s+of\s+([A-Z0-9_. -]+)\b/gi, replacement: "potential inconsistency with $1" },
   { pattern: /\bdelete\s+(?:this|the)?\s*(?:account|tradeline|item|information)?\b/gi, replacement: "review and correct the reported information" },
   { pattern: /\bremove\s+(?:this|the)?\s*(?:account|tradeline|item|information|inquiry)?\b/gi, replacement: "review and correct the reported information" },

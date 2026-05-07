@@ -224,7 +224,7 @@ function checkFieldExists(
 }
 
 /**
- * Detects if the bureau failed to provide legally required disclosures on the credit report.
+ * Detects if the bureau record does not show disclosures mapped for the credit report.
  * It dynamically maps the user's province to determine which statutory rules apply.
  *
  * @param tradeline The tradeline context for the violation

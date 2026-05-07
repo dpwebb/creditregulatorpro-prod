@@ -140,13 +140,13 @@ function getAllRegulationsForViolation(violation: {
             .replace(/_/g, " ")
             .replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
         }
-        specificApplication = `Your credit report is missing the ${extractedField} for this tradeline, which is required for complete and accurate reporting.`;
+        specificApplication = `Your credit report is missing the ${extractedField} for this tradeline. Treat this as a reporting-standard completeness issue unless a field-specific legal requirement is mapped.`;
       } else if (technicalDetails?.ruleName === "BALANCE_REQUIRED") {
-        specificApplication = "Your credit report is missing the Balance for this tradeline, which is required for complete and accurate reporting.";
+        specificApplication = "Your credit report is missing the Balance for this tradeline. Treat this as a reporting-standard completeness issue unless a field-specific legal requirement is mapped.";
       } else if (technicalDetails?.ruleName === "HIGH_CREDIT_REQUIRED") {
-        specificApplication = "Your credit report is missing the High Credit for this tradeline, which is required for complete and accurate reporting.";
+        specificApplication = "Your credit report is missing the High Credit for this tradeline. Treat this as a reporting-standard completeness issue unless a field-specific legal requirement is mapped.";
       } else if (technicalDetails?.message) {
-        specificApplication = `The reporting of this account does not comply with regulations: ${technicalDetails.message}`;
+        specificApplication = `The reporting of this account may not align with mapped authority: ${technicalDetails.message}`;
       }
     } else if (violationCategory === "BALANCE_CALCULATION_VIOLATION") {
       const balance = formatCurrencyDetail(technicalDetails?.balance, "an unspecified amount");
@@ -157,7 +157,7 @@ function getAllRegulationsForViolation(violation: {
       specificApplication = `Your payment history shows signs of inaccurate reporting or manipulation (${detailMsg}), which can unfairly impact your credit assessment.`;
     } else if (violationCategory === "TEMPORAL_MANIPULATION") {
       const detailMsg = technicalDetails?.message || "Inconsistent dates reported.";
-      specificApplication = `The dates reported on this account are inconsistent or appear manipulated (${detailMsg}), violating the requirement for accurate and up-to-date information.`;
+      specificApplication = `The dates reported on this account are inconsistent or appear manipulated (${detailMsg}), which may not align with mapped accuracy authority.`;
     } else if (violationCategory === "ACCOUNT_STATUS_INCONSISTENCY") {
       if (ref.regulationId === "PIPEDA_4_6_1" || (ref.statute === "PIPEDA" && ref.section.includes("4.6.1"))) {
         specificApplication = `Your account reports status '${accountStatus || "Unknown"}' but the ${readableField} field is missing. This contradictory information could lead to an inappropriate decision about you.`;
@@ -184,9 +184,9 @@ function getAllRegulationsForViolation(violation: {
     } else if (violationCategory === "MULTIPLE_COLLECTOR_VIOLATION" || violationCategory === "COLLECTOR_DUPLICATE_REPORTING") {
       specificApplication = "This debt is being reported multiple times by different collectors, inappropriately inflating your overall debt obligations.";
     } else if (violationCategory?.includes("RESPONSE_") || violationCategory?.includes("INVESTIGATION_FAILURE")) {
-      specificApplication = "The investigation or response to a previous dispute was legally insufficient or failed to provide necessary documentation.";
+      specificApplication = "The investigation or response to a previous dispute does not show enough support under the mapped response authority.";
     } else if (violationCategory === "BUREAU_REINSERTION_VIOLATION") {
-      specificApplication = "An item previously deleted through a dispute has been reinserted without the legally required notice.";
+      specificApplication = "An item previously deleted through a dispute has been reinserted without showing support for the mapped notice requirement.";
     } else if (violationCategory === "BUREAU_ACCESS_VIOLATION") {
       specificApplication = "Unauthorized access or inappropriate disclosure of your credit file occurred without your proper consent.";
     } else if (violationCategory === "BUREAU_DISPUTE_MARKING_FAILURE") {
@@ -208,15 +208,15 @@ function getAllRegulationsForViolation(violation: {
     } else if (violationCategory === "COLLECTOR_STATUTE_REVIVAL_ATTEMPT") {
       specificApplication = "An attempt has been made to revive a debt that is past the legal statute of limitations for enforcement or reporting.";
     } else if (violationCategory === "DISCLOSURE_DEFICIENCY") {
-      specificApplication = "You were not provided with the required disclosures or notices concerning this account or your rights.";
+      specificApplication = "The record does not show the disclosures or notices mapped to this account or your rights.";
     } else if (violationCategory === "PHANTOM_DEBT_UNVERIFIABLE") {
-      specificApplication = "The reported debt cannot be verified or traced to a legitimate original creditor, violating requirements for accuracy and corroboration.";
+      specificApplication = "The reported debt cannot be verified or traced to a legitimate original creditor, raising an accuracy and corroboration issue under mapped authority.";
     } else if (violationCategory === "RETROACTIVE_HISTORY_MANIPULATION") {
       specificApplication = "Previously reported historical data has been altered retroactively without justification, undermining the accuracy and integrity of your credit profile.";
     } else if (violationCategory === "DATE_LOGIC_IMPOSSIBLE") {
-      specificApplication = "The dates reported for this account contain logical impossibilities (e.g., closed before opened), which is objectively inaccurate and violates data integrity standards.";
+      specificApplication = "The dates reported for this account contain logical impossibilities (e.g., closed before opened), which conflicts with mapped data integrity standards.";
     } else if (violationCategory === "STALE_REPORTING_FAILURE") {
-      specificApplication = "This account has not been updated within the required monthly reporting timeframe, resulting in stale and inaccurate information.";
+      specificApplication = "This account has not been updated within the expected reporting cadence, resulting in stale or inaccurate information.";
     } else if (violationCategory === "CONSUMER_STATEMENT_SUPPRESSION") {
       specificApplication = "The legally mandated consumer statement regarding your dispute or alert was suppressed or failed to be included.";
     } else if (violationCategory === "INVESTIGATION_RUBBER_STAMP") {
@@ -239,9 +239,9 @@ function getAllRegulationsForViolation(violation: {
 
     if (!specificApplication) {
       if (fieldName) {
-        specificApplication = `There is an issue with the ${readableField} reporting on this account that violates this standard.`;
+        specificApplication = `There is an issue with the ${readableField} reporting on this account that may not align with this standard.`;
       } else {
-        specificApplication = "The reporting of this account does not comply with the requirements of this regulation.";
+        specificApplication = "The reporting of this account may not align with the requirements of this regulation.";
       }
     }
 

@@ -53,6 +53,43 @@ function firstDefined(details: Record<string, any>, keys: string[]): unknown {
   return null;
 }
 
+const CANADIAN_PROVINCES = new Set([
+  "AB",
+  "BC",
+  "MB",
+  "NB",
+  "NL",
+  "NS",
+  "NT",
+  "NU",
+  "ON",
+  "PE",
+  "QC",
+  "SK",
+  "YT",
+]);
+
+function normalizeProvince(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const province = value.trim().toUpperCase();
+  return CANADIAN_PROVINCES.has(province) ? province : null;
+}
+
+function provinceFromRegulationId(id: string): string | null {
+  const match = id.match(/^([A-Z]{2})_/);
+  return match && CANADIAN_PROVINCES.has(match[1]) ? match[1] : null;
+}
+
+function detailsProvince(details: Record<string, any>): string | null {
+  return normalizeProvince(firstString(details, ["province", "consumerProvince", "jurisdiction"]));
+}
+
+function isRegulationAllowedForProvince(id: string, province: string | null): boolean {
+  const regulationProvince = provinceFromRegulationId(id);
+  if (!regulationProvince) return true;
+  return province ? regulationProvince === province : false;
+}
+
 function formatTriggerValue(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -133,8 +170,10 @@ function regulationReferences(category: ViolationCategory, details: Record<strin
     : [];
   const categoryIds = regulationRegistry.VIOLATION_REGULATION_MAP[category] ?? [];
   const ids = [...new Set(explicitIds.length > 0 ? explicitIds : categoryIds)];
+  const province = detailsProvince(details);
 
   return ids
+    .filter((id) => isRegulationAllowedForProvince(id, province))
     .map((id) => {
       const entry = regulationRegistry.getRegulationById(id);
       const authority = getBonaFideLegalAuthorityById(id);
@@ -203,7 +242,13 @@ export function enrichDetectedViolationRuleEvidence(
 export function hasBonaFideLocalAuthorityLink(violation: DetectedViolation): boolean {
   const details = detailsOf(violation);
   const existingRefs = Array.isArray(details.regulationReferences) ? details.regulationReferences : null;
-  if (existingRefs) return existingRefs.length > 0;
+  if (existingRefs) {
+    const province = detailsProvince(details);
+    return existingRefs.some((ref: any) => {
+      const id = typeof ref === "string" ? ref : ref?.id ?? ref?.regulationId;
+      return typeof id === "string" && isRegulationAllowedForProvince(id, province) && Boolean(getBonaFideLegalAuthorityById(id));
+    });
+  }
   return (buildDeterministicViolationRuleEnvelope(violation)?.regulationReferences.length ?? 0) > 0;
 }
 

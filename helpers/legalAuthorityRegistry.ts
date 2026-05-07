@@ -74,6 +74,7 @@ const getProvinceFromRegulationId = (id: string): CanadianProvince | undefined =
 };
 
 const getAuthorityType = (entry: RegulationEntry): LegalAuthorityType => {
+  if (entry.authorityType) return entry.authorityType;
   if (entry.id.startsWith("METRO2_")) return "reporting_standard";
   if (entry.id === "INVESTIGATION_30_DAY") return "procedural_rule";
   if (entry.statute === "PIPEDA") return "privacy_principle";
@@ -82,6 +83,7 @@ const getAuthorityType = (entry: RegulationEntry): LegalAuthorityType => {
 };
 
 const getSourceQuality = (entry: RegulationEntry): LegalAuthoritySourceQuality => {
+  if (entry.sourceQuality) return entry.sourceQuality;
   if (entry.id.startsWith("METRO2_")) return "private_standard";
   if (entry.id === "INVESTIGATION_30_DAY") return "local_registry";
   if (entry.statute === "PIPEDA" || entry.statute === "Bankruptcy and Insolvency Act") return "official";
@@ -90,6 +92,7 @@ const getSourceQuality = (entry: RegulationEntry): LegalAuthoritySourceQuality =
 };
 
 const getSupportLevel = (entry: RegulationEntry): LegalAuthoritySupportLevel => {
+  if (entry.supportLevel) return entry.supportLevel;
   if (entry.id.startsWith("METRO2_")) return "reporting_standard";
   if (entry.id === "INVESTIGATION_30_DAY") return "procedural_requirement";
   if (entry.statute === "PIPEDA" || entry.statute === "Bankruptcy and Insolvency Act") return "category_principle";
@@ -98,6 +101,7 @@ const getSupportLevel = (entry: RegulationEntry): LegalAuthoritySupportLevel => 
 };
 
 const getSourceUrl = (entry: RegulationEntry, province?: CanadianProvince): string | null => {
+  if (entry.sourceUrl !== undefined) return entry.sourceUrl ?? null;
   if (entry.statute === "PIPEDA") return PIPEDA_SOURCE_URL;
   if (entry.statute === "Bankruptcy and Insolvency Act") return BIA_SOURCE_URL;
   if (province && PROVINCE_SOURCE_URLS[province]) return PROVINCE_SOURCE_URLS[province] ?? null;
@@ -132,7 +136,7 @@ const buildSearchableText = (entry: Omit<LocalLegalAuthority, "searchableText">)
     .toLowerCase();
 
 const createAuthority = (entry: RegulationEntry): LocalLegalAuthority => {
-  const province = getProvinceFromRegulationId(entry.id);
+  const province = entry.province ?? getProvinceFromRegulationId(entry.id);
   const supportLevel = getSupportLevel(entry);
   const authority: Omit<LocalLegalAuthority, "searchableText"> = {
     id: entry.id,
@@ -140,17 +144,17 @@ const createAuthority = (entry: RegulationEntry): LocalLegalAuthority => {
     authorityType: getAuthorityType(entry),
     sourceQuality: getSourceQuality(entry),
     supportLevel,
-    jurisdiction: province ?? (entry.statute === "PIPEDA" || entry.statute === "Bankruptcy and Insolvency Act" ? "Federal" : "Universal"),
+    jurisdiction: entry.jurisdiction ?? province ?? (entry.statute === "PIPEDA" || entry.statute === "Bankruptcy and Insolvency Act" ? "Federal" : "Universal"),
     province,
     statute: entry.statute,
     citation: entry.citation,
     shortLabel: entry.shortLabel,
     textExcerpt: entry.description,
     sourceUrl: getSourceUrl(entry, province),
-    effectiveDate: null,
+    effectiveDate: entry.effectiveDate ?? null,
     violationCategories: entry.violationCategories,
-    fieldNames: [],
-    allowsFieldRequiredLanguage: supportLevel === "field_requirement",
+    fieldNames: entry.fieldNames ?? [],
+    allowsFieldRequiredLanguage: entry.allowsFieldRequiredLanguage ?? supportLevel === "field_requirement",
   };
 
   return {

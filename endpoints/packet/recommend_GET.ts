@@ -27,7 +27,7 @@ function getPlainLanguageDescription(category: string | null): string {
     case "FURNISHER_REAGING_VIOLATION":
     case "RETROACTIVE_HISTORY_MANIPULATION":
     case "LAST_ACTIVITY_DATE_MANIPULATION":
-      return "The dates reported on this account appear to have been changed illegally, which could unfairly extend how long it stays on your credit report.";
+      return "The dates reported on this account appear inconsistent with mapped reporting authority, which could unfairly extend how long it stays on your credit report.";
     case "BALANCE_CALCULATION_VIOLATION":
     case "CLOSED_ACCOUNT_BALANCE_INFLATION":
     case "CREDIT_LIMIT_MANIPULATION":
@@ -47,7 +47,7 @@ function getPlainLanguageDescription(category: string | null): string {
       return "The account status (like whether it's open, closed, or in collection) is being reported inconsistently.";
     case "CROSS_ENTITY_DISCREPANCY":
     case "CROSS_BUREAU_INCONSISTENCY":
-      return "This account is being reported differently to different credit bureaus, which violates accuracy rules.";
+      return "This account is being reported differently to different credit bureaus, which may not align with mapped accuracy authority.";
     case "METRO2_FIELD_VIOLATIONS":
     case "DATE_LOGIC_IMPOSSIBLE":
       return "The technical data fields provided by the creditor contain impossible or contradictory information.";
@@ -55,7 +55,7 @@ function getPlainLanguageDescription(category: string | null): string {
     case "MULTIPLE_COLLECTOR_VIOLATION":
       return "Multiple collectors are reporting the exact same debt, which unfairly damages your credit score twice.";
     default:
-      return "A procedural or reporting error was detected that violates Canadian consumer protection laws.";
+      return "A procedural or reporting issue was detected with mapped Canadian consumer reporting authority.";
   }
 }
 

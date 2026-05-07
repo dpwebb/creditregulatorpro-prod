@@ -67,7 +67,7 @@ export async function detectMetro2FieldViolations(
         violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
         severity: "WARNING",
         confidenceScore: 75,
-        userExplanation: "This collection account doesn't say when it first went overdue or when it was sent to collections. At least one of those dates is required.",
+        userExplanation: "This collection account doesn't say when it first went overdue or when it was sent to collections. At least one of those dates can help verify the reporting.",
         technicalDetails: {
           fieldName: "dateOfFirstDelinquency",
           expectedValue: "Valid date when account first became delinquent or was assigned to collection",
@@ -81,7 +81,7 @@ export async function detectMetro2FieldViolations(
           hasChargeOffDate: !!tradeline.chargeOffDate,
           regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
         },
-        recommendedAction: "Ask the collection agency to add the date it was sent to collections, or have it removed.",
+        recommendedAction: "Ask the collection agency to verify the relevant date evidence and correct any unsupported reporting.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
       });
@@ -91,7 +91,7 @@ export async function detectMetro2FieldViolations(
         violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
         severity: "ERROR",
         confidenceScore: 98,
-        userExplanation: "This account fell behind on payments, but the report doesn't say when that first happened. That date is required.",
+        userExplanation: "This account fell behind on payments, but the report doesn't say when that first happened. That date can help verify the reporting.",
         technicalDetails: {
           fieldName: "dateOfFirstDelinquency",
           expectedValue: "Valid date when account first became delinquent",
@@ -102,7 +102,7 @@ export async function detectMetro2FieldViolations(
           amountPastDue: pastDue,
           regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
         },
-        recommendedAction: "Ask the company to add the date this account first went overdue, or have it removed from your report.",
+        recommendedAction: "Ask the company to verify when this account first went overdue and correct any unsupported reporting.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
       });
@@ -386,7 +386,7 @@ export async function detectMetro2FieldViolations(
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "ERROR",
       confidenceScore: 97,
-      userExplanation: "The company says this debt was written off as a loss, but they didn't report when that happened. That date is required.",
+      userExplanation: "The company says this debt was written off as a loss, but they didn't report when that happened. That date can help verify the reporting.",
       technicalDetails: {
         fieldName: "chargeOffDate",
         expectedValue: "Valid charge-off date",
@@ -396,7 +396,7 @@ export async function detectMetro2FieldViolations(
         accountStatus: tradeline.status,
         regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
       },
-      recommendedAction: "Ask the company to report when this account was written off, or have it removed from your report.",
+      recommendedAction: "Ask the company to verify when this account was written off and correct any unsupported reporting.",
       tradelineId: tradeline.id,
       responsibleEntity: "CREDITOR",
     });

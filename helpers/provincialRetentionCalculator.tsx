@@ -174,7 +174,7 @@ export function calculateProactiveAlerts(
     alerts.push({
       level: "EXPIRED",
       daysRemaining: result.daysRemaining,
-      message: `Account has exceeded the ${result.retentionYears}-year reporting limit under ${result.statuteReference} and must be purged.`,
+      message: `Account has exceeded the ${result.retentionYears}-year reporting limit under ${result.statuteReference} and should be reviewed for correction or removal under the mapped authority.`,
     });
   } else if (result.daysRemaining <= 30) {
     alerts.push({

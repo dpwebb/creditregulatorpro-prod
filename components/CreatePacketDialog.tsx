@@ -39,7 +39,7 @@ function getConsumerFriendlyViolationCategory(category: string | null | undefine
   if (category === "IDENTITY_THEFT_VIOLATION" || category === "BUREAU_ACCESS_VIOLATION") return "Unauthorized account activity detected";
   if (category === "ACCOUNT_STATUS_INCONSISTENCY" || category === "FURNISHER_STATUS_CODE_MISMATCH" || category === "BUREAU_DISPUTE_MARKING_FAILURE" || category === "FURNISHER_JOINT_ACCOUNT_VIOLATION" || category === "FURNISHER_AUTHORIZED_USER_MISREPRESENTATION") return "Account status reporting error";
   if (category === "METRO2_FIELD_VIOLATIONS" || category === "METRO2_RULESET_VIOLATIONS") return "Technical reporting format error";
-  if (category.startsWith("COLLECTOR_") || category === "MULTIPLE_COLLECTOR_VIOLATION") return "Collection agency violation detected";
+  if (category.startsWith("COLLECTOR_") || category === "MULTIPLE_COLLECTOR_VIOLATION") return "Collection agency issue detected";
   
   return "Compliance issue detected";
 }
@@ -428,7 +428,7 @@ export const CreatePacketDialog: React.FC<CreatePacketDialogProps> = ({
             <DialogHeader>
               <DialogTitle>Recommendations</DialogTitle>
               <DialogDescription>
-                We analyzed your credit reports for compliance violations. Choose a recommendation to generate a dispute letter.
+                We analyzed your credit reports for compliance issues with mapped legal authority. Choose a recommendation to generate a dispute letter.
               </DialogDescription>
             </DialogHeader>
             <CreatePacketRecommendStep 

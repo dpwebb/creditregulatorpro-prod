@@ -33,11 +33,21 @@ export async function resolveProvinceByIds(
     const userAccount = await db
       .selectFrom("userAccount")
       .select("province")
-      .where("id", "=", userId)
+      .where("userId", "=", userId)
       .executeTakeFirst();
 
     if (userAccount?.province) {
       return userAccount.province;
+    }
+
+    const legacyUserAccount = await db
+      .selectFrom("userAccount")
+      .select("province")
+      .where("id", "=", userId)
+      .executeTakeFirst();
+
+    if (legacyUserAccount?.province) {
+      return legacyUserAccount.province;
     }
   }
 
