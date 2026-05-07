@@ -17,15 +17,17 @@ import {
   type ViolationTrainingLabel,
 } from "./violationCorrectionValidation";
 import { BusinessRuleError } from "./endpointErrorHandler";
+import {
+  listTradelineIdsFromArtifactLinks,
+  mergeTradelineArtifactLinks,
+  type TradelineArtifactLink,
+} from "./violationCorrectionArtifactLinks";
 
 type CorrectionRow = Selectable<ViolationCorrection>;
 type EvidenceRow = Selectable<ViolationCorrectionEvidence>;
 type RegulationReferenceRow = Selectable<ViolationRegulationReference>;
 
-export type TradelineArtifactLink = {
-  tradelineId: number;
-  reportArtifactId: number;
-};
+export type { TradelineArtifactLink } from "./violationCorrectionArtifactLinks";
 
 function toJsonSafe<T>(value: T): T {
   const seen = new WeakSet<object>();
@@ -74,33 +76,12 @@ export async function listTradelineArtifactLinks(reportArtifactIds: number[]): P
       .execute(),
   ]);
 
-  const links = new Map<string, TradelineArtifactLink>();
-  const addLink = (
-    tradelineId: number | null | undefined,
-    reportArtifactId: number | null | undefined,
-  ) => {
-    if (tradelineId == null || reportArtifactId == null) return;
-    const link = {
-      tradelineId: Number(tradelineId),
-      reportArtifactId: Number(reportArtifactId),
-    };
-    if (!Number.isFinite(link.tradelineId) || !Number.isFinite(link.reportArtifactId)) return;
-    links.set(`${link.reportArtifactId}:${link.tradelineId}`, link);
-  };
-
-  for (const row of presenceRows) {
-    addLink(row.tradelineId, row.reportArtifactId);
-  }
-  for (const row of directRows) {
-    addLink(row.tradelineId, row.reportArtifactId);
-  }
-
-  return Array.from(links.values());
+  return mergeTradelineArtifactLinks(presenceRows, directRows);
 }
 
 export async function listTradelineIdsForReportArtifact(reportArtifactId: number): Promise<number[]> {
   const links = await listTradelineArtifactLinks([reportArtifactId]);
-  return Array.from(new Set(links.map((link) => link.tradelineId)));
+  return listTradelineIdsFromArtifactLinks(links, reportArtifactId);
 }
 
 export async function requireCorrection(correctionId: number): Promise<CorrectionRow> {

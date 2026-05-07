@@ -3,7 +3,11 @@ import "../loadEnv.js";
 import assert from "node:assert/strict";
 import { db } from "../helpers/db";
 import { ensureViolationCorrectionSchema } from "../helpers/violationCorrectionSchema";
-import { finalizeCorrection } from "../helpers/violationCorrectionManager";
+import {
+  finalizeCorrection,
+  listTradelineIdsForReportArtifact,
+  requireTradelineForRun,
+} from "../helpers/violationCorrectionManager";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
@@ -35,8 +39,10 @@ async function main() {
     bureauId: null as number | null,
     creditorId: null as number | null,
     artifactId: null as number | null,
+    laterArtifactId: null as number | null,
     runId: null as number | null,
     tradelineId: null as number | null,
+    reassignedTradelineId: null as number | null,
     violationId: null as number | null,
     correctionIds: [] as number[],
   };
@@ -104,6 +110,19 @@ async function main() {
       .executeTakeFirstOrThrow();
     ids.runId = run.id;
 
+    const laterArtifact = await db
+      .insertInto("reportArtifact")
+      .values({
+        userId: user.id,
+        artifactType: "integration_test",
+        processingStatus: "completed",
+        data: { marker, laterArtifact: true },
+        createdAt: now,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    ids.laterArtifactId = laterArtifact.id;
+
     const tradeline = await db
       .insertInto("tradeline")
       .values({
@@ -120,6 +139,43 @@ async function main() {
       .returning("id")
       .executeTakeFirstOrThrow();
     ids.tradelineId = tradeline.id;
+
+    const reassignedTradeline = await db
+      .insertInto("tradeline")
+      .values({
+        userId: user.id,
+        bureauId: bureau.id,
+        creditorId: creditor.id,
+        reportArtifactId: laterArtifact.id,
+        accountNumber: `${marker}-reassigned`,
+        accountType: "integration",
+        status: "Open",
+        sourceText: "This tradeline appeared in the original artifact before a later dedupe update.",
+        createdAt: now,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    ids.reassignedTradelineId = reassignedTradeline.id;
+
+    await db
+      .insertInto("tradelineArtifactPresence")
+      .values([
+        { reportArtifactId: artifact.id, tradelineId: tradeline.id },
+        { reportArtifactId: artifact.id, tradelineId: reassignedTradeline.id },
+        { reportArtifactId: laterArtifact.id, tradelineId: reassignedTradeline.id },
+      ])
+      .onConflict((oc) => oc.columns(["reportArtifactId", "tradelineId"]).doNothing())
+      .execute();
+
+    const sourceArtifactTradelineIds = await listTradelineIdsForReportArtifact(artifact.id);
+    assert.deepEqual(
+      sourceArtifactTradelineIds.sort((left, right) => left - right),
+      [tradeline.id, reassignedTradeline.id].sort((left, right) => left - right),
+    );
+
+    const linkedToOriginalRun = await requireTradelineForRun(reassignedTradeline.id, run.id);
+    assert.equal(linkedToOriginalRun.tradeline.id, reassignedTradeline.id);
+    assert.equal(linkedToOriginalRun.run.reportArtifactId, artifact.id);
 
     const originalViolation = await db
       .insertInto("creditorObligationTest")
@@ -294,9 +350,17 @@ async function main() {
       await db.deleteFrom("violationCorrection").where("id", "in", ids.correctionIds).execute();
     }
     if (ids.violationId) await db.deleteFrom("creditorObligationTest").where("id", "=", ids.violationId).execute();
+    if (ids.artifactId) await db.deleteFrom("tradelineArtifactPresence").where("reportArtifactId", "=", ids.artifactId).execute();
+    if (ids.laterArtifactId) {
+      await db.deleteFrom("tradelineArtifactPresence").where("reportArtifactId", "=", ids.laterArtifactId).execute();
+    }
+    if (ids.reassignedTradelineId) {
+      await db.deleteFrom("tradeline").where("id", "=", ids.reassignedTradelineId).execute();
+    }
     if (ids.tradelineId) await db.deleteFrom("tradeline").where("id", "=", ids.tradelineId).execute();
     if (ids.runId) await db.deleteFrom("passExtraction").where("id", "=", ids.runId).execute();
     if (ids.artifactId) await db.deleteFrom("reportArtifact").where("id", "=", ids.artifactId).execute();
+    if (ids.laterArtifactId) await db.deleteFrom("reportArtifact").where("id", "=", ids.laterArtifactId).execute();
     if (ids.creditorId) await db.deleteFrom("creditor").where("id", "=", ids.creditorId).execute();
     if (ids.bureauId) await db.deleteFrom("bureau").where("id", "=", ids.bureauId).execute();
     if (ids.userId) {

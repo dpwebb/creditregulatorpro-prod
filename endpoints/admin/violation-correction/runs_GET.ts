@@ -7,6 +7,10 @@ import {
   jsonSafe,
   listTradelineArtifactLinks,
 } from "../../../helpers/violationCorrectionManager";
+import {
+  countTradelinesByArtifact,
+  countViolationsByArtifact,
+} from "../../../helpers/violationCorrectionArtifactLinks";
 import { schema, OutputType } from "./runs_GET.schema";
 
 function idKey(value: number | string | null | undefined): string | null {
@@ -110,32 +114,8 @@ export async function handle(request: Request) {
           .execute()
       : [];
 
-    const tradelinesByArtifact = new Map<string, Set<string>>();
-    const artifactIdsByTradelineId = new Map<string, Set<string>>();
-    for (const link of tradelineLinks) {
-      const artifactKey = idKey(link.reportArtifactId);
-      const tradelineKey = idKey(link.tradelineId);
-      if (!artifactKey || !tradelineKey) continue;
-
-      const artifactTradelines = tradelinesByArtifact.get(artifactKey) ?? new Set<string>();
-      artifactTradelines.add(tradelineKey);
-      tradelinesByArtifact.set(artifactKey, artifactTradelines);
-
-      const tradelineArtifacts = artifactIdsByTradelineId.get(tradelineKey) ?? new Set<string>();
-      tradelineArtifacts.add(artifactKey);
-      artifactIdsByTradelineId.set(tradelineKey, tradelineArtifacts);
-    }
-
-    const violationsByArtifact = new Map<string, number>();
-    for (const violation of violations) {
-      const tradelineKey = idKey(violation.tradelineId);
-      if (!tradelineKey) continue;
-      const artifactKeys = artifactIdsByTradelineId.get(tradelineKey);
-      if (!artifactKeys) continue;
-      for (const artifactKey of artifactKeys) {
-        violationsByArtifact.set(artifactKey, (violationsByArtifact.get(artifactKey) ?? 0) + 1);
-      }
-    }
+    const tradelinesByArtifact = countTradelinesByArtifact(tradelineLinks);
+    const violationsByArtifact = countViolationsByArtifact(tradelineLinks, violations);
 
     const correctionsByRun = new Map<string, { total: number; finalized: number }>();
     for (const correction of corrections) {
@@ -150,7 +130,7 @@ export async function handle(request: Request) {
     const allRuns = baseRuns.map((run) => {
       const correctionCounts = correctionsByRun.get(String(run.id)) ?? { total: 0, finalized: 0 };
       const violationCount = violationsByArtifact.get(String(run.reportArtifactId)) ?? 0;
-      const tradelineCount = tradelinesByArtifact.get(String(run.reportArtifactId))?.size ?? 0;
+      const tradelineCount = tradelinesByArtifact.get(String(run.reportArtifactId)) ?? 0;
       const needsReviewCount = Math.max(0, violationCount - correctionCounts.finalized);
 
       return {

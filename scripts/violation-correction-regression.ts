@@ -4,6 +4,12 @@ import {
   sanitizeComplianceNeutralText,
   validateCorrectionFinalizeRequirements,
 } from "../helpers/violationCorrectionValidation";
+import {
+  countTradelinesByArtifact,
+  countViolationsByArtifact,
+  listTradelineIdsFromArtifactLinks,
+  mergeTradelineArtifactLinks,
+} from "../helpers/violationCorrectionArtifactLinks";
 
 function runCase(name: string, fn: () => void) {
   try {
@@ -73,6 +79,62 @@ runCase("neutral sanitizer removes hard legal conclusions", () => {
   assert.doesNotMatch(sanitized!, /\bliability\b/i);
   assert.doesNotMatch(sanitized!, /\bbreach of law\b/i);
   assert.doesNotMatch(sanitized!, /\bproves a violation\b/i);
+});
+
+runCase("artifact review uses durable presence when direct tradeline artifact changes", () => {
+  const sourceArtifactId = 265;
+  const laterArtifactId = 266;
+  const links = mergeTradelineArtifactLinks(
+    [
+      { reportArtifactId: sourceArtifactId, tradelineId: 513 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 514 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 515 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 516 },
+    ],
+    [
+      { reportArtifactId: sourceArtifactId, tradelineId: 513 },
+      { reportArtifactId: laterArtifactId, tradelineId: 514 },
+      { reportArtifactId: laterArtifactId, tradelineId: 515 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 516 },
+    ],
+  );
+
+  assert.deepEqual(
+    listTradelineIdsFromArtifactLinks(links, sourceArtifactId).sort((left, right) => left - right),
+    [513, 514, 515, 516],
+  );
+
+  const tradelineCounts = countTradelinesByArtifact(links);
+  assert.equal(tradelineCounts.get(String(sourceArtifactId)), 4);
+  assert.equal(tradelineCounts.get(String(laterArtifactId)), 2);
+});
+
+runCase("artifact violation counts follow every artifact membership link", () => {
+  const sourceArtifactId = 265;
+  const laterArtifactId = 266;
+  const links = mergeTradelineArtifactLinks(
+    [
+      { reportArtifactId: sourceArtifactId, tradelineId: 513 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 514 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 515 },
+      { reportArtifactId: sourceArtifactId, tradelineId: 516 },
+    ],
+    [
+      { reportArtifactId: laterArtifactId, tradelineId: 514 },
+      { reportArtifactId: laterArtifactId, tradelineId: 515 },
+    ],
+  );
+  const violations = [
+    { tradelineId: 513 },
+    { tradelineId: 514 },
+    { tradelineId: 514 },
+    { tradelineId: 515 },
+    { tradelineId: 516 },
+  ];
+
+  const violationCounts = countViolationsByArtifact(links, violations);
+  assert.equal(violationCounts.get(String(sourceArtifactId)), 5);
+  assert.equal(violationCounts.get(String(laterArtifactId)), 3);
 });
 
 console.log("Violation correction regression checks passed.");
