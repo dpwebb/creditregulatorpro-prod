@@ -5,6 +5,74 @@ import type { DetectedViolation } from "./complianceDetectorTypes";
 import { parseISO, isValid, format } from "./dateUtils";
 import { normalizeProvince } from "./canadianJurisdictions";
 
+type MixedFileSignalInput = {
+  userFullName?: string | null;
+  reportFullName?: string | null;
+  userDateOfBirth?: string | Date | null;
+  reportDateOfBirth?: string | Date | null;
+  userProvince?: string | null;
+  reportProvince?: string | null;
+};
+
+export type MixedFileSignals = {
+  dobMismatch: boolean;
+  nameMismatch: boolean;
+  addressMismatch: boolean;
+  shouldReportNameMismatch: boolean;
+  shouldReportAddressMismatch: boolean;
+};
+
+function toDateOnly(value: string | Date | null | undefined): string | null {
+  if (!value) return null;
+  const date = typeof value === "string" ? parseISO(value) : new Date(value);
+  return isValid(date) ? format(date, "yyyy-MM-dd") : null;
+}
+
+function normalizedLastName(value: string | null | undefined): string | null {
+  const tokens = value
+    ?.toLowerCase()
+    .replace(/[^a-z\s'-]/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  return tokens?.length ? tokens[tokens.length - 1] : null;
+}
+
+export function evaluateMixedFileSignals(input: MixedFileSignalInput): MixedFileSignals {
+  let dobMismatch = false;
+  let nameMismatch = false;
+  let addressMismatch = false;
+
+  const userDob = toDateOnly(input.userDateOfBirth);
+  const reportDob = toDateOnly(input.reportDateOfBirth);
+  if (userDob && reportDob && userDob !== reportDob) {
+    dobMismatch = true;
+  }
+
+  const userLastName = normalizedLastName(input.userFullName);
+  const reportLastName = normalizedLastName(input.reportFullName);
+  if (userLastName && reportLastName && userLastName !== reportLastName) {
+    nameMismatch = true;
+  }
+
+  if (input.userProvince && input.reportProvince) {
+    const normUserProv = normalizeProvince(input.userProvince);
+    const normReportProv = normalizeProvince(input.reportProvince);
+    if (normUserProv.toUpperCase() !== normReportProv.toUpperCase()) {
+      addressMismatch = true;
+    }
+  }
+
+  return {
+    dobMismatch,
+    nameMismatch,
+    addressMismatch,
+    shouldReportNameMismatch: nameMismatch && (dobMismatch || addressMismatch),
+    shouldReportAddressMismatch: addressMismatch && !dobMismatch && !nameMismatch,
+  };
+}
+
 /**
  * Detects significant mismatches between the consumer's actual profile 
  * and the personal information reported on the credit file linked to this tradeline.
@@ -32,47 +100,16 @@ export async function detectMixedFilePersonalInfoMismatch(
 
   if (!reportInfo) return violations;
 
-  let dobMismatch = false;
-  let nameMismatch = false;
-  let addressMismatch = false;
+  const signals = evaluateMixedFileSignals({
+    userFullName: userAccount.fullName,
+    reportFullName: reportInfo.fullName,
+    userDateOfBirth: userAccount.dateOfBirth,
+    reportDateOfBirth: reportInfo.dateOfBirth,
+    userProvince: userAccount.province,
+    reportProvince: reportInfo.province,
+  });
 
-  // Check DOB
-  if (userAccount.dateOfBirth && reportInfo.dateOfBirth) {
-    const userDob = typeof userAccount.dateOfBirth === "string" ? parseISO(userAccount.dateOfBirth) : new Date(userAccount.dateOfBirth);
-    const reportDob = typeof reportInfo.dateOfBirth === "string" ? parseISO(reportInfo.dateOfBirth) : new Date(reportInfo.dateOfBirth);
-    
-    if (isValid(userDob) && isValid(reportDob)) {
-      const userFormatted = format(userDob, "yyyy-MM-dd");
-      const reportFormatted = format(reportDob, "yyyy-MM-dd");
-      if (userFormatted !== reportFormatted) {
-        dobMismatch = true;
-      }
-    }
-  }
-
-  // Check Name
-  if (userAccount.fullName && reportInfo.fullName) {
-    const userTokens = userAccount.fullName.toLowerCase().split(/\s+/);
-    const reportTokens = reportInfo.fullName.toLowerCase().split(/\s+/);
-    
-    // Simple heuristic: if neither the first name nor last name matches well
-    const lastUser = userTokens[userTokens.length - 1];
-    const lastReport = reportTokens[reportTokens.length - 1];
-    if (lastUser && lastReport && lastUser !== lastReport) {
-      nameMismatch = true;
-    }
-  }
-
-  // Check Province
-  if (userAccount.province && reportInfo.province) {
-    const normUserProv = normalizeProvince(userAccount.province);
-    const normReportProv = normalizeProvince(reportInfo.province);
-    if (normUserProv.toUpperCase() !== normReportProv.toUpperCase()) {
-      addressMismatch = true;
-    }
-  }
-
-  if (dobMismatch) {
+  if (signals.dobMismatch) {
     violations.push({
       violationCategory: "MIXED_FILE_PERSONAL_INFO_MISMATCH",
       severity: "ERROR",
@@ -91,7 +128,7 @@ export async function detectMixedFilePersonalInfoMismatch(
     });
   }
 
-  if (nameMismatch) {
+  if (signals.shouldReportNameMismatch) {
     violations.push({
       violationCategory: "MIXED_FILE_PERSONAL_INFO_MISMATCH",
       severity: "WARNING",
@@ -110,7 +147,7 @@ export async function detectMixedFilePersonalInfoMismatch(
     });
   }
 
-  if (addressMismatch && !dobMismatch && !nameMismatch) {
+  if (signals.shouldReportAddressMismatch) {
     violations.push({
       violationCategory: "MIXED_FILE_PERSONAL_INFO_MISMATCH",
       severity: "WARNING",
