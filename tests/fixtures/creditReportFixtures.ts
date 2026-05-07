@@ -54,3 +54,69 @@ export const equifaxHtmlFixture = `
   </body>
 </html>
 `;
+
+export const equifaxTextFixture = `
+Equifax Canada Co.
+Credit ReportRequest Date 2026/04/16
+
+Personal Information
+Name TEST CONSUMER
+Date of Birth 1961-01-30
+Current Address
+26 MAIN ST E
+STEWIACKE NS B0N 2J0
+
+Accounts - Revolving
+CAPITAL ONE BANK
+Account
+Number
+********1234
+Phone
+1-800-000-0000
+Status
+Revolving - Bad debt write-off
+Balance And Amounts
+Balance
+$1,234.00
+Credit Limit
+$2,500.00
+Past Due
+$123.00
+Account Dates
+Opened
+2020/01/15
+Last Reported
+2026/04/16
+Payment Details
+Payment Responsibility
+Individual
+Payment History
+
+Collections
+CBV COLLECTION SERVICES
+Date Assigned 2024/02/10
+Member Name ORIGINAL CREDITOR INC
+Account Number ********8899
+Amount $500.00
+Balance $500.00
+Status Unpaid
+Date Verified 2026/04/16
+`;
+
+export const transUnionPortalLayoutFixture = `
+Credit Report
+Report Date 2026-01-10
+Consumer Information
+DOB 1961-01-30
+Name TEST CONSUMER
+Address 26 MAIN ST E STEWIACKE NS B0N 2J0
+
+Account Information
+Creditor Name ROYAL BANK VISA
+Account Number ********1111
+Account Type REVOLVING / INDIVIDUAL
+Balance $0.00
+Status Open
+Opened Date 2021-06-01
+Reported Date 2026-01-10
+`;

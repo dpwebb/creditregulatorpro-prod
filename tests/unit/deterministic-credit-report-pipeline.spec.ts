@@ -246,4 +246,30 @@ DOB Apr 11, 1977
     expect(portalLayout.semanticZoneDetection.zones.map((zone) => zone.zoneName)).toContain("tradeline_accounts");
     expect(normalizeCanonicalDate("04/11/77")).toBe("1977-04-11");
   });
+
+  it("segments creditor statements and collection letters without making guessed bureau fields", () => {
+    const creditorStatement = build(
+      `
+Account Statement
+Statement Date 2026-04-16
+Amount Due $123.45
+`,
+      { consumerInfo: null, tradelines: [] },
+    );
+    const collectionLetter = build(
+      `
+Collection Notice
+Debt Collector ABC COLLECTION SERVICES
+Amount Owing $500.00
+`,
+      { consumerInfo: null, tradelines: [] },
+    );
+
+    expect(creditorStatement.semanticZoneDetection.zones.map((zone) => zone.zoneName)).toContain("creditor_statement");
+    expect(collectionLetter.semanticZoneDetection.zones.map((zone) => zone.zoneName)).toContain("collection_letter");
+    expect(creditorStatement.finalOutput.tradelines).toHaveLength(0);
+    expect(collectionLetter.finalOutput.tradelines).toHaveLength(0);
+    expect(creditorStatement.candidatePools.find((pool) => pool.fieldKey === "consumerInfo.dateOfBirth")).toBeUndefined();
+    expect(collectionLetter.candidatePools.find((pool) => pool.fieldKey === "consumerInfo.dateOfBirth")).toBeUndefined();
+  });
 });

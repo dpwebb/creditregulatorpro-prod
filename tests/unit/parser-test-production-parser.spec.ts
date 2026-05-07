@@ -38,7 +38,7 @@ function mockExtraction() {
       finalOutput: { version: "deterministic-credit-report-pipeline-v1", fields: {}, reportMetadata: {}, consumerInfo: null, tradelines: [] },
     } as any,
     canonicalOutput: { version: "deterministic-credit-report-pipeline-v1", fields: {}, reportMetadata: {}, consumerInfo: null, tradelines: [] } as any,
-    provenance: {} as any,
+    provenance: { replayValidation: { ok: true, replayHash: "replay-hash" } } as any,
   });
 }
 
@@ -55,6 +55,7 @@ describe("parsePdfThroughProductionHtmlPipeline", () => {
     });
     expect(result.parserPipelineAudit).toEqual({});
     expect(result.replayHash).toBe("replay-hash");
+    expect(result.replayValidation.ok).toBe(true);
   });
 
   it("defaults to AI fallback suspended when no test case setting exists", async () => {

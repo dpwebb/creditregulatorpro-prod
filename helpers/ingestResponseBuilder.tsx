@@ -6,6 +6,7 @@ import type {
   DeterministicNormalizedReport,
   DeterministicPipelinePackage,
 } from "./deterministicCreditReportPipeline";
+import type { DeterministicReplayValidation } from "./deterministicReplayValidator";
 
 export interface BuildResponseInput {
   artifactId: number;
@@ -38,6 +39,7 @@ export interface BuildResponseInput {
   consumerInfoComparison: ConsumerInfoComparison | null;
   parserQuality?: ParserQualityAssessment | null;
   deterministicPipeline?: DeterministicPipelinePackage | null;
+  replayValidation?: DeterministicReplayValidation | null;
 }
 
 export interface IngestResponseData {
@@ -96,6 +98,7 @@ export interface IngestResponseData {
   parserQuality?: ParserQualityAssessment;
   canonicalOutput?: DeterministicNormalizedReport;
   replayHash?: string;
+  replayValidation?: DeterministicReplayValidation;
 }
 
 /**
@@ -118,6 +121,7 @@ export function buildIngestResponse(
     consumerInfoComparison,
     parserQuality,
     deterministicPipeline,
+    replayValidation,
   } = input;
 
   const responseData: IngestResponseData = {
@@ -198,6 +202,10 @@ export function buildIngestResponse(
   if (deterministicPipeline) {
     responseData.canonicalOutput = deterministicPipeline.finalOutput;
     responseData.replayHash = deterministicPipeline.replayHash;
+  }
+
+  if (replayValidation) {
+    responseData.replayValidation = replayValidation;
   }
 
   return responseData;

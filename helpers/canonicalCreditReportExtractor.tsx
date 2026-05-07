@@ -9,6 +9,10 @@ import {
   DeterministicPipelinePackage,
 } from "./deterministicCreditReportPipeline";
 import {
+  assertDeterministicReplay,
+  type DeterministicReplayValidation,
+} from "./deterministicReplayValidator";
+import {
   applyParserExtractionRules,
   loadActiveParserExtractionRules,
 } from "./parserExtractionRules";
@@ -40,6 +44,7 @@ export interface CanonicalExtractionProvenance {
   documentBinarySha256: string;
   canonicalResultSha256: string;
   replayHash: string;
+  replayValidation: DeterministicReplayValidation;
   deterministicPipelineVersion: string;
   aiFallbackAvailable: boolean;
   aiFallbackRequested: boolean;
@@ -369,12 +374,19 @@ export async function extractCanonicalCreditReport(
     selectedParseResult = fieldReconciliation.parseResult;
   }
 
-  const deterministicPipeline = buildDeterministicCreditReportPipelinePackage({
+  const deterministicPipelineInput = {
     parseResult: selectedParseResult,
     rawText: selected.rawText,
     documentBinarySha256,
     appliedParserRuleIds,
-  });
+  };
+  const deterministicPipeline = buildDeterministicCreditReportPipelinePackage(
+    deterministicPipelineInput,
+  );
+  const replayValidation = assertDeterministicReplay(
+    deterministicPipelineInput,
+    deterministicPipeline,
+  );
 
   return {
     parseResult: selectedParseResult,
@@ -395,6 +407,7 @@ export async function extractCanonicalCreditReport(
       documentBinarySha256,
       canonicalResultSha256: deterministicPipeline.canonicalResultSha256,
       replayHash: deterministicPipeline.replayHash,
+      replayValidation,
       deterministicPipelineVersion: deterministicPipeline.version,
       aiFallbackAvailable: false,
       aiFallbackRequested: requestedAiFallback,

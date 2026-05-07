@@ -66,13 +66,26 @@ The canonical extraction path is now PDF text first and deterministic only. The 
 8. null overwrite policy: reject null over valid canonical values
 9. LLM policy: diagnostic candidates cannot become canonical
 10. stable `canonicalResultSha256` and `replayHash`
+11. replay validation through `helpers/deterministicReplayValidator.ts`, which rebuilds the package from the same typed inputs and fails closed if hashes, candidate pools, or final output diverge
 
 Parser-test, parser lab, and ingest storage now use the same deterministic package:
 
-1. parser-test create stores `canonicalOutput` and `replayHash` in `parserContext`
-2. parser-test run/run-all store `canonicalOutput` and `replayHash` in `parserTestRun.fieldResults`
-3. ingest stores `deterministicPipeline`, `canonicalOutput`, and `replayHash` in `reportArtifact.data`
-4. final ingest SSE output includes additive `canonicalOutput` and `replayHash`
+1. parser-test create stores `canonicalOutput`, `replayHash`, and `replayValidation` in `parserContext`
+2. parser-test run/run-all store `canonicalOutput`, `replayHash`, and `replayValidation` in `parserTestRun.fieldResults`
+3. ingest stores `deterministicPipeline`, `canonicalOutput`, `replayHash`, and `replayValidation` in `reportArtifact.data`
+4. final ingest SSE output includes additive `canonicalOutput`, `replayHash`, and `replayValidation`
+
+## Current Fixture Coverage
+
+The regression suite now includes deterministic synthetic fixtures for:
+
+1. TransUnion Canada consumer disclosure text with a page-one TransUnion case ID
+2. TransUnion collapsed personal-information cells
+3. TransUnion exported portal-style layout
+4. Equifax Canada `Accounts - Revolving` account sections
+5. Equifax collection-account section parsing
+
+The production PDFs supplied for local verification remain read-only reference inputs. Do not commit personal report PDFs or personal extracted text as fixtures. Convert observed layouts into anonymized deterministic fixtures before they enter the regression library.
 
 ## Deterministic Scoring V1
 
@@ -109,7 +122,7 @@ Those representations did not share one canonical field contract. Non-null data 
 
 This refactor does not rename or migrate violation IDs, violation categories, regulation references, evidence-link fields, status fields, or search query parameters. It keeps the existing `creditorObligationTest` search model intact and stores the new deterministic canonical report package alongside existing artifact data.
 
-Regression coverage in `tests/unit/violation-search-preservation.spec.ts` asserts the upload-results and creditor-validation lookup fields, joins, filters, and response assumptions remain present.
+Regression coverage in `tests/unit/violation-search-preservation.spec.ts` asserts the upload-results and creditor-validation lookup fields, joins, filters, sorting, bureau counts, collection flags, creditor fields, tradeline fields, and response assumptions remain present.
 
 ## Hard-Isolated Legacy Components
 

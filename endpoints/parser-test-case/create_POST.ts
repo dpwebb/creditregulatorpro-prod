@@ -22,10 +22,17 @@ export async function handle(request: Request) {
     const input = schema.parse(json);
     await ensureParserTestAdjudicationSchema();
 
+    const inputParserContext =
+      input.parserContext && typeof input.parserContext === "object" && !Array.isArray(input.parserContext)
+        ? (input.parserContext as Record<string, unknown>)
+        : {};
+    const hasCanonicalContext =
+      Boolean(inputParserContext.canonicalOutput) && Boolean(inputParserContext.replayHash);
     const needsParserFallback =
       input.expectedConsumerInfo === undefined ||
       input.expectedTradelines === undefined ||
-      input.rawExtractedText === undefined;
+      input.rawExtractedText === undefined ||
+      !hasCanonicalContext;
     const parserFallback = needsParserFallback
       ? await parsePdfThroughProductionHtmlPipeline(input.pdfBase64, {
           allowAiFallback: false,
@@ -45,21 +52,13 @@ export async function handle(request: Request) {
       input.rawExtractedText !== undefined
         ? input.rawExtractedText
         : parserFallback?.rawExtractedText ?? null;
-    const parserContext =
-      input.parserContext && typeof input.parserContext === "object" && !Array.isArray(input.parserContext)
-        ? {
-            ...(input.parserContext as Record<string, unknown>),
-            ...(parserFallback?.parserPipelineAudit ? { pipelineAudit: parserFallback.parserPipelineAudit } : {}),
-            ...(parserFallback?.canonicalOutput ? { canonicalOutput: parserFallback.canonicalOutput } : {}),
-            ...(parserFallback?.replayHash ? { replayHash: parserFallback.replayHash } : {}),
-          }
-        : parserFallback?.parserPipelineAudit
-          ? {
-              pipelineAudit: parserFallback.parserPipelineAudit,
-              ...(parserFallback.canonicalOutput ? { canonicalOutput: parserFallback.canonicalOutput } : {}),
-              ...(parserFallback.replayHash ? { replayHash: parserFallback.replayHash } : {}),
-            }
-          : {};
+    const parserContext = {
+      ...inputParserContext,
+      ...(parserFallback?.parserPipelineAudit ? { pipelineAudit: parserFallback.parserPipelineAudit } : {}),
+      ...(parserFallback?.canonicalOutput ? { canonicalOutput: parserFallback.canonicalOutput } : {}),
+      ...(parserFallback?.replayHash ? { replayHash: parserFallback.replayHash } : {}),
+      ...(parserFallback?.replayValidation ? { replayValidation: parserFallback.replayValidation } : {}),
+    };
 
     // 3. Create test case
     const newTestCase = await db

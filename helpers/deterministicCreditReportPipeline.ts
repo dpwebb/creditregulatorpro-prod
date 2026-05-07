@@ -219,6 +219,7 @@ const SECTION_RULES: Array<{
     zoneName: "report_header",
     patterns: [
       /\bcredit\s+report\b/i,
+      /\bcredit\s*report\s*request\s*date\b/i,
       /\bconsumer\s+disclosure\b/i,
       /\breport\s+date\b/i,
       /\bfile\s+number\b/i,
@@ -229,12 +230,35 @@ const SECTION_RULES: Array<{
     zoneName: "tradeline_accounts",
     patterns: [
       /\baccount\s+information\b/i,
+      /^accounts?\s*-\s*(?:revolving|mortgage|installment|open)\b/i,
+      /^account\(s\)\s*:?$/i,
       /\bcredit\s+account\b/i,
       /\btrade\s*lines?\b/i,
       /\brevolving\s+credit\b/i,
       /\binstallment\s+(?:loan|loans|credit)\b/i,
       /\bmortgage\b/i,
       /\bcollection\s+accounts?\b/i,
+      /^collections\b/i,
+    ],
+  },
+  {
+    sectionName: "creditor_statement",
+    zoneName: "creditor_statement",
+    patterns: [
+      /\baccount\s+statement\b/i,
+      /\bstatement\s+date\b/i,
+      /\bminimum\s+payment\b/i,
+      /\bamount\s+due\b/i,
+    ],
+  },
+  {
+    sectionName: "collection_letter",
+    zoneName: "collection_letter",
+    patterns: [
+      /\bcollection\s+notice\b/i,
+      /\bdebt\s+collector\b/i,
+      /\bcollection\s+agency\b/i,
+      /\bamount\s+owing\b/i,
     ],
   },
   {

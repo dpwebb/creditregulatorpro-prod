@@ -24,6 +24,7 @@ import { ParserQualityAssessment } from "./parserQuality";
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { evaluateDisputeOutcomesForTradeline } from "./disputeOutcomeEvaluator";
 import type { DeterministicPipelinePackage } from "./deterministicCreditReportPipeline";
+import type { DeterministicReplayValidation } from "./deterministicReplayValidator";
 
 export class IngestPipelineError extends Error {
   constructor(message: string, public code: string) {
@@ -277,6 +278,7 @@ export async function executeIngestPipeline({
   let llmData;
   let extractionProvenance: Record<string, unknown> | null = null;
   let deterministicPipeline: DeterministicPipelinePackage | null = null;
+  let replayValidation: DeterministicReplayValidation | null = null;
   try {
     const canonicalExtraction = await extractCanonicalCreditReport({
       bytesBase64,
@@ -291,6 +293,7 @@ export async function executeIngestPipeline({
     parserQuality = canonicalExtraction.parserQuality;
     extractionProvenance = canonicalExtraction.provenance as unknown as Record<string, unknown>;
     deterministicPipeline = canonicalExtraction.deterministicPipeline;
+    replayValidation = canonicalExtraction.provenance.replayValidation;
   } catch (error: unknown) {
     console.error(`[Ingest] Canonical extraction failed:`, error);
     throw new IngestPipelineError(
@@ -333,6 +336,7 @@ export async function executeIngestPipeline({
         deterministicPipeline,
         canonicalOutput: deterministicPipeline?.finalOutput ?? null,
         replayHash: deterministicPipeline?.replayHash ?? extractionProvenance?.replayHash ?? null,
+        replayValidation,
         parserQuality,
         extractionConfidence: parserQuality.confidenceScore,
         parseConfidence: parserQuality.confidenceScore,
@@ -831,6 +835,7 @@ export async function executeIngestPipeline({
     consumerInfoComparison,
     parserQuality,
     deterministicPipeline,
+    replayValidation,
   });
 
   if (silentResults && silentResults.totalDetected > 0) {

@@ -94,8 +94,19 @@ describe("deterministic ingestion lockdown", () => {
     const ingestCore = source("helpers/ingestCorePipeline.tsx");
 
     expect(ingestCore).toContain("deriveDeterministicDraftExtractions");
+    expect(ingestCore).toContain("replayValidation");
     expect(ingestCore).not.toContain("unifiedExtract(");
     expect(ingestCore).not.toContain("mapDocStrangeResponseToResult");
+  });
+
+  it("requires parser-test creation to persist canonical replay metadata", () => {
+    const createEndpoint = source("endpoints/parser-test-case/create_POST.ts");
+
+    expect(createEndpoint).toContain("hasCanonicalContext");
+    expect(createEndpoint).toContain("!hasCanonicalContext");
+    expect(createEndpoint).toContain("canonicalOutput");
+    expect(createEndpoint).toContain("replayHash");
+    expect(createEndpoint).toContain("replayValidation");
   });
 
   it("derives Pass A and Full extraction records with deterministic pdf text provenance", () => {

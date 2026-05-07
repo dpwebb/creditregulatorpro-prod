@@ -38,11 +38,12 @@ Treat the parser as untrusted until a human admin confirms the result against th
 
 ### Deterministic Operation Rule
 
-Current parser testing, Stage Lab, Run All, and ingestion storage are deterministic-only for authoritative extraction. The canonical parser package is the shared object that carries `canonicalOutput`, deterministic field evidence, alternatives, history, and `replayHash` through parser tests and ingest storage.
+Current parser testing, Stage Lab, Run All, and ingestion storage are deterministic-only for authoritative extraction. The canonical parser package is the shared object that carries `canonicalOutput`, deterministic field evidence, alternatives, history, `replayHash`, and `replayValidation` through parser tests and ingest storage.
 
 Operationally this means:
 
 - The same PDF bytes, source text, parser version, and active parser-rule set should produce the same normalized result and the same `replayHash`.
+- Replay validation must pass before canonical extraction is accepted. A failed replay validation means the package could not be rebuilt identically from the same typed inputs and should be treated as a blocker.
 - Admin decisions do not silently overwrite parser output. They create approved truth and, where supported, parser-rule candidates that must pass deterministic validation before activation.
 - Null, blank, or missing values should not replace non-null extracted values unless the admin decision or parser rule explicitly says the bureau did not report the field.
 - AI, LLM, DocStrange, and OCR-assisted outputs are diagnostic only unless a deterministic rule validates and adopts the behavior later.
@@ -107,6 +108,7 @@ Use PDF files that represent real bureau structures. Strong coverage needs:
 | Original SHA-256 | Hash of the uploaded PDF, used to link test case source documents to violation correction runs |
 | Canonical SHA-256 | Hash of the normalized parser result, used to detect output changes |
 | Replay hash | Stable hash of the deterministic replay package, used to prove the same inputs and active rules reproduce the same output |
+| Replay validation | Machine-checkable result proving the canonical package, candidate pools, raw-text hash, and replay hash reproduced identically |
 | Canonical output | Shared normalized result object stored by parser tests and ingest storage; includes deterministic field objects, evidence, alternatives, and history |
 | Candidate pool | All deterministic candidates considered for a canonical field before selection |
 | Semantic zone | Structural area such as report header, consumer identity, tradeline accounts, inquiries, public records, or employment |
@@ -217,7 +219,7 @@ When a test case is selected and no new run result is currently open, the detail
 | Saved Tradelines / Approved Tradelines | Saved or approved tradeline cards | Shows account-level parser output and admin-confirmed values |
 | Raw Extracted Text | Stored raw source text | Lets admins verify fields against source text |
 
-Parser context and parser-test run results may also include `canonicalOutput` and `replayHash`. These are developer-facing audit fields, not manual edit targets. If an admin sees a field disappear between Saved Parser Output, a single run, Run All, or ingest storage, treat that as a deterministic pipeline defect and preserve the source PDF, raw text, test case ID, and replay hash for developer review.
+Parser context and parser-test run results may also include `canonicalOutput`, `replayHash`, and `replayValidation`. These are developer-facing audit fields, not manual edit targets. If an admin sees a field disappear between Saved Parser Output, a single run, Run All, or ingest storage, treat that as a deterministic pipeline defect and preserve the source PDF, raw text, test case ID, replay hash, and replay-validation status for developer review.
 
 ### Saved Parser Output Context Cards
 
@@ -385,7 +387,7 @@ flowchart TB
 | AI fallback switch | Disabled while AI fallback is suspended | Confirms Stage Lab cannot invoke fallback output until it is tested |
 | Run Shadow Parse | Runs the Stage Lab parser for the selected PDF | Produces quality, retention, parsed, raw, deterministic pipeline, and audit output |
 | Export JSON | Downloads the complete Stage Lab result | Useful for debugging, including `audit.deterministicPipeline`, canonical hashes, and `replayHash` |
-| Save to Test Cases | Saves the Stage Lab result and original PDF as a test case | Creates a durable regression baseline with parser context, `canonicalOutput`, and `replayHash` when available |
+| Save to Test Cases | Saves the Stage Lab result and original PDF as a test case | Creates a durable regression baseline with parser context, `canonicalOutput`, `replayHash`, and `replayValidation` when available |
 | Saved to Test Cases | Disabled state after successful save | Prevents accidental duplicate saves from the same result |
 
 ### AI Fallback Setting
@@ -706,7 +708,7 @@ Use Run All Tests:
 | Failures list | Failed case name and reason | Use to identify what broke |
 | View | Opens the failed case in Test Cases | Inspect details, rerun, and adjudicate |
 
-Each stored run result can carry the same `canonicalOutput` and `replayHash` contract as single test runs and ingest storage. When investigating a regression, compare expected/approved values first, then use raw text, parser context, canonical hashes, and replay hash to determine whether the parser changed, the baseline changed, or the source document fixture changed.
+Each stored run result carries the same `canonicalOutput`, `replayHash`, and `replayValidation` contract as single test runs and ingest storage. When investigating a regression, compare expected/approved values first, then use raw text, parser context, canonical hashes, replay hash, and replay-validation status to determine whether the parser changed, the baseline changed, or the source document fixture changed.
 
 ### Failure Reasons
 
@@ -979,8 +981,8 @@ This map is for admins coordinating with developers. It shows what UI actions ca
 | Create test case | `/_api/parser-test-case/create` | Saves PDF and baseline fields |
 | Update test case | `/_api/parser-test-case/update` | Updates name, description, expected fields, and tradelines |
 | Delete test case | `/_api/parser-test-case/delete` | Deletes test case and linked generated outputs while archiving training-marked artifacts |
-| Run one test | `/_api/parser-test-case/run` | Runs one PDF through production parser, stores canonical output/replay hash when available, and compares against baseline |
-| Run all tests | `/_api/parser-test-case/run-all` | Runs all parser test cases sequentially and stores canonical output/replay hash per run when available |
+| Run one test | `/_api/parser-test-case/run` | Runs one PDF through production parser, stores canonical output/replay hash/replay validation when available, and compares against baseline |
+| Run all tests | `/_api/parser-test-case/run-all` | Runs all parser test cases sequentially and stores canonical output/replay hash/replay validation per run when available |
 | Export test cases | `/_api/parser-test-case/export` | Downloads selected parser test case JSON |
 | Import test cases | `/_api/parser-test-case/import` | Creates test cases from exported JSON |
 | Adjudicate parser output | `/_api/parser-test-case/adjudicate` | Saves approved values and field decisions |

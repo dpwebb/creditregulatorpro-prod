@@ -5,6 +5,7 @@ import type {
   DeterministicNormalizedReport,
   DeterministicPipelinePackage,
 } from "./deterministicCreditReportPipeline";
+import type { DeterministicReplayValidation } from "./deterministicReplayValidator";
 
 export interface ParserTestRunOptions {
   allowAiFallback?: boolean | null;
@@ -27,6 +28,7 @@ export async function parsePdfThroughProductionHtmlPipeline(
   deterministicPipeline: DeterministicPipelinePackage;
   canonicalOutput: DeterministicNormalizedReport;
   replayHash: string;
+  replayValidation: DeterministicReplayValidation;
 }> {
   const extraction = await extractCanonicalCreditReport({
     bytesBase64: pdfBase64,
@@ -46,5 +48,6 @@ export async function parsePdfThroughProductionHtmlPipeline(
     deterministicPipeline: extraction.deterministicPipeline,
     canonicalOutput: extraction.canonicalOutput,
     replayHash: extraction.deterministicPipeline.replayHash,
+    replayValidation: extraction.provenance.replayValidation,
   };
 }

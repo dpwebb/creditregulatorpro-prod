@@ -38,7 +38,7 @@ export async function handle(request: Request) {
       .executeTakeFirstOrThrow();
 
     // 2. Rerun with the parser parameters saved on this test case.
-    const { parseResult, rawExtractedText, parserPipelineAudit, canonicalOutput, replayHash } = await parsePdfThroughProductionHtmlPipeline(
+    const { parseResult, rawExtractedText, parserPipelineAudit, canonicalOutput, replayHash, replayValidation } = await parsePdfThroughProductionHtmlPipeline(
       testCase.pdfBase64,
       {
         allowAiFallback: false,
@@ -110,6 +110,7 @@ export async function handle(request: Request) {
         pipelineAudit: parserPipelineAudit,
         canonicalOutput,
         replayHash,
+        replayValidation,
     };
 
     // 5. Store run results
@@ -141,6 +142,7 @@ export async function handle(request: Request) {
       pipelineAudit: finalPipelineAudit,
       canonicalOutput,
       replayHash,
+      replayValidation,
     };
 
     await db
@@ -179,6 +181,7 @@ export async function handle(request: Request) {
       parserPipelineAudit: finalPipelineAudit,
       canonicalOutput,
       replayHash,
+      replayValidation,
     };
 
     return new Response(JSON.stringify(output));
