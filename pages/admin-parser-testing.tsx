@@ -14,6 +14,7 @@ import { ParserTestImportExportTab } from "../components/ParserTestImportExportT
 import { ParserLabStageTab } from "../components/ParserLabStageTab";
 import { AdminViolationCorrectionPanel } from "../components/AdminViolationCorrectionPanel";
 import type { StageLabTestCasePayload } from "../components/ParserLabStageTab";
+import type { ViolationCorrectionSourceFilter } from "../helpers/violationCorrectionQueries";
 
 import {
   useParserKnownEntities,
@@ -51,6 +52,29 @@ function extractParserTestSourceSha256(testCase: any): string | null {
   return typeof sha === "string" && sha.trim() ? sha.trim() : null;
 }
 
+function toIsoDate(value: unknown): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function buildViolationCorrectionSourceFilters(testCases: any[]): ViolationCorrectionSourceFilter[] {
+  const filtersBySha256 = new Map<string, string>();
+
+  for (const testCase of testCases) {
+    const sha256 = extractParserTestSourceSha256(testCase);
+    const createdAfter = toIsoDate(testCase?.createdAt);
+    if (!sha256 || !createdAfter) continue;
+
+    const currentCreatedAfter = filtersBySha256.get(sha256);
+    if (!currentCreatedAfter || new Date(createdAfter).getTime() < new Date(currentCreatedAfter).getTime()) {
+      filtersBySha256.set(sha256, createdAfter);
+    }
+  }
+
+  return Array.from(filtersBySha256, ([sha256, createdAfter]) => ({ sha256, createdAfter }));
+}
+
 export default function AdminParserTestingPage() {
   const [activeTab, setActiveTab] = useState("test-cases");
 
@@ -82,15 +106,8 @@ export default function AdminParserTestingPage() {
   const [importPreview, setImportPreview] = useState<any>(null);
 
   const testCases = testCasesData?.testCases || [];
-  const violationCorrectionSourceSha256s = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          testCases
-            .map((testCase) => extractParserTestSourceSha256(testCase))
-            .filter((sha): sha is string => Boolean(sha)),
-        ),
-      ),
+  const violationCorrectionSourceFilters = useMemo(
+    () => buildViolationCorrectionSourceFilters(testCases),
     [testCases],
   );
 
@@ -525,7 +542,7 @@ export default function AdminParserTestingPage() {
         </TabsContent>
 
         <TabsContent value="violation-corrections" className={styles.tabContent}>
-          <AdminViolationCorrectionPanel sourceSha256s={violationCorrectionSourceSha256s} />
+          <AdminViolationCorrectionPanel sourceFilters={violationCorrectionSourceFilters} />
         </TabsContent>
 
         <TabsContent value="run-all" className={styles.tabContent}>

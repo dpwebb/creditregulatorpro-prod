@@ -99,6 +99,7 @@ export async function handle(request: Request) {
           lastRunPassed: tc.lastRunPassed,
           lastRunAt: tc.lastRunAt,
           totalRuns: Number(tc.totalRuns || 0),
+          createdAt: tc.createdAt,
           updatedAt: tc.updatedAt,
         };
       }),

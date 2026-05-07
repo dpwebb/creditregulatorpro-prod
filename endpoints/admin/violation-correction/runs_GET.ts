@@ -21,12 +21,20 @@ export async function handle(request: Request) {
 
     const url = new URL(request.url);
     const sourceSha256s = url.searchParams.getAll("sourceSha256");
+    const sourceCreatedAfters = url.searchParams.getAll("sourceCreatedAfter");
     const input = schema.parse({
       reviewStatus: url.searchParams.get("reviewStatus") ?? undefined,
       limit: url.searchParams.get("limit") ?? undefined,
       offset: url.searchParams.get("offset") ?? undefined,
       sourceSha256s: sourceSha256s.length > 0 ? sourceSha256s : undefined,
+      sourceCreatedAfters: sourceCreatedAfters.length > 0 ? sourceCreatedAfters : undefined,
     });
+    const sourceFilters = input.sourceSha256s?.map((sha256, index) => ({
+      sha256,
+      createdAfter: input.sourceCreatedAfters?.[index]
+        ? new Date(input.sourceCreatedAfters[index])
+        : null,
+    }));
 
     let runsQuery = db
       .selectFrom("passExtraction")
@@ -46,11 +54,25 @@ export async function handle(request: Request) {
       ])
       .orderBy("passExtraction.createdAt", "desc");
 
-    if (input.sourceSha256s !== undefined) {
-      runsQuery =
-        input.sourceSha256s.length > 0
-          ? runsQuery.where("reportArtifact.sha256", "in", input.sourceSha256s)
-          : runsQuery.where("passExtraction.id", "=", -1);
+    if (sourceFilters !== undefined) {
+      if (sourceFilters.length === 0) {
+        runsQuery = runsQuery.where("passExtraction.id", "=", -1);
+      } else if (sourceFilters.some((filter) => filter.createdAfter)) {
+        runsQuery = runsQuery.where((eb) =>
+          eb.or(
+            sourceFilters.map((filter) =>
+              filter.createdAfter
+                ? eb.and([
+                    eb("reportArtifact.sha256", "=", filter.sha256),
+                    eb("passExtraction.createdAt", ">=", filter.createdAfter),
+                  ])
+                : eb("reportArtifact.sha256", "=", filter.sha256),
+            ),
+          ),
+        );
+      } else {
+        runsQuery = runsQuery.where("reportArtifact.sha256", "in", sourceFilters.map((filter) => filter.sha256));
+      }
     }
 
     const baseRuns = await runsQuery.execute();

@@ -32,6 +32,7 @@ import {
   useViolationCorrectionRunDetail,
   useViolationCorrectionRuns,
 } from "../helpers/violationCorrectionQueries";
+import type { ViolationCorrectionSourceFilter } from "../helpers/violationCorrectionQueries";
 import type {
   OriginalViolationDetail,
   SuggestedRegulationReference,
@@ -198,16 +199,16 @@ function regulationSuggestionToForm(ref: SuggestedRegulationReference): Regulati
 }
 
 export function AdminViolationCorrectionPanel({
-  sourceSha256s,
+  sourceFilters,
 }: {
-  sourceSha256s?: string[];
+  sourceFilters?: ViolationCorrectionSourceFilter[];
 }) {
   const [reviewStatus, setReviewStatus] = useState<"needs_review" | "finalized" | "all">("needs_review");
-  const hasSourceFilter = sourceSha256s !== undefined;
-  const canLoadRuns = !hasSourceFilter || sourceSha256s.length > 0;
+  const hasSourceFilter = sourceFilters !== undefined;
+  const canLoadRuns = !hasSourceFilter || sourceFilters.length > 0;
   const { data: runsData, isLoading: isLoadingRuns } = useViolationCorrectionRuns(
     reviewStatus,
-    sourceSha256s,
+    sourceFilters,
     canLoadRuns,
   );
   const runs = canLoadRuns ? runsData?.runs ?? [] : [];

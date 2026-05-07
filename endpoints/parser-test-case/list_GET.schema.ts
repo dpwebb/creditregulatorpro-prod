@@ -24,6 +24,7 @@ export type ParserTestCaseSummary = {
   lastRunPassed: boolean | null;
   lastRunAt: Date | null;
   totalRuns: number;
+  createdAt: Date;
   updatedAt: Date;
 };
 
