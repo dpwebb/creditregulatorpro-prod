@@ -147,6 +147,7 @@ Member Number M123
 
     expect(tradelines).toHaveLength(1);
     expect(tradelines[0].isCollectionAccount).toBe(true);
+    expect(tradelines[0].creditorName).toBe("SAMPLE COLLECTIONS");
     expect(tradelines[0].dates.opened).toBeNull();
     expect(tradelines[0].dateAssignedToCollection?.toISOString().slice(0, 10)).toBe("2024-02-03");
     expect(tradelines[0].originalBalance).toBe(500);
@@ -169,6 +170,7 @@ Member Number M123
     expect(metadata.bureauName).toBe("Equifax Canada");
     expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1961-01-30");
     expect(tradelines.map((tradeline) => tradeline.creditorName)).toContain("CAPITAL ONE BANK");
+    expect(tradelines.map((tradeline) => tradeline.creditorName)).toContain("CBV COLLECTION SERVICES");
     expect(tradelines.some((tradeline) => tradeline.isCollectionAccount)).toBe(true);
   });
 
@@ -248,8 +250,11 @@ Member Number M123
 
     expect(equifaxPackage.semanticZoneDetection.zones.map((zone) => zone.zoneName)).toContain("tradeline_accounts");
     expect(equifaxPackage.finalOutput.fields["tradelines[0].creditorName"].value).toBe("CAPITAL ONE BANK");
+    expect(equifaxPackage.finalOutput.fields["tradelines[1].creditorName"].normalizedValue).toBe("CBV COLLECTION SERVICES");
+    expect(equifaxPackage.finalOutput.evidence.coverage.requiredCoveragePercent).toBe(100);
     expect(transUnionPortalPackage.semanticZoneDetection.zones.map((zone) => zone.zoneName)).toContain("consumer_identity");
     expect(transUnionPortalPackage.finalOutput.fields["consumerInfo.dateOfBirth"].normalizedValue).toBe("1961-01-30");
+    expect(transUnionPortalPackage.finalOutput.evidence.coverage.requiredCoveragePercent).toBe(100);
   });
 
   it("canonicalizes side-channel bureau facts with evidence", () => {

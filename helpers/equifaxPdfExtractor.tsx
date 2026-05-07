@@ -192,6 +192,19 @@ function extractCreditorName(lines: Line[]): string {
   return candidate || "Unknown Creditor";
 }
 
+function extractCollectionAgencyName(lines: Line[]): string {
+  const stopIndex = lines.findIndex((line) =>
+    /^(Date\s+Assigned|Member\s+Name|Account(?:\s+Number)?|Number|Amount|Balance|Status|Date\s+Verified|Last\s+Payment)$/i.test(line.text) ||
+    /^(Date\s+Assigned|Member\s+Name|Account\s+Number|Amount|Balance|Status|Date\s+Verified|Last\s+Payment)\b/i.test(line.text),
+  );
+  const headerLines = (stopIndex === -1 ? lines : lines.slice(0, stopIndex))
+    .map((line) => line.text)
+    .filter((line) => !isPageNoise(line) && !isMajorHeader(line) && !isLabelOnly(line) && !isLikelyDescription(line));
+
+  const candidate = headerLines.join(" ").replace(/\s+/g, " ").trim();
+  return candidate || extractCreditorName(lines);
+}
+
 function extractStatus(rawText: string, accountType: string): string {
   const ratingCode = rawText.match(/\b([RIMO][1-9])\b/i)?.[1]?.toUpperCase();
   const description = rawText.match(new RegExp(`${accountType}\\s*-\\s*([^\\n]+(?:\\n(?!Balance And|Payment Details|Payment History)[^\\n]+)?)`, "i"));
@@ -276,7 +289,7 @@ function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
   const accountNumber = extractAccountNumber(rawText);
   if (accountNumber === "Unknown") return null;
 
-  const collectionAgencyName = extractCreditorName(lines);
+  const collectionAgencyName = extractCollectionAgencyName(lines);
   const memberName = valueAfterInlineLabel(rawText, /Member\s*Name/i) || undefined;
   const dateAssigned = firstDateAfter(rawText, /Date\s*Assigned/i);
   const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment\s*Date/i);

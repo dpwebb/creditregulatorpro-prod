@@ -226,6 +226,59 @@ ${tradelineSource}
     expect(evidence.coverage.requiredCoveragePercent).toBe(100);
   });
 
+  it("links comma-formatted amount and status-code evidence without corrupting creditor names", () => {
+    const tradelineSource = `
+Creditor Name SAMPLE BANK VISA
+Account Number ********1111
+Account Type REVOLVING / INDIVIDUAL
+Balance $2,345.67
+Opened Date 2020-01-15
+Reported Date 2026-01-10
+Payment History
+Jan 2026 2345 100 0 R1 100 5000 0 0 AC /
+`;
+    const packageResult = build(
+      `
+TransUnion Canada Consumer Disclosure
+Report Date 2026-01-10
+Personal Information
+Name TEST CONSUMER
+Date of Birth 1961-01-30
+Address 26 MAIN ST E STEWIACKE NS B0N 2J0
+Account Information
+${tradelineSource}
+`,
+      {
+        consumerInfo: {
+          ...parseResult("").consumerInfo!,
+          dateOfBirth: new Date(Date.UTC(1961, 0, 30)),
+        },
+        tradelines: [
+          tradeline({
+            creditorName: "SAMPLE BANK VISA",
+            accountNumber: "********1111",
+            accountType: "REVOLVING / INDIVIDUAL",
+            balance: 2345.67,
+            status: "Account Closed",
+            dates: {
+              opened: new Date(Date.UTC(2020, 0, 15)),
+              reported: new Date(Date.UTC(2026, 0, 10)),
+              closed: null,
+              dofd: null,
+            },
+            sourceText: tradelineSource,
+          }),
+        ],
+      },
+    );
+
+    expect(packageResult.finalOutput.fields["tradelines[0].creditorName"].normalizedValue).toBe("SAMPLE BANK VISA");
+    expect(packageResult.finalOutput.fields["tradelines[0].balance"].evidence.textSnippet).toContain("$2,345.67");
+    expect(packageResult.finalOutput.fields["tradelines[0].status"].evidence.textSnippet).toContain("AC /");
+    expect(packageResult.finalOutput.evidence.coverage.requiredFieldsMissingEvidence).toEqual([]);
+    expect(packageResult.finalOutput.evidence.coverage.requiredCoveragePercent).toBe(100);
+  });
+
   it("detects semantic zones across different section layouts", () => {
     const transUnionLayout = build(`
 TransUnion Canada Consumer Disclosure

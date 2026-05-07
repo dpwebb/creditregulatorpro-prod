@@ -167,8 +167,8 @@ function run(): void {
     assert(first.replayHash === second.replayHash, `${definition.id} replay hash changed between identical inputs.`);
     assert(first.finalOutput.tradelines.length >= definition.minTradelines, `${definition.id} parsed too few tradelines.`);
     assert(
-      first.finalOutput.evidence.coverage.requiredCoveragePercent >= 80,
-      `${definition.id} required evidence coverage is below 80%.`,
+      first.finalOutput.evidence.coverage.requiredCoveragePercent === 100,
+      `${definition.id} required evidence coverage is ${first.finalOutput.evidence.coverage.requiredCoveragePercent}%; missing ${first.finalOutput.evidence.coverage.requiredFieldsMissingEvidence.join(", ") || "none"}.`,
     );
     assert(
       consumerNamePresent === definition.expectConsumerName,

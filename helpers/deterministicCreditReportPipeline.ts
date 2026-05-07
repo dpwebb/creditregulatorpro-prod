@@ -450,12 +450,41 @@ export function normalizeCanonicalAmount(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+const AMOUNT_FIELD_NAMES = new Set([
+  "amount",
+  "amountWrittenOff",
+  "assetAmount",
+  "balance",
+  "balloonPayment",
+  "chargeOff",
+  "creditLimit",
+  "exemptAmount",
+  "high",
+  "lastPaymentAmount",
+  "liabilityAmount",
+  "monthlyPayment",
+  "originalBalance",
+  "pastDue",
+  "salary",
+  "scheduledMonthlyPayment",
+  "totalBalances",
+  "totalCreditLimit",
+]);
+
+function canonicalFieldName(fieldKey: string): string {
+  return fieldKey.replace(/\[\d+\]/g, "").split(".").at(-1) ?? fieldKey;
+}
+
+function isAmountFieldKey(fieldKey: string): boolean {
+  return AMOUNT_FIELD_NAMES.has(canonicalFieldName(fieldKey));
+}
+
 function normalizeCanonicalValue(fieldKey: string, value: unknown): unknown {
   if (!hasCanonicalValue(value)) return null;
   if (/date|dob|opened|reported|closed|dofd|paid|assigned|posted|verified/i.test(fieldKey)) {
     return normalizeCanonicalDate(value) ?? compactWhitespace(String(value));
   }
-  if (/amount|balance|credit|payment|limit|pastDue|high/i.test(fieldKey)) {
+  if (isAmountFieldKey(fieldKey)) {
     return normalizeCanonicalAmount(value);
   }
   if (value instanceof Date) return normalizeCanonicalDate(value);
@@ -681,13 +710,55 @@ function lineEvidence(
   };
 }
 
-function findEvidenceLine(lines: TextLine[], value: unknown, preferredZone?: string): TextLine | null {
+const STATUS_EVIDENCE_CODES: Record<string, string[]> = {
+  "account closed": ["AC"],
+  "write off": ["WO"],
+  "cancelled by credit grantor": ["CG"],
+  "turned over to collection": ["TC"],
+  "closed at consumer request": ["CZ"],
+  "charge off": ["CO"],
+  repossession: ["RP"],
+  "legal action": ["LS"],
+  bankruptcy: ["BK"],
+};
+
+function lineContainsAmountValue(line: TextLine, value: unknown): boolean {
+  const amount = normalizeCanonicalAmount(value);
+  if (amount === null) return false;
+
+  const hasAmountContext =
+    /\$/.test(line.text) ||
+    /\b(balance|amount|credit\s+limit|past\s+due|payment|salary|high(?:est)?\s+balance)\b/i.test(line.text);
+  if (!hasAmountContext) return false;
+
+  for (const match of line.text.matchAll(/-?\$?\s*\d[\d,]*(?:\.\d{1,2})?/g)) {
+    const parsed = normalizeCanonicalAmount(match[0]);
+    if (parsed !== null && Math.abs(parsed - amount) < 0.005) return true;
+  }
+
+  return false;
+}
+
+function lineContainsStatusEvidence(fieldKey: string, line: TextLine, value: unknown): boolean {
+  if (!/\.status$/i.test(fieldKey) || typeof value !== "string") return false;
+  const codes = STATUS_EVIDENCE_CODES[normalizeTokenText(value)] ?? [];
+  return codes.some((code) => new RegExp(`\\b${code}\\b`, "i").test(line.text));
+}
+
+function findEvidenceLine(
+  lines: TextLine[],
+  value: unknown,
+  preferredZone?: string,
+  fieldKey = "",
+): TextLine | null {
   if (!hasCanonicalValue(value)) return null;
 
   const searchValues = flattenEvidenceSearchValues(value);
   const candidates = lines.filter((line) => {
     if (preferredZone && line.zoneName !== preferredZone) return false;
     return searchValues.some((searchValue) => {
+      if (isAmountFieldKey(fieldKey) && lineContainsAmountValue(line, searchValue)) return true;
+      if (lineContainsStatusEvidence(fieldKey, line, searchValue)) return true;
       const normalizedDate = normalizeCanonicalDate(searchValue);
       const normalizedText = normalizeTokenText(searchValue);
       if (normalizedDate) {
@@ -699,7 +770,7 @@ function findEvidenceLine(lines: TextLine[], value: unknown, preferredZone?: str
   });
 
   if (candidates.length > 0) return candidates[0];
-  if (preferredZone) return findEvidenceLine(lines, value);
+  if (preferredZone) return findEvidenceLine(lines, value, undefined, fieldKey);
   return null;
 }
 
@@ -844,7 +915,7 @@ function addParseFieldCandidate(params: {
   const normalizedValue = normalizeCanonicalValue(params.fieldKey, params.value);
   if (!hasCanonicalValue(normalizedValue)) return params.order;
 
-  const evidenceLine = findEvidenceLine(params.lines, params.value, params.preferredZone);
+  const evidenceLine = findEvidenceLine(params.lines, params.value, params.preferredZone, params.fieldKey);
   const evidence = lineEvidence(evidenceLine, "parse-result-field-v1");
   const candidate = buildCandidate({
     fieldKey: params.fieldKey,
@@ -1031,7 +1102,6 @@ const PAYMENT_HISTORY_FIELD_PATHS = [
 ] as const;
 
 const REQUIRED_EVIDENCE_FIELD_PATTERNS = [
-  /^sourceBureau\.bureauName$/,
   /^reportMetadata\.reportDate$/,
   /^consumerInfo\.(fullName|dateOfBirth|addressLine1|city|province|postalCode)$/,
   /^tradelines\[\d+\]\.(creditorName|accountNumber|accountType|balance|status|dates\.opened|dates\.reported)$/,
