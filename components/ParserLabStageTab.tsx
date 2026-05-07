@@ -27,6 +27,7 @@ export type StageLabTestCasePayload = {
   stageVersion?: string | null;
   extractionSource?: string | null;
   parserContext?: unknown;
+  materializeForViolationCorrections?: boolean;
 };
 
 interface ParserLabStageTabProps {
@@ -301,6 +302,7 @@ function buildStageLabTestCasePayload(
       reviewQueue: result.reviewQueue,
       provenance: result.provenance,
     },
+    materializeForViolationCorrections: true,
   };
 }
 

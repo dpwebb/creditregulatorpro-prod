@@ -15,6 +15,7 @@ export const schema = z.object({
   stageVersion: z.string().nullable().optional(),
   extractionSource: z.string().nullable().optional(),
   parserContext: z.any().optional(),
+  materializeForViolationCorrections: z.boolean().optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
@@ -34,6 +35,7 @@ export type OutputType = {
     extractionSource: string | null;
     parserContext: Json | null;
     adminReviewStatus: string;
+    materializedArtifactId?: number | null;
   };
 };
 

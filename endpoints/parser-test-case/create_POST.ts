@@ -7,6 +7,106 @@ import { isAdmin } from "../../helpers/userRoleUtils";
 import { Json } from "../../helpers/schema";
 import { parsePdfThroughProductionHtmlPipeline } from "../../helpers/parserTestProductionParser";
 import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
+import { createReportArtifact } from "../../helpers/ingestArtifactCreator";
+import { handleIngestProcess } from "../../helpers/ingestReportHandler";
+import type { ResolvedUserSession } from "../../helpers/ingestSessionResolver";
+import type { SSEEvent } from "../../helpers/sseStreamBuilder";
+
+async function resolveAdminUserAccount(user: ResolvedUserSession["user"]): Promise<ResolvedUserSession["userAccount"]> {
+  let userAccount = await db
+    .selectFrom("userAccount")
+    .selectAll()
+    .where("userId", "=", user.id)
+    .executeTakeFirst();
+
+  if (!userAccount) {
+    userAccount = await db
+      .selectFrom("userAccount")
+      .selectAll()
+      .where("email", "=", user.email)
+      .executeTakeFirst();
+  }
+
+  if (!userAccount) {
+    userAccount = await db
+      .insertInto("userAccount")
+      .values({
+        userId: user.id,
+        email: user.email,
+        fullName: user.displayName,
+        region: "CA",
+        role: user.role,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  return userAccount;
+}
+
+async function materializeStageLabForViolationCorrections(params: {
+  user: ResolvedUserSession["user"];
+  userAccount: ResolvedUserSession["userAccount"];
+  testCaseId: number;
+  testCaseName: string;
+  bytesBase64: string;
+  fileName: string;
+  mimeType: string;
+}): Promise<number> {
+  const region = params.userAccount.region ?? "CA";
+  const artifact = await createReportArtifact({
+    userId: params.user.id,
+    organizationId: params.user.organizationId ?? null,
+    bytesBase64: params.bytesBase64,
+    fileName: params.fileName,
+    mimeType: params.mimeType,
+    region,
+  });
+
+  const artifactData = (await db
+    .selectFrom("reportArtifact")
+    .select("data")
+    .where("id", "=", artifact.artifactId)
+    .executeTakeFirst())?.data as Record<string, unknown> ?? {};
+
+  await db
+    .updateTable("reportArtifact")
+    .set({
+      data: JSON.parse(JSON.stringify({
+        ...artifactData,
+        source: "stage_lab_test_case",
+        parserTestCaseId: params.testCaseId,
+        parserTestCaseName: params.testCaseName,
+        extractionStatus: "ready",
+        extractionSource: "pending",
+        extractionProvenance: {
+          strategy: "stage_lab_materialized_ingestion",
+          source: "parser_test_case_create",
+          artifactSha256: artifact.sha256,
+        },
+      })) as Json,
+    })
+    .where("id", "=", artifact.artifactId)
+    .execute();
+
+  const events: SSEEvent[] = [];
+  await handleIngestProcess(
+    {
+      user: params.user,
+      isAuthenticatedUpload: true,
+      userAccount: params.userAccount,
+    },
+    artifact.artifactId,
+    (event) => events.push(event),
+  );
+
+  const errorEvent = events.find((event) => event.type === "error");
+  if (errorEvent?.type === "error") {
+    throw new Error(errorEvent.error || "Stage Lab materialization failed.");
+  }
+
+  return artifact.artifactId;
+}
 
 export async function handle(request: Request) {
   try {
@@ -86,6 +186,20 @@ export async function handle(request: Request) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    let materializedArtifactId: number | null = null;
+    if (input.materializeForViolationCorrections) {
+      const userAccount = await resolveAdminUserAccount(user);
+      materializedArtifactId = await materializeStageLabForViolationCorrections({
+        user,
+        userAccount,
+        testCaseId: newTestCase.id,
+        testCaseName: newTestCase.name,
+        bytesBase64: input.pdfBase64,
+        fileName: String((inputParserContext as any).sourceFileName || `${input.name}.pdf`),
+        mimeType: "application/pdf",
+      });
+    }
+
     const output: OutputType = {
       testCase: {
         id: newTestCase.id,
@@ -101,6 +215,7 @@ export async function handle(request: Request) {
         extractionSource: newTestCase.extractionSource,
         parserContext: newTestCase.parserContext,
         adminReviewStatus: newTestCase.adminReviewStatus,
+        materializedArtifactId,
       },
     };
 

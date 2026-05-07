@@ -109,6 +109,18 @@ describe("deterministic ingestion lockdown", () => {
     expect(createEndpoint).toContain("replayValidation");
   });
 
+  it("keeps Stage Lab saves visible in Violation Corrections by materializing ingestion", () => {
+    const stageTab = source("components/ParserLabStageTab.tsx");
+    const createSchema = source("endpoints/parser-test-case/create_POST.schema.ts");
+    const createEndpoint = source("endpoints/parser-test-case/create_POST.ts");
+
+    expect(stageTab).toContain("materializeForViolationCorrections: true");
+    expect(createSchema).toContain("materializeForViolationCorrections: z.boolean().optional()");
+    expect(createEndpoint).toContain("materializeStageLabForViolationCorrections");
+    expect(createEndpoint).toContain("handleIngestProcess");
+    expect(createEndpoint).toContain('source: "stage_lab_test_case"');
+  });
+
   it("derives Pass A and Full extraction records with deterministic pdf text provenance", () => {
     const result = deriveDeterministicDraftExtractions(parseResult(), 42);
 

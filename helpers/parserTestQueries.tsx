@@ -32,6 +32,7 @@ export function useCreateParserTestCase() {
     mutationFn: (input: Parameters<typeof createParserTestCase>[0]) => createParserTestCase(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PARSER_TEST_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: VIOLATION_CORRECTION_KEYS.all });
     },
   });
 }
