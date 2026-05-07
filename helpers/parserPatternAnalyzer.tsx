@@ -14,7 +14,7 @@ export interface FieldComparisonResult {
 
 export interface TradelineComparisonResult {
   accountNumber: string;
-  creditorName: string;
+  creditorName?: string;
   actualIndex?: number;
   passed: boolean;
   fieldResults: FieldComparisonResult[];

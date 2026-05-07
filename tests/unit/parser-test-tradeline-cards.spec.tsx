@@ -31,6 +31,29 @@ describe("parser test tradeline cards", () => {
     expect(screen.getAllByText("$1,234.50").length).toBe(2);
   });
 
+  it("derives comparison card headings from legacy field rows when stored results lack a creditor header field", () => {
+    render(
+      <TradelineResultCard
+        result={{
+          accountNumber: "Not Provided by Bureau",
+          passed: true,
+          fieldResults: [
+            {
+              fieldName: "Creditor Name",
+              expected: "BANK OF NOVA SCOTIA",
+              actual: "BANK OF NOVA SCOTIA",
+              passed: true,
+              mode: "exact",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Creditor Name: BANK OF NOVA SCOTIA")).toBeInTheDocument();
+    expect(screen.queryByText("Creditor Name: Unknown Creditor")).not.toBeInTheDocument();
+  });
+
   it("standardizes extracted tradeline missing values, date rows, remarks, and review notes", () => {
     render(
       <ActualTradelineCard

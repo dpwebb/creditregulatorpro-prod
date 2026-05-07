@@ -5,7 +5,7 @@ import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { TradelineComparisonResult } from "../helpers/parserPatternAnalyzer";
 import { ResultRow } from "./ParserTestResultRow";
-import { formatAccountNumber } from "./parserTestDisplayFormat";
+import { formatAccountNumber, isMissingReportValue } from "./parserTestDisplayFormat";
 import styles from "./ParserTestResultsPanel.module.css";
 
 interface TradelineResultCardProps {
@@ -16,11 +16,30 @@ interface TradelineResultCardProps {
   // The existing logic passed the entire tradeline object for approval.
 }
 
+function getCreditorNameFromComparison(result: TradelineComparisonResult): string {
+  if (!isMissingReportValue(result.creditorName)) {
+    return String(result.creditorName).trim();
+  }
+
+  const creditorNameField = result.fieldResults.find(
+    (fieldResult) =>
+      fieldResult.fieldName.replace(/[^a-z0-9]/gi, "").toLowerCase() ===
+      "creditorname",
+  );
+  const fallback =
+    !isMissingReportValue(creditorNameField?.actual)
+      ? creditorNameField?.actual
+      : creditorNameField?.expected;
+
+  return isMissingReportValue(fallback) ? "Unknown Creditor" : String(fallback).trim();
+}
+
 export function TradelineResultCard({
   result,
   onApprove,
 }: TradelineResultCardProps) {
   const [isOpen, setIsOpen] = React.useState(!result.passed);
+  const creditorName = getCreditorNameFromComparison(result);
 
   return (
     <Collapsible.Root
@@ -37,7 +56,7 @@ export function TradelineResultCard({
           <div className={styles.tlTitle}>
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             <div className={styles.tlTitleText}>
-              <span>Creditor Name: {result.creditorName || "Unknown Creditor"}</span>
+              <span>Creditor Name: {creditorName}</span>
               <span className={styles.tlMeta}>
                 Account Number: {formatAccountNumber(result.accountNumber)}
               </span>
