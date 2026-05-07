@@ -520,7 +520,7 @@ export async function persistTradelines(
       const originalBalance = normalizeCreditReportAmount(parsedTradeline.originalBalance, "tradeline.originalBalance");
       const monthlyPayment = normalizeCreditReportAmount(parsedTradeline.monthlyPayment, "tradeline.monthlyPayment");
       const scheduledMonthlyPayment = normalizeCreditReportAmount(
-        parsedTradeline.scheduledMonthlyPayment ?? parsedTradeline.monthlyPayment,
+        parsedTradeline.scheduledMonthlyPayment,
         "tradeline.scheduledMonthlyPayment",
       );
       const lastPaymentAmount = normalizeCreditReportAmount(parsedTradeline.lastPaymentAmount, "tradeline.lastPaymentAmount");

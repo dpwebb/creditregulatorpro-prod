@@ -154,7 +154,7 @@ function extractTransUnionEmploymentInfo(text: string): ExtractedEmploymentInfo[
       employerCity: null,
       employerProvince: null,
       employerPostalCode: null,
-      employerPhone: null,
+      employerPhone: extractEmployerPhone(remainder),
       isCurrent: null,
       rawSectionText: `${match[1]} ${match[2]}`.trim(),
       confidence: 90,
@@ -267,6 +267,8 @@ function processEmployerBlock(lines: string[], results: ExtractedEmploymentInfo[
     employerAddress = addressMatch[0];
   }
 
+  const employerPhone = extractEmployerPhone(blockText);
+
   // Only add if we found at least a name or occupation
   if (employerName || occupation) {
     results.push({
@@ -282,10 +284,20 @@ function processEmployerBlock(lines: string[], results: ExtractedEmploymentInfo[
       employerCity,
       employerProvince,
       employerPostalCode,
-      employerPhone: null, // Phone extraction is tricky without specific labels
+      employerPhone,
       isCurrent,
       rawSectionText: blockText,
       confidence: employerName ? 80 : 50
     });
   }
+}
+
+function extractEmployerPhone(text: string): string | null {
+  const explicit = text.match(/(?:Employer\s+)?Phone(?:\s+Number)?[\s:]+((?:\+?1[\s.-]?)?(?:\(?[2-9]\d{2}\)?[\s.-]?\d{3}[\s.-]?\d{4}|[2-9]\d{9}))/i);
+  const generic = explicit?.[1] ?? text.match(/(?:\+?1[\s.-]?)?(?:\(?[2-9]\d{2}\)?[\s.-]?\d{3}[\s.-]?\d{4}|[2-9]\d{9})/)?.[0] ?? null;
+  if (!generic) return null;
+  const digits = generic.replace(/\D/g, "");
+  const normalized = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
+  if (normalized.length !== 10) return null;
+  return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
 }

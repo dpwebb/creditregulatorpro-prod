@@ -211,6 +211,7 @@ export function deriveDeterministicDraftExtractions(
     consumer_profile.employment_history.push({
       employer_name: createValue(employment.employerName),
       occupation: createValue(employment.occupation),
+      employer_address: createValue(employment.employerAddress),
       hire_date: createValue(formatDate(employment.hireDate)),
       verification_date: createValue(formatDate(employment.verifiedDate)),
       status: createValue(
@@ -299,6 +300,7 @@ export function deriveDeterministicDraftExtractions(
         : requiredValue("Unknown", null, 0),
       inquiry_date: requiredValue(formatDate(inquiry.inquiryDate) || "", null, inquiry.inquiryDate ? 1 : 0),
       inquiry_type: createValue(inquiry.inquiryType),
+      phone_number: createValue(inquiry.phone ?? undefined),
     };
     if (inquiry.inquiryType === "hard") inquiriesCreditRelated.push(inquiryObject);
     else inquiriesOther.push(inquiryObject);
@@ -313,6 +315,9 @@ export function deriveDeterministicDraftExtractions(
     case_number: createValue(record.caseNumber, record.rawSectionText),
     status: createValue(record.status, record.rawSectionText),
     amount: createValue(record.amount, record.rawSectionText),
+    trustee: createValue(record.trustee, record.rawSectionText),
+    liability_amount: createValue(record.liabilityAmount, record.rawSectionText),
+    asset_amount: createValue(record.assetAmount, record.rawSectionText),
   }));
 
   const fullExtraction = {

@@ -212,10 +212,20 @@ export async function storeComprehensiveReportData(params: {
           filingDate: record.filingDate,
           dischargeDate: record.dischargeDate,
           amount: normalizeCreditReportAmountString(record.amount, "reportPublicRecord.amount"),
+          assetAmount: normalizeCreditReportAmountString(record.assetAmount, "reportPublicRecord.assetAmount"),
+          liabilityAmount: normalizeCreditReportAmountString(record.liabilityAmount, "reportPublicRecord.liabilityAmount"),
+          exemptAmount: normalizeCreditReportAmountString(record.exemptAmount, "reportPublicRecord.exemptAmount"),
           caseNumber: record.caseNumber,
           courtName: record.courtName,
+          courtLocation: record.courtLocation ?? null,
           status: record.status,
           plaintiff: record.plaintiff,
+          trustee: record.trustee ?? null,
+          attorney: record.attorney ?? null,
+          releaseDate: record.releaseDate ?? null,
+          satisfiedDate: record.satisfiedDate ?? null,
+          verifiedDate: record.verifiedDate ?? null,
+          bankruptcyType: record.bankruptcyType ?? null,
           rawSectionText: record.rawSectionText,
           region: "CA",
         })
@@ -281,8 +291,7 @@ export async function storeComprehensiveReportData(params: {
           employerCity: employment.employerCity,
           employerProvince: employment.employerProvince,
           employerPostalCode: employment.employerPostalCode,
-          // employerPhone is not in ExtractedEmploymentInfo but is in DB schema. 
-          // We'll leave it null as it's not extracted.
+          employerPhone: employment.employerPhone,
           isCurrent: employment.isCurrent,
           rawSectionText: employment.rawSectionText,
           region: "CA",
@@ -487,7 +496,6 @@ export async function storeComprehensiveReportData(params: {
           const normalizedMonthlyPayment = normalizeCreditReportAmount(paymentHistory.monthlyPayment, "tradeline.monthlyPayment");
           if (normalizedMonthlyPayment !== null) {
             tradelineFallbackUpdates.monthlyPayment = normalizedMonthlyPayment;
-            tradelineFallbackUpdates.scheduledMonthlyPayment = normalizedMonthlyPayment;
           }
         }
 

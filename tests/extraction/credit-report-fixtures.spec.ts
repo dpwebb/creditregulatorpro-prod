@@ -4,6 +4,8 @@ import { extractConsumerInfo } from "../../helpers/consumerInfoExtractor";
 import { extractReportMetadata } from "../../helpers/reportMetadataExtractor";
 import { extractTradelines } from "../../helpers/transunionPdfExtractor";
 import { extractEquifaxTradelines } from "../../helpers/equifaxPdfExtractor";
+import { extractCreditLimit, extractAmounts, extractBalance } from "../../helpers/tradelineAmountExtractors";
+import { extractInquiries } from "../../helpers/inquiryExtractor";
 import { buildDeterministicCreditReportPipelinePackage } from "../../helpers/deterministicCreditReportPipeline";
 import { parseHtmlToRawText } from "../../helpers/_htmlParserUtils";
 import {
@@ -86,6 +88,70 @@ CAPITAL ONE BANK
     expect(consumerInfo.city).toBe("HALIFAX");
     expect(consumerInfo.province).toBe("NS");
     expect(consumerInfo.postalCode).toBe("B3J 1A1");
+  });
+
+  it("keeps missing and adjacent monetary fields distinct", () => {
+    expect(extractBalance("Creditor Name SAMPLE\nStatus Open\nOpened Date 2026-01-01")).toBeNull();
+    expect(extractCreditLimit("Available Credit: $900")).toBeNull();
+    expect(extractAmounts("Credit Limit: $1,000")).toEqual({
+      high: undefined,
+      pastDue: undefined,
+    });
+  });
+
+  it("does not merge separate TransUnion accounts from the same creditor", () => {
+    const tradelines = extractTradelines(`
+Account(s):
+Creditor Name
+SAMPLE BANK
+Account TypeREVOLVING / INDIVIDUAL
+StatusOpen
+Opened DateJan 01, 2020
+Reported DateJan 10, 2026
+Payment History
+Jan 202610100010000
+
+Creditor Name
+SAMPLE BANK
+Account TypeREVOLVING / INDIVIDUAL
+StatusOpen
+Opened DateFeb 01, 2021
+Reported DateJan 10, 2026
+Payment History
+Jan 202620200020000
+`);
+
+    expect(tradelines).toHaveLength(2);
+    expect(tradelines.map((tradeline) => tradeline.dates.opened?.toISOString().slice(0, 10))).toEqual([
+      "2020-01-01",
+      "2021-02-01",
+    ]);
+  });
+
+  it("keeps Equifax collection assignment separate from opened date", () => {
+    const tradelines = extractEquifaxTradelines(`
+Equifax Canada
+Credit ReportRequest Date 2026/04/16
+Collections
+SAMPLE COLLECTIONS
+Account
+Number
+********1234
+Date Assigned 2024/02/03
+Date Verified 2026/04/01
+Amount $500.00
+Status Collection
+Member Name SAMPLE ORIGINAL
+Member Number M123
+`);
+
+    expect(tradelines).toHaveLength(1);
+    expect(tradelines[0].isCollectionAccount).toBe(true);
+    expect(tradelines[0].dates.opened).toBeNull();
+    expect(tradelines[0].dateAssignedToCollection?.toISOString().slice(0, 10)).toBe("2024-02-03");
+    expect(tradelines[0].originalBalance).toBe(500);
+    expect(tradelines[0].amounts.high).toBeUndefined();
+    expect(tradelines[0].amounts.pastDue).toBeUndefined();
   });
 
   it("routes HTML fixtures to the expected bureau parser family", () => {
@@ -184,5 +250,41 @@ CAPITAL ONE BANK
     expect(equifaxPackage.finalOutput.fields["tradelines[0].creditorName"].value).toBe("CAPITAL ONE BANK");
     expect(transUnionPortalPackage.semanticZoneDetection.zones.map((zone) => zone.zoneName)).toContain("consumer_identity");
     expect(transUnionPortalPackage.finalOutput.fields["consumerInfo.dateOfBirth"].normalizedValue).toBe("1961-01-30");
+  });
+
+  it("canonicalizes side-channel bureau facts with evidence", () => {
+    const text = `
+TransUnion Canada Consumer Disclosure
+Your file as of Jan 10, 2026
+TU Case IDL121322
+Personal Information:
+Your Information TEST CONSUMER ON FILE Jan 30, 1961
+Credit Related Inquiries:
+Date Authorized User Telephone
+Sep 12, 2025ROYAL BANK VISA8007692512
+`;
+    const inquiries = extractInquiries(text);
+    const packageResult = buildDeterministicCreditReportPipelinePackage({
+      parseResult: {
+        rawText: text,
+        sourceBureau: { bureauName: "TransUnion Canada", confidence: 100 },
+        reportMetadata: extractReportMetadata(text),
+        consumerInfo: extractConsumerInfo(text),
+        tradelines: [],
+        creditScores: [],
+        inquiries,
+        publicRecords: [],
+        consumerStatements: [],
+        employmentInfo: [],
+        paymentHistories: [],
+      },
+      rawText: text,
+      documentBinarySha256: "side-channel-sha",
+    });
+
+    expect(packageResult.finalOutput.reportMetadata.bureauReferenceId).toBe("L121322");
+    expect(packageResult.finalOutput.inquiries[0].phone).toBe("8007692512");
+    expect(packageResult.finalOutput.fields["inquiries[0].phone"].evidence.textSnippet).toContain("ROYAL BANK VISA");
+    expect(packageResult.candidatePools.some((pool) => pool.fieldKey === "inquiries[0].phone")).toBe(true);
   });
 });

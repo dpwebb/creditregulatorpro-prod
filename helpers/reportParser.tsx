@@ -411,9 +411,12 @@ export async function parseReport(
 
           const asyncBalance = await extractBalanceAsync(sourceText);
           const shouldUseAsyncBalance =
+            asyncBalance !== null &&
             asyncBalance > 0 &&
             (
+              deterministicBalance === null ||
               deterministicBalance <= 0 ||
+              tradeline.balance === null ||
               tradeline.balance <= 0 ||
               amountsWithinTolerance(asyncBalance, deterministicBalance)
             );
@@ -423,12 +426,12 @@ export async function parseReport(
               `[Report Parser]   Balance updated from ${tradeline.balance} to ${asyncBalance} (deterministic compatibility)`,
             );
             augmented.balance = asyncBalance;
-          } else if (deterministicBalance > 0 && deterministicBalance !== tradeline.balance) {
+          } else if (deterministicBalance !== null && deterministicBalance > 0 && deterministicBalance !== tradeline.balance) {
             console.log(
               `[Report Parser]   Balance corrected from ${tradeline.balance} to ${deterministicBalance} (deterministic grid)`,
             );
             augmented.balance = deterministicBalance;
-          } else if (asyncBalance > 0 && !shouldUseAsyncBalance) {
+          } else if (asyncBalance !== null && asyncBalance > 0 && !shouldUseAsyncBalance) {
             console.log(
               `[Report Parser]   Ignored compatibility balance ${asyncBalance}; keeping deterministic ${deterministicBalance || tradeline.balance}`,
             );

@@ -188,7 +188,7 @@ function parseTradelineSection(
 
   // Additional validation: Should have at least one meaningful piece of data beyond name/account
   const hasAdditionalData =
-    balance > 0 ||
+    (balance !== null && balance > 0) ||
     accountType !== null ||
     status !== null ||
     dates.opened !== null ||
@@ -209,7 +209,7 @@ function parseTradelineSection(
     accountNumber: accountNumber || "Unknown",
     creditorName: creditorName || "Unknown",
     accountType: accountType || "Unknown",
-    balance: balance,
+    balance,
     status: status || "Unknown",
     dates: {
       opened: dates.opened,
@@ -244,6 +244,7 @@ function parseTradelineSection(
     paymentHistoryDetails: paymentHistoryDetails.length > 0 ? paymentHistoryDetails : null,
     mop: detailMop ?? undefined,
     creditLimit: latestPaymentDetail?.creditLimit ?? undefined,
+    balanceMissingFromReport: balance === null,
   });
 
   // Store the raw source text for document highlighting
@@ -269,17 +270,36 @@ function deduplicateTradelines(tradelines: ParsedTradeline[]): ParsedTradeline[]
     return tradelines;
   }
 
-  // Group tradelines by creditor name (case-insensitive, trimmed)
+  // Group only by stable account identity. Creditor-name-only merging can
+  // collapse multiple accounts from the same furnisher into a false single account.
   const tradelinesByCreditor = new Map<string, ParsedTradeline[]>();
   
-  for (const tradeline of tradelines) {
+  for (let index = 0; index < tradelines.length; index++) {
+    const tradeline = tradelines[index];
     const normalizedCreditor = tradeline.creditorName.toLowerCase().trim();
+    const normalizedAccount = (tradeline.accountNumber || "")
+      .replace(/[^a-zA-Z0-9*X]/g, "")
+      .toUpperCase();
+    const hasAccountAnchor =
+      normalizedAccount &&
+      !["UNKNOWN", "NA", "NOTREPORTED", "NOTAVAILABLE"].includes(normalizedAccount);
+    const openedAnchor = tradeline.dates.opened instanceof Date && !Number.isNaN(tradeline.dates.opened.getTime())
+      ? tradeline.dates.opened.toISOString().slice(0, 10)
+      : "";
+    const reportedAnchor = tradeline.dates.reported instanceof Date && !Number.isNaN(tradeline.dates.reported.getTime())
+      ? tradeline.dates.reported.toISOString().slice(0, 10)
+      : "";
+    const identityKey = hasAccountAnchor
+      ? `${normalizedCreditor}|acct:${normalizedAccount}`
+      : openedAnchor
+        ? `${normalizedCreditor}|opened:${openedAnchor}|type:${tradeline.accountType || ""}|reported:${reportedAnchor}`
+        : `${normalizedCreditor}|source:${index}`;
     
-    if (!tradelinesByCreditor.has(normalizedCreditor)) {
-      tradelinesByCreditor.set(normalizedCreditor, []);
+    if (!tradelinesByCreditor.has(identityKey)) {
+      tradelinesByCreditor.set(identityKey, []);
     }
     
-    tradelinesByCreditor.get(normalizedCreditor)!.push(tradeline);
+    tradelinesByCreditor.get(identityKey)!.push(tradeline);
   }
 
   // Merge duplicates
@@ -355,7 +375,7 @@ function mergeTradelines(tradelines: ParsedTradeline[]): ParsedTradeline {
     }
 
     // For balance, take the maximum (most recent/accurate)
-    if (current.balance > merged.balance) {
+    if (current.balance !== null && (merged.balance === null || current.balance > merged.balance)) {
       merged.balance = current.balance;
     }
 

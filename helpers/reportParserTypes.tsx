@@ -40,8 +40,8 @@ export interface ParsedTradeline {
   creditorName: string;
   /** The category of account (e.g., Revolving, Installment, Mortgage, Open) */
   accountType: string;
-  /** Current outstanding balance */
-  balance: number;
+  /** Current outstanding balance. Null means the source did not report a balance. */
+  balance: number | null;
   /** Canadian credit rating (e.g., R1, I2) or descriptive status */
   status: string;
   /** Key dates associated with the account */
@@ -135,6 +135,8 @@ export interface ParsedTradeline {
   ratingCodeDescription?: string | null;
   /** Amount written off or charged off when separately reported */
   amountWrittenOff?: number | null;
+  /** True when the parser found no explicit balance value in the source section */
+  balanceMissingFromReport?: boolean;
   /** Bureau/account notes that are not legal conclusions */
   notes?: string | null;
   /** Date the bureau/furnisher verified the account data */

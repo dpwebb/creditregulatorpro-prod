@@ -99,6 +99,9 @@ export interface PublicRecordExtraction {
   case_number?: ExtractedValue<string>;
   status?: ExtractedValue<string>;
   amount?: ExtractedValue<number>;
+  trustee?: ExtractedValue<string>;
+  liability_amount?: ExtractedValue<number>;
+  asset_amount?: ExtractedValue<number>;
 }
 
 export interface InsolvencyPublicRecords {

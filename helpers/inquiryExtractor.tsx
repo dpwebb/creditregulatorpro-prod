@@ -9,6 +9,7 @@ export type ExtractedInquiry = {
   inquiryPurpose: string | null;
   subscriberCode: string | null;
   industryCode: string | null;
+  phone?: string | null;
   rawSectionText: string;
   confidence: number;
 };
@@ -139,6 +140,7 @@ function parseTransUnionInquirySection(
       inquiryPurpose: inquiryType === "hard" ? "Credit Related Inquiry" : "Non-credit/account review inquiry",
       subscriberCode: null,
       industryCode: null,
+      phone: phoneMatch?.[0]?.trim() ?? null,
       rawSectionText: `${dateString} ${remainder}`.trim(),
       confidence: 90,
     });
@@ -302,6 +304,7 @@ function parseInquiryLine(line: string, explicitType: "hard" | "soft" | "promoti
         inquiryPurpose: purpose,
         subscriberCode: null,
         industryCode: null,
+        phone: null,
         rawSectionText: trimmed,
         confidence: 85,
       };
@@ -321,6 +324,7 @@ function parseInquiryLine(line: string, explicitType: "hard" | "soft" | "promoti
       const remainder = trimmed.replace(dateStr, '').trim();
       
       // Remove phone numbers if present
+      const phoneMatch = remainder.match(/\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/);
       const withoutPhone = remainder.replace(/\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{4}/g, '').trim();
       
       // Extract subscriber code if present
@@ -377,6 +381,7 @@ function parseInquiryLine(line: string, explicitType: "hard" | "soft" | "promoti
           inquiryPurpose: purpose,
           subscriberCode,
           industryCode: null,
+          phone: phoneMatch?.[0]?.trim() ?? null,
           rawSectionText: trimmed,
           confidence: 80,
         };

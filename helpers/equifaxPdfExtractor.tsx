@@ -209,7 +209,7 @@ function parseAccountBlock(lines: Line[], accountType: AccountSection["accountTy
   const reported = firstDateAfter(rawText, /(?:Last\s*)?Reported/i) ?? findNextDate(lines, /^(Last\s*)?Reported$/i);
   const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment/i) ?? findNextDate(lines, /^Last$|^Last Payment$/i);
   const closed = firstDateAfter(rawText, /(?:Date\s*)?Closed/i) ?? findNextDate(lines, /^Closed$/i);
-  const balance = firstAmountAfter(rawText, /Balance/i) ?? findNextAmount(lines, /^Balance$/i) ?? 0;
+  const balance = firstAmountAfter(rawText, /Balance/i) ?? findNextAmount(lines, /^Balance$/i);
   const high = firstAmountAfter(rawText, /(?:Highest\s*Balance|High\s*Credit)/i) ?? findNextAmount(lines, /^Highest$|^High$/i) ?? undefined;
   const creditLimit = firstAmountAfter(rawText, /Credit\s*Limit/i) ?? findNextAmount(lines, /^Credit$|^Credit Limit$/i) ?? undefined;
   const pastDue = firstAmountAfter(rawText, /Past\s*Due/i) ?? findNextAmount(lines, /^Past Due$/i) ?? undefined;
@@ -239,6 +239,7 @@ function parseAccountBlock(lines: Line[], accountType: AccountSection["accountTy
     responsibilityCode,
     remarkCodes: [],
     sourceText: rawText,
+    balanceMissingFromReport: balance === null,
   };
 
   (parsed as any).amountWrittenOff = amountWrittenOff ?? null;
@@ -280,8 +281,8 @@ function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
   const dateAssigned = firstDateAfter(rawText, /Date\s*Assigned/i);
   const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment\s*Date/i);
   const dateVerified = firstDateAfter(rawText, /Date\s*Verified/i);
-  const amount = firstAmountAfter(rawText, /Amount/i) ?? 0;
-  const balance = firstAmountAfter(rawText, /Balance/i) ?? amount;
+  const amount = firstAmountAfter(rawText, /Amount/i);
+  const balance = firstAmountAfter(rawText, /Balance/i);
   const status = valueAfterInlineLabel(rawText, /Status/i) || "Collection";
 
   const parsed: ParsedTradeline = {
@@ -291,22 +292,24 @@ function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
     balance,
     status,
     dates: {
-      opened: dateAssigned,
+      opened: null,
       reported: dateVerified,
       closed: null,
       dofd: null,
     },
     amounts: {
-      high: amount,
-      pastDue: balance,
+      high: undefined,
+      pastDue: undefined,
     },
     isCollectionAccount: true,
     collectionAgencyName,
     originalCreditorName: memberName,
     dateAssignedToCollection: dateAssigned,
+    originalBalance: amount ?? undefined,
     lastPaymentDate,
     remarkCodes: [],
     sourceText: rawText,
+    balanceMissingFromReport: balance === null,
   };
 
   (parsed as any).dateVerified = dateVerified;
@@ -412,9 +415,9 @@ export function extractEquifaxTradeline(sectionText: string): ParsedTradeline | 
   const ratingMatch = sectionText.match(/\b([RIM][1-9])\b/i);
   const status = ratingMatch ? ratingMatch[1].toUpperCase() : "Unknown";
   const balanceMatch = sectionText.match(/(?:Balance|Bal)[^\d]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
-  const balance = balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, "")) : 0;
+  const balance = balanceMatch ? parseFloat(balanceMatch[1].replace(/,/g, "")) : null;
   const pastDueMatch = sectionText.match(/(?:Past Due|Amount Past Due)[^\d]*\$?\s*([\d,]+(?:\.\d{2})?)/i);
-  const pastDue = pastDueMatch ? parseFloat(pastDueMatch[1].replace(/,/g, "")) : 0;
+  const pastDue = pastDueMatch ? parseFloat(pastDueMatch[1].replace(/,/g, "")) : undefined;
   const accountNumber = extractAccountNumber(sectionText);
   if (accountNumber === "Unknown") return null;
 
@@ -436,6 +439,7 @@ export function extractEquifaxTradeline(sectionText: string): ParsedTradeline | 
     },
     remarkCodes: [],
     sourceText: sectionText,
+    balanceMissingFromReport: balance === null,
     isCollectionAccount: sectionText.toUpperCase().includes("COLLECTION") || status === "R9",
     collectionAgencyName: sectionText.toUpperCase().includes("COLLECTION") ? creditorName : undefined,
   };

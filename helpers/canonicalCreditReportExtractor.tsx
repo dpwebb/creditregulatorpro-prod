@@ -233,6 +233,7 @@ export function mapComprehensiveResultToLLMResponse(parseResult: ComprehensivePa
       creditorName: inquiry.creditorName,
       date: formatDate(inquiry.inquiryDate),
       type: inquiry.inquiryType,
+      telephone: inquiry.phone ?? null,
     })),
     publicRecords: parseResult.publicRecords.map((record) => ({
       type: record.recordType,

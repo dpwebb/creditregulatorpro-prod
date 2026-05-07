@@ -150,6 +150,12 @@ export interface DeterministicNormalizedReport {
   reportMetadata: Record<string, unknown>;
   consumerInfo: Record<string, unknown> | null;
   tradelines: Array<Record<string, unknown>>;
+  creditScores: Array<Record<string, unknown>>;
+  inquiries: Array<Record<string, unknown>>;
+  publicRecords: Array<Record<string, unknown>>;
+  consumerStatements: Array<Record<string, unknown>>;
+  employmentInfo: Array<Record<string, unknown>>;
+  paymentHistories: Array<Record<string, unknown>>;
 }
 
 export interface DeterministicPipelinePackage {
@@ -266,6 +272,17 @@ const SECTION_RULES: Array<{
     sectionName: "inquiries",
     zoneName: "inquiries",
     patterns: [/\binquir(?:y|ies)\b/i, /\bcredit\s+checks?\b/i],
+  },
+  {
+    sectionName: "consumer_statement",
+    zoneName: "consumer_statement",
+    patterns: [
+      /\bconsumer\s+statement/i,
+      /\bconsumer\s+message/i,
+      /\bspecial\s+message/i,
+      /\bfraud\s+alert/i,
+      /\bsecurity\s+freeze/i,
+    ],
   },
   {
     sectionName: "public_records",
@@ -667,20 +684,43 @@ function lineEvidence(
 function findEvidenceLine(lines: TextLine[], value: unknown, preferredZone?: string): TextLine | null {
   if (!hasCanonicalValue(value)) return null;
 
-  const normalizedDate = normalizeCanonicalDate(value);
-  const normalizedText = normalizeTokenText(value);
+  const searchValues = flattenEvidenceSearchValues(value);
   const candidates = lines.filter((line) => {
     if (preferredZone && line.zoneName !== preferredZone) return false;
-    if (normalizedDate) {
-      const match = line.text.match(DATE_PATTERN);
-      return Boolean(match && normalizeCanonicalDate(match[0]) === normalizedDate);
-    }
-    return normalizedText.length > 0 && line.normalizedText.includes(normalizedText);
+    return searchValues.some((searchValue) => {
+      const normalizedDate = normalizeCanonicalDate(searchValue);
+      const normalizedText = normalizeTokenText(searchValue);
+      if (normalizedDate) {
+        const match = line.text.match(DATE_PATTERN);
+        return Boolean(match && normalizeCanonicalDate(match[0]) === normalizedDate);
+      }
+      return normalizedText.length > 0 && line.normalizedText.includes(normalizedText);
+    });
   });
 
   if (candidates.length > 0) return candidates[0];
   if (preferredZone) return findEvidenceLine(lines, value);
   return null;
+}
+
+function flattenEvidenceSearchValues(value: unknown, limit = 12): unknown[] {
+  const values: unknown[] = [];
+  const visit = (entry: unknown) => {
+    if (values.length >= limit || !hasCanonicalValue(entry)) return;
+    if (entry instanceof Date || typeof entry !== "object") {
+      values.push(entry);
+      return;
+    }
+    if (Array.isArray(entry)) {
+      for (const item of entry) visit(item);
+      return;
+    }
+    for (const nested of Object.values(entry as Record<string, unknown>)) {
+      visit(nested);
+    }
+  };
+  visit(value);
+  return values;
 }
 
 function firstDateInText(value: string): string | null {
@@ -771,7 +811,17 @@ function scoreForStructuredField(fieldKey: string, evidence: CanonicalFieldEvide
     ? "consumer_identity"
     : fieldKey.startsWith("tradelines[")
       ? "tradeline_accounts"
-      : "report_header";
+      : fieldKey.startsWith("inquiries[")
+        ? "inquiries"
+        : fieldKey.startsWith("publicRecords[")
+          ? "public_records"
+          : fieldKey.startsWith("employmentInfo[")
+            ? "employment"
+            : fieldKey.startsWith("consumerStatements[")
+              ? "consumer_statement"
+              : fieldKey.startsWith("paymentHistories[")
+                ? "tradeline_accounts"
+                : "report_header";
 
   return {
     labelProximity: evidence.ruleId ? 5 : 0,
@@ -842,6 +892,7 @@ const REPORT_FIELD_PATHS = [
   "fileNumber",
   "bureauFileId",
   "transUnionCaseId",
+  "bureauReferenceId",
   "bureauName",
 ] as const;
 
@@ -877,6 +928,106 @@ const TRADELINE_FIELD_PATHS = [
   "paymentPattern",
   "paymentHistoryProfile",
   "monthsReviewed",
+  "paymentHistory",
+  "paymentHistoryDetails",
+  "creditorPhone",
+  "memberNumber",
+  "ratingCode",
+  "ratingCodeDescription",
+  "amountWrittenOff",
+  "dateVerified",
+  "datePaidSettled",
+  "balanceMissingFromReport",
+] as const;
+
+const CREDIT_SCORE_FIELD_PATHS = [
+  "scoreType",
+  "scoreValue",
+  "scoreDate",
+  "scoreRangeMin",
+  "scoreRangeMax",
+  "scoreFactors",
+  "bureauName",
+] as const;
+
+const INQUIRY_FIELD_PATHS = [
+  "inquiryType",
+  "creditorName",
+  "inquiryDate",
+  "inquiryPurpose",
+  "subscriberCode",
+  "industryCode",
+  "phone",
+] as const;
+
+const PUBLIC_RECORD_FIELD_PATHS = [
+  "recordType",
+  "filingDate",
+  "dischargeDate",
+  "amount",
+  "caseNumber",
+  "courtName",
+  "status",
+  "plaintiff",
+  "assetAmount",
+  "liabilityAmount",
+  "exemptAmount",
+  "releaseDate",
+  "satisfiedDate",
+  "verifiedDate",
+  "trustee",
+  "attorney",
+  "courtLocation",
+] as const;
+
+const CONSUMER_STATEMENT_FIELD_PATHS = [
+  "statementType",
+  "statementText",
+  "effectiveDate",
+  "expirationDate",
+  "addedDate",
+] as const;
+
+const EMPLOYMENT_FIELD_PATHS = [
+  "employerName",
+  "occupation",
+  "employmentStatus",
+  "salary",
+  "salaryFrequency",
+  "hireDate",
+  "terminationDate",
+  "verifiedDate",
+  "employerAddress",
+  "employerCity",
+  "employerProvince",
+  "employerPostalCode",
+  "employerPhone",
+  "isCurrent",
+] as const;
+
+const PAYMENT_HISTORY_FIELD_PATHS = [
+  "paymentPattern",
+  "responsibilityCode",
+  "ecoaCode",
+  "complianceConditionCode",
+  "specialCommentCodes",
+  "times30DaysLate",
+  "times60DaysLate",
+  "times90DaysLate",
+  "times120DaysLate",
+  "worstDelinquencyCode",
+  "worstDelinquencyDate",
+  "accountCondition",
+  "monthlyPayment",
+  "termsFrequency",
+  "termsMonths",
+  "lastPaymentAmount",
+  "lastActivityDate",
+  "lastReportedDate",
+  "lastPaymentDate",
+  "paymentHistorySummary",
+  "monthsReviewed",
+  "paymentHistoryDetails",
 ] as const;
 
 const REQUIRED_EVIDENCE_FIELD_PATTERNS = [
@@ -884,7 +1035,40 @@ const REQUIRED_EVIDENCE_FIELD_PATTERNS = [
   /^reportMetadata\.reportDate$/,
   /^consumerInfo\.(fullName|dateOfBirth|addressLine1|city|province|postalCode)$/,
   /^tradelines\[\d+\]\.(creditorName|accountNumber|accountType|balance|status|dates\.opened|dates\.reported)$/,
+  /^inquiries\[\d+\]\.(creditorName|inquiryDate|inquiryType)$/,
+  /^publicRecords\[\d+\]\.(recordType|filingDate|status)$/,
+  /^paymentHistories\[\d+\]\.(paymentPattern|paymentHistoryDetails)$/,
 ] as const;
+
+function sourceLinesFor(
+  rawSectionText: unknown,
+  sectionName: string,
+  zoneName: string,
+  fallbackLines: TextLine[],
+): TextLine[] {
+  if (typeof rawSectionText !== "string" || !rawSectionText.trim()) return fallbackLines;
+  return buildTextStructure(rawSectionText).lines.map((line) => ({
+    ...line,
+    sectionName,
+    zoneName,
+  }));
+}
+
+function getReportMetadataValue(
+  reportMetadata: ComprehensiveParseResult["reportMetadata"],
+  path: string,
+): unknown {
+  if (path === "bureauReferenceId") {
+    return (
+      reportMetadata.transUnionCaseId ||
+      reportMetadata.bureauFileId ||
+      reportMetadata.fileNumber ||
+      reportMetadata.reportNumber ||
+      null
+    );
+  }
+  return getValueAtPath(reportMetadata, path);
+}
 
 function buildCandidatePools(
   parseResult: ComprehensiveParseResult,
@@ -910,7 +1094,7 @@ function buildCandidatePools(
       pools,
       lines,
       fieldKey: `reportMetadata.${path}`,
-      value: getValueAtPath(parseResult.reportMetadata, path),
+      value: getReportMetadataValue(parseResult.reportMetadata, path),
       sourceMethod: `parseResult.reportMetadata.${path}`,
       preferredZone: "report_header",
       order,
@@ -977,6 +1161,96 @@ function buildCandidatePools(
         fieldKey: `tradelines[${index}].${path}`,
         value: getValueAtPath(tradeline, path),
         sourceMethod: `parseResult.tradelines[${index}].${path}`,
+        preferredZone: "tradeline_accounts",
+        order,
+      });
+    }
+  });
+
+  parseResult.creditScores.forEach((score, index) => {
+    const sourceLines = sourceLinesFor(score.rawSectionText, "credit_score", "report_header", lines);
+    for (const path of CREDIT_SCORE_FIELD_PATHS) {
+      order = addParseFieldCandidate({
+        pools,
+        lines: sourceLines,
+        fieldKey: `creditScores[${index}].${path}`,
+        value: getValueAtPath(score, path),
+        sourceMethod: `parseResult.creditScores[${index}].${path}`,
+        preferredZone: "report_header",
+        order,
+      });
+    }
+  });
+
+  parseResult.inquiries.forEach((inquiry, index) => {
+    const sourceLines = sourceLinesFor(inquiry.rawSectionText, "inquiries", "inquiries", lines);
+    for (const path of INQUIRY_FIELD_PATHS) {
+      order = addParseFieldCandidate({
+        pools,
+        lines: sourceLines,
+        fieldKey: `inquiries[${index}].${path}`,
+        value: getValueAtPath(inquiry, path),
+        sourceMethod: `parseResult.inquiries[${index}].${path}`,
+        preferredZone: "inquiries",
+        order,
+      });
+    }
+  });
+
+  parseResult.publicRecords.forEach((record, index) => {
+    const sourceLines = sourceLinesFor(record.rawSectionText, "public_records", "public_records", lines);
+    for (const path of PUBLIC_RECORD_FIELD_PATHS) {
+      order = addParseFieldCandidate({
+        pools,
+        lines: sourceLines,
+        fieldKey: `publicRecords[${index}].${path}`,
+        value: getValueAtPath(record, path),
+        sourceMethod: `parseResult.publicRecords[${index}].${path}`,
+        preferredZone: "public_records",
+        order,
+      });
+    }
+  });
+
+  parseResult.consumerStatements.forEach((statement, index) => {
+    const sourceLines = sourceLinesFor(statement.rawSectionText, "consumer_statement", "consumer_statement", lines);
+    for (const path of CONSUMER_STATEMENT_FIELD_PATHS) {
+      order = addParseFieldCandidate({
+        pools,
+        lines: sourceLines,
+        fieldKey: `consumerStatements[${index}].${path}`,
+        value: getValueAtPath(statement, path),
+        sourceMethod: `parseResult.consumerStatements[${index}].${path}`,
+        preferredZone: "consumer_statement",
+        order,
+      });
+    }
+  });
+
+  parseResult.employmentInfo.forEach((employment, index) => {
+    const sourceLines = sourceLinesFor(employment.rawSectionText, "employment", "employment", lines);
+    for (const path of EMPLOYMENT_FIELD_PATHS) {
+      order = addParseFieldCandidate({
+        pools,
+        lines: sourceLines,
+        fieldKey: `employmentInfo[${index}].${path}`,
+        value: getValueAtPath(employment, path),
+        sourceMethod: `parseResult.employmentInfo[${index}].${path}`,
+        preferredZone: "employment",
+        order,
+      });
+    }
+  });
+
+  parseResult.paymentHistories.forEach((paymentHistory, index) => {
+    const sourceLines = sourceLinesFor(paymentHistory.rawSectionText, "tradeline_accounts", "tradeline_accounts", lines);
+    for (const path of PAYMENT_HISTORY_FIELD_PATHS) {
+      order = addParseFieldCandidate({
+        pools,
+        lines: sourceLines,
+        fieldKey: `paymentHistories[${index}].${path}`,
+        value: getValueAtPath(paymentHistory, path),
+        sourceMethod: `parseResult.paymentHistories[${index}].${path}`,
         preferredZone: "tradeline_accounts",
         order,
       });
@@ -1263,15 +1537,31 @@ function buildFinalOutput(
   parseResult: ComprehensiveParseResult,
   fields: Record<string, CanonicalFieldObject>,
 ): DeterministicNormalizedReport {
+  const reportMetadata = normalizeSerializableValue(parseResult.reportMetadata) as Record<string, unknown>;
+  if (!reportMetadata.bureauReferenceId) {
+    reportMetadata.bureauReferenceId =
+      reportMetadata.transUnionCaseId ||
+      reportMetadata.bureauFileId ||
+      reportMetadata.fileNumber ||
+      reportMetadata.reportNumber ||
+      null;
+  }
+
   return {
     version: DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION,
     fields,
     evidence: buildEvidenceModel(fields),
-    reportMetadata: normalizeSerializableValue(parseResult.reportMetadata) as Record<string, unknown>,
+    reportMetadata,
     consumerInfo: parseResult.consumerInfo
       ? (normalizeSerializableValue(parseResult.consumerInfo) as Record<string, unknown>)
       : null,
     tradelines: parseResult.tradelines.map(tradelineToSerializable),
+    creditScores: parseResult.creditScores.map((entry) => normalizeSerializableValue(entry) as Record<string, unknown>),
+    inquiries: parseResult.inquiries.map((entry) => normalizeSerializableValue(entry) as Record<string, unknown>),
+    publicRecords: parseResult.publicRecords.map((entry) => normalizeSerializableValue(entry) as Record<string, unknown>),
+    consumerStatements: parseResult.consumerStatements.map((entry) => normalizeSerializableValue(entry) as Record<string, unknown>),
+    employmentInfo: parseResult.employmentInfo.map((entry) => normalizeSerializableValue(entry) as Record<string, unknown>),
+    paymentHistories: parseResult.paymentHistories.map((entry) => normalizeSerializableValue(entry) as Record<string, unknown>),
   };
 }
 

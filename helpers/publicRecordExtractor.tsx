@@ -7,10 +7,20 @@ export type ExtractedPublicRecord = {
   filingDate: Date | null;
   dischargeDate: Date | null;
   amount: number | null;
+  assetAmount?: number | null;
+  liabilityAmount?: number | null;
+  exemptAmount?: number | null;
   caseNumber: string | null;
   courtName: string | null;
+  courtLocation?: string | null;
   status: string | null;
   plaintiff: string | null;
+  trustee?: string | null;
+  attorney?: string | null;
+  releaseDate?: Date | null;
+  satisfiedDate?: Date | null;
+  verifiedDate?: Date | null;
+  bankruptcyType?: string | null;
   rawSectionText: string;
   confidence: number;
 };
@@ -218,6 +228,9 @@ function parseRecordChunk(chunk: string): ExtractedPublicRecord | null {
   // 2. Extract Dates
   let filingDate: Date | null = null;
   let dischargeDate: Date | null = null;
+  let releaseDate: Date | null = null;
+  let satisfiedDate: Date | null = null;
+  let verifiedDate: Date | null = null;
   
   const datePattern = /(\d{4}[-\/]\d{2}[-\/]\d{2}|\d{2}[-\/]\d{2}[-\/]\d{4})/;
   
@@ -230,6 +243,21 @@ function parseRecordChunk(chunk: string): ExtractedPublicRecord | null {
   const dischargeMatch = chunk.match(new RegExp(`(?:Discharged|Discharge\s+Date|Satisfied|Released)[^\\d]*${datePattern.source}`, 'i'));
   if (dischargeMatch) {
     dischargeDate = parsePublicRecordDate(dischargeMatch[1]);
+  }
+
+  const releaseMatch = chunk.match(new RegExp(`(?:Released|Release\\s+Date)[^\\d]*${datePattern.source}`, 'i'));
+  if (releaseMatch) {
+    releaseDate = parsePublicRecordDate(releaseMatch[1]);
+  }
+
+  const satisfiedMatch = chunk.match(new RegExp(`(?:Satisfied|Satisfaction\\s+Date)[^\\d]*${datePattern.source}`, 'i'));
+  if (satisfiedMatch) {
+    satisfiedDate = parsePublicRecordDate(satisfiedMatch[1]);
+  }
+
+  const verifiedMatch = chunk.match(new RegExp(`(?:Verified|Verification\\s+Date|Date\\s+Verified)[^\\d]*${datePattern.source}`, 'i'));
+  if (verifiedMatch) {
+    verifiedDate = parsePublicRecordDate(verifiedMatch[1]);
   }
   
   // Fallback: just grab first date if no label match
@@ -253,6 +281,17 @@ function parseRecordChunk(chunk: string): ExtractedPublicRecord | null {
     }
   }
 
+  const amountAfter = (label: RegExp): number | null => {
+    const match = chunk.match(new RegExp(`${label.source}[\\s:]+\\$?\\s*([\\d,]+(?:\\.\\d{2})?)`, "i"));
+    if (!match) return null;
+    const parsed = parseFloat(match[1].replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const assetAmount = amountAfter(/Assets?|Asset\s+Amount/i);
+  const liabilityAmount = amountAfter(/Liabilit(?:y|ies)|Liability\s+Amount/i);
+  const exemptAmount = amountAfter(/Exempt(?:ion)?(?:\s+Amount)?/i);
+
   // 4. Extract Case/Docket Number
   let caseNumber: string | null = null;
   const caseMatch = chunk.match(/(?:Case|Docket|File|Reference)\s*(?:#|No\.?|Number)?[\s:]*([A-Z0-9-]+)/i);
@@ -262,10 +301,12 @@ function parseRecordChunk(chunk: string): ExtractedPublicRecord | null {
 
   // 5. Extract Court
   let courtName: string | null = null;
-  const courtMatch = chunk.match(/(?:Court|Location)[\s:]+([^\n]+)/i);
+  let courtLocation: string | null = null;
+  const courtMatch = chunk.match(/Court[\s:]+([^\n]+)/i);
   if (courtMatch) {
     courtName = courtMatch[1].trim();
   }
+  courtLocation = chunk.match(/Location[\s:]+([^\n]+)/i)?.[1]?.trim() ?? null;
 
   // 6. Extract Status
   let status: string | null = null;
@@ -291,6 +332,14 @@ function parseRecordChunk(chunk: string): ExtractedPublicRecord | null {
     }
   }
 
+  const trustee = chunk.match(/Trustee[\s:]+([^\n]+)/i)?.[1]?.trim() ?? null;
+  const attorney = chunk.match(/Attorney[\s:]+([^\n]+)/i)?.[1]?.trim() ?? null;
+  const bankruptcyType =
+    recordType === "bankruptcy"
+      ? chunk.match(/(?:Bankruptcy|Proposal)\s+Type[\s:]+([^\n]+)/i)?.[1]?.trim() ??
+        (lower.includes("consumer proposal") ? "Consumer Proposal" : lower.includes("division i") || lower.includes("division 1") ? "Division I Proposal" : null)
+      : null;
+
   // Final validation: Must have at least a date OR amount OR case number to be valid
   if (!filingDate && !amount && !caseNumber) {
     console.log(`[PublicRecordExtractor] Rejecting chunk - no date, amount, or case number found`);
@@ -302,10 +351,20 @@ function parseRecordChunk(chunk: string): ExtractedPublicRecord | null {
     filingDate,
     dischargeDate,
     amount,
+    assetAmount,
+    liabilityAmount,
+    exemptAmount,
     caseNumber,
     courtName,
+    courtLocation,
     status,
     plaintiff,
+    trustee,
+    attorney,
+    releaseDate,
+    satisfiedDate,
+    verifiedDate,
+    bankruptcyType,
     rawSectionText: chunk,
     confidence: 85,
   };

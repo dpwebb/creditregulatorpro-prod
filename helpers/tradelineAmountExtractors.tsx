@@ -15,7 +15,7 @@ import {
 /**
  * Extracts the current balance from a tradeline section (sync, regex-based).
  */
-export function extractBalance(text: string): number {
+export function extractBalance(text: string): number | null {
   const patterns = [
     // "Balance: $1,234.56" or "Current Balance: 1234.56"
     /(?:Current\s+)?Balance[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
@@ -36,13 +36,13 @@ export function extractBalance(text: string): number {
   }
 
   const transUnionGridBalance = extractLatestTransUnionPaymentGridBalance(text);
-  return transUnionGridBalance ?? 0;
+  return transUnionGridBalance ?? null;
 }
 
 /**
  * Extracts the current balance from a tradeline section through the deterministic path.
  */
-export async function extractBalanceAsync(text: string): Promise<number> {
+export async function extractBalanceAsync(text: string): Promise<number | null> {
   return extractBalance(text);
 }
 
@@ -64,9 +64,7 @@ export function extractAmounts(text: string): {
   // High credit/limit patterns
   const highPatterns = [
     /(?:High\s+(?:Credit|Balance))[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
-    /Credit\s+Limit[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
     /(?:Original\s+)?Loan\s+Amount[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
-    /Limit[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
   ];
 
   for (const pattern of highPatterns) {
@@ -124,8 +122,6 @@ export function extractCreditLimit(text: string): number | null {
     /Credit\s+Limit[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
     // "Limit: $12,000"
     /\bLimit[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
-    // "Available Credit: $X" (if no limit found, this might indicate limit)
-    /Available\s+Credit[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
   ];
 
   for (const pattern of patterns) {
