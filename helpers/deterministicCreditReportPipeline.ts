@@ -367,6 +367,7 @@ function hasCanonicalValue(value: unknown): boolean {
         "unknown creditor",
         "not reported",
         "not provided",
+        "not provided by bureau",
         "not available",
         "n/a",
         "na",

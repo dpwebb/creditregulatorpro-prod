@@ -127,8 +127,8 @@ Cross Reference(s):
       }),
       consumerInfo: {
         fullName: "DAVID PHILIP WEBB",
-        addressLine1: "26 MAIN ST E PO BOX 593",
-        addressLine2: null,
+        addressLine1: "26 MAIN ST E",
+        addressLine2: "PO BOX 593",
         city: "STEWIACKE",
         province: "NS",
         postalCode: "B0N 2J0",
@@ -194,7 +194,7 @@ Cross Reference(s):
     expect(reconciled.reportMetadata.transUnionCaseId).toBe("L121322");
     expect(reconciled.consumerInfo?.fullName).toBe("DAVID PHILIP WEBB");
     expect(reconciled.consumerInfo?.sinLastDigits).toBe("123");
-    expect(reconciled.tradelines[0].accountNumber).toBe("Not Provided by Bureau");
+    expect(reconciled.tradelines[0].accountNumber).toBe("123456789");
     expect(reconciled.tradelines[0].balance).toBe(1000);
     expect(reconciled.tradelines[0].dates.opened?.toISOString().slice(0, 10)).toBe("2020-05-01");
     expect(reconciled.tradelines[0].dates.dofd?.toISOString().slice(0, 10)).toBe("2024-06-30");
@@ -207,7 +207,9 @@ Cross Reference(s):
         "reportMetadata.reportDate",
         "reportMetadata.transUnionCaseId",
         "consumerInfo.fullName",
+        "consumerInfo.addressLine2",
         "consumerInfo.sinLastDigits",
+        "tradelines[0].accountNumber",
         "tradelines[0].balance",
         "tradelines[0].dates.opened",
         "tradelines[0].dates.dofd",
@@ -215,7 +217,7 @@ Cross Reference(s):
         "tradelines[0].sourceText",
       ]),
     );
-    expect(result.audit.summary.mappedDifferentlyFields).toContain("tradelines[0].accountNumber");
+    expect(result.audit.summary.backfilledFields).toContain("tradelines[0].accountNumber");
   });
 
   it("adds persisted and final API values to parser-test audit entries", () => {

@@ -108,6 +108,8 @@ function runFieldExtractionRegression(): void {
 
   const consumer = extractConsumerInfo(transUnionText);
   assert(consumer.fullName === "TEST CONSUMER", "TransUnion collapsed personal-info row should preserve consumer name.");
+  assert(consumer.addressLine1 === "26 MAIN ST E", "TransUnion current address line 1 should contain the street address only.");
+  assert(consumer.addressLine2 === "PO BOX 593", "TransUnion current address line 2 should contain the PO box.");
   assert(isoDate(consumer.dateOfBirth) === "1961-01-30", "TransUnion DOB should be extracted from collapsed personal-info row.");
   assert(consumer.dateOfBirthRaw === "Jan 30, 1961", "Raw DOB should preserve the visible date string.");
   assert(consumer.phone === "(647) 612-7729", "Consumer phone should come from Telephone Number(s), not bureau contact numbers.");
@@ -134,6 +136,8 @@ Credit Related Inquiries:
 Date Authorized User Telephone
 Sep 12, 2025ROYAL BANK VISA8007692512
 `);
+  assert(inquiryOnlyPhoneConsumer.addressLine1 === "26 MAIN ST E", "PO box should be split from current address line 1.");
+  assert(inquiryOnlyPhoneConsumer.addressLine2 === "PO BOX 593", "PO box should be assigned to current address line 2.");
   assert(inquiryOnlyPhoneConsumer.phone === null, "Inquiry telephone numbers should not become consumer phone numbers.");
 
   const inlineAddressConsumer = extractConsumerInfo(`
@@ -330,7 +334,7 @@ function runPreviewRegression(): void {
     consumerInfo: {
       fullName: "TEST CONSUMER",
       addressLine1: "26 MAIN ST E",
-      addressLine2: null,
+      addressLine2: "PO BOX 593",
       city: "STEWIACKE",
       province: "NS",
       postalCode: "B0N 2J0",

@@ -5,6 +5,7 @@ import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { TradelineComparisonResult } from "../helpers/parserPatternAnalyzer";
 import { ResultRow } from "./ParserTestResultRow";
+import { formatAccountNumber } from "./parserTestDisplayFormat";
 import styles from "./ParserTestResultsPanel.module.css";
 
 interface TradelineResultCardProps {
@@ -35,7 +36,12 @@ export function TradelineResultCard({
         <Collapsible.Trigger className={styles.tlHeader}>
           <div className={styles.tlTitle}>
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            <span>Account: {result.accountNumber || "Not reported"}</span>
+            <div className={styles.tlTitleText}>
+              <span>Creditor Name: {result.creditorName || "Unknown Creditor"}</span>
+              <span className={styles.tlMeta}>
+                Account Number: {formatAccountNumber(result.accountNumber)}
+              </span>
+            </div>
           </div>
           <div className={styles.tlStatus}>
             {result.passed ? (

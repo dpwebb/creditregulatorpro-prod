@@ -14,6 +14,8 @@ export interface FieldComparisonResult {
 
 export interface TradelineComparisonResult {
   accountNumber: string;
+  creditorName: string;
+  actualIndex?: number;
   passed: boolean;
   fieldResults: FieldComparisonResult[];
 }
@@ -49,6 +51,7 @@ function normalizeAccountNumber(value: string | null | undefined): string | null
     normalized === "NA" ||
     normalized === "NOTREPORTED" ||
     normalized === "NOTPROVIDED" ||
+    normalized === "NOTPROVIDEDBYBUREAU" ||
     normalized === "NOTAVAILABLE"
   ) return null;
   return normalized;
@@ -523,6 +526,10 @@ export function compareTradelines(
 
     results.push({
       accountNumber: expTl.accountNumber || expTl.creditorName || "Expected tradeline",
+      creditorName:
+        String(unwrapExpectedValue(expTl.creditorName) || actTl?.creditorName || "").trim() ||
+        "Unknown Creditor",
+      actualIndex: match?.index,
       passed: tlPassed,
       fieldResults,
     });

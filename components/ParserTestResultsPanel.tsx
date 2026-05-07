@@ -314,9 +314,14 @@ export function ParserTestResultsPanel({
             <h4 className={styles.sectionTitle}>Tradelines Comparison</h4>
             <div className={styles.tradelinesList}>
               {summary.tradelineResults.map((tlResult, idx) => {
-                const actualTl = summary.actualTradelines?.find(
-                  (t) => t.accountNumber === tlResult.accountNumber
-                );
+                const actualTl =
+                  typeof tlResult.actualIndex === "number"
+                    ? summary.actualTradelines?.[tlResult.actualIndex]
+                    : summary.actualTradelines?.find(
+                        (t) =>
+                          t.accountNumber === tlResult.accountNumber ||
+                          t.creditorName === tlResult.creditorName
+                      );
                 // For failing tradelines, we might want to approve the whole thing or specific fields.
                 // Currently, let's keep it simple and approve at tradeline level (which overwrites with current values)
                 return (
@@ -352,6 +357,7 @@ export function ParserTestResultsPanel({
               summary.actualTradelines.map((tradeline, idx) => (
                 <ActualTradelineCard
                   key={idx}
+                  index={idx}
                   tradeline={tradeline}
                   onApprove={() =>
                     openApprovalDialog(

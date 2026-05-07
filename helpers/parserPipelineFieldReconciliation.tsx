@@ -132,6 +132,8 @@ const MISSING_TEXT_VALUES = new Set([
   "na",
   "missing",
   "not reported",
+  "not provided",
+  "not provided by bureau",
   "not available",
   "not parsed",
   "blank",
@@ -366,7 +368,10 @@ function buildEntry(params: {
 
 function normalizeAccountNumber(value: string | null | undefined): string | null {
   const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  if (!normalized || ["UNKNOWN", "NA", "NOTREPORTED", "NOTAVAILABLE"].includes(normalized)) return null;
+  if (
+    !normalized ||
+    ["UNKNOWN", "NA", "NOTREPORTED", "NOTPROVIDED", "NOTPROVIDEDBYBUREAU", "NOTAVAILABLE"].includes(normalized)
+  ) return null;
   return normalized;
 }
 

@@ -2,6 +2,10 @@ import { CheckCircle, XCircle, Check } from "lucide-react";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
 import { FieldComparisonResult } from "../helpers/parserPatternAnalyzer";
+import {
+  formatParserTestValue,
+  MISSING_REPORT_VALUE_LABEL,
+} from "./parserTestDisplayFormat";
 import styles from "./ParserTestResultsPanel.module.css";
 
 interface ResultRowProps {
@@ -10,6 +14,9 @@ interface ResultRowProps {
 }
 
 export function ResultRow({ result, onApprove }: ResultRowProps) {
+  const expected = formatParserTestValue(result.fieldName, result.expected);
+  const actual = formatParserTestValue(result.fieldName, result.actual);
+
   return (
     <tr className={result.passed ? styles.rowPassed : styles.rowFailed}>
       <td className={styles.fieldName}>
@@ -20,13 +27,11 @@ export function ResultRow({ result, onApprove }: ResultRowProps) {
           </Badge>
         )}
       </td>
-      <td className={styles.valueCell}>{String(result.expected)}</td>
       <td className={styles.valueCell}>
-        {result.actual !== undefined && result.actual !== null ? (
-          String(result.actual)
-        ) : (
-          <span className={styles.nullValue}>null</span>
-        )}
+        {expected ?? <span className={styles.nullValue}>{MISSING_REPORT_VALUE_LABEL}</span>}
+      </td>
+      <td className={styles.valueCell}>
+        {actual ?? <span className={styles.nullValue}>{MISSING_REPORT_VALUE_LABEL}</span>}
       </td>
       <td className={styles.statusCell}>
         {result.passed ? (

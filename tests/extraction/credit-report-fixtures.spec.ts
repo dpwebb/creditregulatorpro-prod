@@ -70,6 +70,8 @@ Sep 12, 2025ROYAL BANK VISA8007692512
 `);
 
     expect(consumerInfo.fullName).toBe("TEST CONSUMER");
+    expect(consumerInfo.addressLine1).toBe("26 MAIN ST E");
+    expect(consumerInfo.addressLine2).toBe("PO BOX 593");
     expect(consumerInfo.phone).toBeNull();
   });
 

@@ -206,7 +206,7 @@ function parseTradelineSection(
 
   // Build and return the tradeline object
   const tradeline: ParsedTradeline = normalizeTransUnionPaymentTerms({
-    accountNumber: accountNumber || "Unknown",
+    accountNumber: accountNumber || "Not Provided by Bureau",
     creditorName: creditorName || "Unknown",
     accountType: accountType || "Unknown",
     balance,
@@ -282,7 +282,7 @@ function deduplicateTradelines(tradelines: ParsedTradeline[]): ParsedTradeline[]
       .toUpperCase();
     const hasAccountAnchor =
       normalizedAccount &&
-      !["UNKNOWN", "NA", "NOTREPORTED", "NOTAVAILABLE"].includes(normalizedAccount);
+      !["UNKNOWN", "NA", "NOTREPORTED", "NOTPROVIDED", "NOTPROVIDEDBYBUREAU", "NOTAVAILABLE"].includes(normalizedAccount);
     const openedAnchor = tradeline.dates.opened instanceof Date && !Number.isNaN(tradeline.dates.opened.getTime())
       ? tradeline.dates.opened.toISOString().slice(0, 10)
       : "";
@@ -349,7 +349,10 @@ function mergeTradelines(tradelines: ParsedTradeline[]): ParsedTradeline {
   // Helper to check if a value is "meaningful" (not Unknown, not null, not empty)
   const isMeaningful = (value: any): boolean => {
     if (value === null || value === undefined) return false;
-    if (typeof value === 'string' && (value === 'Unknown' || value.trim() === '')) return false;
+    if (
+      typeof value === 'string' &&
+      (value === 'Unknown' || value.trim() === '' || value.trim().toLowerCase() === "not provided by bureau")
+    ) return false;
     return true;
   };
 

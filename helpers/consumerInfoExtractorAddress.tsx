@@ -13,6 +13,54 @@ type AddressExtractionResult = {
   confidence: number;
 };
 
+const PO_BOX_PATTERN =
+  /\b(?:P\.?\s*O\.?\s*BOX|POST\s+OFFICE\s+BOX)\s*(?:#|NO\.?)?\s*[A-Z0-9][A-Z0-9-]*/i;
+
+function compactWhitespace(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizePoBoxText(value: string): string {
+  return compactWhitespace(value)
+    .replace(/^P\.?\s*O\.?\s*BOX\b/i, "PO BOX")
+    .replace(/^POST\s+OFFICE\s+BOX\b/i, "PO BOX");
+}
+
+function splitPoBoxFromStreetLine(value: string): {
+  street: string | null;
+  poBox: string | null;
+} {
+  const compacted = compactWhitespace(value);
+  const match = compacted.match(PO_BOX_PATTERN);
+  if (!match || match.index === undefined) {
+    return { street: compacted || null, poBox: null };
+  }
+
+  const street = compacted.slice(0, match.index).replace(/[,\s]+$/g, "").trim();
+  return {
+    street: street || null,
+    poBox: normalizePoBoxText(match[0]),
+  };
+}
+
+function normalizePoBoxAddressLines(address: Partial<ExtractedAddress>): void {
+  if (address.addressLine1) {
+    const split = splitPoBoxFromStreetLine(address.addressLine1);
+    if (split.poBox) {
+      address.addressLine1 = split.street;
+      if (!address.addressLine2) {
+        address.addressLine2 = split.poBox;
+      } else if (!address.addressLine2.toUpperCase().includes(split.poBox.toUpperCase())) {
+        address.addressLine2 = `${address.addressLine2} ${split.poBox}`;
+      }
+    }
+  }
+
+  if (address.addressLine2 && PO_BOX_PATTERN.test(address.addressLine2)) {
+    address.addressLine2 = normalizePoBoxText(address.addressLine2);
+  }
+}
+
 function isConsumerInfoSearchBoundary(line: string): boolean {
   return (
     /^Accounts?\s*-\s*(?:Revolving|Mortgage|Installment|Open)\b/i.test(line) ||
@@ -163,6 +211,8 @@ export function extractCurrentAddress(lines: string[]): AddressExtractionResult 
     fallbackPostalCodeSearch(lines, result, consumerNameIndex);
   }
 
+  normalizePoBoxAddressLines(result.address);
+
   return result;
 }
 
@@ -192,6 +242,7 @@ export function extractPreviousAddresses(lines: string[]): { addresses: Extracte
           };
           parseInlineAddress(inlineText, result);
           if (result.address.postalCode) {
+            normalizePoBoxAddressLines(result.address);
             addresses.push(result.address as ExtractedAddress);
             totalConfidence += result.confidence;
           }
@@ -229,6 +280,7 @@ export function extractPreviousAddresses(lines: string[]): { addresses: Extracte
               };
               parseAddressBlock(addressBlock, result);
               if (result.address.postalCode) {
+                normalizePoBoxAddressLines(result.address);
                 addresses.push(result.address as ExtractedAddress);
                 totalConfidence += result.confidence;
               }
@@ -252,6 +304,7 @@ export function extractPreviousAddresses(lines: string[]): { addresses: Extracte
               };
               parseAddressBlock(addressBlock, result);
               if (result.address.postalCode) {
+                normalizePoBoxAddressLines(result.address);
                 addresses.push(result.address as ExtractedAddress);
                 totalConfidence += result.confidence;
               }
