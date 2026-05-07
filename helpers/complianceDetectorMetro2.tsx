@@ -53,10 +53,14 @@ export async function detectMetro2FieldViolations(
 
   const hasAlternateDateAnchor =
     !!tradeline.dateAssignedToCollection || !!tradeline.chargeOffDate;
+  const willFlagMissingCollectionAssignmentDate =
+    isCollection && !tradeline.dateAssignedToCollection;
 
   if (isDelinquent && !tradeline.dateOfFirstDelinquency) {
     if (isCollectionOrChargeOff && hasAlternateDateAnchor) {
       // Legitimate — collection/charge-off with an alternate date anchor; skip
+    } else if (isCollectionOrChargeOff && !hasAlternateDateAnchor && willFlagMissingCollectionAssignmentDate) {
+      // The specific dateAssignedToCollection violation below covers this case.
     } else if (isCollectionOrChargeOff && !hasAlternateDateAnchor) {
       // Collection with NO date anchors at all — flag but at lower confidence
       violations.push({
@@ -271,11 +275,20 @@ export async function detectMetro2FieldViolations(
 
   // 12. Missing Date Assigned to Collection for collection accounts - Provincial Collection Agency Acts
   if (isCollection && !tradeline.dateAssignedToCollection) {
+    const hasNamedCollectionAgency =
+      typeof tradeline.collectionAgencyName === "string" &&
+      tradeline.collectionAgencyName.trim().length > 0;
+    const isNamedCollectionAccount =
+      hasNamedCollectionAgency || accountTypeUpper.includes("COLLECTION");
+    const assignmentDateExplanation = isNamedCollectionAccount
+      ? "This collection account doesn't say when it was sent to collections. That date is required."
+      : "This account is marked as turned over to collection, but the report doesn't say when it was sent to collections. That date is required.";
+
     violations.push({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "ERROR",
       confidenceScore: 97,
-      userExplanation: "This collection account doesn't say when it was sent to collections. That date is required.",
+      userExplanation: assignmentDateExplanation,
       technicalDetails: {
         fieldName: "dateAssignedToCollection",
         expectedValue: "Valid assignment date",
@@ -286,7 +299,7 @@ export async function detectMetro2FieldViolations(
         regulatoryBasis: "Provincial Collection Agency Acts, Metro2 CRRG Standards",
         regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
       },
-      recommendedAction: "Ask the collection agency to add the date it was sent to collections, or have it removed.",
+      recommendedAction: "Ask the furnisher to add the date it was sent to collections, or remove the collection-turnover reporting if it cannot verify that date.",
       tradelineId: tradeline.id,
       responsibleEntity: "CREDITOR",
     });
