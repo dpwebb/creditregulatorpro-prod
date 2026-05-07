@@ -193,6 +193,8 @@
 .truthColumn,
 .evidenceColumn,
 .regulationColumn {
+  overflow-x: hidden;
+  overflow-y: auto;
   padding-bottom: var(--spacing-3);
 }
 

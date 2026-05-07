@@ -17,8 +17,10 @@
 
 .tabContent {
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
+  overflow: auto;
   padding-top: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
 }
 
 /* Styles moved to respective component modules */
