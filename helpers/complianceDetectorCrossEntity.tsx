@@ -26,6 +26,64 @@ function namesLikelySameEntity(nameA: string, nameB: string): boolean {
   return match.isMatch && match.confidence >= 80;
 }
 
+function isCollectionEntityName(name: string): boolean {
+  if (!name.trim()) return false;
+
+  const entity = resolveCreditorEntity(name);
+  if (entity.entityType === "collection") return true;
+
+  const nameUpper = name.toUpperCase();
+  const collectionKeywords = [
+    "COLLECTION",
+    "COLLECTOR",
+    "RECOVERY",
+    "RECEIVABLE",
+    "LEGAL GROUP",
+    "BAILIFF",
+    "DEBT",
+    "CAPITAL ASSET",
+  ];
+
+  return collectionKeywords.some((keyword) => nameUpper.includes(keyword));
+}
+
+export function shouldTreatOriginalCreditorSelfReferenceAsFake(input: {
+  originalCreditorName: string;
+  creditorName?: string | null;
+  collectionAgencyName?: string | null;
+}): { isFake: boolean; matchReason: string } {
+  const originalCreditorName = input.originalCreditorName.trim();
+  const creditorName = input.creditorName?.trim() ?? "";
+  const collectionAgencyName = input.collectionAgencyName?.trim() ?? "";
+
+  if (!originalCreditorName) return { isFake: false, matchReason: "" };
+
+  if (
+    collectionAgencyName &&
+    (namesLikelySameEntity(originalCreditorName, collectionAgencyName) ||
+      normalizeAgencyName(originalCreditorName) === normalizeAgencyName(collectionAgencyName))
+  ) {
+    return {
+      isFake: true,
+      matchReason: "self-reference (matches collection agency name)",
+    };
+  }
+
+  if (
+    creditorName &&
+    (namesLikelySameEntity(originalCreditorName, creditorName) ||
+      normalizeAgencyName(originalCreditorName) === normalizeAgencyName(creditorName)) &&
+    isCollectionEntityName(creditorName)
+  ) {
+    return {
+      isFake: true,
+      matchReason: "self-reference (matches collection-agency creditor name)",
+    };
+  }
+
+  return { isFake: false, matchReason: "" };
+}
+
 /**
  * Compares creditor vs. bureau data for the same account. (Placeholder)
  */
@@ -404,18 +462,20 @@ export async function detectOriginalCreditorChainFailure(
       return false;
     };
 
-    if (checkSelfReference(ocNameUpper, creditorName)) {
+    const selfReference = shouldTreatOriginalCreditorSelfReferenceAsFake({
+      originalCreditorName: ocNameRaw,
+      creditorName,
+      collectionAgencyName: tradeline.collectionAgencyName,
+    });
+    if (selfReference.isFake) {
       isFakeOC = true;
-      matchReason = "self-reference (matches creditor name)";
-    } else if (checkSelfReference(ocNameUpper, caName)) {
-      isFakeOC = true;
-      matchReason = "self-reference (matches collection agency name)";
+      matchReason = selfReference.matchReason;
     }
 
     // 1b. Alias-aware self-reference using canonical entity matching.
-    if (!isFakeOC && creditorName && namesLikelySameEntity(ocNameRaw, creditorName)) {
+    if (!isFakeOC && creditorName && namesLikelySameEntity(ocNameRaw, creditorName) && isCollectionEntityName(creditorName)) {
       isFakeOC = true;
-      matchReason = "alias/self-reference (matches creditor entity alias)";
+      matchReason = "alias/self-reference (matches collection-agency creditor entity alias)";
     }
     if (!isFakeOC && caName && namesLikelySameEntity(ocNameRaw, caName)) {
       isFakeOC = true;
@@ -490,7 +550,7 @@ export async function detectOriginalCreditorChainFailure(
         }
         const siblingCaName = (sibling.collectionAgencyName || "").toUpperCase();
 
-        if (checkSelfReference(ocNameUpper, siblingCreditorName)) {
+        if (checkSelfReference(ocNameUpper, siblingCreditorName) && isCollectionEntityName(siblingCreditorName)) {
           isFakeOC = true;
           matchReason = `matches sibling collection agency creditor name: ${siblingCreditorName}`;
           break;
