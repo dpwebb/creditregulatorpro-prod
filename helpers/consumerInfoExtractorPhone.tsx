@@ -9,6 +9,22 @@ import {
   isKnownBureauPhone,
 } from "./transunionTextParsing";
 
+function consumerPhoneSearchBoundaryIndex(text: string): number {
+  const boundaryMatch = text.match(
+    /\b(?:Credit Related Inquiries|Non-Credit Related Inquiries|Inquiries|Account\(s\)|Accounts?\s*-\s*(?:Revolving|Mortgage|Installment|Open)|Creditor Name|Public Records|Consumer Statement)\b/i,
+  );
+  return boundaryMatch?.index ?? -1;
+}
+
+function consumerPhoneSearchText(text: string): string {
+  const boundaryIndex = consumerPhoneSearchBoundaryIndex(text);
+  return boundaryIndex >= 0 ? text.slice(0, boundaryIndex) : text;
+}
+
+function isConsumerPhoneSearchBoundary(line: string): boolean {
+  return /^(?:Credit Related Inquiries|Non-Credit Related Inquiries|Inquiries|Account\(s\)|Accounts?\s*-\s*(?:Revolving|Mortgage|Installment|Open)|Creditor Name|Public Records|Consumer Statement)\b/i.test(line);
+}
+
 export function extractPhone(
   text: string,
   lines: string[]
@@ -54,6 +70,7 @@ export function extractPhone(
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
+    if (isConsumerPhoneSearchBoundary(line)) break;
 
     // Check for label + value on same line
     const labelMatch = line.match(phoneLabels[0]);
@@ -83,9 +100,10 @@ export function extractPhone(
   // This is less reliable but useful if formatting is messy
   if (!phoneNumber) {
     // Look for phone patterns that appear shortly after keywords in the raw text
+    const searchText = consumerPhoneSearchText(text);
     const keywordPattern =
       /(?:PHONE|TELEPHONE|TEL|HOME|CELL|MOBILE|CONTACT|PH)[\s\S]{0,50}?(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/i;
-    const match = text.match(keywordPattern);
+    const match = searchText.match(keywordPattern);
 
     if (match && match[1]) {
       const extracted = extractPhoneFromSegment(match[1], phoneRegex);
@@ -99,7 +117,8 @@ export function extractPhone(
   // Strategy 3: Last resort, find any valid phone number in the first few lines (header section)
   // Credit reports usually put consumer info at the top
   if (!phoneNumber) {
-    const headerLines = lines.slice(0, 20); // Only look at top 20 lines
+    const boundaryLineIndex = lines.findIndex(isConsumerPhoneSearchBoundary);
+    const headerLines = lines.slice(0, boundaryLineIndex >= 0 ? Math.min(boundaryLineIndex, 20) : 20);
     for (const line of headerLines) {
       // Skip lines that look like dates or SINs or amounts
       if (

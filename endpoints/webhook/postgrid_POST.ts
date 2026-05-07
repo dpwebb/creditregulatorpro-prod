@@ -3,6 +3,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { JsonObject } from "../../helpers/schema";
+import { logger } from "../../helpers/logger";
 
 function generateHash(data: string): string {
   return createHash('sha256').update(data).digest('hex');
@@ -68,9 +69,8 @@ export async function handle(request: Request) {
     // --- Diagnostic header logging ---
     const signatureHeader = request.headers.get("x-postgrid-signature");
     const contentType = request.headers.get("content-type");
-    console.log("PostGrid webhook: Incoming request headers —", {
+    logger.info("PostGrid webhook: Incoming request", {
       "x-postgrid-signature-present": signatureHeader !== null,
-      "x-postgrid-signature-value": signatureHeader ? `${signatureHeader.substring(0, 20)}...` : null,
       "content-type": contentType,
     });
 
@@ -91,9 +91,13 @@ export async function handle(request: Request) {
       }
 
       signatureVerified = true;
-      console.log("PostGrid webhook: Signature verified successfully");
+      logger.info("PostGrid webhook: Signature verified successfully");
     } else {
-      console.warn("PostGrid webhook: POSTGRID_WEBHOOK_SECRET is not set — skipping signature verification (not recommended for production)");
+      if (process.env.POSTGRID_ALLOW_UNSIGNED_WEBHOOKS !== "true") {
+        logger.error("PostGrid webhook: Signing secret is not configured; rejecting unsigned webhook");
+        return new Response(JSON.stringify({ error: "PostGrid webhook signing is not configured." }), { status: 500 });
+      }
+      logger.warn("PostGrid webhook: unsigned local/test webhook allowed by POSTGRID_ALLOW_UNSIGNED_WEBHOOKS");
     }
     // --- End Signature Verification ---
 

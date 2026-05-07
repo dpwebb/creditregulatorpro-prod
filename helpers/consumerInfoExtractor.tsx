@@ -3,6 +3,7 @@ import { extractName } from "./consumerInfoExtractorName";
 import { extractCurrentAddress, extractPreviousAddresses } from "./consumerInfoExtractorAddress";
 import { extractDateOfBirth } from "./consumerInfoExtractorDob";
 import { extractPhone } from "./consumerInfoExtractorPhone";
+import { logger } from "./logger";
 import { extractTransUnionSection, findTransUnionDateString } from "./transunionTextParsing";
 
 // Re-export types for backward compatibility
@@ -84,6 +85,12 @@ export function extractConsumerInfo(text: string): ExtractedConsumerInfo {
   // Cap confidence
   info.confidence = Math.min(100, info.confidence);
 
-  console.log("[ConsumerInfoExtractor] Extracted:", info);
+  logger.debug("[ConsumerInfoExtractor] Extracted consumer info", {
+    hasFullName: Boolean(info.fullName),
+    hasAddress: Boolean(info.addressLine1 || info.postalCode),
+    hasDateOfBirth: Boolean(info.dateOfBirth),
+    hasPhone: Boolean(info.phone),
+    confidence: info.confidence,
+  });
   return info;
 }

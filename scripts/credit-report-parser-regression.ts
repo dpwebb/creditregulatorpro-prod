@@ -107,6 +107,7 @@ function runFieldExtractionRegression(): void {
   assert(isoDate(equifaxMetadata.reportDate) === "2026-04-16", "Equifax Request Date should be extracted from collapsed PDF header text.");
 
   const consumer = extractConsumerInfo(transUnionText);
+  assert(consumer.fullName === "TEST CONSUMER", "TransUnion collapsed personal-info row should preserve consumer name.");
   assert(isoDate(consumer.dateOfBirth) === "1961-01-30", "TransUnion DOB should be extracted from collapsed personal-info row.");
   assert(consumer.dateOfBirthRaw === "Jan 30, 1961", "Raw DOB should preserve the visible date string.");
   assert(consumer.phone === "(647) 612-7729", "Consumer phone should come from Telephone Number(s), not bureau contact numbers.");
@@ -119,7 +120,33 @@ Your InformationTEST CONSUMERON FILEJan 30, 1961
 Cross Reference(s):
 `);
   assert(isoDate(collapsedDobConsumer.dateOfBirth) === "1961-01-30", "TransUnion DOB should parse when pdf text joins ON FILE and the date.");
+  assert(collapsedDobConsumer.fullName === "TEST CONSUMER", "TransUnion collapsed ON FILE row should preserve consumer name.");
   assert(collapsedDobConsumer.dateOfBirthRaw === "Jan 30, 1961", "Raw DOB should be preserved when the month is joined to the previous table cell.");
+
+  const inquiryOnlyPhoneConsumer = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+Your Information TEST CONSUMER ON FILE Jan 30, 1961
+Address(es):
+26 MAIN ST E PO BOX 593
+STEWIACKE NS B0N 2J0
+Credit Related Inquiries:
+Date Authorized User Telephone
+Sep 12, 2025ROYAL BANK VISA8007692512
+`);
+  assert(inquiryOnlyPhoneConsumer.phone === null, "Inquiry telephone numbers should not become consumer phone numbers.");
+
+  const inlineAddressConsumer = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+Consumer Name TEST CONSUMER
+Current Address: 101 TEST AVE HALIFAX NS B3J 1A1
+Account(s):
+Creditor Name
+CAPITAL ONE BANK
+`);
+  assert(inlineAddressConsumer.addressLine1 === "101 TEST AVE", "Inline Canadian current address should preserve street address.");
+  assert(inlineAddressConsumer.city === "HALIFAX", "Inline Canadian current address should preserve city.");
 
   const inquiries = extractInquiries(transUnionText);
   assert(inquiries.length === 2, "TransUnion credit and non-credit inquiries should be parsed.");

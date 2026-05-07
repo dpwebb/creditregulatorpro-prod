@@ -12,6 +12,8 @@ export type OutputType = {
   confidence: number;
   analysis: string;
   isLikelyLicensed: boolean;
+  diagnosticOnly?: boolean;
+  authoritative?: boolean;
 };
 
 export const postLicensedAgencyAiVerify = async (

@@ -92,7 +92,8 @@ export function calculateRetentionExpiry(
   accountType: AccountType,
   referenceDate: Date | string | null,
   isSecondBankruptcy: boolean = false,
-  filingDate?: Date | string | null
+  filingDate?: Date | string | null,
+  asOfDate: Date | string = new Date()
 ): RetentionExpiryResult | null {
   if (!referenceDate) return null;
 
@@ -132,7 +133,8 @@ export function calculateRetentionExpiry(
     }
   }
 
-  const now = new Date();
+  const now = typeof asOfDate === "string" ? parseISO(asOfDate) : asOfDate;
+  if (!isValid(now)) return null;
   const isExpired = isAfter(now, expiryDate);
   const daysRemaining = differenceInDays(expiryDate, now);
 

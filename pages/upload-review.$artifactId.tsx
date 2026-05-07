@@ -133,7 +133,7 @@ export default function UploadReviewPage() {
       setIsScanning(true);
       try {
         const results = scanForInfractions(effectiveTradelines as any, {
-          reportDate: artifact.reportDate ? new Date(artifact.reportDate) : new Date(),
+          reportDate: artifact.reportDate ? new Date(artifact.reportDate) : new Date(0),
           region: "CA"
         });
         setFindings(results);

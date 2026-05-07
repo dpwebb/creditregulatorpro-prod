@@ -164,6 +164,30 @@ function getMostRecentArtifactReportDate(
   return latest;
 }
 
+function resolveAnalysisDate(
+  contextDate: Date | string | undefined,
+  reportArtifacts: Selectable<ReportArtifact>[],
+  tradeline: Selectable<Tradeline>
+): Date {
+  const candidates = [
+    contextDate,
+    getMostRecentArtifactReportDate(reportArtifacts),
+    tradeline.lastReportedDate,
+    tradeline.dateVerified,
+    tradeline.postedDate,
+    tradeline.createdAt,
+    tradeline.openedDate,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = new Date(candidate as any);
+    if (Number.isFinite(parsed.getTime())) return parsed;
+  }
+
+  return new Date(0);
+}
+
 /**
  * Aggregates all tradeline-level detectors into a single execution flow.
  * This is a convenience function for running all checks on a single tradeline.
@@ -176,6 +200,7 @@ export async function runAllTradelineDetectors(
     obligationInstances?: Selectable<ObligationInstance>[];
     bankruptcies?: Selectable<BankruptcyRecord>[];
     metro2Version?: string;
+    analysisDate?: Date | string;
   } = {}
 ): Promise<DetectedViolation[]> {
   const violations: DetectedViolation[] = [];
@@ -184,12 +209,14 @@ export async function runAllTradelineDetectors(
     obligationInstances = [],
     bankruptcies = [],
     metro2Version,
+    analysisDate: contextAnalysisDate,
   } = context;
   const latestReportDate = getMostRecentArtifactReportDate(reportArtifacts);
+  const analysisDate = resolveAnalysisDate(contextAnalysisDate, reportArtifacts, tradeline);
 
   // 1. Temporal & Statute
   violations.push(...detectTemporalManipulation(tradeline, reportArtifacts));
-  violations.push(...(await detectStatuteOfLimitations(tradeline)));
+  violations.push(...(await detectStatuteOfLimitations(tradeline, analysisDate)));
   violations.push(...detectRetroactiveHistoryManipulation(tradeline, reportArtifacts));
   if (latestReportDate) {
     violations.push(...detectStaleReportingFailure(tradeline, latestReportDate));
@@ -219,7 +246,7 @@ export async function runAllTradelineDetectors(
     ...detectBankruptcyDischargeViolation(tradeline, bankruptcies)
   );
   violations.push(...(await detectIdentityTheftViolation(tradeline)));
-  violations.push(...(await detectMetro2FieldViolations(tradeline)));
+  violations.push(...(await detectMetro2FieldViolations(tradeline, analysisDate)));
   violations.push(...detectDateLogicImpossibility(tradeline));
 
   // 5. Status & Procedural
@@ -239,11 +266,11 @@ export async function runAllTradelineDetectors(
   }
 
   // 8. Bureau Violations
-  violations.push(...detectBureauInvestigationFailure(obligationInstances));
+  violations.push(...detectBureauInvestigationFailure(obligationInstances, analysisDate));
   violations.push(...detectBureauNotificationFailure(obligationInstances));
   violations.push(...detectBureauReinvestigationFailure(tradeline, reportArtifacts));
-  violations.push(...(await detectBureauAccessViolation(tradeline)));
-  violations.push(...detectBureauDisputeMarkingFailure(obligationInstances, tradeline));
+  violations.push(...(await detectBureauAccessViolation(tradeline, analysisDate)));
+  violations.push(...detectBureauDisputeMarkingFailure(obligationInstances, tradeline, analysisDate));
 
   // 9. Furnisher Violations
   violations.push(...detectFurnisherReagingViolation(tradeline, reportArtifacts));

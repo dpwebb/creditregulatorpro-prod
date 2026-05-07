@@ -21,12 +21,48 @@ function shouldLog(level: LogLevel): boolean {
 
 function sanitizeMeta(meta?: Record<string, unknown>): Record<string, unknown> | undefined {
   if (!meta) return undefined;
-  const redactedKeys = new Set(["email", "token", "password", "authorization", "cookie"]);
   const output: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(meta)) {
-    output[key] = redactedKeys.has(key.toLowerCase()) ? "[REDACTED]" : value;
+    output[key] = sanitizeValue(key, value);
   }
   return output;
+}
+
+function sanitizeValue(key: string, value: unknown): unknown {
+  const redactedKeys = new Set([
+    "accountnumber",
+    "address",
+    "addressline1",
+    "addressline2",
+    "authorization",
+    "cookie",
+    "dateofbirth",
+    "dob",
+    "email",
+    "firstname",
+    "fullname",
+    "lastname",
+    "name",
+    "password",
+    "pdf",
+    "phone",
+    "postalcode",
+    "postalorzip",
+    "rawtext",
+    "sin",
+    "token",
+  ]);
+  const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (redactedKeys.has(normalizedKey)) return "[REDACTED]";
+  if (Array.isArray(value)) return value.map((entry) => sanitizeValue(key, entry));
+  if (value && typeof value === "object") {
+    const output: Record<string, unknown> = {};
+    for (const [childKey, childValue] of Object.entries(value as Record<string, unknown>)) {
+      output[childKey] = sanitizeValue(childKey, childValue);
+    }
+    return output;
+  }
+  return value;
 }
 
 function emit(level: LogLevel, message: string, meta?: Record<string, unknown>) {

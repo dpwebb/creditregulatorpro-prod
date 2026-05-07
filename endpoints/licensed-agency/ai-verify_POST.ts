@@ -1,7 +1,6 @@
 import { schema, OutputType } from "./ai-verify_POST.schema";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
-import { importAgencies } from "../../helpers/licensedAgencyQueries";
 
 
 export async function handle(request: Request) {
@@ -61,19 +60,11 @@ Respond ONLY with a JSON object containing EXACTLY these three keys:
 
     const parsedResponse = JSON.parse(resultJsonStr) as OutputType;
 
-    // Automatically cache highly confident results in the local db to avoid duplicate AI calls
-    if (parsedResponse.confidence >= 80 && parsedResponse.isLikelyLicensed) {
-      await importAgencies([
-        {
-          agencyName: input.agencyName,
-          province: input.province,
-          licenseStatus: "active",
-          dataSource: "ai_verified",
-        },
-      ]);
-    }
-
-    return new Response(JSON.stringify(parsedResponse satisfies OutputType));
+    return new Response(JSON.stringify({
+      ...parsedResponse,
+      diagnosticOnly: true,
+      authoritative: false,
+    } satisfies OutputType));
   } catch (error) {
     return handleEndpointError(error);
   }

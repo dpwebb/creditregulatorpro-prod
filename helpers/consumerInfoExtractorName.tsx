@@ -1,5 +1,8 @@
 import { NAME_BLACKLIST } from "./consumerInfoExtractorConstants";
 
+const MONTH_DATE_SUFFIX =
+  /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s*\d{1,2},?\s*\d{2,4}\b.*$/i;
+
 function isConsumerNameSearchBoundary(line: string): boolean {
   return (
     /^Accounts?\s*-\s*(?:Revolving|Mortgage|Installment|Open)\b/i.test(line) ||
@@ -11,9 +14,50 @@ function isConsumerNameSearchBoundary(line: string): boolean {
   );
 }
 
+function extractTransUnionYourInformationName(line: string): string | null {
+  if (!/^Your\s*Information/i.test(line)) return null;
+
+  const candidateName = line
+    .replace(/^Your\s*Information\s*/i, "")
+    .replace(MONTH_DATE_SUFFIX, "")
+    .replace(/ON\s*FILE.*$/i, "")
+    .replace(/\b(?:Surname|Given Name\(s\)|Middle Name|Suffix|Social Insurance No|Birth Date)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const wordCount = candidateName.split(/\s+/).length;
+  const hasBlacklisted = NAME_BLACKLIST.some((word) =>
+    candidateName.toUpperCase().includes(word)
+  );
+
+  if (
+    wordCount >= 2 &&
+    wordCount <= 4 &&
+    !hasBlacklisted &&
+    candidateName.length >= 4 &&
+    candidateName.length <= 60 &&
+    /^[A-Za-z\s,.''-]+$/.test(candidateName)
+  ) {
+    return candidateName;
+  }
+
+  return null;
+}
+
 export function extractName(lines: string[]): { name: string | null; confidence: number } {
   let fullName: string | null = null;
   let confidence = 0;
+
+  // Pattern -1: TransUnion Consumer Disclosure collapsed personal-info rows.
+  for (const line of lines) {
+    if (isConsumerNameSearchBoundary(line)) break;
+    const candidateName = extractTransUnionYourInformationName(line);
+    if (candidateName) {
+      fullName = candidateName;
+      confidence += 45;
+      break;
+    }
+  }
 
   // Pattern 0: Look for monitoring PDF specific name labels (highest priority)
   const monitoringNameLabels = [

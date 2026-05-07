@@ -315,7 +315,46 @@ function parseInlineAddress(text: string, result: AddressExtractionResult): void
           }
         }
       }
+    } else {
+      parseSpaceDelimitedInlineAddress(text, result);
     }
+  }
+}
+
+function parseSpaceDelimitedInlineAddress(text: string, result: AddressExtractionResult): void {
+  if (!result.address.province) return;
+
+  const beforeProvince = text
+    .replace(POSTAL_CODE_PATTERN, "")
+    .replace(PROVINCE_PATTERN, "")
+    .replace(/[:=,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!beforeProvince || !/^\d+\b/.test(beforeProvince)) return;
+
+  const streetCityMatch = beforeProvince.match(
+    /^(.+\b(?:ST|STREET|AVE|AVENUE|RD|ROAD|DR|DRIVE|BLVD|BOULEVARD|LN|LANE|CT|COURT|CRES|CRESCENT|WAY|HWY|HIGHWAY|PKWY|PARKWAY|PL|PLACE|TERR|TERRACE|TRAIL)\b(?:\s+(?:E|W|N|S|NE|NW|SE|SW))?)\s+([A-Za-z][A-Za-z\s.'-]{2,40})$/i,
+  );
+
+  if (!streetCityMatch) return;
+
+  const addressLine1 = streetCityMatch[1].replace(/\s+/g, " ").trim();
+  const city = streetCityMatch[2].replace(/\s+/g, " ").trim();
+
+  if (!result.address.addressLine1 && addressLine1.length >= 4) {
+    result.address.addressLine1 = addressLine1;
+    result.confidence += 15;
+  }
+
+  if (
+    !result.address.city &&
+    city.length >= 3 &&
+    city.length <= 40 &&
+    /^[A-Za-z\s.'-]+$/.test(city)
+  ) {
+    result.address.city = city;
+    result.confidence += 15;
   }
 }
 

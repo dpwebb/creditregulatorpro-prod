@@ -10,7 +10,8 @@ import { regulationRegistry } from "./regulationRegistry";
  * References: Ontario Consumer Reporting Act § 12(4), PIPEDA.
  */
 export function detectBureauInvestigationFailure(
-  obligationInstances: Selectable<ObligationInstance>[]
+  obligationInstances: Selectable<ObligationInstance>[],
+  analysisDate: Date = new Date()
 ): DetectedViolation[] {
   const violations: DetectedViolation[] = [];
   const INVESTIGATION_LIMIT_DAYS = 30;
@@ -22,8 +23,7 @@ export function detectBureauInvestigationFailure(
     const sentDate = parseISO(instance.challengeSentDate.toString());
     if (!isValid(sentDate)) return;
 
-    const today = new Date();
-    const daysSinceSent = differenceInDays(today, sentDate);
+    const daysSinceSent = differenceInDays(analysisDate, sentDate);
 
     // If no response received and we are past the limit
     if (!instance.responseReceivedDate && daysSinceSent > INVESTIGATION_LIMIT_DAYS) {
@@ -172,7 +172,8 @@ export function detectBureauReinvestigationFailure(
  * Severity: WARNING.
  */
 export async function detectBureauAccessViolation(
-  tradeline: Selectable<Tradeline>
+  tradeline: Selectable<Tradeline>,
+  analysisDate: Date = new Date()
 ): Promise<DetectedViolation[]> {
   const violations: DetectedViolation[] = [];
 
@@ -205,7 +206,7 @@ export async function detectBureauAccessViolation(
     } else if (tradeline.openedDate) {
     const openedDate = new Date(tradeline.openedDate);
     if (isValid(openedDate)) {
-      const daysSinceOpened = differenceInDays(new Date(), openedDate);
+      const daysSinceOpened = differenceInDays(analysisDate, openedDate);
       
       if (daysSinceOpened >= 0 && daysSinceOpened <= 30) {
         // Only flag recently-opened accounts that have suspicious indicators,
@@ -264,7 +265,8 @@ export async function detectBureauAccessViolation(
  */
 export function detectBureauDisputeMarkingFailure(
   obligationInstances: Selectable<ObligationInstance>[],
-  tradeline?: Selectable<Tradeline>
+  tradeline?: Selectable<Tradeline>,
+  analysisDate: Date = new Date()
 ): DetectedViolation[] {
   const violations: DetectedViolation[] = [];
 
@@ -295,7 +297,7 @@ export function detectBureauDisputeMarkingFailure(
   
   activeDisputes.forEach(instance => {
     const sentDate = parseISO(instance.challengeSentDate!.toString());
-    if (differenceInDays(new Date(), sentDate) > 15) {
+    if (differenceInDays(analysisDate, sentDate) > 15) {
        violations.push({
         violationCategory: "BUREAU_DISPUTE_MARKING_FAILURE",
         severity: "WARNING",

@@ -95,6 +95,7 @@ export interface ScanContext {
   reportArtifacts?: Selectable<ReportArtifact>[];
   bankruptcyRecords?: Selectable<BankruptcyRecord>[];
   obligationInstances?: Selectable<ObligationInstance>[];
+  analysisDate?: Date | string;
 }
 
 function normalizeExtractionConfidence(confidence: unknown): number | null {
@@ -134,6 +135,30 @@ function getMostRecentArtifactReportDate(
   }
 
   return latest;
+}
+
+function resolveAnalysisDate(
+  contextDate: Date | string | undefined,
+  artifacts: Selectable<ReportArtifact>[],
+  tradeline: Selectable<Tradeline>
+): Date {
+  const candidates = [
+    contextDate,
+    getMostRecentArtifactReportDate(artifacts),
+    tradeline.lastReportedDate,
+    tradeline.dateVerified,
+    tradeline.postedDate,
+    tradeline.createdAt,
+    tradeline.openedDate,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const parsed = new Date(candidate as any);
+    if (Number.isFinite(parsed.getTime())) return parsed;
+  }
+
+  return new Date(0);
 }
 
 export function getAdminReviewedStatutoryBasis(violation: DetectedViolation): string | null {
@@ -293,6 +318,7 @@ export async function scanForViolations(
   }
   console.log(`Found ${artifacts.length} artifacts for tradeline ${tradelineId}`);
   const latestReportDate = getMostRecentArtifactReportDate(artifacts);
+  const analysisDate = resolveAnalysisDate(context.analysisDate, artifacts, tradeline);
 
   // Fetch bankruptcy records for the user
   const bankruptcies =
@@ -335,7 +361,7 @@ export async function scanForViolations(
       ...detectAccountStatusInconsistency(tradeline),
       ...detectCreditorResponseQuality(disputes),
       ...runAllResponseAuditDetectors(disputes),
-      ...detectBureauInvestigationFailure(disputes),
+      ...detectBureauInvestigationFailure(disputes, analysisDate),
       ...(latestReportDate ? detectStaleReportingFailure(tradeline, latestReportDate) : []),
       ...detectLastActivityDateManipulation(tradeline, artifacts),
       ...detectClosedAccountBalanceInflation(tradeline, artifacts),
@@ -343,7 +369,7 @@ export async function scanForViolations(
       ...detectInvestigationRubberStamp(disputes),
       ...detectBureauNotificationFailure(disputes),
       ...detectBureauReinvestigationFailure(tradeline, artifacts),
-      ...detectBureauDisputeMarkingFailure(disputes, tradeline),
+      ...detectBureauDisputeMarkingFailure(disputes, tradeline, analysisDate),
       ...detectFurnisherReagingViolation(tradeline, artifacts),
       ...detectFurnisherStatusCodeMismatch(tradeline),
       ...detectFurnisherJointAccountViolation(tradeline),
@@ -353,14 +379,14 @@ export async function scanForViolations(
 
     // --- Asynchronous Detectors ---
     const asyncResults = await Promise.all([
-      detectStatuteOfLimitations(tradeline),
+      detectStatuteOfLimitations(tradeline, analysisDate),
       detectPhantomDebtUnverifiable(tradeline),
       detectCrossEntityDiscrepancy(tradeline),
       detectMultipleCollectorViolation(tradeline),
       detectCrossBureauInconsistency(tradeline),
       detectDebtValidationFailure(tradeline),
       detectOriginalCreditorChainFailure(tradeline),
-      detectMetro2FieldViolations(tradeline),
+      detectMetro2FieldViolations(tradeline, analysisDate),
       detectMetro2RulesetViolations(tradeline),
       detectCollectorLicenseFailure(tradeline),
       detectCollectorUnauthorizedFees(tradeline, artifacts),
@@ -370,7 +396,7 @@ export async function scanForViolations(
       detectDisclosureDeficiency(tradeline),
       detectDocumentationChainFailure(tradeline),
       detectIdentityTheftViolation(tradeline),
-      detectBureauAccessViolation(tradeline),
+      detectBureauAccessViolation(tradeline, analysisDate),
       detectConsumerStatementSuppression(tradeline),
       detectCollectionLimitationExceeded(tradeline),
       detectMixedFilePersonalInfoMismatch(tradeline),

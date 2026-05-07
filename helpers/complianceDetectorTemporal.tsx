@@ -85,7 +85,8 @@ export function detectTemporalManipulation(
  * Checks if an account is past the provincial reporting limit.
  */
 export async function detectStatuteOfLimitations(
-  tradeline: Selectable<Tradeline>
+  tradeline: Selectable<Tradeline>,
+  analysisDate: Date = new Date()
 ): Promise<DetectedViolation[]> {
   const violations: DetectedViolation[] = [];
   
@@ -140,11 +141,9 @@ pastDue === 0
   if (referenceDateSource === "openedDate") {
     const lastReported = safeParseDate(tradeline.lastReportedDate);
     const posted = safeParseDate(tradeline.postedDate);
-    const now = new Date();
-
     const isWithin12Months = (d: Date | null) => {
       if (!d) return false;
-      const diff = differenceInMonths(now, d);
+      const diff = differenceInMonths(analysisDate, d);
       return diff >= -12 && diff <= 12;
     };
 
@@ -172,7 +171,7 @@ pastDue === 0
     accountType = "consumer_proposal";
   }
 
-  const expiryResult = calculateRetentionExpiry(province, accountType, referenceDate);
+  const expiryResult = calculateRetentionExpiry(province, accountType, referenceDate, false, undefined, analysisDate);
   if (!expiryResult) {
     return violations;
   }
@@ -202,7 +201,7 @@ pastDue === 0
       responsibleEntity: "BUREAU",
     });
   } else if (!isExpired && appearsClosed) {
-    const monthsRemaining = differenceInMonths(expiryDate, new Date());
+    const monthsRemaining = differenceInMonths(expiryDate, analysisDate);
     if (monthsRemaining <= 6 && monthsRemaining >= 0) {
       violations.push({
         violationCategory: "STATUTE_APPROACHING",

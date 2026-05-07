@@ -55,6 +55,15 @@ describe("legacy AI and DocStrange isolation", () => {
     expect(schema).toContain("PARSER_MAPPING_DIAGNOSTIC");
   });
 
+  it("keeps licensed-agency AI verification diagnostic-only", () => {
+    const endpoint = source("endpoints/licensed-agency/ai-verify_POST.ts");
+
+    expect(endpoint).not.toContain("importAgencies");
+    expect(endpoint).not.toContain("dataSource: \"ai_verified\"");
+    expect(endpoint).toContain("diagnosticOnly: true");
+    expect(endpoint).toContain("authoritative: false");
+  });
+
   it("keeps parser lab UI locked to deterministic mode", () => {
     const component = source("components/ParserLabStageTab.tsx");
 

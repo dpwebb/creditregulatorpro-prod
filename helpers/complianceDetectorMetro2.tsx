@@ -8,7 +8,8 @@ import { regulationRegistry } from "./regulationRegistry";
  * Detects Metro2 data quality violations - missing required fields and completeness issues.
  */
 export async function detectMetro2FieldViolations(
-  tradeline: Selectable<Tradeline>
+  tradeline: Selectable<Tradeline>,
+  analysisDate: Date = new Date()
 ): Promise<DetectedViolation[]> {
   const violations: DetectedViolation[] = [];
 
@@ -374,8 +375,9 @@ export async function detectMetro2FieldViolations(
   if (tradeline.openedDate) {
     const openedDate = new Date(tradeline.openedDate);
     if (!isNaN(openedDate.getTime())) {
-      const now = new Date();
-      const monthsOpen = (now.getFullYear() - openedDate.getFullYear()) * 12 + (now.getMonth() - openedDate.getMonth());
+      const monthsOpen =
+        (analysisDate.getFullYear() - openedDate.getFullYear()) * 12 +
+        (analysisDate.getMonth() - openedDate.getMonth());
       
       if (monthsOpen > 6) {
         const isWO = status.includes("WO") || status.includes("WRITE");

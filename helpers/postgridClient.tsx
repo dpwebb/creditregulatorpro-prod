@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "./logger";
 
 export interface PostGridAddress {
   name: string;
@@ -73,9 +74,11 @@ export const sendRegisteredMail = async (params: SendLetterParams) => {
     const transformedTo = transformAddress(params.to);
   const transformedFrom = transformAddress(params.from);
 
-  console.log("[PostGrid] Sending letter — TO:", JSON.stringify(transformedTo));
-  console.log("[PostGrid] Sending letter — FROM:", JSON.stringify(transformedFrom));
-  console.log("[PostGrid] mailingClass:", params.mailingClass);
+  logger.info("[PostGrid] Sending letter", {
+    to: transformedTo,
+    from: transformedFrom,
+    mailingClass: params.mailingClass,
+  });
 
   const response = await fetch("https://api.postgrid.com/print-mail/v1/letters", {
     method: "POST",
@@ -94,7 +97,7 @@ export const sendRegisteredMail = async (params: SendLetterParams) => {
 
     const testMode = isPostGridTestMode();
   if (testMode) {
-    console.log("PostGrid: Running in TEST mode — no physical mail will be sent");
+    logger.info("[PostGrid] Running in test mode; no physical mail will be sent");
   }
 
   if (!response.ok) {
@@ -108,8 +111,11 @@ export const sendRegisteredMail = async (params: SendLetterParams) => {
   }
 
         const data = await response.json();
-  console.log("[PostGrid] Response to address:", JSON.stringify(data.to));
-  console.log("[PostGrid] Response from address:", JSON.stringify(data.from));
+  logger.info("[PostGrid] Letter accepted", {
+    id: data.id,
+    to: data.to,
+    from: data.from,
+  });
   return { ...data, testMode: isPostGridTestMode() };
 };
 

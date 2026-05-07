@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { compareConsumerInfo, ConsumerInfoComparison } from "./fuzzyMatcher";
 import { ExtractedConsumerInfo } from "./consumerInfoExtractorTypes";
+import { logger } from "./logger";
 
 export type ProfileUpdateResult = {
   profileFieldsPopulated: string[];
@@ -56,21 +57,23 @@ export async function updateUserProfileFromReport(
       profileFieldsPopulated.push("postalCode");
     }
 
-    console.log(`[Ingest] User account profile data - dateOfBirth type: ${typeof userAccount.dateOfBirth}, value: ${JSON.stringify(userAccount.dateOfBirth)}`);
-    console.log(`[Ingest] Extracted consumerInfo dateOfBirth type: ${typeof consumerInfo.dateOfBirth}, value: ${JSON.stringify(consumerInfo.dateOfBirth)}`);
-    console.log(`[Ingest] Profile dateOfBirth: ${userAccount.dateOfBirth}, Extracted dateOfBirth: ${consumerInfo.dateOfBirth}`);
-    
     // Check if userAccount.dateOfBirth is null or undefined (removed !== '' string check for Date type)
     const hasExistingDob = userAccount.dateOfBirth != null;
     const hasExtractedDob = consumerInfo.dateOfBirth != null;
-    console.log(`[Ingest] hasExistingDob: ${hasExistingDob}, hasExtractedDob: ${hasExtractedDob}`);
+    logger.debug("[Ingest] Profile DOB availability", {
+      hasExistingDob,
+      hasExtractedDob,
+    });
     
     if (!hasExistingDob && hasExtractedDob) {
       updates.dateOfBirth = consumerInfo.dateOfBirth!;
       profileFieldsPopulated.push("dateOfBirth");
     }
 
-    console.log(`[Ingest] Profile phone: ${userAccount.phone}, Extracted phone: ${consumerInfo.phone}`);
+    logger.debug("[Ingest] Profile phone availability", {
+      hasExistingPhone: Boolean(userAccount.phone),
+      hasExtractedPhone: Boolean(consumerInfo.phone),
+    });
     if (!userAccount.phone && consumerInfo.phone) {
       updates.phone = consumerInfo.phone;
       profileFieldsPopulated.push("phone");
@@ -78,7 +81,9 @@ export async function updateUserProfileFromReport(
 
     // Apply updates if any fields need to be populated
     if (Object.keys(updates).length > 0) {
-      console.log(`[Ingest] Auto-populating user profile fields: ${profileFieldsPopulated.join(", ")}`);
+      logger.info("[Ingest] Auto-populating user profile fields", {
+        fields: profileFieldsPopulated,
+      });
       await db
         .updateTable("userAccount")
         .set(updates)
@@ -105,9 +110,11 @@ export async function updateUserProfileFromReport(
       }
     );
     
-    console.log(
-      `[Ingest] Consumer info comparison: isMatch=${consumerInfoComparison.isMatch}, nameMismatch=${consumerInfoComparison.nameMismatch}, addressMismatch=${consumerInfoComparison.addressMismatch}`
-    );
+    logger.debug("[Ingest] Consumer info comparison", {
+      isMatch: consumerInfoComparison.isMatch,
+      nameMismatch: consumerInfoComparison.nameMismatch,
+      addressMismatch: consumerInfoComparison.addressMismatch,
+    });
   }
 
   return {

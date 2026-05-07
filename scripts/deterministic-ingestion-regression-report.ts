@@ -41,7 +41,11 @@ type FixtureReport = {
 };
 
 const originalLog = console.log.bind(console);
+const originalInfo = console.info.bind(console);
+const originalDebug = console.debug.bind(console);
 console.log = () => undefined;
+console.info = () => undefined;
+console.debug = () => undefined;
 console.warn = () => undefined;
 
 const fixtures: FixtureDefinition[] = [

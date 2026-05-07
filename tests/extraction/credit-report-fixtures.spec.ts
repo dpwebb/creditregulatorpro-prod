@@ -49,8 +49,43 @@ Your InformationTEST CONSUMERON FILEJan 30, 1961
 Cross Reference(s):
 `);
 
+    expect(consumerInfo.fullName).toBe("TEST CONSUMER");
     expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1961-01-30");
     expect(consumerInfo.dateOfBirthRaw).toBe("Jan 30, 1961");
+  });
+
+  it("does not promote inquiry telephone values to consumer phone", () => {
+    const consumerInfo = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+Your Information TEST CONSUMER ON FILE Jan 30, 1961
+Address(es):
+26 MAIN ST E PO BOX 593
+STEWIACKE NS B0N 2J0
+Credit Related Inquiries:
+Date Authorized User Telephone
+Sep 12, 2025ROYAL BANK VISA8007692512
+`);
+
+    expect(consumerInfo.fullName).toBe("TEST CONSUMER");
+    expect(consumerInfo.phone).toBeNull();
+  });
+
+  it("extracts space-delimited inline Canadian current addresses", () => {
+    const consumerInfo = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+Consumer Name TEST CONSUMER
+Current Address: 101 TEST AVE HALIFAX NS B3J 1A1
+Account(s):
+Creditor Name
+CAPITAL ONE BANK
+`);
+
+    expect(consumerInfo.addressLine1).toBe("101 TEST AVE");
+    expect(consumerInfo.city).toBe("HALIFAX");
+    expect(consumerInfo.province).toBe("NS");
+    expect(consumerInfo.postalCode).toBe("B3J 1A1");
   });
 
   it("routes HTML fixtures to the expected bureau parser family", () => {
