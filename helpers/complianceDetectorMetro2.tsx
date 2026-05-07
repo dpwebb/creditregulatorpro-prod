@@ -273,33 +273,51 @@ export async function detectMetro2FieldViolations(
     // 11. [REMOVED] Date Closed check — handled by DATE_CLOSED_REQUIRED in metro2ValidationRules.
   const statusUpper = (tradeline.status || "").toUpperCase();
 
-  // 12. Missing Date Assigned to Collection for collection accounts - Provincial Collection Agency Acts
+  // 12. Missing Date Assigned to Collection for collection accounts.
+  // Keep this as an accuracy/completeness review unless a field-specific law or reporting
+  // standard is mapped here.
   if (isCollection && !tradeline.dateAssignedToCollection) {
+    const collectionAssignmentDateRequirementIds: string[] = [];
+    const hasSpecificAssignmentDateRequirement = collectionAssignmentDateRequirementIds.length > 0;
     const hasNamedCollectionAgency =
       typeof tradeline.collectionAgencyName === "string" &&
       tradeline.collectionAgencyName.trim().length > 0;
     const isNamedCollectionAccount =
       hasNamedCollectionAgency || accountTypeUpper.includes("COLLECTION");
     const assignmentDateExplanation = isNamedCollectionAccount
-      ? "This collection account doesn't say when it was sent to collections. That date is required."
-      : "This account is marked as turned over to collection, but the report doesn't say when it was sent to collections. That date is required.";
+      ? hasSpecificAssignmentDateRequirement
+        ? "This collection account doesn't say when it was sent to collections. That date is required by the mapped reporting requirement."
+        : "This collection account doesn't say when it was sent to collections. Review whether the company can verify the collection turnover date."
+      : hasSpecificAssignmentDateRequirement
+        ? "This account is marked as turned over to collection, but the report doesn't say when it was sent to collections. That date is required by the mapped reporting requirement."
+        : "This account is marked as turned over to collection, but the report doesn't say when it was sent to collections. Review whether the company can verify the collection turnover date.";
 
     violations.push({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
-      severity: "ERROR",
-      confidenceScore: 97,
+      severity: hasSpecificAssignmentDateRequirement ? "ERROR" : "WARNING",
+      confidenceScore: hasSpecificAssignmentDateRequirement ? 97 : 72,
       userExplanation: assignmentDateExplanation,
       technicalDetails: {
         fieldName: "dateAssignedToCollection",
-        expectedValue: "Valid assignment date",
+        expectedValue: hasSpecificAssignmentDateRequirement
+          ? "Valid assignment date"
+          : "Verifiable collection turnover date, if available",
         actualValue: null,
         detectedValue: null,
         reportedAs: "Missing",
         isCollectionAccount: true,
-        regulatoryBasis: "Provincial Collection Agency Acts, Metro2 CRRG Standards",
-        regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
+        specificFieldRequirementMapped: hasSpecificAssignmentDateRequirement,
+        fieldRequirementIds: collectionAssignmentDateRequirementIds,
+        regulatoryBasis: hasSpecificAssignmentDateRequirement
+          ? "Field-specific collection assignment date requirement"
+          : "PIPEDA accuracy and completeness review; no field-specific collection assignment date requirement is currently mapped",
+        regulationIds: hasSpecificAssignmentDateRequirement
+          ? ["PIPEDA_4_6", ...collectionAssignmentDateRequirementIds]
+          : ["PIPEDA_4_6"],
       },
-      recommendedAction: "Ask the furnisher to add the date it was sent to collections, or remove the collection-turnover reporting if it cannot verify that date.",
+      recommendedAction: hasSpecificAssignmentDateRequirement
+        ? "Ask the furnisher to add the date it was sent to collections, or remove the collection-turnover reporting if it cannot verify that date."
+        : "Ask the furnisher to verify when the account was sent to collections, or correct the collection-turnover reporting if it cannot verify that date.",
       tradelineId: tradeline.id,
       responsibleEntity: "CREDITOR",
     });

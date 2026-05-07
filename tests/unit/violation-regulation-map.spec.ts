@@ -35,4 +35,18 @@ describe("violation regulation mapping", () => {
     expect(refs.length).toBeGreaterThan(0);
     expect(refs.some((ref) => ref.specificApplication?.includes("closing date"))).toBe(true);
   });
+
+  it("does not call missing collection assignment date required without a mapped field requirement", () => {
+    const refs = getFederalRegulationsForViolation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      technicalDetails: {
+        fieldName: "dateAssignedToCollection",
+        specificFieldRequirementMapped: false,
+      },
+    });
+
+    expect(refs.length).toBeGreaterThan(0);
+    expect(refs.some((ref) => ref.specificApplication?.includes("field-specific legal or reporting-standard requirement"))).toBe(true);
+    expect(refs.every((ref) => !ref.specificApplication?.includes("which is required"))).toBe(true);
+  });
 });

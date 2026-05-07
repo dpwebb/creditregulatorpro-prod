@@ -74,7 +74,7 @@ const getMissingInfoExplanation = (technicalDetails: any): string | null => {
 
   switch (fieldName) {
     case "dateAssignedToCollection":
-      return "This collection account is missing the date it was sent to collections. That date helps show whether the account is being reported correctly.";
+      return "This collection account does not show the date it was sent to collections. That date can help verify whether the collection reporting is accurate.";
     case "dateOfFirstDelinquency":
       return "This account is missing the date it first fell behind. That date helps decide how long the account can stay on your report.";
     case "originalCreditorName":

@@ -30,5 +30,10 @@ describe("Metro2 collection date detection", () => {
     expect(fieldNames).toContain("dateAssignedToCollection");
     expect(fieldNames).not.toContain("dateOfFirstDelinquency");
     expect(assignmentDateViolation?.userExplanation).toContain("marked as turned over to collection");
+    expect(assignmentDateViolation?.userExplanation).not.toContain("required");
+    expect(assignmentDateViolation?.severity).toBe("WARNING");
+    expect(assignmentDateViolation?.confidenceScore).toBe(72);
+    expect(assignmentDateViolation?.technicalDetails.specificFieldRequirementMapped).toBe(false);
+    expect(assignmentDateViolation?.technicalDetails.regulationIds).toEqual(["PIPEDA_4_6"]);
   });
 });

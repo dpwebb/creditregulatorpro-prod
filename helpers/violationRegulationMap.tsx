@@ -99,6 +99,8 @@ function getAllRegulationsForViolation(violation: {
     if (violationCategory === "DOCUMENTATION_CHAIN_FAILURE") {
       if (fieldName === "dateClosed" && accountStatus) {
         specificApplication = `Your account shows status '${accountStatus}' but no closing date is reported. The bureau is including date-dependent information without the date evidence to support it.`;
+      } else if (fieldName === "dateAssignedToCollection" && !technicalDetails?.specificFieldRequirementMapped) {
+        specificApplication = `Your credit report does not show the ${readableField} for this tradeline. Treat this as an accuracy and completeness review unless a field-specific legal or reporting-standard requirement is mapped.`;
       } else if (fieldName) {
         specificApplication = `Your credit report is missing the ${readableField} for this tradeline, which is required for complete and accurate reporting.`;
       } else if (
