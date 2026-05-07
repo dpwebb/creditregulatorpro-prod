@@ -210,6 +210,7 @@ export function AdminViolationCorrectionPanel({
     reviewStatus,
     sourceFilters,
     canLoadRuns,
+    hasSourceFilter,
   );
   const runs = canLoadRuns ? runsData?.runs ?? [] : [];
   const runTotal = canLoadRuns ? runsData?.total ?? 0 : 0;

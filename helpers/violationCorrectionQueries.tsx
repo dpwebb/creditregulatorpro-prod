@@ -11,19 +11,23 @@ import { exportViolationTrainingExamples } from "../endpoints/admin/violation-co
 
 export const VIOLATION_CORRECTION_KEYS = {
   all: ["admin", "violationCorrections"] as const,
-  runs: (reviewStatus: string, sourceFilters?: ViolationCorrectionSourceFilter[]) =>
+  runs: (
+    reviewStatus: string,
+    sourceFilters?: ViolationCorrectionSourceFilter[],
+    latestSourceArtifactsOnly = false,
+  ) =>
     [
       ...VIOLATION_CORRECTION_KEYS.all,
       "runs",
       reviewStatus,
-      sourceFilters?.map((filter) => `${filter.sha256}:${filter.createdAfter ?? ""}`).join(",") ?? "all",
+      sourceFilters?.map((filter) => filter.sha256).join(",") ?? "all",
+      latestSourceArtifactsOnly ? "latest-artifacts" : "all-artifacts",
     ] as const,
   detail: (runId: number | null) => [...VIOLATION_CORRECTION_KEYS.all, "detail", runId ?? "none"] as const,
 };
 
 export type ViolationCorrectionSourceFilter = {
   sha256: string;
-  createdAfter?: string | null;
 };
 
 function normalizeSourceFilters(
@@ -33,33 +37,35 @@ function normalizeSourceFilters(
   return sourceFilters
     .map((filter) => ({
       sha256: filter.sha256.trim(),
-      createdAfter: filter.createdAfter?.trim() || null,
     }))
     .filter((filter) => filter.sha256)
-    .sort((left, right) =>
-      left.sha256 === right.sha256
-        ? (left.createdAfter ?? "").localeCompare(right.createdAfter ?? "")
-        : left.sha256.localeCompare(right.sha256),
-    );
+    .sort((left, right) => left.sha256.localeCompare(right.sha256));
 }
 
 export function useViolationCorrectionRuns(
   reviewStatus: "needs_review" | "finalized" | "all" = "needs_review",
   sourceFilters?: ViolationCorrectionSourceFilter[],
   enabled = true,
+  latestSourceArtifactsOnly = false,
 ) {
   const normalizedSourceFilters = useMemo(
     () => normalizeSourceFilters(sourceFilters),
     [sourceFilters],
   );
   const sourceSha256s = normalizedSourceFilters?.map((filter) => filter.sha256);
-  const sourceCreatedAfters = normalizedSourceFilters?.every((filter) => filter.createdAfter)
-    ? normalizedSourceFilters.map((filter) => filter.createdAfter as string)
-    : undefined;
 
   return useQuery({
-    queryKey: VIOLATION_CORRECTION_KEYS.runs(reviewStatus, normalizedSourceFilters),
-    queryFn: () => getViolationCorrectionRuns({ reviewStatus, sourceSha256s, sourceCreatedAfters }),
+    queryKey: VIOLATION_CORRECTION_KEYS.runs(
+      reviewStatus,
+      normalizedSourceFilters,
+      latestSourceArtifactsOnly,
+    ),
+    queryFn: () =>
+      getViolationCorrectionRuns({
+        reviewStatus,
+        sourceSha256s,
+        latestSourceArtifactsOnly,
+      }),
     enabled,
   });
 }

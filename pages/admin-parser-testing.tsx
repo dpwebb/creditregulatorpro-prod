@@ -52,27 +52,15 @@ function extractParserTestSourceSha256(testCase: any): string | null {
   return typeof sha === "string" && sha.trim() ? sha.trim() : null;
 }
 
-function toIsoDate(value: unknown): string | null {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-}
-
 function buildViolationCorrectionSourceFilters(testCases: any[]): ViolationCorrectionSourceFilter[] {
-  const filtersBySha256 = new Map<string, string>();
+  const sha256s = new Set<string>();
 
   for (const testCase of testCases) {
     const sha256 = extractParserTestSourceSha256(testCase);
-    const createdAfter = toIsoDate(testCase?.createdAt);
-    if (!sha256 || !createdAfter) continue;
-
-    const currentCreatedAfter = filtersBySha256.get(sha256);
-    if (!currentCreatedAfter || new Date(createdAfter).getTime() < new Date(currentCreatedAfter).getTime()) {
-      filtersBySha256.set(sha256, createdAfter);
-    }
+    if (sha256) sha256s.add(sha256);
   }
 
-  return Array.from(filtersBySha256, ([sha256, createdAfter]) => ({ sha256, createdAfter }));
+  return Array.from(sha256s, (sha256) => ({ sha256 }));
 }
 
 export default function AdminParserTestingPage() {

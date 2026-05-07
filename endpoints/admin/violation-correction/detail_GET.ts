@@ -5,7 +5,11 @@ import { regulationRegistry, type RegulationEntry } from "../../../helpers/regul
 import type { CanadianProvince, ViolationCategory } from "../../../helpers/schema";
 import { isAdmin } from "../../../helpers/userRoleUtils";
 import { ensureViolationCorrectionSchema } from "../../../helpers/violationCorrectionSchema";
-import { jsonSafe, requireExtractionRun } from "../../../helpers/violationCorrectionManager";
+import {
+  jsonSafe,
+  listTradelineIdsForReportArtifact,
+  requireExtractionRun,
+} from "../../../helpers/violationCorrectionManager";
 import { schema, OutputType } from "./detail_GET.schema";
 import type { SuggestedRegulationReference, ViolationReviewCorrectionDetail } from "./common";
 
@@ -79,30 +83,33 @@ export async function handle(request: Request) {
 
     const run = await requireExtractionRun(input.extractionRunId);
 
-    const tradelines = await db
-      .selectFrom("tradeline")
-      .leftJoin("creditor", "creditor.id", "tradeline.creditorId")
-      .leftJoin("bureau", "bureau.id", "tradeline.bureauId")
-      .select([
-        "tradeline.id",
-        "tradeline.accountNumber",
-        "tradeline.accountType",
-        "tradeline.status",
-        "tradeline.sourceText",
-        "tradeline.reportArtifactId",
-        "tradeline.bureauId",
-        "tradeline.creditorId",
-        "tradeline.currentBalance",
-        "tradeline.balance",
-        "tradeline.openedDate",
-        "tradeline.lastReportedDate",
-        "creditor.name as creditorName",
-        "bureau.name as bureauName",
-      ])
-      .where("tradeline.reportArtifactId", "=", run.reportArtifactId)
-      .orderBy("creditor.name", "asc")
-      .orderBy("tradeline.id", "asc")
-      .execute();
+    const linkedTradelineIds = await listTradelineIdsForReportArtifact(run.reportArtifactId);
+    const tradelines = linkedTradelineIds.length > 0
+      ? await db
+          .selectFrom("tradeline")
+          .leftJoin("creditor", "creditor.id", "tradeline.creditorId")
+          .leftJoin("bureau", "bureau.id", "tradeline.bureauId")
+          .select([
+            "tradeline.id",
+            "tradeline.accountNumber",
+            "tradeline.accountType",
+            "tradeline.status",
+            "tradeline.sourceText",
+            "tradeline.reportArtifactId",
+            "tradeline.bureauId",
+            "tradeline.creditorId",
+            "tradeline.currentBalance",
+            "tradeline.balance",
+            "tradeline.openedDate",
+            "tradeline.lastReportedDate",
+            "creditor.name as creditorName",
+            "bureau.name as bureauName",
+          ])
+          .where("tradeline.id", "in", linkedTradelineIds)
+          .orderBy("creditor.name", "asc")
+          .orderBy("tradeline.id", "asc")
+          .execute()
+      : [];
 
     const tradelineIds = tradelines.map((tradeline) => tradeline.id);
     const [violations, corrections] = await Promise.all([

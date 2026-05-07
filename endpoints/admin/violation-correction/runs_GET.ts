@@ -3,7 +3,10 @@ import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { isAdmin } from "../../../helpers/userRoleUtils";
 import { ensureViolationCorrectionSchema } from "../../../helpers/violationCorrectionSchema";
-import { jsonSafe } from "../../../helpers/violationCorrectionManager";
+import {
+  jsonSafe,
+  listTradelineArtifactLinks,
+} from "../../../helpers/violationCorrectionManager";
 import { schema, OutputType } from "./runs_GET.schema";
 
 function idKey(value: number | string | null | undefined): string | null {
@@ -21,20 +24,35 @@ export async function handle(request: Request) {
 
     const url = new URL(request.url);
     const sourceSha256s = url.searchParams.getAll("sourceSha256");
-    const sourceCreatedAfters = url.searchParams.getAll("sourceCreatedAfter");
     const input = schema.parse({
       reviewStatus: url.searchParams.get("reviewStatus") ?? undefined,
       limit: url.searchParams.get("limit") ?? undefined,
       offset: url.searchParams.get("offset") ?? undefined,
       sourceSha256s: sourceSha256s.length > 0 ? sourceSha256s : undefined,
-      sourceCreatedAfters: sourceCreatedAfters.length > 0 ? sourceCreatedAfters : undefined,
+      latestSourceArtifactsOnly: url.searchParams.get("latestSourceArtifactsOnly") === "true",
     });
-    const sourceFilters = input.sourceSha256s?.map((sha256, index) => ({
-      sha256,
-      createdAfter: input.sourceCreatedAfters?.[index]
-        ? new Date(input.sourceCreatedAfters[index])
-        : null,
-    }));
+    const normalizedSourceSha256s = input.sourceSha256s
+      ? Array.from(new Set(input.sourceSha256s))
+      : undefined;
+    const latestSourceArtifactIds =
+      normalizedSourceSha256s && input.latestSourceArtifactsOnly
+        ? (
+            await Promise.all(
+              normalizedSourceSha256s.map((sha256) =>
+                db
+                  .selectFrom("reportArtifact")
+                  .select("id")
+                  .where("sha256", "=", sha256)
+                  .orderBy("createdAt", "desc")
+                  .orderBy("id", "desc")
+                  .limit(1)
+                  .executeTakeFirst(),
+              ),
+            )
+          )
+            .map((artifact) => artifact?.id)
+            .filter((id): id is number => typeof id === "number")
+        : null;
 
     let runsQuery = db
       .selectFrom("passExtraction")
@@ -54,24 +72,16 @@ export async function handle(request: Request) {
       ])
       .orderBy("passExtraction.createdAt", "desc");
 
-    if (sourceFilters !== undefined) {
-      if (sourceFilters.length === 0) {
+    if (normalizedSourceSha256s !== undefined) {
+      if (normalizedSourceSha256s.length === 0) {
         runsQuery = runsQuery.where("passExtraction.id", "=", -1);
-      } else if (sourceFilters.some((filter) => filter.createdAfter)) {
-        runsQuery = runsQuery.where((eb) =>
-          eb.or(
-            sourceFilters.map((filter) =>
-              filter.createdAfter
-                ? eb.and([
-                    eb("reportArtifact.sha256", "=", filter.sha256),
-                    eb("passExtraction.createdAt", ">=", filter.createdAfter),
-                  ])
-                : eb("reportArtifact.sha256", "=", filter.sha256),
-            ),
-          ),
-        );
+      } else if (latestSourceArtifactIds) {
+        runsQuery =
+          latestSourceArtifactIds.length > 0
+            ? runsQuery.where("reportArtifact.id", "in", latestSourceArtifactIds)
+            : runsQuery.where("passExtraction.id", "=", -1);
       } else {
-        runsQuery = runsQuery.where("reportArtifact.sha256", "in", sourceFilters.map((filter) => filter.sha256));
+        runsQuery = runsQuery.where("reportArtifact.sha256", "in", normalizedSourceSha256s);
       }
     }
 
@@ -80,14 +90,8 @@ export async function handle(request: Request) {
     const runIds = baseRuns.map((run) => run.id);
     const artifactIds = baseRuns.map((run) => run.reportArtifactId);
 
-    const [tradelines, corrections] = await Promise.all([
-      artifactIds.length > 0
-        ? db
-            .selectFrom("tradeline")
-            .select(["id", "reportArtifactId"])
-            .where("reportArtifactId", "in", artifactIds)
-            .execute()
-        : Promise.resolve([]),
+    const [tradelineLinks, corrections] = await Promise.all([
+      listTradelineArtifactLinks(artifactIds),
       runIds.length > 0
         ? db
             .selectFrom("violationCorrection")
@@ -97,7 +101,7 @@ export async function handle(request: Request) {
         : Promise.resolve([]),
     ]);
 
-    const tradelineIds = tradelines.map((tradeline) => tradeline.id);
+    const tradelineIds = Array.from(new Set(tradelineLinks.map((link) => link.tradelineId)));
     const violations = tradelineIds.length > 0
       ? await db
           .selectFrom("creditorObligationTest")
@@ -106,30 +110,31 @@ export async function handle(request: Request) {
           .execute()
       : [];
 
-    const tradelinesByArtifact = new Map<string, number>();
-    for (const tradeline of tradelines) {
-      const artifactKey = idKey(tradeline.reportArtifactId);
-      if (!artifactKey) continue;
-      tradelinesByArtifact.set(
-        artifactKey,
-        (tradelinesByArtifact.get(artifactKey) ?? 0) + 1,
-      );
+    const tradelinesByArtifact = new Map<string, Set<string>>();
+    const artifactIdsByTradelineId = new Map<string, Set<string>>();
+    for (const link of tradelineLinks) {
+      const artifactKey = idKey(link.reportArtifactId);
+      const tradelineKey = idKey(link.tradelineId);
+      if (!artifactKey || !tradelineKey) continue;
+
+      const artifactTradelines = tradelinesByArtifact.get(artifactKey) ?? new Set<string>();
+      artifactTradelines.add(tradelineKey);
+      tradelinesByArtifact.set(artifactKey, artifactTradelines);
+
+      const tradelineArtifacts = artifactIdsByTradelineId.get(tradelineKey) ?? new Set<string>();
+      tradelineArtifacts.add(artifactKey);
+      artifactIdsByTradelineId.set(tradelineKey, tradelineArtifacts);
     }
 
-    const artifactIdByTradelineId = new Map<string, string>(
-      tradelines.flatMap((tradeline) => {
-        const tradelineKey = idKey(tradeline.id);
-        const artifactKey = idKey(tradeline.reportArtifactId);
-        return tradelineKey && artifactKey ? [[tradelineKey, artifactKey] as const] : [];
-      }),
-    );
     const violationsByArtifact = new Map<string, number>();
     for (const violation of violations) {
       const tradelineKey = idKey(violation.tradelineId);
       if (!tradelineKey) continue;
-      const artifactKey = artifactIdByTradelineId.get(tradelineKey);
-      if (!artifactKey) continue;
-      violationsByArtifact.set(artifactKey, (violationsByArtifact.get(artifactKey) ?? 0) + 1);
+      const artifactKeys = artifactIdsByTradelineId.get(tradelineKey);
+      if (!artifactKeys) continue;
+      for (const artifactKey of artifactKeys) {
+        violationsByArtifact.set(artifactKey, (violationsByArtifact.get(artifactKey) ?? 0) + 1);
+      }
     }
 
     const correctionsByRun = new Map<string, { total: number; finalized: number }>();
@@ -145,7 +150,7 @@ export async function handle(request: Request) {
     const allRuns = baseRuns.map((run) => {
       const correctionCounts = correctionsByRun.get(String(run.id)) ?? { total: 0, finalized: 0 };
       const violationCount = violationsByArtifact.get(String(run.reportArtifactId)) ?? 0;
-      const tradelineCount = tradelinesByArtifact.get(String(run.reportArtifactId)) ?? 0;
+      const tradelineCount = tradelinesByArtifact.get(String(run.reportArtifactId))?.size ?? 0;
       const needsReviewCount = Math.max(0, violationCount - correctionCounts.finalized);
 
       return {

@@ -22,6 +22,11 @@ type CorrectionRow = Selectable<ViolationCorrection>;
 type EvidenceRow = Selectable<ViolationCorrectionEvidence>;
 type RegulationReferenceRow = Selectable<ViolationRegulationReference>;
 
+export type TradelineArtifactLink = {
+  tradelineId: number;
+  reportArtifactId: number;
+};
+
 function toJsonSafe<T>(value: T): T {
   const seen = new WeakSet<object>();
 
@@ -46,6 +51,56 @@ function toJsonSafe<T>(value: T): T {
 
 export function jsonSafe<T>(value: T): T {
   return toJsonSafe(value);
+}
+
+function uniquePositiveIds(ids: number[]): number[] {
+  return Array.from(new Set(ids.filter((id) => Number.isFinite(id) && id > 0)));
+}
+
+export async function listTradelineArtifactLinks(reportArtifactIds: number[]): Promise<TradelineArtifactLink[]> {
+  const artifactIds = uniquePositiveIds(reportArtifactIds);
+  if (artifactIds.length === 0) return [];
+
+  const [presenceRows, directRows] = await Promise.all([
+    db
+      .selectFrom("tradelineArtifactPresence")
+      .select(["tradelineId", "reportArtifactId"])
+      .where("reportArtifactId", "in", artifactIds)
+      .execute(),
+    db
+      .selectFrom("tradeline")
+      .select(["id as tradelineId", "reportArtifactId"])
+      .where("reportArtifactId", "in", artifactIds)
+      .execute(),
+  ]);
+
+  const links = new Map<string, TradelineArtifactLink>();
+  const addLink = (
+    tradelineId: number | null | undefined,
+    reportArtifactId: number | null | undefined,
+  ) => {
+    if (tradelineId == null || reportArtifactId == null) return;
+    const link = {
+      tradelineId: Number(tradelineId),
+      reportArtifactId: Number(reportArtifactId),
+    };
+    if (!Number.isFinite(link.tradelineId) || !Number.isFinite(link.reportArtifactId)) return;
+    links.set(`${link.reportArtifactId}:${link.tradelineId}`, link);
+  };
+
+  for (const row of presenceRows) {
+    addLink(row.tradelineId, row.reportArtifactId);
+  }
+  for (const row of directRows) {
+    addLink(row.tradelineId, row.reportArtifactId);
+  }
+
+  return Array.from(links.values());
+}
+
+export async function listTradelineIdsForReportArtifact(reportArtifactId: number): Promise<number[]> {
+  const links = await listTradelineArtifactLinks([reportArtifactId]);
+  return Array.from(new Set(links.map((link) => link.tradelineId)));
 }
 
 export async function requireCorrection(correctionId: number): Promise<CorrectionRow> {
@@ -104,7 +159,17 @@ export async function requireTradelineForRun(tradelineId: number, extractionRunI
     throw new BusinessRuleError("Tradeline not found", 404);
   }
 
-  if (Number(tradeline.reportArtifactId) !== Number(run.reportArtifactId)) {
+  const directlyLinked = Number(tradeline.reportArtifactId) === Number(run.reportArtifactId);
+  const presenceLink = directlyLinked
+    ? null
+    : await db
+        .selectFrom("tradelineArtifactPresence")
+        .select("id")
+        .where("tradelineId", "=", tradeline.id)
+        .where("reportArtifactId", "=", run.reportArtifactId)
+        .executeTakeFirst();
+
+  if (!directlyLinked && !presenceLink) {
     throw new BusinessRuleError("Tradeline is not linked to this extraction run", 400);
   }
 
