@@ -49,6 +49,10 @@ export type ObligationTestWithDetails = Omit<Selectable<CreditorObligationTest>,
   tradelineCurrentBalance: string | number | null;
   tradelineBalance: string | number | null;
   tradelineBureauName: string | null;
+  tradelineAccountType: string | null;
+  tradelineCollectionAgencyName: string | null;
+  tradelineOriginalCreditorName: string | null;
+  tradelineIsCollectionAccount: boolean | null;
 };
 
 export type OutputType = {

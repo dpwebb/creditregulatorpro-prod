@@ -112,6 +112,10 @@ export async function handle(request: Request) {
         tradelineCurrentBalance: null,
         tradelineBalance: null,
         tradelineBureauName: null,
+        tradelineAccountType: null,
+        tradelineCollectionAgencyName: null,
+        tradelineOriginalCreditorName: null,
+        tradelineIsCollectionAccount: null,
       }));
 
       return {
@@ -206,12 +210,16 @@ export async function handle(request: Request) {
         'creditorObligationTest.userStatus',
         'creditorObligationTest.userStatusReason',
         'creditorObligationTest.userStatusUpdatedAt',
-        sql<string | null>`coalesce("creditor"."name", "tradelineCreditor"."name")`.as('creditorName'),
+        sql<string | null>`coalesce("creditor"."name", "tradelineCreditor"."name", "tradeline"."collectionAgencyName", "tradeline"."originalCreditorName")`.as('creditorName'),
         'tradeline.accountNumber as tradelineAccountNumber',
         'tradeline.status as tradelineDisplayStatus',
         'tradeline.currentBalance as tradelineCurrentBalance',
         'tradeline.balance as tradelineBalance',
         'bureau.name as tradelineBureauName',
+        'tradeline.accountType as tradelineAccountType',
+        'tradeline.collectionAgencyName as tradelineCollectionAgencyName',
+        'tradeline.originalCreditorName as tradelineOriginalCreditorName',
+        'tradeline.isCollectionAccount as tradelineIsCollectionAccount',
       ] as const;
 
       let staleSuppressionEnabled = true;

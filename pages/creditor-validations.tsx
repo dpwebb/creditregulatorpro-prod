@@ -9,6 +9,7 @@ import { Skeleton } from "../components/Skeleton";
 import { useCreditorValidationList } from "../helpers/creditorValidationQueries";
 import { useTradelineList } from "../helpers/tradelineQueries";
 import { bureauDisplayName } from "../helpers/accountDisplayLabels";
+import { buildProblemAccountSummaries } from "../helpers/problemAccountSummaries";
 
 import styles from "./creditor-validations.module.css";
 
@@ -35,56 +36,20 @@ export default function CreditorValidationsPage() {
       };
     }
 
-    const issues = validationData.obligationTests.filter((issue) => issue.tradelineId != null);
-
-    // Group issues by tradelineId
-    const issuesByTradeline = issues.reduce((acc, issue) => {
-      const tradelineId = issue.tradelineId;
-      if (tradelineId != null) {
-        if (!acc[tradelineId]) {
-          acc[tradelineId] = [];
-        }
-        acc[tradelineId].push(issue);
-      }
-      return acc;
-    }, {} as Record<number, typeof issues>);
-
-    // Build affected tradelines from grouped issue payloads
-    const affectedTradelinesList = Object.entries(issuesByTradeline)
-      .map(([tradelineIdKey, tIssues]) => {
-        const issueSeed = tIssues[0];
-        const tradelineId = Number(tradelineIdKey);
-        const highPriorityCount = tIssues.filter(i => 
-          ['NO_RESPONSE', 'INSUFFICIENT_RESPONSE'].includes(i.obligationState || '')
-        ).length;
-
-        const tradeline = {
-          id: tradelineId,
-          creditorName: issueSeed.creditorName ?? null,
-          accountNumber: issueSeed.tradelineAccountNumber ?? null,
-          bureauName: issueSeed.tradelineBureauName ?? null,
-          status: issueSeed.tradelineDisplayStatus ?? null,
-          currentBalance: issueSeed.tradelineCurrentBalance ?? issueSeed.tradelineBalance ?? null,
-          balance: issueSeed.tradelineBalance ?? null,
-        };
-
-        return {
-          tradeline,
-          issues: tIssues,
-          issueCount: tIssues.length,
-          highPriorityCount
-        };
-      })
-      .sort((a, b) => b.issueCount - a.issueCount); // Sort by most issues first
+    const affectedTradelinesList = buildProblemAccountSummaries(
+      validationData.obligationTests,
+      tradelineData?.tradelines ?? [],
+    );
 
     // Calculate stats using all issues with tradeline associations
-    const totalIssues = issues.length;
+    const totalIssues = affectedTradelinesList.reduce((total, item) => total + item.issueCount, 0);
     const affectedTradelines = affectedTradelinesList.length;
     const totalAccounts = tradelineData?.tradelines?.length ?? affectedTradelines;
     // High priority: issues where obligationState is 'NO_RESPONSE' or 'INSUFFICIENT_RESPONSE'
-    const highPriority = issues.filter(i =>
-      ['NO_RESPONSE', 'INSUFFICIENT_RESPONSE'].includes(i.obligationState || '')
-    ).length;
+    const highPriority = affectedTradelinesList.reduce(
+      (total, item) => total + item.highPriorityCount,
+      0,
+    );
 
     const groupedByBureau = affectedTradelinesList.reduce((acc, item) => {
       const bureauName = bureauDisplayName(item.tradeline.bureauName);
@@ -148,7 +113,7 @@ export default function CreditorValidationsPage() {
         <div>
           <h4>What this means</h4>
           <p>
-            These are possible reporting problems grouped by account. Some reports do not clearly show the company name, bureau, status, or balance. When that happens, we show that the information was not reported instead of guessing.
+            These are active possible reporting problems from your uploaded reports. Each card uses the saved account details we have for that account and shows the main problem types to review next.
           </p>
         </div>
       </div>
@@ -171,12 +136,13 @@ export default function CreditorValidationsPage() {
                   {bureauName} - {items.length} account{items.length !== 1 ? 's' : ''}
                 </h3>
                 <div className={styles.tradelineGrid}>
-                  {items.map(({ tradeline, issueCount, highPriorityCount }) => (
+                  {items.map(({ tradeline, issueCount, highPriorityCount, problemLabels }) => (
                     <ComplianceTradelineCard
                       key={tradeline.id}
                       tradeline={tradeline}
                       issueCount={issueCount}
                       priorityIssueCount={highPriorityCount}
+                      problemLabels={problemLabels}
                     />
                   ))}
                 </div>

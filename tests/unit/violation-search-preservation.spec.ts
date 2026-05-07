@@ -65,6 +65,10 @@ describe("violation search preservation", () => {
       "tradeline.currentBalance as tradelineCurrentBalance",
       "tradeline.balance as tradelineBalance",
       "bureau.name as tradelineBureauName",
+      "tradeline.accountType as tradelineAccountType",
+      "tradeline.collectionAgencyName as tradelineCollectionAgencyName",
+      "tradeline.originalCreditorName as tradelineOriginalCreditorName",
+      "tradeline.isCollectionAccount as tradelineIsCollectionAccount",
     ]) {
       expect(text).toContain(field);
     }

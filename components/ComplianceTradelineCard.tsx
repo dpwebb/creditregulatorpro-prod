@@ -22,18 +22,22 @@ type ComplianceTradelineSummary = {
   status: string | null;
   currentBalance: string | number | null;
   balance?: string | number | null;
+  accountType?: string | null;
+  isCollectionAccount?: boolean | null;
 };
 
 interface ComplianceTradelineCardProps {
   tradeline: ComplianceTradelineSummary;
   issueCount: number;
   priorityIssueCount?: number;
+  problemLabels?: string[];
 }
 
 export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = ({
   tradeline,
   issueCount,
   priorityIssueCount = 0,
+  problemLabels = [],
 }) => {
   const accountName = accountDisplayName(tradeline.creditorName);
   const accountNameNote = accountDisplayNameNote(tradeline.creditorName);
@@ -71,6 +75,12 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
           <span className={styles.label}>Status</span>
           <span className={styles.value}>{reportedFieldDisplay(tradeline.status)}</span>
         </div>
+        {hasReportedAccountValue(tradeline.accountType) && (
+          <div className={styles.statusRow}>
+            <span className={styles.label}>Type</span>
+            <span className={styles.value}>{tradeline.accountType}</span>
+          </div>
+        )}
         <div className={styles.statusRow}>
           <span className={styles.label}>Balance</span>
           <span className={styles.value}>
@@ -79,6 +89,15 @@ export const ComplianceTradelineCard: React.FC<ComplianceTradelineCardProps> = (
               : "Not reported"}
           </span>
         </div>
+        {problemLabels.length > 0 && (
+          <div className={styles.problemList} aria-label="Top problems">
+            {problemLabels.slice(0, 3).map((label) => (
+              <span key={label} className={styles.problemLabel}>
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className={styles.footer}>
