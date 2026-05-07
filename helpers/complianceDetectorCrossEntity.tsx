@@ -84,6 +84,46 @@ export function shouldTreatOriginalCreditorSelfReferenceAsFake(input: {
   return { isFake: false, matchReason: "" };
 }
 
+type AssignmentDocumentationReview = {
+  responseDocumentationProvided?: boolean | null;
+  responseDocumentationTypes?: unknown;
+};
+
+function hasAssignmentDocumentationType(responseDocumentationTypes: unknown): boolean {
+  if (!Array.isArray(responseDocumentationTypes)) return false;
+
+  return responseDocumentationTypes.some((type) => {
+    const value = String(type ?? "").toLowerCase();
+    return (
+      value.includes("assignment") ||
+      value.includes("chain") ||
+      value.includes("ownership") ||
+      value.includes("bill of sale") ||
+      value.includes("purchase")
+    );
+  });
+}
+
+export function shouldFlagMissingAssignmentDocumentation(input: {
+  assignmentDocsFound: number;
+  obligationInstances: AssignmentDocumentationReview[];
+}): boolean {
+  if (input.assignmentDocsFound > 0) return false;
+
+  return input.obligationInstances.some((obligation) => {
+    if (obligation.responseDocumentationProvided === false) return true;
+
+    if (obligation.responseDocumentationProvided === true) {
+      const documentationTypes = Array.isArray(obligation.responseDocumentationTypes)
+        ? obligation.responseDocumentationTypes
+        : [];
+      return documentationTypes.length > 0 && !hasAssignmentDocumentationType(documentationTypes);
+    }
+
+    return false;
+  });
+}
+
 /**
  * Compares creditor vs. bureau data for the same account. (Placeholder)
  */
@@ -631,7 +671,7 @@ export async function detectOriginalCreditorChainFailure(
   if (tradeline.id) {
     const obligationInstances = await db
       .selectFrom("obligationInstance")
-      .select("id")
+      .select(["id", "responseDocumentationProvided", "responseDocumentationTypes"])
       .where("tradelineId", "=", tradeline.id as number)
       .execute();
 
@@ -649,7 +689,10 @@ export async function detectOriginalCreditorChainFailure(
         ]))
         .execute();
 
-      if (assignmentDocs.length === 0) {
+      if (shouldFlagMissingAssignmentDocumentation({
+        assignmentDocsFound: assignmentDocs.length,
+        obligationInstances,
+      })) {
         violations.push({
           violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
           severity: "WARNING",
