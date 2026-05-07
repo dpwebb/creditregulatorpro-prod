@@ -67,6 +67,7 @@ import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 import { applyViolationCorrectionTruthLayer } from "./violationCorrectionRetrieval";
 import {
   enrichDetectedViolationsRuleEvidence,
+  filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
 } from "./violationRuleEvidence";
 
@@ -465,8 +466,9 @@ export async function scanForViolations(
 
   const truthLayerViolations = await applyViolationCorrectionTruthLayer(finalViolations, tradeline);
   const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(truthLayerViolations);
+  const authorityLinkedViolations = filterViolationsWithLocalAuthorityLinks(ruleLinkedViolations);
 
-  return normalizeDetectedViolations(ruleLinkedViolations);
+  return normalizeDetectedViolations(authorityLinkedViolations);
 }
 
 /**
@@ -591,7 +593,7 @@ export async function persistViolations(
   tradelineId: number
 ): Promise<number[]> {
   const normalizedViolations = normalizeDetectedViolations(
-    enrichDetectedViolationsRuleEvidence(violations),
+    filterViolationsWithLocalAuthorityLinks(enrichDetectedViolationsRuleEvidence(violations)),
   );
 
   if (normalizedViolations.length === 0) {

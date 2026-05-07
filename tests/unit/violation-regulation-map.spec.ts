@@ -41,12 +41,27 @@ describe("violation regulation mapping", () => {
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       technicalDetails: {
         fieldName: "dateAssignedToCollection",
+        regulationIds: ["PIPEDA_4_6"],
         specificFieldRequirementMapped: false,
       },
     });
 
-    expect(refs.length).toBeGreaterThan(0);
+    expect(refs.map((ref) => ref.regulationId)).toEqual(["PIPEDA_4_6"]);
     expect(refs.some((ref) => ref.specificApplication?.includes("field-specific legal or reporting-standard requirement"))).toBe(true);
     expect(refs.every((ref) => !ref.specificApplication?.includes("which is required"))).toBe(true);
+  });
+
+  it("does not call generic field-level documentation-chain issues required without local field authority", () => {
+    const refs = getFederalRegulationsForViolation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      technicalDetails: {
+        fieldName: "creditorId",
+        regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+      },
+    });
+
+    expect(refs.length).toBeGreaterThan(0);
+    expect(refs.every((ref) => !ref.specificApplication?.includes("which is required"))).toBe(true);
+    expect(refs.every((ref) => ref.specificApplication?.includes("field-specific legal or reporting-standard requirement"))).toBe(true);
   });
 });

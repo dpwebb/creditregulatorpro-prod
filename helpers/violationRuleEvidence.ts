@@ -1,4 +1,5 @@
 import type { DetectedViolation } from "./complianceDetectorTypes";
+import { getBonaFideLegalAuthorityById } from "./legalAuthorityRegistry";
 import { regulationRegistry, type RegulationEntry } from "./regulationRegistry";
 import type { ViolationCategory } from "./schema";
 
@@ -18,7 +19,15 @@ export interface DeterministicViolationRuleEnvelope {
   factualTrigger: string;
   sourceFields: string[];
   evidence: DeterministicViolationEvidenceLink;
-  regulationReferences: Array<Pick<RegulationEntry, "id" | "statute" | "citation" | "shortLabel">>;
+  regulationReferences: Array<
+    Pick<RegulationEntry, "id" | "statute" | "citation" | "shortLabel"> & {
+      textExcerpt?: string;
+      sourceUrl?: string | null;
+      sourceQuality?: string;
+      supportLevel?: string;
+      allowsFieldRequiredLanguage?: boolean;
+    }
+  >;
   explanation: string;
 }
 
@@ -123,17 +132,26 @@ function regulationReferences(category: ViolationCategory, details: Record<strin
     ? details.regulationIds.filter((id: unknown): id is string => typeof id === "string" && Boolean(id.trim()))
     : [];
   const categoryIds = regulationRegistry.VIOLATION_REGULATION_MAP[category] ?? [];
-  const ids = [...new Set([...explicitIds, ...categoryIds])];
+  const ids = [...new Set(explicitIds.length > 0 ? explicitIds : categoryIds)];
 
   return ids
-    .map((id) => regulationRegistry.getRegulationById(id))
-    .filter((entry): entry is RegulationEntry => Boolean(entry))
-    .map((entry) => ({
-      id: entry.id,
-      statute: entry.statute,
-      citation: entry.citation,
-      shortLabel: entry.shortLabel,
-    }));
+    .map((id) => {
+      const entry = regulationRegistry.getRegulationById(id);
+      const authority = getBonaFideLegalAuthorityById(id);
+      if (!entry || !authority) return null;
+      return {
+        id: entry.id,
+        statute: entry.statute,
+        citation: entry.citation,
+        shortLabel: entry.shortLabel,
+        textExcerpt: authority?.textExcerpt,
+        sourceUrl: authority?.sourceUrl ?? null,
+        sourceQuality: authority?.sourceQuality,
+        supportLevel: authority?.supportLevel,
+        allowsFieldRequiredLanguage: authority?.allowsFieldRequiredLanguage ?? false,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 }
 
 export function buildDeterministicViolationRuleEnvelope(
@@ -165,11 +183,13 @@ export function enrichDetectedViolationRuleEvidence(
 ): DetectedViolation {
   const deterministicRule = buildDeterministicViolationRuleEnvelope(violation);
   if (!deterministicRule) return violation;
+  const resolvedRegulationIds = deterministicRule.regulationReferences.map((ref) => ref.id);
 
   return {
     ...violation,
     technicalDetails: {
       ...detailsOf(violation),
+      regulationIds: resolvedRegulationIds,
       deterministicRule,
       deterministicRuleId: deterministicRule.ruleId,
       regulationReferences: deterministicRule.regulationReferences,
@@ -178,6 +198,19 @@ export function enrichDetectedViolationRuleEvidence(
       evidenceLink: deterministicRule.evidence,
     },
   };
+}
+
+export function hasBonaFideLocalAuthorityLink(violation: DetectedViolation): boolean {
+  const details = detailsOf(violation);
+  const existingRefs = Array.isArray(details.regulationReferences) ? details.regulationReferences : null;
+  if (existingRefs) return existingRefs.length > 0;
+  return (buildDeterministicViolationRuleEnvelope(violation)?.regulationReferences.length ?? 0) > 0;
+}
+
+export function filterViolationsWithLocalAuthorityLinks(
+  violations: DetectedViolation[],
+): DetectedViolation[] {
+  return violations.filter(hasBonaFideLocalAuthorityLink);
 }
 
 export function enrichDetectedViolationsRuleEvidence(

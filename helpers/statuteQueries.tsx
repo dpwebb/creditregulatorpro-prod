@@ -5,6 +5,7 @@ import { postStatuteCreate, InputType as CreateInput } from "../endpoints/statut
 import { postStatuteUpdate, InputType as UpdateInput } from "../endpoints/statute/update_POST.schema";
 import { postStatuteDelete, InputType as DeleteInput } from "../endpoints/statute/delete_POST.schema";
 import { getStatuteHistory } from "../endpoints/statute/history_GET.schema";
+import { searchLegalAuthority, InputType as LegalAuthoritySearchInput } from "../endpoints/legal-authority/search_GET.schema";
 
 export const useStatutes = (filters?: ListInput) => {
   return useQuery({
@@ -59,5 +60,22 @@ export const useStatuteHistory = (versionId?: number) => {
     queryKey: ["statute-history", versionId],
     queryFn: () => getStatuteHistory({ versionId: versionId as number }),
     enabled: typeof versionId === "number" && Number.isFinite(versionId),
+  });
+};
+
+export const useLegalAuthoritySearch = (filters?: LegalAuthoritySearchInput) => {
+  const hasFilter = Boolean(
+    filters?.query ||
+      filters?.regulationId ||
+      filters?.violationCategory ||
+      filters?.fieldName ||
+      filters?.jurisdiction ||
+      filters?.supportLevel
+  );
+
+  return useQuery({
+    queryKey: ["legal-authority-search", filters],
+    queryFn: () => searchLegalAuthority(filters),
+    enabled: hasFilter,
   });
 };

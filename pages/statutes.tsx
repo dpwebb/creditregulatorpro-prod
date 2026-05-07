@@ -26,6 +26,7 @@ import {
   useUpdateStatute,
   useStatuteFilterOptions,
   useStatuteHistory,
+  useLegalAuthoritySearch,
 } from "../helpers/statuteQueries";
 import { useAuth } from "../helpers/useAuth";
 import { OutputType as ListOutputType } from "../endpoints/statute/list_GET.schema";
@@ -134,6 +135,12 @@ export default function StatutesPage() {
   const { data: historyData, isFetching: historyLoading } = useStatuteHistory(
     historyVersionId ?? undefined
   );
+  const authorityQuery = searchText.trim();
+  const { data: authorityData, isFetching: authorityLoading } = useLegalAuthoritySearch({
+    query: authorityQuery || undefined,
+    jurisdiction: jurisdiction || undefined,
+    limit: 8,
+  });
 
   const createMutation = useCreateStatute();
   const updateMutation = useUpdateStatute();
@@ -660,6 +667,51 @@ export default function StatutesPage() {
           </label>
         </div>
       </div>
+
+      {authorityQuery && (
+        <section className={styles.authorityPanel}>
+          <div className={styles.authorityHeader}>
+            <div>
+              <h2 className={styles.authorityTitle}>Local Authority Matches</h2>
+              <p className={styles.authorityMeta}>
+                {authorityLoading ? "Searching local authority records" : `${authorityData?.authorities.length ?? 0} matches`}
+              </p>
+            </div>
+            <Badge variant="info">Local corpus</Badge>
+          </div>
+          {!authorityLoading && authorityData?.authorities.length === 0 ? (
+            <div className={styles.authorityEmpty}>No local authority records match this search.</div>
+          ) : (
+            <div className={styles.authorityList}>
+              {(authorityData?.authorities ?? []).map((authority) => (
+                <article key={authority.id} className={styles.authorityItem}>
+                  <div className={styles.authorityItemHeader}>
+                    <div>
+                      <div className={styles.authorityCitation}>
+                        {authority.statute} · {authority.citation}
+                      </div>
+                      <div className={styles.authorityLabel}>{authority.shortLabel}</div>
+                    </div>
+                    <Badge variant={authority.allowsFieldRequiredLanguage ? "success" : "default"}>
+                      {authority.supportLevel.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                  <p className={styles.authorityExcerpt}>{authority.textExcerpt}</p>
+                  <div className={styles.authorityFooter}>
+                    <span>{authority.regulationId}</span>
+                    <span>{authority.sourceQuality}</span>
+                    {authority.sourceUrl && (
+                      <a href={authority.sourceUrl} target="_blank" rel="noreferrer">
+                        Source <ExternalLink size={12} />
+                      </a>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className={styles.content}>
         {isFetching ? (

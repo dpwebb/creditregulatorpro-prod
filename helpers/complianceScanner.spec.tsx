@@ -209,7 +209,7 @@ describe("complianceScanner filtering logic", () => {
     expect(result[0].userExplanation).toContain("potential inconsistency");
   });
 
-  it("6. Violations with no violationCategory pass through", async () => {
+  it("6. Violations with no violationCategory are dropped because no local authority can be resolved", async () => {
     executeMock.mockResolvedValueOnce([
       { violationCategory: "TEMPORAL_MANIPULATION", enabled: false, confidenceThreshold: 90 },
     ]);
@@ -227,7 +227,6 @@ describe("complianceScanner filtering logic", () => {
     vi.mocked(deduplicateViolations).mockReturnValueOnce(mockViolations);
 
     const result = await scanForViolations(1, scanContext);
-    expect(result.length).toBe(1);
-    expect(result[0].userExplanation).toContain("No Category");
+    expect(result.length).toBe(0);
   });
 });

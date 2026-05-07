@@ -210,6 +210,15 @@ const pipedaEntries: Record<string, RegulationEntry> = {
       "FURNISHER_AUTHORIZED_USER_MISREPRESENTATION",
     ],
   },
+  PIPEDA_4_3_8: {
+    id: "PIPEDA_4_3_8",
+    statute: "PIPEDA",
+    citation: "Schedule 1, Principle 4.3.8",
+    shortLabel: "Consent Withdrawal",
+    description:
+      "An individual may withdraw consent at any time, subject to legal or contractual restrictions and reasonable notice, and the organization must inform the individual of the implications.",
+    violationCategories: ["CONSENT_WITHDRAWAL_NOT_HONORED"],
+  },
   PIPEDA_4_5: {
     id: "PIPEDA_4_5",
     statute: "PIPEDA",
@@ -340,6 +349,19 @@ const generalEntries: Record<string, RegulationEntry> = {
     violationCategories: [
       "BUREAU_INVESTIGATION_FAILURE",
       "PROCEDURAL_TIMING_VIOLATION",
+    ],
+  },
+  ON_FAIRNESS_CRA_2017: {
+    id: "ON_FAIRNESS_CRA_2017",
+    statute: "Ontario CRA",
+    citation: "R.S.O. 1990, c. C.33, ss. 12.1-12.4",
+    shortLabel: "ON Security Freeze",
+    description:
+      "Ontario consumer reporting rules include identity-theft alert and security-freeze protections for consumer files.",
+    violationCategories: [
+      "FREEZE_PERIOD_VIOLATION",
+      "IDENTITY_THEFT_VIOLATION",
+      "BUREAU_ACCESS_VIOLATION",
     ],
   },
   METRO2_BASE_SEGMENT: {
@@ -565,7 +587,7 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     ...getProvKeys("LIMITATIONS_ACT"),
   ],
   COLLECTOR_UNAUTHORIZED_FEES: ["PIPEDA_4_6", ...getProvKeys("COLLECTION_ACT")],
-  CONSENT_WITHDRAWAL_NOT_HONORED: ["PIPEDA_4_3"],
+  CONSENT_WITHDRAWAL_NOT_HONORED: ["PIPEDA_4_3_8", "PIPEDA_4_3"],
   CONSUMER_STATEMENT_SUPPRESSION: [
     "PIPEDA_4_6_1",
     "PIPEDA_4_9",
@@ -582,7 +604,7 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     "METRO2_BASE_SEGMENT",
     ...getProvKeys("CRA_ACCURACY"),
   ],
-  FREEZE_PERIOD_VIOLATION: ["PIPEDA_4_7"],
+  FREEZE_PERIOD_VIOLATION: ["ON_FAIRNESS_CRA_2017", "PIPEDA_4_7"],
   FURNISHER_AUTHORIZED_USER_MISREPRESENTATION: [
     "PIPEDA_4_3",
     "METRO2_J2_SEGMENT",

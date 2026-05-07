@@ -7,6 +7,10 @@ import type {
 } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
 import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
+import {
+  enrichDetectedViolationsRuleEvidence,
+  filterViolationsWithLocalAuthorityLinks,
+} from "./violationRuleEvidence";
 
 // Import existing detectors
 import {
@@ -296,7 +300,8 @@ export async function runAllTradelineDetectors(
   // 38. DISCLOSURE_DEFICIENCY
   violations.push(...(await detectDisclosureDeficiency(tradeline, tradeline.reportArtifactId ?? undefined)));
 
-  return normalizeDetectedViolations(deduplicateViolations(violations));
+  const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(deduplicateViolations(violations));
+  return normalizeDetectedViolations(filterViolationsWithLocalAuthorityLinks(ruleLinkedViolations));
 }
 
 const severityScore: Record<string, number> = {

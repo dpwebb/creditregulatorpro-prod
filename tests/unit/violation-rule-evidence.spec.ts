@@ -4,7 +4,9 @@ import type { DetectedViolation } from "../../helpers/complianceDetectorTypes";
 import {
   buildDeterministicViolationRuleEnvelope,
   enrichDetectedViolationRuleEvidence,
+  filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
+  hasBonaFideLocalAuthorityLink,
 } from "../../helpers/violationRuleEvidence";
 
 function violation(overrides: Partial<DetectedViolation> = {}): DetectedViolation {
@@ -80,5 +82,55 @@ describe("deterministic violation rule evidence", () => {
     expect(getDeterministicViolationStatutoryBasis(enriched)).toContain(
       "PIPEDA Schedule 1, Principle 4.6",
     );
+  });
+
+  it("does not add broad category references when a detector supplied explicit regulation ids", () => {
+    const envelope = buildDeterministicViolationRuleEnvelope(
+      violation({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        technicalDetails: {
+          fieldName: "dateAssignedToCollection",
+          regulationIds: ["PIPEDA_4_6"],
+          specificFieldRequirementMapped: false,
+        },
+      }),
+    );
+
+    expect(envelope?.regulationReferences.map((ref) => ref.id)).toEqual(["PIPEDA_4_6"]);
+    expect(envelope?.regulationReferences[0]).toEqual(
+      expect.objectContaining({
+        sourceUrl: expect.stringContaining("laws-lois.justice.gc.ca"),
+        supportLevel: "category_principle",
+        allowsFieldRequiredLanguage: false,
+      }),
+    );
+  });
+
+  it("drops violations whose explicit regulation ids do not resolve to local authority", () => {
+    const unsupported = violation({
+      technicalDetails: {
+        fieldName: "balance",
+        regulationIds: ["NOT_A_LOCAL_AUTHORITY"],
+      },
+    });
+
+    expect(hasBonaFideLocalAuthorityLink(unsupported)).toBe(false);
+    expect(filterViolationsWithLocalAuthorityLinks([unsupported, violation()])).toHaveLength(1);
+  });
+
+  it("sanitizes regulation ids to locally resolved authority references", () => {
+    const enriched = enrichDetectedViolationRuleEvidence(
+      violation({
+        technicalDetails: {
+          fieldName: "balance",
+          regulationIds: ["PIPEDA_4_6", "NOT_A_LOCAL_AUTHORITY"],
+        },
+      }),
+    );
+
+    expect(enriched.technicalDetails?.regulationIds).toEqual(["PIPEDA_4_6"]);
+    expect(enriched.technicalDetails?.regulationReferences).toEqual([
+      expect.objectContaining({ id: "PIPEDA_4_6" }),
+    ]);
   });
 });

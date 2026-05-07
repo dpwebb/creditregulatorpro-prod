@@ -1,4 +1,5 @@
 import type { DetectedViolation } from "./complianceDetectorTypes";
+import { hasFieldSpecificAuthority } from "./legalAuthorityRegistry";
 
 const ENTITY_LABELS: Record<string, string> = {
   BUREAU: "the credit bureau",
@@ -67,6 +68,33 @@ function sanitizeFindingText(text: string): string {
   output = output.replace(/\band\s+request\s+correction\s+pathway\b/gi, "and needs a correction pathway if unsupported");
   output = output.replace(/\s+—\s+/g, " - ");
   return compactWhitespace(output);
+}
+
+function softenUnsupportedFieldRequirementLanguage(
+  text: string,
+  violation: DetectedViolation
+): string {
+  const details = getTechnicalDetails(violation);
+  const fieldName = firstStringValue(details, ["fieldName", "field", "matchedField"]);
+  if (!fieldName || details.specificFieldRequirementMapped === true) return text;
+
+  const regulationIds = Array.isArray(details.regulationIds)
+    ? details.regulationIds.filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
+    : [];
+  const hasMappedAuthority = hasFieldSpecificAuthority({
+    violationCategory: violation.violationCategory,
+    fieldName,
+    regulationIds,
+    jurisdiction: firstStringValue(details, ["province", "jurisdiction"]),
+  });
+  if (hasMappedAuthority) return text;
+
+  return text
+    .replace(/\bAt least one of those dates is required\./gi, "At least one of those dates can help verify the reporting.")
+    .replace(/\bThat date is required\./gi, "That date can help verify the reporting.")
+    .replace(/\bThat information is required\./gi, "That information can help verify the reporting.")
+    .replace(/\bThis account is missing required information\b/gi, "This account is missing information that should be reviewed")
+    .replace(/\brequired information\b/gi, "information to review");
 }
 
 function humanizeKey(value: string): string {
@@ -141,7 +169,10 @@ function buildEvidenceReference(violation: DetectedViolation): string {
 }
 
 function buildUserExplanation(violation: DetectedViolation): string {
-  const original = sanitizeFindingText(violation.userExplanation || "");
+  const original = softenUnsupportedFieldRequirementLanguage(
+    sanitizeFindingText(violation.userExplanation || ""),
+    violation,
+  );
   const explanationWithoutExistingBasis = original
     .replace(/\s*Review basis:[\s\S]*$/i, "")
     .trim();

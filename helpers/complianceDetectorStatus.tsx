@@ -32,7 +32,6 @@ export function detectProceduralTimingViolation(
               responseReceived: receivedDate.toISOString(),
               daysTaken: daysToRespond,
               detectedValue: daysToRespond,
-              regulationIds: ["INVESTIGATION_30_DAY"],
             },
             recommendedAction: "Ask for this item to be deleted because the company took too long to respond.",
             tradelineId: instance.tradelineId ?? undefined,

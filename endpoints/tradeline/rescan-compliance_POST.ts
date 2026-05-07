@@ -6,6 +6,7 @@ import { validateOrigin } from "../../helpers/domainGuard";
 import { scanForViolations, mapViolationToObligationType, getAdminReviewedStatutoryBasis } from "../../helpers/complianceScanner";
 import { mapViolationToDisputeVector } from "../../helpers/violationToDisputeVector";
 import { normalizeDetectedViolations } from "../../helpers/complianceFindingNormalizer";
+import { getDeterministicViolationStatutoryBasis } from "../../helpers/violationRuleEvidence";
 
 import type { ViolationCategory } from "../../helpers/schema";
 
@@ -150,7 +151,9 @@ export async function handle(request: Request) {
               responsibleEntity: violation.responsibleEntity || null,
             })),
             recommendedAction: violation.recommendedAction,
-            statutoryBasis: getAdminReviewedStatutoryBasis(violation),
+            statutoryBasis:
+              getAdminReviewedStatutoryBasis(violation) ??
+              getDeterministicViolationStatutoryBasis(violation),
             detectedAt: new Date(),
             validationStatus: "PENDING",
             obligationState: "OBLIGATION_PENDING",

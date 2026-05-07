@@ -38,7 +38,7 @@ export function detectBureauInvestigationFailure(
           daysElapsed: daysSinceSent,
           statutoryLimit: INVESTIGATION_LIMIT_DAYS,
           detectedValue: daysSinceSent,
-          regulationIds: ["INVESTIGATION_30_DAY"],
+          regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["BUREAU_INVESTIGATION_FAILURE"],
         },
         recommendedAction: "Ask the credit bureau to delete this item because they took too long to investigate.",
         tradelineId: instance.tradelineId ?? undefined,

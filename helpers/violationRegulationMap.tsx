@@ -1,6 +1,7 @@
 import { regulationRegistry } from "./regulationRegistry";
 import { ViolationCategory } from "./schema";
 import { formatCurrency, parseCurrencyAmount } from "./formatters";
+import { hasFieldSpecificAuthority } from "./legalAuthorityRegistry";
 import styles from "./violationRegulationMap.module.css";
 
 export interface RegulationReference {
@@ -22,8 +23,21 @@ function getAllRegulationsForViolation(violation: {
   let refs: RegulationReference[] = [];
 
   const province = technicalDetails?.province || null;
+  const explicitRegulationIds = Array.isArray(technicalDetails?.regulationIds)
+    ? technicalDetails.regulationIds.filter((id: unknown): id is string => typeof id === "string" && Boolean(id.trim()))
+    : [];
 
-  if (technicalDetails?.regulatoryBasis) {
+  if (explicitRegulationIds.length > 0) {
+    refs = explicitRegulationIds
+      .map((id) => regulationRegistry.getRegulationById(id))
+      .filter((entry): entry is NonNullable<ReturnType<typeof regulationRegistry.getRegulationById>> => Boolean(entry))
+      .map((entry) => ({
+        regulationId: entry.id,
+        statute: entry.statute,
+        section: entry.citation,
+        description: entry.description,
+      }));
+  } else if (technicalDetails?.regulatoryBasis) {
     const bases = String(technicalDetails.regulatoryBasis)
       .split(",")
       .map((s) => s.trim())
@@ -95,11 +109,21 @@ function getAllRegulationsForViolation(violation: {
     const fieldName = technicalDetails?.fieldName;
     const readableField = fieldName ? formatReadableField(fieldName) : "Field";
     const accountStatus = technicalDetails?.accountStatus || technicalDetails?.status;
+    const hasMappedFieldRequirement = fieldName
+      ? hasFieldSpecificAuthority({
+          violationCategory,
+          fieldName,
+          regulationIds: ref.regulationId ? [ref.regulationId] : explicitRegulationIds,
+          jurisdiction: province,
+        })
+      : false;
 
     if (violationCategory === "DOCUMENTATION_CHAIN_FAILURE") {
       if (fieldName === "dateClosed" && accountStatus) {
         specificApplication = `Your account shows status '${accountStatus}' but no closing date is reported. The bureau is including date-dependent information without the date evidence to support it.`;
       } else if (fieldName === "dateAssignedToCollection" && !technicalDetails?.specificFieldRequirementMapped) {
+        specificApplication = `Your credit report does not show the ${readableField} for this tradeline. Treat this as an accuracy and completeness review unless a field-specific legal or reporting-standard requirement is mapped.`;
+      } else if (fieldName && !hasMappedFieldRequirement) {
         specificApplication = `Your credit report does not show the ${readableField} for this tradeline. Treat this as an accuracy and completeness review unless a field-specific legal or reporting-standard requirement is mapped.`;
       } else if (fieldName) {
         specificApplication = `Your credit report is missing the ${readableField} for this tradeline, which is required for complete and accurate reporting.`;
