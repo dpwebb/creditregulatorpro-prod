@@ -699,7 +699,6 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
           surchargeRate={0}
           totalCost={firstClassCost}
           onPaymentSuccess={handleCrpSuccess}
-          onBetaBypass={() => handleCrpSuccess()}
         />
       )}
     </>

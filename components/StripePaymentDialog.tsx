@@ -31,7 +31,6 @@ export interface StripePaymentDialogProps {
   mailType?: "registered" | "first_class";
   onOpenChange: (open: boolean) => void;
   onPaymentSuccess: (paymentIntentId: string) => void;
-  onBetaBypass: () => void;
 }
 
 export const StripePaymentDialog: React.FC<StripePaymentDialogProps> = ({
@@ -43,7 +42,6 @@ export const StripePaymentDialog: React.FC<StripePaymentDialogProps> = ({
   mailType = "registered",
   onOpenChange,
   onPaymentSuccess,
-  onBetaBypass,
 }) => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
@@ -59,10 +57,7 @@ export const StripePaymentDialog: React.FC<StripePaymentDialogProps> = ({
         { packetId, mailType },
         {
           onSuccess: (data) => {
-            if (data.isBeta) {
-              onBetaBypass();
-              onOpenChange(false);
-            } else if (data.clientSecret && data.paymentIntentId) {
+            if (data.clientSecret && data.paymentIntentId) {
               setClientSecret(data.clientSecret);
               setPaymentIntentId(data.paymentIntentId);
             }
@@ -78,10 +73,7 @@ export const StripePaymentDialog: React.FC<StripePaymentDialogProps> = ({
       { packetId, mailType },
       {
         onSuccess: (data) => {
-          if (data.isBeta) {
-            onBetaBypass();
-            onOpenChange(false);
-          } else if (data.clientSecret && data.paymentIntentId) {
+          if (data.clientSecret && data.paymentIntentId) {
             setClientSecret(data.clientSecret);
             setPaymentIntentId(data.paymentIntentId);
           }

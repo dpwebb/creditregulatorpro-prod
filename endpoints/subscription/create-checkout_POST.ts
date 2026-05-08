@@ -84,7 +84,7 @@ export async function handle(request: Request) {
 
     const customerId = await getOrCreateStripeCustomer(user.id, user.email, user.displayName ?? undefined);
 
-    const stripeSub = await createStripeSubscription(customerId, plan, amountCents);
+    const stripeSub = await createStripeSubscription(customerId, plan, amountCents, user.id);
 
     const latestInvoice = stripeSub.latest_invoice;
     let clientSecret = "";

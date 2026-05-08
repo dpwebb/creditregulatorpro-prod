@@ -14,6 +14,7 @@ import { getBureauRegisteredMailAddress } from "../../helpers/bureauDisputeAddre
 import { verifyPaymentIntent, refundPaymentIntent } from "../../helpers/stripeServer";
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
+import { evaluateSubscriptionAccess, subscriptionAccessErrorResponse } from "../../helpers/subscriptionAccess";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -233,37 +234,44 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Packet has already been sent or is processing" }), { status: 400 });
     }
 
-    // 2. Check user's subscription plan
+    // 2. Check user's subscription access before collecting postal payment.
     const subscription = await db
       .selectFrom("subscriptions")
-      .select(["plan", "status"])
+      .select(["plan", "status", "trialEnd"])
       .where("userId", "=", userId)
       .orderBy("createdAt", "desc")
       .limit(1)
       .executeTakeFirst();
 
-    const isBetaUser = subscription?.plan === "beta";
+    const subscriptionAccess = evaluateSubscriptionAccess({
+      role: session.user.role,
+      subscriptionPlan: subscription?.plan ?? session.user.subscriptionPlan,
+      subscriptionStatus: subscription?.status ?? session.user.subscriptionStatus,
+      trialEnd: subscription?.trialEnd ?? session.user.trialEnd,
+    });
 
-    // 3. Payment verification for non-trial users
-    if (!isBetaUser) {
-      if (!input.paymentIntentId) {
-        return new Response(
-          JSON.stringify({ error: "Payment required for paid users" }),
-          { status: 402 }
-        );
-      }
+    if (subscriptionAccess.blocked) {
+      return subscriptionAccessErrorResponse(subscriptionAccess);
+    }
 
-      try {
-        await verifyPaymentIntent(input.paymentIntentId);
-        console.log(`Payment intent ${input.paymentIntentId} verified successfully for user ${userId}`);
-      } catch (verifyError) {
-        console.error("Payment verification failed:", verifyError);
-        const message = verifyError instanceof Error ? verifyError.message : "Payment verification failed";
-        return new Response(
-          JSON.stringify({ error: `Payment verification failed: ${message}` }),
-          { status: 402 }
-        );
-      }
+    // 3. Payment verification. Subscription access does not waive postal costs.
+    if (!input.paymentIntentId) {
+      return new Response(
+        JSON.stringify({ error: "Payment required to send this letter." }),
+        { status: 402 }
+      );
+    }
+
+    try {
+      await verifyPaymentIntent(input.paymentIntentId);
+      console.log(`Payment intent ${input.paymentIntentId} verified successfully for user ${userId}`);
+    } catch (verifyError) {
+      console.error("Payment verification failed:", verifyError);
+      const message = verifyError instanceof Error ? verifyError.message : "Payment verification failed";
+      return new Response(
+        JSON.stringify({ error: `Payment verification failed: ${message}` }),
+        { status: 402 }
+      );
     }
 
     // 4. Fetch user's "document_signing" signature
@@ -407,8 +415,8 @@ export async function handle(request: Request) {
       const rawMsg = postgridError instanceof Error ? postgridError.message : "Unknown mailing error";
       const parsed = parsePostGridError(rawMsg);
 
-      // If a non-trial user already paid, issue a refund
-      if (!isBetaUser && input.paymentIntentId) {
+      // If payment was already captured, issue a refund.
+      if (input.paymentIntentId) {
         try {
           await refundPaymentIntent(input.paymentIntentId);
           console.log(`Refunded payment intent ${input.paymentIntentId} after PostGrid failure`);
@@ -535,7 +543,7 @@ export async function handle(request: Request) {
         })
         .execute();
 
-      // Create postal transaction record, including stripePaymentIntentId for non-trial users.
+      // Create postal transaction record, including stripePaymentIntentId for the captured postal payment.
       await trx
         .insertInto("postalTransaction")
         .values({
@@ -566,7 +574,7 @@ export async function handle(request: Request) {
             tracking: pgResponse.trackingNumber,
             postgridId: pgResponse.id,
             stripePaymentIntentId: input.paymentIntentId ?? null,
-            isBetaUser,
+            subscriptionPlan: subscription?.plan ?? session.user.subscriptionPlan,
           } as any,
           status: "SUCCESS",
           timestamp: new Date(),

@@ -1,10 +1,26 @@
 import Stripe from "stripe";
 import { OutputType } from "./stripe_POST.schema";
 import { logger } from "../../helpers/logger";
+import { syncStripeSubscriptionToDb } from "../../helpers/stripeSubscriptionSync";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-06-20",
 });
+
+async function syncSubscriptionById(stripeSubscriptionId: string | null | undefined) {
+  if (!stripeSubscriptionId) {
+    return null;
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+  return await syncStripeSubscriptionToDb(subscription);
+}
+
+function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  const value = (invoice as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null }).subscription;
+  if (!value) return null;
+  return typeof value === "string" ? value : value.id;
+}
 
 export async function handle(request: Request) {
   try {
@@ -35,7 +51,12 @@ export async function handle(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        logger.info("Stripe webhook event", { type: event.type, sessionId: session.id });
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id;
+        const syncResult = await syncSubscriptionById(subscriptionId);
+        logger.info("Stripe webhook event", { type: event.type, sessionId: session.id, syncResult });
         break;
       }
 
@@ -47,14 +68,24 @@ export async function handle(request: Request) {
 
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        logger.info("Stripe webhook event", { type: event.type, invoiceId: invoice.id });
+        const syncResult = await syncSubscriptionById(subscriptionIdFromInvoice(invoice));
+        logger.info("Stripe webhook event", { type: event.type, invoiceId: invoice.id, syncResult });
         break;
       }
 
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const syncResult = await syncSubscriptionById(subscriptionIdFromInvoice(invoice));
+        logger.info("Stripe webhook event", { type: event.type, invoiceId: invoice.id, syncResult });
+        break;
+      }
+
+      case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        logger.info("Stripe webhook event", { type: event.type, subscriptionId: subscription.id });
+        const syncResult = await syncStripeSubscriptionToDb(subscription);
+        logger.info("Stripe webhook event", { type: event.type, subscriptionId: subscription.id, syncResult });
         break;
       }
 

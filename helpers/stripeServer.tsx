@@ -161,7 +161,12 @@ async function getOrCreatePrice(plan: "monthly" | "annual", productId: string, a
   return price.id;
 }
 
-export async function createStripeSubscription(customerId: string, plan: "monthly" | "annual", amountCents: number) {
+export async function createStripeSubscription(
+  customerId: string,
+  plan: "monthly" | "annual",
+  amountCents: number,
+  userId?: number
+) {
   const productId = await getOrCreateProduct();
   const priceId = await getOrCreatePrice(plan, productId, amountCents);
 
@@ -173,6 +178,10 @@ export async function createStripeSubscription(customerId: string, plan: "monthl
       },
     ],
     payment_behavior: "default_incomplete",
+    metadata: {
+      plan,
+      ...(userId ? { userId: userId.toString() } : {}),
+    },
     expand: ["latest_invoice.payment_intent"],
   });
 

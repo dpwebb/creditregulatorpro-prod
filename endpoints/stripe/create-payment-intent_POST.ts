@@ -6,6 +6,7 @@ import { createMailPaymentIntent } from "../../helpers/stripeServer";
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { db } from "../../helpers/db";
+import { evaluateSubscriptionAccess, subscriptionAccessErrorResponse } from "../../helpers/subscriptionAccess";
 
 export async function handle(request: Request) {
   try {
@@ -32,23 +33,21 @@ export async function handle(request: Request) {
     // Use the latest subscription row for payment gating to match packet send endpoints.
     const latestSubscription = await db
       .selectFrom("subscriptions")
-      .select(["plan"])
+      .select(["plan", "status", "trialEnd"])
       .where("userId", "=", user.id)
       .orderBy("createdAt", "desc")
       .limit(1)
       .executeTakeFirst();
 
-    const isBetaUser = latestSubscription?.plan === "beta" || user.subscriptionPlan === "beta";
+    const subscriptionAccess = evaluateSubscriptionAccess({
+      role: user.role,
+      subscriptionPlan: latestSubscription?.plan ?? user.subscriptionPlan,
+      subscriptionStatus: latestSubscription?.status ?? user.subscriptionStatus,
+      trialEnd: latestSubscription?.trialEnd ?? user.trialEnd,
+    });
 
-    if (isBetaUser) {
-      return new Response(
-        JSON.stringify({
-          clientSecret: null,
-          paymentIntentId: null,
-          isBeta: true,
-          amount: 0,
-        } satisfies OutputType)
-      );
+    if (subscriptionAccess.blocked) {
+      return subscriptionAccessErrorResponse(subscriptionAccess);
     }
 
     const mailType = result.mailType ?? "registered";

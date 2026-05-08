@@ -3,6 +3,7 @@ import { getSubscriptionStatus } from "../endpoints/subscription/status_GET.sche
 import { useAuth } from "./useAuth";
 import { postUpdatePlan } from "../endpoints/subscription/update-plan_POST.schema";
 import { postCancelSubscription } from "../endpoints/subscription/cancel_POST.schema";
+import { evaluateSubscriptionAccess } from "./subscriptionAccess";
 
 export const SUBSCRIPTION_QUERY_KEY = ["subscription"] as const;
 
@@ -19,13 +20,18 @@ export function useSubscription() {
   });
 
   const data = query.data;
+  const access = data
+    ? evaluateSubscriptionAccess({
+        role: authState.type === "authenticated" ? authState.user.role : "user",
+        subscriptionPlan: data.plan,
+        subscriptionStatus: data.status,
+        trialEnd: data.trialEnd,
+      })
+    : null;
   const isBeta = data?.plan === "beta";
   const isActive = data?.status === "active";
   const isTrialing = data?.status === "trialing";
-  const isExpired =
-    data?.status === "expired" ||
-    data?.status === "past_due" ||
-    data?.status === "cancelled";
+  const isExpired = access?.blocked ?? false;
 
   let daysLeftInTrial = 0;
   if (data?.trialEnd) {

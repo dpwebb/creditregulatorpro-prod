@@ -8,6 +8,7 @@ import { AuthLoadingState } from "./AuthLoadingState";
 import { Button } from "./Button";
 import { Link } from "react-router-dom";
 import { useAcceptTerms } from "../helpers/useAcceptTerms";
+import { evaluateSubscriptionAccess } from "../helpers/subscriptionAccess";
 import styles from "./ProtectedRoute.module.css";
 
 const TermsAcceptanceBlock: React.FC = () => {
@@ -150,36 +151,23 @@ const MakeProtectedRoute: (roles: Array<User["role"] | "support">) => React.FC<{
 
     const { user } = authState;
 
-    const isTrialExpired =
-      user.subscriptionStatus === "trialing" &&
-      !!user.trialEnd &&
-      new Date(user.trialEnd) < new Date();
+    const subscriptionAccess = evaluateSubscriptionAccess({
+      role: user.role,
+      subscriptionPlan: user.subscriptionPlan,
+      subscriptionStatus: user.subscriptionStatus,
+      trialEnd: user.trialEnd,
+    });
 
-    const isSubscriptionBlocked =
-      user.role !== "admin" &&
-      user.role !== "support" &&
-      user.subscriptionPlan !== "beta" &&
-      (isTrialExpired ||
-        !user.subscriptionPlan ||
-        !user.subscriptionStatus ||
-        user.subscriptionStatus === "expired" ||
-        user.subscriptionStatus === "cancelled" ||
-        user.subscriptionStatus === "past_due");
-
-    if (isSubscriptionBlocked) {
-      const lockedMessage = isTrialExpired
-        ? "Your free trial has expired. Please subscribe to regain access to your account."
-        : `Your subscription is currently ${user.subscriptionStatus ? user.subscriptionStatus.replace("_", " ") : "inactive"}. Please update your billing information to regain access to your account.`;
-
+    if (subscriptionAccess.blocked) {
       return (
         <div className={styles.lockedContainer}>
           <div className={styles.lockedCard}>
             <div className={styles.lockedIconContainer}>
               <CreditCard className={styles.lockedIcon} size={64} />
             </div>
-            <h1 className={styles.lockedTitle}>{isTrialExpired ? "Free Trial Expired" : "Subscription Inactive"}</h1>
+            <h1 className={styles.lockedTitle}>{subscriptionAccess.title}</h1>
             <p className={styles.lockedMessage}>
-              {lockedMessage}
+              {subscriptionAccess.message}
             </p>
             <Button asChild className={styles.lockedButton}>
               <Link to="/my-info?tab=profile">Manage Subscription</Link>
