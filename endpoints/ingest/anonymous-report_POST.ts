@@ -6,9 +6,12 @@ import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { generateAnonymousPreview } from "../../helpers/anonymousCompliancePreview";
 import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
 import { isScannedPdfUnsupportedError } from "../../helpers/creditReportPdfEligibility";
+import { logRejectedScannedPdfUpload } from "../../helpers/creditReportUploadRejectionAudit";
 import { ZodError } from "zod";
 
 export async function handle(request: Request) {
+  let input: ReturnType<typeof schema.parse> | null = null;
+
   try {
     const guardResult = await validateOrigin(request);
     if (!guardResult.valid && guardResult.mode === "enforce") {
@@ -28,7 +31,6 @@ export async function handle(request: Request) {
       );
     }
 
-    let input: ReturnType<typeof schema.parse>;
     try {
       input = schema.parse(json);
     } catch (validationError) {
@@ -92,7 +94,15 @@ export async function handle(request: Request) {
     });
   } catch (error: unknown) {
     console.error("[Anonymous Upload] Error:", error);
-    if (isScannedPdfUnsupportedError(error)) {
+    if (input && isScannedPdfUnsupportedError(error)) {
+      await logRejectedScannedPdfUpload({
+        route: "anonymous_preview",
+        bytesBase64: input.bytesBase64,
+        mimeType: input.mimeType,
+        quality: error.quality,
+        request,
+      });
+
       return new Response(
         JSON.stringify({ error: error.message }),
         { status: 400, headers: { "Content-Type": "application/json" } }

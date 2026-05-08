@@ -13,6 +13,7 @@ import {
   assertTextBasedCreditReportPdf,
   isScannedPdfUnsupportedError,
 } from "./creditReportPdfEligibility";
+import { logRejectedScannedPdfUpload } from "./creditReportUploadRejectionAudit";
 
 type IngestInput = z.infer<typeof UploadReportInput>;
 
@@ -22,7 +23,8 @@ type IngestInput = z.infer<typeof UploadReportInput>;
  */
 export async function handleIngestSubmit(
   resolvedSession: ResolvedUserSession,
-  input: IngestInput
+  input: IngestInput,
+  request?: Request
 ): Promise<{
   success: boolean;
   error?: string;
@@ -66,6 +68,15 @@ export async function handleIngestSubmit(
     });
   } catch (error) {
     if (isScannedPdfUnsupportedError(error)) {
+      await logRejectedScannedPdfUpload({
+        route: "authenticated_ingest",
+        userId: user.id,
+        bytesBase64: input.bytesBase64,
+        mimeType: "application/pdf",
+        quality: error.quality,
+        request,
+      });
+
       return {
         success: false,
         error: error.message,
@@ -215,9 +226,10 @@ export async function handleIngestProcess(
 export async function handleIngestReport(
   resolvedSession: ResolvedUserSession,
   input: IngestInput,
-  send: (event: SSEEvent) => void
+  send: (event: SSEEvent) => void,
+  request?: Request
 ) {
-  const submitResult = await handleIngestSubmit(resolvedSession, input);
+  const submitResult = await handleIngestSubmit(resolvedSession, input, request);
 
   if (!submitResult.success) {
     send({ type: "error", error: submitResult.error || "Unknown error", code: submitResult.code });

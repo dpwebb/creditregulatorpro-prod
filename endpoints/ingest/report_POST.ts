@@ -32,7 +32,7 @@ export async function handle(request: Request) {
 
   // Phase 1: Submit extraction request (quick synchronous response)
   try {
-    const submitResult = await handleIngestSubmit(resolvedSession, input);
+    const submitResult = await handleIngestSubmit(resolvedSession, input, request);
 
     if (!submitResult.success) {
       const statusCode = submitResult.code === "RATE_LIMITED" ? 429 : 400;

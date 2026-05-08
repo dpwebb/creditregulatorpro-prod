@@ -7,6 +7,7 @@ import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointEr
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { isScannedPdfUnsupportedError } from "../../helpers/creditReportPdfEligibility";
+import { logRejectedScannedPdfUpload } from "../../helpers/creditReportUploadRejectionAudit";
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -62,6 +63,15 @@ export async function handle(request: Request) {
     } catch (e) {
       console.error("OCR Extraction failed:", e);
       if (isScannedPdfUnsupportedError(e)) {
+        await logRejectedScannedPdfUpload({
+          route: "ocr_extract",
+          userId: user.id,
+          bytesBase64: input.bytesBase64,
+          mimeType: input.mimeType,
+          quality: e.quality,
+          request,
+        });
+
         throw new BusinessRuleError(e.message, 400);
       }
       throw new Error("Failed to parse document");
