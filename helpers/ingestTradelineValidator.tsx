@@ -7,6 +7,7 @@ export interface ValidateTradelinesInput {
   parsedTradelines: ParsedTradeline[];
   tradelineIds: number[];
   region: string;
+  reportDate?: Date | null;
 }
 
 export interface ValidateTradelinesResult {
@@ -23,7 +24,7 @@ export interface ValidateTradelinesResult {
 export async function validateTradelines(
   input: ValidateTradelinesInput
 ): Promise<ValidateTradelinesResult> {
-  const { parsedTradelines, tradelineIds, region } = input;
+  const { parsedTradelines, tradelineIds, region, reportDate } = input;
   
   if (parsedTradelines.length === 0) {
     return {
@@ -66,6 +67,8 @@ export async function validateTradelines(
       accountType: parsedTradeline.accountType,
       paymentPattern: parsedTradeline.paymentPattern,
       isCollectionAccount: parsedTradeline.isCollectionAccount ?? false,
+      lastPaymentDate: parsedTradeline.lastPaymentDate ?? null,
+      reportDate: reportDate ?? null,
     };
     
     const validationResults = validateTradeline(tl, String(crrgYear));

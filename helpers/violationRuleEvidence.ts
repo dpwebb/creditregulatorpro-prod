@@ -66,7 +66,9 @@ const RULE_FIELD_MAP: Record<string, string> = {
   DATE_DOFD_LOGIC: "dateOfFirstDelinquency",
   DATE_REPORTED_LOGIC: "lastReportedDate",
   REPORT_DATE_REQUIRED: "lastReportedDate",
+  DATE_LAST_PAYMENT_AFTER_REPORT_DATE: "dateOfLastPayment",
   DATE_CLOSED_REQUIRED: "dateClosed",
+  BALANCE_EXCEEDS_CREDIT_LIMIT: "currentBalance",
   ACCOUNT_DESIGNATION_REQUIRED: "accountDesignation",
   CREDITOR_NAME_REQUIRED: "creditorName",
 };

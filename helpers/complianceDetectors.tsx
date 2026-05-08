@@ -336,6 +336,10 @@ function getDedupKey(violation: DetectedViolation): string {
       field = "dateOfFirstDelinquency";
     } else if (ruleName === "REPORT_DATE_REQUIRED" || ruleName === "DATE_REPORTED_LOGIC") {
       field = "lastReportedDate";
+    } else if (ruleName === "DATE_LAST_PAYMENT_AFTER_REPORT_DATE") {
+      field = "dateOfLastPayment";
+    } else if (ruleName === "BALANCE_EXCEEDS_CREDIT_LIMIT") {
+      field = "currentBalance";
     } else if (ruleName === "BALANCE_PAID_ZERO") {
       field = "currentBalance";
     } else if (ruleName === "DATE_CLOSED_REQUIRED") {

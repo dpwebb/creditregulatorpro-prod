@@ -130,6 +130,50 @@ Jan 202620200020000
     ]);
   });
 
+  it("splits collapsed TransUnion creditor-label rows into separate tradelines", () => {
+    const text = `
+JASON ANDREW MILLER , SYN-TU-001Saturday 10 January 2026 19:34
+Account(s):
+This section lists synthetic accounts reported by fictional institutions.
+Creditor NameMAPLE FINANCIAL VISAPayment History
+Reported DateDec 16, 2025Last Payment DateJan 14, 202730  3
+Opened DateApr 13, 2021Posted DateDec 18, 202560  1
+Closed DateCharge Off Date90  0
+First Delinquency DateSep 14, 2025Terms0/M#M  44
+Account TypeREVOLVING / INDIVIDUAL
+DateBalancePaymentPast DueMOPTermsHigh CreditCredit LimitBalloon PaymentCharge OffNarrative 1 / 2
+Dec 20256120150730506120500000XR /
+Nov 20255870150580405870500000
+Legend: AC-Account current/non-derogatory, CG-Account cancelled by credit grantor, TC-Third party collection, WO-Write-off, CZ-Closed at consumer request,
+X-Unknown, PD-Paid.
+Creditor NameNORTHERN AUTO FINANCEPayment History
+Reported DateNov 30, 2025Last Payment DateNov 14, 202530  0
+Opened DateJun 18, 2022Posted DateDec 02, 202560  0
+Closed DateCharge Off Date90  0
+First Delinquency DateTerms60/M#M  42
+Account TypeINSTALLMENT / INDIVIDUAL
+DateBalancePaymentPast DueMOPTermsHigh CreditCredit LimitBalloon PaymentCharge OffNarrative 1 / 2
+Nov 202511244492016028750000AC /
+Oct 202511736492016028750000
+Legend: AC-Account current/non-derogatory, CG-Account cancelled by credit grantor, TC-Third party collection, WO-Write-off, CZ-Closed at consumer request,
+X-Unknown, PD-Paid.
+Credit Related Inquiries:
+`;
+
+    const metadata = extractReportMetadata(text);
+    const tradelines = extractTradelines(text);
+
+    expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-01-10");
+    expect(tradelines).toHaveLength(2);
+    expect(tradelines.map((tradeline) => tradeline.creditorName)).toEqual([
+      "MAPLE FINANCIAL VISA",
+      "NORTHERN AUTO FINANCE",
+    ]);
+    expect(tradelines[0].balance).toBe(6120);
+    expect(tradelines[0].creditLimit).toBe(5000);
+    expect(tradelines[0].lastPaymentDate?.toISOString().slice(0, 10)).toBe("2027-01-14");
+  });
+
   it("keeps Equifax collection assignment separate from opened date", () => {
     const tradelines = extractEquifaxTradelines(`
 Equifax Canada

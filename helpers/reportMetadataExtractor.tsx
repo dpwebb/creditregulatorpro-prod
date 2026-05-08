@@ -104,7 +104,7 @@ function extractTransUnionReportDate(headerText: string): Date | null {
   }
 
   const headerDateMatch = headerText.match(
-    /\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})\b/i,
+    /(?:^|[^A-Za-z])(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4})\b/i,
   );
   if (headerDateMatch) {
     return parseReportDate(headerDateMatch[1]);
@@ -226,7 +226,7 @@ export function extractReportMetadata(text: string): ExtractedReportMetadata {
     }
   }
 
-  if (!result.reportDate && /TransUnion/i.test(transUnionDateSearchText)) {
+  if (!result.reportDate) {
     result.reportDate = extractTransUnionReportDate(transUnionDateSearchText);
   }
 

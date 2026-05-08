@@ -1,4 +1,3 @@
-import { format } from "./dateUtils";
 import type { Selectable } from "kysely";
 import type { Tradeline } from "./schema";
 import type { DetectedViolation } from "./complianceDetectorTypes";
@@ -62,6 +61,10 @@ function mapMetro2RuleNameToField(ruleName: string): string | null {
     case "DATE_REPORTED_LOGIC":
     case "REPORT_DATE_REQUIRED":
       return "lastReportedDate";
+    case "DATE_LAST_PAYMENT_AFTER_REPORT_DATE":
+      return "dateOfLastPayment";
+    case "BALANCE_EXCEEDS_CREDIT_LIMIT":
+      return "currentBalance";
     case "DATE_CLOSED_REQUIRED":
       return "dateClosed";
     case "ACCOUNT_DESIGNATION_REQUIRED":
@@ -71,6 +74,13 @@ function mapMetro2RuleNameToField(ruleName: string): string | null {
     default:
       return null;
   }
+}
+
+function formatDateOnly(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
 }
 
 /**
@@ -98,6 +108,16 @@ export async function detectMetro2RulesetViolations(
       .where("id", "=", tradeline.creditorId)
       .executeTakeFirst();
     creditorName = creditor?.name || null;
+  }
+
+  let reportDate = null;
+  if (tradeline.reportArtifactId) {
+    const artifact = await db
+      .selectFrom("reportArtifact")
+      .select("reportDate")
+      .where("id", "=", tradeline.reportArtifactId)
+      .executeTakeFirst();
+    reportDate = artifact?.reportDate || null;
   }
 
   // Derive portfolio type from account type if possible
@@ -129,17 +149,15 @@ export async function detectMetro2RulesetViolations(
     portfolioType: derivedPortfolioType,
     paymentPattern: tradeline.paymentPattern,
     status: tradeline.status || "",
-    openedDate: tradeline.openedDate ? format(new Date(tradeline.openedDate), "yyyy-MM-dd") : null,
-        reportDate: tradeline.lastReportedDate ? format(new Date(tradeline.lastReportedDate), "yyyy-MM-dd") : null,
+    openedDate: formatDateOnly(tradeline.openedDate),
+    reportedDate: formatDateOnly(tradeline.lastReportedDate),
+    reportDate: formatDateOnly(reportDate) ?? formatDateOnly(tradeline.lastReportedDate),
     currentBalance: Number(tradeline.currentBalance || tradeline.balance || 0),
     amountPastDue: Number(tradeline.amountPastDue || 0),
-    dateOfFirstDelinquency: tradeline.dateOfFirstDelinquency 
-      ? format(new Date(tradeline.dateOfFirstDelinquency), "yyyy-MM-dd") 
-      : null,
-    dateClosed: tradeline.dateClosed ? format(new Date(tradeline.dateClosed), "yyyy-MM-dd") : null,
-    dateOfLastPayment: tradeline.dateOfLastPayment 
-      ? format(new Date(tradeline.dateOfLastPayment), "yyyy-MM-dd") 
-      : null,
+    creditLimit: Number(tradeline.creditLimit || 0),
+    dateOfFirstDelinquency: formatDateOnly(tradeline.dateOfFirstDelinquency),
+    dateClosed: formatDateOnly(tradeline.dateClosed),
+    dateOfLastPayment: formatDateOnly(tradeline.dateOfLastPayment),
     highCredit: Number(tradeline.highCredit || 0),
     scheduledMonthlyPayment: Number(tradeline.scheduledMonthlyPayment || 0),
     paymentHistoryProfile: tradeline.paymentHistoryProfile || null,

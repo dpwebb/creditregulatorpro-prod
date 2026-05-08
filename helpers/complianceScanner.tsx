@@ -451,8 +451,16 @@ export async function scanForViolations(
     if (!v.violationCategory) continue;
     const config = configMap.get(v.violationCategory as ViolationCategory);
     if (!config) continue;
+    const hasRuleBackedMessage =
+      typeof v.userExplanation === "string" &&
+      v.userExplanation.trim() !== "" &&
+      Boolean(
+        v.technicalDetails &&
+          typeof v.technicalDetails === "object" &&
+          typeof (v.technicalDetails as Record<string, unknown>).ruleName === "string"
+      );
 
-    if (config.userExplanationTemplate && config.userExplanationTemplate.trim() !== "") {
+    if (!hasRuleBackedMessage && config.userExplanationTemplate && config.userExplanationTemplate.trim() !== "") {
       v.userExplanation = config.userExplanationTemplate;
     }
     if (config.recommendedActionTemplate && config.recommendedActionTemplate.trim() !== "") {

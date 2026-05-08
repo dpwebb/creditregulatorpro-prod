@@ -32,6 +32,8 @@ export type TL = {
   portfolioType?: string;
   paymentPattern?: string;
   isCollectionAccount?: boolean;
+  lastPaymentDate?: Date | null;
+  reportDate?: Date | null;
 };
 
 export type CoherenceIssue = {
@@ -172,12 +174,17 @@ function tlToFlatData(t: TL): Record<string, any> {
     accountNumber: "N/A", // TL doesn't have this field, using placeholder
     status: t.status,
     openedDate: t.dates.opened ? format(t.dates.opened, "yyyy-MM-dd") : null,
-    reportDate: t.dates.reported ? format(t.dates.reported, "yyyy-MM-dd") : null,
+    reportedDate: t.dates.reported ? format(t.dates.reported, "yyyy-MM-dd") : null,
+    reportDate: t.reportDate
+      ? format(t.reportDate, "yyyy-MM-dd")
+      : t.dates.reported
+        ? format(t.dates.reported, "yyyy-MM-dd")
+        : null,
     currentBalance: t.amounts.current,
     amountPastDue: t.amounts.pastDue,
     dateOfFirstDelinquency: t.dates.dofd ? format(t.dates.dofd, "yyyy-MM-dd") : null,
     dateClosed: t.dates.closed ? format(t.dates.closed, "yyyy-MM-dd") : null,
-    dateOfLastPayment: null, // Not in TL type
+    dateOfLastPayment: t.lastPaymentDate ? format(t.lastPaymentDate, "yyyy-MM-dd") : null,
     highCredit: t.amounts.high,
     scheduledMonthlyPayment: t.payment.scheduledMonthly,
     paymentHistoryProfile: null, // Not in TL type

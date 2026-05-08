@@ -208,6 +208,40 @@ function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGrid
   const layoutGroupedColumns = splitLayoutGroupedCompactPaymentGridToken(clean);
   if (layoutGroupedColumns) return layoutGroupedColumns;
 
+  const compactRevolvingWithLimit = clean.match(
+    /^(\d{4})(\d{3})(\d{3})(\d)(\d)(\d{4})(\d{4})(0)(0)$/,
+  );
+  if (compactRevolvingWithLimit) {
+    return {
+      balance: parseCompactAmount(compactRevolvingWithLimit[1]),
+      payment: parseCompactAmount(compactRevolvingWithLimit[2]),
+      pastDue: parseCompactAmount(compactRevolvingWithLimit[3]),
+      mop: compactRevolvingWithLimit[4],
+      terms: String(Number(compactRevolvingWithLimit[5])),
+      highCredit: parseCompactAmount(compactRevolvingWithLimit[6]),
+      creditLimit: parseCompactAmount(compactRevolvingWithLimit[7]),
+      balloonPayment: parseCompactAmount(compactRevolvingWithLimit[8]),
+      chargeOff: parseCompactAmount(compactRevolvingWithLimit[9]),
+    };
+  }
+
+  const compactInstallmentWithZeroLimit = clean.match(
+    /^(\d{5})(\d{3})(0)(\d)(\d{2})(\d{5})(0)(0)(0)$/,
+  );
+  if (compactInstallmentWithZeroLimit) {
+    return {
+      balance: parseCompactAmount(compactInstallmentWithZeroLimit[1]),
+      payment: parseCompactAmount(compactInstallmentWithZeroLimit[2]),
+      pastDue: parseCompactAmount(compactInstallmentWithZeroLimit[3]),
+      mop: compactInstallmentWithZeroLimit[4],
+      terms: String(Number(compactInstallmentWithZeroLimit[5])),
+      highCredit: parseCompactAmount(compactInstallmentWithZeroLimit[6]),
+      creditLimit: parseCompactAmount(compactInstallmentWithZeroLimit[7]),
+      balloonPayment: parseCompactAmount(compactInstallmentWithZeroLimit[8]),
+      chargeOff: parseCompactAmount(compactInstallmentWithZeroLimit[9]),
+    };
+  }
+
   const capitalWithTerms = clean.match(/^(\d{3})(\d{2})(\d{2})(\d)(\d{2})(\d{3})(\d{3})(0)(0)$/);
   if (capitalWithTerms) {
     return {
@@ -273,7 +307,7 @@ function splitCompactPaymentGridToken(token: string): Omit<TransUnionPaymentGrid
 
 function cleanGridColumnWindow(rawAfterDate: string): string {
   return rawAfterDate
-    .replace(/[A-Z]{1,3}\s*\/\s*[A-Z]{0,3}\b/g, " ")
+    .replace(/[A-Z]{1,3}\s*\/\s*(?:[A-Z]{1,3})?(?=\s|$)/g, " ")
     .replace(/\b(?:Creditor|Reported|Opened|Closed|Legend|Status|Account|Payment History)\b[\s\S]*$/i, " ")
     .replace(/\s+/g, " ")
     .trim();

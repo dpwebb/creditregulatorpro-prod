@@ -558,6 +558,7 @@ export async function executeIngestPipeline({
       parsedTradelines,
       tradelineIds: context.tradelineIds,
       region: region,
+      reportDate: parseResult?.reportMetadata?.reportDate ?? null,
     });
     validationRulesApplied = validationResult.validationRulesApplied;
   }

@@ -21,6 +21,7 @@ import {
 import {
   extractDateAssignedToCollection,
   extractLastActivityDate,
+  extractLastPaymentDate,
 } from "./tradelineDateExtractors";
 import {
   extractRemarkCodes,
@@ -149,6 +150,7 @@ function parseTradelineSection(
     terms = null;
   }
   const lastActivityDate = extractLastActivityDate(section);
+  const lastPaymentDate = extractLastPaymentDate(section);
   const paymentHistoryDetails = extractTransUnionPaymentGridRows(section).map((row) => ({
     date: row.dateLabel,
     balance: row.balance,
@@ -237,6 +239,7 @@ function parseTradelineSection(
     scheduledMonthlyPayment,
     paymentFrequency,
     lastActivityDate: lastActivityDate,
+    lastPaymentDate,
     paymentPattern,
     paymentHistoryProfile: paymentPattern ?? null,
     paymentHistory,

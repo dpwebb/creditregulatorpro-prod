@@ -30,6 +30,7 @@ export function extractByLabelBlocks(text: string): string[] {
   const tradelineStartPatterns = [
     /^\s*Account\s+Name[\s:]/i,
     /^\s*Creditor\s+Name[\s:]/i,
+    /^\s*Creditor\s+Name(?=[A-Z0-9])/i,
     /^\s*Creditor[\s:]/i,
     // Add new pattern for "Account X: ..." which is used in some TransUnion Credit Monitoring reports
     // e.g. "**Account 4: ROGERS COMMUNICATIONS CA**"
@@ -59,6 +60,14 @@ export function extractByLabelBlocks(text: string): string[] {
     "BASELINE REPORT",
   ];
 
+  const terminationPatterns = [
+    /^\s*Credit\s+Related\s+Inquiries:\s*$/i,
+    /^\s*Non-Credit\s+Related\s+Inquiries:\s*$/i,
+    /^\s*Inquiries:\s*$/i,
+    /^\s*Embedded\s+Known\s+Errors\b/i,
+    /^\s*Parser\s+Assertion\s+Targets\b/i,
+  ];
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
@@ -69,6 +78,24 @@ export function extractByLabelBlocks(text: string): string[] {
     const isTradelineStart = tradelineStartPatterns.some((pattern) =>
       pattern.test(normalizedLine)
     );
+
+    const isTermination = terminationPatterns.some((pattern) =>
+      pattern.test(normalizedLine)
+    );
+
+    if (isTermination) {
+      if (currentSection.length > 0) {
+        const sectionText = currentSection.join("\n").trim();
+        if (sectionText.length > 30 && isValidTradelineSection(sectionText)) {
+          sections.push(sectionText);
+          console.log(
+            `[Section Splitter] Label block strategy: Found section before termination with ${currentSection.length} lines`
+          );
+        }
+      }
+      currentSection = [];
+      break;
+    }
     
     // Log when markdown normalization helped detect a tradeline start
     if (isTradelineStart && line !== normalizedLine) {

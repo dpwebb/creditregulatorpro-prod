@@ -111,15 +111,38 @@ const DateLogicOpenedVsReported: Metro2ValidationRule = {
   severity: "ERROR",
   description: "The date the account was opened cannot be after the date it was reported.",
   validate: (data: any) => {
-    if (!data.openedDate || !data.reportDate) return { valid: true }; // Skip if missing
-    if (isAfter(parseISO(data.openedDate), parseISO(data.reportDate))) {
+    const reportedDate = data.reportedDate ?? data.reportDate;
+    if (!data.openedDate || !reportedDate) return { valid: true }; // Skip if missing
+    if (isAfter(parseISO(data.openedDate), parseISO(reportedDate))) {
       return {
         valid: false,
         message: "The date this account was opened is later than the date it was reported, which doesn't make sense.",
-        expectedValue: `<= ${data.reportDate}`,
+        expectedValue: `<= ${reportedDate}`,
         actualValue: data.openedDate,
       };
     }
+    return { valid: true };
+  },
+};
+
+const DateLastPaymentAfterReportDate: Metro2ValidationRule = {
+  ruleName: "DATE_LAST_PAYMENT_AFTER_REPORT_DATE",
+  category: "DATES",
+  severity: "ERROR",
+  description: "The date of last payment cannot be after the credit report date.",
+  validate: (data: any) => {
+    if (!data.dateOfLastPayment || !data.reportDate) return { valid: true };
+    if (!isValidDate(data.dateOfLastPayment) || !isValidDate(data.reportDate)) return { valid: true };
+
+    if (isAfter(parseISO(data.dateOfLastPayment), parseISO(data.reportDate))) {
+      return {
+        valid: false,
+        message: "The last payment date is later than the credit report date, which is not possible.",
+        expectedValue: `<= ${data.reportDate}`,
+        actualValue: data.dateOfLastPayment,
+      };
+    }
+
     return { valid: true };
   },
 };
@@ -186,6 +209,35 @@ const BalanceConsistencyPastDue: Metro2ValidationRule = {
         actualValue: formatCurrency(pastDue),
       };
     }
+    return { valid: true };
+  },
+};
+
+const BalanceExceedsCreditLimit: Metro2ValidationRule = {
+  ruleName: "BALANCE_EXCEEDS_CREDIT_LIMIT",
+  category: "BALANCES",
+  severity: "ERROR",
+  description: "The current balance cannot exceed the credit limit on a revolving account.",
+  validate: (data: any) => {
+    const current = getNumeric(data.currentBalance);
+    const creditLimit = getNumeric(data.creditLimit);
+    const accountType = String(data.accountType || "").toUpperCase();
+    const portfolioType = String(data.portfolioType || "").toUpperCase();
+    const isRevolving =
+      portfolioType === "R" ||
+      accountType.includes("REVOLV") ||
+      accountType.includes("CREDIT CARD") ||
+      accountType.includes("LINE OF CREDIT");
+
+    if (isRevolving && creditLimit > 0 && current > creditLimit) {
+      return {
+        valid: false,
+        message: `The balance ${formatCurrency(current)} exceeds the credit limit ${formatCurrency(creditLimit)} on this revolving account.`,
+        expectedValue: `<= ${formatCurrency(creditLimit)}`,
+        actualValue: formatCurrency(current),
+      };
+    }
+
     return { valid: true };
   },
 };
@@ -281,8 +333,10 @@ export const Metro2Rules2024: Metro2RuleSet = {
   rules: [
     BaseSegmentRequiredFields,
     DateLogicOpenedVsReported,
+    DateLastPaymentAfterReportDate,
     DateLogicDOFD,
     BalanceConsistencyPastDue,
+    BalanceExceedsCreditLimit,
     BalancePaidZero,
     CreditorNameRequired,
     DateClosedRequired,
@@ -294,8 +348,10 @@ export const Metro2Rules2025: Metro2RuleSet = {
   rules: [
     BaseSegmentRequiredFields,
     DateLogicOpenedVsReported,
+    DateLastPaymentAfterReportDate,
     DateLogicDOFD,
     BalanceConsistencyPastDue,
+    BalanceExceedsCreditLimit,
     BalancePaidZero,
     CreditorNameRequired,
     DateClosedRequired,

@@ -13,6 +13,9 @@ export function extractAccountType(text: string): string | null {
     // TransUnion format: "Account\nType:\nREVOLVING / INDIVIDUAL" or "Account\nType:\nINSTALLMENT / INDIVIDUAL"
     // Extract the type part before the slash
     /Account\s*\n\s*Type:\s*\n\s*([A-Z]+)\s*\/\s*[A-Z]+/i,
+    // TransUnion compact PDF text can collapse the label and value:
+    // "Account TypeREVOLVING / INDIVIDUAL"
+    /Account\s*Type\s*([A-Z]+)\s*\/\s*[A-Z]+/i,
     // "Type: Revolving" or "Account Type: Credit Card"
     /(?:Account\s+)?Type[\s:]+([A-Za-z\s]+)(?:\n|$)/i,
     // Specific account types
@@ -59,30 +62,51 @@ const TRANSUNION_NARRATIVE_CODES: Record<string, string> = {
   'BK': 'Bankruptcy',
 };
 
+function resolveTransUnionNarrativeStatus(code: string, text: string): string | null {
+  if (code !== "AC") {
+    return TRANSUNION_NARRATIVE_CODES[code] ?? null;
+  }
+
+  const legendMatch = text.match(/\bAC\s*[-:]\s*Account\s+([^,\n]+)/i);
+  const legendText = legendMatch?.[1]?.toLowerCase() ?? "";
+  if (legendText.includes("closed")) return "Account Closed";
+  if (legendText.includes("current") || legendText.includes("non-derogatory") || legendText.includes("non derogatory")) {
+    return "Account Current / Non-Derogatory";
+  }
+
+  return TRANSUNION_NARRATIVE_CODES[code] ?? null;
+}
+
 /**
  * Extracts the status/rating from a tradeline section.
  * Handles Canadian rating codes (R1-R9, etc.), descriptive statuses, and TransUnion narrative codes.
  */
 export function extractStatus(text: string): string | null {
+  const searchText = text.replace(/\bLegend\s*:[\s\S]*$/i, "");
   const patterns = [
     // TransUnion narrative codes in payment history: "WO / CG" or "AC"
     /\b(AC|WO|CG|TC|CZ|CO|RP|LS|BK)(?:\s*\/\s*[A-Z]{2})?\b/,
     // Canadian rating codes: R1, R2, I1, M1, etc.
     /\b([RIMO][0-9])\b/,
+    // Compact status labels: "StatusAccount Closed" or "StatusOpen"
+    /Status\s*(Account\s+Closed|Closed|Open|Current|Paid(?:\s+in\s+Full)?|Charge[-\s]?Off|Collection|Delinquent|In\s+Good\s+Standing|Paid\s+as\s+Agreed)\b/i,
     // "Status: Current" or "Status: Paid"
     /Status[\s:]+([A-Za-z\s-]+)(?:\n|$)/i,
+    // Common explicit account-closed wording without matching "Closed Date" labels
+    /\b(Account\s+Closed|Closed\s+at\s+Consumer\s+Request)\b/i,
     // Common status terms
-    /\b(Open|Closed|Paid|Paid in Full|Current|Charge[-\s]?Off|Collection|Delinquent|In Good Standing|Paid as Agreed)\b/i,
+    /\b(Open|Paid|Paid in Full|Current|Charge[-\s]?Off(?!\s+Date)|Collection(?!\s+Date)|Delinquent|In Good Standing|Paid as Agreed)\b/i,
   ];
 
   for (const pattern of patterns) {
-    const match = text.match(pattern);
+    const match = searchText.match(pattern);
     if (match) {
       const statusCode = match[1].trim().toUpperCase();
       
       // Check if it's a TransUnion narrative code
-      if (TRANSUNION_NARRATIVE_CODES[statusCode]) {
-        return TRANSUNION_NARRATIVE_CODES[statusCode];
+      const narrativeStatus = resolveTransUnionNarrativeStatus(statusCode, text);
+      if (narrativeStatus) {
+        return narrativeStatus;
       }
       
       return match[1].trim();
@@ -100,6 +124,9 @@ export function extractResponsibilityCode(text: string): string | null {
   const patterns = [
     // TransUnion format: "Account\nType:\nREVOLVING / INDIVIDUAL" - extract responsibility after slash
     /Account\s*\n\s*Type:\s*\n\s*[A-Z]+\s*\/\s*([A-Z]+)/i,
+    // TransUnion compact PDF text can collapse the label and value:
+    // "Account TypeREVOLVING / INDIVIDUAL"
+    /Account\s*Type\s*[A-Z]+\s*\/\s*([A-Z]+)/i,
     // "Responsibility: Individual" or "Responsibility: Joint"
     /Responsibility[\s:]+([A-Za-z\s]+)(?:\n|$)/i,
     // "Account Holder: Individual"
