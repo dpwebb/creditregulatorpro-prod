@@ -21,6 +21,7 @@ export const RuleConditionSchema = z.object({
 export const RuleDefinitionSchema = z.object({
   conditions: z.array(RuleConditionSchema),
   logic: z.enum(["AND", "OR"]),
+  regulationIds: z.array(z.string().min(1)).optional(),
 });
 
 const GeneratedSeveritySchema = z.enum(["ERROR", "WARNING", "INFO", "HIGH", "MEDIUM", "LOW"]);

@@ -448,6 +448,7 @@ const generalEntries: Record<string, RegulationEntry> = {
     shortLabel: "CHRA",
     description: "Protects against discrimination",
     violationCategories: [],
+    sourceUrl: "https://laws-lois.justice.gc.ca/eng/acts/h-6/",
   },
   INVESTIGATION_30_DAY: {
     id: "INVESTIGATION_30_DAY",

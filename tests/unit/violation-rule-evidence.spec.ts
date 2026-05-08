@@ -86,6 +86,20 @@ describe("deterministic violation rule evidence", () => {
     );
   });
 
+  it("does not use private reporting standards as statutory basis text", () => {
+    const enriched = enrichDetectedViolationRuleEvidence(
+      violation({
+        technicalDetails: {
+          fieldName: "paymentRating",
+          detectedValue: "0",
+          regulationIds: ["METRO2_PAYMENT_RATING"],
+        },
+      }),
+    );
+
+    expect(getDeterministicViolationStatutoryBasis(enriched)).toBeNull();
+  });
+
   it("does not add broad category references when a detector supplied explicit regulation ids", () => {
     const envelope = buildDeterministicViolationRuleEnvelope(
       violation({

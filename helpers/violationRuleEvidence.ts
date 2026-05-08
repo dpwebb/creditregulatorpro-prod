@@ -467,6 +467,7 @@ export function getDeterministicViolationStatutoryBasis(
     : buildDeterministicViolationRuleEnvelope(violation)?.regulationReferences ?? [];
 
   const basis = refs
+    .filter((ref: any) => ref?.sourceQuality === "official")
     .map((ref: any) => [ref.statute, ref.citation].filter(Boolean).join(" "))
     .filter((value: string) => value.trim());
 

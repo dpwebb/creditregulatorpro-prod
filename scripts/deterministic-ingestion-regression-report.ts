@@ -10,11 +10,13 @@ import {
 import { extractEquifaxTradelines } from "../helpers/equifaxPdfExtractor";
 import { extractReportMetadata } from "../helpers/reportMetadataExtractor";
 import { extractTradelines } from "../helpers/transunionPdfExtractor";
+import { assessParserQuality } from "../helpers/parserQuality";
 import type { ComprehensiveParseResult, ParsedTradeline } from "../helpers/reportParserTypes";
 import {
   equifaxAccountOnlyTextFixture,
   equifaxInstallmentTextFixture,
   equifaxTextFixture,
+  transUnionCollapsedSyntheticFixture,
   transUnionLegacyDisclosureFixture,
   transUnionPortalLayoutFixture,
   transUnionTextFixture,
@@ -26,6 +28,7 @@ type FixtureDefinition = {
   text: string;
   extractor: "transunion" | "equifax";
   minTradelines: number;
+  expectedAccountMarkers?: number;
   expectConsumerName: boolean;
 };
 
@@ -37,6 +40,7 @@ type FixtureReport = {
   replayStable: boolean;
   requiredEvidenceCoveragePercent: number;
   requiredFieldsMissingEvidence: number;
+  expectedAccountMarkers: number;
   consumerNamePresent: boolean;
 };
 
@@ -56,6 +60,15 @@ const fixtures: FixtureDefinition[] = [
     extractor: "transunion",
     minTradelines: 1,
     expectConsumerName: true,
+  },
+  {
+    id: "transunion-collapsed-two-tradeline-synthetic",
+    bureauName: "TransUnion Canada",
+    text: transUnionCollapsedSyntheticFixture,
+    extractor: "transunion",
+    minTradelines: 2,
+    expectedAccountMarkers: 2,
+    expectConsumerName: false,
   },
   {
     id: "transunion-legacy-numbered-section",
@@ -160,12 +173,39 @@ function assertViolationSearchPreservation(): void {
 
 function run(): void {
   const reports: FixtureReport[] = fixtures.map((definition) => {
-    const first = buildPackage(definition);
+    const parseResult = parseFixture(definition);
+    const parserQuality = assessParserQuality({
+      rawHtml: "",
+      rawText: definition.text,
+      llmData: null,
+      parseResult,
+      parsedTradelines: parseResult.tradelines,
+      extractionSource: "pdf_text",
+    });
+    const first = buildDeterministicCreditReportPipelinePackage({
+      parseResult,
+      rawText: definition.text,
+      documentBinarySha256: `${definition.id}-document-sha`,
+    });
     const second = buildPackage(definition);
     const consumerNamePresent = Boolean(first.finalOutput.consumerInfo?.fullName);
 
     assert(first.replayHash === second.replayHash, `${definition.id} replay hash changed between identical inputs.`);
     assert(first.finalOutput.tradelines.length >= definition.minTradelines, `${definition.id} parsed too few tradelines.`);
+    if (definition.expectedAccountMarkers !== undefined) {
+      assert(
+        parserQuality.expectedAccountMarkers === definition.expectedAccountMarkers,
+        `${definition.id} expected ${definition.expectedAccountMarkers} raw account marker(s), got ${parserQuality.expectedAccountMarkers}.`,
+      );
+    }
+    assert(
+      first.finalOutput.tradelines.length >= parserQuality.expectedAccountMarkers,
+      `${definition.id} parsed ${first.finalOutput.tradelines.length} tradeline(s), but raw text showed ${parserQuality.expectedAccountMarkers} account marker(s).`,
+    );
+    assert(
+      !parserQuality.issues.some((issue) => issue.code === "PARSER_ACCOUNT_COUNT_MISMATCH"),
+      `${definition.id} parser quality reported account-count mismatch.`,
+    );
     assert(
       first.finalOutput.evidence.coverage.requiredCoveragePercent === 100,
       `${definition.id} required evidence coverage is ${first.finalOutput.evidence.coverage.requiredCoveragePercent}%; missing ${first.finalOutput.evidence.coverage.requiredFieldsMissingEvidence.join(", ") || "none"}.`,
@@ -184,6 +224,7 @@ function run(): void {
       requiredEvidenceCoveragePercent: first.finalOutput.evidence.coverage.requiredCoveragePercent,
       requiredFieldsMissingEvidence:
         first.finalOutput.evidence.coverage.requiredFieldsMissingEvidence.length,
+      expectedAccountMarkers: parserQuality.expectedAccountMarkers,
       consumerNamePresent,
     };
   });

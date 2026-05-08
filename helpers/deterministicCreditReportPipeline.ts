@@ -340,7 +340,7 @@ const MONTHS: Record<string, number> = {
 };
 
 const DATE_PATTERN =
-  /\b(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{1,2},?\s+\d{2,4})\b/i;
+  /(?:\b(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b|\b(?:Date)?(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+\d{1,2},?\s+\d{2,4}|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?,?\s+\d{2,4})/i;
 
 function compactWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -408,7 +408,10 @@ export function normalizeCanonicalDate(value: unknown): string | null {
     return value.toISOString().slice(0, 10);
   }
 
-  const raw = compactWhitespace(String(value).replace(/\./g, ""));
+  const raw = compactWhitespace(String(value).replace(/\./g, "")).replace(
+    /^Date\s*(?=[A-Z][a-z])/,
+    "",
+  );
 
   const iso = raw.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (iso) {
@@ -437,6 +440,18 @@ export function normalizeCanonicalDate(value: unknown): string | null {
     const month = MONTHS[named[1].toLowerCase()];
     const day = Number(named[2]);
     const year = toFourDigitYear(Number(named[3]));
+    return validDateParts(year, month, day)
+      ? `${year}-${pad2(month)}-${pad2(day)}`
+      : null;
+  }
+
+  const dayNamed = raw.match(
+    /^(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?,?\s+(\d{2,4})$/i,
+  );
+  if (dayNamed) {
+    const day = Number(dayNamed[1]);
+    const month = MONTHS[dayNamed[2].toLowerCase()];
+    const year = toFourDigitYear(Number(dayNamed[3]));
     return validDateParts(year, month, day)
       ? `${year}-${pad2(month)}-${pad2(day)}`
       : null;

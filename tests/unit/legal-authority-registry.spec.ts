@@ -6,6 +6,7 @@ import {
   authorityIssueLabel,
   classifyAuthorityIssue,
   getLegalAuthorityById,
+  localLegalAuthorities,
   hasFieldSpecificAuthority,
   isBonaFideLegalAuthority,
   searchLegalAuthorities,
@@ -212,6 +213,26 @@ describe("local legal authority registry", () => {
     expect(pipeda).toEqual(expect.objectContaining({ sourceQuality: "official", supportLevel: "category_principle" }));
     expect(classifyAuthorityIssue(pipeda!)).toBe("mapped_legal_authority_issue");
     expect(authorityIssueLabel(pipeda!)).toBe("Mapped legal authority issue");
+  });
+
+  it("does not certify official authority records without an official source URL", () => {
+    const officialWithoutSource = localLegalAuthorities
+      .filter((authority) => authority.sourceQuality === "official")
+      .filter((authority) => !authority.sourceUrl || !/^https:\/\//.test(authority.sourceUrl))
+      .map((authority) => authority.id)
+      .sort();
+
+    expect(officialWithoutSource).toEqual([]);
+  });
+
+  it("keeps every private standard out of confirmed legal violation classification", () => {
+    const privateStandards = localLegalAuthorities.filter((authority) => authority.sourceQuality === "private_standard");
+
+    expect(privateStandards.length).toBeGreaterThan(0);
+    for (const authority of privateStandards) {
+      expect(classifyAuthorityIssue(authority), authority.id).toBe("mapped_reporting_standard_issue");
+      expect(authority.supportLevel, authority.id).toBe("reporting_standard");
+    }
   });
 
   it("resolves every active violation category to federal, reporting-standard, or consumer-province authority", () => {

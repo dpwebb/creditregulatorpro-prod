@@ -4,6 +4,7 @@ import { Tradeline } from "./schema";
 import { DetectedViolation } from "./complianceDetectors";
 import { ValidationSeverity } from "./schema";
 import { RuleDefinitionSchema } from "./dynamicRuleGenerator";
+import { getBonaFideLegalAuthoritiesByRegulationIds } from "./legalAuthorityRegistry";
 
 function evaluateCondition(
   tradelineValue: any,
@@ -92,6 +93,13 @@ function normalizeRuleConfidence(confidenceScore: unknown): number {
   return Math.max(0, Math.min(100, normalized));
 }
 
+function resolveDynamicRuleAuthorityIds(regulationIds: string[] | undefined): string[] {
+  const explicitIds = Array.from(new Set((regulationIds ?? []).filter((id) => typeof id === "string" && id.trim())));
+  if (explicitIds.length === 0) return [];
+
+  return getBonaFideLegalAuthoritiesByRegulationIds(explicitIds).map((authority) => authority.id);
+}
+
 /**
  * Loads all active dynamic scanning rules from the database and executes them against a single tradeline.
  * Produces DetectedViolations for any rules that match.
@@ -116,7 +124,14 @@ export async function executeActiveRules(
       continue;
     }
 
-    const { conditions, logic } = parsedDef.data;
+    const { conditions, logic, regulationIds } = parsedDef.data;
+    const resolvedRegulationIds = resolveDynamicRuleAuthorityIds(regulationIds);
+    if (resolvedRegulationIds.length === 0) {
+      console.warn(
+        `[Dynamic Rule Executor] Active rule ${rule.id} skipped because it has no explicit locally resolved authority ids.`,
+      );
+      continue;
+    }
     
     let isMatch = false;
     let primaryMatchedField = "";
@@ -162,6 +177,7 @@ export async function executeActiveRules(
           fieldName: primaryMatchedField,
           matchedValue: primaryMatchedValue,
           statutoryBasis: rule.statutoryBasis,
+          regulationIds: resolvedRegulationIds,
         },
       });
     }

@@ -14,6 +14,7 @@ describe("scanning rule update", () => {
         },
       ],
       logic: "AND" as const,
+      regulationIds: ["PIPEDA_4_6"],
     };
 
     const updateData = buildScanningRuleUpdateData(
