@@ -10,6 +10,7 @@ import {
   buildPacketRecommendationActionPlan,
   evaluatePacketReadiness,
 } from "../../helpers/packetReadiness";
+import { evaluateViolationPacketConfidenceGate } from "../../helpers/violationPacketConfidenceGate";
 import {
   generateAccessPointsForTradelines,
   generateAccessPointsWhenNoViolations,
@@ -268,6 +269,11 @@ export async function handle(request: Request) {
         v.violationCategory,
         parsedDetails
       );
+      const packetConfidenceGate = evaluateViolationPacketConfidenceGate({
+        technicalDetails: v.technicalDetails,
+        validationStatus: v.validationStatus,
+        userStatus: v.userStatus,
+      });
 
       recommendations.push({
         tradelineId: tl.id,
@@ -294,6 +300,7 @@ export async function handle(request: Request) {
               postalCode: tl.bureauPostalCode,
             },
           }),
+          packetConfidenceGate,
         ),
       });
     }

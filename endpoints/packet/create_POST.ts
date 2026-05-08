@@ -13,6 +13,7 @@ import { letterHumanizer } from "../../helpers/letterHumanizer";
 import { logPacketGenerated } from "../../helpers/auditLogger";
 import { ensureUserSignature } from "../../helpers/signatureGenerator";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
+import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 /** Returns true if all required third-party recipient fields are present and non-empty. */
 function hasThirdPartyRecipient(input: {
@@ -98,6 +99,14 @@ export async function handle(request: Request) {
         }
       }
     }
+
+    const isAdmin = user.role === "admin";
+    await assertCreditorObligationPacketReady({
+      creditorObligationTestId: input.creditorObligationTestId,
+      tradelineId: input.tradelineId,
+      userId: user.id,
+      isAdmin,
+    });
 
     // Fetch user account information for consumer details
     let userAccount = await db
@@ -185,7 +194,6 @@ export async function handle(request: Request) {
     }
 
     // Resolve all tradeline, violation, and bureau data via helper
-    const isAdmin = user.role === "admin";
     const resolvedData = await packetDataResolver({
       user,
       tradelineId: input.tradelineId,

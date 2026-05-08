@@ -7,6 +7,7 @@ import { createHash } from "crypto";
 import { calculateDeadline, createDeadlineEvent } from "../../helpers/deadlineCalculator";
 import { Transaction } from "kysely";
 import { DB } from "../../helpers/schema";
+import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -100,6 +101,13 @@ export async function handle(request: Request) {
     if (packet.userId !== userId) {
       return new Response(JSON.stringify({ error: "Unauthorized access to packet" }), { status: 403 });
     }
+
+    await assertCreditorObligationPacketReady({
+      creditorObligationTestId: packet.creditorObligationTestId,
+      tradelineId: packet.tradelineId,
+      userId,
+      isAdmin: session.user.role === "admin",
+    });
 
     // Fetch creditorObligationTest data if linked
     let disputeVector: string | null = null;

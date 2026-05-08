@@ -34,6 +34,7 @@ import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { letterHumanizer } from "../../helpers/letterHumanizer";
 import { packetDataResolver } from "../../helpers/packetDataResolver";
 import { fetchTransUnionCaseIdForReportArtifact } from "../../helpers/bureauContextReferences";
+import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 function extractComplianceViolationId(notes: string | null): number | null {
   const match = notes?.match(/compliance violation #(\d+)/i);
@@ -274,6 +275,13 @@ export async function handle(request: Request) {
     });
 
     const linkedCreditorObligationTestId = extractComplianceViolationId(instance.notes);
+    await assertCreditorObligationPacketReady({
+      creditorObligationTestId: linkedCreditorObligationTestId,
+      tradelineId: instance.tradelineId,
+      userId: user.id,
+      isAdmin,
+    });
+
     const resolvedData = await packetDataResolver({
       user,
       tradelineId: instance.tradelineId,

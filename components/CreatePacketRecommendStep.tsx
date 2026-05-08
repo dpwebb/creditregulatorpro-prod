@@ -131,6 +131,14 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
         );
       }
 
+      if (actionPlan?.primaryAction === "REVIEW_SOURCE_REPORT") {
+        return (
+          <Button variant={variant} size={variant === "outline" ? "sm" : undefined} disabled>
+            {actionPlan.ctaLabel}
+          </Button>
+        );
+      }
+
       return (
         <Button
           variant={variant}

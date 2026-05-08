@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { uploadPdf } from "../../helpers/documentStorage";
+import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 export async function handle(request: Request) {
   try {
@@ -34,6 +35,13 @@ export async function handle(request: Request) {
         { status: 403 }
       );
     }
+
+    await assertCreditorObligationPacketReady({
+      creditorObligationTestId: input.creditorObligationTestId,
+      tradelineId: input.tradelineId,
+      userId: user.id,
+      isAdmin,
+    });
 
     // Insert packet without pdfStorageUrl first to obtain the packet ID
     const newPacket = await db

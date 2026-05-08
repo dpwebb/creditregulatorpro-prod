@@ -6,11 +6,19 @@ export const schema = z.object({});
 export type PacketRecommendationActionPlan = {
   deterministic: true;
   ruleId: "packet-action-readiness-v1";
-  primaryAction: "CREATE_PACKET" | "COMPLETE_PROFILE" | "UPDATE_BUREAU_CONTACT";
+  primaryAction:
+    | "CREATE_PACKET"
+    | "COMPLETE_PROFILE"
+    | "UPDATE_BUREAU_CONTACT"
+    | "REVIEW_SOURCE_REPORT";
   status: "ready" | "blocked";
   ctaLabel: string;
   blockers: Array<{
-    code: "missing_user_profile" | "missing_bureau_contact";
+    code:
+      | "missing_user_profile"
+      | "missing_bureau_contact"
+      | "parser_uncertain"
+      | "violation_needs_review";
     label: string;
     fields: string[];
   }>;

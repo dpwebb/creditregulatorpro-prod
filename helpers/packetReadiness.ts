@@ -1,3 +1,5 @@
+import type { ViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
+
 export const CANADIAN_POSTAL_CODE_REGEX = /^[A-Za-z]\d[A-Za-z][ -]?\d[A-Za-z]\d$/;
 
 export interface PacketReadinessUserAccount {
@@ -27,10 +29,15 @@ export interface PacketReadinessResult {
 export type PacketRecommendationPrimaryAction =
   | "CREATE_PACKET"
   | "COMPLETE_PROFILE"
-  | "UPDATE_BUREAU_CONTACT";
+  | "UPDATE_BUREAU_CONTACT"
+  | "REVIEW_SOURCE_REPORT";
 
 export interface PacketRecommendationActionBlocker {
-  code: "missing_user_profile" | "missing_bureau_contact";
+  code:
+    | "missing_user_profile"
+    | "missing_bureau_contact"
+    | "parser_uncertain"
+    | "violation_needs_review";
   label: string;
   fields: string[];
 }
@@ -88,6 +95,7 @@ export function evaluatePacketReadiness(input: {
 
 export function buildPacketRecommendationActionPlan(
   readiness: PacketReadinessResult,
+  packetConfidenceGate?: ViolationPacketConfidenceGate | null,
 ): PacketRecommendationActionPlan {
   const blockers: PacketRecommendationActionBlocker[] = [];
 
@@ -107,11 +115,24 @@ export function buildPacketRecommendationActionPlan(
     });
   }
 
+  if (packetConfidenceGate && !packetConfidenceGate.packetReady) {
+    const code = packetConfidenceGate.blockerCode ?? "violation_needs_review";
+    blockers.push({
+      code,
+      label: packetConfidenceGate.message,
+      fields: code === "parser_uncertain" ? ["sourceReport"] : ["violationReview"],
+    });
+  }
+
   let primaryAction: PacketRecommendationPrimaryAction = "CREATE_PACKET";
   if (blockers.some((blocker) => blocker.code === "missing_user_profile")) {
     primaryAction = "COMPLETE_PROFILE";
   } else if (blockers.some((blocker) => blocker.code === "missing_bureau_contact")) {
     primaryAction = "UPDATE_BUREAU_CONTACT";
+  } else if (blockers.some((blocker) =>
+    blocker.code === "parser_uncertain" || blocker.code === "violation_needs_review"
+  )) {
+    primaryAction = "REVIEW_SOURCE_REPORT";
   }
 
   return {
@@ -124,7 +145,11 @@ export function buildPacketRecommendationActionPlan(
         ? "Challenge This Account"
         : primaryAction === "COMPLETE_PROFILE"
           ? "Complete Profile"
-          : "Bureau Contact Needed",
+          : primaryAction === "UPDATE_BUREAU_CONTACT"
+            ? "Bureau Contact Needed"
+            : packetConfidenceGate?.blockerCode === "parser_uncertain"
+              ? "Review Source Report"
+              : "Review Finding",
     blockers,
   };
 }

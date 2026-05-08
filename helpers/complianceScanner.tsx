@@ -70,6 +70,10 @@ import {
   filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
 } from "./violationRuleEvidence";
+import {
+  evaluateParserConfidenceGateFromArtifactData,
+  evaluateViolationPacketConfidenceGate,
+} from "./violationPacketConfidenceGate";
 
 // Re-export types for convenience
 export type { DetectedViolation };
@@ -98,11 +102,6 @@ export interface ScanContext {
   obligationInstances?: Selectable<ObligationInstance>[];
   analysisDate?: Date | string;
   sourceReportArtifactId?: number;
-}
-
-function normalizeExtractionConfidence(confidence: unknown): number | null {
-  if (typeof confidence !== "number" || !Number.isFinite(confidence)) return null;
-  return confidence <= 1 ? confidence * 100 : confidence;
 }
 
 function mergeArtifactsById(
@@ -244,40 +243,23 @@ export async function scanForViolations(
     );
   }
 
-  if (tradeline.reportArtifactId) {
+  const parserGateArtifactId = context.sourceReportArtifactId ?? tradeline.reportArtifactId ?? null;
+  let parserConfidenceGate: ReturnType<typeof evaluateParserConfidenceGateFromArtifactData> | null = null;
+
+  if (parserGateArtifactId) {
     const artifact = await db.selectFrom("reportArtifact")
       .select("data")
-      .where("id", "=", tradeline.reportArtifactId)
+      .where("id", "=", parserGateArtifactId)
       .executeTakeFirst();
       
     if (artifact?.data) {
-      const data = artifact.data as Record<string, any>;
-      const rawConfidence = data.extractionConfidence ?? data.parseConfidence ?? data.ocrConfidence;
-      const confidence = normalizeExtractionConfidence(rawConfidence);
-      if (confidence !== null && confidence < 50) {
+      parserConfidenceGate = evaluateParserConfidenceGateFromArtifactData(artifact.data);
+
+      if (parserConfidenceGate.status === "parser_uncertain") {
         console.warn(
-          `Tradeline ${tradelineId} has low extraction confidence (${confidence}). Flagging for review and continuing scan.`
+          `Tradeline ${tradelineId} source artifact ${parserGateArtifactId} is parser-uncertain. Skipping auto violation detection until review.`
         );
-        violations.push({
-          violationCategory: "DISCLOSURE_DEFICIENCY",
-          severity: "WARNING",
-          confidenceScore: 95,
-          userExplanation:
-            "The credit report extraction was low confidence, so this account needs manual review before the bureau's reporting can be trusted.",
-          technicalDetails: {
-            tradelineId,
-            reportArtifactId: tradeline.reportArtifactId,
-            issue: "LOW_EXTRACTION_CONFIDENCE",
-            rawConfidence,
-            normalizedConfidence: confidence,
-            detectedValue: confidence,
-            regulationIds: ["PIPEDA_4_6", "PIPEDA_4_9"],
-          },
-          recommendedAction:
-            "Review the original report and ask the credit bureau to provide a clearer, complete disclosure if the account details cannot be verified.",
-          tradelineId,
-          responsibleEntity: "BUREAU",
-        });
+        return [];
       }
     }
   }
@@ -479,8 +461,18 @@ export async function scanForViolations(
   const truthLayerViolations = await applyViolationCorrectionTruthLayer(finalViolations, tradeline);
   const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(truthLayerViolations);
   const authorityLinkedViolations = filterViolationsWithLocalAuthorityLinks(ruleLinkedViolations);
+  const confidenceAnnotatedViolations =
+    parserConfidenceGate && parserConfidenceGate.status !== "unknown"
+      ? authorityLinkedViolations.map((violation) => ({
+          ...violation,
+          technicalDetails: {
+            ...violation.technicalDetails,
+            extractionConfidenceGate: parserConfidenceGate,
+          },
+        }))
+      : authorityLinkedViolations;
 
-  return normalizeDetectedViolations(authorityLinkedViolations);
+  return normalizeDetectedViolations(confidenceAnnotatedViolations);
 }
 
 /**
@@ -724,6 +716,16 @@ export async function persistViolations(
           : {}),
         responsibleEntity: violation.responsibleEntity || null,
       }));
+      const packetConfidenceGate = evaluateViolationPacketConfidenceGate({
+        technicalDetails: enrichedDetails,
+        userStatus: "active",
+      });
+      const validationStatus =
+        packetConfidenceGate.blockerCode === "parser_uncertain"
+          ? "PARSER_UNCERTAIN"
+          : packetConfidenceGate.blockerCode === "violation_needs_review"
+            ? "NEEDS_USER_REVIEW"
+            : "PENDING";
             
       const result = await db
         .insertInto("creditorObligationTest")
@@ -744,7 +746,7 @@ export async function persistViolations(
             getAdminReviewedStatutoryBasis(violation) ??
             getDeterministicViolationStatutoryBasis(violation),
           detectedAt: new Date(),
-          validationStatus: "PENDING",
+          validationStatus,
           obligationState: "OBLIGATION_PENDING",
           autoGenerated: true,
         })
@@ -755,17 +757,23 @@ export async function persistViolations(
         const violationId = Number(result.id);
         insertedIds.push(violationId);
 
-        try {
-          await createPendingObligationInstanceForViolation(
-            tradelineId,
-            tradelineForWorkflow?.userId ?? null,
-            violation,
-            violationId
-          );
-        } catch (workflowError) {
-          console.error(
-            `Failed to create pending obligation instance for violation ${violationId}:`,
-            workflowError
+        if (packetConfidenceGate.packetReady) {
+          try {
+            await createPendingObligationInstanceForViolation(
+              tradelineId,
+              tradelineForWorkflow?.userId ?? null,
+              violation,
+              violationId
+            );
+          } catch (workflowError) {
+            console.error(
+              `Failed to create pending obligation instance for violation ${violationId}:`,
+              workflowError
+            );
+          }
+        } else {
+          console.log(
+            `Skipped pending obligation instance for violation ${violationId}: ${packetConfidenceGate.message}`
           );
         }
       }

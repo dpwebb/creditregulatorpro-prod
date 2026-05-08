@@ -100,4 +100,48 @@ describe("packet readiness action plan", () => {
       },
     ]);
   });
+
+  it("blocks recommendation actions when parser confidence needs source review", () => {
+    const actionPlan = buildPacketRecommendationActionPlan(
+      evaluatePacketReadiness({
+        userAccount: {
+          fullName: "Dana Webb",
+          addressLine1: "1 Main Street",
+          city: "Halifax",
+          province: "NS",
+          postalCode: "B3J 1A1",
+        },
+        bureau: {
+          name: "TransUnion",
+          address: "123 Bureau Way",
+        },
+      }),
+      {
+        deterministic: true,
+        ruleId: "violation-packet-confidence-gate-v1",
+        status: "parser_uncertain",
+        packetReady: false,
+        blockerCode: "parser_uncertain",
+        confidenceScore: 42,
+        message:
+          "The source report extraction needs parser review before a dispute packet can be generated.",
+      },
+    );
+
+    expect(actionPlan).toEqual({
+      deterministic: true,
+      ruleId: "packet-action-readiness-v1",
+      primaryAction: "REVIEW_SOURCE_REPORT",
+      status: "blocked",
+      ctaLabel: "Review Source Report",
+      blockers: [
+        {
+          code: "parser_uncertain",
+          label:
+            "The source report extraction needs parser review before a dispute packet can be generated.",
+          fields: ["sourceReport"],
+        },
+      ],
+    });
+  });
 });

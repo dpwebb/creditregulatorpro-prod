@@ -15,6 +15,7 @@ import { verifyPaymentIntent, refundPaymentIntent } from "../../helpers/stripeSe
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { evaluateSubscriptionAccess, subscriptionAccessErrorResponse } from "../../helpers/subscriptionAccess";
+import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -229,6 +230,13 @@ export async function handle(request: Request) {
     if (packet.userId !== userId) {
       return new Response(JSON.stringify({ error: "Unauthorized access to packet" }), { status: 403 });
     }
+
+    await assertCreditorObligationPacketReady({
+      creditorObligationTestId: packet.creditorObligationTestId,
+      tradelineId: packet.tradelineId,
+      userId,
+      isAdmin: session.user.role === "admin",
+    });
 
     if (packet.status && packet.status !== "GENERATED" && packet.status !== "PENDING") {
       return new Response(JSON.stringify({ error: "Packet has already been sent or is processing" }), { status: 400 });
