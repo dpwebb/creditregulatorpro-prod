@@ -14,6 +14,30 @@ function isConsumerNameSearchBoundary(line: string): boolean {
   );
 }
 
+function isAcceptableNameCandidate(candidateName: string): boolean {
+  const wordCount = candidateName.split(/\s+/).length;
+  const hasBlacklisted = NAME_BLACKLIST.some((word) =>
+    candidateName.toUpperCase().includes(word)
+  );
+
+  return (
+    wordCount >= 2 &&
+    wordCount <= 5 &&
+    !hasBlacklisted &&
+    candidateName.length >= 4 &&
+    candidateName.length <= 80 &&
+    /^[A-Za-zÀ-ÿ\s,.''-]+$/.test(candidateName)
+  );
+}
+
+function extractTransUnionPageHeaderName(line: string): string | null {
+  const match = line.match(
+    /^([A-ZÀ-Ÿ][A-ZÀ-Ÿ.''-]*(?:\s+[A-ZÀ-Ÿ][A-ZÀ-Ÿ.''-]*){1,4})\s*,\s*[A-Z0-9-]+/i,
+  );
+  const candidateName = match?.[1]?.replace(/\s+/g, " ").trim() ?? null;
+  return candidateName && isAcceptableNameCandidate(candidateName) ? candidateName : null;
+}
+
 function extractTransUnionYourInformationName(line: string): string | null {
   if (!/^Your\s*Information/i.test(line)) return null;
 
@@ -25,19 +49,7 @@ function extractTransUnionYourInformationName(line: string): string | null {
     .replace(/\s+/g, " ")
     .trim();
 
-  const wordCount = candidateName.split(/\s+/).length;
-  const hasBlacklisted = NAME_BLACKLIST.some((word) =>
-    candidateName.toUpperCase().includes(word)
-  );
-
-  if (
-    wordCount >= 2 &&
-    wordCount <= 4 &&
-    !hasBlacklisted &&
-    candidateName.length >= 4 &&
-    candidateName.length <= 60 &&
-    /^[A-Za-z\s,.''-]+$/.test(candidateName)
-  ) {
+  if (isAcceptableNameCandidate(candidateName)) {
     return candidateName;
   }
 
@@ -48,14 +60,28 @@ export function extractName(lines: string[]): { name: string | null; confidence:
   let fullName: string | null = null;
   let confidence = 0;
 
-  // Pattern -1: TransUnion Consumer Disclosure collapsed personal-info rows.
-  for (const line of lines) {
+  // Pattern -2: TransUnion page header lines can carry the consumer name before
+  // the fixture/report id, before the personal-info table appears.
+  for (const line of lines.slice(0, 15)) {
     if (isConsumerNameSearchBoundary(line)) break;
-    const candidateName = extractTransUnionYourInformationName(line);
+    const candidateName = extractTransUnionPageHeaderName(line);
     if (candidateName) {
       fullName = candidateName;
-      confidence += 45;
+      confidence += 50;
       break;
+    }
+  }
+
+  // Pattern -1: TransUnion Consumer Disclosure collapsed personal-info rows.
+  if (!fullName) {
+    for (const line of lines) {
+      if (isConsumerNameSearchBoundary(line)) break;
+      const candidateName = extractTransUnionYourInformationName(line);
+      if (candidateName) {
+        fullName = candidateName;
+        confidence += 45;
+        break;
+      }
     }
   }
 

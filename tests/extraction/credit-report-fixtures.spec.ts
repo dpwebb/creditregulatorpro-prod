@@ -57,6 +57,31 @@ Cross Reference(s):
     expect(consumerInfo.dateOfBirthRaw).toBe("Jan 30, 1961");
   });
 
+  it("extracts collapsed TransUnion page-header name and address table rows", () => {
+    const consumerInfo = extractConsumerInfo(`
+JASON ANDREW MILLER , SYN-TU-001Saturday 10 January 2026 19:34
+End of Page 1    Synthetic Credit Report Fixture - Not a real credit reportTEST DATA ONLY
+SYNTHETIC TEST DATA
+NOT FOR CREDIT USE
+Personal Information:
+SurnameGiven Name(s)Middle NameSuffixSocial Insurance NoBirth Date
+Your InformationMILLERJASONANDREWON FILEJul 12, 1984
+Address(es):
+AddressCityProvPostalTypeOwnSinceTelephone Associations
+1179 DUNDAS ST WHAMILTONONL8P1X4HomeMay 09, 20249055550162
+42 KING ST ETORONTOONM5C1G8HomeJan 15, 2021
+88 RIVER RDKITCHENERONN2G3A1HomeSep 03, 2016
+Account(s):
+`);
+
+    expect(consumerInfo.fullName).toBe("JASON ANDREW MILLER");
+    expect(consumerInfo.addressLine1).toBe("1179 DUNDAS ST W");
+    expect(consumerInfo.city).toBe("HAMILTON");
+    expect(consumerInfo.province).toBe("ON");
+    expect(consumerInfo.postalCode).toBe("L8P 1X4");
+    expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1984-07-12");
+  });
+
   it("does not promote inquiry telephone values to consumer phone", () => {
     const consumerInfo = extractConsumerInfo(`
 TransUnion Canada Consumer Disclosure

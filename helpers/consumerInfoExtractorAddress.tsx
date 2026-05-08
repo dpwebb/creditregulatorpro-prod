@@ -411,6 +411,44 @@ function parseSpaceDelimitedInlineAddress(text: string, result: AddressExtractio
   }
 }
 
+function parseCollapsedTransUnionAddressRow(line: string, result: AddressExtractionResult): boolean {
+  if (/AddressCityProvPostal/i.test(line)) return false;
+
+  const provincePostalMatch = line.match(
+    /(AB|BC|MB|NB|NL|NS|NT|NU|ON|PE|QC|SK|YT)([A-Za-z]\d[A-Za-z][\s-]?\d[A-Za-z]\d)(?=(?:Home|Mail|Current|Previous|Former|Work|Own|Rent|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|$))/i,
+  );
+  if (!provincePostalMatch || provincePostalMatch.index === undefined) return false;
+
+  const beforeProvince = line.slice(0, provincePostalMatch.index).replace(/\s+/g, " ").trim();
+  const streetCityMatch = beforeProvince.match(
+    /^(.+\b(?:ST|STREET|AVE|AVENUE|RD|ROAD|DR|DRIVE|BLVD|BOULEVARD|LN|LANE|CT|COURT|CRES|CRESCENT|WAY|HWY|HIGHWAY|PKWY|PARKWAY|PL|PLACE|TERR|TERRACE|TRAIL))\s*(?:(NE|NW|SE|SW|E|W|N|S))?([A-ZÀ-Ÿ][A-ZÀ-Ÿ.'-]{2,40})$/i,
+  );
+  if (!streetCityMatch) return false;
+
+  const streetBase = compactWhitespace(streetCityMatch[1]);
+  const direction = streetCityMatch[2] ? streetCityMatch[2].toUpperCase() : "";
+  const city = compactWhitespace(streetCityMatch[3]);
+
+  if (!result.address.addressLine1) {
+    result.address.addressLine1 = direction ? `${streetBase} ${direction}` : streetBase;
+    result.confidence += 15;
+  }
+  if (!result.address.city) {
+    result.address.city = city;
+    result.confidence += 15;
+  }
+  if (!result.address.province) {
+    result.address.province = normalizeProvince(provincePostalMatch[1]);
+    result.confidence += 15;
+  }
+  if (!result.address.postalCode) {
+    result.address.postalCode = formatPostalCode(provincePostalMatch[2]);
+    result.confidence += 20;
+  }
+
+  return Boolean(result.address.addressLine1 && result.address.city && result.address.province && result.address.postalCode);
+}
+
 /**
  * Extract city and province from a line that contains both
  * Handles formats like "STEWIACKE NS", "STEWIACKE, NS", etc.
@@ -447,6 +485,12 @@ function extractCityAndProvince(line: string): { city: string | null; province: 
 }
 
 function parseAddressBlock(addressLines: string[], result: AddressExtractionResult): void {
+  for (const line of addressLines) {
+    if (parseCollapsedTransUnionAddressRow(line, result)) {
+      return;
+    }
+  }
+
   let postalCodeLineIndex = -1;
   
   // Extract postal code

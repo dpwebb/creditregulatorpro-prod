@@ -68,7 +68,7 @@ const fixtures: FixtureDefinition[] = [
     extractor: "transunion",
     minTradelines: 2,
     expectedAccountMarkers: 2,
-    expectConsumerName: false,
+    expectConsumerName: true,
   },
   {
     id: "transunion-legacy-numbered-section",
