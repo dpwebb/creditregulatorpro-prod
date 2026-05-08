@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawn, spawnSync } from "node:child_process";
+import { Transform } from "node:stream";
 import postgres from "postgres";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
@@ -344,8 +345,11 @@ function dockerUrl(urlString) {
   return url.toString();
 }
 
-function dockerRunArgs(pgCommand, pgArgs, mountDir) {
+function dockerRunArgs(pgCommand, pgArgs, mountDir, dockerOptions = {}) {
   const args = ["run", "--rm"];
+  if (dockerOptions.interactive) {
+    args.push("-i");
+  }
   if (mountDir) {
     args.push("-v", `${mountDir}:/work`);
   }
@@ -356,9 +360,169 @@ function dockerRunArgs(pgCommand, pgArgs, mountDir) {
   return args;
 }
 
+async function targetSupportsTransactionTimeout(targetUrl) {
+  const sql = postgres(targetUrl, { prepare: false, max: 1 });
+  try {
+    const rows = await sql`select current_setting('transaction_timeout', true) is not null as supported`;
+    return Boolean(rows[0]?.supported);
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+function createTransactionTimeoutSetFilter() {
+  let carry = "";
+  let inCopy = false;
+
+  function shouldRemove(line) {
+    return !inCopy && /^SET\s+transaction_timeout\s*=\s*0;\s*$/i.test(line.trim());
+  }
+
+  function filterLine(lineWithPossibleCarriageReturn, includeNewline) {
+    const line = lineWithPossibleCarriageReturn.replace(/\r$/, "");
+    if (shouldRemove(line)) {
+      return "";
+    }
+
+    if (!inCopy && /^COPY\s.+\sFROM\sstdin;\s*$/i.test(line)) {
+      inCopy = true;
+    } else if (inCopy && line === "\\.") {
+      inCopy = false;
+    }
+
+    return includeNewline ? `${lineWithPossibleCarriageReturn}\n` : lineWithPossibleCarriageReturn;
+  }
+
+  return new Transform({
+    transform(chunk, _encoding, callback) {
+      carry += chunk.toString("utf8");
+      const lines = carry.split("\n");
+      carry = lines.pop() ?? "";
+      callback(null, lines.map((line) => filterLine(line, true)).join(""));
+    },
+    flush(callback) {
+      if (carry) {
+        this.push(filterLine(carry, false));
+      }
+      callback();
+    },
+  });
+}
+
+async function resolveFilteredRestoreMode(toolMode) {
+  if (toolMode === "docker") {
+    return "docker";
+  }
+
+  if (await hasCommand("psql")) {
+    return "native";
+  }
+
+  if (options.toolMode === "auto" && await hasCommand("docker")) {
+    return "docker";
+  }
+
+  fail("psql is not available on PATH; use --tool-mode docker for transaction_timeout-compatible restore.");
+}
+
+function runFilteredRestorePipeline(restoreCommand, restoreArgs, psqlCommand, psqlArgs) {
+  return new Promise((resolve, reject) => {
+    let restoreCode = null;
+    let psqlCode = null;
+    let settled = false;
+
+    const restore = spawn(restoreCommand, restoreArgs, {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: process.env,
+      shell: false,
+    });
+    const psql = spawn(psqlCommand, psqlArgs, {
+      stdio: ["pipe", "ignore", "pipe"],
+      env: process.env,
+      shell: false,
+    });
+    const filter = createTransactionTimeoutSetFilter();
+
+    function failOnce(error) {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    }
+
+    function maybeResolve() {
+      if (settled || restoreCode === null || psqlCode === null) {
+        return;
+      }
+      settled = true;
+      if (restoreCode !== 0) {
+        reject(new Error(`${restoreCommand} exited with code ${restoreCode}`));
+        return;
+      }
+      if (psqlCode !== 0) {
+        reject(new Error(`${psqlCommand} exited with code ${psqlCode}`));
+        return;
+      }
+      resolve();
+    }
+
+    restore.stderr.on("data", (chunk) => process.stderr.write(chunk));
+    psql.stderr.on("data", (chunk) => process.stderr.write(chunk));
+    restore.on("error", failOnce);
+    psql.on("error", failOnce);
+    filter.on("error", failOnce);
+    psql.stdin.on("error", (error) => {
+      if (error.code !== "EPIPE") {
+        failOnce(error);
+      }
+    });
+
+    restore.stdout.pipe(filter).pipe(psql.stdin);
+
+    restore.on("close", (code) => {
+      restoreCode = code ?? 1;
+      maybeResolve();
+    });
+    psql.on("close", (code) => {
+      psqlCode = code ?? 1;
+      maybeResolve();
+    });
+  });
+}
+
+async function runTransactionTimeoutCompatibleRestore(toolMode, dumpFile, targetUrl) {
+  const restoreMode = await resolveFilteredRestoreMode(toolMode);
+  const dumpDir = path.dirname(dumpFile);
+  const dumpName = path.basename(dumpFile);
+
+  if (restoreMode === "native") {
+    await runFilteredRestorePipeline(
+      "pg_restore",
+      ["--no-owner", "--no-acl", "--file", "-", dumpFile],
+      "psql",
+      ["--quiet", "--set", "ON_ERROR_STOP=1", "--dbname", targetUrl],
+    );
+    return;
+  }
+
+  await runFilteredRestorePipeline(
+    "docker",
+    dockerRunArgs("pg_restore", ["--no-owner", "--no-acl", "--file", "-", `/work/${dumpName}`], dumpDir),
+    "docker",
+    dockerRunArgs("psql", ["--quiet", "--set", "ON_ERROR_STOP=1", "--dbname", dockerUrl(targetUrl)], null, {
+      interactive: true,
+    }),
+  );
+}
+
 async function runPgRestore(toolMode, dumpFile, targetUrl) {
   const dumpDir = path.dirname(dumpFile);
   const dumpName = path.basename(dumpFile);
+
+  if (!(await targetSupportsTransactionTimeout(targetUrl))) {
+    console.log("Local target does not support transaction_timeout; filtering that SET during restore.");
+    await runTransactionTimeoutCompatibleRestore(toolMode, dumpFile, targetUrl);
+    return;
+  }
 
   if (toolMode === "native") {
     const result = await spawnToResult("pg_restore", [
