@@ -7,6 +7,8 @@ import {
   filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
   hasBonaFideLocalAuthorityLink,
+  hasFieldSpecificAuthorityForMissingInformation,
+  isMissingInformationReviewIssue,
 } from "../../helpers/violationRuleEvidence";
 
 function violation(overrides: Partial<DetectedViolation> = {}): DetectedViolation {
@@ -163,5 +165,46 @@ describe("deterministic violation rule evidence", () => {
     expect(enriched.technicalDetails?.regulationReferences).toEqual([
       expect.objectContaining({ id: "PIPEDA_4_6" }),
     ]);
+  });
+
+  it("does not surface missing closed-date review issues without field-specific authority", () => {
+    const missingClosedDate = violation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "ERROR",
+      confidenceScore: 100,
+      userExplanation: "This account shows as closed but doesn't include a closing date.",
+      technicalDetails: {
+        ruleName: "DATE_CLOSED_REQUIRED",
+        actualValue: "null",
+        detectedValue: "null",
+        accountType: "INSTALLMENT",
+        accountStatus: "Closed",
+        regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+        province: "NS",
+      },
+    });
+
+    const envelope = buildDeterministicViolationRuleEnvelope(missingClosedDate);
+
+    expect(envelope?.sourceFields).toEqual(["dateClosed"]);
+    expect(envelope?.evidence.fieldName).toBe("dateClosed");
+    expect(isMissingInformationReviewIssue(missingClosedDate)).toBe(true);
+    expect(hasFieldSpecificAuthorityForMissingInformation(missingClosedDate)).toBe(false);
+    expect(filterViolationsWithLocalAuthorityLinks([missingClosedDate])).toEqual([]);
+  });
+
+  it("does not treat omitted technical values as missing field evidence by themselves", () => {
+    const nonMissingDocumentationIssue = violation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      userExplanation: "The listed original creditor does not match the account history.",
+      technicalDetails: {
+        fieldName: "originalCreditorName",
+        actualValue: "FIDO",
+        regulationIds: ["PIPEDA_4_6"],
+      },
+    });
+
+    expect(isMissingInformationReviewIssue(nonMissingDocumentationIssue)).toBe(false);
+    expect(filterViolationsWithLocalAuthorityLinks([nonMissingDocumentationIssue])).toHaveLength(1);
   });
 });

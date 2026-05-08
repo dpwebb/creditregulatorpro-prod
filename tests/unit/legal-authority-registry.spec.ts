@@ -54,6 +54,18 @@ describe("local legal authority registry", () => {
     ).toBe(false);
   });
 
+  it("does not treat generic Metro2 base-segment authority as an exact closed-date mandate", () => {
+    expect(
+      hasFieldSpecificAuthority({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        fieldName: "dateClosed",
+        accountType: "INSTALLMENT",
+        regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+        jurisdiction: "NS",
+      }),
+    ).toBe(false);
+  });
+
   it("exposes local source metadata for deterministic rule evidence", () => {
     expect(getLegalAuthorityById("PIPEDA_4_6")).toEqual(
       expect.objectContaining({

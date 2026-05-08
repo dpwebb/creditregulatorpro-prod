@@ -16,6 +16,7 @@ export interface RegulationEntry {
   sourceUrl?: string | null;
   effectiveDate?: string | null;
   fieldNames?: string[];
+  accountTypes?: string[];
   allowsFieldRequiredLanguage?: boolean;
 }
 

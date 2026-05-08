@@ -53,7 +53,25 @@ function mapMetro2CategoryToViolationCategory(
   }
 }
 
-
+function mapMetro2RuleNameToField(ruleName: string): string | null {
+  switch (ruleName) {
+    case "BASE_SEGMENT_REQUIRED":
+      return "baseSegment";
+    case "DATE_DOFD_LOGIC":
+      return "dateOfFirstDelinquency";
+    case "DATE_REPORTED_LOGIC":
+    case "REPORT_DATE_REQUIRED":
+      return "lastReportedDate";
+    case "DATE_CLOSED_REQUIRED":
+      return "dateClosed";
+    case "ACCOUNT_DESIGNATION_REQUIRED":
+      return "accountDesignation";
+    case "CREDITOR_NAME_REQUIRED":
+      return "creditorName";
+    default:
+      return null;
+  }
+}
 
 /**
  * Detects Metro2 ruleset violations using the comprehensive Metro2 validation rules.
@@ -161,6 +179,7 @@ export async function detectMetro2RulesetViolations(
       // Map category
       const violationCategory = mapMetro2CategoryToViolationCategory(result.category as ValidationCategory);
       const regulationIds = mapMetro2CategoryToRegulationIds(result.category as ValidationCategory);
+      const fieldName = mapMetro2RuleNameToField(result.ruleName);
 
       // Build user explanation
       const userExplanation = result.message || "A reporting error was found.";
@@ -173,10 +192,13 @@ export async function detectMetro2RulesetViolations(
         technicalDetails: {
           ruleName: result.ruleName,
           ruleCategory: result.category,
+          ...(fieldName ? { fieldName } : {}),
           message: result.message,
           expectedValue: result.expectedValue,
           actualValue: result.actualValue,
           detectedValue: result.actualValue,
+          accountType: tradeline.accountType,
+          accountStatus: tradeline.status,
           metro2Version: metro2Version || new Date().getFullYear().toString(),
           regulationIds,
         },

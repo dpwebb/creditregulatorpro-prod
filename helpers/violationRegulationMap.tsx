@@ -113,14 +113,17 @@ function getAllRegulationsForViolation(violation: {
       ? hasFieldSpecificAuthority({
           violationCategory,
           fieldName,
+          accountType: technicalDetails?.accountType || technicalDetails?.portfolioType || null,
           regulationIds: ref.regulationId ? [ref.regulationId] : explicitRegulationIds,
           jurisdiction: province,
         })
       : false;
 
     if (violationCategory === "DOCUMENTATION_CHAIN_FAILURE") {
-      if (fieldName === "dateClosed" && accountStatus) {
-        specificApplication = `Your account shows status '${accountStatus}' but no closing date is reported. The bureau is including date-dependent information without the date evidence to support it.`;
+      if (fieldName === "dateClosed" && accountStatus && !hasMappedFieldRequirement) {
+        specificApplication = `Your account shows status '${accountStatus}' but no closing date is reported. Treat this as an accuracy and completeness review unless a field-specific legal or reporting-standard requirement is mapped for this account type.`;
+      } else if (fieldName === "dateClosed" && accountStatus) {
+        specificApplication = `Your account shows status '${accountStatus}' but no closing date is reported. The mapped authority requires that date for this account type.`;
       } else if (fieldName === "dateAssignedToCollection" && !technicalDetails?.specificFieldRequirementMapped) {
         specificApplication = `Your credit report does not show the ${readableField} for this tradeline. Treat this as an accuracy and completeness review unless a field-specific legal or reporting-standard requirement is mapped.`;
       } else if (fieldName && !hasMappedFieldRequirement) {

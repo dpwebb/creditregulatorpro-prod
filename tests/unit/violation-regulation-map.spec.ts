@@ -23,17 +23,20 @@ describe("violation regulation mapping", () => {
     expect(provincial.every((ref) => !ref.statute.startsWith("PIPEDA") && ref.statute !== "Metro2 CRRG")).toBe(true);
   });
 
-  it("adds field-specific language for documentation-chain issues", () => {
+  it("keeps closed-date documentation issues in review status without mapped field authority", () => {
     const refs = getFederalRegulationsForViolation({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       technicalDetails: {
         fieldName: "dateClosed",
+        accountType: "INSTALLMENT",
         accountStatus: "Closed",
       },
     });
 
     expect(refs.length).toBeGreaterThan(0);
     expect(refs.some((ref) => ref.specificApplication?.includes("closing date"))).toBe(true);
+    expect(refs.every((ref) => ref.specificApplication?.includes("field-specific legal or reporting-standard requirement"))).toBe(true);
+    expect(refs.every((ref) => !ref.specificApplication?.includes("requires that date"))).toBe(true);
   });
 
   it("does not call missing collection assignment date required without a mapped field requirement", () => {

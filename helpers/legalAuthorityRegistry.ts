@@ -36,6 +36,7 @@ export interface LocalLegalAuthority {
   effectiveDate: string | null;
   violationCategories: ViolationCategory[];
   fieldNames: string[];
+  accountTypes: string[];
   allowsFieldRequiredLanguage: boolean;
   searchableText: string;
 }
@@ -45,6 +46,7 @@ export interface LegalAuthoritySearchInput {
   regulationIds?: string[];
   violationCategory?: ViolationCategory | string | null;
   fieldName?: string | null;
+  accountType?: string | null;
   jurisdiction?: string | null;
   supportLevel?: LegalAuthoritySupportLevel | null;
   limit?: number | null;
@@ -130,6 +132,7 @@ const buildSearchableText = (entry: Omit<LocalLegalAuthority, "searchableText">)
     entry.sourceUrl,
     entry.violationCategories.join(" "),
     entry.fieldNames.join(" "),
+    entry.accountTypes.join(" "),
   ]
     .filter(Boolean)
     .join(" ")
@@ -154,6 +157,7 @@ const createAuthority = (entry: RegulationEntry): LocalLegalAuthority => {
     effectiveDate: entry.effectiveDate ?? null,
     violationCategories: entry.violationCategories,
     fieldNames: entry.fieldNames ?? [],
+    accountTypes: entry.accountTypes ?? [],
     allowsFieldRequiredLanguage: entry.allowsFieldRequiredLanguage ?? supportLevel === "field_requirement",
   };
 
@@ -209,6 +213,7 @@ export function searchLegalAuthorities(input: LegalAuthoritySearchInput = {}): L
   const regulationIdSet = new Set((input.regulationIds ?? []).filter(Boolean));
   const violationCategory = normalize(input.violationCategory);
   const fieldName = normalize(input.fieldName);
+  const accountType = normalize(input.accountType);
   const jurisdiction = normalize(input.jurisdiction);
   const supportLevel = input.supportLevel ?? null;
   const limit = Math.max(1, Math.min(Number(input.limit ?? 50), 200));
@@ -219,6 +224,16 @@ export function searchLegalAuthorities(input: LegalAuthoritySearchInput = {}): L
       if (supportLevel && authority.supportLevel !== supportLevel) return false;
       if (violationCategory && !authority.violationCategories.some((category) => normalize(category) === violationCategory)) return false;
       if (fieldName && !authority.fieldNames.some((field) => normalize(field) === fieldName)) return false;
+      if (
+        accountType &&
+        authority.accountTypes.length > 0 &&
+        !authority.accountTypes.some((type) => {
+          const normalizedType = normalize(type);
+          return normalizedType === accountType || accountType.includes(normalizedType) || normalizedType.includes(accountType);
+        })
+      ) {
+        return false;
+      }
       if (jurisdiction) {
         const authorityJurisdiction = normalize(authority.jurisdiction);
         const authorityProvince = normalize(authority.province);
@@ -247,6 +262,7 @@ export function searchLegalAuthorities(input: LegalAuthoritySearchInput = {}): L
 export function hasFieldSpecificAuthority(input: {
   violationCategory?: ViolationCategory | string | null;
   fieldName?: string | null;
+  accountType?: string | null;
   regulationIds?: string[];
   jurisdiction?: string | null;
 }): boolean {
@@ -257,6 +273,7 @@ export function hasFieldSpecificAuthority(input: {
     regulationIds: input.regulationIds,
     violationCategory: input.violationCategory,
     fieldName,
+    accountType: input.accountType,
     jurisdiction: input.jurisdiction,
     supportLevel: "field_requirement",
     limit: 1,

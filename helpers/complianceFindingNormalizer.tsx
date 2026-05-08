@@ -86,6 +86,7 @@ function softenUnsupportedFieldRequirementLanguage(
   const hasMappedAuthority = hasFieldSpecificAuthority({
     violationCategory: violation.violationCategory,
     fieldName,
+    accountType: firstStringValue(details, ["accountType", "portfolioType", "accountClassification"]),
     regulationIds,
     jurisdiction: firstStringValue(details, ["province", "jurisdiction"]),
   });
