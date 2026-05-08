@@ -384,6 +384,15 @@ type OptionalDbAssist = {
   error?: string;
   fetchLatestEmailVerificationToken: (userId: number) => Promise<string | null>;
   fetchLatestPasswordResetToken: (userId: number) => Promise<string | null>;
+  seedAdminDeletionRegressionData: (
+    userId: number,
+    runId: string
+  ) => Promise<AdminDeletionRegressionSeed | null>;
+  fetchAdminDeletionCleanupState: (
+    userId: number,
+    seed: AdminDeletionRegressionSeed | null
+  ) => Promise<AdminDeletionCleanupState | null>;
+  cleanupAdminDeletionRegressionData: (seed: AdminDeletionRegressionSeed | null) => Promise<void>;
   close: () => Promise<void>;
 };
 
@@ -392,6 +401,57 @@ type HttpResult = {
   status: number;
   raw: string;
   json: unknown | null;
+};
+
+type AdminDeleteUserResponse = {
+  success: boolean;
+  deletedEmail: string;
+  purgedCounts: Record<string, number>;
+};
+
+type AdminDeletionRegressionSeed = {
+  adminUserId: number | null;
+  marker: string;
+  supportTicketId: number | null;
+  supportTicketMessageId: number | null;
+  consumerSignatureId: number | null;
+  evidenceAttachmentId: number | null;
+  complianceConfigId: number | null;
+  complianceConfigCategory: string | null;
+  systemSettingsKey: string | null;
+  parserKnownEntityId: number | null;
+  parserFieldMappingId: number | null;
+  parserBureauDetectionConfigId: number | null;
+  parserMappingVersionId: number | null;
+  parserTestCaseId: number | null;
+  softwareVersionId: number | null;
+  warnings: string[];
+};
+
+type AdminDeletionCleanupState = {
+  remainingUserRows: number;
+  remainingSessions: number;
+  remainingUserPasswords: number;
+  remainingUserAccounts: number;
+  remainingSubscriptions: number;
+  remainingReportArtifacts: number;
+  remainingTradelines: number;
+  remainingPackets: number;
+  remainingSupportTicketsOwnedByUser: number;
+  remainingSupportMessagesFromUser: number;
+  supportTicketAssignedAgentId: number | null | undefined;
+  supportTicketMessageExists: boolean | null;
+  consumerSignatureVerifiedBy: number | null | undefined;
+  evidenceAttachmentUploadedBy: number | null | undefined;
+  complianceConfigUpdatedByUserId: number | null | undefined;
+  systemSettingsUpdatedByUserId: number | null | undefined;
+  parserKnownEntityCreatedBy: number | null | undefined;
+  parserFieldMappingCreatedBy: number | null | undefined;
+  parserBureauDetectionConfigCreatedBy: number | null | undefined;
+  parserMappingVersionChangedBy: number | null | undefined;
+  parserTestCaseCreatedBy: number | null | undefined;
+  softwareVersionCreatedBy: number | null | undefined;
+  warnings: string[];
 };
 
 const PLATFORM_SCOPE_EXPECTATION = "Canadian Credit Bureau Compliance";
@@ -445,12 +505,21 @@ const COVERAGE_LABELS: Record<string, string> = {
   packet_list: "Packet listing",
   packet_delete: "Packet delete",
   packet_save: "Packet save",
+  admin_delete_user: "Admin user deletion cascade",
 };
 
 class ApiClient {
   private cookies = new Map<string, string>();
 
-  constructor(private readonly baseUrl: string, private readonly origin: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly origin: string,
+    initialCookieHeader?: string
+  ) {
+    if (initialCookieHeader) {
+      this.loadCookieHeader(initialCookieHeader);
+    }
+  }
 
   async json<T>(pathSuffix: string, init?: { method?: string; body?: unknown }): Promise<T> {
     const response = await this.raw(pathSuffix, init);
@@ -618,6 +687,19 @@ class ApiClient {
       const name = firstPart.slice(0, separatorIndex).trim();
       const value = firstPart.slice(separatorIndex + 1).trim();
       if (!name) continue;
+      this.cookies.set(name, value);
+    }
+  }
+
+  private loadCookieHeader(cookieHeader: string): void {
+    for (const part of cookieHeader.split(";")) {
+      const trimmed = part.trim();
+      if (!trimmed) continue;
+      const separatorIndex = trimmed.indexOf("=");
+      if (separatorIndex <= 0) continue;
+      const name = trimmed.slice(0, separatorIndex).trim();
+      const value = trimmed.slice(separatorIndex + 1).trim();
+      if (!name || !value) continue;
       this.cookies.set(name, value);
     }
   }
@@ -955,6 +1037,474 @@ function toIsoNow() {
   return new Date().toISOString();
 }
 
+function isOptionalDbSchemaError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (((error as { code?: unknown }).code === "42P01") ||
+      ((error as { code?: unknown }).code === "42703"))
+  );
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23505"
+  );
+}
+
+async function optionalDbStep<T>(
+  warnings: string[],
+  stepName: string,
+  fallback: T,
+  fn: () => Promise<T>
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (!isOptionalDbSchemaError(error) && !isUniqueViolation(error)) {
+      throw error;
+    }
+    warnings.push(`${stepName} skipped: ${getErrorMessage(error)}`);
+    return fallback;
+  }
+}
+
+function numericCount(row: Record<string, unknown> | undefined): number {
+  return Number(row?.count ?? 0);
+}
+
+async function countRowsBy(db: any, table: string, column: string, value: unknown): Promise<number> {
+  const row = await db
+    .selectFrom(table)
+    .select(({ fn }: any) => fn.countAll().as("count"))
+    .where(column, "=", value)
+    .executeTakeFirst();
+  return numericCount(row);
+}
+
+async function seedAdminDeletionRegressionData(
+  db: any,
+  userId: number,
+  runId: string
+): Promise<AdminDeletionRegressionSeed> {
+  const marker = `lifecycle-delete-${runId}-${userId}`;
+  const warnings: string[] = [];
+  const adminRow = await db
+    .selectFrom("users")
+    .select("id")
+    .where("role", "=", "admin")
+    .orderBy("id", "asc")
+    .limit(1)
+    .executeTakeFirst();
+  const adminUserId = adminRow?.id ? Number(adminRow.id) : null;
+
+  const seed: AdminDeletionRegressionSeed = {
+    adminUserId,
+    marker,
+    supportTicketId: null,
+    supportTicketMessageId: null,
+    consumerSignatureId: null,
+    evidenceAttachmentId: null,
+    complianceConfigId: null,
+    complianceConfigCategory: null,
+    systemSettingsKey: null,
+    parserKnownEntityId: null,
+    parserFieldMappingId: null,
+    parserBureauDetectionConfigId: null,
+    parserMappingVersionId: null,
+    parserTestCaseId: null,
+    softwareVersionId: null,
+    warnings,
+  };
+
+  if (!adminUserId) {
+    warnings.push("No admin user found for survivor-row ownership; seeded admin-owned FK cases were skipped.");
+    return seed;
+  }
+
+  const supportTicket = await optionalDbStep(warnings, "support ticket survivor seed", null, async () =>
+    db
+      .insertInto("supportTicket")
+      .values({
+        userId: adminUserId,
+        assignedAgentId: userId,
+        subject: `Lifecycle delete regression ${marker}`,
+        description: "Admin-owned ticket assigned to the soon-to-be-deleted user.",
+        category: "DISPUTE_HELP",
+        priority: "MEDIUM",
+        status: "OPEN",
+        region: "CA",
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.supportTicketId = supportTicket?.id ? Number(supportTicket.id) : null;
+
+  if (seed.supportTicketId) {
+    const supportMessage = await optionalDbStep(warnings, "support message sender cleanup seed", null, async () =>
+      db
+        .insertInto("supportTicketMessage")
+        .values({
+          ticketId: seed.supportTicketId,
+          senderId: userId,
+          senderRole: "user",
+          message: `Lifecycle delete regression message ${marker}`,
+          isInternalNote: false,
+        })
+        .returning("id")
+        .executeTakeFirst()
+    );
+    seed.supportTicketMessageId = supportMessage?.id ? Number(supportMessage.id) : null;
+  }
+
+  const consumerSignature = await optionalDbStep(warnings, "consumer signature verifier seed", null, async () =>
+    db
+      .insertInto("consumerSignature")
+      .values({
+        userId: adminUserId,
+        signatureType: "document_signing",
+        signatureData: `typed:${marker}`,
+        isVerified: true,
+        verifiedAt: new Date(),
+        verifiedBy: userId,
+        metadata: { marker },
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.consumerSignatureId = consumerSignature?.id ? Number(consumerSignature.id) : null;
+
+  const evidenceAttachment = await optionalDbStep(warnings, "evidence attachment uploader seed", null, async () =>
+    db
+      .insertInto("evidenceAttachment")
+      .values({
+        fileName: `${marker}.txt`,
+        fileType: "text/plain",
+        fileSizeBytes: SAMPLE_TEXT_BASE64.length,
+        storageUrl: `memory://${marker}`,
+        description: "Unattached evidence row used to verify uploaded_by nullification.",
+        uploadedBy: userId,
+        region: "CA",
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.evidenceAttachmentId = evidenceAttachment?.id ? Number(evidenceAttachment.id) : null;
+
+  const complianceCategory = "ZOMBIE_DEBT_RESURRECTION";
+  const complianceConfig = await optionalDbStep(warnings, "compliance config updater seed", null, async () =>
+    db
+      .insertInto("complianceConfig")
+      .values({
+        violationCategory: complianceCategory,
+        enabled: true,
+        confidenceThreshold: 75,
+        userExplanationTemplate: `Lifecycle delete regression ${marker}`,
+        recommendedActionTemplate: "Verify admin delete-user nullifies updated_by_user_id.",
+        updatedByUserId: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.complianceConfigId = complianceConfig?.id ? Number(complianceConfig.id) : null;
+  seed.complianceConfigCategory = seed.complianceConfigId ? complianceCategory : null;
+
+  const systemSettingsKey = `lifecycle_delete_regression_${runId}_${userId}`;
+  const systemSetting = await optionalDbStep(warnings, "system settings updater seed", null, async () =>
+    db
+      .insertInto("systemSettings")
+      .values({
+        key: systemSettingsKey,
+        value: marker,
+        description: "Temporary lifecycle delete regression row.",
+        updatedByUserId: userId,
+      })
+      .returning("key")
+      .executeTakeFirst()
+  );
+  seed.systemSettingsKey = systemSetting?.key ? systemSettingsKey : null;
+
+  const parserKnownEntity = await optionalDbStep(warnings, "parser known entity creator seed", null, async () =>
+    db
+      .insertInto("parserKnownEntity")
+      .values({
+        entityType: "creditor_name",
+        value: marker,
+        description: "Lifecycle delete regression row.",
+        createdBy: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.parserKnownEntityId = parserKnownEntity?.id ? Number(parserKnownEntity.id) : null;
+
+  const parserFieldMapping = await optionalDbStep(warnings, "parser field mapping creator seed", null, async () =>
+    db
+      .insertInto("parserFieldMapping")
+      .values({
+        bureau: "Regression Bureau",
+        section: "accounts",
+        sourcePath: `$.${marker}`,
+        targetField: "accountNumber",
+        description: "Lifecycle delete regression row.",
+        transformType: "identity",
+        transformConfig: { marker },
+        priority: 9999,
+        isActive: false,
+        createdBy: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.parserFieldMappingId = parserFieldMapping?.id ? Number(parserFieldMapping.id) : null;
+
+  const parserBureauConfig = await optionalDbStep(warnings, "parser bureau config creator seed", null, async () =>
+    db
+      .insertInto("parserBureauDetectionConfig")
+      .values({
+        bureau: "Regression Bureau",
+        marker,
+        weight: 1,
+        isActive: false,
+        createdBy: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.parserBureauDetectionConfigId = parserBureauConfig?.id ? Number(parserBureauConfig.id) : null;
+
+  const parserMappingVersion = await optionalDbStep(warnings, "parser mapping version changer seed", null, async () =>
+    db
+      .insertInto("parserMappingVersion")
+      .values({
+        mappingId: seed.parserFieldMappingId,
+        versionNumber: 1,
+        changeType: "lifecycle_delete_regression",
+        previousState: null,
+        newState: { marker },
+        notes: "Lifecycle delete regression row.",
+        changedBy: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.parserMappingVersionId = parserMappingVersion?.id ? Number(parserMappingVersion.id) : null;
+
+  const parserTestCase = await optionalDbStep(warnings, "parser test case reassign seed", null, async () =>
+    db
+      .insertInto("parserTestCase")
+      .values({
+        name: `Lifecycle delete regression ${marker}`,
+        description: "Verifies delete-user reassigns not-null parser test ownership.",
+        pdfBase64: SAMPLE_PDF_BASE64,
+        rawExtractedText: "Lifecycle delete regression fixture.",
+        expectedConsumerInfo: { fullName: "Lifecycle Delete Regression" },
+        expectedTradelines: [],
+        bureau: "Regression Bureau",
+        parserMode: "deterministic",
+        allowAiFallback: false,
+        stageVersion: "regression",
+        extractionSource: "lifecycle-delete-regression",
+        parserContext: { marker },
+        createdBy: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.parserTestCaseId = parserTestCase?.id ? Number(parserTestCase.id) : null;
+
+  const softwareVersion = await optionalDbStep(warnings, "software version creator seed", null, async () =>
+    db
+      .insertInto("softwareVersion")
+      .values({
+        version: `delete-regression-${runId}-${userId}`,
+        codename: "Delete Regression",
+        status: "draft",
+        releaseNotes: [{ marker }],
+        systemSnapshot: { marker },
+        codeLineCount: 0,
+        createdBy: userId,
+      })
+      .returning("id")
+      .executeTakeFirst()
+  );
+  seed.softwareVersionId = softwareVersion?.id ? Number(softwareVersion.id) : null;
+
+  return seed;
+}
+
+async function nullableColumnValue(
+  db: any,
+  table: string,
+  column: string,
+  idColumn: string,
+  idValue: number | string | null
+): Promise<number | null | undefined> {
+  if (idValue === null) return undefined;
+  const row = await db
+    .selectFrom(table)
+    .select(column)
+    .where(idColumn, "=", idValue)
+    .executeTakeFirst();
+  if (!row) return undefined;
+  const value = row[column];
+  return value === null || value === undefined ? null : Number(value);
+}
+
+async function fetchAdminDeletionCleanupState(
+  db: any,
+  userId: number,
+  seed: AdminDeletionRegressionSeed | null
+): Promise<AdminDeletionCleanupState> {
+  const warnings: string[] = [];
+
+  const state: AdminDeletionCleanupState = {
+    remainingUserRows: await countRowsBy(db, "users", "id", userId),
+    remainingSessions: await countRowsBy(db, "sessions", "userId", userId),
+    remainingUserPasswords: await countRowsBy(db, "userPasswords", "userId", userId),
+    remainingUserAccounts: await countRowsBy(db, "userAccount", "userId", userId),
+    remainingSubscriptions: await countRowsBy(db, "subscriptions", "userId", userId),
+    remainingReportArtifacts: await countRowsBy(db, "reportArtifact", "userId", userId),
+    remainingTradelines: await countRowsBy(db, "tradeline", "userId", userId),
+    remainingPackets: await countRowsBy(db, "packet", "userId", userId),
+    remainingSupportTicketsOwnedByUser: await countRowsBy(db, "supportTicket", "userId", userId),
+    remainingSupportMessagesFromUser: await countRowsBy(db, "supportTicketMessage", "senderId", userId),
+    supportTicketAssignedAgentId: undefined,
+    supportTicketMessageExists: null,
+    consumerSignatureVerifiedBy: undefined,
+    evidenceAttachmentUploadedBy: undefined,
+    complianceConfigUpdatedByUserId: undefined,
+    systemSettingsUpdatedByUserId: undefined,
+    parserKnownEntityCreatedBy: undefined,
+    parserFieldMappingCreatedBy: undefined,
+    parserBureauDetectionConfigCreatedBy: undefined,
+    parserMappingVersionChangedBy: undefined,
+    parserTestCaseCreatedBy: undefined,
+    softwareVersionCreatedBy: undefined,
+    warnings,
+  };
+
+  if (!seed) return state;
+
+  state.supportTicketAssignedAgentId = await optionalDbStep(
+    warnings,
+    "support ticket assigned_agent_id survivor check",
+    undefined,
+    () => nullableColumnValue(db, "supportTicket", "assignedAgentId", "id", seed.supportTicketId)
+  );
+  if (seed.supportTicketMessageId) {
+    const messageCount = await optionalDbStep(warnings, "support message cleanup check", 0, () =>
+      countRowsBy(db, "supportTicketMessage", "id", seed.supportTicketMessageId)
+    );
+    state.supportTicketMessageExists = messageCount > 0;
+  }
+  state.consumerSignatureVerifiedBy = await optionalDbStep(
+    warnings,
+    "consumer signature verified_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "consumerSignature", "verifiedBy", "id", seed.consumerSignatureId)
+  );
+  state.evidenceAttachmentUploadedBy = await optionalDbStep(
+    warnings,
+    "evidence attachment uploaded_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "evidenceAttachment", "uploadedBy", "id", seed.evidenceAttachmentId)
+  );
+  state.complianceConfigUpdatedByUserId = await optionalDbStep(
+    warnings,
+    "compliance config updated_by_user_id survivor check",
+    undefined,
+    () => nullableColumnValue(db, "complianceConfig", "updatedByUserId", "id", seed.complianceConfigId)
+  );
+  state.systemSettingsUpdatedByUserId = await optionalDbStep(
+    warnings,
+    "system settings updated_by_user_id survivor check",
+    undefined,
+    () => nullableColumnValue(db, "systemSettings", "updatedByUserId", "key", seed.systemSettingsKey)
+  );
+  state.parserKnownEntityCreatedBy = await optionalDbStep(
+    warnings,
+    "parser known entity created_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "parserKnownEntity", "createdBy", "id", seed.parserKnownEntityId)
+  );
+  state.parserFieldMappingCreatedBy = await optionalDbStep(
+    warnings,
+    "parser field mapping created_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "parserFieldMapping", "createdBy", "id", seed.parserFieldMappingId)
+  );
+  state.parserBureauDetectionConfigCreatedBy = await optionalDbStep(
+    warnings,
+    "parser bureau config created_by survivor check",
+    undefined,
+    () =>
+      nullableColumnValue(
+        db,
+        "parserBureauDetectionConfig",
+        "createdBy",
+        "id",
+        seed.parserBureauDetectionConfigId
+      )
+  );
+  state.parserMappingVersionChangedBy = await optionalDbStep(
+    warnings,
+    "parser mapping version changed_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "parserMappingVersion", "changedBy", "id", seed.parserMappingVersionId)
+  );
+  state.parserTestCaseCreatedBy = await optionalDbStep(
+    warnings,
+    "parser test case created_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "parserTestCase", "createdBy", "id", seed.parserTestCaseId)
+  );
+  state.softwareVersionCreatedBy = await optionalDbStep(
+    warnings,
+    "software version created_by survivor check",
+    undefined,
+    () => nullableColumnValue(db, "softwareVersion", "createdBy", "id", seed.softwareVersionId)
+  );
+
+  return state;
+}
+
+async function cleanupAdminDeletionRegressionData(
+  db: any,
+  seed: AdminDeletionRegressionSeed | null
+): Promise<void> {
+  if (!seed) return;
+  const deleteById = async (table: string, id: number | null) => {
+    if (!id) return;
+    await optionalDbStep(seed.warnings, `${table} regression cleanup`, undefined, async () => {
+      await db.deleteFrom(table).where("id", "=", id).executeTakeFirst();
+    });
+  };
+
+  await deleteById("supportTicketMessage", seed.supportTicketMessageId);
+  await deleteById("supportTicket", seed.supportTicketId);
+  await deleteById("consumerSignature", seed.consumerSignatureId);
+  await deleteById("evidenceAttachment", seed.evidenceAttachmentId);
+  await deleteById("parserMappingVersion", seed.parserMappingVersionId);
+  await deleteById("parserFieldMapping", seed.parserFieldMappingId);
+  await deleteById("parserBureauDetectionConfig", seed.parserBureauDetectionConfigId);
+  await deleteById("parserKnownEntity", seed.parserKnownEntityId);
+  await deleteById("parserTestCase", seed.parserTestCaseId);
+  await deleteById("softwareVersion", seed.softwareVersionId);
+
+  await deleteById("complianceConfig", seed.complianceConfigId);
+
+  if (seed.systemSettingsKey) {
+    await optionalDbStep(seed.warnings, "system settings regression cleanup", undefined, async () => {
+      await db.deleteFrom("systemSettings").where("key", "=", seed.systemSettingsKey).executeTakeFirst();
+    });
+  }
+}
+
 async function loadDbAssist(enabled: boolean): Promise<OptionalDbAssist> {
   if (!enabled) {
     return {
@@ -963,6 +1513,9 @@ async function loadDbAssist(enabled: boolean): Promise<OptionalDbAssist> {
       error: "DB assist disabled by flag",
       fetchLatestEmailVerificationToken: async () => null,
       fetchLatestPasswordResetToken: async () => null,
+      seedAdminDeletionRegressionData: async () => null,
+      fetchAdminDeletionCleanupState: async () => null,
+      cleanupAdminDeletionRegressionData: async () => undefined,
       close: async () => undefined,
     };
   }
@@ -996,6 +1549,12 @@ async function loadDbAssist(enabled: boolean): Promise<OptionalDbAssist> {
           .executeTakeFirst();
         return row?.token ?? null;
       },
+      seedAdminDeletionRegressionData: (userId: number, runId: string) =>
+        seedAdminDeletionRegressionData(db, userId, runId),
+      fetchAdminDeletionCleanupState: (userId: number, seed: AdminDeletionRegressionSeed | null) =>
+        fetchAdminDeletionCleanupState(db, userId, seed),
+      cleanupAdminDeletionRegressionData: (seed: AdminDeletionRegressionSeed | null) =>
+        cleanupAdminDeletionRegressionData(db, seed),
       close: async () => {
         if (typeof db.destroy === "function") {
           await db.destroy();
@@ -1009,8 +1568,207 @@ async function loadDbAssist(enabled: boolean): Promise<OptionalDbAssist> {
       error: getErrorMessage(error),
       fetchLatestEmailVerificationToken: async () => null,
       fetchLatestPasswordResetToken: async () => null,
+      seedAdminDeletionRegressionData: async () => null,
+      fetchAdminDeletionCleanupState: async () => null,
+      cleanupAdminDeletionRegressionData: async () => undefined,
       close: async () => undefined,
     };
+  }
+}
+
+function requirePurgedCount(
+  purgedCounts: Record<string, number>,
+  key: string,
+  minimum: number,
+  failures: string[]
+): void {
+  const actual = Number(purgedCounts[key] ?? 0);
+  if (actual < minimum) {
+    failures.push(`Expected purgedCounts.${key} >= ${minimum}, received ${actual}.`);
+  }
+}
+
+function requireZero(label: string, value: number, failures: string[]): void {
+  if (value !== 0) {
+    failures.push(`Expected ${label} to be 0, received ${value}.`);
+  }
+}
+
+function requireNullified(
+  label: string,
+  value: number | null | undefined,
+  failures: string[]
+): void {
+  if (value !== null) {
+    failures.push(`Expected ${label} to survive with its user FK set to null, received ${value}.`);
+  }
+}
+
+async function exerciseAdminDeletionRegression(input: {
+  dbAssist: OptionalDbAssist;
+  baseUrl: string;
+  origin: string;
+  targetUserId: number;
+  targetEmail: string;
+  runId: string;
+  supportTicketId: number | null;
+}): Promise<Record<string, unknown>> {
+  const adminCookie = process.env.CRP_LIFECYCLE_ADMIN_COOKIE?.trim();
+  if (!adminCookie) {
+    throw new Error(
+      "Admin session cookie unavailable; run through /admin-mock-lifecycle or set CRP_LIFECYCLE_ADMIN_COOKIE."
+    );
+  }
+  if (!input.dbAssist.available) {
+    throw new Error(`DB assist unavailable for admin deletion regression: ${input.dbAssist.error ?? "unknown"}`);
+  }
+
+  const seed = await input.dbAssist.seedAdminDeletionRegressionData(input.targetUserId, input.runId);
+  const adminApi = new ApiClient(input.baseUrl, input.origin, adminCookie);
+  let cleanupState: AdminDeletionCleanupState | null = null;
+  let shouldCleanupSeed = false;
+
+  try {
+    const deleteResponse = await adminApi.request("/_api/admin/delete-user", {
+      method: "POST",
+      body: {
+        userId: input.targetUserId,
+        confirmEmail: input.targetEmail,
+      },
+    });
+
+    if (deleteResponse.status >= 500) {
+      throw new Error(
+        `Admin delete-user returned HTTP ${deleteResponse.status}: ${extractErrorMessage(deleteResponse.raw)}`
+      );
+    }
+    if (!deleteResponse.ok) {
+      throw new Error(
+        `Admin delete-user returned HTTP ${deleteResponse.status}: ${extractErrorMessage(deleteResponse.raw)}`
+      );
+    }
+
+    const payload = deleteResponse.json as AdminDeleteUserResponse | null;
+    if (!payload?.success) {
+      throw new Error("Admin delete-user response did not include success=true.");
+    }
+    if (payload.deletedEmail.trim().toLowerCase() !== input.targetEmail.trim().toLowerCase()) {
+      throw new Error(`Admin delete-user deletedEmail mismatch: ${payload.deletedEmail}`);
+    }
+
+    cleanupState = await input.dbAssist.fetchAdminDeletionCleanupState(input.targetUserId, seed);
+    if (!cleanupState) {
+      throw new Error("DB assist did not return cleanup state after admin deletion.");
+    }
+
+    const failures: string[] = [];
+    requirePurgedCount(payload.purgedCounts, "users", 1, failures);
+    requirePurgedCount(payload.purgedCounts, "userPasswords", 1, failures);
+    requirePurgedCount(payload.purgedCounts, "userAccounts", 1, failures);
+    requirePurgedCount(payload.purgedCounts, "subscriptions", 1, failures);
+    requirePurgedCount(payload.purgedCounts, "sessions", 1, failures);
+    requirePurgedCount(payload.purgedCounts, "reportArtifacts", 2, failures);
+    if (input.supportTicketId) {
+      requirePurgedCount(payload.purgedCounts, "supportTickets", 1, failures);
+    }
+    if (seed?.supportTicketMessageId) {
+      requirePurgedCount(payload.purgedCounts, "supportTicketMessages", 1, failures);
+    }
+    if (seed?.supportTicketId) {
+      requirePurgedCount(payload.purgedCounts, "supportTicketsReassigned", 1, failures);
+      requireNullified("seeded support_ticket.assigned_agent_id", cleanupState.supportTicketAssignedAgentId, failures);
+    }
+    if (seed?.consumerSignatureId) {
+      requirePurgedCount(payload.purgedCounts, "consumerSignaturesVerifiedByNullified", 1, failures);
+      requireNullified("seeded consumer_signature.verified_by", cleanupState.consumerSignatureVerifiedBy, failures);
+    }
+    if (seed?.evidenceAttachmentId) {
+      requirePurgedCount(payload.purgedCounts, "evidenceAttachmentsNullified", 1, failures);
+      requireNullified("seeded evidence_attachment.uploaded_by", cleanupState.evidenceAttachmentUploadedBy, failures);
+    }
+    if (seed?.complianceConfigCategory) {
+      requirePurgedCount(payload.purgedCounts, "complianceConfigsNullified", 1, failures);
+      requireNullified(
+        "seeded compliance_config.updated_by_user_id",
+        cleanupState.complianceConfigUpdatedByUserId,
+        failures
+      );
+    }
+    if (seed?.systemSettingsKey) {
+      requirePurgedCount(payload.purgedCounts, "systemSettingsNullified", 1, failures);
+      requireNullified("seeded system_settings.updated_by_user_id", cleanupState.systemSettingsUpdatedByUserId, failures);
+    }
+    if (seed?.parserKnownEntityId) {
+      requirePurgedCount(payload.purgedCounts, "parserKnownEntitiesNullified", 1, failures);
+      requireNullified("seeded parser_known_entity.created_by", cleanupState.parserKnownEntityCreatedBy, failures);
+    }
+    if (seed?.parserFieldMappingId) {
+      requirePurgedCount(payload.purgedCounts, "parserFieldMappingsNullified", 1, failures);
+      requireNullified("seeded parser_field_mapping.created_by", cleanupState.parserFieldMappingCreatedBy, failures);
+    }
+    if (seed?.parserBureauDetectionConfigId) {
+      requirePurgedCount(payload.purgedCounts, "parserBureauConfigsNullified", 1, failures);
+      requireNullified(
+        "seeded parser_bureau_detection_config.created_by",
+        cleanupState.parserBureauDetectionConfigCreatedBy,
+        failures
+      );
+    }
+    if (seed?.parserMappingVersionId) {
+      requirePurgedCount(payload.purgedCounts, "parserMappingVersionsNullified", 1, failures);
+      requireNullified("seeded parser_mapping_version.changed_by", cleanupState.parserMappingVersionChangedBy, failures);
+    }
+    if (seed?.parserTestCaseId) {
+      requirePurgedCount(payload.purgedCounts, "parserTestCasesReassigned", 1, failures);
+      if (
+        cleanupState.parserTestCaseCreatedBy === null ||
+        cleanupState.parserTestCaseCreatedBy === undefined ||
+        cleanupState.parserTestCaseCreatedBy === input.targetUserId
+      ) {
+        failures.push(
+          `Expected seeded parser_test_case.created_by to be reassigned away from ${input.targetUserId}, received ${cleanupState.parserTestCaseCreatedBy}.`
+        );
+      }
+    }
+    if (seed?.softwareVersionId) {
+      requirePurgedCount(payload.purgedCounts, "softwareVersionsNullified", 1, failures);
+      requireNullified("seeded software_version.created_by", cleanupState.softwareVersionCreatedBy, failures);
+    }
+
+    requireZero("remaining users rows", cleanupState.remainingUserRows, failures);
+    requireZero("remaining sessions", cleanupState.remainingSessions, failures);
+    requireZero("remaining user passwords", cleanupState.remainingUserPasswords, failures);
+    requireZero("remaining user accounts", cleanupState.remainingUserAccounts, failures);
+    requireZero("remaining subscriptions", cleanupState.remainingSubscriptions, failures);
+    requireZero("remaining report artifacts", cleanupState.remainingReportArtifacts, failures);
+    requireZero("remaining tradelines", cleanupState.remainingTradelines, failures);
+    requireZero("remaining packets", cleanupState.remainingPackets, failures);
+    requireZero("remaining support tickets owned by user", cleanupState.remainingSupportTicketsOwnedByUser, failures);
+    requireZero("remaining support messages from user", cleanupState.remainingSupportMessagesFromUser, failures);
+    if (seed?.supportTicketMessageId && cleanupState.supportTicketMessageExists !== false) {
+      failures.push("Expected seeded support ticket message from deleted user to be removed.");
+    }
+
+    if (failures.length > 0) {
+      throw new Error(failures.join(" "));
+    }
+
+    shouldCleanupSeed = true;
+    return {
+      deletedEmail: payload.deletedEmail,
+      purgedCounts: payload.purgedCounts,
+      cleanupState,
+      seed: seed
+        ? {
+            ...seed,
+            warnings: seed.warnings,
+          }
+        : null,
+    };
+  } finally {
+    if (shouldCleanupSeed) {
+      await input.dbAssist.cleanupAdminDeletionRegressionData(seed);
+    }
   }
 }
 
@@ -1158,6 +1916,7 @@ async function main() {
   let supportMessageId: number | null = null;
   let evidenceEventId: number | null = null;
   let evidenceAttachmentId: number | null = null;
+  let adminDeletionRegression: Record<string, unknown> | null = null;
   let verifiedEmail = false;
   let passwordResetCompleted = false;
 
@@ -2049,6 +2808,28 @@ async function main() {
     setCoverage("packet_delete", "BLOCKED", "No tradeline was available for delete-packet test.");
   }
 
+  if (registeredUserId) {
+    adminDeletionRegression = await runStep(
+      "Admin delete mock user",
+      () =>
+        exerciseAdminDeletionRegression({
+          dbAssist,
+          baseUrl: options.baseUrl,
+          origin: options.origin,
+          targetUserId: registeredUserId!,
+          targetEmail: options.email,
+          runId,
+          supportTicketId,
+        }),
+      {
+        coverageKey: "admin_delete_user",
+        blockedPatterns: ["admin session cookie unavailable", "db assist unavailable"],
+      }
+    );
+  } else {
+    setCoverage("admin_delete_user", "BLOCKED", "No registered user ID was available to delete.");
+  }
+
   for (const [key, label] of Object.entries(COVERAGE_LABELS)) {
     if (!coverage.has(key)) {
       coverage.set(key, {
@@ -2168,6 +2949,7 @@ async function main() {
       subscription: {
         status: subscriptionStatus ?? null,
       },
+      adminDeletion: adminDeletionRegression,
     },
     analysis: {
       scopeChecksPassed: Boolean(firstUploadResults && secondUploadResults),

@@ -97,6 +97,7 @@ export async function handle(request: Request) {
       },
       initiatedByUserId: user.id,
       initiatedByEmail: user.email,
+      adminSessionCookie: request.headers.get("cookie"),
     });
 
     return new Response(JSON.stringify({ job } satisfies OutputType), {

@@ -212,6 +212,7 @@ export async function startMockLifecycleJob(input: {
   runConfig: MockLifecycleRunConfig;
   initiatedByUserId: number;
   initiatedByEmail: string;
+  adminSessionCookie?: string | null;
 }): Promise<MockLifecycleJobRecord> {
   await mkdir(JOBS_DIR, { recursive: true });
   await mkdir(RUNS_DIR, { recursive: true });
@@ -254,7 +255,12 @@ export async function startMockLifecycleJob(input: {
   const args = [tsxCliPath, "scripts/mock-user-lifecycle-e2e.ts", ...lifecycleArgs];
   const child = spawn(command, args, {
     cwd: PROJECT_ROOT,
-    env: process.env,
+    env: {
+      ...process.env,
+      ...(input.adminSessionCookie
+        ? { CRP_LIFECYCLE_ADMIN_COOKIE: input.adminSessionCookie }
+        : {}),
+    },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
   });

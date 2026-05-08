@@ -27,3 +27,23 @@ describe("admin reset cascade", () => {
     expect(schema).toContain("deletedPackets: number");
   });
 });
+
+describe("admin delete-user lifecycle regression coverage", () => {
+  it("keeps the mock lifecycle suite exercising the admin deletion cascade", () => {
+    const runner = source("endpoints/admin/mock-lifecycle/jobRunner.ts");
+    const endpoint = source("endpoints/admin/mock-lifecycle/run_POST.ts");
+    const lifecycle = source("scripts/mock-user-lifecycle-e2e.ts");
+
+    expect(endpoint).toContain("adminSessionCookie: request.headers.get(\"cookie\")");
+    expect(runner).toContain("CRP_LIFECYCLE_ADMIN_COOKIE");
+    expect(lifecycle).toContain("admin_delete_user");
+    expect(lifecycle).toContain("\"/_api/admin/delete-user\"");
+    expect(lifecycle).toContain("seedAdminDeletionRegressionData");
+    expect(lifecycle).toContain("requirePurgedCount(payload.purgedCounts, \"users\", 1");
+    expect(lifecycle).toContain("requirePurgedCount(payload.purgedCounts, \"reportArtifacts\", 2");
+    expect(lifecycle).toContain("parserTestCasesReassigned");
+    expect(lifecycle).toContain("softwareVersionsNullified");
+    expect(lifecycle).toContain("remainingReportArtifacts");
+    expect(lifecycle).toContain("remainingSupportMessagesFromUser");
+  });
+});
