@@ -30,6 +30,17 @@ describe("parser quality raw-text account markers", () => {
     expect(estimateExpectedAccountMarkersFromRawText(collapsedTwoTradelineText)).toBe(2);
   });
 
+  it("does not count embedded parser assertion instructions as tradelines", () => {
+    const textWithAssertionSection = `${collapsedTwoTradelineText}
+Embedded Known Errors for Test Assertions
+TradelineExtract creditor, account type, dates, balance, past due, MOP, narratives
+Expected Error 1 Balance exceeds credit limit on revolving account.
+Expected Error 2 Last Payment Date is later than report date.
+`;
+
+    expect(estimateExpectedAccountMarkersFromRawText(textWithAssertionSection)).toBe(2);
+  });
+
   it("flags under-extraction when raw text shows more tradelines than parsed output", () => {
     const assessment = assessParserQuality({
       rawHtml: "",

@@ -79,11 +79,38 @@ export function estimateExpectedAccountMarkersFromRawText(rawText: string | null
     /\bCollections\b/i.test(text);
   if (!hasAccountSection) return 0;
 
-  const collapsedCreditorRows =
-    text.match(/\bCreditor\s+Name[\s\S]{0,160}?Payment\s+History\b/gi)?.length ?? 0;
-  const creditorNameLabels = text.match(/\bCreditor\s+Name/gi)?.length ?? 0;
-  const accountTypeLabels = text.match(/\bAccount\s+Type/gi)?.length ?? 0;
-  const equifaxAccountNumbers = text.match(/\bAccount\s*(?:Number|#)\b/gi)?.length ?? 0;
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const isInstructionLine = (line: string) =>
+    /(?:TradelineExtract|Parser\s+Assertion|Expected\s+Error|Embedded\s+Known\s+Errors|Test\s+Assertions)/i.test(line);
+  const accountTypeValuePattern =
+    /\bAccount\s+Type\s*[:#-]?\s*(?:REVOLVING|INSTALLMENT|MORTGAGE|COLLECTION|OPEN|CLOSED|LINE\s+OF\s+CREDIT|CREDIT\s+CARD|AUTO|LOAN|INDIVIDUAL|JOINT)\b/i;
+  const standaloneAccountTypeValuePattern =
+    /^(?:REVOLVING|INSTALLMENT|MORTGAGE|COLLECTION|OPEN|CLOSED|LINE\s+OF\s+CREDIT|CREDIT\s+CARD|AUTO|LOAN)\b/i;
+
+  const countLines = (predicate: (line: string, index: number) => boolean): number =>
+    lines.reduce((count, line, index) => count + (predicate(line, index) ? 1 : 0), 0);
+  const searchableText = lines.filter((line) => !isInstructionLine(line)).join("\n");
+
+  const collapsedCreditorRows = countLines((line) =>
+    !isInstructionLine(line) &&
+    /\bCreditor\s+Name[\s\S]{0,160}?Payment\s+History\b/i.test(line),
+  );
+  const creditorNameLabels = countLines((line) =>
+    !isInstructionLine(line) && /\bCreditor\s+Name\b/i.test(line),
+  );
+  const accountTypeLabels = countLines((line, index) =>
+    !isInstructionLine(line) &&
+    /\bAccount\s+Type\b/i.test(line) &&
+    (
+      accountTypeValuePattern.test(line) ||
+      (/^\s*Account\s+Type\s*$/i.test(line) && standaloneAccountTypeValuePattern.test(lines[index + 1] ?? ""))
+    ),
+  );
+  const equifaxAccountNumbers =
+    searchableText.match(/\bAccount\s*(?:Number|#)\b/gi)?.length ?? 0;
 
   return Math.max(
     collapsedCreditorRows,
