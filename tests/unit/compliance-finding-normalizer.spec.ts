@@ -25,6 +25,30 @@ describe("compliance finding normalizer", () => {
     expect(normalized.userExplanation).not.toContain("That date is required.");
   });
 
+  it("keeps field-required language only when an exact field/account authority exists", () => {
+    const violation: DetectedViolation = {
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "ERROR",
+      confidenceScore: 96,
+      userExplanation: "This judgment record does not include the judgment creditor name. That information is required.",
+      technicalDetails: {
+        fieldName: "judgmentCreditorName",
+        actualValue: "null",
+        accountType: "judgment",
+        province: "NS",
+        regulationIds: ["PIPEDA_4_6"],
+      },
+      recommendedAction: "Ask the reporting party to review the judgment creditor name.",
+      tradelineId: 515,
+      responsibleEntity: "BUREAU",
+    };
+
+    const normalized = normalizeDetectedViolation(violation);
+
+    expect(normalized.userExplanation).toContain("That information is required.");
+    expect(normalized.userExplanation).not.toContain("That information can help verify the reporting.");
+  });
+
   it("does not leave attached pronouns when neutralizing removal language", () => {
     const violation: DetectedViolation = {
       violationCategory: "STATUTE_APPROACHING",

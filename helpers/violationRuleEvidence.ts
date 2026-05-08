@@ -1,7 +1,10 @@
 import type { DetectedViolation } from "./complianceDetectorTypes";
 import {
+  authorityIssueLabel,
+  classifyAuthorityIssue,
   getBonaFideLegalAuthorityById,
   hasFieldSpecificAuthority,
+  type AuthorityIssueClassification,
 } from "./legalAuthorityRegistry";
 import { regulationRegistry, type RegulationEntry } from "./regulationRegistry";
 import type { ViolationCategory } from "./schema";
@@ -29,6 +32,8 @@ export interface DeterministicViolationRuleEnvelope {
       sourceQuality?: string;
       supportLevel?: string;
       allowsFieldRequiredLanguage?: boolean;
+      authorityIssueClassification?: AuthorityIssueClassification;
+      authorityIssueLabel?: string;
     }
   >;
   explanation: string;
@@ -299,6 +304,8 @@ function regulationReferences(
         sourceQuality: authority?.sourceQuality,
         supportLevel: authority?.supportLevel,
         allowsFieldRequiredLanguage: authority?.allowsFieldRequiredLanguage ?? false,
+        authorityIssueClassification: classifyAuthorityIssue(authority),
+        authorityIssueLabel: authorityIssueLabel(authority),
       };
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));

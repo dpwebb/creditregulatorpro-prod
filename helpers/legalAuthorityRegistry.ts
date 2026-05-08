@@ -57,6 +57,12 @@ export interface LocalAuthorityLookupInput {
   regulationIds?: string[];
 }
 
+export type AuthorityIssueClassification =
+  | "confirmed_legal_violation"
+  | "mapped_legal_authority_issue"
+  | "mapped_reporting_standard_issue"
+  | "mapped_internal_reference";
+
 const PIPEDA_SOURCE_URL = "https://laws-lois.justice.gc.ca/eng/acts/P-8.6/page-7.html";
 const BIA_SOURCE_URL = "https://laws-lois.justice.gc.ca/eng/acts/B-3/";
 
@@ -191,6 +197,44 @@ export function getBonaFideLegalAuthorityById(id: string): LocalLegalAuthority |
 
 export function getBonaFideLegalAuthoritiesByRegulationIds(regulationIds: string[]): LocalLegalAuthority[] {
   return getLegalAuthoritiesByRegulationIds(regulationIds).filter(isBonaFideLegalAuthority);
+}
+
+export function classifyAuthorityIssue(
+  authority: Pick<
+    LocalLegalAuthority,
+    "authorityType" | "sourceQuality" | "supportLevel" | "allowsFieldRequiredLanguage"
+  >,
+): AuthorityIssueClassification {
+  if (authority.authorityType === "reporting_standard" || authority.sourceQuality === "private_standard") {
+    return "mapped_reporting_standard_issue";
+  }
+
+  if (
+    authority.sourceQuality === "official" &&
+    authority.supportLevel === "field_requirement" &&
+    authority.allowsFieldRequiredLanguage
+  ) {
+    return "confirmed_legal_violation";
+  }
+
+  if (authority.sourceQuality === "official") {
+    return "mapped_legal_authority_issue";
+  }
+
+  return "mapped_internal_reference";
+}
+
+export function authorityIssueLabel(
+  authority: Pick<
+    LocalLegalAuthority,
+    "authorityType" | "sourceQuality" | "supportLevel" | "allowsFieldRequiredLanguage"
+  >,
+): string {
+  const classification = classifyAuthorityIssue(authority);
+  if (classification === "confirmed_legal_violation") return "Confirmed legal violation";
+  if (classification === "mapped_reporting_standard_issue") return "Mapped reporting-standard issue";
+  if (classification === "mapped_legal_authority_issue") return "Mapped legal authority issue";
+  return "Mapped internal reference";
 }
 
 export function getBonaFideLegalAuthoritiesForViolation(input: LocalAuthorityLookupInput): LocalLegalAuthority[] {

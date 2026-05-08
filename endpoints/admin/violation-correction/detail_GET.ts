@@ -1,6 +1,7 @@
 import { db } from "../../../helpers/db";
 import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../../helpers/getServerUserSession";
+import { authorityIssueLabel, getLegalAuthorityById } from "../../../helpers/legalAuthorityRegistry";
 import { regulationRegistry, type RegulationEntry } from "../../../helpers/regulationRegistry";
 import type { CanadianProvince, ViolationCategory } from "../../../helpers/schema";
 import { isAdmin } from "../../../helpers/userRoleUtils";
@@ -42,6 +43,7 @@ function suggestedReferencesForViolation(category: ViolationCategory | null): Su
     .map((entry) => {
       const jurisdiction = inferJurisdiction(entry);
       const province = inferProvince(entry);
+      const authority = getLegalAuthorityById(entry.id);
       return {
         jurisdiction,
         country: "Canada",
@@ -63,6 +65,7 @@ function suggestedReferencesForViolation(category: ViolationCategory | null): Su
         adminVerifiedCitation: false,
         adminNotes: null,
         mappingStatus: "active",
+        authorityIssueLabel: authority ? authorityIssueLabel(authority) : "Mapped internal reference",
       };
     });
 }

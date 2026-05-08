@@ -1,7 +1,13 @@
 import { regulationRegistry } from "./regulationRegistry";
 import { ViolationCategory } from "./schema";
 import { formatCurrency, parseCurrencyAmount } from "./formatters";
-import { hasFieldSpecificAuthority } from "./legalAuthorityRegistry";
+import {
+  authorityIssueLabel,
+  classifyAuthorityIssue,
+  getLegalAuthorityById,
+  hasFieldSpecificAuthority,
+  type AuthorityIssueClassification,
+} from "./legalAuthorityRegistry";
 import styles from "./violationRegulationMap.module.css";
 
 export interface RegulationReference {
@@ -10,6 +16,30 @@ export interface RegulationReference {
   section: string;
   description: string;
   specificApplication?: string;
+  authorityIssueClassification?: AuthorityIssueClassification;
+  authorityIssueLabel?: string;
+  sourceQuality?: string;
+  supportLevel?: string;
+  authorityType?: string;
+}
+
+function referenceFromEntry(entry: NonNullable<ReturnType<typeof regulationRegistry.getRegulationById>>): RegulationReference {
+  const authority = getLegalAuthorityById(entry.id);
+  return {
+    regulationId: entry.id,
+    statute: entry.statute,
+    section: entry.citation,
+    description: entry.description,
+    ...(authority
+      ? {
+          authorityIssueClassification: classifyAuthorityIssue(authority),
+          authorityIssueLabel: authorityIssueLabel(authority),
+          sourceQuality: authority.sourceQuality,
+          supportLevel: authority.supportLevel,
+          authorityType: authority.authorityType,
+        }
+      : {}),
+  };
 }
 
 /**
@@ -31,12 +61,7 @@ function getAllRegulationsForViolation(violation: {
     refs = explicitRegulationIds
       .map((id) => regulationRegistry.getRegulationById(id))
       .filter((entry): entry is NonNullable<ReturnType<typeof regulationRegistry.getRegulationById>> => Boolean(entry))
-      .map((entry) => ({
-        regulationId: entry.id,
-        statute: entry.statute,
-        section: entry.citation,
-        description: entry.description,
-      }));
+      .map((entry) => referenceFromEntry(entry));
   } else if (technicalDetails?.regulatoryBasis) {
     const bases = String(technicalDetails.regulatoryBasis)
       .split(",")
@@ -63,12 +88,7 @@ function getAllRegulationsForViolation(violation: {
       return true;
     });
 
-    refs = filteredEntries.map((entry) => ({
-      regulationId: entry.id,
-      statute: entry.statute,
-      section: entry.citation,
-      description: entry.description,
-    }));
+    refs = filteredEntries.map((entry) => referenceFromEntry(entry));
   }
 
   // Deduplicate by section to prevent repetitive regulatory citations

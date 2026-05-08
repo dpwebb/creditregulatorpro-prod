@@ -147,6 +147,7 @@ export type SuggestedRegulationReference = {
   adminVerifiedCitation: boolean;
   adminNotes: string | null;
   mappingStatus: "active";
+  authorityIssueLabel: string;
 };
 
 export type ViolationReviewRunDetail = {

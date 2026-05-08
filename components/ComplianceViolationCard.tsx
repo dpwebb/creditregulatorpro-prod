@@ -67,6 +67,15 @@ export const ComplianceViolationCard = ({
   const isLicenseFailure = violation.violationCategory === "COLLECTOR_LICENSE_FAILURE";
   const isLinkedDisputed = violation.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const [isLawsOpen, setIsLawsOpen] = useState(false);
+  const authorityTriggerLabel = regulations.every(
+    (reg) => reg.authorityIssueClassification === "mapped_reporting_standard_issue",
+  )
+    ? "See mapped reporting-standard issue"
+    : regulations.some(
+        (reg) => reg.authorityIssueClassification === "confirmed_legal_violation",
+      )
+      ? "See confirmed legal violation basis"
+      : "See mapped legal authority";
 
   return (
     <div className={`${styles.violationCard} ${isPrimaryViolation && !isDismissed ? styles.primaryViolationCard : ''} ${isDisputed && !isDismissed ? styles.disputedCard : ''} ${isLinkedDisputed && !isDismissed ? styles.linkedDisputedCard : ''} ${isDismissed ? styles.dismissedCard : ''}`}>
@@ -171,7 +180,8 @@ export const ComplianceViolationCard = ({
             >
               <CollapsibleTrigger asChild>
                 <button className={styles.lawsTrigger} data-state={isLawsOpen ? "open" : "closed"}>
-                  📖 See the law behind this
+                  <FileSearch size={14} />
+                  {authorityTriggerLabel}
                   <ChevronDown size={14} className={styles.lawsTriggerIcon} />
                 </button>
               </CollapsibleTrigger>
@@ -183,6 +193,9 @@ export const ComplianceViolationCard = ({
                         <div className={styles.regulationHeader}>
                           <span className={styles.regulationStatute}>{reg.statute}</span>
                           <span className={styles.regulationSection}>{reg.section}</span>
+                          {reg.authorityIssueLabel && (
+                            <span className={styles.authorityClassification}>{reg.authorityIssueLabel}</span>
+                          )}
                         </div>
                         {reg.specificApplication && (
                           <span className={styles.regulationApplication}>

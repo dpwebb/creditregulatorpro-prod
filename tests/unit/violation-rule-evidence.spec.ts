@@ -193,6 +193,63 @@ describe("deterministic violation rule evidence", () => {
     expect(filterViolationsWithLocalAuthorityLinks([missingClosedDate])).toEqual([]);
   });
 
+  it.each([
+    {
+      name: "collection assignment date",
+      fieldName: "dateAssignedToCollection",
+      accountType: "collection_account",
+      province: "ON",
+      regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+    },
+    {
+      name: "first delinquency date",
+      fieldName: "dateOfFirstDelinquency",
+      accountType: "collection_account",
+      province: "ON",
+      regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+    },
+    {
+      name: "terms field",
+      fieldName: "terms",
+      accountType: "installment",
+      province: "NS",
+      regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+    },
+    {
+      name: "judgment creditor on the wrong account type",
+      fieldName: "judgmentCreditorName",
+      accountType: "installment",
+      province: "NS",
+      regulationIds: ["PIPEDA_4_6", "NS_CRA_JUDGMENT_FIELDS"],
+    },
+    {
+      name: "legal current status on the wrong account type",
+      fieldName: "currentStatus",
+      accountType: "installment",
+      province: "ON",
+      regulationIds: ["PIPEDA_4_6", "ON_CRA_LEGAL_ACTION_STATUS_FIELD"],
+    },
+  ])("blocks missing-field review issues without exact field/account authority: $name", (input) => {
+    const missingField = violation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "ERROR",
+      confidenceScore: 96,
+      userExplanation: `This account does not include ${input.fieldName}. That information is required.`,
+      technicalDetails: {
+        fieldName: input.fieldName,
+        actualValue: "null",
+        detectedValue: "null",
+        accountType: input.accountType,
+        province: input.province,
+        regulationIds: input.regulationIds,
+      },
+    });
+
+    expect(isMissingInformationReviewIssue(missingField)).toBe(true);
+    expect(hasFieldSpecificAuthorityForMissingInformation(missingField)).toBe(false);
+    expect(filterViolationsWithLocalAuthorityLinks([missingField])).toEqual([]);
+  });
+
   it("surfaces missing information only when an exact Canadian field mandate matches the province and record type", () => {
     const missingJudgmentCreditor = violation({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
@@ -218,6 +275,18 @@ describe("deterministic violation rule evidence", () => {
       "PIPEDA_4_6",
       "NS_CRA_JUDGMENT_FIELDS",
     ]);
+    expect(envelope?.regulationReferences.find((ref) => ref.id === "PIPEDA_4_6")).toEqual(
+      expect.objectContaining({
+        authorityIssueClassification: "mapped_legal_authority_issue",
+        authorityIssueLabel: "Mapped legal authority issue",
+      }),
+    );
+    expect(envelope?.regulationReferences.find((ref) => ref.id === "NS_CRA_JUDGMENT_FIELDS")).toEqual(
+      expect.objectContaining({
+        authorityIssueClassification: "confirmed_legal_violation",
+        authorityIssueLabel: "Confirmed legal violation",
+      }),
+    );
     expect(enriched.technicalDetails?.regulationIds).toEqual(["PIPEDA_4_6", "NS_CRA_JUDGMENT_FIELDS"]);
     expect(filterViolationsWithLocalAuthorityLinks([missingJudgmentCreditor])).toHaveLength(1);
   });

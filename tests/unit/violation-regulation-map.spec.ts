@@ -67,4 +67,27 @@ describe("violation regulation mapping", () => {
     expect(refs.every((ref) => !ref.specificApplication?.includes("which is required"))).toBe(true);
     expect(refs.every((ref) => ref.specificApplication?.includes("field-specific legal or reporting-standard requirement"))).toBe(true);
   });
+
+  it("labels statute authority separately from private reporting-standard authority", () => {
+    const refs = getFederalRegulationsForViolation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      technicalDetails: {
+        fieldName: "dateAssignedToCollection",
+        regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+      },
+    });
+
+    expect(refs.find((ref) => ref.regulationId === "PIPEDA_4_6")).toEqual(
+      expect.objectContaining({
+        authorityIssueClassification: "mapped_legal_authority_issue",
+        authorityIssueLabel: "Mapped legal authority issue",
+      }),
+    );
+    expect(refs.find((ref) => ref.regulationId === "METRO2_BASE_SEGMENT")).toEqual(
+      expect.objectContaining({
+        authorityIssueClassification: "mapped_reporting_standard_issue",
+        authorityIssueLabel: "Mapped reporting-standard issue",
+      }),
+    );
+  });
 });

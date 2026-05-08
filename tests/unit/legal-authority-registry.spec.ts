@@ -3,6 +3,8 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  authorityIssueLabel,
+  classifyAuthorityIssue,
   getLegalAuthorityById,
   hasFieldSpecificAuthority,
   isBonaFideLegalAuthority,
@@ -179,12 +181,37 @@ describe("local legal authority registry", () => {
     expect(fieldRequirementAuthorities).toHaveLength(28);
 
     for (const authority of fieldRequirementAuthorities) {
+      const registryEntry = regulationRegistry.getRegulationById(authority.id);
       expect(authority.sourceQuality, `${authority.id} should be official`).toBe("official");
+      expect(authority.authorityType, `${authority.id} should be a statute record`).toBe("statute");
+      expect(authority.jurisdiction, `${authority.id} should store jurisdiction`).toBeTruthy();
+      expect(authority.citation, `${authority.id} should store citation`).toBeTruthy();
+      expect(authority.effectiveDate, `${authority.id} should store effectiveDate, even when unknown`).toBeNull();
       expect(authority.sourceUrl, `${authority.id} should have an official source URL`).toMatch(/^https:\/\//);
       expect(authority.fieldNames.length, `${authority.id} should name exact fields`).toBeGreaterThan(0);
       expect(authority.accountTypes.length, `${authority.id} should be scoped by account or record type`).toBeGreaterThan(0);
       expect(authority.allowsFieldRequiredLanguage, `${authority.id} should support field-required language`).toBe(true);
+      expect(registryEntry, `${authority.id} should resolve to a registry entry`).toBeTruthy();
+      expect(
+        Object.prototype.hasOwnProperty.call(registryEntry, "effectiveDate"),
+        `${authority.id} should explicitly store effectiveDate`,
+      ).toBe(true);
+      expect(classifyAuthorityIssue(authority), `${authority.id} should classify as confirmed legal`).toBe("confirmed_legal_violation");
+      expect(authorityIssueLabel(authority)).toBe("Confirmed legal violation");
     }
+  });
+
+  it("keeps private reporting standards separate from confirmed legal violation labels", () => {
+    const metro2 = getLegalAuthorityById("METRO2_BASE_SEGMENT");
+    const pipeda = getLegalAuthorityById("PIPEDA_4_6");
+
+    expect(metro2).toEqual(expect.objectContaining({ sourceQuality: "private_standard" }));
+    expect(classifyAuthorityIssue(metro2!)).toBe("mapped_reporting_standard_issue");
+    expect(authorityIssueLabel(metro2!)).toBe("Mapped reporting-standard issue");
+
+    expect(pipeda).toEqual(expect.objectContaining({ sourceQuality: "official", supportLevel: "category_principle" }));
+    expect(classifyAuthorityIssue(pipeda!)).toBe("mapped_legal_authority_issue");
+    expect(authorityIssueLabel(pipeda!)).toBe("Mapped legal authority issue");
   });
 
   it("resolves every active violation category to federal, reporting-standard, or consumer-province authority", () => {

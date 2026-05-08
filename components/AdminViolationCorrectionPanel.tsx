@@ -39,6 +39,8 @@ import type {
   TradelineReviewDetail,
   ViolationReviewCorrectionDetail,
 } from "../endpoints/admin/violation-correction/common";
+import { authorityIssueLabel, getLegalAuthorityById } from "../helpers/legalAuthorityRegistry";
+import { regulationRegistry } from "../helpers/regulationRegistry";
 import styles from "./AdminViolationCorrectionPanel.module.css";
 
 const ACTIONS = [
@@ -104,6 +106,24 @@ type RegulationForm = {
 function labelize(value: string | null | undefined): string {
   if (!value) return "Not set";
   return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function authorityLabelForSavedReference(item: {
+  jurisdiction: string;
+  regulationName: string;
+  statuteOrRuleName: string;
+  sectionNumber: string;
+}): string {
+  const registryEntry = Object.values(regulationRegistry.STATUTE_ENTRIES).find(
+    (entry) =>
+      entry.statute === item.regulationName &&
+      entry.shortLabel === item.statuteOrRuleName &&
+      entry.citation === item.sectionNumber,
+  );
+  const authority = registryEntry ? getLegalAuthorityById(registryEntry.id) : null;
+  if (authority) return authorityIssueLabel(authority);
+  if (item.jurisdiction === "bureau_standard") return "Mapped reporting-standard issue";
+  return "Mapped legal authority issue";
 }
 
 function formatDate(value: Date | string | null | undefined): string {
@@ -850,6 +870,7 @@ export function AdminViolationCorrectionPanel({
                         onClick={() => addRegulationReference(ref)}
                       >
                         <Scale size={14} />
+                        <span>{ref.authorityIssueLabel}</span>
                         <span>{ref.regulationName} · {ref.sectionNumber}</span>
                       </button>
                     ))}
@@ -987,6 +1008,7 @@ export function AdminViolationCorrectionPanel({
                       <div>
                         <strong>{item.regulationName}</strong>
                         <span>{item.statuteOrRuleName} · {item.sectionNumber}</span>
+                        <span>{authorityLabelForSavedReference(item)}</span>
                         <p>{item.regulationTextExcerpt}</p>
                       </div>
                       <div className={styles.inlineActions}>

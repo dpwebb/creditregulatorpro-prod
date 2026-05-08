@@ -1,5 +1,5 @@
 import type { DetectedViolation } from "./complianceDetectorTypes";
-import { hasFieldSpecificAuthority } from "./legalAuthorityRegistry";
+import { hasFieldSpecificAuthorityForMissingInformation } from "./violationRuleEvidence";
 
 const ENTITY_LABELS: Record<string, string> = {
   BUREAU: "the credit bureau",
@@ -80,16 +80,7 @@ function softenUnsupportedFieldRequirementLanguage(
   const fieldName = firstStringValue(details, ["fieldName", "field", "matchedField"]);
   if (!fieldName || details.specificFieldRequirementMapped === true) return text;
 
-  const regulationIds = Array.isArray(details.regulationIds)
-    ? details.regulationIds.filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
-    : [];
-  const hasMappedAuthority = hasFieldSpecificAuthority({
-    violationCategory: violation.violationCategory,
-    fieldName,
-    accountType: firstStringValue(details, ["accountType", "portfolioType", "accountClassification"]),
-    regulationIds,
-    jurisdiction: firstStringValue(details, ["province", "jurisdiction"]),
-  });
+  const hasMappedAuthority = hasFieldSpecificAuthorityForMissingInformation(violation);
   if (hasMappedAuthority) return text;
 
   return text
