@@ -62,6 +62,7 @@ export interface ParseReportOptions {
   allowOcrFallback?: boolean;
   enableAiAugmentation?: boolean;
   logRawTextPreview?: boolean;
+  preExtractedText?: string;
 }
 
 export const DEFAULT_LOG_RAW_TEXT_PREVIEW = false;
@@ -186,7 +187,9 @@ export async function parseReport(
   try {
     // Step 1: Extract text from PDF using the pdfTextExtractor helper
     console.log("[Report Parser] Step 1: Extracting text from PDF...");
-    const text = await extractTextFromPdf(base64Data, { allowOcrFallback });
+    const text =
+      options.preExtractedText ??
+      (await extractTextFromPdf(base64Data, { allowOcrFallback }));
 
     if (!text || text.trim().length === 0) {
       console.warn("[Report Parser] No text extracted from PDF");

@@ -395,7 +395,7 @@ export default function UploadPage() {
               />
             </div>
             <p className={styles.subtitle}>
-              Send us your credit report and we'll check it for you
+              Upload the original Equifax or TransUnion PDF and we'll check it for you
             </p>
           </div>
         </div>
@@ -419,7 +419,7 @@ export default function UploadPage() {
               <ChevronDown className={styles.helpTriggerChevron} size={20} />
             </CollapsibleTrigger>
             <CollapsibleContent className={styles.helpContent}>
-              <p className={styles.helpText}>You can get your free credit report online in about 5 minutes. Make sure to download or save it as a PDF file.</p>
+              <p className={styles.helpText}>You can get your free credit report online in about 5 minutes. Download the original PDF from the bureau, not a photo or scan.</p>
               
               <div className={styles.helpBureausGrid}>
                 <div className={styles.helpBureauCard}>
@@ -480,7 +480,7 @@ export default function UploadPage() {
             </label>
             <HelpTooltip 
               title="What You Can Upload"
-              content="You can upload a PDF credit report. Maximum size: 15MB."
+              content="Upload the original downloaded PDF with selectable text. Scanned or photo PDFs are not supported yet. Maximum size: 15MB."
             />
           </div>
           

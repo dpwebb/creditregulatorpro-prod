@@ -5,6 +5,7 @@ import { validateOrigin } from "../../helpers/domainGuard";
 import { OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { generateAnonymousPreview } from "../../helpers/anonymousCompliancePreview";
 import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
+import { isScannedPdfUnsupportedError } from "../../helpers/creditReportPdfEligibility";
 import { ZodError } from "zod";
 
 export async function handle(request: Request) {
@@ -91,6 +92,13 @@ export async function handle(request: Request) {
     });
   } catch (error: unknown) {
     console.error("[Anonymous Upload] Error:", error);
+    if (isScannedPdfUnsupportedError(error)) {
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const message = error instanceof Error ? error.message : "An unexpected error occurred during processing.";
 
     return new Response(

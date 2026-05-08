@@ -6,6 +6,7 @@ import { scoreTradelines } from "../../helpers/confidenceScorer";
 import { BusinessRuleError, handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
+import { isScannedPdfUnsupportedError } from "../../helpers/creditReportPdfEligibility";
 
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
@@ -60,6 +61,9 @@ export async function handle(request: Request) {
       parsedTradelines = extraction.parseResult.tradelines;
     } catch (e) {
       console.error("OCR Extraction failed:", e);
+      if (isScannedPdfUnsupportedError(e)) {
+        throw new BusinessRuleError(e.message, 400);
+      }
       throw new Error("Failed to parse document");
     }
 

@@ -1,5 +1,11 @@
 import pdfParse from "pdf-parse";
 import { assessTextQuality } from "./pdfTextQualityChecker";
+import type { TextQualityAssessment } from "./pdfTextQualityChecker";
+
+export interface PdfTextExtractionResult {
+  text: string;
+  quality: TextQualityAssessment;
+}
 
 /**
  * Extracts text content from a base64-encoded PDF document using pdf-parse.
@@ -33,6 +39,14 @@ export async function extractTextFromPdf(
   base64Data: string,
   options: { allowOcrFallback?: boolean } = {},
 ): Promise<string> {
+  const result = await extractTextFromPdfWithQuality(base64Data, options);
+  return result.text;
+}
+
+export async function extractTextFromPdfWithQuality(
+  base64Data: string,
+  options: { allowOcrFallback?: boolean } = {},
+): Promise<PdfTextExtractionResult> {
   try {
     const allowOcrFallback = options.allowOcrFallback ?? false;
 
@@ -72,17 +86,18 @@ export async function extractTextFromPdf(
           "[PDF Extract] OCR fallback disabled for this parse. Returning pdf-parse text.",
         );
       }
-      return textFromParse;
+      return { text: textFromParse, quality };
     }
 
     console.log("[PDF Extract] Text quality acceptable, using pdf-parse text");
-    return textFromParse;
+    return { text: textFromParse, quality };
   } catch (error) {
     if (error instanceof Error) {
       console.error("[PDF Extract] Failed to extract text from PDF:", error.message);
     } else {
       console.error("[PDF Extract] Failed to extract text from PDF:", error);
     }
-    return "";
+    const text = "";
+    return { text, quality: assessTextQuality(text) };
   }
 }

@@ -9,6 +9,10 @@ import { z } from "zod";
 import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
 import { cleanupFailedIngest } from "./ingestCleanup";
 import { executeIngestPipeline, IngestPipelineError } from "./ingestCorePipeline";
+import {
+  assertTextBasedCreditReportPdf,
+  isScannedPdfUnsupportedError,
+} from "./creditReportPdfEligibility";
 
 type IngestInput = z.infer<typeof UploadReportInput>;
 
@@ -52,6 +56,26 @@ export async function handleIngestSubmit(
       success: false,
       error: "Unsupported file type. Please upload a PDF.",
       code: "UNSUPPORTED_MIME_TYPE",
+    };
+  }
+
+  try {
+    await assertTextBasedCreditReportPdf({
+      bytesBase64: input.bytesBase64,
+      mimeType: "application/pdf",
+    });
+  } catch (error) {
+    if (isScannedPdfUnsupportedError(error)) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+      };
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unable to validate PDF text.",
+      code: "PDF_TEXT_VALIDATION_FAILED",
     };
   }
 

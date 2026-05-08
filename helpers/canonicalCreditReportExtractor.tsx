@@ -22,6 +22,7 @@ import {
   reconcileParserPipelineFields,
 } from "./parserPipelineFieldReconciliation";
 import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
+import { assertTextBasedCreditReportPdf } from "./creditReportPdfEligibility";
 
 export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "deterministic-state-machine-2026-05-v1";
 
@@ -297,6 +298,7 @@ export async function extractCanonicalCreditReport(
   const attempts: CanonicalExtractionAttempt[] = [];
   const documentBinarySha256 = sha256HexOfBase64Payload(input.bytesBase64);
   const requestedAiFallback = input.allowAiFallback ?? false;
+  const pdfEligibility = await assertTextBasedCreditReportPdf(input);
 
   let deterministic: CandidateExtraction | null = null;
 
@@ -305,6 +307,7 @@ export async function extractCanonicalCreditReport(
       allowOcrFallback: false,
       enableAiAugmentation: false,
       logRawTextPreview: false,
+      preExtractedText: pdfEligibility.rawText,
     }));
     const llmData = mapComprehensiveResultToLLMResponse(parseResult);
     const parserQuality = assessParserQuality({

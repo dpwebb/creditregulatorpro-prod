@@ -87,10 +87,12 @@ export default function TryUploadPage() {
     if (files.length === 0) return;
     
     const file = files[0];
-    if (file.type !== "application/pdf") {
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
       toast.error("Please upload a PDF format credit report.");
       return;
     }
+    const mimeType = "application/pdf";
 
     try {
       const base64Data = await readFileAsBase64(file);
@@ -99,7 +101,7 @@ export default function TryUploadPage() {
         {
           bytesBase64: base64Data,
           fileName: file.name,
-          mimeType: file.type,
+          mimeType,
           region: "CA",
         },
         {
@@ -107,7 +109,7 @@ export default function TryUploadPage() {
             storeAnonymousReportForSignup({
               bytesBase64: base64Data,
               fileName: file.name,
-              mimeType: file.type,
+              mimeType,
               region: "CA",
             });
             sessionStorage.removeItem("crp_anon_artifact_id");
@@ -184,17 +186,17 @@ export default function TryUploadPage() {
             {activeTab === "upload" ? (
               <div className={styles.uploadSection}>
                 <FileDropzone
-                  accept=".pdf,.html,.htm"
+                  accept=".pdf,application/pdf"
                   maxFiles={1}
                   maxSize={20 * 1024 * 1024} // 20 MB
                   onFilesSelected={handleFilesSelected}
                   errorMessageOverride={handleErrorMessage}
                   title="Drop your PDF credit report here"
-                  subtitle="Equifax or TransUnion Canada only"
+                  subtitle="Original Equifax or TransUnion PDF only"
                 />
                 <div className={styles.helpTextContainer}>
                   <p className={styles.helpText}>
-                    Not sure if you have the right file? It should end in .pdf and come from Equifax or TransUnion Canada.
+                    Not sure if you have the right file? It should be the original downloaded PDF from Equifax or TransUnion Canada, not a photo or scan.
                   </p>
                   <button 
                     className={styles.helpLink} 
