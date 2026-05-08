@@ -36,7 +36,7 @@ const MIN_CORROBORATED_MATCH_SCORE = 45;
 const MIN_COLLECTION_FALLBACK_MATCH_SCORE = 55;
 const AMBIGUOUS_MATCH_SCORE_MARGIN = 15;
 
-function normalizeAccountNumber(value: string | null | undefined): string | null {
+export function normalizeAccountNumber(value: string | null | undefined): string | null {
   const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
   if (
     !normalized ||
@@ -44,6 +44,10 @@ function normalizeAccountNumber(value: string | null | undefined): string | null
     normalized === "NA" ||
     normalized === "NOTREPORTED" ||
     normalized === "NOTPROVIDED" ||
+    normalized === "NOTPROVIDEDBYBUREAU" ||
+    normalized === "NOTPROVIDEDBYCREDITBUREAU" ||
+    normalized === "NOTSUPPLIEDBYBUREAU" ||
+    normalized === "NOTAVAILABLEFROMBUREAU" ||
     normalized === "NOTAVAILABLE"
   ) {
     return null;
@@ -51,7 +55,7 @@ function normalizeAccountNumber(value: string | null | undefined): string | null
   return normalized;
 }
 
-function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+export function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
   const left = normalizeAccountNumber(a);
   const right = normalizeAccountNumber(b);
   if (!left || !right) return false;

@@ -60,13 +60,37 @@ function countTransUnionAccountBlocks(html: string): number {
   }
 }
 
-function estimateExpectedAccountMarkers(html: string): number {
+function estimateExpectedAccountMarkersFromHtml(html: string): number {
   if (!html) return 0;
 
   const transUnionAccountBlocks = countTransUnionAccountBlocks(html);
   const equifaxHeadings = countEquifaxAccountHeadings(html);
 
   return Math.max(transUnionAccountBlocks, equifaxHeadings);
+}
+
+export function estimateExpectedAccountMarkersFromRawText(rawText: string | null | undefined): number {
+  const text = rawText?.trim();
+  if (!text) return 0;
+
+  const hasAccountSection =
+    /\bAccount\(s\)\s*:/i.test(text) ||
+    /\bAccounts\b/i.test(text) ||
+    /\bCollections\b/i.test(text);
+  if (!hasAccountSection) return 0;
+
+  const collapsedCreditorRows =
+    text.match(/\bCreditor\s+Name[\s\S]{0,160}?Payment\s+History\b/gi)?.length ?? 0;
+  const creditorNameLabels = text.match(/\bCreditor\s+Name/gi)?.length ?? 0;
+  const accountTypeLabels = text.match(/\bAccount\s+Type/gi)?.length ?? 0;
+  const equifaxAccountNumbers = text.match(/\bAccount\s*(?:Number|#)\b/gi)?.length ?? 0;
+
+  return Math.max(
+    collapsedCreditorRows,
+    creditorNameLabels,
+    accountTypeLabels,
+    equifaxAccountNumbers,
+  );
 }
 
 function hasMeaningfulCreditorName(tradeline: ParsedTradeline): boolean {
@@ -110,13 +134,17 @@ function clampScore(score: number): number {
 
 export function assessParserQuality(input: {
   rawHtml: string;
+  rawText?: string | null;
   llmData?: LLMResponse | null;
   parseResult: ComprehensiveParseResult;
   parsedTradelines: ParsedTradeline[];
   extractionSource?: string | null;
 }): ParserQualityAssessment {
-  const { rawHtml, llmData, parseResult, parsedTradelines, extractionSource = null } = input;
-  const expectedAccountMarkers = estimateExpectedAccountMarkers(rawHtml);
+  const { rawHtml, rawText = null, llmData, parseResult, parsedTradelines, extractionSource = null } = input;
+  const expectedAccountMarkers = Math.max(
+    estimateExpectedAccountMarkersFromHtml(rawHtml),
+    estimateExpectedAccountMarkersFromRawText(rawText),
+  );
   const parsedTradelineCount = parsedTradelines.length;
   const sourceBureauName = parseResult.sourceBureau?.bureauName || llmData?.bureau || null;
   const sourceBureauConfidence = parseResult.sourceBureau?.confidence ?? null;

@@ -196,7 +196,7 @@ export async function detectMetro2FieldViolations(
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "WARNING",
       confidenceScore: 90,
-      userExplanation: "This account doesn't say what type it is (for example, a loan or credit card). That information is required.",
+      userExplanation: "This account doesn't say what type it is (for example, a loan or credit card). That information can help verify the reporting.",
       technicalDetails: {
         fieldName: "accountType",
         expectedValue: "Valid account type code",
@@ -219,7 +219,7 @@ export async function detectMetro2FieldViolations(
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "ERROR",
       confidenceScore: 95,
-      userExplanation: "This account doesn't say which company is reporting it. That information is required.",
+      userExplanation: "This account doesn't say which company is reporting it. That information can help verify the reporting.",
       technicalDetails: {
         fieldName: "creditorId",
         expectedValue: "Valid creditor identification",
@@ -241,7 +241,7 @@ export async function detectMetro2FieldViolations(
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "ERROR",
       confidenceScore: 98,
-      userExplanation: "This collection account doesn't say who you originally owed the money to. That information is required.",
+      userExplanation: "This collection account doesn't say who you originally owed the money to. That information can help verify the reporting.",
       technicalDetails: {
         fieldName: "originalCreditorName",
         expectedValue: "Valid original creditor name",

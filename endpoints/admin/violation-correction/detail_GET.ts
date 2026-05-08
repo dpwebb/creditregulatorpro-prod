@@ -11,6 +11,7 @@ import {
   listTradelineIdsForReportArtifact,
   requireExtractionRun,
 } from "../../../helpers/violationCorrectionManager";
+import { violationBelongsToArtifact } from "../../../helpers/violationCorrectionArtifactLinks";
 import { schema, OutputType } from "./detail_GET.schema";
 import type { SuggestedRegulationReference, ViolationReviewCorrectionDetail } from "./common";
 
@@ -121,7 +122,7 @@ export async function handle(request: Request) {
       : [];
 
     const tradelineIds = tradelines.map((tradeline) => tradeline.id);
-    const [violations, corrections] = await Promise.all([
+    const [rawViolations, corrections] = await Promise.all([
       tradelineIds.length > 0
         ? db
             .selectFrom("creditorObligationTest")
@@ -140,6 +141,9 @@ export async function handle(request: Request) {
         .orderBy("updatedAt", "desc")
         .execute(),
     ]);
+    const violations = rawViolations.filter((violation) =>
+      violationBelongsToArtifact(violation, run.reportArtifactId),
+    );
 
     const correctionIds = corrections.map((correction) => correction.id);
     const [evidence, regulationReferences, trainingExamples] = await Promise.all([

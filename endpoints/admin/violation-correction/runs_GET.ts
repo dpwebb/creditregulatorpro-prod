@@ -112,7 +112,7 @@ export async function handle(request: Request) {
     const violations = tradelineIds.length > 0
       ? await db
           .selectFrom("creditorObligationTest")
-          .select(["id", "tradelineId"])
+          .select(["id", "tradelineId", "technicalDetails"])
           .where("tradelineId", "in", tradelineIds)
           .execute()
       : [];

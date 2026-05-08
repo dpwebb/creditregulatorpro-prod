@@ -36,4 +36,35 @@ describe("Metro2 collection date detection", () => {
     expect(assignmentDateViolation?.technicalDetails.specificFieldRequirementMapped).toBe(false);
     expect(assignmentDateViolation?.technicalDetails.regulationIds).toEqual(["PIPEDA_4_6"]);
   });
+
+  it("does not say generic missing fields are required without exact field authority", async () => {
+    const violations = await detectMetro2FieldViolations({
+      id: 516,
+      amountPastDue: "0",
+      balance: "0",
+      status: "Open",
+      accountType: "",
+      isCollectionAccount: true,
+      creditorId: null,
+      originalCreditorName: null,
+      collectionAgencyName: "SAMPLE COLLECTIONS",
+      dateAssignedToCollection: new Date("2025-01-01T00:00:00.000Z"),
+      dateOfFirstDelinquency: null,
+      chargeOffDate: null,
+      dateClosed: null,
+      dateOfLastPayment: new Date("2025-01-01T00:00:00.000Z"),
+    } as any);
+
+    const missingFieldTexts = violations
+      .filter((violation) =>
+        ["accountType", "creditorId", "originalCreditorName"].includes(
+          String(violation.technicalDetails.fieldName),
+        ),
+      )
+      .map((violation) => violation.userExplanation);
+
+    expect(missingFieldTexts.length).toBeGreaterThan(0);
+    expect(missingFieldTexts.join(" ")).not.toContain("That information is required.");
+    expect(missingFieldTexts.join(" ")).toContain("That information can help verify the reporting.");
+  });
 });

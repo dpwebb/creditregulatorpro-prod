@@ -495,7 +495,9 @@ export async function executeIngestPipeline({
       .set({
         data: JSON.parse(JSON.stringify({
           ...currentData,
-          tradelineIds: context.tradelineIds
+          tradelineIds: context.tradelineIds,
+          createdTradelineIds: context.createdTradelineIds,
+          updatedTradelineIds: context.updatedTradelineIds,
         })) as Json
       })
       .where("id", "=", artifactId)
@@ -615,17 +617,46 @@ export async function executeIngestPipeline({
   send({ type: "progress", stage: "compliance_scanning", percent: 93 });
   await Promise.resolve();
   
+  const persistedViolationIds: number[] = [];
   if (context.tradelineIds.length > 0) {
     const scanContexts = await buildComplianceScanContexts(user.id, context.tradelineIds);
 
     await runWithConcurrency(context.tradelineIds, COMPLIANCE_SCAN_CONCURRENCY, async (tradelineId) => {
       try {
         const scanContext = scanContexts.get(tradelineId);
-        await scanAndPersistViolations(tradelineId, scanContext ?? {});
+        const scanResult = await scanAndPersistViolations(tradelineId, {
+          ...(scanContext ?? {}),
+          sourceReportArtifactId: artifactId,
+        });
+        persistedViolationIds.push(...scanResult.insertedIds);
       } catch (scanError) {
         console.error(`[Ingest] Compliance scan failed for tradeline ${tradelineId}:`, scanError);
       }
     });
+
+    const artifactForViolationRun = await db
+      .selectFrom("reportArtifact")
+      .select("data")
+      .where("id", "=", artifactId)
+      .executeTakeFirst();
+    const currentData = (artifactForViolationRun?.data ?? {}) as Record<string, unknown>;
+    await db
+      .updateTable("reportArtifact")
+      .set({
+        data: JSON.parse(JSON.stringify({
+          ...currentData,
+          violationReviewRun: {
+            sourceReportArtifactId: artifactId,
+            tradelineIds: context.tradelineIds,
+            persistedViolationIds,
+            tradelineCount: context.tradelineIds.length,
+            persistedViolationCount: persistedViolationIds.length,
+            createdAt: new Date().toISOString(),
+          },
+        })) as Json,
+      })
+      .where("id", "=", artifactId)
+      .execute();
   }
 
   send({ type: "progress", stage: "auto_drift_detection", percent: 94 });

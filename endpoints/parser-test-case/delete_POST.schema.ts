@@ -12,6 +12,7 @@ export type OutputType = {
   deleted?: {
     testRuns: number;
     testCases: number;
+    materializedArtifacts: number;
     preservedTrainingArtifacts: number;
     violationCorrections: number;
     preservedViolationTrainingArtifacts: number;

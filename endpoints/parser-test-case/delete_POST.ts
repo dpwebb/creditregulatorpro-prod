@@ -11,6 +11,7 @@ import {
 } from "../../helpers/parserTestTrainingArchive";
 import { ensureViolationCorrectionSchema } from "../../helpers/violationCorrectionSchema";
 import { sql } from "kysely";
+import { deleteReportArtifactCascade } from "../../helpers/deleteReportArtifactCascade";
 
 export async function handle(request: Request) {
   try {
@@ -39,6 +40,7 @@ export async function handle(request: Request) {
         return {
           testRuns: 0,
           testCases: 0,
+          materializedArtifactIds: [] as number[],
           preservedTrainingArtifacts: 0,
           violationCorrections: 0,
           preservedViolationTrainingArtifacts: 0,
@@ -80,15 +82,13 @@ export async function handle(request: Request) {
       }
 
       const sourceSha256s = getParserTestCaseSourceSha256s(testCase);
-      const linkedArtifacts =
-        sourceSha256s.length > 0
-          ? await trx
-              .selectFrom("reportArtifact")
-              .select("id")
-              .where("sha256", "in", sourceSha256s)
-              .execute()
-          : [];
-      const linkedArtifactIds = linkedArtifacts.map((artifact) => artifact.id);
+      const materializedArtifacts = await trx
+        .selectFrom("reportArtifact")
+        .select("id")
+        .where(sql<boolean>`data->>'source' = 'stage_lab_test_case'`)
+        .where(sql<boolean>`data->>'parserTestCaseId' = ${String(testCase.id)}`)
+        .execute();
+      const linkedArtifactIds = materializedArtifacts.map((artifact) => artifact.id);
       const linkedRuns =
         linkedArtifactIds.length > 0
           ? await trx
@@ -97,7 +97,7 @@ export async function handle(request: Request) {
               .where("reportArtifactId", "in", linkedArtifactIds)
               .execute()
           : [];
-      const linkedTradelines =
+      const directlyLinkedTradelines =
         linkedArtifactIds.length > 0
           ? await trx
               .selectFrom("tradeline")
@@ -105,8 +105,21 @@ export async function handle(request: Request) {
               .where("reportArtifactId", "in", linkedArtifactIds)
               .execute()
           : [];
+      const presenceLinkedTradelines =
+        linkedArtifactIds.length > 0
+          ? await trx
+              .selectFrom("tradelineArtifactPresence")
+              .select("tradelineId as id")
+              .where("reportArtifactId", "in", linkedArtifactIds)
+              .execute()
+          : [];
       const linkedRunIds = linkedRuns.map((run) => run.id);
-      const linkedTradelineIds = linkedTradelines.map((tradeline) => tradeline.id);
+      const linkedTradelineIds = Array.from(
+        new Set([
+          ...directlyLinkedTradelines.map((tradeline) => tradeline.id),
+          ...presenceLinkedTradelines.map((tradeline) => tradeline.id),
+        ]),
+      );
 
       let linkedCorrections: any[] = [];
       if (linkedRunIds.length > 0 || linkedTradelineIds.length > 0) {
@@ -246,15 +259,29 @@ export async function handle(request: Request) {
       return {
         testRuns: Number(runDelete.numDeletedRows ?? 0),
         testCases: Number(testCaseDelete.numDeletedRows ?? 0),
+        materializedArtifactIds: linkedArtifactIds,
         preservedTrainingArtifacts: trainingArtifacts.length,
         violationCorrections: linkedCorrections.length,
         preservedViolationTrainingArtifacts: trainingCorrections.length,
       };
     });
 
+    let materializedArtifacts = 0;
+    for (const artifactId of deleted.materializedArtifactIds) {
+      await deleteReportArtifactCascade(artifactId, user.id, request);
+      materializedArtifacts += 1;
+    }
+
     const output: OutputType = {
       success: true,
-      deleted,
+      deleted: {
+        testRuns: deleted.testRuns,
+        testCases: deleted.testCases,
+        materializedArtifacts,
+        preservedTrainingArtifacts: deleted.preservedTrainingArtifacts,
+        violationCorrections: deleted.violationCorrections,
+        preservedViolationTrainingArtifacts: deleted.preservedViolationTrainingArtifacts,
+      },
     };
 
     return new Response(JSON.stringify(output));

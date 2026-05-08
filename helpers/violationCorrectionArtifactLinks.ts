@@ -10,12 +10,47 @@ type LinkInput = {
 
 type ViolationInput = {
   tradelineId: number | string | null | undefined;
+  technicalDetails?: unknown;
 };
 
 function toFiniteNumber(value: number | string | null | undefined): number | null {
   if (value == null) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function technicalDetailsRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+export function getViolationArtifactScopeIds(violation: { technicalDetails?: unknown }): number[] {
+  const details = technicalDetailsRecord(violation.technicalDetails);
+  if (!details) return [];
+
+  const candidates = [
+    details.sourceReportArtifactId,
+    details.reportArtifactId,
+    details.artifactId,
+  ];
+  const ids = candidates.flatMap((candidate) => {
+    if (Array.isArray(candidate)) {
+      return candidate.map((item) => toFiniteNumber(item as any)).filter((id): id is number => id != null);
+    }
+    const id = toFiniteNumber(candidate as any);
+    return id == null ? [] : [id];
+  });
+
+  return Array.from(new Set(ids));
+}
+
+export function violationBelongsToArtifact(
+  violation: { technicalDetails?: unknown },
+  reportArtifactId: number,
+): boolean {
+  const scopeIds = getViolationArtifactScopeIds(violation);
+  return scopeIds.length === 0 || scopeIds.includes(reportArtifactId);
 }
 
 export function mergeTradelineArtifactLinks(
@@ -91,7 +126,10 @@ export function countViolationsByArtifact(
     const tradelineId = toFiniteNumber(violation.tradelineId);
     if (tradelineId == null) continue;
 
-    const artifactKeys = artifactIdsByTradelineId.get(String(tradelineId));
+    const scopedArtifactIds = getViolationArtifactScopeIds(violation);
+    const artifactKeys = scopedArtifactIds.length > 0
+      ? new Set(scopedArtifactIds.map((id) => String(id)))
+      : artifactIdsByTradelineId.get(String(tradelineId));
     if (!artifactKeys) continue;
 
     for (const artifactKey of artifactKeys) {

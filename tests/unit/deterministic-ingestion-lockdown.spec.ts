@@ -99,6 +99,18 @@ describe("deterministic ingestion lockdown", () => {
     expect(ingestCore).not.toContain("mapDocStrangeResponseToResult");
   });
 
+  it("persists artifact-scoped violation review run metadata during ingestion", () => {
+    const ingestCore = source("helpers/ingestCorePipeline.tsx");
+    const scanner = source("helpers/complianceScanner.tsx");
+    const runsEndpoint = source("endpoints/admin/violation-correction/runs_GET.ts");
+
+    expect(ingestCore).toContain("sourceReportArtifactId: artifactId");
+    expect(ingestCore).toContain("violationReviewRun");
+    expect(scanner).toContain("sourceReportArtifactId?: number");
+    expect(scanner).toContain("persistViolations(violations, tradelineId, {");
+    expect(runsEndpoint).toContain('"technicalDetails"');
+  });
+
   it("requires parser-test creation to persist canonical replay metadata", () => {
     const createEndpoint = source("endpoints/parser-test-case/create_POST.ts");
 
@@ -119,6 +131,19 @@ describe("deterministic ingestion lockdown", () => {
     expect(createEndpoint).toContain("materializeStageLabForViolationCorrections");
     expect(createEndpoint).toContain("handleIngestProcess");
     expect(createEndpoint).toContain('source: "stage_lab_test_case"');
+  });
+
+  it("cleans up materialized Stage Lab artifacts when deleting parser test cases", () => {
+    const deleteEndpoint = source("endpoints/parser-test-case/delete_POST.ts");
+    const deleteSchema = source("endpoints/parser-test-case/delete_POST.schema.ts");
+
+    expect(deleteEndpoint).toContain("deleteReportArtifactCascade");
+    expect(deleteEndpoint).toContain("data->>'source' = 'stage_lab_test_case'");
+    expect(deleteEndpoint).toContain("data->>'parserTestCaseId'");
+    expect(deleteEndpoint).toContain("tradelineArtifactPresence");
+    expect(deleteEndpoint).toContain("materializedArtifactIds");
+    expect(deleteSchema).toContain("materializedArtifacts: number");
+    expect(deleteEndpoint).not.toContain('.where("sha256", "in", sourceSha256s)');
   });
 
   it("derives Pass A and Full extraction records with deterministic pdf text provenance", () => {

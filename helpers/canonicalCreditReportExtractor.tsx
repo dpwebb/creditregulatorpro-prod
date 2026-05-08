@@ -309,6 +309,7 @@ export async function extractCanonicalCreditReport(
     const llmData = mapComprehensiveResultToLLMResponse(parseResult);
     const parserQuality = assessParserQuality({
       rawHtml: "",
+      rawText: parseResult.rawText,
       llmData,
       parseResult,
       parsedTradelines: parseResult.tradelines,
@@ -363,6 +364,7 @@ export async function extractCanonicalCreditReport(
         selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
         selectedParserQuality = assessParserQuality({
           rawHtml: selected.rawHtml || "",
+          rawText: selected.rawText,
           llmData: selectedLlmData,
           parseResult: selectedParseResult,
           parsedTradelines: selectedParseResult.tradelines,
@@ -386,6 +388,7 @@ export async function extractCanonicalCreditReport(
     selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
     selectedParserQuality = assessParserQuality({
       rawHtml: selected.rawHtml || "",
+      rawText: selected.rawText,
       llmData: selectedLlmData,
       parseResult: selectedParseResult,
       parsedTradelines: selectedParseResult.tradelines,
