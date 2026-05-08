@@ -1,10 +1,29 @@
-import { schema, OutputType } from "./update_POST.schema";
+import { schema, type InputType, OutputType } from "./update_POST.schema";
 
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { logAudit } from "../../helpers/auditLogger";
+
+export function buildScanningRuleUpdateData(result: InputType, now = new Date()) {
+  const updateData: any = {
+    updatedAt: now,
+  };
+
+  if (result.title !== undefined) updateData.title = result.title;
+  if (result.description !== undefined) updateData.description = result.description;
+  if (result.violationCategory !== undefined) updateData.violationCategory = result.violationCategory;
+  if (result.severity !== undefined) updateData.severity = result.severity;
+  if (result.confidenceScore !== undefined) updateData.confidenceScore = String(result.confidenceScore);
+  if (result.userExplanationTemplate !== undefined) updateData.userExplanationTemplate = result.userExplanationTemplate;
+  if (result.recommendedActionTemplate !== undefined) updateData.recommendedActionTemplate = result.recommendedActionTemplate;
+  if (result.statutoryBasis !== undefined) updateData.statutoryBasis = result.statutoryBasis;
+  if (result.ruleDefinition !== undefined) updateData.ruleDefinition = result.ruleDefinition;
+  if (result.status !== undefined) updateData.status = result.status;
+
+  return updateData;
+}
 
 export async function handle(request: Request) {
   try {
@@ -30,25 +49,8 @@ export async function handle(request: Request) {
       });
     }
 
-    const updateData: any = {
-      updatedAt: new Date(),
-    };
-
-    if (result.title !== undefined) updateData.title = result.title;
-    if (result.description !== undefined) updateData.description = result.description;
-    if (result.violationCategory !== undefined) updateData.violationCategory = result.violationCategory;
-    if (result.severity !== undefined) updateData.severity = result.severity;
-    if (result.confidenceScore !== undefined) updateData.confidenceScore = String(result.confidenceScore);
-    if (result.userExplanationTemplate !== undefined) updateData.userExplanationTemplate = result.userExplanationTemplate;
-    if (result.recommendedActionTemplate !== undefined) updateData.recommendedActionTemplate = result.recommendedActionTemplate;
-    if (result.statutoryBasis !== undefined) updateData.statutoryBasis = result.statutoryBasis;
-    
-    if (result.ruleDefinition !== undefined) {
-      updateData.ruleDefinition = JSON.stringify(result.ruleDefinition);
-    }
-
+    const updateData = buildScanningRuleUpdateData(result);
     if (result.status !== undefined) {
-      updateData.status = result.status;
       if (result.status === "ACTIVE" && existingRule.status !== "ACTIVE") {
         updateData.approvedAt = new Date();
         updateData.approvedBy = user.id;
