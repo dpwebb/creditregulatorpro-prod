@@ -75,6 +75,9 @@ Source resolution:
 
 for (let i = 0; i < args.length; i += 1) {
   const arg = args[i];
+  if (arg === "--") {
+    continue;
+  }
   if (arg === "--confirm") {
     options.confirm = true;
     continue;
