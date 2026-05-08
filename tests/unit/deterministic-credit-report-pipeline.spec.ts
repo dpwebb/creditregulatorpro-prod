@@ -279,6 +279,31 @@ ${tradelineSource}
     expect(packageResult.finalOutput.evidence.coverage.requiredCoveragePercent).toBe(100);
   });
 
+  it("does not allow TransUnion label bleed into canonical creditor names", () => {
+    const sourceText = `
+Creditor Name
+NameMAPLE FINANCIAL VISAPayment History
+Account Number Not Provided by Bureau
+Account Type REVOLVING
+Status Open
+`;
+    const packageResult = build(sourceText, {
+      tradelines: [
+        tradeline({
+          creditorName: "NameMAPLE FINANCIAL VISAPayment History",
+          accountNumber: "Not Provided by Bureau",
+          accountType: "REVOLVING",
+          status: "Open",
+          sourceText,
+        }),
+      ],
+    });
+
+    expect(packageResult.finalOutput.fields["tradelines[0].creditorName"].value).toBe("MAPLE FINANCIAL VISA");
+    expect(packageResult.finalOutput.fields["tradelines[0].creditorName"].normalizedValue).toBe("MAPLE FINANCIAL VISA");
+    expect(packageResult.finalOutput.tradelines[0].creditorName).toBe("MAPLE FINANCIAL VISA");
+  });
+
   it("detects semantic zones across different section layouts", () => {
     const transUnionLayout = build(`
 TransUnion Canada Consumer Disclosure

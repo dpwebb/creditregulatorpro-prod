@@ -1,5 +1,6 @@
 import { sha256Hex } from "./reportBinaryUtils";
 import type { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
+import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 
 export const DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION =
   "deterministic-credit-report-pipeline-v1";
@@ -476,11 +477,23 @@ function canonicalFieldName(fieldKey: string): string {
   return fieldKey.replace(/\[\d+\]/g, "").split(".").at(-1) ?? fieldKey;
 }
 
+function isCreditorNameFieldKey(fieldKey: string): boolean {
+  return ["creditorName", "originalCreditorName", "collectionAgencyName"].includes(canonicalFieldName(fieldKey));
+}
+
 function isAmountFieldKey(fieldKey: string): boolean {
   return AMOUNT_FIELD_NAMES.has(canonicalFieldName(fieldKey));
 }
 
+function normalizeCanonicalFieldInput(fieldKey: string, value: unknown): unknown {
+  if (isCreditorNameFieldKey(fieldKey) && typeof value === "string") {
+    return sanitizeCreditorName(value) ?? value.trim();
+  }
+  return value;
+}
+
 function normalizeCanonicalValue(fieldKey: string, value: unknown): unknown {
+  value = normalizeCanonicalFieldInput(fieldKey, value);
   if (!hasCanonicalValue(value)) return null;
   if (/date|dob|opened|reported|closed|dofd|paid|assigned|posted|verified/i.test(fieldKey)) {
     return normalizeCanonicalDate(value) ?? compactWhitespace(String(value));
@@ -913,14 +926,15 @@ function addParseFieldCandidate(params: {
   preferredZone?: string;
   order: number;
 }): number {
-  const normalizedValue = normalizeCanonicalValue(params.fieldKey, params.value);
+  const candidateValue = normalizeCanonicalFieldInput(params.fieldKey, params.value);
+  const normalizedValue = normalizeCanonicalValue(params.fieldKey, candidateValue);
   if (!hasCanonicalValue(normalizedValue)) return params.order;
 
-  const evidenceLine = findEvidenceLine(params.lines, params.value, params.preferredZone, params.fieldKey);
+  const evidenceLine = findEvidenceLine(params.lines, candidateValue, params.preferredZone, params.fieldKey);
   const evidence = lineEvidence(evidenceLine, "parse-result-field-v1");
   const candidate = buildCandidate({
     fieldKey: params.fieldKey,
-    value: params.value,
+    value: candidateValue,
     normalizedValue,
     sourceStage: "STRUCTURED_CANDIDATE_EXTRACTION",
     sourceMethod: params.sourceMethod,
@@ -1543,7 +1557,12 @@ export function markDiagnosticCandidateNonCanonical(
 }
 
 function tradelineToSerializable(tradeline: ParsedTradeline): Record<string, unknown> {
-  return normalizeSerializableValue(tradeline) as Record<string, unknown>;
+  return normalizeSerializableValue({
+    ...tradeline,
+    creditorName: sanitizeCreditorName(tradeline.creditorName) ?? tradeline.creditorName,
+    originalCreditorName: sanitizeCreditorName(tradeline.originalCreditorName) ?? tradeline.originalCreditorName,
+    collectionAgencyName: sanitizeCreditorName(tradeline.collectionAgencyName) ?? tradeline.collectionAgencyName,
+  }) as Record<string, unknown>;
 }
 
 function hasSourceEvidence(evidence: CanonicalFieldEvidence | null | undefined): boolean {

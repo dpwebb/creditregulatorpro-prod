@@ -15,6 +15,7 @@ import {
   PublicRecordExtraction,
 } from "./fullExtractionTypes";
 import type { ComprehensiveParseResult } from "./reportParserTypes";
+import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 
 export interface DeterministicDraftExtractionResult {
   passA: PassADraftExtraction;
@@ -69,8 +70,9 @@ function formatDate(value: Date | string | null | undefined): string | undefined
 }
 
 function isMeaningfulName(value: string | null | undefined): value is string {
-  if (!value) return false;
-  const normalized = value.trim().toLowerCase();
+  const sanitized = sanitizeCreditorName(value) ?? value?.trim();
+  if (!sanitized) return false;
+  const normalized = sanitized.toLowerCase();
   return Boolean(normalized) && normalized !== "unknown" && normalized !== "unknown creditor" && normalized !== "n/a";
 }
 
@@ -82,7 +84,8 @@ function resolveCreditorName(
     tradeline.collectionAgencyName,
     tradeline.originalCreditorName,
   ];
-  return candidates.find(isMeaningfulName)?.trim();
+  const candidate = candidates.find(isMeaningfulName);
+  return sanitizeCreditorName(candidate) ?? candidate?.trim();
 }
 
 function addRawEvidence(

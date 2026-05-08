@@ -96,4 +96,36 @@ describe("applyParserExtractionRules", () => {
       "AC-Account closed/rating non derogatory",
     ]);
   });
+
+  it("sanitizes creditor labels promoted by dynamic extraction rules", () => {
+    const parseResult = makeParseResult([
+      {
+        creditorName: "Unknown",
+        accountNumber: "Not Provided by Bureau",
+        sourceText: "Creditor Name NameMAPLE FINANCIAL VISAPayment History\nAccount Number Not Provided by Bureau",
+        dates: {},
+        amounts: {},
+        remarkCodes: [],
+      },
+    ]);
+
+    const applied = applyParserExtractionRules(parseResult, [
+      {
+        id: 9,
+        bureau: "TransUnion Canada",
+        ruleType: SOURCE_LABEL_TO_TRADELINE_FIELD_RULE,
+        fieldPath: "tradelines[].creditorName",
+        targetField: "creditorName",
+        config: {
+          sourceLabel: "Creditor Name",
+          overwriteExisting: true,
+        },
+        isActive: true,
+        priority: 100,
+      },
+    ]);
+
+    expect(applied.appliedRuleIds).toEqual([9]);
+    expect(applied.parseResult.tradelines[0].creditorName).toBe("MAPLE FINANCIAL VISA");
+  });
 });

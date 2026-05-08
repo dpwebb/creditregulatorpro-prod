@@ -3,6 +3,7 @@ import { db } from "./db";
 import { Json, ParserExtractionRule } from "./schema";
 import { ensureParserRulePromotionSchema } from "./parserRulePromotionSchema";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
+import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 
 export const SOURCE_LABEL_TO_TRADELINE_FIELD_RULE = "source_label_to_tradeline_field";
 export const MISSING_TRADELINE_FIELD_RULE = "missing_tradeline_field";
@@ -77,6 +78,15 @@ function extractLabeledLineValue(text: string | null | undefined, labels: string
 
 function normalizeValueForField(value: string, targetField: string, config: Record<string, unknown>): unknown {
   const valueType = typeof config.valueType === "string" ? config.valueType : null;
+  const normalizedTargetField = targetField.toLowerCase();
+  if (
+    normalizedTargetField === "creditorname" ||
+    normalizedTargetField === "originalcreditorname" ||
+    normalizedTargetField === "collectionagencyname"
+  ) {
+    return sanitizeCreditorName(value) ?? value.trim();
+  }
+
   if (valueType === "string") return value.trim();
 
   if (targetField === "remarkCodes" || valueType === "stringArray") {

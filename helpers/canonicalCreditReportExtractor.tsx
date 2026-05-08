@@ -21,6 +21,7 @@ import {
   ParserPipelineFieldAudit,
   reconcileParserPipelineFields,
 } from "./parserPipelineFieldReconciliation";
+import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 
 export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "deterministic-state-machine-2026-05-v1";
 
@@ -79,6 +80,28 @@ interface CandidateExtraction {
   rawHtml: string | null;
   rawText: string;
   parserQuality: ParserQualityAssessment;
+}
+
+function sanitizeTradelineCreditorNames(tradeline: ParsedTradeline): ParsedTradeline {
+  return {
+    ...tradeline,
+    creditorName: sanitizeCreditorName(tradeline.creditorName) ?? tradeline.creditorName,
+    originalCreditorName:
+      sanitizeCreditorName(tradeline.originalCreditorName) ??
+      tradeline.originalCreditorName,
+    collectionAgencyName:
+      sanitizeCreditorName(tradeline.collectionAgencyName) ??
+      tradeline.collectionAgencyName,
+  };
+}
+
+function sanitizeParseResultCreditorNames(
+  parseResult: ComprehensiveParseResult,
+): ComprehensiveParseResult {
+  return {
+    ...parseResult,
+    tradelines: parseResult.tradelines.map(sanitizeTradelineCreditorNames),
+  };
 }
 
 function formatDate(value: Date | string | null | undefined): string | null {
@@ -278,11 +301,11 @@ export async function extractCanonicalCreditReport(
   let deterministic: CandidateExtraction | null = null;
 
   try {
-    const parseResult = await parseReport(input.bytesBase64, input.mimeType, {
+    const parseResult = sanitizeParseResultCreditorNames(await parseReport(input.bytesBase64, input.mimeType, {
       allowOcrFallback: false,
       enableAiAugmentation: false,
       logRawTextPreview: false,
-    });
+    }));
     const llmData = mapComprehensiveResultToLLMResponse(parseResult);
     const parserQuality = assessParserQuality({
       rawHtml: "",
@@ -336,7 +359,7 @@ export async function extractCanonicalCreditReport(
       const applied = applyParserExtractionRules(selectedParseResult, activeRules);
       if (applied.appliedRuleIds.length > 0) {
         appliedParserRuleIds.push(...applied.appliedRuleIds);
-        selectedParseResult = applied.parseResult;
+        selectedParseResult = sanitizeParseResultCreditorNames(applied.parseResult);
         selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
         selectedParserQuality = assessParserQuality({
           rawHtml: selected.rawHtml || "",
@@ -359,7 +382,7 @@ export async function extractCanonicalCreditReport(
     rawFieldBaseline,
   );
   if (fieldReconciliation.changed) {
-    selectedParseResult = fieldReconciliation.parseResult;
+    selectedParseResult = sanitizeParseResultCreditorNames(fieldReconciliation.parseResult);
     selectedLlmData = mapComprehensiveResultToLLMResponse(selectedParseResult);
     selectedParserQuality = assessParserQuality({
       rawHtml: selected.rawHtml || "",
@@ -372,7 +395,7 @@ export async function extractCanonicalCreditReport(
       `[Canonical Extractor] Recovered parser fields dropped after raw extraction: ${fieldReconciliation.audit.summary.backfilledFields.join(", ")}`,
     );
   } else {
-    selectedParseResult = fieldReconciliation.parseResult;
+    selectedParseResult = sanitizeParseResultCreditorNames(fieldReconciliation.parseResult);
   }
 
   const deterministicPipelineInput = {

@@ -132,4 +132,23 @@ describe("deterministic ingestion lockdown", () => {
     expect(result.fullExtraction.accounts[0].creditor_name.value).toBe("BANK OF NOVA SCOTIA");
     expect(result.fullExtraction.accounts[0].creditor_name.evidence.source_method).toBe("pdf_text");
   });
+
+  it("sanitizes creditor name label bleed before Full extraction materialization", () => {
+    const base = parseResult();
+    const result = deriveDeterministicDraftExtractions(
+      {
+        ...base,
+        tradelines: [
+          {
+            ...base.tradelines[0],
+            creditorName: "NameMAPLE FINANCIAL VISAPayment History",
+            sourceText: "Creditor Name\nNameMAPLE FINANCIAL VISAPayment History",
+          },
+        ],
+      },
+      42,
+    );
+
+    expect(result.fullExtraction.accounts[0].creditor_name.value).toBe("MAPLE FINANCIAL VISA");
+  });
 });
