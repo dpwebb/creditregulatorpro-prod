@@ -135,6 +135,12 @@ function isRegulationAllowedForProvince(id: string, province: string | null): bo
   return province ? regulationProvince === province : false;
 }
 
+function regulationIdsFromDetails(details: Record<string, any>): string[] {
+  return Array.isArray(details.regulationIds)
+    ? details.regulationIds.filter((id: unknown): id is string => typeof id === "string" && Boolean(id.trim()))
+    : [];
+}
+
 function formatTriggerValue(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -211,16 +217,74 @@ function evidenceLink(violation: DetectedViolation): DeterministicViolationEvide
   };
 }
 
-function regulationReferences(category: ViolationCategory, details: Record<string, any>) {
-  const explicitIds = Array.isArray(details.regulationIds)
-    ? details.regulationIds.filter((id: unknown): id is string => typeof id === "string" && Boolean(id.trim()))
-    : [];
+function isFieldSpecificReferenceAllowed(
+  id: string,
+  category: ViolationCategory,
+  details: Record<string, any>,
+  violation: DetectedViolation,
+): boolean {
+  const authority = getBonaFideLegalAuthorityById(id);
+  if (!authority) return false;
+  if (authority.supportLevel !== "field_requirement") return true;
+
+  const fieldName = inferredFieldName(violation);
+  if (!fieldName) return false;
+
+  return hasFieldSpecificAuthority({
+    violationCategory: category,
+    fieldName,
+    accountType: detailsAccountType(details),
+    regulationIds: [id],
+    jurisdiction: detailsProvince(details),
+  });
+}
+
+function matchingFieldRequirementIds(
+  category: ViolationCategory,
+  details: Record<string, any>,
+  violation: DetectedViolation,
+): string[] {
+  const fieldName = inferredFieldName(violation);
+  if (!fieldName) return [];
+
+  const accountType = detailsAccountType(details);
+  if (!accountType) return [];
+
+  const province = detailsProvince(details);
+  if (!province) return [];
+
+  return (regulationRegistry.VIOLATION_REGULATION_MAP[category] ?? []).filter((id) => {
+    if (!isRegulationAllowedForProvince(id, province)) return false;
+    const authority = getBonaFideLegalAuthorityById(id);
+    if (!authority || authority.supportLevel !== "field_requirement") return false;
+
+    return hasFieldSpecificAuthority({
+      violationCategory: category,
+      fieldName,
+      accountType,
+      regulationIds: [id],
+      jurisdiction: province,
+    });
+  });
+}
+
+function regulationReferences(
+  category: ViolationCategory,
+  details: Record<string, any>,
+  violation: DetectedViolation,
+) {
+  const explicitIds = regulationIdsFromDetails(details);
   const categoryIds = regulationRegistry.VIOLATION_REGULATION_MAP[category] ?? [];
-  const ids = [...new Set(explicitIds.length > 0 ? explicitIds : categoryIds)];
+  const fieldRequirementIds = matchingFieldRequirementIds(category, details, violation);
+  const candidateIds = explicitIds.length > 0
+    ? [...explicitIds, ...fieldRequirementIds]
+    : categoryIds;
+  const ids = [...new Set(candidateIds)];
   const province = detailsProvince(details);
 
   return ids
     .filter((id) => isRegulationAllowedForProvince(id, province))
+    .filter((id) => isFieldSpecificReferenceAllowed(id, category, details, violation))
     .map((id) => {
       const entry = regulationRegistry.getRegulationById(id);
       const authority = getBonaFideLegalAuthorityById(id);
@@ -250,7 +314,7 @@ export function buildDeterministicViolationRuleEnvelope(
     firstString(details, ["deterministicRuleId", "ruleId", "detectorRuleId"]) ??
     `deterministic-violation-${category.toLowerCase().replace(/_/g, "-")}-v1`;
   const trigger = factualTrigger(violation);
-  const refs = regulationReferences(category, details);
+  const refs = regulationReferences(category, details, violation);
   const fieldName = inferredFieldName(violation);
 
   return {
@@ -294,7 +358,11 @@ export function hasBonaFideLocalAuthorityLink(violation: DetectedViolation): boo
     const province = detailsProvince(details);
     return existingRefs.some((ref: any) => {
       const id = typeof ref === "string" ? ref : ref?.id ?? ref?.regulationId;
-      return typeof id === "string" && isRegulationAllowedForProvince(id, province) && Boolean(getBonaFideLegalAuthorityById(id));
+      return (
+        typeof id === "string" &&
+        isRegulationAllowedForProvince(id, province) &&
+        isFieldSpecificReferenceAllowed(id, violation.violationCategory, details, violation)
+      );
     });
   }
   return (buildDeterministicViolationRuleEnvelope(violation)?.regulationReferences.length ?? 0) > 0;
@@ -349,9 +417,12 @@ export function hasFieldSpecificAuthorityForMissingInformation(violation: Detect
   const fieldName = inferredFieldName(violation);
   if (!fieldName) return false;
 
-  const regulationIds = Array.isArray(details.regulationIds)
-    ? details.regulationIds.filter((id): id is string => typeof id === "string" && Boolean(id.trim()))
-    : [];
+  const regulationIds = [
+    ...new Set([
+      ...regulationIdsFromDetails(details),
+      ...(regulationRegistry.VIOLATION_REGULATION_MAP[violation.violationCategory] ?? []),
+    ]),
+  ];
 
   return hasFieldSpecificAuthority({
     violationCategory: violation.violationCategory,

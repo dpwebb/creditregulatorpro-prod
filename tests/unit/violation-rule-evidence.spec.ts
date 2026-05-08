@@ -193,6 +193,55 @@ describe("deterministic violation rule evidence", () => {
     expect(filterViolationsWithLocalAuthorityLinks([missingClosedDate])).toEqual([]);
   });
 
+  it("surfaces missing information only when an exact Canadian field mandate matches the province and record type", () => {
+    const missingJudgmentCreditor = violation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "ERROR",
+      confidenceScore: 96,
+      userExplanation: "This judgment record does not include the judgment creditor name.",
+      technicalDetails: {
+        fieldName: "judgmentCreditorName",
+        actualValue: "null",
+        detectedValue: "null",
+        accountType: "judgment",
+        regulationIds: ["PIPEDA_4_6"],
+        province: "NS",
+      },
+    });
+
+    const envelope = buildDeterministicViolationRuleEnvelope(missingJudgmentCreditor);
+    const enriched = enrichDetectedViolationRuleEvidence(missingJudgmentCreditor);
+
+    expect(isMissingInformationReviewIssue(missingJudgmentCreditor)).toBe(true);
+    expect(hasFieldSpecificAuthorityForMissingInformation(missingJudgmentCreditor)).toBe(true);
+    expect(envelope?.regulationReferences.map((ref) => ref.id)).toEqual([
+      "PIPEDA_4_6",
+      "NS_CRA_JUDGMENT_FIELDS",
+    ]);
+    expect(enriched.technicalDetails?.regulationIds).toEqual(["PIPEDA_4_6", "NS_CRA_JUDGMENT_FIELDS"]);
+    expect(filterViolationsWithLocalAuthorityLinks([missingJudgmentCreditor])).toHaveLength(1);
+  });
+
+  it("does not borrow another province's exact field mandate when the consumer province is unknown", () => {
+    const missingJudgmentCreditor = violation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "ERROR",
+      confidenceScore: 96,
+      userExplanation: "This judgment record does not include the judgment creditor name.",
+      technicalDetails: {
+        fieldName: "judgmentCreditorName",
+        actualValue: "null",
+        detectedValue: "null",
+        accountType: "judgment",
+        regulationIds: ["PIPEDA_4_6"],
+      },
+    });
+
+    expect(isMissingInformationReviewIssue(missingJudgmentCreditor)).toBe(true);
+    expect(hasFieldSpecificAuthorityForMissingInformation(missingJudgmentCreditor)).toBe(false);
+    expect(filterViolationsWithLocalAuthorityLinks([missingJudgmentCreditor])).toEqual([]);
+  });
+
   it("does not treat omitted technical values as missing field evidence by themselves", () => {
     const nonMissingDocumentationIssue = violation({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",

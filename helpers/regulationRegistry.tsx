@@ -556,6 +556,21 @@ const STATUTE_ENTRIES: Record<string, RegulationEntry> = {
   ...generalEntries,
 };
 
+function addFieldRequirementEntry(entry: RegulationEntry) {
+  if (STATUTE_ENTRIES[entry.id]) {
+    throw new Error(`Duplicate regulation registry id: ${entry.id}`);
+  }
+
+  STATUTE_ENTRIES[entry.id] = {
+    authorityType: "statute",
+    sourceQuality: "official",
+    supportLevel: "field_requirement",
+    effectiveDate: null,
+    allowsFieldRequiredLanguage: true,
+    ...entry,
+  };
+}
+
 PROVINCES.forEach((prov) => {
   const map = PROVINCIAL_CRA_MAPPING[prov];
   if (!map) return;
@@ -698,6 +713,529 @@ PROVINCES.forEach((prov) => {
   };
 });
 
+const DOCUMENTATION_FIELD_REQUIREMENT_IDS = [
+  "AB_CPRR_SOURCE_RECORD_FIELDS",
+  "AB_CPRR_LEGAL_ACTION_STATUS_FIELD",
+  "BC_BPCPA_SOURCE_RECORD_FIELDS",
+  "BC_BPCPA_LEGAL_PROCEEDING_STATUS_FIELD",
+  "MB_PIA_JUDGMENT_FIELDS",
+  "MB_PIA_WRIT_STATUS_FIELD",
+  "NB_CPA_JUDGMENT_FIELDS",
+  "NB_CPA_SOURCE_RECORD_FIELDS",
+  "NB_CPA_LEGAL_PROCEEDING_STATUS_FIELD",
+  "NL_CRA_WRIT_STATUS_FIELD",
+  "NS_CRA_JUDGMENT_FIELDS",
+  "NS_CRA_COURT_ACTION_STATUS_FIELD",
+  "ON_CRA_JUDGMENT_FIELDS",
+  "ON_CRA_LEGAL_ACTION_STATUS_FIELD",
+  "PE_CRA_JUDGMENT_FIELDS",
+  "PE_CRA_WRIT_STATUS_FIELD",
+  "SK_CRA_JUDGMENT_FIELDS",
+  "SK_CRA_COURT_ACTION_STATUS_FIELD",
+] as const;
+
+const DISCLOSURE_FIELD_REQUIREMENT_IDS = [
+  ...DOCUMENTATION_FIELD_REQUIREMENT_IDS,
+  "BC_BPCPA_CONSUMER_STATEMENT_FIELD",
+  "QC_CAAA_EXPLANATORY_STATEMENT_FIELD",
+] as const;
+
+const CONSUMER_STATEMENT_FIELD_REQUIREMENT_IDS = [
+  "BC_BPCPA_CONSUMER_STATEMENT_FIELD",
+  "QC_CAAA_EXPLANATORY_STATEMENT_FIELD",
+] as const;
+
+const STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS = [
+  "AB_CPRR_DEBT_REPORTING_LIMIT_ANCHORS",
+  "MB_PIA_STATUTE_BARRED_EVIDENCE_FIELD",
+  "NB_CPA_DEBT_REPORTING_LIMIT_ANCHORS",
+  "NL_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  "NS_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  "ON_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  "PE_CRA_STATUTE_BARRED_EVIDENCE_FIELD",
+  "SK_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+] as const;
+
+const mergeRegulationIds = (...groups: Array<readonly string[]>): string[] => [
+  ...new Set(groups.flatMap((group) => group)),
+];
+
+addFieldRequirementEntry({
+  id: "AB_CPRR_SOURCE_RECORD_FIELDS",
+  statute: "Alberta Credit and Personal Reports Regulation",
+  citation: "Alta. Reg. 193/1999, s. 2.1(c)",
+  shortLabel: "AB Source Record Fields",
+  description:
+    "A reporting agency must not maintain or report information unless the source name and address are recorded or retained in its files, or can be readily ascertained by the individual.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "AB",
+  province: "AB",
+  sourceUrl: "https://kings-printer.alberta.ca/documents/Regs/1999_193.pdf",
+  fieldNames: ["sourceName", "sourceAddress"],
+  accountTypes: ["credit_report_source_record", "consumer_report_source_record", "reported_information"],
+});
+
+addFieldRequirementEntry({
+  id: "AB_CPRR_DEBT_REPORTING_LIMIT_ANCHORS",
+  statute: "Alberta Credit and Personal Reports Regulation",
+  citation: "Alta. Reg. 193/1999, s. 4(b)",
+  shortLabel: "AB Debt Limit Anchors",
+  description:
+    "Unfavourable debt information is time-limited by the later of the last payment date or the date the debt was incurred.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "AB",
+  province: "AB",
+  sourceUrl: "https://kings-printer.alberta.ca/documents/Regs/1999_193.pdf",
+  fieldNames: ["dateOfLastPayment", "dateDebtIncurred"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt"],
+});
+
+addFieldRequirementEntry({
+  id: "AB_CPRR_LEGAL_ACTION_STATUS_FIELD",
+  statute: "Alberta Credit and Personal Reports Regulation",
+  citation: "Alta. Reg. 193/1999, s. 4(k)",
+  shortLabel: "AB Court Action Status",
+  description:
+    "Court action or court proceeding information older than 12 months may be reported only if the current status has been ascertained and included in the report.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "AB",
+  province: "AB",
+  sourceUrl: "https://kings-printer.alberta.ca/documents/Regs/1999_193.pdf",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["legal_proceeding", "court_action", "court_proceeding", "legal_action", "writ"],
+});
+
+addFieldRequirementEntry({
+  id: "BC_BPCPA_SOURCE_RECORD_FIELDS",
+  statute: "BC Business Practices and Consumer Protection Act",
+  citation: "S.B.C. 2004, c. 2, s. 109(1)(a)",
+  shortLabel: "BC Source Record Fields",
+  description:
+    "A reporting agency must not include information in a report unless the source name and address are recorded in its files or can be readily ascertained by the individual.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "BC",
+  province: "BC",
+  sourceUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/04002_00_multi",
+  fieldNames: ["sourceName", "sourceAddress"],
+  accountTypes: ["credit_report_source_record", "consumer_report_source_record", "reported_information"],
+});
+
+addFieldRequirementEntry({
+  id: "BC_BPCPA_LEGAL_PROCEEDING_STATUS_FIELD",
+  statute: "BC Business Practices and Consumer Protection Act",
+  citation: "S.B.C. 2004, c. 2, s. 109(1)(n)",
+  shortLabel: "BC Legal Proceeding Status",
+  description:
+    "Legal proceeding information older than 12 months may be reported only if the current status has been ascertained and is included in the report.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "BC",
+  province: "BC",
+  sourceUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/04002_00_multi",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["legal_proceeding", "court_action", "court_proceeding", "legal_action", "writ"],
+});
+
+addFieldRequirementEntry({
+  id: "BC_BPCPA_CONSUMER_STATEMENT_FIELD",
+  statute: "BC Business Practices and Consumer Protection Act",
+  citation: "S.B.C. 2004, c. 2, s. 111",
+  shortLabel: "BC Consumer Explanation",
+  description:
+    "A reporting agency must retain a consumer's explanation or additional information and include it in reports to which it relates.",
+  violationCategories: ["CONSUMER_STATEMENT_SUPPRESSION", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "BC",
+  province: "BC",
+  sourceUrl: "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/04002_00_multi",
+  fieldNames: ["consumerStatement", "consumerExplanation", "explanation"],
+  accountTypes: ["consumer_statement", "dispute_statement", "consumer_explanation"],
+});
+
+addFieldRequirementEntry({
+  id: "MB_PIA_STATUTE_BARRED_EVIDENCE_FIELD",
+  statute: "Manitoba Personal Investigations Act",
+  citation: "C.C.S.M. c. P34, s. 4(c)",
+  shortLabel: "MB Statute-Barred Evidence",
+  description:
+    "Records or information about writs, judgments, collections, or debts that are statute-barred may be included only if accompanied by evidence in the file that recovery is not barred by the expiry of a limitation period.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "MB",
+  province: "MB",
+  sourceUrl: "https://web2.gov.mb.ca/laws/statutes/ccsm/p034.php?lang=en",
+  fieldNames: ["notStatuteBarredEvidence", "limitationRecoveryEvidence"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt", "judgment", "writ"],
+});
+
+addFieldRequirementEntry({
+  id: "MB_PIA_WRIT_STATUS_FIELD",
+  statute: "Manitoba Personal Investigations Act",
+  citation: "C.C.S.M. c. P34, s. 4(d)",
+  shortLabel: "MB Writ Status",
+  description:
+    "Information about a writ issued more than one year before the report date may be included only if the current status of the action has been ascertained and recorded in the file.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "MB",
+  province: "MB",
+  sourceUrl: "https://web2.gov.mb.ca/laws/statutes/ccsm/p034.php?lang=en",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["writ", "legal_proceeding", "court_action", "legal_action"],
+});
+
+addFieldRequirementEntry({
+  id: "MB_PIA_JUDGMENT_FIELDS",
+  statute: "Manitoba Personal Investigations Act",
+  citation: "C.C.S.M. c. P34, s. 4(e)",
+  shortLabel: "MB Judgment Fields",
+  description:
+    "Information about a judgment for payment of money may be included only if the judgment creditor name, available address at judgment entry, and amount are mentioned.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "MB",
+  province: "MB",
+  sourceUrl: "https://web2.gov.mb.ca/laws/statutes/ccsm/p034.php?lang=en",
+  fieldNames: ["judgmentCreditorName", "judgmentCreditorAddress", "judgmentAmount"],
+  accountTypes: ["judgment", "monetary_judgment", "court_judgment", "public_record_judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "NB_CPA_DEBT_REPORTING_LIMIT_ANCHORS",
+  statute: "New Brunswick Consumer Protection Act",
+  citation: "S.N.B. 2024, c. 1, s. 254(3)(a)-(b)",
+  shortLabel: "NB Debt Limit Anchors",
+  description:
+    "Debt information is time-limited by the last payment date, or by the default date if no payment has been made, unless non-statute-barred confirmation appears in the file.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "NB",
+  province: "NB",
+  sourceUrl: "https://laws.gnb.ca/en/document/cs/2024-C.1",
+  fieldNames: ["dateOfLastPayment", "dateOfDefault"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt"],
+});
+
+addFieldRequirementEntry({
+  id: "NB_CPA_JUDGMENT_FIELDS",
+  statute: "New Brunswick Consumer Protection Act",
+  citation: "S.N.B. 2024, c. 1, s. 254(3)(g)",
+  shortLabel: "NB Judgment Fields",
+  description:
+    "A monetary judgment may be included only if the judgment creditor name, available judgment creditor or agent address, and amount are mentioned.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "NB",
+  province: "NB",
+  sourceUrl: "https://laws.gnb.ca/en/document/cs/2024-C.1",
+  fieldNames: ["judgmentCreditorName", "judgmentCreditorAddress", "judgmentCreditorAgentAddress", "judgmentAmount"],
+  accountTypes: ["judgment", "monetary_judgment", "court_judgment", "public_record_judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "NB_CPA_LEGAL_PROCEEDING_STATUS_FIELD",
+  statute: "New Brunswick Consumer Protection Act",
+  citation: "S.N.B. 2024, c. 1, s. 254(3)(k)",
+  shortLabel: "NB Legal Proceeding Status",
+  description:
+    "Other legal proceeding information may be included only if the current status has been ascertained and is included in the credit report.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "NB",
+  province: "NB",
+  sourceUrl: "https://laws.gnb.ca/en/document/cs/2024-C.1",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["legal_proceeding", "court_action", "court_proceeding", "legal_action", "writ"],
+});
+
+addFieldRequirementEntry({
+  id: "NB_CPA_SOURCE_RECORD_FIELDS",
+  statute: "New Brunswick Consumer Protection Act",
+  citation: "S.N.B. 2024, c. 1, s. 254(4)",
+  shortLabel: "NB Source Record Fields",
+  description:
+    "Information may be included in a credit report only if the source is included, the source mailing address and telephone number are included or readily ascertainable, and the source details are recorded in the consumer file.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "NB",
+  province: "NB",
+  sourceUrl: "https://laws.gnb.ca/en/document/cs/2024-C.1",
+  fieldNames: ["sourceName", "sourceMailingAddress", "sourcePhone"],
+  accountTypes: ["credit_report_source_record", "consumer_report_source_record", "reported_information"],
+});
+
+addFieldRequirementEntry({
+  id: "NL_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  statute: "Newfoundland and Labrador Consumer Reporting Agencies Act",
+  citation: "R.S.N.L. 1990, c. C-32, s. 22(d)",
+  shortLabel: "NL Debt Limit Anchors",
+  description:
+    "Debt information is time-limited from when the debt became due unless the debt has been acknowledged in writing or by part payment or partial satisfaction.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "NL",
+  province: "NL",
+  sourceUrl: "https://assembly.nl.ca/legislation/sr/annualstatutes/RSN1990/C32.c90.htm",
+  fieldNames: ["dateDebtBecameDue", "dateOfAcknowledgment", "dateOfPartialPayment"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt"],
+});
+
+addFieldRequirementEntry({
+  id: "NL_CRA_WRIT_STATUS_FIELD",
+  statute: "Newfoundland and Labrador Consumer Reporting Agencies Act",
+  citation: "R.S.N.L. 1990, c. C-32, s. 22(j)",
+  shortLabel: "NL Writ Status",
+  description:
+    "Writ information issued more than one year before the consumer report may be reported only if the agency has ascertained the writ's current status and has a record of its current status in the consumer report.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "NL",
+  province: "NL",
+  sourceUrl: "https://assembly.nl.ca/legislation/sr/annualstatutes/RSN1990/C32.c90.htm",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["writ", "legal_proceeding", "court_action", "legal_action"],
+});
+
+addFieldRequirementEntry({
+  id: "NS_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  statute: "Nova Scotia Consumer Reporting Act",
+  citation: "R.S.N.S. 1989, c. 93, s. 9(3)(c)",
+  shortLabel: "NS Debt Limit Anchors",
+  description:
+    "Debt information is time-limited by the last payment date, or by the default date if no payment was made.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "NS",
+  province: "NS",
+  sourceUrl: "https://nslegislature.ca/sites/default/files/legc/statutes/consumer%20reporting.pdf",
+  fieldNames: ["dateOfLastPayment", "dateOfDefault"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt"],
+});
+
+addFieldRequirementEntry({
+  id: "NS_CRA_JUDGMENT_FIELDS",
+  statute: "Nova Scotia Consumer Reporting Act",
+  citation: "R.S.N.S. 1989, c. 93, s. 9(3)(d)",
+  shortLabel: "NS Judgment Fields",
+  description:
+    "A judgment may be included only if the judgment creditor name, available address at judgment entry, amount, and available assignee details are mentioned where applicable.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "NS",
+  province: "NS",
+  sourceUrl: "https://nslegislature.ca/sites/default/files/legc/statutes/consumer%20reporting.pdf",
+  fieldNames: ["judgmentCreditorName", "judgmentCreditorAddress", "judgmentAmount", "judgmentAssigneeName", "judgmentAssigneeAddress"],
+  accountTypes: ["judgment", "monetary_judgment", "court_judgment", "public_record_judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "NS_CRA_COURT_ACTION_STATUS_FIELD",
+  statute: "Nova Scotia Consumer Reporting Act",
+  citation: "R.S.N.S. 1989, c. 93, s. 9(3)(da)",
+  shortLabel: "NS Court Action Status",
+  description:
+    "Court action or proceeding information beyond the statutory age limits may be reported only if the current status has been ascertained and recorded in the file.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "NS",
+  province: "NS",
+  sourceUrl: "https://nslegislature.ca/sites/default/files/legc/statutes/consumer%20reporting.pdf",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["legal_proceeding", "court_action", "court_proceeding", "legal_action", "writ"],
+});
+
+addFieldRequirementEntry({
+  id: "ON_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  statute: "Ontario Consumer Reporting Act",
+  citation: "R.S.O. 1990, c. C.33, s. 9(3)(f)(i)",
+  shortLabel: "ON Debt Limit Anchors",
+  description:
+    "Debt information is time-limited by the last payment date, or by the debt commencement date if no payment was made.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "ON",
+  province: "ON",
+  sourceUrl: "https://www.ontario.ca/laws/statute/90c33",
+  fieldNames: ["dateOfLastPayment", "dateDebtIncurred", "dateDebtCommenced"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt"],
+});
+
+addFieldRequirementEntry({
+  id: "ON_CRA_JUDGMENT_FIELDS",
+  statute: "Ontario Consumer Reporting Act",
+  citation: "R.S.O. 1990, c. C.33, s. 9(3)(d)",
+  shortLabel: "ON Judgment Fields",
+  description:
+    "A judgment may be included only if the judgment creditor name, available address at judgment entry, amount, and available assignee details are mentioned where applicable.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "ON",
+  province: "ON",
+  sourceUrl: "https://www.ontario.ca/laws/statute/90c33",
+  fieldNames: ["judgmentCreditorName", "judgmentCreditorAddress", "judgmentAmount", "judgmentAssigneeName", "judgmentAssigneeAddress"],
+  accountTypes: ["judgment", "monetary_judgment", "court_judgment", "public_record_judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "ON_CRA_LEGAL_ACTION_STATUS_FIELD",
+  statute: "Ontario Consumer Reporting Act",
+  citation: "R.S.O. 1990, c. C.33, s. 9(3)(i)",
+  shortLabel: "ON Legal Action Status",
+  description:
+    "Legal action or proceeding information beyond the statutory age limits may be reported only if the current status has been ascertained and is recorded in the file.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "ON",
+  province: "ON",
+  sourceUrl: "https://www.ontario.ca/laws/statute/90c33",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["legal_proceeding", "court_action", "court_proceeding", "legal_action", "writ"],
+});
+
+addFieldRequirementEntry({
+  id: "PE_CRA_JUDGMENT_FIELDS",
+  statute: "Prince Edward Island Consumer Reporting Act",
+  citation: "R.S.P.E.I. 1988, c. C-20, s. 9(d)",
+  shortLabel: "PE Judgment Fields",
+  description:
+    "A judgment may be included only if the judgment creditor name, available address at judgment entry, and amount are mentioned.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "PE",
+  province: "PE",
+  sourceUrl: "https://www.princeedwardisland.ca/sites/default/files/legislation/C-20-Consumer%20Reporting%20Act.pdf",
+  fieldNames: ["judgmentCreditorName", "judgmentCreditorAddress", "judgmentAmount"],
+  accountTypes: ["judgment", "monetary_judgment", "court_judgment", "public_record_judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "PE_CRA_STATUTE_BARRED_EVIDENCE_FIELD",
+  statute: "Prince Edward Island Consumer Reporting Act",
+  citation: "R.S.P.E.I. 1988, c. C-20, s. 9(f)",
+  shortLabel: "PE Statute-Barred Evidence",
+  description:
+    "Judgments, collections, or debts that are statute-barred may be reported only if accompanied by evidence in the file that recovery is not barred by the expiry of a limitation period.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "PE",
+  province: "PE",
+  sourceUrl: "https://www.princeedwardisland.ca/sites/default/files/legislation/C-20-Consumer%20Reporting%20Act.pdf",
+  fieldNames: ["notStatuteBarredEvidence", "limitationRecoveryEvidence"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt", "judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "PE_CRA_WRIT_STATUS_FIELD",
+  statute: "Prince Edward Island Consumer Reporting Act",
+  citation: "R.S.P.E.I. 1988, c. C-20, s. 9(i)",
+  shortLabel: "PE Writ Status",
+  description:
+    "Writ information beyond the statutory age limits may be reported only if the current status of the action has been ascertained and recorded in the file.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "PE",
+  province: "PE",
+  sourceUrl: "https://www.princeedwardisland.ca/sites/default/files/legislation/C-20-Consumer%20Reporting%20Act.pdf",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["writ", "legal_proceeding", "court_action", "legal_action"],
+});
+
+addFieldRequirementEntry({
+  id: "QC_CAAA_EXPLANATORY_STATEMENT_FIELD",
+  statute: "Quebec Credit Assessment Agents Act",
+  citation: "CQLR c. A-8.2, ss. 8, 11",
+  shortLabel: "QC Explanatory Statement",
+  description:
+    "An explanatory statement is a protection measure and must be communicated with personal information or information produced on that basis when the statement applies.",
+  violationCategories: ["CONSUMER_STATEMENT_SUPPRESSION", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "QC",
+  province: "QC",
+  sourceUrl: "https://www.legisquebec.gouv.qc.ca/en/showdoc/cs/A-8.2",
+  fieldNames: ["consumerStatement", "explanatoryStatement"],
+  accountTypes: ["consumer_statement", "dispute_statement", "explanatory_statement"],
+});
+
+addFieldRequirementEntry({
+  id: "SK_CRA_DEBT_REPORTING_LIMIT_ANCHORS",
+  statute: "Saskatchewan Credit Reporting Act",
+  citation: "S.S. 2004, c. C-43.2, s. 22(f)",
+  shortLabel: "SK Debt Limit Anchors",
+  description:
+    "Debt information is time-limited by the last payment date, or by the date the debt was incurred if no payment was made.",
+  violationCategories: [
+    "STATUTE_OF_LIMITATIONS",
+    "STATUTE_APPROACHING",
+    "STALE_REPORTING_FAILURE",
+    "FURNISHER_REAGING_VIOLATION",
+    "LAST_ACTIVITY_DATE_MANIPULATION",
+    "TEMPORAL_MANIPULATION",
+  ],
+  jurisdiction: "SK",
+  province: "SK",
+  sourceUrl: "https://pubsaskdev.blob.core.windows.net/pubsask-prod/archived/14015/C43-2.pdf",
+  fieldNames: ["dateOfLastPayment", "dateDebtIncurred"],
+  accountTypes: ["debt", "collection", "collection_account", "charged_off_debt"],
+});
+
+addFieldRequirementEntry({
+  id: "SK_CRA_JUDGMENT_FIELDS",
+  statute: "Saskatchewan Credit Reporting Act",
+  citation: "S.S. 2004, c. C-43.2, s. 22(j)",
+  shortLabel: "SK Judgment Fields",
+  description:
+    "A judgment may be included only if the judgment creditor or agent name, available address at judgment entry, and judgment amount are mentioned.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "SK",
+  province: "SK",
+  sourceUrl: "https://pubsaskdev.blob.core.windows.net/pubsask-prod/archived/14015/C43-2.pdf",
+  fieldNames: ["judgmentCreditorName", "judgmentCreditorAddress", "judgmentAmount"],
+  accountTypes: ["judgment", "monetary_judgment", "court_judgment", "public_record_judgment"],
+});
+
+addFieldRequirementEntry({
+  id: "SK_CRA_COURT_ACTION_STATUS_FIELD",
+  statute: "Saskatchewan Credit Reporting Act",
+  citation: "S.S. 2004, c. C-43.2, s. 22(g)",
+  shortLabel: "SK Court Action Status",
+  description:
+    "Court action or other court proceeding information older than 12 months may be reported only if the current status has been ascertained and is included in the report.",
+  violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "DISCLOSURE_DEFICIENCY"],
+  jurisdiction: "SK",
+  province: "SK",
+  sourceUrl: "https://pubsaskdev.blob.core.windows.net/pubsask-prod/archived/14015/C43-2.pdf",
+  fieldNames: ["currentStatus"],
+  accountTypes: ["legal_proceeding", "court_action", "court_proceeding", "legal_action", "writ"],
+});
+
 const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
   ACCOUNT_STATUS_INCONSISTENCY: [
     "PIPEDA_4_6",
@@ -745,18 +1283,25 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
     "PIPEDA_4_6_1",
     "PIPEDA_4_9",
     ...getProvKeys("CRA_CONSUMER_STATEMENT"),
+    ...CONSUMER_STATEMENT_FIELD_REQUIREMENT_IDS,
   ],
   CREDIT_LIMIT_MANIPULATION: ["PIPEDA_4_6"],
   CREDITOR_RESPONSE_QUALITY: ["PIPEDA_4_10"],
   CROSS_BUREAU_INCONSISTENCY: ["PIPEDA_4_6"],
   CROSS_ENTITY_DISCREPANCY: ["PIPEDA_4_6"],
   DATE_LOGIC_IMPOSSIBLE: ["PIPEDA_4_6"],
-  DISCLOSURE_DEFICIENCY: ["PIPEDA_4_9", ...getProvKeys("CRA_DISCLOSURE")],
-  DOCUMENTATION_CHAIN_FAILURE: [
-    "PIPEDA_4_6",
-    "METRO2_BASE_SEGMENT",
-    ...getProvKeys("CRA_ACCURACY"),
-  ],
+  DISCLOSURE_DEFICIENCY: mergeRegulationIds(
+    ["PIPEDA_4_9", ...getProvKeys("CRA_DISCLOSURE")],
+    DISCLOSURE_FIELD_REQUIREMENT_IDS,
+  ),
+  DOCUMENTATION_CHAIN_FAILURE: mergeRegulationIds(
+    [
+      "PIPEDA_4_6",
+      "METRO2_BASE_SEGMENT",
+      ...getProvKeys("CRA_ACCURACY"),
+    ],
+    DOCUMENTATION_FIELD_REQUIREMENT_IDS,
+  ),
   FREEZE_PERIOD_VIOLATION: ["ON_FAIRNESS_CRA_2017", "PIPEDA_4_7"],
   FURNISHER_AUTHORIZED_USER_MISREPRESENTATION: [
     "PIPEDA_4_3",
@@ -764,10 +1309,10 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
   ],
   FURNISHER_JOINT_ACCOUNT_VIOLATION: ["PIPEDA_4_3", "METRO2_J1_SEGMENT"],
   FURNISHER_POST_DISPUTE_RETALIATION: ["PIPEDA_4_10"],
-  FURNISHER_REAGING_VIOLATION: [
-    "PIPEDA_4_6",
-    ...getProvKeys("CRA_REPORTING_LIMIT"),
-  ],
+  FURNISHER_REAGING_VIOLATION: mergeRegulationIds(
+    ["PIPEDA_4_6", ...getProvKeys("CRA_REPORTING_LIMIT")],
+    STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS,
+  ),
   FURNISHER_RESPONSE_QUALITY: ["PIPEDA_4_10"],
   FURNISHER_STATUS_CODE_MISMATCH: ["PIPEDA_4_6"],
   IDENTITY_THEFT_VIOLATION: ["PIPEDA_4_3", "PIPEDA_4_7"],
@@ -778,6 +1323,7 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
   LAST_ACTIVITY_DATE_MANIPULATION: [
     "PIPEDA_4_6",
     ...getProvKeys("CRA_REPORTING_LIMIT"),
+    ...STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS,
   ],
   MIXED_FILE_PERSONAL_INFO_MISMATCH: ["PIPEDA_4_6", ...getProvKeys("CRA_ACCURACY")],
   MULTIPLE_COLLECTOR_VIOLATION: [
@@ -795,10 +1341,22 @@ const VIOLATION_REGULATION_MAP: Record<ViolationCategory, string[]> = {
   RESPONSE_NO_DOCUMENTATION: ["PIPEDA_4_10"],
   RESPONSE_UNAUTHORIZED: ["PIPEDA_4_10"],
   RETROACTIVE_HISTORY_MANIPULATION: ["PIPEDA_4_6"],
-  STALE_REPORTING_FAILURE: ["PIPEDA_4_6"],
-  STATUTE_APPROACHING: ["PIPEDA_4_5", ...getProvKeys("CRA_REPORTING_LIMIT")],
-  STATUTE_OF_LIMITATIONS: ["PIPEDA_4_5", ...getProvKeys("CRA_REPORTING_LIMIT")],
-  TEMPORAL_MANIPULATION: ["PIPEDA_4_6", ...getProvKeys("CRA_REPORTING_LIMIT")],
+  STALE_REPORTING_FAILURE: mergeRegulationIds(
+    ["PIPEDA_4_6"],
+    STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS,
+  ),
+  STATUTE_APPROACHING: mergeRegulationIds(
+    ["PIPEDA_4_5", ...getProvKeys("CRA_REPORTING_LIMIT")],
+    STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS,
+  ),
+  STATUTE_OF_LIMITATIONS: mergeRegulationIds(
+    ["PIPEDA_4_5", ...getProvKeys("CRA_REPORTING_LIMIT")],
+    STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS,
+  ),
+  TEMPORAL_MANIPULATION: mergeRegulationIds(
+    ["PIPEDA_4_6", ...getProvKeys("CRA_REPORTING_LIMIT")],
+    STATUTE_ANCHOR_FIELD_REQUIREMENT_IDS,
+  ),
   ZOMBIE_DEBT_RESURRECTION: ["PIPEDA_4_6", ...getProvKeys("CRA_REINSERTION")],
 };
 

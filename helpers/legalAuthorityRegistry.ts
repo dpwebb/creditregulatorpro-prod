@@ -224,13 +224,15 @@ export function searchLegalAuthorities(input: LegalAuthoritySearchInput = {}): L
       if (supportLevel && authority.supportLevel !== supportLevel) return false;
       if (violationCategory && !authority.violationCategories.some((category) => normalize(category) === violationCategory)) return false;
       if (fieldName && !authority.fieldNames.some((field) => normalize(field) === fieldName)) return false;
+      if (fieldName && authority.supportLevel === "field_requirement" && authority.province && !jurisdiction) return false;
       if (
-        accountType &&
+        fieldName &&
         authority.accountTypes.length > 0 &&
-        !authority.accountTypes.some((type) => {
-          const normalizedType = normalize(type);
-          return normalizedType === accountType || accountType.includes(normalizedType) || normalizedType.includes(accountType);
-        })
+        (!accountType ||
+          !authority.accountTypes.some((type) => {
+            const normalizedType = normalize(type);
+            return normalizedType === accountType || accountType.includes(normalizedType) || normalizedType.includes(accountType);
+          }))
       ) {
         return false;
       }

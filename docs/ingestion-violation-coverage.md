@@ -11,6 +11,7 @@ For each ingested tradeline, the compliance scanner currently checks:
 - About 70 concrete runtime checks after expanding grouped detector calls.
 - 12 active dynamic scanning rules.
 - 0 invalid active dynamic scanning rules.
+- 28 exact field-specific Canadian authority records for scoped public-record, source-record, legal-proceeding, consumer-statement, and reporting-limit anchor checks.
 
 ## Expanded Runtime Count
 
@@ -49,11 +50,15 @@ The prior invalid active rules were archived because their definitions were stor
 
 ## Field-Specific Authority Caveat
 
-There are currently 0 exact field-specific authority records in the local authority registry.
+There are currently 28 exact field-specific authority records in the local authority registry. These records are limited to Canadian federal/provincial official authority sources and are scoped by field name, account or record type, province, and violation category.
 
 That matters for missing-information issues. Missing information that supports a review status is only an actionable violation when it can be mapped to a specific local or federal law, regulation, or official/private reporting standard that requires that exact field for the account type.
 
-Until exact field-level authority records are added, missing-field findings such as missing `dateOfFirstDelinquency`, missing `dateClosed`, missing `terms`, or missing `dateAssignedToCollection` should not be surfaced as confirmed actionable violations based only on generic PIPEDA accuracy language or generic Metro2 base-segment language.
+The current exact-field records cover narrowly defined records such as judgment creditor fields, legal-proceeding current status, source name/address/contact records, consumer explanatory statements, and statutory reporting-limit anchors. They do not authorize ordinary tradeline missing-field findings such as missing `dateOfFirstDelinquency`, missing `dateClosed`, missing `terms`, or missing `dateAssignedToCollection` unless a later official Canadian federal or provincial authority record is added for that exact field and account type.
+
+The evidence builder fails closed for exact-field authority. A field-specific authority record is not attached unless the violation supplies the matching field name, account or record type, consumer province, and violation category. Unknown province or missing account type prevents exact-field authority from being borrowed.
+
+Where an official Canadian federal, provincial, or territorial source does not contain an exact field/account-type requirement, the registry intentionally leaves that issue at category-principle level rather than creating field-required violation language.
 
 ## Current Interpretation
 

@@ -66,6 +66,46 @@ describe("local legal authority registry", () => {
     ).toBe(false);
   });
 
+  it("resolves scoped Canadian field mandates only when province and account type match", () => {
+    expect(
+      hasFieldSpecificAuthority({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        fieldName: "judgmentCreditorName",
+        accountType: "judgment",
+        regulationIds: ["NS_CRA_JUDGMENT_FIELDS"],
+        jurisdiction: "NS",
+      }),
+    ).toBe(true);
+
+    expect(
+      hasFieldSpecificAuthority({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        fieldName: "judgmentCreditorName",
+        regulationIds: ["NS_CRA_JUDGMENT_FIELDS"],
+        jurisdiction: "NS",
+      }),
+    ).toBe(false);
+
+    expect(
+      hasFieldSpecificAuthority({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        fieldName: "judgmentCreditorName",
+        accountType: "judgment",
+        regulationIds: ["NS_CRA_JUDGMENT_FIELDS"],
+      }),
+    ).toBe(false);
+
+    expect(
+      hasFieldSpecificAuthority({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        fieldName: "judgmentCreditorName",
+        accountType: "judgment",
+        regulationIds: ["NS_CRA_JUDGMENT_FIELDS"],
+        jurisdiction: "ON",
+      }),
+    ).toBe(false);
+  });
+
   it("exposes local source metadata for deterministic rule evidence", () => {
     expect(getLegalAuthorityById("PIPEDA_4_6")).toEqual(
       expect.objectContaining({
@@ -101,9 +141,19 @@ describe("local legal authority registry", () => {
     expect(missing).toEqual([]);
   });
 
+  it("keeps violation-category registry mappings deduplicated", () => {
+    for (const [category, ids] of Object.entries(regulationRegistry.VIOLATION_REGULATION_MAP)) {
+      expect(ids, `${category} should not include duplicate regulation ids`).toHaveLength(new Set(ids).size);
+    }
+  });
+
   it("keeps generated provincial authority records official and source-backed", () => {
     const generatedProvinceIds = Object.keys(regulationRegistry.STATUTE_ENTRIES)
-      .filter((id) => /^[A-Z]{2}_(CRA_|COLLECTION_ACT|LIMITATIONS_ACT)/.test(id))
+      .filter((id) =>
+        /^[A-Z]{2}_(CRA_(ACCURACY|REPORTING_LIMIT|REINVESTIGATION|REINSERTION|CONSUMER_STATEMENT|PERMISSIBLE_PURPOSE|DISCLOSURE)|COLLECTION_ACT|LIMITATIONS_ACT)$/.test(
+          id,
+        ),
+      )
       .sort();
 
     expect(generatedProvinceIds).toHaveLength(PROVINCES.length * 9);
@@ -117,6 +167,23 @@ describe("local legal authority registry", () => {
           allowsFieldRequiredLanguage: false,
         }),
       );
+    }
+  });
+
+  it("keeps exact field requirement authority records official, sourced, and scoped", () => {
+    const fieldRequirementAuthorities = searchLegalAuthorities({
+      supportLevel: "field_requirement",
+      limit: 200,
+    });
+
+    expect(fieldRequirementAuthorities).toHaveLength(28);
+
+    for (const authority of fieldRequirementAuthorities) {
+      expect(authority.sourceQuality, `${authority.id} should be official`).toBe("official");
+      expect(authority.sourceUrl, `${authority.id} should have an official source URL`).toMatch(/^https:\/\//);
+      expect(authority.fieldNames.length, `${authority.id} should name exact fields`).toBeGreaterThan(0);
+      expect(authority.accountTypes.length, `${authority.id} should be scoped by account or record type`).toBeGreaterThan(0);
+      expect(authority.allowsFieldRequiredLanguage, `${authority.id} should support field-required language`).toBe(true);
     }
   });
 
