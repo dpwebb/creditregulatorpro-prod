@@ -257,12 +257,34 @@ export function extractCollectionTurnoverSignal(text: string): boolean {
  * Extracts the creditor name from a tradeline section.
  * Enhanced to handle TransUnion format where creditor name is followed by "Payment History".
  */
+export function sanitizeCreditorName(value: string | null | undefined): string | null {
+  if (!value) return null;
+
+  const cleaned = value
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^Creditor\s+Name\s*:?\s*/i, "")
+    .replace(/^Account\s+Name\s*:?\s*/i, "")
+    .replace(/^Name\s*:?\s*/i, "")
+    .replace(/^Name(?=[A-Z0-9])/u, "")
+    .replace(
+      /\s*(?:Payment\s+History|Account\s+Number|Account\s+Type|Balance|Status|Reported\s+Date|Opened\s+Date|Date\s+Opened|Last\s+Reported|High\s+Credit|Credit\s+Limit|Past\s+Due|Terms)\b[\s\S]*$/i,
+      "",
+    )
+    .trim();
+
+  return cleaned.length >= 3 ? cleaned.slice(0, 100) : null;
+}
+
 export function extractCreditorName(text: string): string | null {
   // First, try label-value block extraction (Credit Monitoring format)
   const labelValueData = extractFromLabelValueBlock(text);
   if (labelValueData.accountName) {
-    console.log(`[Field Extractor] Extracted creditor name from label-value block: "${labelValueData.accountName}"`);
-    return labelValueData.accountName;
+    const sanitized = sanitizeCreditorName(labelValueData.accountName);
+    if (sanitized) {
+      console.log(`[Field Extractor] Extracted creditor name from label-value block: "${sanitized}"`);
+      return sanitized;
+    }
   }
 
   // Blacklist for non-creditor section headers and generic account type headers
@@ -299,6 +321,8 @@ export function extractCreditorName(text: string): string | null {
     /Creditor\s+Name[\s:]+([A-Z][A-Za-z\s&,.\-']{2,}?)(?=Payment\s+History|\n|Account|Balance|Status|$)/i,
     // TransUnion format: "Creditor Name\n{NAME}Payment History" - extract name between "Creditor Name" and "Payment History"
     /Creditor\s+Name\s*\n\s*([A-Z][A-Za-z\s&,.\-']+?)(?=Payment\s+History)/i,
+    // Some TransUnion text variants split "Creditor Name" so the account line starts with "Name{CREDITOR}Payment History"
+    /(?:^|\n)\s*Name\s*([A-Z0-9][A-Z0-9\s&,.\-']{2,}?)(?=Payment\s+History|\n|Account|Balance|Status|$)/,
     // "Creditor: BANK OF MONTREAL" or "Creditor: Portfolio Recovery Associates" (highest priority)
     /Creditor[\s:]+([A-Z][A-Za-z\s&,.\-']{2,})(?:\n|Account|Balance|Status|$)/i,
     // Numbered subsection with dash format like "8.1 AUTO LOAN – SCOTIABANK" (extract after dash)
@@ -322,7 +346,8 @@ export function extractCreditorName(text: string): string | null {
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
-      const creditor = match[1].trim();
+      const creditor = sanitizeCreditorName(match[1]);
+      if (!creditor) continue;
       
       // Check against blacklist
       const isBlacklisted = creditorBlacklist.some((blacklisted) =>
@@ -345,13 +370,14 @@ export function extractCreditorName(text: string): string | null {
         const hasTradelineContext =
           /Creditor[\s:]/i.test(text) ||
           /Account\s+(?:Number|#)[\s:]/i.test(text) ||
+          /Payment\s+History/i.test(text) ||
           /Balance[\s:]/i.test(text) ||
           /Status[\s:]/i.test(text) ||
           /\$[\d,]+\.?\d*/i.test(text) ||
           /\b[RIMO]\d\b/.test(text);
         
         if (hasTradelineContext) {
-          const finalCreditor = creditor.slice(0, 100); // Limit length
+          const finalCreditor = creditor;
           
           // Check if this is a generic account type header
           const isGenericHeader = creditorBlacklist.some((blacklisted) =>

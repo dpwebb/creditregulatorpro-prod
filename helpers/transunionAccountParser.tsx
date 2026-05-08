@@ -14,6 +14,7 @@ import {
   extractCollectionTurnoverSignal,
   extractIsCollectionAccount,
   extractOriginalCreditor,
+  sanitizeCreditorName,
 } from "./tradelineBasicInfoExtractors";
 import { extractDateAssignedToCollection } from "./tradelineDateExtractors";
 
@@ -25,6 +26,12 @@ export function parseAccount(accHtml: string) {
   const tables = parseAllTables(accHtml);
 
   let creditorName = "";
+  const acceptCreditorName = (candidate: string | null | undefined): boolean => {
+    const sanitized = sanitizeCreditorName(candidate);
+    if (!sanitized) return false;
+    creditorName = sanitized;
+    return true;
+  };
 
   // Look for Creditor Name in tables to handle page 4 format (value in next row)
   for (const table of tables) {
@@ -33,8 +40,7 @@ export function parseAccount(accHtml: string) {
         if (table[r][c].toLowerCase().includes("creditor name")) {
           // If it's a key-value in same cell like "Creditor Name BANK"
           const match = table[r][c].match(/Creditor Name\s*:?\s*(.+)/i);
-          if (match && match[1].trim() && !match[1].toLowerCase().includes("payment history")) {
-            creditorName = match[1].trim();
+          if (match && acceptCreditorName(match[1])) {
             break;
           }
           // If it's in the next cell
@@ -42,13 +48,11 @@ export function parseAccount(accHtml: string) {
           while (nextCol < table[r].length && table[r][nextCol].toLowerCase().includes("creditor name")) {
             nextCol++;
           }
-          if (nextCol < table[r].length && table[r][nextCol].trim() && !table[r][nextCol].toLowerCase().includes("payment history")) {
-            creditorName = table[r][nextCol].trim();
+          if (nextCol < table[r].length && acceptCreditorName(table[r][nextCol])) {
             break;
           }
           // If it's in the next row
-          if (r + 1 < table.length && table[r+1][c] && table[r+1][c].trim() && !table[r+1][c].toLowerCase().includes("payment history") && !table[r+1][c].toLowerCase().includes("creditor name")) {
-            creditorName = table[r+1][c].trim();
+          if (r + 1 < table.length && table[r+1][c] && !table[r+1][c].toLowerCase().includes("creditor name") && acceptCreditorName(table[r+1][c])) {
             break;
           }
         }
@@ -62,14 +66,10 @@ export function parseAccount(accHtml: string) {
     // Robust extraction handling both <strong> wrappers and <td colspan> wrappers
     const credRegex = /(?:<strong[^>]*>|<t[dh][^>]*>)\s*Creditor Name\s*:?(?:\s*<\/strong>|\s*<\/t[dh]>)\s*(?:<t[dh][^>]*>)?\s*(?:<[^>]+>)*([^<]+)/i;
     const credMatchHtml = accHtml.match(credRegex);
-    if (credMatchHtml && credMatchHtml[1].trim() && !credMatchHtml[1].toLowerCase().includes("payment history")) {
-      creditorName = credMatchHtml[1].trim();
-    } else {
+    if (!credMatchHtml || !acceptCreditorName(credMatchHtml[1])) {
       // Fallback to raw text extraction
       const credMatchText = rawText.match(/Creditor Name\s*:?\s*([^\n]+)/i);
-      if (credMatchText && !credMatchText[1].toLowerCase().includes("payment history")) {
-        creditorName = credMatchText[1].trim();
-      }
+      acceptCreditorName(credMatchText?.[1]);
     }
   }
 
