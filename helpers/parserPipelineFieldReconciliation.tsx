@@ -5,6 +5,9 @@ import { isEquifaxFormat } from "./equifaxReportParser";
 import { extractReportMetadata } from "./reportMetadataExtractor";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import { extractTradelines } from "./transunionPdfExtractor";
+import {
+  accountNumbersMatch,
+} from "./accountNumberIdentity";
 
 export type ParserPipelineAuditStatus =
   | "preserved"
@@ -364,24 +367,6 @@ function buildEntry(params: {
     action: params.action,
     reason: params.reason,
   };
-}
-
-function normalizeAccountNumber(value: string | null | undefined): string | null {
-  const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  if (
-    !normalized ||
-    ["UNKNOWN", "NA", "NOTREPORTED", "NOTPROVIDED", "NOTPROVIDEDBYBUREAU", "NOTAVAILABLE"].includes(normalized)
-  ) return null;
-  return normalized;
-}
-
-function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
-  const left = normalizeAccountNumber(a);
-  const right = normalizeAccountNumber(b);
-  if (!left || !right) return false;
-  if (left === right) return true;
-  const minLength = Math.min(left.length, right.length);
-  return minLength >= 4 && (left.endsWith(right) || right.endsWith(left));
 }
 
 function textLooksSimilar(a: string | null | undefined, b: string | null | undefined): boolean {

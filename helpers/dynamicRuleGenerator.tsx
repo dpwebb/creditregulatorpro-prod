@@ -24,6 +24,22 @@ export const RuleDefinitionSchema = z.object({
   regulationIds: z.array(z.string().min(1)).optional(),
 });
 
+export type RuleDefinition = z.infer<typeof RuleDefinitionSchema>;
+
+export function coerceRuleDefinition(value: unknown): RuleDefinition | null {
+  let raw = value;
+  if (typeof value === "string") {
+    try {
+      raw = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  const parsed = RuleDefinitionSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
+
 const GeneratedSeveritySchema = z.enum(["ERROR", "WARNING", "INFO", "HIGH", "MEDIUM", "LOW"]);
 
 export const GeneratedRuleSchema = z.object({

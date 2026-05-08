@@ -41,6 +41,7 @@ import {
   normalizeTransUnionPaymentTerms,
   parseTransUnionPaymentAmountFrequency,
 } from "./transunionPaymentTerms";
+import { normalizeAccountNumber } from "./accountNumberIdentity";
 
 /**
  * Extracts tradelines from credit report text.
@@ -280,12 +281,8 @@ function deduplicateTradelines(tradelines: ParsedTradeline[]): ParsedTradeline[]
   for (let index = 0; index < tradelines.length; index++) {
     const tradeline = tradelines[index];
     const normalizedCreditor = tradeline.creditorName.toLowerCase().trim();
-    const normalizedAccount = (tradeline.accountNumber || "")
-      .replace(/[^a-zA-Z0-9*X]/g, "")
-      .toUpperCase();
-    const hasAccountAnchor =
-      normalizedAccount &&
-      !["UNKNOWN", "NA", "NOTREPORTED", "NOTPROVIDED", "NOTPROVIDEDBYBUREAU", "NOTAVAILABLE"].includes(normalizedAccount);
+    const normalizedAccount = normalizeAccountNumber(tradeline.accountNumber);
+    const hasAccountAnchor = Boolean(normalizedAccount);
     const openedAnchor = tradeline.dates.opened instanceof Date && !Number.isNaN(tradeline.dates.opened.getTime())
       ? tradeline.dates.opened.toISOString().slice(0, 10)
       : "";

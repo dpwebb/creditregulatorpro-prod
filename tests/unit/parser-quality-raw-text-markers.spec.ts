@@ -41,6 +41,15 @@ Expected Error 2 Last Payment Date is later than report date.
     expect(estimateExpectedAccountMarkersFromRawText(textWithAssertionSection)).toBe(2);
   });
 
+  it("counts multiple collapsed TransUnion creditor markers on one physical line", () => {
+    const oneLineCollapsedBlocks = `
+Account(s):
+Creditor NameMAPLE FINANCIAL VISAPayment History Reported DateDec 16, 2025 Account TypeREVOLVING / INDIVIDUAL Creditor NameNORTHERN AUTO FINANCEPayment History Reported DateNov 30, 2025 Account TypeINSTALLMENT / INDIVIDUAL
+`;
+
+    expect(estimateExpectedAccountMarkersFromRawText(oneLineCollapsedBlocks)).toBe(2);
+  });
+
   it("flags under-extraction when raw text shows more tradelines than parsed output", () => {
     const assessment = assessParserQuality({
       rawHtml: "",

@@ -11,6 +11,7 @@ import {
   sanitizeComplianceNeutralText,
   type ViolationCorrectionAction,
 } from "./violationCorrectionValidation";
+import { normalizeAccountNumber } from "./accountNumberIdentity";
 
 type PatternCorrection = Awaited<ReturnType<typeof listFinalizedCorrectionPatterns>>[number];
 type CorrectionEvidenceForMatch = Pick<Selectable<ViolationCorrectionEvidence>, "fieldName">[];
@@ -77,29 +78,6 @@ function normalizeCategory(value: unknown): string {
 function normalizeFieldName(value: unknown): string | null {
   const normalized = normalizePhrase(value).replace(/\s+/g, "");
   return normalized || null;
-}
-
-function normalizeAccountNumber(value: unknown): string | null {
-  const normalized = String(value ?? "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-
-  if (
-    !normalized ||
-    [
-      "unknown",
-      "notreported",
-      "notprovided",
-      "notprovidedbybureau",
-      "notavailable",
-      "na",
-      "n/a",
-    ].includes(normalized)
-  ) {
-    return null;
-  }
-
-  return normalized;
 }
 
 function correctionCategoryMatches(

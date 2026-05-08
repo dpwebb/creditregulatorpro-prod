@@ -411,6 +411,77 @@ function parseSpaceDelimitedInlineAddress(text: string, result: AddressExtractio
   }
 }
 
+const COLLAPSED_ADDRESS_CITY_NAMES = new Set([
+  "BARRIE",
+  "BRAMPTON",
+  "BURNABY",
+  "CALGARY",
+  "EDMONTON",
+  "GUELPH",
+  "HALIFAX",
+  "HAMILTON",
+  "KINGSTON",
+  "KITCHENER",
+  "LONDON",
+  "MARKHAM",
+  "MISSISSAUGA",
+  "MONTREAL",
+  "NORTH YORK",
+  "OSHAWA",
+  "OTTAWA",
+  "RICHMOND",
+  "SURREY",
+  "TORONTO",
+  "VANCOUVER",
+  "WATERLOO",
+  "WINDSOR",
+  "WINNIPEG",
+]);
+
+const COLLAPSED_STREET_SUFFIX =
+  "ST|STREET|AVE|AVENUE|RD|ROAD|DR|DRIVE|BLVD|BOULEVARD|LN|LANE|CT|COURT|CRES|CRESCENT|WAY|HWY|HIGHWAY|PKWY|PARKWAY|PL|PLACE|TERR|TERRACE|TRAIL";
+
+function isValidCollapsedCity(value: string): boolean {
+  return (
+    value.length >= 3 &&
+    value.length <= 40 &&
+    /^[A-Za-zÀ-ÿ\s.'-]+$/.test(value)
+  );
+}
+
+function splitCollapsedStreetCity(beforeProvince: string): {
+  streetBase: string;
+  direction: string;
+  city: string;
+} | null {
+  const match = beforeProvince.match(new RegExp(`^(.+\\b(?:${COLLAPSED_STREET_SUFFIX})\\b)(.*)$`, "i"));
+  if (!match) return null;
+
+  const streetBase = compactWhitespace(match[1]);
+  const tail = compactWhitespace(match[2]);
+  if (!streetBase || !tail) return null;
+
+  let direction = "";
+  let city = tail;
+  const separatedDirection = tail.match(/^(NE|NW|SE|SW|E|W|N|S)\s+(.+)$/i);
+  const attachedDirection = tail.match(/^(NE|NW|SE|SW|E|W|N|S)([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'-]{2,}(?:\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'-]{2,}){0,4})$/i);
+
+  if (separatedDirection) {
+    direction = separatedDirection[1].toUpperCase();
+    city = compactWhitespace(separatedDirection[2]);
+  } else if (attachedDirection) {
+    const attachedCity = compactWhitespace(attachedDirection[2]);
+    if (COLLAPSED_ADDRESS_CITY_NAMES.has(attachedCity.toUpperCase())) {
+      direction = attachedDirection[1].toUpperCase();
+      city = attachedCity;
+    }
+  }
+
+  return isValidCollapsedCity(city)
+    ? { streetBase, direction, city }
+    : null;
+}
+
 function parseCollapsedTransUnionAddressRow(line: string, result: AddressExtractionResult): boolean {
   if (/AddressCityProvPostal/i.test(line)) return false;
 
@@ -420,21 +491,17 @@ function parseCollapsedTransUnionAddressRow(line: string, result: AddressExtract
   if (!provincePostalMatch || provincePostalMatch.index === undefined) return false;
 
   const beforeProvince = line.slice(0, provincePostalMatch.index).replace(/\s+/g, " ").trim();
-  const streetCityMatch = beforeProvince.match(
-    /^(.+\b(?:ST|STREET|AVE|AVENUE|RD|ROAD|DR|DRIVE|BLVD|BOULEVARD|LN|LANE|CT|COURT|CRES|CRESCENT|WAY|HWY|HIGHWAY|PKWY|PARKWAY|PL|PLACE|TERR|TERRACE|TRAIL))\s*(?:(NE|NW|SE|SW|E|W|N|S))?([A-ZÀ-Ÿ][A-ZÀ-Ÿ.'-]{2,40})$/i,
-  );
-  if (!streetCityMatch) return false;
-
-  const streetBase = compactWhitespace(streetCityMatch[1]);
-  const direction = streetCityMatch[2] ? streetCityMatch[2].toUpperCase() : "";
-  const city = compactWhitespace(streetCityMatch[3]);
+  const streetCity = splitCollapsedStreetCity(beforeProvince);
+  if (!streetCity) return false;
 
   if (!result.address.addressLine1) {
-    result.address.addressLine1 = direction ? `${streetBase} ${direction}` : streetBase;
+    result.address.addressLine1 = streetCity.direction
+      ? `${streetCity.streetBase} ${streetCity.direction}`
+      : streetCity.streetBase;
     result.confidence += 15;
   }
   if (!result.address.city) {
-    result.address.city = city;
+    result.address.city = streetCity.city;
     result.confidence += 15;
   }
   if (!result.address.province) {

@@ -85,30 +85,28 @@ export function estimateExpectedAccountMarkersFromRawText(rawText: string | null
     .filter(Boolean);
   const isInstructionLine = (line: string) =>
     /(?:TradelineExtract|Parser\s+Assertion|Expected\s+Error|Embedded\s+Known\s+Errors|Test\s+Assertions)/i.test(line);
-  const accountTypeValuePattern =
-    /\bAccount\s+Type\s*[:#-]?\s*(?:REVOLVING|INSTALLMENT|MORTGAGE|COLLECTION|OPEN|CLOSED|LINE\s+OF\s+CREDIT|CREDIT\s+CARD|AUTO|LOAN|INDIVIDUAL|JOINT)\b/i;
+  const accountTypeValueGlobalPattern =
+    /\bAccount[ \t]+Type[ \t]*[:#-]?[ \t]*(?:REVOLVING|INSTALLMENT|MORTGAGE|COLLECTION|OPEN|CLOSED|LINE[ \t]+OF[ \t]+CREDIT|CREDIT[ \t]+CARD|AUTO|LOAN|INDIVIDUAL|JOINT)\b/gi;
   const standaloneAccountTypeValuePattern =
     /^(?:REVOLVING|INSTALLMENT|MORTGAGE|COLLECTION|OPEN|CLOSED|LINE\s+OF\s+CREDIT|CREDIT\s+CARD|AUTO|LOAN)\b/i;
 
-  const countLines = (predicate: (line: string, index: number) => boolean): number =>
-    lines.reduce((count, line, index) => count + (predicate(line, index) ? 1 : 0), 0);
   const searchableText = lines.filter((line) => !isInstructionLine(line)).join("\n");
 
-  const collapsedCreditorRows = countLines((line) =>
-    !isInstructionLine(line) &&
-    /\bCreditor\s+Name[\s\S]{0,160}?Payment\s+History\b/i.test(line),
-  );
-  const creditorNameLabels = countLines((line) =>
-    !isInstructionLine(line) && /\bCreditor\s+Name\b/i.test(line),
-  );
-  const accountTypeLabels = countLines((line, index) =>
+  const collapsedCreditorRows =
+    searchableText.match(/\bCreditor\s+Name[\s\S]{0,160}?Payment\s+History\b/gi)?.length ?? 0;
+  const creditorNameLabels =
+    searchableText.match(/\bCreditor\s+Name\b/gi)?.length ?? 0;
+  const inlineAccountTypeLabels =
+    searchableText.match(accountTypeValueGlobalPattern)?.length ?? 0;
+  const standaloneAccountTypeLabels = lines.reduce((count, line, index) => count + (
     !isInstructionLine(line) &&
     /\bAccount\s+Type\b/i.test(line) &&
-    (
-      accountTypeValuePattern.test(line) ||
-      (/^\s*Account\s+Type\s*$/i.test(line) && standaloneAccountTypeValuePattern.test(lines[index + 1] ?? ""))
-    ),
-  );
+    /^\s*Account\s+Type\s*$/i.test(line) &&
+    standaloneAccountTypeValuePattern.test(lines[index + 1] ?? "")
+      ? 1
+      : 0
+  ), 0);
+  const accountTypeLabels = inlineAccountTypeLabels + standaloneAccountTypeLabels;
   const equifaxAccountNumbers =
     searchableText.match(/\bAccount\s*(?:Number|#)\b/gi)?.length ?? 0;
 

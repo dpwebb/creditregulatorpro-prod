@@ -10,6 +10,8 @@ describe("ingest account-number identity", () => {
     expect(normalizeAccountNumber("Not Provided by Bureau")).toBeNull();
     expect(normalizeAccountNumber("Not Provided by Credit Bureau")).toBeNull();
     expect(normalizeAccountNumber("Not supplied by bureau")).toBeNull();
+    expect(normalizeAccountNumber("Not supplied by credit bureau")).toBeNull();
+    expect(normalizeAccountNumber("Not available from bureau")).toBeNull();
   });
 
   it("does not match two tradelines only because both omitted account numbers", () => {

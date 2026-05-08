@@ -82,6 +82,23 @@ Account(s):
     expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1984-07-12");
   });
 
+  it("extracts collapsed TransUnion address rows with multi-word cities", () => {
+    const consumerInfo = extractConsumerInfo(`
+TransUnion Canada Consumer Disclosure
+Personal Information:
+Consumer Name TEST CONSUMER
+Address(es):
+AddressCityProvPostalTypeOwnSinceTelephone Associations
+123 MAIN ST NORTH YORKONM2N5V7HomeJan 01, 2024
+Account(s):
+`);
+
+    expect(consumerInfo.addressLine1).toBe("123 MAIN ST");
+    expect(consumerInfo.city).toBe("NORTH YORK");
+    expect(consumerInfo.province).toBe("ON");
+    expect(consumerInfo.postalCode).toBe("M2N 5V7");
+  });
+
   it("does not promote inquiry telephone values to consumer phone", () => {
     const consumerInfo = extractConsumerInfo(`
 TransUnion Canada Consumer Disclosure

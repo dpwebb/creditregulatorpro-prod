@@ -1,6 +1,7 @@
 import { ParsedTradeline } from "./reportParser";
 import { ExtractedConsumerInfo } from "./consumerInfoExtractorTypes";
 import { FieldExpectation, ValidationMode, validateFieldValue } from "./parserValidationModes";
+import { accountNumbersMatch } from "./accountNumberIdentity";
 
 export interface FieldComparisonResult {
   fieldName: string;
@@ -41,29 +42,6 @@ function isFieldExpectation(value: any): value is FieldExpectation {
 
 function unwrapExpectedValue(value: any): any {
   return isFieldExpectation(value) ? value.value : value;
-}
-
-function normalizeAccountNumber(value: string | null | undefined): string | null {
-  const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  if (
-    !normalized ||
-    normalized === "UNKNOWN" ||
-    normalized === "NA" ||
-    normalized === "NOTREPORTED" ||
-    normalized === "NOTPROVIDED" ||
-    normalized === "NOTPROVIDEDBYBUREAU" ||
-    normalized === "NOTAVAILABLE"
-  ) return null;
-  return normalized;
-}
-
-function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
-  const left = normalizeAccountNumber(a);
-  const right = normalizeAccountNumber(b);
-  if (!left || !right) return false;
-  if (left === right) return true;
-  const minLength = Math.min(left.length, right.length);
-  return minLength >= 4 && (left.endsWith(right) || right.endsWith(left));
 }
 
 function textLooksSimilar(a: string | null | undefined, b: string | null | undefined): boolean {

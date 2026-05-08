@@ -5,6 +5,42 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { logAudit } from "../../helpers/auditLogger";
+import { coerceRuleDefinition, type RuleDefinition } from "../../helpers/dynamicRuleGenerator";
+import { getBonaFideLegalAuthoritiesByRegulationIds } from "../../helpers/legalAuthorityRegistry";
+
+export function validateScanningRuleActivation(ruleDefinition: unknown): {
+  error: string | null;
+  ruleDefinition: RuleDefinition | null;
+} {
+  const parsed = coerceRuleDefinition(ruleDefinition);
+  if (!parsed) {
+    return {
+      error: "Active scanning rules require a valid JSON rule definition.",
+      ruleDefinition: null,
+    };
+  }
+
+  const regulationIds = parsed.regulationIds ?? [];
+  if (regulationIds.length === 0) {
+    return {
+      error: "Active scanning rules require at least one explicit regulationIds entry.",
+      ruleDefinition: parsed,
+    };
+  }
+
+  const resolvedIds = getBonaFideLegalAuthoritiesByRegulationIds(regulationIds);
+  if (resolvedIds.length === 0) {
+    return {
+      error: "Active scanning rules require at least one locally resolved legal authority id.",
+      ruleDefinition: parsed,
+    };
+  }
+
+  return {
+    error: null,
+    ruleDefinition: parsed,
+  };
+}
 
 export function buildScanningRuleUpdateData(result: InputType, now = new Date()) {
   const updateData: any = {
@@ -39,7 +75,7 @@ export async function handle(request: Request) {
 
     const existingRule = await db
       .selectFrom("dynamicScanningRule")
-      .select(["status", "regulatoryUpdateId"])
+      .select(["status", "regulatoryUpdateId", "ruleDefinition"])
       .where("id", "=", result.id)
       .executeTakeFirst();
 
@@ -50,7 +86,19 @@ export async function handle(request: Request) {
     }
 
     const updateData = buildScanningRuleUpdateData(result);
-    if (result.status !== undefined) {
+    const nextStatus = result.status ?? existingRule.status;
+    if (nextStatus === "ACTIVE") {
+      const activation = validateScanningRuleActivation(
+        result.ruleDefinition ?? existingRule.ruleDefinition,
+      );
+      if (activation.error) {
+        return new Response(JSON.stringify({ error: activation.error }), {
+          status: 400,
+        });
+      }
+      if (result.ruleDefinition === undefined && typeof existingRule.ruleDefinition === "string") {
+        updateData.ruleDefinition = activation.ruleDefinition;
+      }
       if (result.status === "ACTIVE" && existingRule.status !== "ACTIVE") {
         updateData.approvedAt = new Date();
         updateData.approvedBy = user.id;

@@ -3,7 +3,7 @@ import { db } from "./db";
 import { Tradeline } from "./schema";
 import { DetectedViolation } from "./complianceDetectors";
 import { ValidationSeverity } from "./schema";
-import { RuleDefinitionSchema } from "./dynamicRuleGenerator";
+import { coerceRuleDefinition } from "./dynamicRuleGenerator";
 import { getBonaFideLegalAuthoritiesByRegulationIds } from "./legalAuthorityRegistry";
 
 function evaluateCondition(
@@ -118,13 +118,13 @@ export async function executeActiveRules(
   for (const rule of activeRules) {
     if (!rule.ruleDefinition) continue;
 
-    const parsedDef = RuleDefinitionSchema.safeParse(rule.ruleDefinition);
-    if (!parsedDef.success) {
+    const ruleDefinition = coerceRuleDefinition(rule.ruleDefinition);
+    if (!ruleDefinition) {
       console.warn(`[Dynamic Rule Executor] Active rule ${rule.id} has invalid definition structure.`);
       continue;
     }
 
-    const { conditions, logic, regulationIds } = parsedDef.data;
+    const { conditions, logic, regulationIds } = ruleDefinition;
     const resolvedRegulationIds = resolveDynamicRuleAuthorityIds(regulationIds);
     if (resolvedRegulationIds.length === 0) {
       console.warn(

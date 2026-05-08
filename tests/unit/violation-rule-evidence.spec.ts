@@ -207,6 +207,33 @@ describe("deterministic violation rule evidence", () => {
     expect(filterViolationsWithLocalAuthorityLinks([missingClosedDate])).toEqual([]);
   });
 
+  it("keeps Metro2 base-segment required-field findings authority-backed", () => {
+    const missingBaseSegmentField = violation({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "ERROR",
+      confidenceScore: 100,
+      userExplanation: "This account is missing important information: date opened.",
+      technicalDetails: {
+        ruleName: "BASE_SEGMENT_REQUIRED",
+        message: "This account is missing important information: date opened",
+        actualValue: "Missing: date opened",
+        accountType: "REVOLVING",
+        regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+        province: "ON",
+      },
+    });
+
+    const enriched = enrichDetectedViolationRuleEvidence(missingBaseSegmentField);
+
+    expect(isMissingInformationReviewIssue(missingBaseSegmentField)).toBe(true);
+    expect(hasFieldSpecificAuthorityForMissingInformation(missingBaseSegmentField)).toBe(true);
+    expect(enriched.technicalDetails?.regulationIds).toEqual([
+      "PIPEDA_4_6",
+      "METRO2_BASE_SEGMENT",
+    ]);
+    expect(filterViolationsWithLocalAuthorityLinks([missingBaseSegmentField])).toHaveLength(1);
+  });
+
   it.each([
     {
       name: "collection assignment date",

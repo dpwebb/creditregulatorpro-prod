@@ -73,6 +73,10 @@ const RULE_FIELD_MAP: Record<string, string> = {
   CREDITOR_NAME_REQUIRED: "creditorName",
 };
 
+const REPORTING_STANDARD_REQUIRED_FIELD_RULES = new Set([
+  "BASE_SEGMENT_REQUIRED",
+]);
+
 const CANADIAN_PROVINCES = new Set([
   "AB",
   "BC",
@@ -146,6 +150,27 @@ function regulationIdsFromDetails(details: Record<string, any>): string[] {
   return Array.isArray(details.regulationIds)
     ? details.regulationIds.filter((id: unknown): id is string => typeof id === "string" && Boolean(id.trim()))
     : [];
+}
+
+function hasReportingStandardRequiredFieldAuthority(
+  violation: DetectedViolation,
+  details: Record<string, any>,
+): boolean {
+  const ruleName = firstString(details, ["ruleName", "detectorRuleName"]);
+  if (!ruleName || !REPORTING_STANDARD_REQUIRED_FIELD_RULES.has(ruleName)) return false;
+
+  const regulationIds = [
+    ...new Set([
+      ...regulationIdsFromDetails(details),
+      ...(regulationRegistry.VIOLATION_REGULATION_MAP[violation.violationCategory] ?? []),
+    ]),
+  ];
+
+  return regulationIds.some((id) => {
+    if (!isRegulationAllowedForProvince(id, detailsProvince(details))) return false;
+    const authority = getBonaFideLegalAuthorityById(id);
+    return authority?.supportLevel === "reporting_standard";
+  });
 }
 
 function formatTriggerValue(value: unknown): string | null {
@@ -433,13 +458,16 @@ export function hasFieldSpecificAuthorityForMissingInformation(violation: Detect
     ]),
   ];
 
-  return hasFieldSpecificAuthority({
-    violationCategory: violation.violationCategory,
-    fieldName,
-    accountType: detailsAccountType(details),
-    regulationIds,
-    jurisdiction: detailsProvince(details),
-  });
+  return (
+    hasFieldSpecificAuthority({
+      violationCategory: violation.violationCategory,
+      fieldName,
+      accountType: detailsAccountType(details),
+      regulationIds,
+      jurisdiction: detailsProvince(details),
+    }) ||
+    hasReportingStandardRequiredFieldAuthority(violation, details)
+  );
 }
 
 export function filterViolationsWithLocalAuthorityLinks(

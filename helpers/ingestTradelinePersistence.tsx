@@ -7,6 +7,15 @@ import {
   normalizeCreditReportAmount,
   normalizeCreditReportPercent,
 } from "./creditReportNumberSanitizer";
+import {
+  accountNumbersMatch,
+  normalizeAccountNumber,
+} from "./accountNumberIdentity";
+
+export {
+  accountNumbersMatch,
+  normalizeAccountNumber,
+} from "./accountNumberIdentity";
 
 type TradelineMatchType = "account_number" | "corroborated";
 type TradelineScoreResult = {
@@ -35,34 +44,6 @@ const MIN_ACCOUNT_NUMBER_MATCH_SCORE = 40;
 const MIN_CORROBORATED_MATCH_SCORE = 45;
 const MIN_COLLECTION_FALLBACK_MATCH_SCORE = 55;
 const AMBIGUOUS_MATCH_SCORE_MARGIN = 15;
-
-export function normalizeAccountNumber(value: string | null | undefined): string | null {
-  const normalized = (value || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  if (
-    !normalized ||
-    normalized === "UNKNOWN" ||
-    normalized === "NA" ||
-    normalized === "NOTREPORTED" ||
-    normalized === "NOTPROVIDED" ||
-    normalized === "NOTPROVIDEDBYBUREAU" ||
-    normalized === "NOTPROVIDEDBYCREDITBUREAU" ||
-    normalized === "NOTSUPPLIEDBYBUREAU" ||
-    normalized === "NOTAVAILABLEFROMBUREAU" ||
-    normalized === "NOTAVAILABLE"
-  ) {
-    return null;
-  }
-  return normalized;
-}
-
-export function accountNumbersMatch(a: string | null | undefined, b: string | null | undefined): boolean {
-  const left = normalizeAccountNumber(a);
-  const right = normalizeAccountNumber(b);
-  if (!left || !right) return false;
-  if (left === right) return true;
-  const minLength = Math.min(left.length, right.length);
-  return minLength >= 4 && (left.endsWith(right) || right.endsWith(left));
-}
 
 function accountNumbersConflict(a: string | null | undefined, b: string | null | undefined): boolean {
   const left = normalizeAccountNumber(a);

@@ -84,4 +84,26 @@ describe("dynamic rule executor authority gating", () => {
       }),
     );
   });
+
+  it("emits matched dynamic findings from legacy JSON-string rule definitions", async () => {
+    executeMock.mockResolvedValueOnce([
+      activeRule({
+        ruleDefinition: JSON.stringify({
+          conditions: [{ field: "balance", operator: "greaterThan", value: 100 }],
+          logic: "AND",
+          regulationIds: ["PIPEDA_4_6"],
+        }),
+      }),
+    ]);
+
+    const violations = await executeActiveRules({ balance: 125 } as any);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0].technicalDetails).toEqual(
+      expect.objectContaining({
+        ruleId: 10,
+        regulationIds: ["PIPEDA_4_6"],
+      }),
+    );
+  });
 });
