@@ -15,7 +15,7 @@ const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /\bactual\s+violations?\b/gi, replacement: "mapped compliance issues" },
   { pattern: /\bviolation\s+of\s+([A-Z0-9_. -]+)\b/gi, replacement: "potential inconsistency with $1" },
   { pattern: /\bdelete\s+(?:this|the)?\s*(?:account|tradeline|item|information)?\b/gi, replacement: "review and correct the reported information" },
-  { pattern: /\bremove\s+(?:this|the)?\s*(?:account|tradeline|item|information|inquiry)?\b/gi, replacement: "review and correct the reported information" },
+  { pattern: /\bremove\s+(?:this|the)?\s*(?:account|tradeline|item|information|inquiry|it)?\b/gi, replacement: "review and correct the reported information" },
   { pattern: /\bremove\s+them\b/gi, replacement: "correct any unsupported information" },
   { pattern: /\bremoved\b/gi, replacement: "reviewed and corrected if unsupported" },
   { pattern: /\bremoval\b/gi, replacement: "correction pathway" },

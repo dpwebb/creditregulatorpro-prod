@@ -24,4 +24,26 @@ describe("compliance finding normalizer", () => {
     expect(normalized.userExplanation).toContain("That date can help verify the reporting.");
     expect(normalized.userExplanation).not.toContain("That date is required.");
   });
+
+  it("does not leave attached pronouns when neutralizing removal language", () => {
+    const violation: DetectedViolation = {
+      violationCategory: "STATUTE_APPROACHING",
+      severity: "WARNING",
+      confidenceScore: 90,
+      userExplanation: "After that, the credit bureau must remove it.",
+      technicalDetails: {
+        regulationIds: ["PIPEDA_4_5", "NS_CRA_REPORTING_LIMIT"],
+        detectedValue: "2020-08-09T00:00:00.000Z",
+        province: "NS",
+      },
+      recommendedAction: "Monitor the account.",
+      tradelineId: 521,
+      responsibleEntity: "BUREAU",
+    };
+
+    const normalized = normalizeDetectedViolation(violation);
+
+    expect(normalized.userExplanation).not.toContain("informationit");
+    expect(normalized.userExplanation).toContain("review and correct the reported information");
+  });
 });

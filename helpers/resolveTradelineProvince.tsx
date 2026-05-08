@@ -1,6 +1,11 @@
 import { db } from "./db";
 import { Selectable } from "kysely";
-import { Tradeline } from "./schema";
+import { Tradeline, type CanadianProvince } from "./schema";
+import { normalizeProvinceCode } from "./canadianJurisdictions";
+
+function normalizedProvince(value: string | null | undefined): CanadianProvince | null {
+  return normalizeProvinceCode(value);
+}
 
 /**
  * Resolves the province for a tradeline using a 3-step cascade:
@@ -12,7 +17,7 @@ import { Tradeline } from "./schema";
  */
 export async function resolveTradelineProvince(
   tradeline: Selectable<Tradeline>
-): Promise<string | null> {
+): Promise<CanadianProvince | null> {
   return resolveProvinceByIds(tradeline.userId, tradeline.reportArtifactId);
 }
 
@@ -27,7 +32,7 @@ export async function resolveTradelineProvince(
 export async function resolveProvinceByIds(
   userId: number | null,
   reportArtifactId: number | null
-): Promise<string | null> {
+): Promise<CanadianProvince | null> {
   // Step 1: Check userAccount.province
   if (userId) {
     const userAccount = await db
@@ -36,8 +41,9 @@ export async function resolveProvinceByIds(
       .where("userId", "=", userId)
       .executeTakeFirst();
 
-    if (userAccount?.province) {
-      return userAccount.province;
+    const userAccountProvince = normalizedProvince(userAccount?.province);
+    if (userAccountProvince) {
+      return userAccountProvince;
     }
 
     const legacyUserAccount = await db
@@ -46,8 +52,9 @@ export async function resolveProvinceByIds(
       .where("id", "=", userId)
       .executeTakeFirst();
 
-    if (legacyUserAccount?.province) {
-      return legacyUserAccount.province;
+    const legacyUserAccountProvince = normalizedProvince(legacyUserAccount?.province);
+    if (legacyUserAccountProvince) {
+      return legacyUserAccountProvince;
     }
   }
 
@@ -59,8 +66,9 @@ export async function resolveProvinceByIds(
       .where("reportArtifactId", "=", reportArtifactId)
       .executeTakeFirst();
 
-    if (reportInfo?.province) {
-      return reportInfo.province;
+    const reportProvince = normalizedProvince(reportInfo?.province);
+    if (reportProvince) {
+      return reportProvince;
     }
   }
 
@@ -79,8 +87,9 @@ export async function resolveProvinceByIds(
       .orderBy("reportArtifact.reportDate", "desc")
       .executeTakeFirst();
 
-    if (latestReportInfo?.province) {
-      return latestReportInfo.province;
+    const latestReportProvince = normalizedProvince(latestReportInfo?.province);
+    if (latestReportProvince) {
+      return latestReportProvince;
     }
   }
 

@@ -25,6 +25,10 @@ function safeParseDate(dateInput: Date | string | null | undefined): Date | null
   return null;
 }
 
+function laterDate(left: Date, right: Date): Date {
+  return isAfter(left, right) ? left : right;
+}
+
 /**
  * Detects significant date shifts across report artifacts, which may indicate manipulation.
  */
@@ -171,7 +175,8 @@ pastDue === 0
     accountType = "consumer_proposal";
   }
 
-  const expiryResult = calculateRetentionExpiry(province, accountType, referenceDate, false, undefined, analysisDate);
+  const effectiveAnalysisDate = laterDate(new Date(), analysisDate);
+  const expiryResult = calculateRetentionExpiry(province, accountType, referenceDate, false, undefined, effectiveAnalysisDate);
   if (!expiryResult) {
     return violations;
   }
@@ -183,7 +188,7 @@ pastDue === 0
       violationCategory: "STATUTE_OF_LIMITATIONS",
       severity: "ERROR",
       confidenceScore: 90,
-      userExplanation: `This debt is past the ${retentionYears}-year time limit for being on your credit report. It should be removed.`,
+      userExplanation: `This debt is past the ${retentionYears}-year reporting limit for your credit report. It should be reviewed for correction if the reporting is unsupported.`,
       technicalDetails: {
         referenceDate: referenceDate.toISOString(),
         reportingLimitDate: expiryDate.toISOString(),
@@ -196,18 +201,18 @@ pastDue === 0
           statutoryReference: statuteReference,
           regulationIds: ["PIPEDA_4_5", `${province}_CRA_REPORTING_LIMIT`],
         },
-        recommendedAction: `Ask the credit bureau to remove this account right away — it's past the ${retentionYears}-year limit.`,
+        recommendedAction: `Ask the credit bureau to review whether this account remains reportable because it is past the ${retentionYears}-year reporting limit.`,
       tradelineId: tradeline.id,
       responsibleEntity: "BUREAU",
     });
   } else if (!isExpired && appearsClosed) {
-    const monthsRemaining = differenceInMonths(expiryDate, analysisDate);
+    const monthsRemaining = differenceInMonths(expiryDate, effectiveAnalysisDate);
     if (monthsRemaining <= 6 && monthsRemaining >= 0) {
       violations.push({
         violationCategory: "STATUTE_APPROACHING",
         severity: "WARNING",
         confidenceScore: 90,
-        userExplanation: `This account will be too old for your report in ${monthsRemaining} months. After that, the credit bureau must remove it.`,
+        userExplanation: `This account is approaching the ${retentionYears}-year reporting limit for your report in ${monthsRemaining} months. After that date, the credit bureau should review whether it remains reportable.`,
         technicalDetails: {
           referenceDate: referenceDate.toISOString(),
           reportingLimitDate: expiryDate.toISOString(),
@@ -222,7 +227,7 @@ pastDue === 0
           statutoryReference: statuteReference,
           regulationIds: ["PIPEDA_4_5", `${province}_CRA_REPORTING_LIMIT`],
         },
-        recommendedAction: `Our strong advice: wait it out. In just ${monthsRemaining} months this account must be removed from your report on its own. No letter needed.`,
+        recommendedAction: `Monitor this account. In ${monthsRemaining} months, ask the credit bureau to review whether it remains reportable under the mapped reporting-limit authority.`,
         tradelineId: tradeline.id,
         responsibleEntity: "BUREAU",
       });
