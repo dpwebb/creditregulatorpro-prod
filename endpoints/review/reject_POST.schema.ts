@@ -4,8 +4,7 @@ import { z } from "zod";
 export const schema = z.object({
   reviewSessionId: z.string().uuid(),
   reason: z.string(),
-  userId: z.string().uuid().optional(), // Optional - prioritize authenticated session
-});
+}).strict();
 
 export type InputType = z.infer<typeof schema>;
 

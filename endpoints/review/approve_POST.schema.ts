@@ -22,13 +22,12 @@ const TradelineSchema = z.object({
 
 export const schema = z.object({
   reviewSessionId: z.string().uuid(),
-  userId: z.string().uuid().optional(), // Optional - prioritize authenticated session
   region: z.string().length(2),
   fileName: z.string(),
   mimeType: z.string(),
   bytesBase64: z.string(),
   tradelines: z.array(TradelineSchema),
-});
+}).strict();
 
 export type InputType = z.infer<typeof schema>;
 

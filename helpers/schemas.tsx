@@ -1,12 +1,11 @@
 import { z } from "zod";
 
 export const UploadReportInput = z.object({
-  userId: z.string().optional(), // Optional: use authenticated session if not provided
   region: z.literal("CA"),
   fileName: z.string(),
   mimeType: z.string(),
   bytesBase64: z.string(),
-});
+}).strict();
 
 export type UploadReportInputType = z.infer<typeof UploadReportInput>;
 

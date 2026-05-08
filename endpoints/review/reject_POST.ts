@@ -1,6 +1,5 @@
 import { schema, OutputType } from "./reject_POST.schema";
 
-import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { logAudit } from "../../helpers/auditLogger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
@@ -10,57 +9,10 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
-    let user;
-    let isAuthenticatedRequest = false;
-
-    // Try to get authenticated user session first
-    try {
-      const sessionData = await getServerUserSession(request);
-      user = sessionData.user;
-      isAuthenticatedRequest = true;
-      console.log(`[Review/Reject] Authenticated rejection from user ${user.id} (${user.email})`);
-    } catch (sessionError) {
-      // Not authenticated - check if userId was provided for external/unauthenticated flow
-      if (!input.userId) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Authentication required or userId must be provided for external requests"
-          }),
-          { 
-            status: 401,
-            headers: { "Content-Type": "application/json" }
-          }
-        );
-      }
-
-      console.log(`[Review/Reject] Unauthenticated rejection with external userId: ${input.userId}`);
-      
-      // External/unauthenticated flow - find or create user
-      const email = `user-${input.userId}@creditregulatorpro.com`;
-      
-      let existingUser = await db
-        .selectFrom("users")
-        .selectAll()
-        .where("email", "=", email)
-        .executeTakeFirst();
-
-      if (!existingUser) {
-        console.log(`[Review/Reject] Creating new user in users table for external userId: ${email}`);
-        existingUser = await db
-          .insertInto("users")
-          .values({
-            email: email,
-            displayName: `User ${input.userId}`,
-            role: "user",
-            emailVerified: false,
-          })
-          .returningAll()
-          .executeTakeFirstOrThrow();
-      }
-
-      user = existingUser;
-      isAuthenticatedRequest = false;
-    }
+    const sessionData = await getServerUserSession(request);
+    const user = sessionData.user;
+    const isAuthenticatedRequest = true;
+    console.log(`[Review/Reject] Authenticated rejection from user ${user.id} (${user.email})`);
 
     // Log the rejection - use user.id from users table
     await logAudit({

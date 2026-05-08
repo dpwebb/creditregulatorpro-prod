@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { schema as loginSchema } from "../../endpoints/auth/login_with_password_POST.schema";
 import { schema as registerSchema } from "../../endpoints/auth/register_with_password_POST.schema";
 import { schema as uploadSchema } from "../../endpoints/ingest/report_POST.schema";
+import { schema as approveReviewSchema } from "../../endpoints/review/approve_POST.schema";
+import { schema as rejectReviewSchema } from "../../endpoints/review/reject_POST.schema";
 import { schema as profileSchema } from "../../endpoints/user/profile_POST.schema";
 import { schema as packetBuildSchema } from "../../endpoints/packet/build_POST.schema";
 import { schema as supportTicketSchema } from "../../endpoints/support-ticket/create_POST.schema";
@@ -41,6 +43,15 @@ describe("critical API schema contracts", () => {
     ).toBe(true);
     expect(
       uploadSchema.safeParse({
+        userId: "11111111-1111-1111-1111-111111111111",
+        region: "CA",
+        fileName: "credit-report.pdf",
+        mimeType: "application/pdf",
+        bytesBase64: pdfBase64,
+      }).success
+    ).toBe(false);
+    expect(
+      uploadSchema.safeParse({
         region: "US",
         fileName: "credit-report.pdf",
         mimeType: "application/pdf",
@@ -59,6 +70,51 @@ describe("critical API schema contracts", () => {
       }).success
     ).toBe(true);
     expect(profileSchema.safeParse({ fullName: "", addressLine1: "" }).success).toBe(false);
+  });
+
+  it("rejects client-supplied userId on review persistence contracts", () => {
+    const reviewSessionId = "11111111-1111-4111-8111-111111111111";
+    const tradeline = {
+      accountNumber: "1234",
+      creditorName: "Test Bank",
+      accountType: "Credit Card",
+      balance: 100,
+      status: "Open",
+      dates: {},
+      amounts: {},
+      remarkCodes: [],
+    };
+
+    expect(
+      approveReviewSchema.safeParse({
+        reviewSessionId,
+        region: "CA",
+        fileName: "credit-report.pdf",
+        mimeType: "application/pdf",
+        bytesBase64: pdfBase64,
+        tradelines: [tradeline],
+      }).success
+    ).toBe(true);
+    expect(
+      approveReviewSchema.safeParse({
+        reviewSessionId,
+        userId: "22222222-2222-4222-8222-222222222222",
+        region: "CA",
+        fileName: "credit-report.pdf",
+        mimeType: "application/pdf",
+        bytesBase64: pdfBase64,
+        tradelines: [tradeline],
+      }).success
+    ).toBe(false);
+
+    expect(rejectReviewSchema.safeParse({ reviewSessionId, reason: "Wrong file" }).success).toBe(true);
+    expect(
+      rejectReviewSchema.safeParse({
+        reviewSessionId,
+        userId: "22222222-2222-4222-8222-222222222222",
+        reason: "Wrong file",
+      }).success
+    ).toBe(false);
   });
 
   it("validates packet, support, and admin correction workflow inputs", () => {

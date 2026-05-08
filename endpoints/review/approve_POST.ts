@@ -30,62 +30,13 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
-    let user;
-    let userAccount;
-    let isAuthenticatedUpload = false;
-
-    // Try to get authenticated user session first
-    try {
-      const sessionData = await getServerUserSession(request);
-      user = sessionData.user;
-      isAuthenticatedUpload = true;
-      console.log(`[Review/Approve] Authenticated approval from user ${user.id} (${user.email})`);
-    } catch (sessionError) {
-      // Not authenticated - check if userId was provided for external/unauthenticated flow
-      if (!input.userId) {
-        return new Response(
-          JSON.stringify({ 
-            error: "Authentication required or userId must be provided for external uploads"
-          }),
-          { 
-            status: 401,
-            headers: { "Content-Type": "application/json" }
-          }
-        );
-      }
-
-      console.log(`[Review/Approve] Unauthenticated approval with external userId: ${input.userId}`);
-      
-      // External/unauthenticated flow - use UUID-based user identification
-      const email = `user-${input.userId}@creditregulatorpro.com`;
-      const displayName = `User ${input.userId}`;
-      
-      let existingUser = await db
-        .selectFrom("users")
-        .selectAll()
-        .where("email", "=", email)
-        .executeTakeFirst();
-
-      if (!existingUser) {
-        console.log(`[Review/Approve] Creating new user in users table for external userId: ${email}`);
-        existingUser = await db
-          .insertInto("users")
-          .values({
-            email: email,
-            displayName: displayName,
-            role: "user",
-            emailVerified: false,
-          })
-          .returningAll()
-          .executeTakeFirstOrThrow();
-      }
-
-      user = existingUser;
-      isAuthenticatedUpload = false;
-    }
+    const sessionData = await getServerUserSession(request);
+    const user = sessionData.user;
+    const isAuthenticatedUpload = true;
+    console.log(`[Review/Approve] Authenticated approval from user ${user.id} (${user.email})`);
 
     // Create or find userAccount (profile table) - prefer lookup by userId, fall back to email
-    userAccount = await db
+    let userAccount = await db
       .selectFrom("userAccount")
       .selectAll()
       .where("userId", "=", user.id)

@@ -24,7 +24,7 @@ export async function handle(request: Request) {
   // This prevents jwtVerify from hanging inside async callbacks
   let resolvedSession;
   try {
-    resolvedSession = await resolveUserSession(request, input.userId, input.region);
+    resolvedSession = await resolveUserSession(request, input.region);
   } catch (error) {
     console.error("Error resolving session:", error);
     return handleEndpointError(error);

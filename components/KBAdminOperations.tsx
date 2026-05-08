@@ -78,7 +78,7 @@ export const KBAdminOperations = () => {
             <AccordionContent>
               <ul className={styles.list}>
                 <li><strong>Domain Guard:</strong> Checks that requests come from allowed websites.</li>
-                <li><strong>Modes:</strong> It can be "log_only" (default, just records issues) or "enforce" (blocks bad requests with a 403 error). Change this in Admin Settings (key: DOMAIN_GUARD_MODE).</li>
+                <li><strong>Modes:</strong> It can be "log_only" (records issues) or "enforce" (blocks bad requests with a 403 error). Change this in Admin Settings (key: DOMAIN_GUARD_MODE).</li>
                 <li><strong>Fingerprints:</strong> We track requests using a secure hash of the IP, User-Agent, and Accept headers.</li>
                 <li><strong>Suspicious Activity:</strong> If a fingerprint hits more than 50 different endpoints or makes over 200 requests in 5 minutes, it gets logged in the suspicious_activity_log table.</li>
               </ul>

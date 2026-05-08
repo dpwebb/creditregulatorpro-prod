@@ -46,7 +46,46 @@ function getOriginOrReferer(request: Request): string | null {
 export interface DomainGuardResult {
   valid: boolean;
   origin: string;
-  mode: string;
+  mode: DomainGuardMode;
+}
+
+export type DomainGuardMode = "log_only" | "enforce";
+
+function normalizeDomainGuardMode(value: string | null | undefined): DomainGuardMode | null {
+  if (value === "log_only" || value === "enforce") {
+    return value;
+  }
+  return null;
+}
+
+function defaultDomainGuardMode(): DomainGuardMode {
+  if (process.env.NODE_ENV === "development") {
+    return "log_only";
+  }
+  return "enforce";
+}
+
+export async function getDomainGuardMode(): Promise<DomainGuardMode> {
+  const envMode = normalizeDomainGuardMode(process.env.DOMAIN_GUARD_MODE);
+  if (envMode) {
+    return envMode;
+  }
+
+  try {
+    const setting = await db
+      .selectFrom("systemSettings")
+      .select("value")
+      .where("key", "=", "DOMAIN_GUARD_MODE")
+      .executeTakeFirst();
+    const configuredMode = normalizeDomainGuardMode(setting?.value);
+    if (configuredMode) {
+      return configuredMode;
+    }
+  } catch (error) {
+    console.error("Failed to fetch DOMAIN_GUARD_MODE setting", error);
+  }
+
+  return defaultDomainGuardMode();
 }
 
 /**
@@ -58,27 +97,7 @@ export async function validateOrigin(
   request: Request
 ): Promise<DomainGuardResult> {
   const originStr = getOriginOrReferer(request);
-
-  // Temporary project-wide default: keep domain guard in log_only mode unless explicitly
-  // re-enabled via DOMAIN_GUARD_FORCE_LOG_ONLY=false.
-  // This avoids user-facing 500s during active staging development while preserving logging.
-  const forceLogOnly = process.env.DOMAIN_GUARD_FORCE_LOG_ONLY !== "false";
-  let mode = "log_only";
-
-  if (!forceLogOnly) {
-    try {
-      const setting = await db
-        .selectFrom("systemSettings")
-        .select("value")
-        .where("key", "=", "DOMAIN_GUARD_MODE")
-        .executeTakeFirst();
-      if (setting && setting.value) {
-        mode = setting.value;
-      }
-    } catch (error) {
-      console.error("Failed to fetch DOMAIN_GUARD_MODE setting", error);
-    }
-  }
+  const mode = await getDomainGuardMode();
 
   let valid = false;
 
