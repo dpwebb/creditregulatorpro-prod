@@ -9,6 +9,7 @@ import { Button } from "./Button";
 import { Link } from "react-router-dom";
 import { useAcceptTerms } from "../helpers/useAcceptTerms";
 import { evaluateSubscriptionAccess } from "../helpers/subscriptionAccess";
+import { needsTermsAcceptance } from "../helpers/termsAcceptance";
 import styles from "./ProtectedRoute.module.css";
 
 const TermsAcceptanceBlock: React.FC = () => {
@@ -177,16 +178,14 @@ const MakeProtectedRoute: (roles: Array<User["role"] | "support">) => React.FC<{
       );
     }
 
-    const hasVersionMismatch =
-      user.currentTermsVersion !== null &&
-      user.termsAcceptedVersion !== user.currentTermsVersion;
+    const shouldRequireTermsAcceptance = needsTermsAcceptance({
+      role: user.role,
+      termsAcceptedAt: user.termsAcceptedAt,
+      termsAcceptedVersion: user.termsAcceptedVersion,
+      currentTermsVersion: user.currentTermsVersion,
+    });
 
-    const needsTermsAcceptance =
-      user.role !== "admin" &&
-      user.role !== "support" &&
-      (!user.termsAcceptedAt || hasVersionMismatch);
-
-    if (needsTermsAcceptance) {
+    if (shouldRequireTermsAcceptance) {
       return <TermsAcceptanceBlock />;
     }
 
