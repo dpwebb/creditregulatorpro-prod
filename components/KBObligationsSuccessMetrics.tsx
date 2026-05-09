@@ -28,7 +28,7 @@ export const KBObligationsSuccessMetrics = () => {
               <ul>
                 <li><strong>Dispute Vector:</strong> The strategy used (e.g., AUTHORITY_TO_REPORT).</li>
                 <li><strong>Entity:</strong> The specific Furnisher, Bureau, or Collector involved.</li>
-                <li><strong>Violation Category:</strong> The type of obligation breached.</li>
+                <li><strong>Finding Category:</strong> The type of compliance finding tied to the outcome.</li>
                 <li><strong>Outcome:</strong> The final result from the responding party.</li>
                 <li><strong>Response Time:</strong> Latency between challenge and resolution.</li>
               </ul>

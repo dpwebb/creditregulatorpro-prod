@@ -269,7 +269,7 @@ export async function runAllTradelineDetectors(
     violations.push(...runAllResponseAuditDetectors(obligationInstances));
   }
 
-  // 8. Bureau Violations
+  // 8. Bureau findings
   violations.push(...detectBureauInvestigationFailure(obligationInstances, analysisDate));
   violations.push(...detectBureauNotificationFailure(obligationInstances));
   violations.push(...detectBureauReinvestigationFailure(tradeline, reportArtifacts));

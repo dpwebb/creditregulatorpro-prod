@@ -1,15 +1,17 @@
-# Regulatory Mandate Only Violations Policy
+# Regulatory Mandate Only Findings Policy
 
 ## Core Principle
-Compliance detectors in the system must **ONLY** flag violations that are backed by explicit Canadian federal or provincial regulation.
+Compliance detectors in the system must **ONLY** surface compliance findings that are backed by explicit Canadian federal or provincial regulation or an approved reporting-standard authority mapping.
+
+Use **compliance finding** as the umbrella product term. Use **confirmed legal violation** only when the mapped authority classification explicitly supports that label.
 
 ## Metro 2 is Not Law
 * Metro 2 is a U.S. industry data format standard established by the CDIA.
 * It is **not** a Canadian legal requirement.
-* Violations based purely on Metro 2 non-compliance should not be surfaced to the user as regulatory violations.
+* Findings based purely on Metro 2 non-compliance should not be surfaced to the user as regulatory violations.
 
 ## Removed Fields & Checks
-The following fields have been removed from violation checks because they are NOT mandated by Canadian law:
+The following fields have been removed from compliance finding checks because they are NOT mandated by Canadian law:
 * `high_credit`
 * `payment_history` (as a disclosure requirement)
 * `paymentRating`
@@ -40,4 +42,4 @@ The following rules have been kept because they are grounded in **PIPEDA 4.6 (Ac
 
 ## Important Edge Cases
 * **Original Creditor vs. Collection**: An original creditor reporting an `O9` or charge-off status is **NOT** a collection account.
-* **Collection Violations**: Only flag collection-specific violations when the reporting entity is definitively acting as a collection agency.
+* **Collection Findings**: Only flag collection-specific findings when the reporting entity is definitively acting as a collection agency.

@@ -206,7 +206,7 @@ function readStoredParserGate(technicalDetails: unknown): ParserConfidenceGate |
     message:
       typeof rawGate.message === "string" && rawGate.message.trim()
         ? rawGate.message
-        : "Parser confidence metadata is attached to this violation.",
+        : "Parser confidence metadata is attached to this compliance finding.",
   });
 }
 
@@ -263,6 +263,6 @@ export function evaluateViolationPacketConfidenceGate(input: {
     packetReady: true,
     blockerCode: null,
     confidenceScore: storedGate?.confidenceScore ?? null,
-    message: storedGate?.message ?? "This violation is available for packet generation.",
+    message: storedGate?.message ?? "This compliance finding is available for packet generation.",
   };
 }

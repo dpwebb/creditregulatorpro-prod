@@ -46,7 +46,7 @@ export const KBAnalyticsSuccessDashboard = () => {
             <p>You can toggle between four primary views to analyze data from different angles:</p>
             <ul>
               <li><strong>By Vector:</strong> Compare the effectiveness of different dispute methods (e.g., Metro 2 Compliance vs. Direct Verification).</li>
-              <li><strong>By Violation:</strong> Identify which specific legal violations (Provincial CRA, PIPEDA, etc.) yield the highest deletion rates.</li>
+              <li><strong>By Finding:</strong> Identify which compliance finding types and authority mappings yield the highest deletion rates.</li>
               <li><strong>By Furnisher:</strong> Track the responsiveness and compliance history of specific banks and collection agencies.</li>
               <li><strong>By Bureau:</strong> Compare performance metrics between Equifax and TransUnion.</li>
             </ul>

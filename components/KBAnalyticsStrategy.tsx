@@ -32,9 +32,9 @@ export const KBAnalyticsStrategy = () => {
 
         <div className={styles.strategyCard}>
           <ShieldCheck className={styles.strategyIcon} />
-          <h3>Violation Focus</h3>
+          <h3>Finding Focus</h3>
           <p>
-            Prioritize disputes based on violation type data. Violations that historically lead to higher Pressure Scores often trigger faster responses from compliance departments.
+            Prioritize disputes based on finding type data. Findings that historically lead to higher Pressure Scores often trigger faster responses from compliance departments.
           </p>
         </div>
       </div>

@@ -499,7 +499,7 @@ export default function AdminParserTestingPage() {
         <TabsList>
           <TabsTrigger value="test-cases">Test Cases</TabsTrigger>
           <TabsTrigger value="stage-lab">Stage Lab</TabsTrigger>
-          <TabsTrigger value="violation-corrections">Violation Corrections</TabsTrigger>
+          <TabsTrigger value="violation-corrections">Finding Corrections</TabsTrigger>
           <TabsTrigger value="run-all">Run All Tests</TabsTrigger>
           <TabsTrigger value="import-export">Import / Export</TabsTrigger>
         </TabsList>

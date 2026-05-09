@@ -5,7 +5,7 @@ export const PACKET_RECOMMENDATIONS_QUERY_KEY = ["packetRecommendations"] as con
 
 /**
  * React Query hook to fetch intelligent packet recommendations.
- * Utilizes the getRecommendPacket endpoint to surface the top 3 actionable violations
+ * Utilizes the getRecommendPacket endpoint to surface the top 3 actionable compliance findings
  * or fallback procedural ingress vectors if no strong data violations exist.
  */
 export function usePacketRecommendations() {

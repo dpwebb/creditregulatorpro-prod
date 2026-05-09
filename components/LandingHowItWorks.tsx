@@ -18,7 +18,7 @@ export function LandingHowItWorks() {
       number: "02",
       icon: <Search size={20} />,
       title: "Automated Analysis",
-      description: "We scan it for errors and violations",
+      description: "We scan it for errors and compliance findings",
     },
     {
       number: "03",

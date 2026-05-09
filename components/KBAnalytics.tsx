@@ -71,15 +71,15 @@ export const KBAnalytics = () => {
                 </div>
 
                 <div className={styles.dimensionCard}>
-                  <h4>By Violation Category</h4>
+                  <h4>By Finding Category</h4>
                   <p>
-                    Measures which compliance violations (temporal manipulation, Metro2 errors,
+                    Measures which compliance findings (temporal manipulation, reporting-standard issues,
                     etc.) lead to successful outcomes.
                   </p>
                   <ul className={styles.metricList}>
-                    <li>Success rate per violation type</li>
+                    <li>Success rate per finding type</li>
                     <li>Severity impact on outcomes</li>
-                    <li>Combined violation effectiveness</li>
+                    <li>Combined finding effectiveness</li>
                   </ul>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export const KBAnalytics = () => {
               </p>
               <ul>
                 <li><strong>Unanswered Challenges:</strong> +10 points per missed response deadline</li>
-                <li><strong>Metro2 Violation Severity:</strong> +5 for WARNING, +15 for ERROR severity</li>
+                <li><strong>Reporting-standard finding severity:</strong> +5 for WARNING, +15 for ERROR severity</li>
                 <li><strong>Time Since Procedural Exhaustion:</strong> +2 points per month elapsed</li>
                 <li><strong>Regulatory Complaints Filed:</strong> +20 points per provincial regulator complaint</li>
               </ul>
@@ -187,7 +187,7 @@ export const KBAnalytics = () => {
                 </div>
                 <div className={styles.scoreRange}>
                   <Badge variant="warning">31-60</Badge>
-                  <span>Moderate pressure - Multiple violations detected</span>
+                  <span>Moderate pressure - Multiple findings detected</span>
                 </div>
                 <div className={styles.scoreRange}>
                   <Badge variant="error">61-80</Badge>
@@ -214,7 +214,7 @@ export const KBAnalytics = () => {
         badge="STRATEGY OPTIMIZATION"
       >
         <p>
-          Analyze which dispute vector rotations are most effective for specific violation types.
+          Analyze which dispute vector rotations are most effective for specific finding types.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -225,14 +225,14 @@ export const KBAnalytics = () => {
                 The system tracks which sequence combinations lead to successful outcomes:
               </p>
               <ul>
-                <li>Most effective first vector per violation category</li>
+                <li>Most effective first vector per finding category</li>
                 <li>Average sequences needed to reach deletion</li>
                 <li>Creditor-specific rotation patterns that work</li>
                 <li>Vector combinations that trigger escalation</li>
               </ul>
               <p>
                 This data informs automatic vector selection when the compliance scanner
-                detects new violations.
+                detects new findings.
               </p>
             </AccordionContent>
           </AccordionItem>

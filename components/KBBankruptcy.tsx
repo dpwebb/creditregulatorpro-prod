@@ -30,8 +30,8 @@ export const KBBankruptcy = () => {
           <ol className={styles.list}>
             <li><strong>Create Record:</strong> Log your bankruptcy or proposal (dates, case number, etc.).</li>
             <li><strong>Link Tradelines:</strong> Associate specific debts included in the bankruptcy.</li>
-            <li><strong>Auto-Detect Violations:</strong> The system scans for creditors illegally reporting balances.</li>
-            <li><strong>Dispute:</strong> Generate targeted packets to force compliance and remove violations.</li>
+            <li><strong>Auto-Detect Findings:</strong> The system scans for post-discharge balance reporting issues.</li>
+            <li><strong>Dispute:</strong> Generate targeted packets to request correction of supported findings.</li>
           </ol>
           <Button asChild className={styles.actionButton}>
             <Link to="/bankruptcy-tracker">Open Bankruptcy Tracker</Link>
@@ -73,8 +73,8 @@ export const KBBankruptcy = () => {
                 and indicate that the account was "included in bankruptcy" or "settled."
               </p>
               <p>
-                Any creditor reporting a balance owed, past due amount, or continuing to 
-                report late payments post-discharge is in violation of the law.
+                Any creditor reporting a balance owed, past due amount, or continuing to
+                report late payments post-discharge creates a compliance finding that should be reviewed and corrected if unsupported.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -82,18 +82,18 @@ export const KBBankruptcy = () => {
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection
-        title="Discharge Violation Detection"
+        title="Discharge Finding Detection"
         icon={Scale}
         badge="AUTO-SCANNER"
         badgeVariant="error"
       >
         <p>
-          Credit Regulator Pro features a specialized rules engine for detecting post-bankruptcy reporting violations.
+          Credit Regulator Pro features a specialized rules engine for detecting post-bankruptcy reporting findings.
         </p>
         <ul className={styles.list}>
           <li><strong>Automated Scanning:</strong> When a new credit report is uploaded, the system cross-references linked tradelines against your discharge date.</li>
-          <li><strong>Violation Generation:</strong> If a linked account still shows a balance or reports charge-offs after the discharge date, a "Bankruptcy Discharge Violation" is automatically generated in the compliance test logs.</li>
-          <li><strong>Targeted Disputes:</strong> Generate highly aggressive dispute packets tailored to the specific provincial and federal violations occurring post-discharge.</li>
+          <li><strong>Finding Generation:</strong> If a linked account still shows a balance or reports charge-offs after the discharge date, a bankruptcy discharge compliance finding is automatically generated in the compliance test logs.</li>
+          <li><strong>Targeted Disputes:</strong> Generate dispute packets tailored to the specific provincial and federal authority mappings for post-discharge reporting.</li>
         </ul>
       </KnowledgeBaseSection>
     </div>

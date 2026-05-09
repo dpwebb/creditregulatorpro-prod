@@ -7,6 +7,7 @@ import { PLATFORM_COMPLIANCE_SCOPE, PLATFORM_REGION } from "./platformScope";
  * This instructs the AI on its persona, the platform's functionality, and how to handle escalations.
  */
 export function getAISupportSystemPrompt(): string {
+  const findingCategoryCount = ViolationCategoryArrayValues.length;
   const violationsList = ViolationCategoryArrayValues.map(
     (v) => `- ${getViolationLabel(v)}`
   ).join("\n");
@@ -20,7 +21,7 @@ Credit Regulator Pro is a ${PLATFORM_COMPLIANCE_SCOPE} platform (${PLATFORM_REGI
 
 Key features with how-to:
 - Upload Reports (/upload): Upload your TransUnion or Equifax credit report (PDF/HTML). The system extracts all accounts automatically.
-- My Accounts (/my-accounts): View all tradelines, see detected violations, and view compliance scores.
+- My Accounts (/my-accounts): View all tradelines, see compliance findings, and view compliance scores.
 - My Letters (/packets): Create and send dispute letters to credit bureaus. Letters cite specific Canadian laws automatically.
 - Progress (/progress): Track your dispute progress, success rates, and timeline.
 - Calendar (/calendar): Compliance calendar showing deadlines for bureau responses.
@@ -32,19 +33,21 @@ Subscription plans:
 - Monthly ($19.95 CAD) or Annual ($49.95 CAD).
 - Users can manage their billing in the My Info section.
 
-Violations:
-The system checks for 45 specific violation categories. They are:
+Compliance findings:
+A compliance finding is a detected credit-report issue mapped to source evidence and a rule or authority reference. It is not always a confirmed legal violation. Use "confirmed legal violation" only when the authority label explicitly says that.
+The system checks for ${findingCategoryCount} specific compliance finding categories. They are:
 ${violationsList}
 
 Canadian regulations overview:
 - PIPEDA: Emphasize 4.3 Consent, 4.5 Retention, 4.6 Accuracy, 4.6.1 Appropriate Info.
 - Bankruptcy and Insolvency Act.
-- Metro2 CRRG (Credit Reporting Resource Guide).
+- Metro2 CRRG (Credit Reporting Resource Guide), as a reporting standard rather than Canadian law.
 - Provincial Consumer Reporting Acts for all 13 provinces and territories.
 
 Common questions:
 - "How do I upload?" -> Go to /upload.
-- "What are violations?" -> Errors found on your report that the system detects automatically.
+- "What are compliance findings?" -> Potential errors or compliance issues found on the credit report and mapped to source evidence. They are not always confirmed legal violations.
+- "What violations did you find?" -> Explain that the app now calls these compliance findings, then summarize the detected findings if available.
 - "How do I dispute?" -> Go to /packets and create a new letter.
 - "How long do bureaus have to respond?" -> Usually 30 days.
 - "What happens if they don't respond?" -> The system's auto-escalation creates the next follow-up letter for you.

@@ -122,7 +122,7 @@ export async function handle(request: Request) {
 
     console.log(`Detected ${detectedViolations.length} violations from scan`);
 
-    // 7. Insert all detected violations fresh, create corresponding obligation instances,
+    // 7. Insert all detected compliance findings fresh, create corresponding obligation instances,
     //    and re-link packets by violation category
     const insertedIds: number[] = [];
     let totalRelinkedPackets = 0;

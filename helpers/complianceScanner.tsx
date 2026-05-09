@@ -208,12 +208,12 @@ async function loadSameBureauArtifactTimeline(
 }
 
 /**
- * Scans a specific tradeline for regulatory compliance violations.
+ * Scans a specific tradeline for authority-mapped compliance findings.
  * Orchestrates 35 specialized detection modules from helpers/complianceDetectors.
  * 
  * @param tradelineId - The ID of the tradeline to scan
  * @param context - Optional pre-fetched data to avoid redundant DB queries
- * @returns Array of detected violations with recommendations
+ * @returns Array of detected compliance findings with recommendations
  */
 export async function scanForViolations(
   tradelineId: number,
@@ -636,10 +636,10 @@ async function createPendingObligationInstanceForViolation(
 }
 
 /**
- * Persists detected violations to the creditor_obligation_test table.
+ * Persists detected compliance findings to the creditor_obligation_test table.
  * Automatically deduplicates based on signature (category + obligationType + userExplanation).
  * 
- * @param violations - Array of detected violations to persist
+ * @param violations - Array of detected compliance findings to persist
  * @param tradelineId - The tradeline ID these violations are associated with
  * @returns Array of created record IDs
  */

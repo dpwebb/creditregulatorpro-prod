@@ -23,10 +23,10 @@ export const section1 = (): Content[] => [
   sectionHeader(1, "Getting Started"),
   subHeader("Welcome to Credit Regulator Pro: Hostile Credit Bureau Audit Engine"),
   body("Welcome to Credit Regulator Pro, the specialized hostile credit bureau audit engine designed exclusively for the Canadian credit reporting landscape. This system takes an adversarial stance against credit bureaus, creditors, and collectors by systematically challenging procedural compliance without ever admitting debt validity."),
-  body("The system is built upon a rigid, unyielding framework that weaponizes the Personal Information Protection and Electronic Documents Act (PIPEDA) and provincial Consumer Reporting Acts to force the deletion of derogatory tradelines. By engaging the proprietary 35-Module Compliance Scanner, the software detects minutiae in credit reporting formats and statutory violations that manual auditors miss."),
+  body("The system is built upon a rigid, unyielding framework that uses the Personal Information Protection and Electronic Documents Act (PIPEDA) and provincial Consumer Reporting Acts to challenge unsupported derogatory tradelines. By engaging the proprietary 35-Module Compliance Scanner, the software detects credit reporting issues and authority-mapped compliance findings that manual auditors miss."),
 
   subHeader("35-Module Compliance Scanner"),
-  body("Credit Regulator Pro automatically scans every tradeline using 35 specialized detection modules to identify regulatory compliance violations. All detected violations are automatically logged with confidence scores, user-friendly explanations, and recommended actions. Here is the exhaustive list of active detection modules:"),
+  body("Credit Regulator Pro automatically scans every tradeline using 35 specialized detection modules to identify compliance findings. All detected findings are automatically logged with confidence scores, user-friendly explanations, and recommended actions. Here is the exhaustive list of active detection modules:"),
   ...MODULES_DATA.map((mod, i) => createNumberedModule(i + 1, mod.title, mod.desc, mod.sev)),
 
   subHeader("Canadian Policy Enforcement"),
@@ -43,7 +43,7 @@ export const section1 = (): Content[] => [
   subHeader("Dashboard Tour"),
   body("The central dashboard provides a high-level overview of your audit operations, categorized into four critical metrics:"),
   bulletList([
-    "Compliance Violations: Displays the real-time count of active statutory infractions detected across your tradelines.",
+    "Compliance Findings: Displays the real-time count of active authority-mapped findings detected across your tradelines.",
     "Active Challenges: Shows the number of obligations currently in the OBLIGATION_PENDING or CHALLENGED states, awaiting creditor or bureau response.",
     "Procedural Exhaustion: Highlights tradelines that have reached Phase 4 of the dispute cycle, making them ripe for legal action or regulatory complaints.",
     "Success Metrics: Aggregates outcomes showing the counts of DELETED, CORRECTED, REMOVED, and UPDATED items, driving your global success rate."
@@ -53,7 +53,7 @@ export const section1 = (): Content[] => [
   numberedList([
     "Complete Your Profile: Ensure your full legal name, Canadian address, date of birth, and identity documentation are fully uploaded and verified.",
     "Deploy Initial Audit Scan (Upload Report): Ingest your Equifax or TransUnion credit report using the secure upload pipeline.",
-    "Review Violations Detected: Evaluate the Infraction Findings Panel to see which of the 35 modules triggered an ERROR or WARNING.",
+    "Review Compliance Findings: Evaluate the Infraction Findings Panel to see which of the 35 modules triggered an ERROR or WARNING.",
     "Generate Adversarial Packets: Initiate the rotation strategy by launching Phase 1 (Foundational Challenge) packets to target AUTHORITY_TO_REPORT."
   ])
 ];
@@ -224,7 +224,7 @@ export const section4 = (): Content[] => [
 export const section5 = (): Content[] => [
   sectionHeader(5, "Packets"),
   subHeader("Dispute Packet Definition"),
-  body("Packets are adversarial dispute letters automatically generated based on detected violations. They incorporate precise statutory citations. They do not request favors; they demand procedural compliance."),
+  body("Packets are dispute letters automatically generated based on detected compliance findings. They incorporate mapped statutory citations and ask for review, verification, correction, or procedural compliance."),
 
   subHeader("Provincial Statutes Selection"),
   body("Credit Regulator Pro automatically selects the correct legislation based on the consumer's jurisdiction. Below is the complete table of applicable laws:"),

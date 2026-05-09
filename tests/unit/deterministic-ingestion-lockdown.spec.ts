@@ -121,7 +121,7 @@ describe("deterministic ingestion lockdown", () => {
     expect(createEndpoint).toContain("replayValidation");
   });
 
-  it("keeps Stage Lab saves visible in Violation Corrections by materializing ingestion", () => {
+  it("keeps Stage Lab saves visible in Finding Corrections by materializing ingestion", () => {
     const stageTab = source("components/ParserLabStageTab.tsx");
     const createSchema = source("endpoints/parser-test-case/create_POST.schema.ts");
     const createEndpoint = source("endpoints/parser-test-case/create_POST.ts");

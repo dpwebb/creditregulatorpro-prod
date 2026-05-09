@@ -43,7 +43,7 @@ export async function handle(request: Request) {
             <p>Hi there,</p>
             <p>You asked us to remind you to check your Canadian credit report.</p>
             <p>It's completely free and only takes a few minutes to download from Equifax or TransUnion.</p>
-            <p>Once you have the PDF, you can upload it to Credit Regulator Pro to instantly detect any errors or compliance violations.</p>
+            <p>Once you have the PDF, you can upload it to Credit Regulator Pro to instantly detect any errors or compliance findings.</p>
             <div style="margin: 30px 0;">
               <a href="https://www.creditregulatorpro.com/try-upload" style="background-color: #FF2A2A; color: #FFFFFF; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Upload Your Report Now</a>
             </div>

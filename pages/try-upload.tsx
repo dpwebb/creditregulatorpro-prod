@@ -138,7 +138,7 @@ export default function TryUploadPage() {
         <title>Try It Free - Upload Credit Report | Credit Regulator Pro</title>
         <meta
           name="description"
-          content="Upload your Canadian credit report to uncover errors and compliance violations instantly, no account needed."
+          content="Upload your Canadian credit report to uncover errors and compliance findings instantly, no account needed."
         />
       </Helmet>
 

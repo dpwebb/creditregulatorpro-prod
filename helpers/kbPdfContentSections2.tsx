@@ -49,7 +49,7 @@ export const section8 = (): Content[] => [
     "Create Insolvency Record in the tracking dashboard.",
     "Link all applicable tradelines to the record.",
     "Verify the 'Zero Balance Rule' across all linked accounts.",
-    "Deploy Discharge Violation targeted disputes for non-compliant furnishers."
+    "Deploy discharge-finding targeted disputes for non-compliant furnishers."
   ]),
 
   subHeader("Record Creation Requirements"),
@@ -69,8 +69,8 @@ export const section8 = (): Content[] => [
     "Consumer Proposals"
   ]),
 
-  subHeader("Tradeline Linking & Discharge Violations"),
-  body("The Zero Balance Rule mandates that any debt included in a discharged bankruptcy must report a $0 balance. The auto-scanner cross-references linked tradelines. If a balance > $0 is detected, the system generates a Bankruptcy Discharge Violation, triggering a targeted dispute vector to demand immediate deletion.")
+  subHeader("Tradeline Linking & Discharge Findings"),
+  body("The Zero Balance Rule mandates that any debt included in a discharged bankruptcy must report a $0 balance. The auto-scanner cross-references linked tradelines. If a balance > $0 is detected, the system generates a bankruptcy discharge compliance finding, triggering a targeted dispute vector to request review and correction.")
 ];
 
 export const section9 = (): Content[] => [

@@ -143,7 +143,7 @@ export const InfractionFindingsPanel = ({
       {/* Summary Stats */}
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
-          <span className={styles.statLabel}>Total Infractions</span>
+          <span className={styles.statLabel}>Total Findings</span>
           <span className={styles.statValue}>{stats.total}</span>
         </div>
         <div className={styles.statCard}>
@@ -151,11 +151,11 @@ export const InfractionFindingsPanel = ({
           <span className={`${styles.statValue} ${styles.textHigh}`}>{stats.high}</span>
         </div>
         <div className={styles.statCard}>
-          <span className={styles.statLabel}>Bureau Violations</span>
+          <span className={styles.statLabel}>Bureau Findings</span>
           <span className={styles.statValue}>{stats.bureau}</span>
         </div>
         <div className={styles.statCard}>
-          <span className={styles.statLabel}>Creditor Violations</span>
+          <span className={styles.statLabel}>Creditor Findings</span>
           <span className={styles.statValue}>{stats.creditor}</span>
         </div>
         
@@ -214,7 +214,7 @@ export const InfractionFindingsPanel = ({
             <TableRow>
               <TableHead>Severity</TableHead>
               <TableHead>Account</TableHead>
-              <TableHead>Violation</TableHead>
+              <TableHead>Finding</TableHead>
               <TableHead>Evidence</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
@@ -225,14 +225,14 @@ export const InfractionFindingsPanel = ({
                 <TableCell colSpan={5}>
                   <div className={styles.emptyStateContainer}>
                     <CheckCircle2 size={48} className={styles.emptyIcon} />
-                    <h3 className={styles.emptyTitle}>No Automated Violations Detected</h3>
+                    <h3 className={styles.emptyTitle}>No Automated Findings Detected</h3>
                     <p className={styles.emptyDescription}>
-                      While no obvious regulatory infractions were found, you can still proceed with our adversarial obligation testing framework.
+                      While no obvious compliance findings were found, you can still proceed with our obligation testing framework.
                     </p>
                     
                     <div className={styles.baselineInfo}>
                       <p>
-                        <strong>Strategic Path Available:</strong> Even without specific violations, you can initiate baseline procedural challenges using our 4-sequence rotation strategy:
+                        <strong>Strategic Path Available:</strong> Even without specific compliance findings, you can initiate baseline procedural challenges using our 4-sequence rotation strategy:
                       </p>
                       <ul className={styles.vectorList}>
                         <li>Authority to Report & Permissible Purpose</li>

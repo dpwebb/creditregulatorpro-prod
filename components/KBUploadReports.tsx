@@ -117,7 +117,7 @@ export const KBUploadReports = () => {
           You can try our system before creating an account. Upload a credit report to see what errors the scanner finds.
         </p>
         <ul className={styles.list}>
-          <li>The preview shows the violations we detected and a summary of your credit accounts.</li>
+          <li>The preview shows the compliance findings we detected and a summary of your credit accounts.</li>
           <li>To save your results, take action, or create dispute letters, you will need to create a free account.</li>
           <li>You can upload up to 5 times every 22 minutes to prevent spam.</li>
         </ul>

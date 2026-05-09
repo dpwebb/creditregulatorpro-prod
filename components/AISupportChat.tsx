@@ -83,10 +83,10 @@ export const AISupportChat: React.FC = () => {
                   How do I upload my credit report?
                 </button>
                 <button
-                  onClick={() => sendMessage("What violations did you find?")}
+                  onClick={() => sendMessage("What compliance findings did you find?")}
                   className={styles.chip}
                 >
-                  What violations did you find?
+                  What compliance findings did you find?
                 </button>
                 <button
                   onClick={() => sendMessage("How do I send a dispute letter?")}

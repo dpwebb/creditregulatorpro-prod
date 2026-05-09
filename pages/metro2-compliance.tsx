@@ -954,7 +954,7 @@ export default function Metro2CompliancePage() {
           <div className={styles.ruleSummaryRow}>
             <Badge variant="primary">Rules: {filteredRules.length}</Badge>
             <Badge variant="error">
-              Likely Violations:{" "}
+              Likely Findings:{" "}
               {
                 filteredRules.filter(
                   (rule) => rule.impact === "Likely Violation",

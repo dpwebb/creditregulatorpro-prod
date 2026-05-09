@@ -118,7 +118,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     return [...packetsData.packets].sort((a, b) => b.id - a.id)[0].id;
   }, [packetsData]);
 
-  // Violation category priority (lower number = higher priority)
+  // Finding category priority (lower number = higher priority)
   const getViolationPriority = (category: string | null | undefined): number => {
     switch (category) {
       case 'STATUTE_OF_LIMITATIONS': return 1;
@@ -272,8 +272,8 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const topViolationLinked = topViolation?.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const topViolationDisputeStatus = topViolationLinked ? "linked" : isTopViolationDisputed ? "sent" : packetForTopViolation ? "created" : "none";
 
-  // Never treat missing violations data as "no issues found".
-  // Violations are the source of truth for this panel's primary content.
+  // Never treat missing findings data as "no issues found".
+  // Compliance findings are the source of truth for this panel's primary content.
   if (!violationsData && isLoadingViolations) {
     return (
       <div className={`${styles.container} ${className || ''}`}>
@@ -344,7 +344,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
               </h4>
               <p className={styles.bannerText}>
                 {isSolPacketSent 
-                  ? "Your dispute letter for this violation has been sent — awaiting bureau response within 30 days."
+                  ? "Your dispute letter for this finding has been sent — awaiting bureau response within 30 days."
                   : solPacket 
                     ? "Dispute letter created — review and send it."
                     : "This debt is past its 6-year reporting term and must be removed from your credit report."}
