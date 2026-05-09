@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ConsumerFindingExplanationResult } from "../../helpers/consumerExplanationAssist";
+import type { ConsumerFindingExplanationResult } from "../../helpers/consumerExplanationAssist";
 
 export const schema = z.object({
   violationId: z.number().int().positive(),

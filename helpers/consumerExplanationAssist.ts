@@ -7,8 +7,7 @@ import {
 } from "./getEnrichedExplanation";
 import { getViolationDisplayLabel } from "./getViolationLabel";
 import { runOpenAiJsonAssist } from "./aiAssist";
-
-export const AI_CONSUMER_EXPLANATION_FEATURE_KEY = "ai.consumer_explanation_assist";
+import { AI_CONSUMER_EXPLANATION_FEATURE_KEY } from "./aiAssistConstants";
 
 export interface ConsumerExplanationViolationInput {
   id?: number | null;
