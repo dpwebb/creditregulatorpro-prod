@@ -41,6 +41,7 @@ describe("admin AI assist pane", () => {
   it("exposes recent AI assist runs and finding lookup through admin-only endpoints", () => {
     const runsEndpoint = source("endpoints/admin/ai-assist/runs_GET.ts");
     const findingsEndpoint = source("endpoints/admin/ai-assist/findings_GET.ts");
+    const runStore = source("helpers/aiAssistRunStore.ts");
     const queryHelper = source("helpers/adminAiAssistQueries.tsx");
     const server = source("server.ts");
 
@@ -57,6 +58,8 @@ describe("admin AI assist pane", () => {
     expect(findingsEndpoint).toContain("user_account ua");
     expect(findingsEndpoint).toContain("ua.email ilike");
     expect(findingsEndpoint).not.toContain("source_text");
+    expect(runStore).toContain("to_regclass('public.ai_assist_run')");
+    expect(runStore).toContain("ensurePromise = null");
     expect(queryHelper).toContain("useAdminAiAssistFindings");
     expect(server).toContain("_api/admin/ai-assist/runs");
     expect(server).toContain("_api/admin/ai-assist/findings");

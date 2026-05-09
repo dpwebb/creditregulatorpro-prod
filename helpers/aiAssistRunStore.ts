@@ -25,10 +25,16 @@ export function hashAiAssistInput(input: unknown): string {
   return createHash("sha256").update(JSON.stringify(input ?? null)).digest("hex");
 }
 
-export function ensureAiAssistRunSchema(): Promise<void> {
-  if (!ensurePromise) {
-    ensurePromise = (async () => {
-      await sql`
+async function aiAssistRunTableExists(): Promise<boolean> {
+  const result = await sql<{ exists: string | null }>`
+    select to_regclass('public.ai_assist_run')::text as exists
+  `.execute(db);
+
+  return Boolean(result.rows[0]?.exists);
+}
+
+async function createAiAssistRunSchema(): Promise<void> {
+  await sql`
         create table if not exists public.ai_assist_run (
           id bigserial primary key,
           feature_key text not null,
@@ -45,19 +51,30 @@ export function ensureAiAssistRunSchema(): Promise<void> {
         )
       `.execute(db);
 
-      await sql`
+  await sql`
         create index if not exists idx_ai_assist_run_feature_created
           on public.ai_assist_run(feature_key, created_at desc)
       `.execute(db);
 
-      await sql`
+  await sql`
         create index if not exists idx_ai_assist_run_subject
           on public.ai_assist_run(subject_type, subject_id)
       `.execute(db);
-    })();
+}
+
+export async function ensureAiAssistRunSchema(): Promise<void> {
+  if (ensurePromise) {
+    await ensurePromise;
+    if (await aiAssistRunTableExists()) return;
+    ensurePromise = null;
   }
 
-  return ensurePromise;
+  ensurePromise = createAiAssistRunSchema().catch((error) => {
+    ensurePromise = null;
+    throw error;
+  });
+
+  await ensurePromise;
 }
 
 export async function recordAiAssistRun(params: AiAssistRunRecord): Promise<void> {
