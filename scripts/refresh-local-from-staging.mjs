@@ -519,7 +519,6 @@ async function runPgRestore(toolMode, dumpFile, targetUrl) {
   const dumpName = path.basename(dumpFile);
 
   if (!(await targetSupportsTransactionTimeout(targetUrl))) {
-    console.log("Local target does not support transaction_timeout; filtering that SET during restore.");
     await runTransactionTimeoutCompatibleRestore(toolMode, dumpFile, targetUrl);
     return;
   }

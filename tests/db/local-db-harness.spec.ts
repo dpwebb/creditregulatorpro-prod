@@ -73,4 +73,13 @@ describe("local bootstrap table coverage", () => {
     expect(authBootstrap).toContain("Normalized localhost admin accounts");
     expect(authBootstrap).toContain("target is not explicit local dev");
   });
+
+  it("keeps staging refresh transaction timeout handling quiet and compatible", () => {
+    const projectRoot = process.cwd();
+    const refreshScript = readFileSync(path.join(projectRoot, "scripts", "refresh-local-from-staging.mjs"), "utf8");
+
+    expect(refreshScript).toContain("createTransactionTimeoutSetFilter");
+    expect(refreshScript).toContain("SET\\s+transaction_timeout");
+    expect(refreshScript).not.toContain("Local target does not support transaction_timeout");
+  });
 });
