@@ -263,6 +263,12 @@ export function AdminViolationCorrectionPanel({
   const exportTraining = useExportViolationTrainingExamples();
 
   useEffect(() => {
+    if (initialExtractionRunId) {
+      setReviewStatus("all");
+    }
+  }, [initialExtractionRunId]);
+
+  useEffect(() => {
     if (!canLoadRuns || runs.length === 0) {
       setSelectedRunId(null);
       return;
