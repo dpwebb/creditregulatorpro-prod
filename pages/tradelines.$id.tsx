@@ -69,6 +69,7 @@ export default function TradelineDetailPage() {
   if (!isAdmin && ["drift", "impact", "validation", "discrimination", "overview"].includes(activeTab)) {
     activeTab = "compliance";
   }
+  const focusedViolationId = Number(searchParams.get("reviewViolationId")) || undefined;
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isBureauUploadOpen, setIsBureauUploadOpen] = useState(false);
@@ -454,7 +455,11 @@ export default function TradelineDetailPage() {
 
       {!isAdmin ? (
         <div className={styles.nonAdminLayout}>
-          <TradelineComplianceHub tradelineId={tradelineId} hideSummaryBar={true} />
+          <TradelineComplianceHub
+            tradelineId={tradelineId}
+            hideSummaryBar={true}
+            focusViolationId={focusedViolationId}
+          />
 
           {showProceduralChallenges && (
             <FundamentalChallenges
@@ -586,7 +591,10 @@ export default function TradelineDetailPage() {
           </TabsList>
 
           <TabsContent value="compliance">
-            <TradelineComplianceHub tradelineId={tradelineId} />
+            <TradelineComplianceHub
+              tradelineId={tradelineId}
+              focusViolationId={focusedViolationId}
+            />
           </TabsContent>
 
           <TabsContent value="drift">

@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { CheckCircle2, FileSearch } from "lucide-react";
 import { Skeleton } from "./Skeleton";
 import { Button } from "./Button";
 import { Badge } from "./Badge";
@@ -11,7 +12,9 @@ export interface CreatePacketRecommendStepProps {
   recsData: any;
   isPending: boolean;
   creatingRecId: number | null;
+  verifyingRecId?: number | null;
   onSelectRecommendation: (rec: any) => void;
+  onVerifyRecommendation?: (rec: any) => void;
   onSkipToForm: () => void;
   onSkipWithReset: () => void;
 }
@@ -21,7 +24,9 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
   recsData,
   isPending,
   creatingRecId,
+  verifyingRecId,
   onSelectRecommendation,
+  onVerifyRecommendation,
   onSkipToForm,
   onSkipWithReset,
 }) => {
@@ -104,17 +109,36 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
 
     const renderActionPlan = (rec: any) => {
       if (!rec.actionPlan || rec.actionPlan.status === "ready") return null;
+      const reviewContext = rec.reviewContext;
       return (
         <div className={styles.actionPlanBlock}>
           {rec.actionPlan.blockers.map((blocker: any) => (
             <p key={blocker.code} className={styles.actionPlanText}>{blocker.label}</p>
           ))}
+          {reviewContext?.confidenceScore != null && (
+            <p className={styles.actionPlanMeta}>
+              Parser confidence: {reviewContext.confidenceScore}/100
+            </p>
+          )}
+          {reviewContext?.reasonCodes?.length > 0 && (
+            <p className={styles.actionPlanMeta}>
+              Review reason: {reviewContext.reasonCodes.slice(0, 3).join(", ")}
+            </p>
+          )}
+          {reviewContext?.evidenceSummary?.length > 0 && (
+            <ul className={styles.evidenceList}>
+              {reviewContext.evidenceSummary.slice(0, 4).map((item: string) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
         </div>
       );
     };
 
     const renderActionButton = (rec: any, fallbackLabel: string, variant: "default" | "outline" = "default") => {
       const actionPlan = rec.actionPlan;
+      const blockerCode = rec.reviewContext?.blockerCode;
       if (actionPlan?.primaryAction === "COMPLETE_PROFILE") {
         return (
           <Button asChild variant={variant} size={variant === "outline" ? "sm" : undefined}>
@@ -132,9 +156,32 @@ export const CreatePacketRecommendStep: React.FC<CreatePacketRecommendStepProps>
       }
 
       if (actionPlan?.primaryAction === "REVIEW_SOURCE_REPORT") {
+        if (blockerCode === "violation_needs_review" && onVerifyRecommendation) {
+          return (
+            <div className={styles.reviewActions}>
+              <Button asChild variant="outline" size={variant === "outline" ? "sm" : undefined}>
+                <Link to={rec.reviewContext?.reviewUrl || `/tradelines/${rec.tradelineId}?tab=compliance`}>
+                  <FileSearch size={14} /> Open Review
+                </Link>
+              </Button>
+              <Button
+                variant={variant}
+                size={variant === "outline" ? "sm" : undefined}
+                onClick={() => onVerifyRecommendation(rec)}
+                disabled={isPending || verifyingRecId === rec.violationId}
+              >
+                <CheckCircle2 size={14} />
+                {verifyingRecId === rec.violationId ? "Verifying..." : "I Reviewed This"}
+              </Button>
+            </div>
+          );
+        }
+
         return (
-          <Button variant={variant} size={variant === "outline" ? "sm" : undefined} disabled>
-            {actionPlan.ctaLabel}
+          <Button asChild variant={variant} size={variant === "outline" ? "sm" : undefined}>
+            <Link to={rec.reviewContext?.reviewUrl || `/tradelines/${rec.tradelineId}?tab=compliance`}>
+              <FileSearch size={14} /> {actionPlan.ctaLabel}
+            </Link>
           </Button>
         );
       }

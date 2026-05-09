@@ -11,6 +11,7 @@ import {
   evaluatePacketReadiness,
 } from "../../helpers/packetReadiness";
 import { evaluateViolationPacketConfidenceGate } from "../../helpers/violationPacketConfidenceGate";
+import { buildPacketRecommendationReviewContext } from "../../helpers/packetRecommendationReviewContext";
 import {
   generateAccessPointsForTradelines,
   generateAccessPointsWhenNoViolations,
@@ -113,6 +114,7 @@ export async function handle(request: Request) {
         "tradeline.isCollectionAccount",
         "tradeline.collectionAgencyName",
         "tradeline.accountType",
+        "tradeline.reportArtifactId",
         "creditor.name as creditorName",
         "bureau.id as bureauId",
         "bureau.name as bureauName",
@@ -274,6 +276,13 @@ export async function handle(request: Request) {
         validationStatus: v.validationStatus,
         userStatus: v.userStatus,
       });
+      const reviewContext = buildPacketRecommendationReviewContext({
+        tradelineId: tl.id,
+        violationId: v.id,
+        packetConfidenceGate,
+        technicalDetails: v.technicalDetails,
+        reportArtifactId: tl.reportArtifactId,
+      });
 
       recommendations.push({
         tradelineId: tl.id,
@@ -302,6 +311,7 @@ export async function handle(request: Request) {
           }),
           packetConfidenceGate,
         ),
+        reviewContext,
       });
     }
 

@@ -24,6 +24,22 @@ export type PacketRecommendationActionPlan = {
   }>;
 };
 
+export type PacketRecommendationReviewContext = {
+  required: boolean;
+  blockerCode: "parser_uncertain" | "violation_needs_review" | null;
+  parserStatus:
+    | "confirmed"
+    | "needs_user_review"
+    | "parser_uncertain"
+    | "unknown";
+  confidenceScore: number | null;
+  message: string;
+  reasonCodes: string[];
+  reportArtifactId: number | null;
+  reviewUrl: string;
+  evidenceSummary: string[];
+};
+
 export type OutputType =
   | {
       recommendations: Array<{
@@ -40,6 +56,7 @@ export type OutputType =
         score: number;
         confidenceLevel: "good" | "fair" | "procedural";
         actionPlan: PacketRecommendationActionPlan;
+        reviewContext: PacketRecommendationReviewContext;
       }>;
       proceduralOptions: Array<{
         id: string;

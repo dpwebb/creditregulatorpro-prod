@@ -109,6 +109,28 @@
   line-height: 1.4;
 }
 
+.actionPlanMeta {
+  margin: var(--spacing-1) 0 0;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.evidenceList {
+  margin: var(--spacing-2) 0 0;
+  padding-left: var(--spacing-4);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.reviewActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
 .otherRecsList, .proceduralList {
   display: flex;
   flex-direction: column;

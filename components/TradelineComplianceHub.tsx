@@ -1,4 +1,4 @@
-import React, { useMemo, useState, Suspense } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { 
   AlertTriangle, 
   CheckCircle2, 
@@ -49,12 +49,14 @@ interface TradelineComplianceHubProps {
   tradelineId: number;
   className?: string;
   hideSummaryBar?: boolean;
+  focusViolationId?: number;
 }
 
 export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   tradelineId,
   className,
   hideSummaryBar = false,
+  focusViolationId,
 }) => {
   const { authState, isAdmin } = useAuth();
   const queryClient = useQueryClient();
@@ -98,6 +100,12 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     tradelinesData?.tradelines.find(t => t.id === tradelineId), 
     [tradelinesData, tradelineId]
   );
+
+  useEffect(() => {
+    if (focusViolationId && currentTradeline?.reportArtifactId) {
+      setViewingSourceReport(true);
+    }
+  }, [focusViolationId, currentTradeline?.reportArtifactId]);
 
   // Check if any packet exists for this tradeline
   const hasAnyPacket = useMemo(() => {

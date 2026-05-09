@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { z } from "zod";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "./Form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./Dialog";
-import { useCreatePacket } from "../helpers/packetQueries";
 import { useTradelineList } from "../helpers/tradelineQueries";
-import { useComplianceViolations } from "../helpers/complianceViolationQueries";
+import { useComplianceViolations, useDismissViolation } from "../helpers/complianceViolationQueries";
 import { usePacketRecommendations } from "../helpers/packetRecommendQueries";
 import { getDisputeVectorSuggestion } from "../helpers/violationToDisputeVector";
 import { getAccessPointById, mapAccessPointToDisputeReasonCode } from "../helpers/challengeAccessPointGenerator";
@@ -89,11 +88,13 @@ export const CreatePacketDialog: React.FC<CreatePacketDialogProps> = ({
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
   const { data: recsData, isLoading: isLoadingRecs } = usePacketRecommendations();
+  const { mutateAsync: verifyViolation } = useDismissViolation();
 
   const [localViolationId, setLocalViolationId] = useState<number | undefined>(undefined);
   const [localTradelineId, setLocalTradelineId] = useState<number | undefined>(undefined);
   const [localBureauId, setLocalBureauId] = useState<number | undefined>(undefined);
   const [localViolationCategory, setLocalViolationCategory] = useState<string | null>(null);
+  const [verifyingRecId, setVerifyingRecId] = useState<number | null>(null);
   const [step, setStep] = useState<'recommend' | 'form' | 'auto-submit'>('recommend');
   const autoSubmitAttemptedRef = useRef(false);
 
@@ -379,6 +380,29 @@ export const CreatePacketDialog: React.FC<CreatePacketDialogProps> = ({
     setStep('form');
   };
 
+  const handleVerifyRecommendation = async (rec: any) => {
+    if (!rec?.violationId) return;
+    setVerifyingRecId(rec.violationId);
+
+    try {
+      await verifyViolation({
+        violationId: rec.violationId,
+        status: "verified",
+        reason: "Reviewed source report and verified from packet recommendation.",
+      });
+      showSuccess("Finding verified", {
+        description: "This recommendation can now be used to create a dispute letter.",
+      });
+      handleSelectRecommendation(rec);
+    } catch (error) {
+      showError("Could not verify finding", {
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setVerifyingRecId(null);
+    }
+  };
+
   const onSubmit = (values: z.infer<typeof createPacketSchema>, thirdPartyData: ThirdPartyRecipientValues | null) => {
     if (!thirdPartyData && (!values.bureauId || values.bureauId < 1)) {
       form.setFieldError("bureauId", "Credit Bureau is required");
@@ -436,7 +460,9 @@ export const CreatePacketDialog: React.FC<CreatePacketDialogProps> = ({
               recsData={recsData}
               isPending={isPending}
               creatingRecId={null}
+              verifyingRecId={verifyingRecId}
               onSelectRecommendation={handleSelectRecommendation}
+              onVerifyRecommendation={handleVerifyRecommendation}
               onSkipToForm={() => setStep('form')}
               onSkipWithReset={() => {
                 setLocalTradelineId(undefined);
