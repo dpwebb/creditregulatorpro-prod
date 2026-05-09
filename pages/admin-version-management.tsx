@@ -3,8 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/Tabs";
 import { AdminVersionTab } from "../components/AdminVersionTab";
 import { AdminMigrationTab } from "../components/AdminMigrationTab";
 import { AdminFeatureFlagTab } from "../components/AdminFeatureFlagTab";
-import { AdminAiAssistTab } from "../components/AdminAiAssistTab";
-import { GitMerge, Database, ToggleRight, Sparkles } from "lucide-react";
+import { GitMerge, Database, ToggleRight } from "lucide-react";
 import styles from "./admin-version-management.module.css";
 
 export default function AdminVersionManagementPage() {
@@ -29,10 +28,6 @@ export default function AdminVersionManagementPage() {
             <ToggleRight size={16} className={styles.tabIcon} />
             Feature Flags
           </TabsTrigger>
-          <TabsTrigger value="ai-assist" className={styles.tabTrigger}>
-            <Sparkles size={16} className={styles.tabIcon} />
-            AI Assist
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="versions" className={styles.tabContent}>
@@ -45,10 +40,6 @@ export default function AdminVersionManagementPage() {
 
         <TabsContent value="feature-flags" className={styles.tabContent}>
           <AdminFeatureFlagTab />
-        </TabsContent>
-
-        <TabsContent value="ai-assist" className={styles.tabContent}>
-          <AdminAiAssistTab />
         </TabsContent>
       </Tabs>
     </div>

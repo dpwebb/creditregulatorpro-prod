@@ -9,12 +9,18 @@ function source(path: string): string {
 }
 
 describe("admin AI assist pane", () => {
-  it("mounts as a Version Management tab", () => {
-    const page = source("pages/admin-version-management.tsx");
+  it("mounts as its own admin action area", () => {
+    const aiAssistPage = source("pages/admin-ai-assist.tsx");
+    const versionPage = source("pages/admin-version-management.tsx");
+    const app = source("App.tsx");
+    const layout = source("components/AppLayout.tsx");
 
-    expect(page).toContain("AdminAiAssistTab");
-    expect(page).toContain('value="ai-assist"');
-    expect(page).toContain("AI Assist");
+    expect(aiAssistPage).toContain("AdminAiAssistTab");
+    expect(app).toContain('["./pages/admin-ai-assist.tsx","/admin-ai-assist"]');
+    expect(app).toContain('"./pages/admin-ai-assist.tsx": PageLayout_57');
+    expect(layout).toContain('path: "/admin-ai-assist"');
+    expect(versionPage).not.toContain("AdminAiAssistTab");
+    expect(versionPage).not.toContain('value="ai-assist"');
   });
 
   it("uses the guarded consumer explanation endpoint for previews", () => {

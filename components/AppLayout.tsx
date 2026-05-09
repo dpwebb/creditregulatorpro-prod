@@ -44,6 +44,7 @@ import {
   Info,
   ArrowLeft,
   GitBranch,
+  Sparkles,
   X,
 } from "lucide-react";
 import { useAuth } from "../helpers/useAuth";
@@ -153,6 +154,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           { path: "/admin-mock-lifecycle", label: "Lifecycle Testing", icon: ClipboardCheck },
           { path: "/admin-parser-testing", label: "Parser Testing", icon: FlaskConical },
           { path: "/admin-parser-mappings", label: "Parser Mappings", icon: Settings2 },
+          { path: "/admin-ai-assist", label: "AI Assist", icon: Sparkles },
           { path: "/admin-version-management", label: "Version Management", icon: GitBranch },
         ]
       }
