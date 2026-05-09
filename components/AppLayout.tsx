@@ -136,6 +136,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         items: [
           { path: "/", label: "Home", icon: LayoutDashboard },
           { path: "/admin-user-management", label: "User Management", icon: UserCog },
+          { path: "/admin-risk-triage", label: "Risk Triage", icon: AlertTriangle },
           { path: "/admin-compliance-config", label: "Rule Check Settings", icon: ShieldCheck },
           { path: "/admin-activity-logs", label: "Activity Logs", icon: History },
           { path: "/admin-error-logs", label: "Error Logs", icon: Bug },

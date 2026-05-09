@@ -220,10 +220,21 @@ function regulationSuggestionToForm(ref: SuggestedRegulationReference): Regulati
 
 export function AdminViolationCorrectionPanel({
   sourceFilters,
+  initialSelection,
 }: {
   sourceFilters?: ViolationCorrectionSourceFilter[];
+  initialSelection?: {
+    extractionRunId?: number | null;
+    tradelineId?: number | null;
+    violationId?: number | null;
+  };
 }) {
-  const [reviewStatus, setReviewStatus] = useState<"needs_review" | "finalized" | "all">("needs_review");
+  const initialExtractionRunId = initialSelection?.extractionRunId ?? null;
+  const initialTradelineId = initialSelection?.tradelineId ?? null;
+  const initialViolationId = initialSelection?.violationId ?? null;
+  const [reviewStatus, setReviewStatus] = useState<"needs_review" | "finalized" | "all">(
+    initialExtractionRunId ? "all" : "needs_review",
+  );
   const hasSourceFilter = sourceFilters !== undefined;
   const canLoadRuns = !hasSourceFilter || sourceFilters.length > 0;
   const { data: runsData, isLoading: isLoadingRuns } = useViolationCorrectionRuns(
@@ -258,16 +269,26 @@ export function AdminViolationCorrectionPanel({
     }
 
     if (!selectedRunId || !runs.some((run) => run.id === selectedRunId)) {
-      setSelectedRunId(runs[0].id);
+      const requestedRun = initialExtractionRunId
+        ? runs.find((run) => run.id === initialExtractionRunId)
+        : null;
+      setSelectedRunId(requestedRun?.id ?? runs[0].id);
     }
-  }, [canLoadRuns, runs, selectedRunId]);
+  }, [canLoadRuns, initialExtractionRunId, runs, selectedRunId]);
 
   useEffect(() => {
-    const firstTradeline = detail?.tradelines[0];
-    if (firstTradeline && !selectedTradelineId) {
-      setSelectedTradelineId(firstTradeline.id);
+    if (!detail?.tradelines.length) {
+      setSelectedTradelineId(null);
+      return;
     }
-  }, [detail, selectedTradelineId]);
+
+    if (!selectedTradelineId || !detail.tradelines.some((tradeline) => tradeline.id === selectedTradelineId)) {
+      const requestedTradeline = initialTradelineId
+        ? detail.tradelines.find((tradeline) => tradeline.id === initialTradelineId)
+        : null;
+      setSelectedTradelineId(requestedTradeline?.id ?? detail.tradelines[0].id);
+    }
+  }, [detail, initialTradelineId, selectedTradelineId]);
 
   const selectedTradeline = useMemo<TradelineReviewDetail | null>(() => {
     return detail?.tradelines.find((tradeline) => tradeline.id === selectedTradelineId) ?? null;
@@ -288,16 +309,23 @@ export function AdminViolationCorrectionPanel({
 
   useEffect(() => {
     if (!selectedTradeline) return;
-    const firstViolation = selectedTradeline.violations[0];
+    const requestedViolation = initialViolationId
+      ? selectedTradeline.violations.find((violation) => violation.id === initialViolationId)
+      : null;
+    const firstViolation = requestedViolation ?? selectedTradeline.violations[0];
     if (!firstViolation) {
       setManualMode(true);
       setSelectedViolationId(null);
       return;
     }
-    if (!selectedViolationId && !manualMode) {
+    if (
+      !manualMode &&
+      (!selectedViolationId ||
+        !selectedTradeline.violations.some((violation) => violation.id === selectedViolationId))
+    ) {
       setSelectedViolationId(firstViolation.id);
     }
-  }, [manualMode, selectedTradeline, selectedViolationId]);
+  }, [initialViolationId, manualMode, selectedTradeline, selectedViolationId]);
 
   useEffect(() => {
     setCorrectionForm(correctionToForm(activeCorrection, selectedViolation));

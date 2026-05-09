@@ -80,13 +80,16 @@ export const HiddenRiskWidget: React.FC<HiddenRiskWidgetProps> = ({ isAdmin, use
           ) : (
             <ShieldCheck className={styles.iconGreen} size={24} />
           )}
-          <h3 className={styles.title}>System Risk Analysis</h3>
+          <h3 className={styles.title}>Compliance Risk Triage</h3>
         </div>
+        <p className={styles.adminDescription}>
+          Active findings from uploaded report tradelines. These are compliance risks, not app/server errors.
+        </p>
         
         <div className={styles.adminStats}>
           <div className={styles.statItem}>
             <span className={styles.statValue}>{aggregate.totalCount}</span>
-            <span className={styles.statLabel}>Hidden Risks</span>
+            <span className={styles.statLabel}>Unresolved Risk Findings</span>
           </div>
           <div className={styles.statItem}>
             <span className={styles.statValue}>{aggregate.uniqueUserCount ?? 0}</span>
@@ -94,17 +97,17 @@ export const HiddenRiskWidget: React.FC<HiddenRiskWidgetProps> = ({ isAdmin, use
           </div>
           <div className={styles.statItem}>
             <span className={styles.statValueError}>{aggregate.errorCount}</span>
-            <span className={styles.statLabel}>Errors</span>
+            <span className={styles.statLabel}>High-Risk Findings</span>
           </div>
           <div className={styles.statItem}>
             <span className={styles.statValueWarning}>{aggregate.warningCount}</span>
-            <span className={styles.statLabel}>Warnings</span>
+            <span className={styles.statLabel}>Needs Review</span>
           </div>
         </div>
 
         <div className={styles.adminAction}>
           <Button asChild variant="outline">
-            <Link to="/admin-user-management">Review Affected Users</Link>
+            <Link to="/admin-ai-assist">Open Finding Lookup</Link>
           </Button>
         </div>
       </div>

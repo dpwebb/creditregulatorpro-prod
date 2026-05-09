@@ -1,4 +1,5 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Bot, Play, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Badge } from "./Badge";
@@ -78,6 +79,7 @@ function ExplanationBlock({
 }
 
 export const AdminAiAssistTab = () => {
+  const [searchParams] = useSearchParams();
   const { data: rawFlags, isLoading: isLoadingFlags } = useFeatureFlags();
   const flags = (rawFlags ?? []) as unknown as FlagItem[];
   const aiFlag = useMemo(
@@ -96,6 +98,13 @@ export const AdminAiAssistTab = () => {
   const [violationId, setViolationId] = useState("");
   const [previewResult, setPreviewResult] = useState<ConsumerFindingExplanationOutput | null>(null);
   const findingsQuery = useAdminAiAssistFindings({ q: lookupQuery, limit: 25 });
+
+  useEffect(() => {
+    const requestedFindingId = searchParams.get("findingId");
+    if (requestedFindingId && /^\d+$/.test(requestedFindingId)) {
+      setViolationId(requestedFindingId);
+    }
+  }, [searchParams]);
 
   const handleCreateFlag = async () => {
     try {

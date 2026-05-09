@@ -10,6 +10,7 @@ export type HiddenRiskItem = {
   id: number;
   violationCategory: string;
   severity: string;
+  displayLabel: string;
   userExplanation: string | null;
   recommendedAction: string | null;
   detectedAt: Date | null;
@@ -17,7 +18,18 @@ export type HiddenRiskItem = {
   tradelineId: number;
   creditorName: string | null;
   bureauName: string | null;
+  accountType: string | null;
+  accountNumberMasked: string | null;
+  reportArtifactId: number | null;
+  extractionRunId: number | null;
+  userStatus: string | null;
   hasPacket: boolean;
+  affectedUser?: {
+    id: number | null;
+    email: string | null;
+    displayName: string | null;
+    fullName: string | null;
+  };
 };
 
 export type OutputType = {

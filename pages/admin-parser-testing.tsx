@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
+import { useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "../helpers/dateUtils";
@@ -36,6 +37,20 @@ import {
 
 import styles from "./admin-parser-testing.module.css";
 
+const TAB_VALUES = new Set([
+  "test-cases",
+  "stage-lab",
+  "violation-corrections",
+  "run-all",
+  "import-export",
+]);
+
+function parsePositiveParam(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 function extractParserTestSourceSha256(testCase: any): string | null {
   const context = testCase?.parserContext;
   if (!context || typeof context !== "object" || Array.isArray(context)) return null;
@@ -64,7 +79,19 @@ function buildViolationCorrectionSourceFilters(testCases: any[]): ViolationCorre
 }
 
 export default function AdminParserTestingPage() {
-  const [activeTab, setActiveTab] = useState("test-cases");
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const requestedSelection = useMemo(
+    () => ({
+      extractionRunId: parsePositiveParam(searchParams.get("extractionRunId")),
+      tradelineId: parsePositiveParam(searchParams.get("tradelineId")),
+      violationId: parsePositiveParam(searchParams.get("violationId")),
+    }),
+    [searchParams],
+  );
+  const [activeTab, setActiveTab] = useState(() =>
+    requestedTab && TAB_VALUES.has(requestedTab) ? requestedTab : "test-cases",
+  );
 
   // Queries
   const { data: testCasesData, isLoading: isLoadingList } = useParserTestCases();
@@ -98,6 +125,13 @@ export default function AdminParserTestingPage() {
     () => buildViolationCorrectionSourceFilters(testCases),
     [testCases],
   );
+  const hasDirectCorrectionTarget = Boolean(requestedSelection.extractionRunId);
+
+  useEffect(() => {
+    if (requestedTab && TAB_VALUES.has(requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [requestedTab]);
 
   // Handlers
   const handleCreate = async (data: any) => {
@@ -530,7 +564,10 @@ export default function AdminParserTestingPage() {
         </TabsContent>
 
         <TabsContent value="violation-corrections" className={styles.tabContent}>
-          <AdminViolationCorrectionPanel sourceFilters={violationCorrectionSourceFilters} />
+          <AdminViolationCorrectionPanel
+            sourceFilters={hasDirectCorrectionTarget ? undefined : violationCorrectionSourceFilters}
+            initialSelection={requestedSelection}
+          />
         </TabsContent>
 
         <TabsContent value="run-all" className={styles.tabContent}>

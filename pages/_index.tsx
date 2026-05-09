@@ -11,7 +11,8 @@ import {
   ShieldCheck,
   History,
   GitBranch,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from "lucide-react";
 
 import { useDashboardStats } from "../helpers/dashboardQueries";
@@ -115,6 +116,9 @@ function DashboardContent() {
             <div className={styles.quickActions}>
               <Button asChild variant="outline">
                 <Link to="/admin-user-management"><UserCog size={16} /> User Management</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/admin-risk-triage"><AlertTriangle size={16} /> Risk Triage</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link to="/admin-compliance-config"><ShieldCheck size={16} /> Rule Check Settings</Link>

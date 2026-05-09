@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getCreditorValidationList } from "../endpoints/creditor-validation/list_GET.schema";
 import { postDismissCreditorValidation } from "../endpoints/creditor-validation/dismiss_POST.schema";
 import { PACKET_RECOMMENDATIONS_QUERY_KEY } from "./packetRecommendQueries";
+import { HIDDEN_RISKS_QUERY_KEY } from "./hiddenRiskQueries";
 
 export const useComplianceViolations = (tradelineId: number) => {
   return useQuery({
@@ -18,6 +19,7 @@ export const useDismissViolation = () => {
       postDismissCreditorValidation(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["creditorValidations"] });
+      queryClient.invalidateQueries({ queryKey: [HIDDEN_RISKS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: PACKET_RECOMMENDATIONS_QUERY_KEY });
     },
   });

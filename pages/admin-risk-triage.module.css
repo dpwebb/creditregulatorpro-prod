@@ -1,0 +1,152 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+@media (min-width: 760px) {
+  .summaryGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.summaryCard,
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.summaryCard {
+  padding: var(--spacing-4);
+}
+
+.summaryValue {
+  color: var(--foreground);
+  font-family: var(--font-family-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.summaryLabel {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: var(--spacing-1);
+}
+
+.explainPanel {
+  background: color-mix(in srgb, var(--info), transparent 92%);
+  border: 1px solid color-mix(in srgb, var(--info), transparent 72%);
+  border-radius: var(--radius-lg);
+  color: var(--foreground);
+  padding: var(--spacing-4);
+}
+
+.explainTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 var(--spacing-2);
+}
+
+.explainText {
+  color: var(--muted-foreground);
+  font-size: 0.925rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.panelHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: var(--spacing-4);
+  justify-content: space-between;
+  padding: var(--spacing-4);
+}
+
+.panelTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.panelSubtitle {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  margin: var(--spacing-1) 0 0;
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: space-between;
+  padding: var(--spacing-4);
+}
+
+.searchInput {
+  max-width: 32rem;
+}
+
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.primaryText {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.mutedText {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.monoText {
+  color: var(--muted-foreground);
+  font-family: var(--font-family-monospace);
+  font-size: 0.8125rem;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.emptyState,
+.errorState {
+  color: var(--muted-foreground);
+  padding: var(--spacing-6);
+  text-align: center;
+}
+
+.highRiskValue {
+  color: var(--error);
+}
+
+.reviewValue {
+  color: color-mix(in srgb, var(--warning), black 20%);
+}
+
+.hideMobile {
+  display: none;
+}
+
+@media (min-width: 980px) {
+  .hideMobile {
+    display: table-cell;
+  }
+}
