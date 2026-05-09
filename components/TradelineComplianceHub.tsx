@@ -32,7 +32,7 @@ import { useTradelinePackets } from "../helpers/packetQueries";
 import { useUserProfile } from "../helpers/useUserProfile";
 import { useQueryClient } from "@tanstack/react-query";
 import { USER_PROFILE_QUERY_KEY } from "../helpers/useUserProfile";
-import { getViolationLabel } from "../helpers/getViolationLabel";
+import { getViolationDisplayLabel } from "../helpers/getViolationLabel";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
 import { summarizeVisibleProblemReviews } from "../helpers/problemReviewVisibility";
 
@@ -267,7 +267,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const packetForTopViolation = topViolation ? packetsData?.packets?.find(p => p.creditorObligationTestId === topViolation.id) : null;
   const isTopViolationDisputed = !!(packetForTopViolation && (packetForTopViolation.status?.toUpperCase() === "SENT" || packetForTopViolation.sentDate));
 
-  const topViolationTitle = topViolation ? getViolationLabel(topViolation.violationCategory) : "";
+  const topViolationTitle = topViolation ? getViolationDisplayLabel(topViolation) : "";
   const topViolationExplanation = topViolation ? getEnrichedExplanation(topViolation) : "";
   const topViolationLinked = topViolation?.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const topViolationDisputeStatus = topViolationLinked ? "linked" : isTopViolationDisputed ? "sent" : packetForTopViolation ? "created" : "none";
@@ -587,7 +587,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                       <div key={v.id} className={styles.simpleViolationItem} data-status={isLinked ? "linked" : isDisp ? "sent" : "none"} data-severity={v.severity}>
                         <div className={styles.simpleViolationInfo}>
                           <div className={styles.simpleViolationHeader}>
-                            <div className={styles.simpleViolationLabel}>{getViolationLabel(v.violationCategory)}</div>
+                            <div className={styles.simpleViolationLabel}>{getViolationDisplayLabel(v)}</div>
                             {v.technicalDetails?.responsibleEntity && getEntityBadgeLabel(v.technicalDetails.responsibleEntity) && (
                               <Badge variant="default" className={styles.entityBadgeOutlineSmall}>
                                 {getEntityBadgeLabel(v.technicalDetails.responsibleEntity)}

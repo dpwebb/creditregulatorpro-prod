@@ -6,7 +6,7 @@ import { Button } from "./Button";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./Collapsible";
 import { formatDateTime } from "../helpers/formatters";
 import { ObligationTestWithDetails } from "../endpoints/creditor-validation/list_GET.schema";
-import { getViolationLabel } from "../helpers/getViolationLabel";
+import { getViolationDisplayLabel } from "../helpers/getViolationLabel";
 import { getRegulationsForViolation } from "../helpers/violationRegulationMap";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
 import styles from "./ComplianceViolationCard.module.css";
@@ -103,7 +103,7 @@ export const ComplianceViolationCard = ({
                 </Badge>
               )}
               <Badge variant="default" className={styles.categoryBadge}>
-                {getViolationLabel(violation.violationCategory)}
+                {getViolationDisplayLabel(violation)}
               </Badge>
               {violation.technicalDetails?.province && (
                 <Badge variant="info" className={styles.categoryBadge}>

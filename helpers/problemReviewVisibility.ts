@@ -1,4 +1,4 @@
-import { getViolationLabel } from "./getViolationLabel";
+import { getViolationDisplayLabel } from "./getViolationLabel";
 import { isIneligibleForStaleReportingViolation } from "./staleReportingGuard";
 
 export type ProblemReviewIssue = {
@@ -48,11 +48,26 @@ function getTechnicalFieldPath(issue: ProblemReviewIssue): string {
 function uniqueProblemLabels(issues: ProblemReviewIssue[]): string[] {
   const labels: string[] = [];
   for (const issue of issues) {
-    const label = getViolationLabel(issue.violationCategory);
+    const label = getViolationDisplayLabel(issue);
     if (!labels.includes(label)) labels.push(label);
     if (labels.length >= 3) break;
   }
   return labels;
+}
+
+function issueDisplayKey(issue: ProblemReviewIssue): string {
+  const details = issue.technicalDetails || {};
+  const fieldName =
+    typeof details.fieldName === "string"
+      ? details.fieldName
+      : typeof details.missingField === "string"
+        ? details.missingField
+        : typeof details.fieldPath === "string"
+          ? details.fieldPath
+          : typeof details.ruleName === "string"
+            ? details.ruleName
+            : "";
+  return `${issue.violationCategory || "UNKNOWN"}|${fieldName}`;
 }
 
 export function summarizeVisibleProblemReviews<TIssue extends ProblemReviewIssue>(
@@ -103,11 +118,11 @@ export function summarizeVisibleProblemReviews<TIssue extends ProblemReviewIssue
     return true;
   });
 
-  const seenCategories = new Set<string>();
+  const seenIssues = new Set<string>();
   const nonAdminDisplayIssues = filtered.filter((issue) => {
-    if (!issue.violationCategory) return true;
-    if (seenCategories.has(issue.violationCategory)) return false;
-    seenCategories.add(issue.violationCategory);
+    const key = issueDisplayKey(issue);
+    if (seenIssues.has(key)) return false;
+    seenIssues.add(key);
     return true;
   });
 

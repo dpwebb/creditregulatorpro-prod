@@ -54,8 +54,12 @@ export function detectAccountStatusInconsistency(
   const violations: DetectedViolation[] = [];
   const status = (tradeline.status || "").toUpperCase();
   const balance = Number(tradeline.balance || (tradeline as any).currentBalance || 0);
+  const sourceText = String((tradeline as any).sourceText || "").toUpperCase();
 
   const isPaidStatus = status.includes("PAID") || status.includes("SETTLED");
+  const hasClosedAtConsumerNarrative =
+    /(?:^|[^A-Z0-9])CZ(?:[^A-Z0-9]|$)/.test(sourceText) ||
+    sourceText.includes("CLOSED AT CONSUMER");
 
   if (isPaidStatus && balance > 0) {
     violations.push({
@@ -70,6 +74,31 @@ export function detectAccountStatusInconsistency(
         regulationIds: ["PIPEDA_4_6", "PIPEDA_4_6_1"],
       },
       recommendedAction: "Ask them to fix the account status or update the balance so they match.",
+      tradelineId: tradeline.id,
+      responsibleEntity: "CREDITOR",
+    });
+  }
+
+  if (hasClosedAtConsumerNarrative && !tradeline.dateClosed && !status.includes("CLOSED")) {
+    violations.push({
+      violationCategory: "ACCOUNT_STATUS_INCONSISTENCY",
+      severity: "ERROR",
+      confidenceScore: 94,
+      userExplanation: "The report narrative says this account was closed at the consumer's request, but the account status still shows it as open and no closed date was reported.",
+      technicalDetails: {
+        ruleName: "SOURCE_NARRATIVE_STATUS_MISMATCH",
+        fieldName: "status",
+        expectedValue: "Closed at consumer request with a closed date, or corrected open status",
+        actualValue: tradeline.status || "OPEN",
+        detectedValue: tradeline.status || "OPEN",
+        narrativeCode: "CZ",
+        dateClosed: tradeline.dateClosed,
+        textSnippet: sourceText.includes("CZ-")
+          ? "CZ-Closed at consumer's request"
+          : "CZ / closed at consumer request",
+        regulationIds: ["PIPEDA_4_6", "PIPEDA_4_6_1", "METRO2_BASE_SEGMENT"],
+      },
+      recommendedAction: "Ask the company to correct the account status or provide the source record showing why the account is still open.",
       tradelineId: tradeline.id,
       responsibleEntity: "CREDITOR",
     });

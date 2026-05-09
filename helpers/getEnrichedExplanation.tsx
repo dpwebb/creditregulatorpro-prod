@@ -1,6 +1,7 @@
 const FIELD_LABELS: Record<string, string> = {
   accountType: "account type",
   chargeOffDate: "date the account was written off",
+  collectionAgencyName: "collection agency name",
   creditorId: "company name",
   dateAssignedToCollection: "date it was sent to collections",
   dateClosed: "date closed",
@@ -10,6 +11,7 @@ const FIELD_LABELS: Record<string, string> = {
   originalCreditorName: "original company you owed",
   paymentRating: "payment rating",
   scheduledMonthlyPayment: "monthly payment amount",
+  status: "account status",
   terms: "loan length",
 };
 
@@ -77,6 +79,8 @@ const getMissingInfoExplanation = (technicalDetails: any): string | null => {
       return "This collection account does not show the date it was sent to collections. That date can help verify whether the collection reporting is accurate.";
     case "dateOfFirstDelinquency":
       return "This account is missing the date it first fell behind. That date helps decide how long the account can stay on your report.";
+    case "collectionAgencyName":
+      return "This account says it was sent to collections, but it does not name the collection agency. Without that name, it is harder to verify who is reporting or collecting the debt.";
     case "originalCreditorName":
       return "This collection account does not list the original company you owed.";
     case "terms":
@@ -85,6 +89,10 @@ const getMissingInfoExplanation = (technicalDetails: any): string | null => {
       return "This account is missing the date it was last reported. That date shows whether the information is up to date.";
     case "chargeOffDate":
       return "This account says the debt was written off, but it does not show when that happened.";
+    case "dateClosed":
+      return "This account says it was closed, but it does not show the closed date.";
+    case "status":
+      return "The account status does not match the details shown in the report.";
     case "scheduledMonthlyPayment":
       return "This account is missing the normal monthly payment amount.";
     case "accountType":
@@ -197,7 +205,16 @@ export const getEnrichedExplanation = (violation: {
   }
 
   if (violationCategory === "STATUTE_OF_LIMITATIONS") {
-    return "The credit bureau should have removed this account because it is too old to be reported.";
+    const limitDate = technicalDetails?.reportingLimitDate
+      ? new Date(technicalDetails.reportingLimitDate).toLocaleDateString("en-CA")
+      : null;
+    const referenceDate = technicalDetails?.referenceDate
+      ? new Date(technicalDetails.referenceDate).toLocaleDateString("en-CA")
+      : null;
+    if (limitDate && referenceDate) {
+      return `This account appears past the reporting time limit. The report date used for the age check is ${referenceDate}, and the expected reporting-limit date is ${limitDate}.`;
+    }
+    return "This account appears too old to remain on the credit report and should be reviewed for removal or correction.";
   }
 
   if (violationCategory === "BUREAU_INVESTIGATION_FAILURE") {
@@ -214,6 +231,10 @@ export const getEnrichedExplanation = (violation: {
 
   if (violationCategory === "DATE_LOGIC_IMPOSSIBLE") {
     return `${capitalizedEntityName} has impossible dates reported for this account.`;
+  }
+
+  if (violationCategory === "ACCOUNT_STATUS_INCONSISTENCY" && technicalDetails?.narrativeCode === "CZ") {
+    return "The report narrative says this account was closed at your request, but the account still shows as open and no closed date was reported.";
   }
 
   const baseExplanation = simplifyForUser(userExplanation);

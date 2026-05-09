@@ -51,8 +51,10 @@ const TERMINAL_STATUS_KEYWORDS = [
   "settled",
   "transferred",
   "write-off",
+  "write off",
   "writeoff",
   "charge-off",
+  "charge off",
   "charged off",
   "cancelled",
   "canceled",
@@ -63,7 +65,7 @@ const TERMINAL_STATUS_KEYWORDS = [
 ];
 
 export function hasTerminalReportingStatus(
-  tradeline: Pick<TradelineForStaleReportingGuard, "status" | "dateClosed" | "datePaidSettled">
+  tradeline: Pick<TradelineForStaleReportingGuard, "status" | "dateClosed" | "datePaidSettled" | "sourceText" | "notes">
 ): boolean {
   if (safeParseDate(tradeline.dateClosed)) return true;
   if (safeParseDate(tradeline.datePaidSettled)) return true;
@@ -80,6 +82,17 @@ export function hasTerminalReportingStatus(
   }
 
   if (TERMINAL_STATUS_KEYWORDS.some((keyword) => statusLower.includes(keyword))) {
+    return true;
+  }
+
+  const sourceEvidence = `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase();
+  if (
+    /(?:^|[^A-Z0-9])CZ(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||
+    /(?:^|[^A-Z0-9])WO(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||
+    sourceEvidence.includes("CLOSED AT CONSUMER") ||
+    sourceEvidence.includes("BAD DEBT WRITE-OFF") ||
+    sourceEvidence.includes("ACCOUNT TURNED OVER TO COLLECTION")
+  ) {
     return true;
   }
 

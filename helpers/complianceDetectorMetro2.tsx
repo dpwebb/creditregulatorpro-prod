@@ -4,6 +4,22 @@ import type { DetectedViolation } from "./complianceDetectorTypes";
 import { isEffectivelyCollectionAccount } from "./complianceDetectorTypes";
 import { regulationRegistry } from "./regulationRegistry";
 
+function hasNarrativeCode(sourceText: string, code: string): boolean {
+  const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:^|[^A-Z0-9])${escaped}(?:[^A-Z0-9]|$)`).test(sourceText);
+}
+
+function hasReportedTermsInSource(sourceText: string): boolean {
+  return /\bTERMS\s*:\s*[^ \n\r\t]+/i.test(sourceText);
+}
+
+function baseSegmentDetails(details: Record<string, any>): Record<string, any> {
+  return {
+    ruleName: "BASE_SEGMENT_REQUIRED",
+    ...details,
+  };
+}
+
 /**
  * Detects Metro2 data quality violations - missing required fields and completeness issues.
  */
@@ -14,6 +30,28 @@ export async function detectMetro2FieldViolations(
   const violations: DetectedViolation[] = [];
 
   const isCollection = isEffectivelyCollectionAccount(tradeline);
+  const sourceTextRaw = String((tradeline as any).sourceText || "");
+  const sourceText = sourceTextRaw.toUpperCase();
+  const hasWriteOffNarrative =
+    hasNarrativeCode(sourceText, "WO") ||
+    sourceText.includes("BAD DEBT WRITE-OFF") ||
+    sourceText.includes("WRITE-OFF");
+  const hasCollectionTurnoverNarrative =
+    hasNarrativeCode(sourceText, "TC") ||
+    sourceText.includes("THIRD PARTY COLLECTION") ||
+    sourceText.includes("TURNED OVER TO COLLECTION");
+  const hasClosedAtConsumerNarrative =
+    hasNarrativeCode(sourceText, "CZ") ||
+    sourceText.includes("CLOSED AT CONSUMER");
+  const hasCancelledDerogatoryNarrative =
+    hasNarrativeCode(sourceText, "CG") ||
+    sourceText.includes("CANCELLED BY CREDIT GRANTOR WITH DEROGATORY") ||
+    sourceText.includes("CANCELED BY CREDIT GRANTOR WITH DEROGATORY");
+  const sourceLooksNonDerogatoryOnly =
+    hasNarrativeCode(sourceText, "AC") &&
+    !hasWriteOffNarrative &&
+    !hasCollectionTurnoverNarrative &&
+    !hasCancelledDerogatoryNarrative;
 
   // 2. Missing First Delinquency Date on delinquent accounts
   const pastDue = Number(tradeline.amountPastDue || 0);
@@ -21,7 +59,15 @@ export async function detectMetro2FieldViolations(
   
   const mopStr = String((tradeline as any).mopCode || (tradeline as any).paymentRating || (tradeline as any).mop || "").toUpperCase();
   const isCancelDerogatory = status.includes("CANCEL") && status.includes("DEROGATORY");
-  const isTC = status.split(",").some(s => s.trim().startsWith("TC"));
+  const isTC = status.split(",").some(s => s.trim().startsWith("TC")) || hasCollectionTurnoverNarrative;
+  const hasChargeOffStatus =
+    status.includes("CHARGE OFF") ||
+    status.includes("CHARGE-OFF") ||
+    status.includes("CHARGEOFF") ||
+    status.includes("CHARGED OFF") ||
+    status.includes("WRIT") ||
+    status.includes("BAD DEBT");
+  const isChargeOffLike = hasWriteOffNarrative || (hasChargeOffStatus && !sourceLooksNonDerogatoryOnly);
   
   let hasSignificant90dDelinquency = false;
   if (tradeline.paymentPattern) {
@@ -33,10 +79,8 @@ export async function detectMetro2FieldViolations(
 
   const isDelinquent = pastDue > 0 || 
     status.includes("DELINQ") || 
-    status.includes("CHARGE") || 
+    isChargeOffLike ||
     status.includes("DEFAULT") ||
-    status.includes("BAD DEBT") ||
-    status.includes("WRIT") ||
     mopStr === "9" ||
     isCancelDerogatory ||
     isTC ||
@@ -46,21 +90,64 @@ export async function detectMetro2FieldViolations(
   // a DOFD — they use dateAssignedToCollection or chargeOffDate instead.
   const isCollectionOrChargeOff =
     isEffectivelyCollectionAccount(tradeline) ||
-    status.includes("CHARGE") ||
-    status.includes("WRIT") ||
-    status.includes("BAD DEBT") ||
+    isChargeOffLike ||
     status.includes("TRANSFER");
 
   const hasAlternateDateAnchor =
     !!tradeline.dateAssignedToCollection || !!tradeline.chargeOffDate;
   const willFlagMissingCollectionAssignmentDate =
-    isCollection && !tradeline.dateAssignedToCollection;
+    (isCollection || hasCollectionTurnoverNarrative) && !tradeline.dateAssignedToCollection;
 
   if (isDelinquent && !tradeline.dateOfFirstDelinquency) {
     if (isCollectionOrChargeOff && hasAlternateDateAnchor) {
       // Legitimate — collection/charge-off with an alternate date anchor; skip
-    } else if (isCollectionOrChargeOff && !hasAlternateDateAnchor && willFlagMissingCollectionAssignmentDate) {
-      // The specific dateAssignedToCollection violation below covers this case.
+    } else if (isChargeOffLike && !hasAlternateDateAnchor) {
+      violations.push({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        severity: "WARNING",
+        confidenceScore: 80,
+        userExplanation: "This account is reported with a write-off or charge-off signal, but the report does not show the date it first fell behind or the date it was written off.",
+        technicalDetails: baseSegmentDetails({
+          fieldName: "dateOfFirstDelinquency",
+          expectedValue: "Valid first delinquency date or write-off date",
+          actualValue: null,
+          detectedValue: null,
+          reportedAs: "Missing",
+          accountStatus: tradeline.status,
+          amountPastDue: pastDue,
+          hasDateAssignedToCollection: !!tradeline.dateAssignedToCollection,
+          hasChargeOffDate: !!tradeline.chargeOffDate,
+          narrativeCodes: hasWriteOffNarrative ? ["WO"] : [],
+          textSnippet: hasWriteOffNarrative ? "WO-Bad debt write-off" : undefined,
+          regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
+        }),
+        recommendedAction: "Ask the company to verify the first delinquency or write-off date and correct any unsupported reporting.",
+        tradelineId: tradeline.id,
+        responsibleEntity: "CREDITOR",
+      });
+    } else if (willFlagMissingCollectionAssignmentDate) {
+      violations.push({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        severity: "WARNING",
+        confidenceScore: 78,
+        userExplanation: "This account is marked as sent to collections, but the report does not show the date it first fell behind. That date helps decide how long the account can stay on the report.",
+        technicalDetails: baseSegmentDetails({
+          fieldName: "dateOfFirstDelinquency",
+          expectedValue: "Valid date when account first became delinquent",
+          actualValue: null,
+          detectedValue: null,
+          reportedAs: "Missing",
+          accountStatus: tradeline.status,
+          amountPastDue: pastDue,
+          isCollectionAccount: true,
+          narrativeCodes: hasCollectionTurnoverNarrative ? ["TC"] : [],
+          textSnippet: hasCollectionTurnoverNarrative ? "TC-Third party collection/account turned over to collection agency" : undefined,
+          regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
+        }),
+        recommendedAction: "Ask the company to verify the first delinquency date and correct the collection reporting if it cannot be verified.",
+        tradelineId: tradeline.id,
+        responsibleEntity: "CREDITOR",
+      });
     } else if (isCollectionOrChargeOff && !hasAlternateDateAnchor) {
       // Collection with NO date anchors at all — flag but at lower confidence
       violations.push({
@@ -68,7 +155,7 @@ export async function detectMetro2FieldViolations(
         severity: "WARNING",
         confidenceScore: 75,
         userExplanation: "This collection account doesn't say when it first went overdue or when it was sent to collections. At least one of those dates can help verify the reporting.",
-        technicalDetails: {
+        technicalDetails: baseSegmentDetails({
           fieldName: "dateOfFirstDelinquency",
           expectedValue: "Valid date when account first became delinquent or was assigned to collection",
           actualValue: null,
@@ -80,7 +167,7 @@ export async function detectMetro2FieldViolations(
           hasDateAssignedToCollection: !!tradeline.dateAssignedToCollection,
           hasChargeOffDate: !!tradeline.chargeOffDate,
           regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
-        },
+        }),
         recommendedAction: "Ask the collection agency to verify the relevant date evidence and correct any unsupported reporting.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
@@ -92,7 +179,7 @@ export async function detectMetro2FieldViolations(
         severity: "ERROR",
         confidenceScore: 98,
         userExplanation: "This account fell behind on payments, but the report doesn't say when that first happened. That date can help verify the reporting.",
-        technicalDetails: {
+        technicalDetails: baseSegmentDetails({
           fieldName: "dateOfFirstDelinquency",
           expectedValue: "Valid date when account first became delinquent",
           actualValue: null,
@@ -101,7 +188,7 @@ export async function detectMetro2FieldViolations(
           accountStatus: tradeline.status,
           amountPastDue: pastDue,
           regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
-        },
+        }),
         recommendedAction: "Ask the company to verify when this account first went overdue and correct any unsupported reporting.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
@@ -276,7 +363,7 @@ export async function detectMetro2FieldViolations(
   // 12. Missing Date Assigned to Collection for collection accounts.
   // Keep this as an accuracy/completeness review unless a field-specific law or reporting
   // standard is mapped here.
-  if (isCollection && !tradeline.dateAssignedToCollection) {
+  if ((isCollection || hasCollectionTurnoverNarrative) && !tradeline.dateAssignedToCollection) {
     const collectionAssignmentDateRequirementIds: string[] = [];
     const hasSpecificAssignmentDateRequirement = collectionAssignmentDateRequirementIds.length > 0;
     const hasNamedCollectionAgency =
@@ -295,9 +382,9 @@ export async function detectMetro2FieldViolations(
     violations.push({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: hasSpecificAssignmentDateRequirement ? "ERROR" : "WARNING",
-      confidenceScore: hasSpecificAssignmentDateRequirement ? 97 : 72,
+      confidenceScore: hasSpecificAssignmentDateRequirement ? 97 : 78,
       userExplanation: assignmentDateExplanation,
-      technicalDetails: {
+      technicalDetails: baseSegmentDetails({
         fieldName: "dateAssignedToCollection",
         expectedValue: hasSpecificAssignmentDateRequirement
           ? "Valid assignment date"
@@ -313,11 +400,36 @@ export async function detectMetro2FieldViolations(
           : "PIPEDA accuracy and completeness review; no field-specific collection assignment date requirement is currently mapped",
         regulationIds: hasSpecificAssignmentDateRequirement
           ? ["PIPEDA_4_6", ...collectionAssignmentDateRequirementIds]
-          : ["PIPEDA_4_6"],
-      },
+          : ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+        narrativeCodes: hasCollectionTurnoverNarrative ? ["TC"] : [],
+        textSnippet: hasCollectionTurnoverNarrative ? "TC-Third party collection/account turned over to collection agency" : undefined,
+      }),
       recommendedAction: hasSpecificAssignmentDateRequirement
         ? "Ask the furnisher to add the date it was sent to collections, or remove the collection-turnover reporting if it cannot verify that date."
         : "Ask the furnisher to verify when the account was sent to collections, or correct the collection-turnover reporting if it cannot verify that date.",
+      tradelineId: tradeline.id,
+      responsibleEntity: "CREDITOR",
+    });
+  }
+
+  if ((isCollection || hasCollectionTurnoverNarrative) && !tradeline.collectionAgencyName) {
+    violations.push({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "WARNING",
+      confidenceScore: 82,
+      userExplanation: "This account is marked as sent to collections, but the report does not name the collection agency.",
+      technicalDetails: baseSegmentDetails({
+        fieldName: "collectionAgencyName",
+        expectedValue: "Collection agency name when collection turnover is reported",
+        actualValue: null,
+        detectedValue: null,
+        reportedAs: "Missing",
+        isCollectionAccount: true,
+        narrativeCodes: hasCollectionTurnoverNarrative ? ["TC"] : [],
+        textSnippet: hasCollectionTurnoverNarrative ? "TC-Third party collection/account turned over to collection agency" : undefined,
+        regulationIds: ["PIPEDA_4_6", "METRO2_BASE_SEGMENT"],
+      }),
+      recommendedAction: "Ask the company to identify the collection agency or correct the collection reporting if no agency can be verified.",
       tradelineId: tradeline.id,
       responsibleEntity: "CREDITOR",
     });
@@ -329,7 +441,7 @@ export async function detectMetro2FieldViolations(
                                accountTypeUpper.includes("MORTGAGE");
   const terms = tradeline.terms;
   
-  if (isInstallmentAccount && !isClosed && (!terms || terms.trim() === "")) {
+  if (isInstallmentAccount && !isClosed && !hasReportedTermsInSource(sourceTextRaw) && (!terms || terms.trim() === "")) {
     violations.push({
       violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
       severity: "WARNING",
@@ -373,13 +485,17 @@ export async function detectMetro2FieldViolations(
   }
 
   // 16. Missing Charge-off Date for write-off/charge-off accounts
-  const isChargeOffStatus = status.includes("WO") ||
-    status.includes("WRITE-OFF") ||
-    status.includes("WRITEOFF") ||
-    status.includes("WRITE OFF") ||
-    status.includes("CHARGE-OFF") ||
-    status.includes("CHARGEOFF") ||
-    status.includes("CHARGED OFF");
+  const isChargeOffStatus = hasWriteOffNarrative ||
+    (!sourceLooksNonDerogatoryOnly && (
+      status.includes("WO") ||
+      status.includes("WRITE-OFF") ||
+      status.includes("WRITEOFF") ||
+      status.includes("WRITE OFF") ||
+      status.includes("CHARGE OFF") ||
+      status.includes("CHARGE-OFF") ||
+      status.includes("CHARGEOFF") ||
+      status.includes("CHARGED OFF")
+    ));
 
   if (isChargeOffStatus && !tradeline.chargeOffDate) {
     violations.push({
@@ -387,16 +503,41 @@ export async function detectMetro2FieldViolations(
       severity: "ERROR",
       confidenceScore: 97,
       userExplanation: "The company says this debt was written off as a loss, but they didn't report when that happened. That date can help verify the reporting.",
-      technicalDetails: {
+      technicalDetails: baseSegmentDetails({
         fieldName: "chargeOffDate",
         expectedValue: "Valid charge-off date",
         actualValue: null,
         detectedValue: null,
         reportedAs: "Missing",
         accountStatus: tradeline.status,
+        narrativeCodes: hasWriteOffNarrative ? ["WO"] : [],
+        textSnippet: hasWriteOffNarrative ? "WO-Bad debt write-off" : undefined,
         regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
-      },
+      }),
       recommendedAction: "Ask the company to verify when this account was written off and correct any unsupported reporting.",
+      tradelineId: tradeline.id,
+      responsibleEntity: "CREDITOR",
+    });
+  }
+
+  if (hasClosedAtConsumerNarrative && !tradeline.dateClosed) {
+    violations.push({
+      violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+      severity: "WARNING",
+      confidenceScore: 82,
+      userExplanation: "The report narrative says this account was closed at the consumer's request, but no closed date was reported.",
+      technicalDetails: baseSegmentDetails({
+        fieldName: "dateClosed",
+        expectedValue: "Closed date for account reported as closed",
+        actualValue: null,
+        detectedValue: null,
+        reportedAs: "Missing",
+        accountStatus: tradeline.status,
+        narrativeCodes: ["CZ"],
+        textSnippet: "CZ-Closed at consumer's request",
+        regulationIds: ["METRO2_BASE_SEGMENT", "PIPEDA_4_6"],
+      }),
+      recommendedAction: "Ask the company to report the closed date or correct the closed-account narrative if it cannot be verified.",
       tradelineId: tradeline.id,
       responsibleEntity: "CREDITOR",
     });
@@ -411,10 +552,10 @@ export async function detectMetro2FieldViolations(
         (analysisDate.getMonth() - openedDate.getMonth());
       
       if (monthsOpen > 6) {
-        const isWO = status.includes("WO") || status.includes("WRITE");
+        const isWO = hasWriteOffNarrative || status.includes("WO") || status.includes("WRITE");
         const isCollectionStatus = status.includes("TC") || isTC || isCollection;
         
-        if ((isWO || isCancelDerogatory || isCollectionStatus) && mopStr === "0") {
+        if ((isWO || isCancelDerogatory || isCollectionStatus) && mopStr === "0" && !hasWriteOffNarrative) {
           violations.push({
             violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
             severity: "WARNING",

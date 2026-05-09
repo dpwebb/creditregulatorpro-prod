@@ -1,4 +1,4 @@
-import { getViolationLabel } from "./getViolationLabel";
+import { getViolationDisplayLabel } from "./getViolationLabel";
 import { hasReportedAccountValue } from "./accountDisplayLabels";
 import {
   isActiveProblemReviewIssue,
@@ -63,7 +63,7 @@ function firstReportedValue<T extends string | number | null | undefined>(...val
 function uniqueProblemLabels(issues: ProblemAccountIssue[]): string[] {
   const labels: string[] = [];
   for (const issue of issues) {
-    const label = getViolationLabel(issue.violationCategory);
+    const label = getViolationDisplayLabel(issue);
     if (!labels.includes(label)) labels.push(label);
     if (labels.length >= 3) break;
   }

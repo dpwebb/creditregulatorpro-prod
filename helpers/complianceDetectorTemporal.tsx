@@ -97,18 +97,25 @@ export async function detectStatuteOfLimitations(
   const statusText = (tradeline.status || "").toLowerCase();
   const typeText = (tradeline.accountType || "").toLowerCase();
   const tradelineRecord = tradeline as Record<string, unknown>;
+  const sourceText = (typeof tradelineRecord.sourceText === "string" ? tradelineRecord.sourceText : "").toLowerCase();
   const ratingDescText = (typeof tradelineRecord.ratingCodeDescription === "string" ? tradelineRecord.ratingCodeDescription : "").toLowerCase();
   const ratingCodeText = (typeof tradelineRecord.ratingCode === "string" ? tradelineRecord.ratingCode : "").toLowerCase();
   
-  const closedIndicators = ["closed", "paid", "settled", "transferred", "charged off", "charge-off", "collection", "cancelled", "cancel"];
+  const closedIndicators = ["closed", "paid", "settled", "transferred", "charged off", "charge-off", "charge off", "write-off", "write off", "collection", "cancelled", "cancel"];
   const hasClosedIndicator = closedIndicators.some(indicator => 
     statusText.includes(indicator) || ratingDescText.includes(indicator)
   );
+  const hasClosedSourceNarrative =
+    /(?:^|[^a-z0-9])cz(?:[^a-z0-9]|$)/i.test(sourceText) ||
+    /(?:^|[^a-z0-9])wo(?:[^a-z0-9]|$)/i.test(sourceText) ||
+    sourceText.includes("closed at consumer") ||
+    sourceText.includes("bad debt write-off") ||
+    sourceText.includes("account turned over to collection");
 
   const badDebtRegex = /^[oir][789]$/i;
   const hasBadDebtCode = badDebtRegex.test(statusText) || badDebtRegex.test(ratingCodeText);
 
-  const appearsClosed = hasClosedIndicator || hasBadDebtCode;
+  const appearsClosed = hasClosedIndicator || hasClosedSourceNarrative || hasBadDebtCode;
 
   // In Canada, provincial retention limits apply to ALL closed accounts,
 // not just derogatory ones. Only skip OPEN accounts that were never delinquent.

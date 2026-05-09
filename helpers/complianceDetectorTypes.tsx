@@ -16,6 +16,8 @@ export interface TradelineForCollectionCheck {
   collectionAgencyName?: string | null;
   status?: string | null;
   accountType?: string | null;
+  sourceText?: string | null;
+  notes?: string | null;
 }
 
 export function isEffectivelyCollectionAccount(tradeline: TradelineForCollectionCheck): boolean {
@@ -31,12 +33,21 @@ export function isEffectivelyCollectionAccount(tradeline: TradelineForCollection
     const segments = tradeline.status.split(",");
     for (const segment of segments) {
       const trimmed = segment.trim().toUpperCase();
-      if (trimmed.startsWith("TC")) continue;
+      if (trimmed.startsWith("TC")) return true;
       if (trimmed.includes("COLLECTION")) return true;
     }
   }
 
   if (typeof tradeline.accountType === "string" && tradeline.accountType.toUpperCase().includes("COLLECTION")) {
+    return true;
+  }
+
+  const sourceEvidence = `${tradeline.sourceText || ""} ${tradeline.notes || ""}`.toUpperCase();
+  if (
+    /(?:^|[^A-Z0-9])TC(?:[^A-Z0-9]|$)/.test(sourceEvidence) ||
+    sourceEvidence.includes("THIRD PARTY COLLECTION") ||
+    sourceEvidence.includes("TURNED OVER TO COLLECTION")
+  ) {
     return true;
   }
 

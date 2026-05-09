@@ -64,3 +64,46 @@ export function getViolationLabel(category: string | null | undefined): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
+
+const DOCUMENTATION_FIELD_LABELS: Record<string, string> = {
+  chargeOffDate: "Missing Write-Off Date",
+  collectionAgencyName: "Collection Agency Not Named",
+  creditorId: "Company Not Clearly Named",
+  dateAssignedToCollection: "Missing Collection Assignment Date",
+  dateClosed: "Missing Closed Date",
+  dateOfFirstDelinquency: "Missing First Delinquency Date",
+  dateOfLastPayment: "Missing Last Payment Date",
+  lastReportedDate: "Missing Last Reported Date",
+  originalCreditorName: "Original Creditor Not Named",
+  paymentRating: "Payment Rating Issue",
+  scheduledMonthlyPayment: "Missing Monthly Payment",
+  status: "Account Status Issue",
+  terms: "Missing Loan Terms",
+};
+
+export function getViolationDisplayLabel(violation: {
+  violationCategory?: string | null;
+  technicalDetails?: Record<string, any> | null;
+}): string {
+  const category = violation.violationCategory;
+  const details = violation.technicalDetails || null;
+  const fieldName =
+    typeof details?.fieldName === "string"
+      ? details.fieldName
+      : typeof details?.missingField === "string"
+        ? details.missingField
+        : null;
+
+  if (category === "DOCUMENTATION_CHAIN_FAILURE" && fieldName && DOCUMENTATION_FIELD_LABELS[fieldName]) {
+    return DOCUMENTATION_FIELD_LABELS[fieldName];
+  }
+
+  if (
+    category === "ACCOUNT_STATUS_INCONSISTENCY" &&
+    details?.narrativeCode === "CZ"
+  ) {
+    return "Closed Account Still Shows Open";
+  }
+
+  return getViolationLabel(category);
+}
