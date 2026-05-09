@@ -49,6 +49,10 @@ describe("admin AI assist pane", () => {
     expect(findingsEndpoint).toContain("getServerUserSession");
     expect(findingsEndpoint).toContain('user.role !== "admin"');
     expect(findingsEndpoint).toContain("maskAccountNumber");
+    expect(findingsEndpoint).toContain("report_artifact ra");
+    expect(findingsEndpoint).toContain("packet_owner");
+    expect(findingsEndpoint).toContain("user_account ua");
+    expect(findingsEndpoint).toContain("ua.email ilike");
     expect(findingsEndpoint).not.toContain("source_text");
     expect(queryHelper).toContain("useAdminAiAssistFindings");
     expect(server).toContain("_api/admin/ai-assist/runs");
