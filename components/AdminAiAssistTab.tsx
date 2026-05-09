@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { Bot, Play, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { Bot, Play, RefreshCw, Search, ShieldCheck, Sparkles } from "lucide-react";
 
 import { Badge } from "./Badge";
 import { Button } from "./Button";
@@ -21,6 +21,7 @@ import {
   useUpdateFeatureFlag,
 } from "../helpers/featureFlagQueries";
 import {
+  useAdminAiAssistFindings,
   useAdminAiAssistRuns,
   usePreviewConsumerFindingExplanationAssist,
 } from "../helpers/adminAiAssistQueries";
@@ -90,8 +91,11 @@ export const AdminAiAssistTab = () => {
   const runsQuery = useAdminAiAssistRuns({ limit: 25 });
   const { showSuccess, showError } = useToast();
 
+  const [findingSearch, setFindingSearch] = useState("");
+  const [lookupQuery, setLookupQuery] = useState("");
   const [violationId, setViolationId] = useState("");
   const [previewResult, setPreviewResult] = useState<ConsumerFindingExplanationOutput | null>(null);
+  const findingsQuery = useAdminAiAssistFindings({ q: lookupQuery, limit: 25 });
 
   const handleCreateFlag = async () => {
     try {
@@ -143,6 +147,16 @@ export const AdminAiAssistTab = () => {
     } catch (error) {
       showError(error instanceof Error ? error.message : "Failed to preview explanation");
     }
+  };
+
+  const handleLookup = (event: FormEvent) => {
+    event.preventDefault();
+    setLookupQuery(findingSearch.trim());
+  };
+
+  const handleUseFinding = (findingId: number) => {
+    setViolationId(String(findingId));
+    showSuccess(`Finding #${findingId} loaded for preview`);
   };
 
   const isFlagEnabled = Boolean(aiFlag?.enabled);
@@ -254,6 +268,117 @@ export const AdminAiAssistTab = () => {
             Rejects hard legal conclusions, guarantees, and invented dates or amounts.
           </div>
         </div>
+      </div>
+
+      <div className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <div>
+            <h3 className={styles.panelTitle}>
+              <Search size={16} /> Finding Lookup
+            </h3>
+            <p className={styles.panelDescription}>
+              Search by finding ID, user email/name, creditor, collection agency, bureau, account fragment, or category.
+            </p>
+          </div>
+          {typeof findingsQuery.data?.total === "number" && (
+            <Badge variant="default" className={styles.statusBadge}>
+              {findingsQuery.data.total} match{findingsQuery.data.total === 1 ? "" : "es"}
+            </Badge>
+          )}
+        </div>
+
+        <form className={styles.lookupForm} onSubmit={handleLookup}>
+          <Input
+            value={findingSearch}
+            placeholder="Search findings, or leave blank for recent"
+            onChange={(event) => setFindingSearch(event.target.value)}
+          />
+          <Button type="submit" disabled={findingsQuery.isFetching}>
+            <Search size={16} /> Search
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={findingsQuery.isFetching}
+            onClick={() => {
+              setFindingSearch("");
+              setLookupQuery("");
+            }}
+          >
+            Recent
+          </Button>
+        </form>
+
+        <TableContainer>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Finding</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Account</TableHead>
+                <TableHead className={styles.hideMobile}>Bureau</TableHead>
+                <TableHead className={styles.hideMobile}>Detected</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {findingsQuery.isLoading || findingsQuery.isFetching ? (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Skeleton style={{ height: "40px", margin: "var(--spacing-2) 0" }} />
+                    <Skeleton style={{ height: "40px", margin: "var(--spacing-2) 0" }} />
+                  </TableCell>
+                </TableRow>
+              ) : !findingsQuery.data?.findings.length ? (
+                <TableRow>
+                  <TableCell colSpan={6} className={styles.emptyState}>
+                    No compliance findings matched.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                findingsQuery.data.findings.map((finding) => (
+                  <TableRow key={finding.id}>
+                    <TableCell>
+                      <div className={styles.findingCell}>
+                        <span className={styles.flagKey}>Finding #{finding.id}</span>
+                        <span className={styles.mutedText}>{finding.displayLabel}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className={styles.findingCell}>
+                        <span>{finding.userEmail || `User #${finding.userId ?? "-"}`}</span>
+                        {finding.userDisplayName && (
+                          <span className={styles.mutedText}>{finding.userDisplayName}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className={styles.findingCell}>
+                        <span>{finding.creditorName || "Unknown account"}</span>
+                        <span className={styles.mutedText}>
+                          {[finding.accountType, finding.accountNumberMasked].filter(Boolean).join(" · ") || "No account detail"}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={styles.hideMobile}>{finding.bureauName || "-"}</TableCell>
+                    <TableCell className={styles.hideMobile}>
+                      {finding.detectedAt ? formatDateTime(finding.detectedAt) : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleUseFinding(finding.id)}
+                      >
+                        Use ID
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </div>
 
       <div className={styles.previewGrid}>

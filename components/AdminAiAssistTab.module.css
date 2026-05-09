@@ -118,6 +118,13 @@
   gap: var(--spacing-2);
 }
 
+.lookupForm {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
 .label {
   font-size: 0.875rem;
   font-weight: 500;
@@ -186,6 +193,13 @@
   font-size: 0.8125rem;
 }
 
+.findingCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .statusBadge {
   text-transform: capitalize;
 }
@@ -215,6 +229,10 @@
   .statusRow {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .lookupForm {
+    grid-template-columns: 1fr;
   }
 
   .hideMobile {

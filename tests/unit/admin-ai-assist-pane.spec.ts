@@ -24,19 +24,29 @@ describe("admin AI assist pane", () => {
     expect(component).toContain("AI_CONSUMER_EXPLANATION_FEATURE_KEY");
     expect(component).toContain("usePreviewConsumerFindingExplanationAssist");
     expect(component).toContain("Deterministic Fallback");
+    expect(component).toContain("Finding Lookup");
+    expect(component).toContain("handleUseFinding");
     expect(queryHelper).toContain("postConsumerFindingExplanationAssist");
   });
 
-  it("exposes recent AI assist runs through an admin-only endpoint", () => {
-    const endpoint = source("endpoints/admin/ai-assist/runs_GET.ts");
+  it("exposes recent AI assist runs and finding lookup through admin-only endpoints", () => {
+    const runsEndpoint = source("endpoints/admin/ai-assist/runs_GET.ts");
+    const findingsEndpoint = source("endpoints/admin/ai-assist/findings_GET.ts");
+    const queryHelper = source("helpers/adminAiAssistQueries.tsx");
     const server = source("server.ts");
 
-    expect(endpoint).toContain("getServerUserSession");
-    expect(endpoint).toContain('user.role !== "admin"');
-    expect(endpoint).toContain("ensureAiAssistRunSchema");
-    expect(endpoint).toContain("input_hash");
-    expect(endpoint).not.toContain("userPrompt");
+    expect(runsEndpoint).toContain("getServerUserSession");
+    expect(runsEndpoint).toContain('user.role !== "admin"');
+    expect(runsEndpoint).toContain("ensureAiAssistRunSchema");
+    expect(runsEndpoint).toContain("input_hash");
+    expect(runsEndpoint).not.toContain("userPrompt");
+    expect(findingsEndpoint).toContain("getServerUserSession");
+    expect(findingsEndpoint).toContain('user.role !== "admin"');
+    expect(findingsEndpoint).toContain("maskAccountNumber");
+    expect(findingsEndpoint).not.toContain("source_text");
+    expect(queryHelper).toContain("useAdminAiAssistFindings");
     expect(server).toContain("_api/admin/ai-assist/runs");
+    expect(server).toContain("_api/admin/ai-assist/findings");
   });
 
   it("keeps the AI feature flag key in a client-safe constant module", () => {
