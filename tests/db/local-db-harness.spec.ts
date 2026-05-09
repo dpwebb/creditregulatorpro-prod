@@ -62,4 +62,15 @@ describe("local bootstrap table coverage", () => {
       expect(bootstrapSource).toMatch(new RegExp(table.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`)));
     }
   });
+
+  it("keeps localhost on a single canonical admin role after refresh", () => {
+    const projectRoot = process.cwd();
+    const authBootstrap = readFileSync(path.join(projectRoot, "scripts", "bootstrap-local-auth-schema.ts"), "utf8");
+
+    expect(authBootstrap).toContain("webbd3500@gmail.com");
+    expect(authBootstrap).toContain("LOCAL_DEV_SINGLE_ADMIN");
+    expect(authBootstrap).toContain("role = 'support'");
+    expect(authBootstrap).toContain("Normalized localhost admin accounts");
+    expect(authBootstrap).toContain("target is not explicit local dev");
+  });
 });

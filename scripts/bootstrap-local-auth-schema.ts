@@ -5,6 +5,8 @@ import { hash } from "bcryptjs";
 
 type EnvMap = Record<string, string>;
 
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
 function parseDotEnv(contents: string): EnvMap {
   const out: EnvMap = {};
   for (const line of contents.split(/\r?\n/)) {
@@ -57,18 +59,31 @@ function resolveLocalDatabaseUrl(): string {
   throw new Error("No local database URL could be resolved.");
 }
 
+function isTruthy(value: string | undefined): boolean {
+  if (!value) return false;
+  return ["1", "true", "yes", "on", "enabled"].includes(value.trim().toLowerCase());
+}
+
 async function main() {
   const databaseUrl = resolveLocalDatabaseUrl();
+  const envJson = JSON.parse(fs.readFileSync(path.resolve("env.json"), "utf8")) as EnvMap;
+  const databaseHost = new URL(databaseUrl).hostname;
   const sql = postgres(databaseUrl, { prepare: false, max: 1 });
   const localAdminEmail =
-    (process.env.LOCAL_DEV_ADMIN_EMAIL || "local.admin@creditregulatorpro.local")
+    (process.env.LOCAL_DEV_ADMIN_EMAIL || "webbd3500@gmail.com")
       .trim()
       .toLowerCase();
   const localAdminPassword =
     process.env.LOCAL_DEV_ADMIN_PASSWORD || "LocalAdmin123";
-  const localAdminDisplayName = process.env.LOCAL_DEV_ADMIN_NAME || "Local Admin";
+  const localAdminDisplayName = process.env.LOCAL_DEV_ADMIN_NAME || "Admin";
   const localAdminSignature =
-    process.env.LOCAL_DEV_ADMIN_SIGNATURE || "Local Admin";
+    process.env.LOCAL_DEV_ADMIN_SIGNATURE || "DAVID PHILIP WEBB";
+  const shouldNormalizeLocalAdmins =
+    (process.env.LOCAL_DEV_SINGLE_ADMIN ?? envJson.LOCAL_DEV_SINGLE_ADMIN ?? "true").trim().toLowerCase() !== "false";
+  const canNormalizeLocalAdmins =
+    shouldNormalizeLocalAdmins &&
+    (isTruthy(process.env.CRP_LOCAL_DEV) || isTruthy(envJson.CRP_LOCAL_DEV)) &&
+    LOCAL_HOSTS.has(databaseHost);
 
   try {
     await sql`create table if not exists public.users (
@@ -203,7 +218,7 @@ async function main() {
       values (${localAdminEmail}, ${localAdminDisplayName}, 'admin', true)
       on conflict (email)
       do update set
-        display_name = excluded.display_name,
+        display_name = coalesce(nullif(public.users.display_name, ''), excluded.display_name),
         role = 'admin',
         email_verified = true
       returning id
@@ -245,13 +260,39 @@ async function main() {
       on conflict (user_id)
       do update set
         email = excluded.email,
-        full_name = excluded.full_name,
-        legal_name_signature = excluded.legal_name_signature,
+        full_name = coalesce(nullif(public.user_account.full_name, ''), excluded.full_name),
+        legal_name_signature = coalesce(nullif(public.user_account.legal_name_signature, ''), excluded.legal_name_signature),
         role = 'admin',
         region = 'CA',
         terms_accepted_at = coalesce(public.user_account.terms_accepted_at, now()),
         terms_accepted_version = coalesce(public.user_account.terms_accepted_version, 'v1')
     `;
+
+    if (canNormalizeLocalAdmins) {
+      const demotedUsers = await sql`
+        update public.users
+        set role = 'support'
+        where role = 'admin'
+          and lower(email) <> ${localAdminEmail}
+        returning id, email
+      `;
+
+      if (demotedUsers.length > 0) {
+        await sql`
+          update public.user_account ua
+          set role = 'support'
+          from public.users u
+          where ua.user_id = u.id
+            and u.role = 'support'
+            and lower(u.email) <> ${localAdminEmail}
+            and ua.role = 'admin'
+        `;
+      }
+
+      console.log(`Normalized localhost admin accounts: demoted ${demotedUsers.length} non-canonical admin account(s) to support.`);
+    } else if (shouldNormalizeLocalAdmins) {
+      console.log("Skipped single-admin normalization because target is not explicit local dev.");
+    }
 
     console.log("Local auth schema bootstrap complete.");
     console.log(`Seeded local admin email: ${localAdminEmail}`);

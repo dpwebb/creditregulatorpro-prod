@@ -89,8 +89,19 @@ It supports:
 
 By default it removes copied sessions/tokens locally, clears copied IP and
 user-agent fields where those tables exist, reseeds the local admin account, and
-deletes the temporary dump file after restore. Use `--keep-dump` only when you
-need to inspect the dump; treat retained dumps as sensitive data.
+demotes other copied admin-role accounts to support so localhost has one
+canonical admin user. Use `--keep-dump` only when you need to inspect the dump;
+treat retained dumps as sensitive data.
+
+Default localhost admin:
+
+```text
+webbd3500@gmail.com
+```
+
+The password is `LOCAL_DEV_ADMIN_PASSWORD` when set, otherwise the local
+bootstrap default. Set `LOCAL_DEV_SINGLE_ADMIN=false` only when you explicitly
+need to preserve multiple copied admin-role accounts in localhost.
 
 ## Commit-Push Local Sync
 
@@ -110,7 +121,8 @@ pnpm run refresh:local-from-staging -- --confirm
 This means `http://localhost:5175` is reset to the current staging database,
 including staging parser test cases and report data. The copied local sessions,
 tokens, OAuth rows, IP addresses, and user-agent fields are stripped where those
-tables exist, and the localhost admin account is reseeded for local access.
+tables exist, the localhost admin account is reseeded for local access, and
+other copied admin-role accounts are demoted locally.
 
 Use this only when replacing local data is expected. To keep local-only
 experiments, publish with:
