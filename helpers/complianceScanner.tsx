@@ -445,8 +445,17 @@ export async function scanForViolations(
           typeof v.technicalDetails === "object" &&
           typeof (v.technicalDetails as Record<string, unknown>).ruleName === "string"
       );
+    const hasStructuredCrossBureauMessage =
+      v.violationCategory === "CROSS_BUREAU_INCONSISTENCY" &&
+      typeof v.userExplanation === "string" &&
+      v.userExplanation.trim() !== "" &&
+      Boolean(
+        v.technicalDetails &&
+          typeof v.technicalDetails === "object" &&
+          Array.isArray((v.technicalDetails as Record<string, unknown>).fieldDifferences)
+      );
 
-    if (!hasRuleBackedMessage && config.userExplanationTemplate && config.userExplanationTemplate.trim() !== "") {
+    if (!hasRuleBackedMessage && !hasStructuredCrossBureauMessage && config.userExplanationTemplate && config.userExplanationTemplate.trim() !== "") {
       v.userExplanation = config.userExplanationTemplate;
     }
     if (config.recommendedActionTemplate && config.recommendedActionTemplate.trim() !== "") {

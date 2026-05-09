@@ -70,4 +70,49 @@ describe("compliance finding normalizer", () => {
     expect(normalized.userExplanation).not.toContain("informationit");
     expect(normalized.userExplanation).toContain("review and correct the reported information");
   });
+
+  it("explains cross-bureau differences without exposing raw JSON", () => {
+    const violation: DetectedViolation = {
+      violationCategory: "CROSS_BUREAU_INCONSISTENCY",
+      severity: "WARNING",
+      confidenceScore: 90,
+      userExplanation:
+        "Equifax Canada and TransUnion Canada show different details for FIDO: Balance: Equifax Canada shows $341.00; TransUnion Canada shows not reported.",
+      technicalDetails: {
+        baseTradelineId: 506,
+        otherTradelineId: 503,
+        baseBureauName: "Equifax Canada",
+        otherBureauName: "TransUnion Canada",
+        fieldDifferences: [
+          {
+            fieldName: "balance",
+            label: "Balance",
+            baseValue: "$341.00",
+            otherValue: "not reported",
+          },
+          {
+            fieldName: "status",
+            label: "Status",
+            baseValue: "Open - Bad debt",
+            otherValue: "Cancelled by Credit Grantor",
+          },
+        ],
+        detectedValue: [
+          { fieldName: "balance", baseValue: "$341.00", otherValue: "not reported" },
+        ],
+        regulationIds: ["PIPEDA_4_6"],
+      },
+      recommendedAction: "Ask the bureaus to review the differences.",
+      tradelineId: 506,
+      responsibleEntity: "BUREAU",
+    };
+
+    const normalized = normalizeDetectedViolation(violation);
+
+    expect(normalized.userExplanation).toContain("Equifax Canada and TransUnion Canada show different details for FIDO");
+    expect(normalized.userExplanation).toContain("differences: Balance: Equifax Canada shows $341.00; TransUnion Canada shows not reported");
+    expect(normalized.userExplanation).toContain("Status: Equifax Canada shows Open - Bad debt; TransUnion Canada shows Cancelled by Credit Grantor");
+    expect(normalized.userExplanation).not.toContain("[{");
+    expect(normalized.userExplanation).not.toContain("reported value");
+  });
 });

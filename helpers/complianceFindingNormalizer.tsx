@@ -120,6 +120,37 @@ function firstDefinedValue(details: Record<string, any>, keys: string[]): unknow
   return null;
 }
 
+function formatCrossBureauDifferenceSummary(details: Record<string, any>): string | null {
+  const differences = Array.isArray(details.fieldDifferences) ? details.fieldDifferences : null;
+  if (!differences || differences.length === 0) return null;
+
+  const baseBureau = typeof details.baseBureauName === "string" && details.baseBureauName.trim()
+    ? details.baseBureauName.trim()
+    : "one bureau";
+  const otherBureau = typeof details.otherBureauName === "string" && details.otherBureauName.trim()
+    ? details.otherBureauName.trim()
+    : "the other bureau";
+
+  const preview = differences
+    .slice(0, 4)
+    .map((difference) => {
+      const label = typeof difference?.label === "string" && difference.label.trim()
+        ? difference.label.trim()
+        : humanizeKey(String(difference?.fieldName || "reported field"));
+      const baseValue = difference?.baseValue != null && String(difference.baseValue).trim()
+        ? String(difference.baseValue).trim()
+        : "not reported";
+      const otherValue = difference?.otherValue != null && String(difference.otherValue).trim()
+        ? String(difference.otherValue).trim()
+        : "not reported";
+      return `${label}: ${baseBureau} shows ${baseValue}; ${otherBureau} shows ${otherValue}`;
+    })
+    .join("; ");
+
+  const remaining = differences.length > 4 ? `; plus ${differences.length - 4} more difference(s)` : "";
+  return `${preview}${remaining}`;
+}
+
 function formatEvidenceValue(value: unknown): string | null {
   if (value === undefined || value === null || value === "") return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
@@ -136,7 +167,13 @@ function buildEvidenceReference(violation: DetectedViolation): string {
   const tradelineId = violation.tradelineId ?? details.tradelineId;
   const artifactId = details.reportArtifactId ?? details.sourceReportArtifactId;
   const fieldName = firstStringValue(details, ["fieldName", "field", "matchedField", "check", "issue"]);
-  const detectedValue = formatEvidenceValue(firstDefinedValue(details, ["detectedValue", "matchedValue", "currentValue", "reportedValue", "balance", "status"]));
+  const crossBureauDifferences =
+    violation.violationCategory === "CROSS_BUREAU_INCONSISTENCY"
+      ? formatCrossBureauDifferenceSummary(details)
+      : null;
+  const detectedValue = crossBureauDifferences
+    ? null
+    : formatEvidenceValue(firstDefinedValue(details, ["detectedValue", "matchedValue", "currentValue", "reportedValue", "balance", "status"]));
   const regulationIds = Array.isArray(details.regulationIds)
     ? details.regulationIds.filter((id) => typeof id === "string")
     : [];
@@ -149,6 +186,9 @@ function buildEvidenceReference(violation: DetectedViolation): string {
   }
   if (fieldName) {
     parts.push(`field "${humanizeKey(fieldName)}"`);
+  }
+  if (crossBureauDifferences) {
+    parts.push(`differences: ${crossBureauDifferences}`);
   }
   if (detectedValue) {
     parts.push(`reported value "${detectedValue}"`);
