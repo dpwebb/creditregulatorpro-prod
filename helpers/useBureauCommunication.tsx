@@ -21,9 +21,11 @@ export const useBureauCommunication = () => {
 
       if (data.evidenceAttachment.packetId) {
         queryClient.invalidateQueries({ queryKey: ["packets", data.evidenceAttachment.packetId] });
+        queryClient.invalidateQueries({ queryKey: ["packets"] });
       }
       if (data.evidenceAttachment.obligationInstanceId) {
         queryClient.invalidateQueries({ queryKey: ["obligation-instances", data.evidenceAttachment.obligationInstanceId] });
+        queryClient.invalidateQueries({ queryKey: ["obligation-instances"] });
       }
     },
     onError: (error) => {

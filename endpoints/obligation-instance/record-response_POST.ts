@@ -1,47 +1,16 @@
-import { schema, OutputType, AnalysisResult } from "./record-response_POST.schema";
+import { schema, type OutputType, type AnalysisResult } from "./record-response_POST.schema";
 import { db } from "../../helpers/db";
+import type { Json } from "../../helpers/schema";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { runAllResponseAuditDetectors } from "../../helpers/complianceDetectorResponse";
 import { getBureauDisputeAddress } from "../../helpers/bureauDisputeAddresses";
 import { logAudit } from "../../helpers/auditLogger";
 import { analyzeAndEscalate } from "../../helpers/responseAnalysisPipeline";
+import { classifyBureauResponse } from "../../helpers/bureauResponseClassifier";
 
-
-/**
- * Maps a free-form responseStatus string to a valid ObligationState enum value.
- * Valid states: OBLIGATION_PENDING, CHALLENGED, NO_RESPONSE, INSUFFICIENT_RESPONSE, PROCEDURALLY_EXHAUSTED
- */
-function mapResponseStatusToState(responseStatus: string): string {
-  const status = responseStatus.toLowerCase();
-  
-  // No response / non-response indicators
-  if (status.includes("no_response") || status.includes("no response") || status.includes("ignored")) {
-    return "NO_RESPONSE";
-  }
-  
-  // Insufficient / generic / rubber-stamp response indicators
-  if (
-    status.includes("insufficient") ||
-    status.includes("generic") ||
-    status.includes("rubber") ||
-    status.includes("boilerplate") ||
-    status.includes("template") ||
-    status.includes("denied") ||
-    status.includes("rejected") ||
-    status.includes("adverse")
-  ) {
-    return "INSUFFICIENT_RESPONSE";
-  }
-  
-  // Exhaustion indicators
-  if (status.includes("exhausted") || status.includes("procedurally")) {
-    return "PROCEDURALLY_EXHAUSTED";
-  }
-  
-  // Default: any response received that doesn't match above → INSUFFICIENT_RESPONSE
-  // (conservative — a response was received but quality is unconfirmed)
-  return "INSUFFICIENT_RESPONSE";
+function toJsonArray(value: string[] | undefined): Json | null {
+  return value === undefined ? null : (JSON.parse(JSON.stringify(value)) as Json);
 }
 
 export async function handle(request: Request) {
@@ -65,10 +34,9 @@ export async function handle(request: Request) {
       .select([
         "obligationInstance.id",
         "obligationInstance.tradelineId",
+        "obligationInstance.responseDeadline",
         "tradeline.userId",
         "bureau.name as bureauName",
-        // We need more fields from existingInstance for the detector if we want to be thorough,
-        // but for now we rely on what we have.
       ])
       .where("obligationInstance.id", "=", input.obligationInstanceId)
       .executeTakeFirst();
@@ -88,33 +56,45 @@ export async function handle(request: Request) {
     }
 
     // 2. Prepare update data
-    let updateData: any = {
-      responseReceivedDate: new Date(input.responseReceivedDate),
+    const responseReceivedDate = new Date(input.responseReceivedDate);
+    const responseClassification = classifyBureauResponse({
+      communicationType: "BUREAU_RESPONSE_RECEIVED",
       responseStatus: input.responseStatus,
       responseLetterContent: input.responseLetterContent,
       responseMovDisclosed: input.responseMovDisclosed,
       responseMovDescription: input.responseMovDescription,
-      responseItemsDisputed: input.responseItemsDisputed
-        ? JSON.stringify(input.responseItemsDisputed)
-        : null,
-      responseItemsAddressed: input.responseItemsAddressed
-        ? JSON.stringify(input.responseItemsAddressed)
-        : null,
+      responseItemsDisputed: input.responseItemsDisputed,
+      responseItemsAddressed: input.responseItemsAddressed,
       responseDocumentationProvided: input.responseDocumentationProvided,
-      responseDocumentationTypes: input.responseDocumentationTypes
-        ? JSON.stringify(input.responseDocumentationTypes)
-        : null,
+      responseDocumentationTypes: input.responseDocumentationTypes,
+      responseReceivedDate,
+      responseDeadline: existingInstance.responseDeadline,
+    });
+
+    const updateData: any = {
+      responseReceivedDate: responseClassification.responseReceived ? responseReceivedDate : null,
+      responseStatus: responseClassification.responseStatus,
+      responseLetterContent: input.responseLetterContent,
+      responseMovDisclosed: input.responseMovDisclosed,
+      responseMovDescription: input.responseMovDescription,
+      responseItemsDisputed: toJsonArray(input.responseItemsDisputed),
+      responseItemsAddressed: toJsonArray(input.responseItemsAddressed),
+      responseDocumentationProvided: input.responseDocumentationProvided,
+      responseDocumentationTypes: toJsonArray(input.responseDocumentationTypes),
       responseSenderAddress: input.responseSenderAddress,
       responseAuthorizedSignature: input.responseAuthorizedSignature,
       responseSignatoryName: input.responseSignatoryName,
       responseSignatoryTitle: input.responseSignatoryTitle,
-            // Map responseStatus to a valid ObligationState enum value
-      state: mapResponseStatusToState(input.responseStatus)
+      state: responseClassification.obligationState,
     };
+
+    if (responseClassification.successOutcome) {
+      updateData.successOutcome = responseClassification.successOutcome;
+    }
 
     // 3. Run Audit if requested
     let auditFindings: any[] = [];
-    if (input.runAudit) {
+    if (input.runAudit && responseClassification.responseReceived) {
       // Determine expected address
       let expectedAddress: string | null = null;
       if (existingInstance.bureauName) {
@@ -131,29 +111,18 @@ export async function handle(request: Request) {
         updateData.responseExpectedAddress = expectedAddress;
       }
 
-      // Construct a temporary object for the detector
-      // We merge the existing instance ID with the new input data
       const instanceForAudit = {
-        ...existingInstance, // minimal fields needed for ID
+        ...existingInstance,
         ...updateData,
-        // Ensure JSON fields are parsed back to arrays for the detector if needed,
-        // but our detector expects Selectable<ObligationInstance> which has JSON types.
-        // However, in the detector code we cast: (instance.responseItemsDisputed as string[])
-        // So passing the raw arrays from input is actually better if we were calling it directly with input.
-        // But the detector takes Selectable<ObligationInstance>.
-        // Let's construct a mock object that matches the shape expected by the detector.
         responseItemsDisputed: input.responseItemsDisputed,
         responseItemsAddressed: input.responseItemsAddressed,
         responseDocumentationTypes: input.responseDocumentationTypes,
-        // Ensure dates are Date objects
-        responseReceivedDate: new Date(input.responseReceivedDate),
+        responseReceivedDate,
       };
 
-      // Run detectors
       auditFindings = runAllResponseAuditDetectors([instanceForAudit as any]);
 
-      // Add audit results to update
-      updateData.responseAuditFindings = JSON.stringify(auditFindings);
+      updateData.responseAuditFindings = JSON.parse(JSON.stringify(auditFindings)) as Json;
       updateData.responseAuditCompletedAt = new Date();
     }
 
@@ -170,26 +139,32 @@ export async function handle(request: Request) {
     // classifies the stale pre-response state.
     let analysisResult: AnalysisResult = null;
     try {
-      const escalationOutput = await analyzeAndEscalate(
-        input.obligationInstanceId,
-        request
-      );
-      analysisResult = {
-        deficiencies: escalationOutput.analysis.deficiencies,
-        timingDrift: escalationOutput.analysis.timingDrift,
-        recommendedPath: escalationOutput.analysis.recommendedPath,
-        responsesReceived: 0, // not directly returned by analyzeAndEscalate; will be enriched below
-        nextVector: escalationOutput.nextVector,
-      };
-      console.log(
-        `[record-response] analyzeAndEscalate succeeded for obligationInstanceId=${input.obligationInstanceId}, recommendedPath=${analysisResult.recommendedPath}`
-      );
+      if (responseClassification.followUpRecommendation === "NO_FOLLOW_UP_REQUIRED") {
+        console.log(
+          `[record-response] skipped escalation for obligationInstanceId=${input.obligationInstanceId}, responseType=${responseClassification.responseType}`
+        );
+      } else {
+        const escalationOutput = await analyzeAndEscalate(
+          input.obligationInstanceId,
+          request
+        );
+        analysisResult = {
+          deficiencies: escalationOutput.analysis.deficiencies,
+          timingDrift: escalationOutput.analysis.timingDrift,
+          recommendedPath: escalationOutput.analysis.recommendedPath,
+          responsesReceived: 0, // not directly returned by analyzeAndEscalate; will be enriched below
+          nextVector: escalationOutput.nextVector,
+        };
+        console.log(
+          `[record-response] analyzeAndEscalate succeeded for obligationInstanceId=${input.obligationInstanceId}, recommendedPath=${analysisResult.recommendedPath}`
+        );
 
-      updatedInstance = await db
-        .selectFrom("obligationInstance")
-        .selectAll()
-        .where("id", "=", input.obligationInstanceId)
-        .executeTakeFirstOrThrow();
+        updatedInstance = await db
+          .selectFrom("obligationInstance")
+          .selectAll()
+          .where("id", "=", input.obligationInstanceId)
+          .executeTakeFirstOrThrow();
+      }
     } catch (analysisError) {
       console.error(
         `[record-response] analyzeAndEscalate failed for obligationInstanceId=${input.obligationInstanceId} (non-fatal):`,
@@ -205,19 +180,19 @@ export async function handle(request: Request) {
       userId: userId,
       status: "SUCCESS",
       details: {
-        responseStatus: input.responseStatus,
+        responseStatus: responseClassification.responseStatus,
+        responseClassification,
         auditFindingsCount: auditFindings.length,
       },
       request,
     });
 
-    // The raw Kysely result 'updatedInstance' matches 'Selectable<ObligationInstance>'.
-    // We just return it directly since OutputType uses Selectable<ObligationInstance>.
     const finalResponse: OutputType = {
       success: true,
       obligationInstance: updatedInstance,
       auditFindings: auditFindings,
       analysisResult,
+      responseClassification,
     };
 
     return new Response(

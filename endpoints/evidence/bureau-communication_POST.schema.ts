@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { Selectable } from "kysely";
 import { EvidenceEvent, EvidenceAttachment, ObligationInstance } from "../../helpers/schema";
+import type { BureauResponseClassification } from "../../helpers/bureauResponseClassifier";
 
 export const BureauCommunicationTypes = [
   "BUREAU_RESPONSE_RECEIVED",
@@ -48,6 +49,7 @@ export type OutputType = {
   evidenceAttachment: Selectable<EvidenceAttachment>;
   updatedObligationInstance: Selectable<ObligationInstance> | null;
   fileHash: string;
+  responseClassification: BureauResponseClassification;
 };
 
 export const postBureauCommunication = async (body: InputType, init?: RequestInit): Promise<OutputType> => {

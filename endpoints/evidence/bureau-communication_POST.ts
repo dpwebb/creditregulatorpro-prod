@@ -1,6 +1,6 @@
 import { schema } from "./bureau-communication_POST.schema";
 import type { InputType, OutputType } from "./bureau-communication_POST.schema";
-import type { Json, ObligationState } from "../../helpers/schema";
+import type { Json } from "../../helpers/schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
@@ -8,36 +8,11 @@ import { checkRateLimit } from "../../helpers/rateLimiter";
 import { logAudit } from "../../helpers/auditLogger";
 import { chain } from "../../helpers/hashChain";
 import { runAllResponseAuditDetectors } from "../../helpers/complianceDetectorResponse";
+import {
+  classifyBureauResponse,
+  type BureauResponseClassification,
+} from "../../helpers/bureauResponseClassifier";
 import CryptoJS from "crypto-js";
-
-const stateMapping: Record<InputType["communicationType"], ObligationState> = {
-  "BUREAU_DENIAL": "INSUFFICIENT_RESPONSE",
-  "BUREAU_VERIFICATION_REQUEST": "CHALLENGED",
-  "BUREAU_CORRECTION_NOTICE": "INSUFFICIENT_RESPONSE",
-  "BUREAU_RESPONSE_RECEIVED": "INSUFFICIENT_RESPONSE",
-  "BUREAU_ACKNOWLEDGMENT": "CHALLENGED",
-  "BUREAU_OTHER": "INSUFFICIENT_RESPONSE",
-};
-
-const responseStatusMapping: Record<InputType["communicationType"], string> = {
-  "BUREAU_DENIAL": "denied",
-  "BUREAU_VERIFICATION_REQUEST": "verification requested",
-  "BUREAU_CORRECTION_NOTICE": "correction notice received",
-  "BUREAU_RESPONSE_RECEIVED": "response received",
-  "BUREAU_ACKNOWLEDGMENT": "acknowledged",
-  "BUREAU_OTHER": "other bureau response",
-};
-
-const substantiveResponseTypes = new Set<InputType["communicationType"]>([
-  "BUREAU_DENIAL",
-  "BUREAU_CORRECTION_NOTICE",
-  "BUREAU_RESPONSE_RECEIVED",
-  "BUREAU_OTHER",
-]);
-
-function isSubstantiveResponse(type: InputType["communicationType"]) {
-  return substantiveResponseTypes.has(type);
-}
 
 function toJsonArray(value: string[] | undefined): Json | undefined {
   return value === undefined ? undefined : (JSON.parse(JSON.stringify(value)) as Json);
@@ -64,19 +39,36 @@ function buildObligationUpdate(
   input: InputType,
   timestamp: Date,
   currentInstance: Record<string, any> | null
-): Record<string, any> {
-  const newState = stateMapping[input.communicationType];
-  const updateData: Record<string, any> = { state: newState };
-  const substantive = isSubstantiveResponse(input.communicationType);
+): { updateData: Record<string, any>; classification: BureauResponseClassification } {
+  const classification = classifyBureauResponse({
+    communicationType: input.communicationType,
+    responseStatus: input.responseStatus,
+    responseLetterContent: input.responseLetterContent,
+    description: input.description,
+    responseMovDisclosed: input.responseMovDisclosed,
+    responseMovDescription: input.responseMovDescription,
+    responseDocumentationProvided: input.responseDocumentationProvided,
+    responseDocumentationTypes: input.responseDocumentationTypes,
+    responseItemsDisputed: input.responseItemsDisputed,
+    responseItemsAddressed: input.responseItemsAddressed,
+    responseReceivedDate: timestamp,
+    responseDeadline: currentInstance?.responseDeadline ?? null,
+  });
 
-  if (substantive) {
+  const updateData: Record<string, any> = {
+    state: classification.obligationState,
+    responseStatus: classification.responseStatus,
+  };
+
+  if (classification.responseReceived) {
     updateData.responseReceivedDate = timestamp;
-    updateData.responseStatus = input.responseStatus ?? responseStatusMapping[input.communicationType];
     if (input.responseLetterContent !== undefined || input.description) {
       updateData.responseLetterContent = input.responseLetterContent ?? input.description ?? null;
     }
-  } else if (input.responseStatus !== undefined) {
-    updateData.responseStatus = input.responseStatus;
+  }
+
+  if (classification.successOutcome) {
+    updateData.successOutcome = classification.successOutcome;
   }
 
   const optionalFields: Array<[string, unknown]> = [
@@ -104,7 +96,7 @@ function buildObligationUpdate(
 
   const shouldAudit =
     input.runAudit === true ||
-    (input.runAudit !== false && substantive && (hasResponseMetadata(input) || input.description));
+    (input.runAudit !== false && classification.responseReceived && (hasResponseMetadata(input) || input.description));
 
   if (shouldAudit && currentInstance) {
     const instanceForAudit = {
@@ -117,6 +109,21 @@ function buildObligationUpdate(
     const auditFindings = runAllResponseAuditDetectors([instanceForAudit as any]);
     updateData.responseAuditFindings = JSON.parse(JSON.stringify(auditFindings)) as Json;
     updateData.responseAuditCompletedAt = timestamp;
+  }
+
+  return { updateData, classification };
+}
+
+function buildPacketUpdate(classification: BureauResponseClassification, timestamp: Date): Record<string, any> | null {
+  if (!classification.responseReceived) return null;
+
+  const updateData: Record<string, any> = {
+    bureauResponseDate: timestamp,
+    responseType: classification.responseType,
+  };
+
+  if (classification.successOutcome) {
+    updateData.successOutcome = classification.successOutcome;
   }
 
   return updateData;
@@ -274,6 +281,19 @@ export async function handle(request: Request) {
 
       // 5. Update obligation instance state based on response
       let updatedObligationInstance = null;
+      let responseClassification = classifyBureauResponse({
+        communicationType: input.communicationType,
+        responseStatus: input.responseStatus,
+        responseLetterContent: input.responseLetterContent,
+        description: input.description,
+        responseMovDisclosed: input.responseMovDisclosed,
+        responseMovDescription: input.responseMovDescription,
+        responseDocumentationProvided: input.responseDocumentationProvided,
+        responseDocumentationTypes: input.responseDocumentationTypes,
+        responseItemsDisputed: input.responseItemsDisputed,
+        responseItemsAddressed: input.responseItemsAddressed,
+        responseReceivedDate: timestamp,
+      });
       
       if (input.obligationInstanceId) {
         // Direct obligation instance provided
@@ -282,7 +302,9 @@ export async function handle(request: Request) {
           .selectAll()
           .where("id", "=", input.obligationInstanceId)
           .executeTakeFirst();
-        const updateData = buildObligationUpdate(input, timestamp, currentObligation ?? null);
+        const obligationUpdate = buildObligationUpdate(input, timestamp, currentObligation ?? null);
+        const updateData = obligationUpdate.updateData;
+        responseClassification = obligationUpdate.classification;
         const newState = updateData.state;
         
         updatedObligationInstance = await trx
@@ -306,7 +328,9 @@ export async function handle(request: Request) {
           .executeTakeFirst();
 
         if (pendingObligation) {
-          const updateData = buildObligationUpdate(input, timestamp, pendingObligation);
+          const obligationUpdate = buildObligationUpdate(input, timestamp, pendingObligation);
+          const updateData = obligationUpdate.updateData;
+          responseClassification = obligationUpdate.classification;
           const newState = updateData.state;
           
           updatedObligationInstance = await trx
@@ -322,7 +346,16 @@ export async function handle(request: Request) {
         }
       }
 
-      return { evidenceEvent, evidenceAttachment, updatedObligationInstance };
+      const packetUpdate = input.packetId ? buildPacketUpdate(responseClassification, timestamp) : null;
+      if (input.packetId && packetUpdate) {
+        await trx
+          .updateTable("packet")
+          .set(packetUpdate)
+          .where("id", "=", input.packetId)
+          .execute();
+      }
+
+      return { evidenceEvent, evidenceAttachment, updatedObligationInstance, responseClassification };
     });
 
     // Log audit event (outside transaction is fine, best effort)
@@ -334,6 +367,7 @@ export async function handle(request: Request) {
       details: {
         fileHash,
         communicationType: input.communicationType,
+        responseClassification: result.responseClassification,
         fileName: input.fileName,
         linkedTo: {
           tradelineId: effectiveTradelineId,
@@ -349,7 +383,8 @@ export async function handle(request: Request) {
       evidenceEvent: result.evidenceEvent,
       evidenceAttachment: result.evidenceAttachment,
       updatedObligationInstance: result.updatedObligationInstance || null,
-      fileHash
+      fileHash,
+      responseClassification: result.responseClassification,
     } satisfies OutputType));
 
   } catch (error) {

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { Selectable } from "kysely";
 import { ObligationInstance } from "../../helpers/schema";
+import type { BureauResponseClassification } from "../../helpers/bureauResponseClassifier";
 
 export const schema = z.object({
   obligationInstanceId: z.number(),
@@ -42,6 +43,7 @@ export type OutputType = {
   obligationInstance: ObligationInstanceResponse;
   auditFindings?: any[]; // Using any[] here to match the JSON type from DB, but effectively DetectedViolation[]
   analysisResult?: AnalysisResult;
+  responseClassification: BureauResponseClassification;
 };
 
 export const recordResponse = async (
