@@ -148,6 +148,7 @@ export const AdminAiAssistTab = () => {
     try {
       const result = await previewMutation.mutateAsync({ violationId: parsedViolationId });
       setPreviewResult(result);
+      void runsQuery.refetch();
       showSuccess(
         result.source === "ai"
           ? "AI explanation generated"
@@ -518,6 +519,12 @@ export const AdminAiAssistTab = () => {
                   <TableCell colSpan={6}>
                     <Skeleton style={{ height: "40px", margin: "var(--spacing-2) 0" }} />
                     <Skeleton style={{ height: "40px", margin: "var(--spacing-2) 0" }} />
+                  </TableCell>
+                </TableRow>
+              ) : runsQuery.isError ? (
+                <TableRow>
+                  <TableCell colSpan={6} className={styles.emptyState}>
+                    Recent AI assist runs failed to load. Use Refresh Runs to retry.
                   </TableCell>
                 </TableRow>
               ) : !runsQuery.data?.runs.length ? (

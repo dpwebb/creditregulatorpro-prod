@@ -32,6 +32,8 @@ describe("admin AI assist pane", () => {
     expect(component).toContain("Deterministic Fallback");
     expect(component).toContain("Finding Lookup");
     expect(component).toContain("Finding lookup failed");
+    expect(component).toContain("runsQuery.refetch");
+    expect(component).toContain("Recent AI assist runs failed to load");
     expect(component).toContain("handleUseFinding");
     expect(queryHelper).toContain("postConsumerFindingExplanationAssist");
   });
