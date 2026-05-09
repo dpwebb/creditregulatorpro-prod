@@ -148,6 +148,59 @@ export async function ensureParserTestTrainingArchiveSchema(): Promise<void> {
     )
   `.execute(db);
 
+  // Existing staging databases may already have this table from an older delete/archive build.
+  await sql`
+    alter table public.parser_test_training_archive
+      add column if not exists source_test_case_id bigint null,
+      add column if not exists source_test_case_name text null,
+      add column if not exists bureau text null,
+      add column if not exists parser_mode text null,
+      add column if not exists stage_version text null,
+      add column if not exists extraction_source text null,
+      add column if not exists training_label text null,
+      add column if not exists training_note text null,
+      add column if not exists training_note_only boolean null default false,
+      add column if not exists use_for_training boolean null default true,
+      add column if not exists training_payload jsonb null,
+      add column if not exists created_by_admin_id bigint null,
+      add column if not exists created_at timestamptz null default now()
+  `.execute(db);
+
+  await sql`
+    update public.parser_test_training_archive
+    set
+      source_test_case_name = coalesce(
+        nullif(source_test_case_name, ''),
+        case
+          when source_test_case_id is not null then 'Parser test case #' || source_test_case_id::text
+          else 'Unknown parser test case'
+        end
+      ),
+      training_note_only = coalesce(training_note_only, false),
+      use_for_training = coalesce(use_for_training, true),
+      training_payload = coalesce(training_payload, '{}'::jsonb),
+      created_at = coalesce(created_at, now())
+    where
+      source_test_case_name is null
+      or source_test_case_name = ''
+      or training_note_only is null
+      or use_for_training is null
+      or training_payload is null
+      or created_at is null
+  `.execute(db);
+
+  await sql`
+    alter table public.parser_test_training_archive
+      alter column source_test_case_name set not null,
+      alter column training_note_only set default false,
+      alter column training_note_only set not null,
+      alter column use_for_training set default true,
+      alter column use_for_training set not null,
+      alter column training_payload set not null,
+      alter column created_at set default now(),
+      alter column created_at set not null
+  `.execute(db);
+
   await sql`
     create index if not exists idx_parser_test_training_archive_source
       on public.parser_test_training_archive(source_test_case_id)

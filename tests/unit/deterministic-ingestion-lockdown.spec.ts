@@ -153,6 +153,16 @@ describe("deterministic ingestion lockdown", () => {
     expect(deleteEndpoint).not.toContain('.where("sha256", "in", sourceSha256s)');
   });
 
+  it("repairs older parser test training archive tables before delete archival", () => {
+    const archiveHelper = source("helpers/parserTestTrainingArchive.tsx");
+
+    expect(archiveHelper).toContain("alter table public.parser_test_training_archive");
+    expect(archiveHelper).toContain("add column if not exists source_test_case_name text null");
+    expect(archiveHelper).toContain("add column if not exists training_payload jsonb null");
+    expect(archiveHelper).toContain("alter column source_test_case_name set not null");
+    expect(archiveHelper).toContain("alter column training_payload set not null");
+  });
+
   it("derives Pass A and Full extraction records with deterministic pdf text provenance", () => {
     const result = deriveDeterministicDraftExtractions(parseResult(), 42);
 

@@ -187,7 +187,7 @@ export default function AdminParserTestingPage() {
         );
         if (selectedTestCase?.id === id) setSelectedTestCase(null);
       } catch (error) {
-        toast.error("Failed to delete test case");
+        toast.error(error instanceof Error ? error.message : "Failed to delete test case");
       }
     }
   };

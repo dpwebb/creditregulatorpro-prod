@@ -11,6 +11,7 @@ import { schema as violationCorrectionSchema } from "../../endpoints/admin/viola
 import { schema as violationCorrectionEvidenceSchema } from "../../endpoints/admin/violation-correction/evidence_POST.schema";
 import { schema as violationCorrectionFinalizeSchema } from "../../endpoints/admin/violation-correction/finalize_POST.schema";
 import { schema as violationCorrectionUpdateSchema } from "../../endpoints/admin/violation-correction/update_POST.schema";
+import { schema as parserTestDeleteSchema } from "../../endpoints/parser-test-case/delete_POST.schema";
 
 const pdfBase64 = Buffer.from("%PDF-1.4\n%%EOF", "utf8").toString("base64");
 
@@ -190,5 +191,6 @@ describe("critical API schema contracts", () => {
       }).success
     ).toBe(true);
     expect(violationCorrectionFinalizeSchema.safeParse({ correctionId: "42" }).success).toBe(true);
+    expect(parserTestDeleteSchema.safeParse({ id: "42" }).success).toBe(true);
   });
 });
