@@ -111,6 +111,13 @@ describe("deterministic ingestion lockdown", () => {
     expect(runsEndpoint).toContain('"technicalDetails"');
   });
 
+  it("replaces stale active auto-generated findings when rescanning a reused tradeline", () => {
+    const scanner = source("helpers/complianceScanner.tsx");
+
+    expect(scanner).toContain("const deletableViolationIds = activeGeneratedViolations.map((row) => row.id);");
+    expect(scanner).not.toContain("const deletableViolationIds = options.sourceReportArtifactId");
+  });
+
   it("requires parser-test creation to persist canonical replay metadata", () => {
     const createEndpoint = source("endpoints/parser-test-case/create_POST.ts");
 
