@@ -98,7 +98,20 @@ export async function handle(request: Request) {
       request,
     });
 
-    const setPasswordUrl = `https://www.creditregulatorpro.com/reset-password?token=${resetToken}`;
+    const requestUrl = new URL(request.url);
+    const originHeader = request.headers.get("origin");
+    let frontendOrigin = requestUrl.origin;
+    if (originHeader) {
+      try {
+        const originUrl = new URL(originHeader);
+        if (originUrl.hostname === requestUrl.hostname) {
+          frontendOrigin = originHeader;
+        }
+      } catch {
+        frontendOrigin = requestUrl.origin;
+      }
+    }
+    const setPasswordUrl = `${frontendOrigin.replace(/\/$/, "")}/reset-password?token=${resetToken}`;
 
     await sendGridEmail({
       to: normalizedEmail,

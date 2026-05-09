@@ -248,12 +248,31 @@ export default function AdminComplianceConfigPage() {
   };
 
   const handlePricingSave = async () => {
+    const parsedBaseCost = Number(baseCost);
+    const parsedSurchargePct = Number(surchargePct);
+    const parsedFirstClassBaseCost = Number(firstClassBaseCost);
+
+    if (!Number.isFinite(parsedBaseCost) || parsedBaseCost < 0) {
+      toast.error("Base cost must be a non-negative number.");
+      return;
+    }
+
+    if (!Number.isFinite(parsedSurchargePct) || parsedSurchargePct < 0 || parsedSurchargePct > 100) {
+      toast.error("Surcharge must be a number from 0 to 100.");
+      return;
+    }
+
+    if (!Number.isFinite(parsedFirstClassBaseCost) || parsedFirstClassBaseCost < 0) {
+      toast.error("First class base cost must be a non-negative number.");
+      return;
+    }
+
     try {
       await updateSettingsMutation.mutateAsync({
         settings: [
-          { key: "postgrid_base_cost", value: baseCost },
-          { key: "postgrid_surcharge_rate", value: (parseFloat(surchargePct) / 100).toString() },
-          { key: "postgrid_first_class_base_cost", value: firstClassBaseCost }
+          { key: "postgrid_base_cost", value: parsedBaseCost.toFixed(2) },
+          { key: "postgrid_surcharge_rate", value: (parsedSurchargePct / 100).toString() },
+          { key: "postgrid_first_class_base_cost", value: parsedFirstClassBaseCost.toFixed(2) }
         ]
       });
       setPricingDirty(false);

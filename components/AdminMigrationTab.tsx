@@ -103,7 +103,7 @@ export const AdminMigrationTab = () => {
         id: migration.id as number,
         status: newStatus,
       });
-      showSuccess(`Migration ${newStatus.replace("_", " ")} successfully`);
+      showSuccess(`Migration marked ${newStatus.replace("_", " ")}`);
     } catch (err) {
       showError(err instanceof Error ? err.message : "Failed to update migration");
     }
@@ -250,7 +250,7 @@ export const AdminMigrationTab = () => {
                           variant="outline"
                           onClick={() => handleStatusChange(m, "applied")}
                         >
-                          <DatabaseZap size={14} /> Apply
+                          <DatabaseZap size={14} /> Mark Applied
                         </Button>
                       )}
                       {m.status === "applied" && (
@@ -259,7 +259,7 @@ export const AdminMigrationTab = () => {
                           variant="outline"
                           onClick={() => handleStatusChange(m, "rolled_back")}
                         >
-                          <RotateCcw size={14} /> Roll Back
+                          <RotateCcw size={14} /> Mark Rolled Back
                         </Button>
                       )}
                     </div>

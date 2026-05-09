@@ -90,9 +90,14 @@ export async function handle(request: Request) {
             .as("reportArtifactsCount"),
       ]);
 
+    let countQuery = db
+      .selectFrom("users")
+      .select(sql<number>`count(*)`.as("count"));
+
     // 4. Apply Filters
     if (input.role) {
       query = query.where("users.role", "=", input.role as UserRole);
+      countQuery = countQuery.where("users.role", "=", input.role as UserRole);
     }
 
     if (normalizedSearch) {
@@ -103,14 +108,23 @@ export async function handle(request: Request) {
           eb(sql`lower(users.display_name)`, "like", searchLower),
         ])
       );
+      countQuery = countQuery.where((eb) =>
+        eb.or([
+          eb(sql`lower(users.email)`, "like", searchLower),
+          eb(sql`lower(users.display_name)`, "like", searchLower),
+        ])
+      );
     }
 
     // 5. Execute Query
-    const users = await query
-      .orderBy("users.createdAt", "desc")
-      .limit(limit)
-      .offset(offset)
-      .execute();
+    const [users, countResult] = await Promise.all([
+      query
+        .orderBy("users.createdAt", "desc")
+        .limit(limit)
+        .offset(offset)
+        .execute(),
+      countQuery.executeTakeFirst(),
+    ]);
 
     // 6. Transform Result (handle string counts from SQL)
     const transformedUsers = users.map((u) => ({
@@ -125,7 +139,10 @@ export async function handle(request: Request) {
     }));
 
     // 7. Return Response
-    return new Response(JSON.stringify(transformedUsers satisfies OutputType), {
+    return new Response(JSON.stringify({
+      users: transformedUsers,
+      total: Number(countResult?.count ?? 0),
+    } satisfies OutputType), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {

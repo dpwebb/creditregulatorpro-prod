@@ -63,7 +63,7 @@ export default function AdminUserManagementPage() {
 
   const { showSuccess, showError } = useToast();
   const resetUserMutation = useAdminResetUser();
-  const [resetTarget, setResetTarget] = useState<AdminUsersOutput[number] | null>(null);
+  const [resetTarget, setResetTarget] = useState<AdminUsersOutput["users"][number] | null>(null);
   const [confirmEmail, setConfirmEmail] = useState("");
 
   const debouncedSearch = useDebounce(search, 500);
@@ -72,17 +72,19 @@ export default function AdminUserManagementPage() {
     setPage(0);
   }, [debouncedSearch, role]);
 
-  const { data: users, isLoading, isError } = useAdminUsers({
+  const { data: usersData, isLoading, isError } = useAdminUsers({
     role: role === "ALL" ? undefined : (role as any),
     search: debouncedSearch || undefined,
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   });
 
+  const users = usersData?.users ?? [];
+  const totalUsers = usersData?.total ?? 0;
   const hasPrevPage = page > 0;
-  const hasNextPage = (users?.length ?? 0) === PAGE_SIZE;
-  const firstVisible = users && users.length > 0 ? page * PAGE_SIZE + 1 : 0;
-  const lastVisible = page * PAGE_SIZE + (users?.length ?? 0);
+  const firstVisible = users.length > 0 ? page * PAGE_SIZE + 1 : 0;
+  const lastVisible = page * PAGE_SIZE + users.length;
+  const hasNextPage = lastVisible < totalUsers;
   const isResetEmailConfirmed = !!resetTarget && confirmEmail.trim().toLowerCase() === resetTarget.email.trim().toLowerCase();
 
   const createAgentMutation = useCreateSupportAgent();
@@ -181,12 +183,12 @@ export default function AdminUserManagementPage() {
           <div className={styles.errorState}>
             Failed to load users. Please try again.
           </div>
-        ) : users?.length === 0 ? (
+        ) : users.length === 0 ? (
           <div className={styles.emptyState}>
             No users found matching your criteria.
           </div>
         ) : (
-          users?.map((user) => (
+          users.map((user) => (
             <div key={user.id} className={styles.userCard}>
               <div className={styles.cardTop}>
                 <div className={styles.cardTopLeft}>
@@ -285,7 +287,7 @@ export default function AdminUserManagementPage() {
       {!isLoading && !isError && (
         <div className={styles.pagination}>
           <span className={styles.paginationInfo}>
-            Showing {firstVisible}-{lastVisible}
+            Showing {firstVisible}-{lastVisible} of {totalUsers}
           </span>
           <div className={styles.paginationActions}>
             <Button

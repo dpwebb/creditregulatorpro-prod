@@ -28,7 +28,10 @@ export type AdminUserEntry = {
   reportArtifactsCount: number;
 };
 
-export type OutputType = AdminUserEntry[];
+export type OutputType = {
+  users: AdminUserEntry[];
+  total: number;
+};
 
 export const getAdminUsers = async (
   params: InputType,

@@ -7,7 +7,8 @@ import styles from "./DashboardUsersTable.module.css";
 
 export const DashboardUsersTable = () => {
   const navigate = useNavigate();
-  const { data: displayUsers, isFetching } = useAdminUsers({ limit: 5, offset: 0 });
+  const { data: usersData, isFetching } = useAdminUsers({ limit: 5, offset: 0 });
+  const displayUsers = usersData?.users ?? [];
 
   return (
     <div className={styles.section}>
@@ -42,7 +43,7 @@ export const DashboardUsersTable = () => {
                   <td><Skeleton className={styles.skeletonCell} style={{ width: "40px" }} /></td>
                 </tr>
               ))
-            ) : displayUsers && displayUsers.length > 0 ? (
+            ) : displayUsers.length > 0 ? (
               displayUsers.map((user) => (
                 <tr 
                   key={user.id} 
@@ -66,10 +67,10 @@ export const DashboardUsersTable = () => {
                   <td>
                     {user.subscriptionPlan ? (
                       <Badge variant="success" className={styles.badge}>
-                        {user.subscriptionPlan} • {user.subscriptionStatus}
+                        {user.subscriptionPlan} / {user.subscriptionStatus}
                       </Badge>
                     ) : (
-                      <span className={styles.emptyValue}>—</span>
+                      <span className={styles.emptyValue}>-</span>
                     )}
                   </td>
                   <td className={styles.countCell}>

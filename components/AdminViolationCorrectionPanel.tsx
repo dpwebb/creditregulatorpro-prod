@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Ban,
   CheckCircle2,
   Download,
   Link2,
   Plus,
+  RotateCcw,
   Save,
   Scale,
   ShieldCheck,
@@ -585,10 +587,10 @@ export function AdminViolationCorrectionPanel({
               >
                 <span className={styles.runTitle}>Run #{run.id}</span>
                 <span className={styles.runMeta}>
-                  Artifact #{run.reportArtifactId} · {formatDate(run.completedAt ?? run.createdAt)}
+                  Artifact #{run.reportArtifactId} - {formatDate(run.completedAt ?? run.createdAt)}
                 </span>
                 <span className={styles.runStats}>
-                  {run.tradelineCount} tradelines · {run.violationCount} issues · {run.finalizedCorrectionCount} final
+                  {run.tradelineCount} tradelines - {run.violationCount} issues - {run.finalizedCorrectionCount} final
                 </span>
               </button>
             ))
@@ -618,10 +620,10 @@ export function AdminViolationCorrectionPanel({
                     >
                       <span className={styles.tradelineName}>{tradeline.creditorName ?? "Unknown creditor"}</span>
                       <span className={styles.tradelineMeta}>
-                        {tradeline.bureauName ?? "Bureau"} · {tradeline.accountNumber}
+                        {tradeline.bureauName ?? "Bureau"} - {tradeline.accountNumber}
                       </span>
                       <span className={styles.tradelineMeta}>
-                        {tradeline.violations.length} original · {tradeline.manualCorrections.length} added
+                        {tradeline.violations.length} original - {tradeline.manualCorrections.length} added
                       </span>
                     </button>
                   ))}
@@ -639,8 +641,8 @@ export function AdminViolationCorrectionPanel({
                   <div className={styles.originalStack}>
                     <div className={styles.snapshot}>
                       <strong>{selectedTradeline.creditorName ?? "Unknown creditor"}</strong>
-                      <span>{selectedTradeline.bureauName ?? "Bureau"} · {selectedTradeline.accountNumber}</span>
-                      <span>Status {selectedTradeline.status ?? "not set"} · Balance {selectedTradeline.balance ?? "not set"}</span>
+                      <span>{selectedTradeline.bureauName ?? "Bureau"} - {selectedTradeline.accountNumber}</span>
+                      <span>Status {selectedTradeline.status ?? "not set"} - Balance {selectedTradeline.balance ?? "not set"}</span>
                     </div>
 
                     {manualMode && (
@@ -660,7 +662,7 @@ export function AdminViolationCorrectionPanel({
                         <span className={styles.violationTitle}>{labelize(violation.violationCategory)}</span>
                         <span className={styles.violationText}>{violation.userExplanation ?? "No summary"}</span>
                         <span className={styles.violationMeta}>
-                          Confidence {violation.confidenceScore ?? "n/a"} · {violation.corrections.length} correction(s)
+                          Confidence {violation.confidenceScore ?? "n/a"} - {violation.corrections.length} correction(s)
                         </span>
                       </button>
                     ))}
@@ -880,7 +882,12 @@ export function AdminViolationCorrectionPanel({
                         <span>{item.fieldName ?? "Field not set"}</span>
                         <p>{item.textExcerpt}</p>
                       </div>
-                      <Button variant="ghost" size="icon-sm" onClick={() => removeEvidence(item.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => removeEvidence(item.id)}
+                        aria-label="Remove evidence"
+                      >
                         <Trash2 size={14} />
                       </Button>
                     </div>
@@ -905,7 +912,7 @@ export function AdminViolationCorrectionPanel({
                       >
                         <Scale size={14} />
                         <span>{ref.authorityIssueLabel}</span>
-                        <span>{ref.regulationName} · {ref.sectionNumber}</span>
+                        <span>{ref.regulationName} - {ref.sectionNumber}</span>
                       </button>
                     ))}
                   </div>
@@ -1041,7 +1048,7 @@ export function AdminViolationCorrectionPanel({
                     <div key={item.id} className={styles.linkedItem} data-muted={item.mappingStatus === "incorrect"}>
                       <div>
                         <strong>{item.regulationName}</strong>
-                        <span>{item.statuteOrRuleName} · {item.sectionNumber}</span>
+                        <span>{item.statuteOrRuleName} - {item.sectionNumber}</span>
                         <span>{authorityLabelForSavedReference(item)}</span>
                         <p>{item.regulationTextExcerpt}</p>
                       </div>
@@ -1051,18 +1058,25 @@ export function AdminViolationCorrectionPanel({
                           size="icon-sm"
                           onClick={() => updateReferenceStatus(item.id, item.mappingStatus === "incorrect" ? "active" : "incorrect", item.adminVerifiedCitation)}
                           title={item.mappingStatus === "incorrect" ? "Mark active" : "Mark incorrect"}
+                          aria-label={item.mappingStatus === "incorrect" ? "Mark reference active" : "Mark reference incorrect"}
                         >
-                          <Trash2 size={14} />
+                          {item.mappingStatus === "incorrect" ? <RotateCcw size={14} /> : <Ban size={14} />}
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon-sm"
                           onClick={() => updateReferenceStatus(item.id, item.mappingStatus === "incorrect" ? "incorrect" : "active", !item.adminVerifiedCitation)}
                           title={item.adminVerifiedCitation ? "Unverify citation" : "Verify citation"}
+                          aria-label={item.adminVerifiedCitation ? "Unverify citation" : "Verify citation"}
                         >
                           <CheckCircle2 size={14} />
                         </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => removeReference(item.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeReference(item.id)}
+                          aria-label="Remove reference"
+                        >
                           <Trash2 size={14} />
                         </Button>
                       </div>

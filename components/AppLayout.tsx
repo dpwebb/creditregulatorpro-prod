@@ -140,6 +140,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           { path: "/admin-compliance-config", label: "Rule Check Settings", icon: ShieldCheck },
           { path: "/admin-activity-logs", label: "Activity Logs", icon: History },
           { path: "/admin-error-logs", label: "Error Logs", icon: Bug },
+          { path: "/admin-security", label: "Security & Compliance", icon: Shield },
           { path: "/support-tickets", label: "Support Tickets", icon: MessageSquare },
                     { path: "/admin-knowledge-base", label: "Admin Guide", icon: BookOpen },
           { path: "/admin-letter-templates", label: "Letter Templates", icon: FileCheck },
