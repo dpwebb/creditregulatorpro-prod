@@ -128,8 +128,11 @@ export const ComplianceViolationCard = ({
             </>
           )}
         </div>
-        <div className={styles.timestamp}>
-          Detected {formatDateTime(violation.detectedAt)}
+        <div className={styles.cardMeta}>
+          <span className={styles.findingId}>Finding #{violation.id}</span>
+          <span className={styles.timestamp}>
+            Detected {formatDateTime(violation.detectedAt)}
+          </span>
         </div>
       </div>
 

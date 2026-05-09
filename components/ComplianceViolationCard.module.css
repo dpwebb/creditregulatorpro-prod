@@ -145,6 +145,21 @@
   font-weight: 500;
 }
 
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 120px;
+}
+
+.findingId {
+  color: var(--foreground);
+  font-family: var(--font-family-monospace);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .timestamp {
   font-size: 0.75rem;
   color: var(--muted-foreground);
@@ -328,6 +343,11 @@
 }
 
 @media (max-width: 640px) {
+  .cardMeta {
+    align-items: flex-start;
+    width: 100%;
+  }
+
   .actionFooter {
     flex-direction: column;
     align-items: stretch;
