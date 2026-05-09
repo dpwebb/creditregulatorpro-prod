@@ -160,7 +160,12 @@ export const AdminAiAssistTab = () => {
 
   const handleLookup = (event: FormEvent) => {
     event.preventDefault();
-    setLookupQuery(findingSearch.trim());
+    const nextQuery = findingSearch.trim();
+    if (nextQuery === lookupQuery) {
+      void findingsQuery.refetch();
+      return;
+    }
+    setLookupQuery(nextQuery);
   };
 
   const handleUseFinding = (findingId: number) => {
@@ -311,7 +316,11 @@ export const AdminAiAssistTab = () => {
             disabled={findingsQuery.isFetching}
             onClick={() => {
               setFindingSearch("");
-              setLookupQuery("");
+              if (lookupQuery === "") {
+                void findingsQuery.refetch();
+              } else {
+                setLookupQuery("");
+              }
             }}
           >
             Recent
@@ -336,6 +345,12 @@ export const AdminAiAssistTab = () => {
                   <TableCell colSpan={6}>
                     <Skeleton style={{ height: "40px", margin: "var(--spacing-2) 0" }} />
                     <Skeleton style={{ height: "40px", margin: "var(--spacing-2) 0" }} />
+                  </TableCell>
+                </TableRow>
+              ) : findingsQuery.isError ? (
+                <TableRow>
+                  <TableCell colSpan={6} className={styles.emptyState}>
+                    Finding lookup failed. Use Recent to retry, or refresh the page if the local backend was restarted.
                   </TableCell>
                 </TableRow>
               ) : !findingsQuery.data?.findings.length ? (
