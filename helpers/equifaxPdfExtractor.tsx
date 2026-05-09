@@ -1,4 +1,5 @@
 import type { ParsedTradeline } from "./reportParserTypes";
+import { isLikelyCollectionEntityName } from "./creditorEntityResolver";
 
 type Line = { text: string; index: number };
 
@@ -8,6 +9,28 @@ type AccountSection = {
 };
 
 const ACCOUNT_SECTION_REGEX = /^Accounts\s*-\s*(Revolving|Mortgage|Installment|Open)\b/i;
+const COLLECTION_FIELD_LABELS = [
+  "Date Assigned",
+  "Member Name",
+  "Phone Number",
+  "Member Number",
+  "First Delinquency",
+  "Account Number",
+  "Amount",
+  "Status",
+  "Balance",
+  "Narrative",
+  "Date Paid/Settled",
+  "Date Verified",
+  "Last Payment Date",
+];
+const COLLECTION_FIELD_LABEL_PATTERN = COLLECTION_FIELD_LABELS
+  .map((label) => label.split(/\s+/).map(escapeRegex).join("\\s*"))
+  .join("|");
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function normalizeLines(text: string): Line[] {
   return text
@@ -193,16 +216,25 @@ function extractCreditorName(lines: Line[]): string {
 }
 
 function extractCollectionAgencyName(lines: Line[]): string {
-  const stopIndex = lines.findIndex((line) =>
-    /^(Date\s+Assigned|Member\s+Name|Account(?:\s+Number)?|Number|Amount|Balance|Status|Date\s+Verified|Last\s+Payment)$/i.test(line.text) ||
-    /^(Date\s+Assigned|Member\s+Name|Account\s+Number|Amount|Balance|Status|Date\s+Verified|Last\s+Payment)\b/i.test(line.text),
-  );
+  const stopIndex = lines.findIndex((line) => isCollectionFieldLine(line.text));
   const headerLines = (stopIndex === -1 ? lines : lines.slice(0, stopIndex))
     .map((line) => line.text)
+    .map(stripTrailingCollectionFields)
     .filter((line) => !isPageNoise(line) && !isMajorHeader(line) && !isLabelOnly(line) && !isLikelyDescription(line));
 
   const candidate = headerLines.join(" ").replace(/\s+/g, " ").trim();
-  return candidate || extractCreditorName(lines);
+  return stripTrailingCollectionFields(candidate) || extractCreditorName(lines);
+}
+
+function isCollectionFieldLine(line: string): boolean {
+  const trimmed = line.trim();
+  return /^(Account|Number)$/i.test(trimmed) || new RegExp(`^(?:${COLLECTION_FIELD_LABEL_PATTERN})`, "i").test(trimmed);
+}
+
+function stripTrailingCollectionFields(value: string): string {
+  const compacted = value.replace(/\s+/g, " ").trim();
+  const match = compacted.match(new RegExp(`^(.*?)(?:\\s+(?:${COLLECTION_FIELD_LABEL_PATTERN}).*)$`, "i"));
+  return (match?.[1] ?? compacted).trim();
 }
 
 function extractStatus(rawText: string, accountType: string): string {
@@ -280,8 +312,22 @@ function splitCollectionBlocks(lines: Line[]): Line[][] {
 }
 
 function valueAfterInlineLabel(rawText: string, label: RegExp): string | null {
-  const match = rawText.match(new RegExp(`${label.source}\\s*([^\\n]+)`, "i"));
-  return match?.[1]?.trim() || null;
+  const match = rawText.match(
+    new RegExp(`${label.source}\\s*([\\s\\S]*?)(?=\\s*(?:${COLLECTION_FIELD_LABEL_PATTERN})|$)`, "i")
+  );
+  return match?.[1]?.replace(/\s+/g, " ").trim() || null;
+}
+
+function dateAfterCollectionLabel(rawText: string, label: RegExp): Date | null {
+  const value = valueAfterInlineLabel(rawText, label);
+  const match = value?.match(/(\d{4}[\/-]\d{2}[\/-]\d{2}|\d{2}[\/-]\d{2}[\/-]\d{4})/);
+  return match ? parseEquifaxDate(match[1]) : null;
+}
+
+function amountAfterCollectionLabel(rawText: string, label: RegExp): number | null {
+  const value = valueAfterInlineLabel(rawText, label);
+  const match = value?.match(/\$?(N\/A|[\d,]+(?:\.\d{2})?)/i);
+  return match ? numberFromString(match[1]) : null;
 }
 
 function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
@@ -290,13 +336,22 @@ function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
   if (accountNumber === "Unknown") return null;
 
   const collectionAgencyName = extractCollectionAgencyName(lines);
-  const memberName = valueAfterInlineLabel(rawText, /Member\s*Name/i) || undefined;
-  const dateAssigned = firstDateAfter(rawText, /Date\s*Assigned/i);
-  const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment\s*Date/i);
-  const dateVerified = firstDateAfter(rawText, /Date\s*Verified/i);
-  const amount = firstAmountAfter(rawText, /Amount/i);
-  const balance = firstAmountAfter(rawText, /Balance/i);
+  const rawMemberName = valueAfterInlineLabel(rawText, /Member\s*Name/i) || undefined;
+  const memberName =
+    rawMemberName && !isLikelyCollectionEntityName(rawMemberName)
+      ? rawMemberName
+      : undefined;
+  const dateAssigned = dateAfterCollectionLabel(rawText, /Date\s*Assigned/i);
+  const firstDelinquency = dateAfterCollectionLabel(rawText, /First\s*Delinquency/i);
+  const lastPaymentDate = dateAfterCollectionLabel(rawText, /Last\s*Payment\s*Date/i);
+  const dateVerified = dateAfterCollectionLabel(rawText, /Date\s*Verified/i);
+  const amount = amountAfterCollectionLabel(rawText, /Amount/i);
+  const balance = amountAfterCollectionLabel(rawText, /Balance/i);
   const status = valueAfterInlineLabel(rawText, /Status/i) || "Collection";
+  const memberClassificationNote =
+    rawMemberName && !memberName
+      ? `Equifax lists "${rawMemberName}" as Member Name, but that name appears to be a collection entity rather than the original creditor.`
+      : undefined;
 
   const parsed: ParsedTradeline = {
     accountNumber,
@@ -308,7 +363,7 @@ function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
       opened: null,
       reported: dateVerified,
       closed: null,
-      dofd: null,
+      dofd: firstDelinquency,
     },
     amounts: {
       high: undefined,
@@ -322,11 +377,12 @@ function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
     lastPaymentDate,
     remarkCodes: [],
     sourceText: rawText,
+    notes: memberClassificationNote,
     balanceMissingFromReport: balance === null,
   };
 
   (parsed as any).dateVerified = dateVerified;
-  (parsed as any).memberName = memberName ?? null;
+  (parsed as any).memberName = rawMemberName ?? null;
   (parsed as any).memberNumber = valueAfterInlineLabel(rawText, /Member\s*Number/i);
   return parsed;
 }

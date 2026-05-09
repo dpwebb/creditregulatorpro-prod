@@ -135,6 +135,33 @@ const CANADIAN_ENTITIES: ResolvedEntity[] = [
     knownAliases: ["eos canada inc", "eos ncca"],
     entityType: "collection",
   },
+  {
+    normalizedName: "ncri",
+    canonicalName: "NCRI Inc",
+    knownAliases: ["ncri inc", "ncri capital asset", "ncri capital asset inc"],
+    entityType: "collection",
+  },
+  {
+    normalizedName: "national legal group",
+    canonicalName: "National Legal Group",
+    knownAliases: ["national legal group"],
+    entityType: "collection",
+  },
+];
+
+const COLLECTION_ENTITY_KEYWORDS = [
+  "collection",
+  "collector",
+  "recovery",
+  "recoveries",
+  "receivable",
+  "receivables",
+  "agency",
+  "legal group",
+  "bailiff",
+  "debt",
+  "capital asset",
+  "asset recovery",
 ];
 
 function normalize(name: string): string {
@@ -164,7 +191,7 @@ export function resolveCreditorEntity(name: string): ResolvedEntity {
   let fallbackType: CreditorEntityType = "other";
   if (normName.includes("bank") || normName.includes("banque")) fallbackType = "bank";
   else if (normName.includes("credit union") || normName.includes("caisse")) fallbackType = "credit_union";
-  else if (normName.includes("collection") || normName.includes("recovery") || normName.includes("agency")) fallbackType = "collection";
+  else if (COLLECTION_ENTITY_KEYWORDS.some((keyword) => normName.includes(keyword))) fallbackType = "collection";
   else if (normName.includes("hydro") || normName.includes("power") || normName.includes("energy")) fallbackType = "utility";
   else if (normName.includes("canada revenue") || normName.includes("cra") || normName.includes("gov")) fallbackType = "government";
 
@@ -181,6 +208,11 @@ export function resolveCreditorEntity(name: string): ResolvedEntity {
  */
 export function getCreditorEntityType(name: string): CreditorEntityType {
   return resolveCreditorEntity(name).entityType;
+}
+
+export function isLikelyCollectionEntityName(name: string | null | undefined): boolean {
+  if (!name?.trim()) return false;
+  return resolveCreditorEntity(name).entityType === "collection";
 }
 
 /**

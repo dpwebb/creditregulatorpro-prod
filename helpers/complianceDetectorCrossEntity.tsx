@@ -11,7 +11,9 @@ import { normalizeAgencyName } from "./collectionAgencyRegistry";
 import {
   resolveCreditorEntity,
   matchCreditorAcrossReports,
+  isLikelyCollectionEntityName,
 } from "./creditorEntityResolver";
+import { accountNumbersMatch, normalizeAccountNumber } from "./accountNumberIdentity";
 
 function namesLikelySameEntity(nameA: string, nameB: string): boolean {
   if (!nameA || !nameB) return false;
@@ -27,24 +29,7 @@ function namesLikelySameEntity(nameA: string, nameB: string): boolean {
 }
 
 function isCollectionEntityName(name: string): boolean {
-  if (!name.trim()) return false;
-
-  const entity = resolveCreditorEntity(name);
-  if (entity.entityType === "collection") return true;
-
-  const nameUpper = name.toUpperCase();
-  const collectionKeywords = [
-    "COLLECTION",
-    "COLLECTOR",
-    "RECOVERY",
-    "RECEIVABLE",
-    "LEGAL GROUP",
-    "BAILIFF",
-    "DEBT",
-    "CAPITAL ASSET",
-  ];
-
-  return collectionKeywords.some((keyword) => nameUpper.includes(keyword));
+  return isLikelyCollectionEntityName(name);
 }
 
 export function shouldTreatOriginalCreditorSelfReferenceAsFake(input: {
@@ -320,46 +305,361 @@ export async function detectMultipleCollectorViolation(
   return [];
 }
 
+type TradelineLike = Partial<Selectable<Tradeline>> & Record<string, any>;
+
+export type CrossBureauFieldDifference = {
+  fieldName: string;
+  label: string;
+  baseValue: string;
+  otherValue: string;
+  baseRawValue: unknown;
+  otherRawValue: unknown;
+};
+
+function firstReportedValue(...values: unknown[]): unknown {
+  return values.find((value) => value !== null && value !== undefined && String(value).trim() !== "");
+}
+
+function toComparableNumber(value: unknown): number | null {
+  const raw = firstReportedValue(value);
+  if (raw === undefined) return null;
+  const parsed = Number(String(raw).replace(/[$,]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatMoneyValue(value: unknown): string {
+  const amount = toComparableNumber(value);
+  if (amount === null) return "not reported";
+  return `$${amount.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function normalizeComparableText(value: unknown): string | null {
+  const text = firstReportedValue(value);
+  if (text === undefined) return null;
+
+  const normalized = String(text)
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized || /^(unknown|not reported|not provided|not supplied|n\/a)$/i.test(normalized)) {
+    return null;
+  }
+
+  return normalized.toLowerCase();
+}
+
+function formatTextValue(value: unknown): string {
+  const text = firstReportedValue(value);
+  if (text === undefined) return "not reported";
+  const normalized = String(text).replace(/\s+/g, " ").trim();
+  return normalized || "not reported";
+}
+
+function toIsoDay(value: unknown): string | null {
+  const raw = firstReportedValue(value);
+  if (raw === undefined) return null;
+  const date = new Date(raw as string | number | Date);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDateValue(value: unknown): string {
+  return toIsoDay(value) || "not reported";
+}
+
+function daysBetweenValues(a: unknown, b: unknown): number | null {
+  const left = toIsoDay(a);
+  const right = toIsoDay(b);
+  if (!left || !right) return null;
+  return Math.abs(differenceInDays(new Date(left), new Date(right)));
+}
+
+function numbersClose(a: unknown, b: unknown, tolerance = 1): boolean {
+  const left = toComparableNumber(a);
+  const right = toComparableNumber(b);
+  return left !== null && right !== null && Math.abs(left - right) <= tolerance;
+}
+
+function textValuesMatch(a: unknown, b: unknown): boolean {
+  const left = normalizeComparableText(a);
+  const right = normalizeComparableText(b);
+  if (!left || !right) return false;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function getBalanceValue(tradeline: TradelineLike): unknown {
+  return firstReportedValue(tradeline.balance, tradeline.currentBalance);
+}
+
+function addAmountDifference(
+  differences: CrossBureauFieldDifference[],
+  fieldName: string,
+  label: string,
+  baseRawValue: unknown,
+  otherRawValue: unknown
+) {
+  const baseAmount = toComparableNumber(baseRawValue);
+  const otherAmount = toComparableNumber(otherRawValue);
+  if (baseAmount === null && otherAmount === null) return;
+  if (baseAmount !== null && otherAmount !== null && Math.abs(baseAmount - otherAmount) <= 1) return;
+
+  differences.push({
+    fieldName,
+    label,
+    baseValue: formatMoneyValue(baseRawValue),
+    otherValue: formatMoneyValue(otherRawValue),
+    baseRawValue,
+    otherRawValue,
+  });
+}
+
+function addTextDifference(
+  differences: CrossBureauFieldDifference[],
+  fieldName: string,
+  label: string,
+  baseRawValue: unknown,
+  otherRawValue: unknown,
+  normalizer?: (value: string) => string | null
+) {
+  const baseText = normalizeComparableText(baseRawValue);
+  const otherText = normalizeComparableText(otherRawValue);
+  if (!baseText && !otherText) return;
+
+  const baseComparable = baseText && normalizer ? normalizer(baseText) || baseText : baseText;
+  const otherComparable = otherText && normalizer ? normalizer(otherText) || otherText : otherText;
+  if (baseComparable && otherComparable && baseComparable === otherComparable) return;
+
+  differences.push({
+    fieldName,
+    label,
+    baseValue: formatTextValue(baseRawValue),
+    otherValue: formatTextValue(otherRawValue),
+    baseRawValue,
+    otherRawValue,
+  });
+}
+
+function addDateDifference(
+  differences: CrossBureauFieldDifference[],
+  fieldName: string,
+  label: string,
+  baseRawValue: unknown,
+  otherRawValue: unknown
+) {
+  const baseDay = toIsoDay(baseRawValue);
+  const otherDay = toIsoDay(otherRawValue);
+  if (!baseDay && !otherDay) return;
+  if (baseDay && otherDay && baseDay === otherDay) return;
+
+  differences.push({
+    fieldName,
+    label,
+    baseValue: formatDateValue(baseRawValue),
+    otherValue: formatDateValue(otherRawValue),
+    baseRawValue,
+    otherRawValue,
+  });
+}
+
+export function buildCrossBureauFieldDifferences(
+  baseTradeline: TradelineLike,
+  otherTradeline: TradelineLike
+): CrossBureauFieldDifference[] {
+  const differences: CrossBureauFieldDifference[] = [];
+
+  addAmountDifference(differences, "balance", "Balance", getBalanceValue(baseTradeline), getBalanceValue(otherTradeline));
+  addAmountDifference(differences, "amountPastDue", "Past due amount", baseTradeline.amountPastDue, otherTradeline.amountPastDue);
+  addAmountDifference(differences, "highCredit", "High credit", baseTradeline.highCredit, otherTradeline.highCredit);
+  addAmountDifference(differences, "creditLimit", "Credit limit", baseTradeline.creditLimit, otherTradeline.creditLimit);
+  addTextDifference(
+    differences,
+    "status",
+    "Status",
+    baseTradeline.status,
+    otherTradeline.status,
+    (value) => extractCanonicalStatus(value) || null
+  );
+  addTextDifference(
+    differences,
+    "accountType",
+    "Account type",
+    baseTradeline.accountType,
+    otherTradeline.accountType,
+    (value) => extractCanonicalAccountType(value) || null
+  );
+  addDateDifference(differences, "openedDate", "Opened date", baseTradeline.openedDate, otherTradeline.openedDate);
+  addDateDifference(differences, "dateClosed", "Closed date", baseTradeline.dateClosed, otherTradeline.dateClosed);
+  addDateDifference(
+    differences,
+    "dateOfFirstDelinquency",
+    "Date first delinquent",
+    baseTradeline.dateOfFirstDelinquency,
+    otherTradeline.dateOfFirstDelinquency
+  );
+  addDateDifference(
+    differences,
+    "dateOfLastPayment",
+    "Last payment date",
+    baseTradeline.dateOfLastPayment,
+    otherTradeline.dateOfLastPayment
+  );
+  addDateDifference(differences, "lastReportedDate", "Last reported date", baseTradeline.lastReportedDate, otherTradeline.lastReportedDate);
+  addTextDifference(
+    differences,
+    "paymentHistoryProfile",
+    "Payment history summary",
+    baseTradeline.paymentHistoryProfile,
+    otherTradeline.paymentHistoryProfile
+  );
+  addTextDifference(
+    differences,
+    "collectionAgencyName",
+    "Collection agency",
+    baseTradeline.collectionAgencyName,
+    otherTradeline.collectionAgencyName
+  );
+  addTextDifference(
+    differences,
+    "originalCreditorName",
+    "Original creditor",
+    baseTradeline.originalCreditorName,
+    otherTradeline.originalCreditorName
+  );
+
+  return differences;
+}
+
+export function formatCrossBureauUserExplanation(input: {
+  creditorName: string;
+  baseBureauName: string;
+  otherBureauName: string;
+  differences: CrossBureauFieldDifference[];
+}): string {
+  const preview = input.differences
+    .slice(0, 4)
+    .map(
+      (difference) =>
+        `${difference.label}: ${input.baseBureauName} shows ${difference.baseValue}; ${input.otherBureauName} shows ${difference.otherValue}`
+    )
+    .join("; ");
+  const remaining = input.differences.length > 4 ? `; plus ${input.differences.length - 4} more difference(s)` : "";
+
+  return `${input.baseBureauName} and ${input.otherBureauName} show different details for ${input.creditorName}: ${preview}${remaining}.`;
+}
+
+function getCrossBureauIdentityMatch(
+  baseTradeline: TradelineLike,
+  otherTradeline: TradelineLike,
+  candidateCount: number
+): { matched: boolean; matchedOn: string; anchors: string[] } {
+  const accountNumberMatch = accountNumbersMatch(baseTradeline.accountNumber, otherTradeline.accountNumber);
+  if (accountNumberMatch) {
+    return { matched: true, matchedOn: "account_number", anchors: ["account_number"] };
+  }
+
+  const baseAccountNumber = normalizeAccountNumber(baseTradeline.accountNumber);
+  const otherAccountNumber = normalizeAccountNumber(otherTradeline.accountNumber);
+  if (baseAccountNumber && otherAccountNumber) {
+    return { matched: false, matchedOn: "", anchors: [] };
+  }
+
+  const anchors: string[] = [];
+  const openedDiff = daysBetweenValues(baseTradeline.openedDate, otherTradeline.openedDate);
+  const lastPaymentDiff = daysBetweenValues(baseTradeline.dateOfLastPayment, otherTradeline.dateOfLastPayment);
+  const dofdDiff = daysBetweenValues(baseTradeline.dateOfFirstDelinquency, otherTradeline.dateOfFirstDelinquency);
+
+  if (openedDiff !== null && openedDiff <= 31) anchors.push("opened_date");
+  if (lastPaymentDiff !== null && lastPaymentDiff <= 31) anchors.push("last_payment_date");
+  if (dofdDiff !== null && dofdDiff <= 31) anchors.push("date_first_delinquent");
+  if (textValuesMatch(baseTradeline.accountType, otherTradeline.accountType)) anchors.push("account_type");
+  if (numbersClose(getBalanceValue(baseTradeline), getBalanceValue(otherTradeline))) anchors.push("balance");
+  if (numbersClose(baseTradeline.highCredit, otherTradeline.highCredit)) anchors.push("high_credit");
+  if (numbersClose(baseTradeline.creditLimit, otherTradeline.creditLimit)) anchors.push("credit_limit");
+
+  if (anchors.length >= 2 || (candidateCount === 1 && anchors.length >= 1)) {
+    return { matched: true, matchedOn: "corroborated_account_identity", anchors };
+  }
+
+  return { matched: false, matchedOn: "", anchors };
+}
+
 /**
  * Queries for the same account across different bureaus to find inconsistencies.
  */
 export async function detectCrossBureauInconsistency(
   tradeline: Selectable<Tradeline>
 ): Promise<DetectedViolation[]> {
-  if (!tradeline.accountNumber || !tradeline.creditorId) {
+  if (!tradeline.userId || !tradeline.bureauId || !tradeline.creditorId) {
     return [];
   }
 
-  const otherBureauTradelines = await db
-    .selectFrom("tradeline")
-    .selectAll()
-    .where("accountNumber", "=", tradeline.accountNumber)
-    .where("creditorId", "=", tradeline.creditorId as number)
-    .where("bureauId", "!=", tradeline.bureauId as number)
-    .where("userId", "=", tradeline.userId as number)
-    .execute();
+  const [baseBureau, baseCreditor, otherBureauTradelines] = await Promise.all([
+    db
+      .selectFrom("bureau")
+      .select("name")
+      .where("id", "=", tradeline.bureauId as number)
+      .executeTakeFirst(),
+    db
+      .selectFrom("creditor")
+      .select("name")
+      .where("id", "=", tradeline.creditorId as number)
+      .executeTakeFirst(),
+    db
+      .selectFrom("tradeline as other")
+      .leftJoin("bureau as otherBureau", "otherBureau.id", "other.bureauId")
+      .leftJoin("creditor as otherCreditor", "otherCreditor.id", "other.creditorId")
+      .selectAll("other")
+      .select(["otherBureau.name as otherBureauName", "otherCreditor.name as otherCreditorName"])
+      .where("other.creditorId", "=", tradeline.creditorId as number)
+      .where("other.bureauId", "!=", tradeline.bureauId as number)
+      .where("other.userId", "=", tradeline.userId as number)
+      .execute(),
+  ]);
 
   for (const otherTradeline of otherBureauTradelines) {
-    const balanceDiff = Math.abs(Number(tradeline.balance) - Number(otherTradeline.balance));
-    const statusDiff = tradeline.status !== otherTradeline.status;
+    const identityMatch = getCrossBureauIdentityMatch(
+      tradeline,
+      otherTradeline as TradelineLike,
+      otherBureauTradelines.length
+    );
+    if (!identityMatch.matched) continue;
 
-    if (balanceDiff > 1 || statusDiff) { // Allow $1 tolerance for rounding
+    const fieldDifferences = buildCrossBureauFieldDifferences(tradeline, otherTradeline as TradelineLike);
+    if (fieldDifferences.length > 0) {
+      const baseBureauName = baseBureau?.name || "This bureau";
+      const otherBureauName = (otherTradeline as any).otherBureauName || "the other bureau";
+      const creditorName =
+        baseCreditor?.name ||
+        (otherTradeline as any).otherCreditorName ||
+        tradeline.originalCreditorName ||
+        tradeline.collectionAgencyName ||
+        "this account";
+
       return [{
         violationCategory: "CROSS_BUREAU_INCONSISTENCY",
         severity: "WARNING",
         confidenceScore: 90,
-        userExplanation: "This account shows INCONSISTENT INFORMATION across different credit bureaus.",
+        userExplanation: formatCrossBureauUserExplanation({
+          creditorName,
+          baseBureauName,
+          otherBureauName,
+          differences: fieldDifferences,
+        }),
         technicalDetails: {
           baseTradelineId: tradeline.id,
           otherTradelineId: otherTradeline.id,
           baseBureauId: tradeline.bureauId,
           otherBureauId: otherTradeline.bureauId,
-          balanceDiff,
-          statusDiff,
-          detectedValue: { balanceDiff, statusDiff },
+          baseBureauName,
+          otherBureauName,
+          creditorName,
+          matchedOn: identityMatch.matchedOn,
+          identityAnchors: identityMatch.anchors,
+          fieldDifferences,
+          detectedValue: fieldDifferences,
           regulationIds: ["PIPEDA_4_6"],
         },
-        recommendedAction: "Ask the company reporting this to fix the information so it's the same everywhere.",
+        recommendedAction: "Ask the bureaus and the company reporting this account to confirm the correct details and fix whichever bureau is wrong.",
         tradelineId: tradeline.id,
         responsibleEntity: "BUREAU",
       }];

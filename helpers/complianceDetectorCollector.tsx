@@ -9,6 +9,7 @@ import { validateCollectionAgencyName, getRegistryLookupUrl } from "./collection
 import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { findLicensedAgency } from "./licensedAgencyQueries";
 import { regulationRegistry } from "./regulationRegistry";
+import { accountNumbersMatch } from "./accountNumberIdentity";
 
 /**
  * Checks collection agency name validity without requiring province context.
@@ -179,22 +180,9 @@ export async function detectDuplicateCollectionAssignment(
     const isDupCollection = isEffectivelyCollectionAccount(dup);
     if (!isDupCollection) continue;
 
-    const match1 = Boolean(
-      tradeline.accountNumber &&
-      tradeline.dateOfFirstDelinquency &&
-      dup.accountNumber === tradeline.accountNumber &&
-      dup.dateOfFirstDelinquency === tradeline.dateOfFirstDelinquency
-    );
+    const sameDebtMatch = getSameCollectionDebtMatch(tradeline, dup);
 
-    const match2 = Boolean(
-      tradeline.originalCreditorName &&
-      tradeline.bureauId &&
-      dup.originalCreditorName === tradeline.originalCreditorName &&
-      dup.bureauId === tradeline.bureauId &&
-      dup.creditorId !== tradeline.creditorId
-    );
-
-    if (match1 || match2) {
+    if (sameDebtMatch.matched) {
       const tradelineDate = tradeline.dateAssignedToCollection || tradeline.openedDate;
       const dupDate = dup.dateAssignedToCollection || dup.openedDate;
 
@@ -209,9 +197,13 @@ export async function detectDuplicateCollectionAssignment(
         }
       }
 
+      const otherAgencyName = cleanStoredCollectionAgencyName(dup.collectionAgencyName) || "another collection agency";
+      const accountNumberText = sameDebtMatch.accountNumberMatch
+        ? ` Both collection accounts use account number ${tradeline.accountNumber}.`
+        : "";
       const userExplanation = isOlder
-        ? "The older collector should stop reporting when the debt is reassigned."
-        : "This debt is already being reported by another collection agency. Having two collectors report the same debt at the same time is not allowed.";
+        ? `This appears to be the same debt as the account reported by ${otherAgencyName}.${accountNumberText} The older collector should stop reporting when the debt is reassigned.`
+        : `This appears to be the same debt as the account reported by ${otherAgencyName}.${accountNumberText} Two collectors should not report the same debt at the same time.`;
 
       violations.push({
         violationCategory: "MULTIPLE_COLLECTOR_VIOLATION",
@@ -220,10 +212,12 @@ export async function detectDuplicateCollectionAssignment(
         userExplanation,
         technicalDetails: {
           duplicateTradelineId: dup.id,
-          otherAgencyName: dup.collectionAgencyName,
+          otherAgencyName,
+          accountNumber: tradeline.accountNumber,
+          sameAccountNumber: sameDebtMatch.accountNumberMatch,
           otherBalance: Number(dup.balance || (dup as any).currentBalance || 0),
           otherDateAssigned: dupDate,
-          matchedOn: match1 ? "accountNumber_dofd" : "originalCreditor_bureauId",
+          matchedOn: sameDebtMatch.matchedOn,
           regulationIds: regulationRegistry.VIOLATION_REGULATION_MAP["MULTIPLE_COLLECTOR_VIOLATION"] || [],
         },
         recommendedAction: "Dispute this duplicate listing. Only one collector should be reporting this debt.",
@@ -397,4 +391,72 @@ export async function detectCollectorStatuteRevivalAttempt(
   }
 
   return violations;
+}
+
+function normalizedComparableText(value: string | null | undefined): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function textLooksSimilar(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = normalizedComparableText(a);
+  const right = normalizedComparableText(b);
+  if (!left || !right) return false;
+  return left === right || left.includes(right) || right.includes(left);
+}
+
+function cleanStoredCollectionAgencyName(value: string | null | undefined): string | null {
+  const cleaned = (value || "")
+    .replace(
+      /\s+(Date\s+Assigned|Member\s+Name|Phone\s+Number|Member\s+Number|First\s+Delinquency|Account\s+Number|Amount|Status|Balance|Narrative|Date\s+Paid\/Settled|Date\s+Verified|Last\s+Payment\s+Date)\b[\s\S]*$/i,
+      ""
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned || null;
+}
+
+function sameCalendarDay(a: Date | string | null | undefined, b: Date | string | null | undefined): boolean {
+  if (!a || !b) return false;
+  const left = new Date(a);
+  const right = new Date(b);
+  if (Number.isNaN(left.getTime()) || Number.isNaN(right.getTime())) return false;
+  return left.toISOString().slice(0, 10) === right.toISOString().slice(0, 10);
+}
+
+export function getSameCollectionDebtMatch(
+  tradeline: Selectable<Tradeline>,
+  duplicate: Selectable<Tradeline>
+): { matched: boolean; matchedOn: string; accountNumberMatch: boolean } {
+  const accountNumberMatch = accountNumbersMatch(tradeline.accountNumber, duplicate.accountNumber);
+  const dofdMatch = sameCalendarDay(tradeline.dateOfFirstDelinquency, duplicate.dateOfFirstDelinquency);
+  const assignmentDateMatch = sameCalendarDay(tradeline.dateAssignedToCollection, duplicate.dateAssignedToCollection);
+  const sameOriginalCreditor = textLooksSimilar(tradeline.originalCreditorName, duplicate.originalCreditorName);
+  const sameBureau = Boolean(tradeline.bureauId && duplicate.bureauId && tradeline.bureauId === duplicate.bureauId);
+
+  if (accountNumberMatch && dofdMatch) {
+    return { matched: true, matchedOn: "account_number_dofd", accountNumberMatch };
+  }
+
+  if (accountNumberMatch && sameOriginalCreditor) {
+    return { matched: true, matchedOn: "account_number_original_creditor", accountNumberMatch };
+  }
+
+  if (accountNumberMatch && sameBureau) {
+    return { matched: true, matchedOn: "account_number_same_bureau", accountNumberMatch };
+  }
+
+  if (accountNumberMatch && assignmentDateMatch) {
+    return { matched: true, matchedOn: "account_number_assignment_date", accountNumberMatch };
+  }
+
+  if (sameOriginalCreditor && sameBureau && duplicate.creditorId !== tradeline.creditorId) {
+    return { matched: true, matchedOn: "original_creditor_same_bureau", accountNumberMatch };
+  }
+
+  return { matched: false, matchedOn: "", accountNumberMatch };
 }

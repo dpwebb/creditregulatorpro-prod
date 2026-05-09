@@ -17,7 +17,7 @@ export function getViolationLabel(category: string | null | undefined): string {
     CREDIT_LIMIT_MANIPULATION: "Credit Limit Doesn't Match",
     PROCEDURAL_TIMING_VIOLATION: "They Took Too Long to Respond",
     CREDITOR_RESPONSE_QUALITY: "Their Response Wasn't Good Enough",
-    CROSS_BUREAU_INCONSISTENCY: "Credit Companies Show Different Info",
+    CROSS_BUREAU_INCONSISTENCY: "Credit Bureaus Show Different Info",
     RESPONSE_MOV_MISSING: "They Didn't Show How They Checked",
     RESPONSE_INCOMPLETE: "Their Reply Was Missing Information",
     RESPONSE_NO_DOCUMENTATION: "No Proof Was Provided",

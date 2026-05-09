@@ -133,6 +133,30 @@ export const getEnrichedExplanation = (violation: {
     }
   }
 
+  if (violationCategory === "CROSS_BUREAU_INCONSISTENCY" && Array.isArray(technicalDetails?.fieldDifferences)) {
+    const baseBureauName = technicalDetails.baseBureauName || "one bureau";
+    const otherBureauName = technicalDetails.otherBureauName || "another bureau";
+    const creditorName = technicalDetails.creditorName || "this account";
+    const differences = technicalDetails.fieldDifferences
+      .slice(0, 4)
+      .map((difference: any) => `${difference.label}: ${baseBureauName} shows ${difference.baseValue}; ${otherBureauName} shows ${difference.otherValue}`)
+      .join("; ");
+    const remaining = technicalDetails.fieldDifferences.length > 4
+      ? `; plus ${technicalDetails.fieldDifferences.length - 4} more difference(s)`
+      : "";
+
+    return `${baseBureauName} and ${otherBureauName} do not show the same details for ${creditorName}: ${differences}${remaining}.`;
+  }
+
+  if (
+    (violationCategory === "MULTIPLE_COLLECTOR_VIOLATION" || violationCategory === "COLLECTOR_DUPLICATE_REPORTING") &&
+    technicalDetails?.otherAgencyName &&
+    technicalDetails?.sameAccountNumber &&
+    technicalDetails?.accountNumber
+  ) {
+    return `This same debt is also being reported by ${technicalDetails.otherAgencyName}. Both listings use account number ${technicalDetails.accountNumber}. Two collectors can't report the same debt at the same time.`;
+  }
+
   if (
     (violationCategory === "MULTIPLE_COLLECTOR_VIOLATION" || violationCategory === "COLLECTOR_DUPLICATE_REPORTING") &&
     technicalDetails?.otherAgencyName

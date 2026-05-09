@@ -215,6 +215,59 @@ Member Number M123
     expect(tradelines[0].amounts.pastDue).toBeUndefined();
   });
 
+  it("keeps Equifax collection agencies separate from original creditors when labels are collapsed", () => {
+    const tradelines = extractEquifaxTradelines(`
+Equifax Canada
+Credit ReportRequest Date 2026/04/16
+Collections
+NATIONAL LEGAL GROUP
+Date Assigned2024/01/01
+Member NameNCRI INC
+Phone Number
+Member Number481YC00465
+First Delinquency2021/02/01
+Account Number***672
+Amount$606
+Status
+Balance$606
+Narrative
+Date Paid/Settled
+Date Verified
+Last Payment Date2021/02/01
+NCRI CAPITAL ASSET INC
+Date Assigned2023/12/01
+Member NameNCRI INC
+Phone Number
+Member Number481YC00465
+First Delinquency2021/02/01
+Account Number***672
+Amount$816
+Status
+Balance$816
+Narrative
+Date Paid/Settled
+Date Verified
+Last Payment Date2021/02/01
+`);
+
+    expect(tradelines).toHaveLength(2);
+    expect(tradelines.map((tradeline) => tradeline.creditorName)).toEqual([
+      "NATIONAL LEGAL GROUP",
+      "NCRI CAPITAL ASSET INC",
+    ]);
+    expect(tradelines.map((tradeline) => tradeline.collectionAgencyName)).toEqual([
+      "NATIONAL LEGAL GROUP",
+      "NCRI CAPITAL ASSET INC",
+    ]);
+    expect(tradelines.map((tradeline) => tradeline.accountNumber)).toEqual(["***672", "***672"]);
+    expect(tradelines[0].originalCreditorName).toBeUndefined();
+    expect(tradelines[0].dates.dofd?.toISOString().slice(0, 10)).toBe("2021-02-01");
+    expect(tradelines[0].dateAssignedToCollection?.toISOString().slice(0, 10)).toBe("2024-01-01");
+    expect(tradelines[0].lastPaymentDate?.toISOString().slice(0, 10)).toBe("2021-02-01");
+    expect(tradelines[0].dates.reported).toBeNull();
+    expect(tradelines[1].originalBalance).toBe(816);
+  });
+
   it("routes HTML fixtures to the expected bureau parser family", () => {
     expect(detectBureau(transUnionHtmlFixture)).toBe("TransUnion");
     expect(detectBureau(equifaxHtmlFixture)).toBe("Equifax");
