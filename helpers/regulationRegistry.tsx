@@ -702,6 +702,21 @@ PROVINCES.forEach((prov) => {
     ],
   };
 
+  addFieldRequirementEntry({
+    id: `${prov}_COLLECTION_ORIGINAL_CREDITOR_FIELD`,
+    statute: map.collectionStatuteName,
+    citation: map.sections.collection,
+    shortLabel: `${prov} Original Creditor Disclosure`,
+    sourceUrl: map.collectionSourceUrl,
+    description:
+      "Collection agency rules support identifying the original creditor for collection-account reporting and collection communications.",
+    violationCategories: ["DOCUMENTATION_CHAIN_FAILURE", "PHANTOM_DEBT_UNVERIFIABLE"],
+    jurisdiction: prov,
+    province: prov,
+    fieldNames: ["originalCreditorName"],
+    accountTypes: ["collection", "collection_account", "debt_collection"],
+  });
+
   STATUTE_ENTRIES[`${prov}_LIMITATIONS_ACT`] = {
     ...officialAuthority,
     id: `${prov}_LIMITATIONS_ACT`,
@@ -715,6 +730,7 @@ PROVINCES.forEach((prov) => {
 });
 
 const DOCUMENTATION_FIELD_REQUIREMENT_IDS = [
+  ...getProvKeys("COLLECTION_ORIGINAL_CREDITOR_FIELD"),
   "AB_CPRR_SOURCE_RECORD_FIELDS",
   "AB_CPRR_LEGAL_ACTION_STATUS_FIELD",
   "BC_BPCPA_SOURCE_RECORD_FIELDS",

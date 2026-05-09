@@ -69,6 +69,18 @@ describe("local legal authority registry", () => {
     ).toBe(false);
   });
 
+  it("maps collection original-creditor disclosure as field-specific authority", () => {
+    expect(
+      hasFieldSpecificAuthority({
+        violationCategory: "DOCUMENTATION_CHAIN_FAILURE",
+        fieldName: "originalCreditorName",
+        accountType: "Collection",
+        regulationIds: ["NS_COLLECTION_ORIGINAL_CREDITOR_FIELD"],
+        jurisdiction: "NS",
+      }),
+    ).toBe(true);
+  });
+
   it("resolves scoped Canadian field mandates only when province and account type match", () => {
     expect(
       hasFieldSpecificAuthority({
@@ -179,7 +191,7 @@ describe("local legal authority registry", () => {
       limit: 200,
     });
 
-    expect(fieldRequirementAuthorities).toHaveLength(28);
+    expect(fieldRequirementAuthorities).toHaveLength(41);
 
     for (const authority of fieldRequirementAuthorities) {
       const registryEntry = regulationRegistry.getRegulationById(authority.id);

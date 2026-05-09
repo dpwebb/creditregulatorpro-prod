@@ -63,4 +63,42 @@ describe("detectMetro2RulesetViolations", () => {
 
     expect(balanceViolation?.technicalDetails?.fieldName).toBe("currentBalance");
   });
+
+  it("does not require opened date as the account anchor for collection tradelines", async () => {
+    const violations = await detectMetro2RulesetViolations(
+      {
+        id: 507,
+        reportArtifactId: null,
+        creditorId: null,
+        accountNumber: "***672",
+        accountType: "Collection",
+        paymentPattern: null,
+        status: null,
+        openedDate: null,
+        dateAssignedToCollection: new Date("2024-01-01T00:00:00.000Z"),
+        lastReportedDate: null,
+        currentBalance: "606.00",
+        balance: "606.00",
+        amountPastDue: "0.00",
+        creditLimit: null,
+        dateOfFirstDelinquency: new Date("2021-02-01T00:00:00.000Z"),
+        dateClosed: null,
+        dateOfLastPayment: new Date("2021-02-01T00:00:00.000Z"),
+        highCredit: null,
+        scheduledMonthlyPayment: null,
+        ecoaCode: null,
+        hasJ1Segment: false,
+        hasJ2Segment: false,
+        isCollectionAccount: true,
+      } as any,
+      "2026",
+    );
+
+    expect(
+      violations.some((violation) =>
+        violation.technicalDetails?.ruleName === "BASE_SEGMENT_REQUIRED" &&
+        String(violation.technicalDetails?.actualValue).includes("date opened")
+      )
+    ).toBe(false);
+  });
 });

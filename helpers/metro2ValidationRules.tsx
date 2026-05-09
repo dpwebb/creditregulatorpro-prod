@@ -67,6 +67,11 @@ const BaseSegmentRequiredFields: Metro2ValidationRule = {
       if (statusIdx > -1) {
         required.splice(statusIdx, 1);
       }
+
+      const openedDateIdx = required.indexOf("openedDate");
+      if (openedDateIdx > -1) {
+        required.splice(openedDateIdx, 1);
+      }
     }
 
     const hasCreditorName = data.creditorName && data.creditorName.trim() !== "" && data.creditorName !== "Unknown";
