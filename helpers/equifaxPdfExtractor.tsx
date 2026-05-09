@@ -8,7 +8,18 @@ type AccountSection = {
   lines: Line[];
 };
 
+type EquifaxOverviewFields = {
+  accountNumber?: string;
+  creditorPhone?: string | null;
+  high?: number;
+  notes?: string | null;
+  memberNumber?: string | null;
+  ratingCode?: string | null;
+  ratingCodeDescription?: string | null;
+};
+
 const ACCOUNT_SECTION_REGEX = /^Accounts\s*-\s*(Revolving|Mortgage|Installment|Open)\b/i;
+const EQUIFAX_DATE_PATTERN = "(\\d{4}[\\/-]\\d{2}[\\/-]\\d{2}|0\\d{2}[\\/-]\\d{2}[\\/-]\\d{2}|\\d{2}[\\/-]\\d{2}[\\/-]\\d{4})";
 const COLLECTION_FIELD_LABELS = [
   "Date Assigned",
   "Member Name",
@@ -66,7 +77,7 @@ function isAccountAnchor(lines: Line[], position: number): boolean {
 }
 
 function isLabelOnly(line: string): boolean {
-  return /^(Account|Number|Phone|Highest|Balance|Notes|Member|Rating|Code|Rating Code Description|Status|Closed by|Balance And|Amounts|Account Dates|Last|Reported|Payment|Due|Date|Closed|Amount|Past Due|Payment Details|Payment Responsibility|Individual|Payment History|High|Credit|Limit)$/i.test(line);
+  return /^(Overview|Account|Number|Phone|Highest|Balance|Notes|Member|Rating|Code|Rating Code Description|Status|Balance And|Amounts|Account Dates|Last|Reported|Payment|Due|Actual|Date|Closed|Amount|Past Due|Payment Details|Payment Responsibility|Individual|Payment History|High|Credit|Limit)$/i.test(line);
 }
 
 function isLikelyDescription(line: string): boolean {
@@ -124,6 +135,7 @@ function findAccountNameStart(lines: Line[], anchor: number): number {
 
   for (let i = anchor - 1; i >= 0; i--) {
     const text = lines[i].text;
+    if (/^Overview$/i.test(text)) continue;
     if (isPageNoise(text) || isMajorHeader(text) || isLabelOnly(text) || isLikelyDescription(text)) break;
     if (/^\d+$/.test(text) || /^\d+\s+of\s+\d+$/i.test(text)) break;
 
@@ -154,7 +166,7 @@ function splitAccountBlocks(section: AccountSection): Line[][] {
 }
 
 function firstDateAfter(rawText: string, label: RegExp): Date | null {
-  const inline = rawText.match(new RegExp(`${label.source}[\\s\\S]{0,80}?(\\d{4}[\\/-]\\d{2}[\\/-]\\d{2}|\\d{2}[\\/-]\\d{2}[\\/-]\\d{4})`, "i"));
+  const inline = rawText.match(new RegExp(`${label.source}[\\s\\S]{0,80}?${EQUIFAX_DATE_PATTERN}`, "i"));
   return inline ? parseEquifaxDate(inline[1]) : null;
 }
 
@@ -172,11 +184,11 @@ function firstAmountAfter(rawText: string, label: RegExp): number | null {
 function findNextDate(lines: Line[], labelRegex: RegExp): Date | null {
   for (let i = 0; i < lines.length; i++) {
     if (!labelRegex.test(lines[i].text)) continue;
-    const sameLine = lines[i].text.match(/(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/);
+    const sameLine = lines[i].text.match(new RegExp(EQUIFAX_DATE_PATTERN));
     if (sameLine) return parseEquifaxDate(sameLine[1]);
 
     for (let j = i + 1; j < Math.min(lines.length, i + 5); j++) {
-      const match = lines[j].text.match(/(\d{4}[/-]\d{2}[/-]\d{2}|\d{2}[/-]\d{2}[/-]\d{4})/);
+      const match = lines[j].text.match(new RegExp(EQUIFAX_DATE_PATTERN));
       if (match) return parseEquifaxDate(match[1]);
     }
   }
@@ -201,8 +213,72 @@ function extractAccountNumber(rawText: string): string {
   const accountNumberMatch = rawText.match(/Account\s*Number\s*([*Xx]{2,}[A-Z0-9-]*\d[A-Z0-9-]*)/i);
   if (accountNumberMatch) return accountNumberMatch[1];
 
-  const maskedMatch = rawText.match(/\b([*Xx]{2,}[A-Z0-9-]*\d[A-Z0-9-]*)\b/);
+  const maskedMatch = rawText.match(/([*Xx]{2,}[A-Z0-9-]*\d[A-Z0-9-]*)/);
   return maskedMatch ? maskedMatch[1] : "Unknown";
+}
+
+function normalizePhoneParts(parts: string[]): string | null {
+  const digits = parts.join("").replace(/\D/g, "");
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `1-${digits.slice(1, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+  return digits.length >= 7 ? digits : null;
+}
+
+function extractEquifaxOverviewFields(lines: Line[]): EquifaxOverviewFields {
+  const overviewStart = lines.findIndex((line) => /^Overview$/i.test(line.text));
+  const balanceSectionIndex = lines.findIndex((line) => /^Balance\s+And\b/i.test(line.text));
+  const start = overviewStart === -1 ? 0 : overviewStart + 1;
+  const end = balanceSectionIndex === -1 ? lines.length : balanceSectionIndex;
+  const overviewLines = lines.slice(start, end).map((line) => line.text);
+
+  const accountIndex = overviewLines.findIndex((line) => /[*Xx]{2,}[A-Z0-9-]*\d[A-Z0-9-]*/.test(line));
+  if (accountIndex === -1) return {};
+
+  const accountNumber = extractAccountNumber(overviewLines[accountIndex]);
+  const highIndex = overviewLines.findIndex((line, index) => index > accountIndex && /\$?\d[\d,]*(?:\.\d{2})?/.test(line) && line.includes("$"));
+  const phoneParts: string[] = [];
+  const phoneEnd = highIndex === -1 ? overviewLines.length : highIndex;
+  let phoneLastIndex = accountIndex;
+  for (let i = accountIndex + 1; i < phoneEnd; i++) {
+    if (/^[\d\s().-]+$/.test(overviewLines[i])) {
+      phoneParts.push(overviewLines[i]);
+      phoneLastIndex = i;
+    } else if (phoneParts.length > 0) {
+      break;
+    }
+  }
+
+  const memberRatingIndex = overviewLines.findIndex((line, index) =>
+    index > (highIndex === -1 ? accountIndex : highIndex) &&
+    /^[A-Z0-9]{4,}[A-Z][0-9]$/i.test(line)
+  );
+  const memberRating = memberRatingIndex === -1 ? null : overviewLines[memberRatingIndex].match(/^([A-Z0-9]{4,})([A-Z][0-9])$/i);
+  const notesStart = highIndex === -1 ? phoneLastIndex + 1 : highIndex + 1;
+  const notesEnd = memberRatingIndex === -1 ? overviewLines.length : memberRatingIndex;
+  const notes = overviewLines
+    .slice(notesStart, notesEnd)
+    .filter((line) => !isLabelOnly(line))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const ratingCodeDescription = memberRatingIndex === -1
+    ? null
+    : overviewLines
+        .slice(memberRatingIndex + 1)
+        .filter((line) => !isLabelOnly(line))
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+  return {
+    accountNumber,
+    creditorPhone: normalizePhoneParts(phoneParts),
+    high: highIndex === -1 ? undefined : numberFromString(overviewLines[highIndex]) ?? undefined,
+    notes: notes || null,
+    memberNumber: memberRating?.[1] ?? null,
+    ratingCode: memberRating?.[2]?.toUpperCase() ?? null,
+    ratingCodeDescription: ratingCodeDescription || null,
+  };
 }
 
 function extractCreditorName(lines: Line[]): string {
@@ -246,7 +322,8 @@ function extractStatus(rawText: string, accountType: string): string {
 
 function parseAccountBlock(lines: Line[], accountType: AccountSection["accountType"]): ParsedTradeline | null {
   const rawText = lines.map((line) => line.text).join("\n");
-  const accountNumber = extractAccountNumber(rawText);
+  const overview = extractEquifaxOverviewFields(lines);
+  const accountNumber = overview.accountNumber ?? extractAccountNumber(rawText);
   const creditorName = extractCreditorName(lines);
   if (accountNumber === "Unknown" && creditorName === "Unknown Creditor") return null;
 
@@ -254,11 +331,13 @@ function parseAccountBlock(lines: Line[], accountType: AccountSection["accountTy
   const reported = firstDateAfter(rawText, /(?:Last\s*)?Reported/i) ?? findNextDate(lines, /^(Last\s*)?Reported$/i);
   const lastPaymentDate = firstDateAfter(rawText, /Last\s*Payment/i) ?? findNextDate(lines, /^Last$|^Last Payment$/i);
   const closed = firstDateAfter(rawText, /(?:Date\s*)?Closed/i) ?? findNextDate(lines, /^Closed$/i);
+  const dofd = firstDateAfter(rawText, /(?:Date\s*of\s*)?First\s*Delinquency/i);
   const balance = firstAmountAfter(rawText, /Balance/i) ?? findNextAmount(lines, /^Balance$/i);
-  const high = firstAmountAfter(rawText, /(?:Highest\s*Balance|High\s*Credit)/i) ?? findNextAmount(lines, /^Highest$|^High$/i) ?? undefined;
+  const high = overview.high ?? firstAmountAfter(rawText, /(?:Highest\s*Balance|High\s*Credit)/i) ?? findNextAmount(lines, /^Highest$|^High$/i) ?? undefined;
   const creditLimit = firstAmountAfter(rawText, /Credit\s*Limit/i) ?? findNextAmount(lines, /^Credit$|^Credit Limit$/i) ?? undefined;
   const pastDue = firstAmountAfter(rawText, /Past\s*Due/i) ?? findNextAmount(lines, /^Past Due$/i) ?? undefined;
   const amountWrittenOff = firstAmountAfter(rawText, /Amount\s*(?:Written\s*)?Off/i) ?? undefined;
+  const actualPaymentAmount = firstAmountAfter(rawText, /Actual\s*payment/i) ?? findNextAmount(lines, /^Actual$|^Actual payment$/i);
   const responsibilityCode =
     rawText.match(/Payment\s*Responsibility\s*([A-Za-z][A-Za-z ]{1,40})/i)?.[1]?.trim() ||
     (rawText.match(/\nIndividual\b/i) ? "Individual" : undefined);
@@ -273,7 +352,7 @@ function parseAccountBlock(lines: Line[], accountType: AccountSection["accountTy
       opened,
       reported,
       closed,
-      dofd: null,
+      dofd,
     },
     amounts: {
       high,
@@ -282,12 +361,18 @@ function parseAccountBlock(lines: Line[], accountType: AccountSection["accountTy
     creditLimit,
     lastPaymentDate,
     responsibilityCode,
+    creditorPhone: overview.creditorPhone ?? null,
+    memberNumber: overview.memberNumber ?? null,
+    ratingCode: overview.ratingCode ?? null,
+    ratingCodeDescription: overview.ratingCodeDescription ?? null,
+    notes: overview.notes ?? null,
+    amountWrittenOff: amountWrittenOff ?? null,
+    actualPaymentAmount,
     remarkCodes: [],
     sourceText: rawText,
     balanceMissingFromReport: balance === null,
   };
 
-  (parsed as any).amountWrittenOff = amountWrittenOff ?? null;
   return parsed;
 }
 
@@ -320,7 +405,7 @@ function valueAfterInlineLabel(rawText: string, label: RegExp): string | null {
 
 function dateAfterCollectionLabel(rawText: string, label: RegExp): Date | null {
   const value = valueAfterInlineLabel(rawText, label);
-  const match = value?.match(/(\d{4}[\/-]\d{2}[\/-]\d{2}|\d{2}[\/-]\d{2}[\/-]\d{4})/);
+  const match = value?.match(new RegExp(EQUIFAX_DATE_PATTERN));
   return match ? parseEquifaxDate(match[1]) : null;
 }
 
@@ -492,7 +577,7 @@ export function extractEquifaxTradeline(sectionText: string): ParsedTradeline | 
 
   const lines = normalizeLines(sectionText);
   const creditorName = extractCreditorName(lines);
-  const opened = firstDateAfter(sectionText, /(?:Opened|Reported)/i);
+  const opened = firstDateAfter(sectionText, /Opened/i);
 
   return {
     accountNumber,
@@ -527,6 +612,10 @@ function parseEquifaxDate(dateStr: string): Date | null {
 
   if (parts[0].length === 4) {
     [year, month, day] = parts;
+  } else if (parts[0].length === 3 && /^0\d{2}$/.test(parts[0])) {
+    year = `2${parts[0]}`;
+    month = parts[1];
+    day = parts[2];
   } else if (parts[2].length === 4) {
     [day, month, year] = parts;
   } else {

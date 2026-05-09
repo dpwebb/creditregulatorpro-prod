@@ -4,7 +4,8 @@ import { extractConsumerInfo } from "../../helpers/consumerInfoExtractor";
 import { extractReportMetadata } from "../../helpers/reportMetadataExtractor";
 import { extractTradelines } from "../../helpers/transunionPdfExtractor";
 import { extractEquifaxTradelines } from "../../helpers/equifaxPdfExtractor";
-import { extractCreditLimit, extractAmounts, extractBalance } from "../../helpers/tradelineAmountExtractors";
+import { extractCreditLimit, extractAmounts, extractBalance, extractMonthlyPayment } from "../../helpers/tradelineAmountExtractors";
+import { extractCollectionTurnoverSignal } from "../../helpers/tradelineBasicInfoExtractors";
 import { extractInquiries } from "../../helpers/inquiryExtractor";
 import { buildDeterministicCreditReportPipelinePackage } from "../../helpers/deterministicCreditReportPipeline";
 import { parseHtmlToRawText } from "../../helpers/_htmlParserUtils";
@@ -266,6 +267,139 @@ Last Payment Date2021/02/01
     expect(tradelines[0].lastPaymentDate?.toISOString().slice(0, 10)).toBe("2021-02-01");
     expect(tradelines[0].dates.reported).toBeNull();
     expect(tradelines[1].originalBalance).toBe(816);
+  });
+
+  it("extracts Equifax revolving overview fields and does not convert last payment dates into monthly payments", () => {
+    const tradelines = extractEquifaxTradelines(`
+Equifax Canada
+Credit ReportRequest Date 2026/04/16
+Accounts - Revolving
+CAPITAL ONE BANK
+Overview
+Account
+Number
+Phone
+Highest
+Balance
+Notes
+Member
+Number
+Rating
+Code
+Rating Code Description
+***581
+800-
+728-
+3277
+$358
+Written-off
+Closed by
+credit grantor
+650ON40987R9
+Revolving - Bad debt, collection
+account or unable to locate
+Balance And
+Amounts
+Account Dates
+Balance$248Opened2023/04/25
+Credit Limit$300
+Last
+Reported
+026/04/14
+Payment
+Due
+Last
+Payment
+2023/10/27
+Actual
+payment
+Date
+Closed
+2024/06/17
+Amount
+Past Due
+$248
+Amount
+Written Off
+$248
+Payment Details
+Months Reviewed
+Payment ResponsibilityIndividual
+`);
+
+    expect(tradelines).toHaveLength(1);
+    expect(tradelines[0].creditorName).toBe("CAPITAL ONE BANK");
+    expect(tradelines[0].accountNumber).toBe("***581");
+    expect(tradelines[0].creditorPhone).toBe("800-728-3277");
+    expect(tradelines[0].amounts.high).toBe(358);
+    expect(tradelines[0].notes).toBe("Written-off Closed by credit grantor");
+    expect(tradelines[0].memberNumber).toBe("650ON40987");
+    expect(tradelines[0].ratingCode).toBe("R9");
+    expect(tradelines[0].ratingCodeDescription).toBe("Revolving - Bad debt, collection account or unable to locate");
+    expect(tradelines[0].balance).toBe(248);
+    expect(tradelines[0].dates.opened?.toISOString().slice(0, 10)).toBe("2023-04-25");
+    expect(tradelines[0].creditLimit).toBe(300);
+    expect(tradelines[0].dates.reported?.toISOString().slice(0, 10)).toBe("2026-04-14");
+    expect(tradelines[0].lastPaymentDate?.toISOString().slice(0, 10)).toBe("2023-10-27");
+    expect(tradelines[0].dates.closed?.toISOString().slice(0, 10)).toBe("2024-06-17");
+    expect(tradelines[0].amounts.pastDue).toBe(248);
+    expect(tradelines[0].amountWrittenOff).toBe(248);
+    expect(tradelines[0].actualPaymentAmount).toBeNull();
+    expect(tradelines[0].responsibilityCode).toBe("Individual");
+    expect(extractMonthlyPayment(tradelines[0].sourceText ?? "")).toBeNull();
+  });
+
+  it("records Equifax overview notes that show creditor-reported collection turnover", () => {
+    const tradelines = extractEquifaxTradelines(`
+Equifax Canada
+Credit ReportRequest Date 2026/04/16
+Accounts - Open
+FIDO
+Overview
+Account
+Number
+Phone
+Highest
+Balance
+Notes
+Member
+Number
+Rating
+Code
+Rating Code Description
+***485
+888-
+288-
+2106
+Closed by credit grantor
+Acct assigned to third
+party for collection
+650UT00024O9
+Open - Bad debt, collection
+account or unable to locate
+Balance And
+Amounts
+Account Dates
+Balance$341Opened2020/02/25
+Last
+Reported
+2026/04/29
+Last
+Payment
+2020/08/09
+Payment ResponsibilityIndividual
+`);
+
+    expect(tradelines).toHaveLength(1);
+    expect(tradelines[0].creditorName).toBe("FIDO");
+    expect(tradelines[0].accountNumber).toBe("***485");
+    expect(tradelines[0].creditorPhone).toBe("888-288-2106");
+    expect(tradelines[0].notes).toBe("Closed by credit grantor Acct assigned to third party for collection");
+    expect(tradelines[0].memberNumber).toBe("650UT00024");
+    expect(tradelines[0].ratingCode).toBe("O9");
+    expect(tradelines[0].ratingCodeDescription).toBe("Open - Bad debt, collection account or unable to locate");
+    expect(extractCollectionTurnoverSignal(tradelines[0].sourceText ?? "")).toBe(true);
+    expect(extractMonthlyPayment(tradelines[0].sourceText ?? "")).toBeNull();
   });
 
   it("routes HTML fixtures to the expected bureau parser family", () => {

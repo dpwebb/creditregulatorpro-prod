@@ -249,6 +249,8 @@ export function extractCollectionTurnoverSignal(text: string): boolean {
     /(?:^|[^A-Z])TC\s*[-\/]\s*/i.test(text) ||
     /\bTC\s*-\s*Third\s+party\s+collection\/account\s+turned\s+over\s+to\s+collection\s+agency\b/i.test(text) ||
     /\b(?:sent|turned\s+over|assigned|placed)\s+(?:to|for)\s+collection(?:s|\s+agency)?\b/i.test(text) ||
+    /\bacct\.?\s+assigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(text) ||
+    /\bassigned\s+to\s+third\s+party\s+for\s+collection\b/i.test(text) ||
     /\bthird[\s-]party\s+collection\b/i.test(text)
   );
 }

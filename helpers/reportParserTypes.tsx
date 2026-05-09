@@ -103,6 +103,8 @@ export interface ParsedTradeline {
   lastPaymentDate?: Date | null;
   /** Amount of the last payment made */
   lastPaymentAmount?: number;
+  /** Actual payment amount reported separately from payment history */
+  actualPaymentAmount?: number | null;
   /** Maturity date (for loans/mortgages) */
   maturityDate?: Date | null;
   /** Date the account was posted */

@@ -509,6 +509,7 @@ export async function persistTradelines(
         "tradeline.scheduledMonthlyPayment",
       );
       const lastPaymentAmount = normalizeCreditReportAmount(parsedTradeline.lastPaymentAmount, "tradeline.lastPaymentAmount");
+      const actualPaymentAmount = normalizeCreditReportAmount(parsedTradeline.actualPaymentAmount, "tradeline.actualPaymentAmount");
       const paymentPattern = (parsedTradeline.paymentPattern || parsedTradeline.paymentHistoryProfile || null)?.substring(0, 255) ?? null;
       const paymentHistoryProfile = (parsedTradeline.paymentHistoryProfile || parsedTradeline.paymentPattern || null)?.substring(0, 255) ?? null;
       const monthsReviewed = parsedTradeline.monthsReviewed != null ? String(parsedTradeline.monthsReviewed).substring(0, 50) : null;
@@ -545,6 +546,7 @@ export async function persistTradelines(
         responsibilityCode: parsedTradeline.responsibilityCode ? parsedTradeline.responsibilityCode.substring(0, 50) : null,
         ecoaCode: parsedTradeline.ecoaCode ? parsedTradeline.ecoaCode.substring(0, 1) : null,
         lastPaymentAmount,
+        actualPaymentAmount,
         maturityDate: parsedTradeline.maturityDate ?? null,
         postedDate: parsedTradeline.postedDate ?? null,
         chargeOffDate: parsedTradeline.chargeOffDate ?? null,

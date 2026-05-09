@@ -348,7 +348,8 @@ export async function parseReport(
         const resolvedIsCollection =
           tradeline.isCollectionAccount === true ||
           accountTypeLooksCollection ||
-          extractedIsCollection;
+          extractedIsCollection ||
+          hasCollectionTurnoverSignal;
         const collectionAgencyMissingFromReport =
           tradeline.collectionAgencyMissingFromReport === true ||
           (resolvedIsCollection &&
@@ -379,23 +380,49 @@ export async function parseReport(
             tradeline.dateAssignedToCollection ??
             extractedDateAssignedToCollection,
           dateAssignedToCollectionMissingFromReport,
-          originalBalance: extractOriginalBalance(sourceText) || undefined,
-          interestRate: extractInterestRate(sourceText) || undefined,
+          originalBalance:
+            tradeline.originalBalance ??
+            extractOriginalBalance(sourceText) ??
+            undefined,
+          interestRate:
+            tradeline.interestRate ??
+            extractInterestRate(sourceText) ??
+            undefined,
           terms: normalizedPaymentTerms.terms ?? undefined,
           monthlyPayment: normalizedPaymentTerms.monthlyPayment ?? undefined,
           scheduledMonthlyPayment:
             normalizedPaymentTerms.scheduledMonthlyPayment ?? undefined,
           paymentFrequency: normalizedPaymentTerms.paymentFrequency ?? undefined,
-          lastActivityDate: extractLastActivityDate(sourceText),
+          lastActivityDate:
+            tradeline.lastActivityDate ??
+            extractLastActivityDate(sourceText),
           responsibilityCode:
-            extractResponsibilityCode(sourceText) || undefined,
-          ecoaCode: extractEcoaCode(sourceText) || undefined,
-          lastPaymentDate: extractLastPaymentDate(sourceText),
-          lastPaymentAmount: extractLastPaymentAmount(sourceText) || undefined,
-          maturityDate: extractMaturityDate(sourceText),
-          postedDate: extractPostedDate(sourceText),
-          chargeOffDate: extractChargeOffDate(sourceText),
-          balloonPaymentDate: extractBalloonPaymentDate(sourceText),
+            tradeline.responsibilityCode ??
+            extractResponsibilityCode(sourceText) ??
+            undefined,
+          ecoaCode:
+            tradeline.ecoaCode ??
+            extractEcoaCode(sourceText) ??
+            undefined,
+          lastPaymentDate:
+            tradeline.lastPaymentDate ??
+            extractLastPaymentDate(sourceText),
+          lastPaymentAmount:
+            tradeline.lastPaymentAmount ??
+            extractLastPaymentAmount(sourceText) ??
+            undefined,
+          maturityDate:
+            tradeline.maturityDate ??
+            extractMaturityDate(sourceText),
+          postedDate:
+            tradeline.postedDate ??
+            extractPostedDate(sourceText),
+          chargeOffDate:
+            tradeline.chargeOffDate ??
+            extractChargeOffDate(sourceText),
+          balloonPaymentDate:
+            tradeline.balloonPaymentDate ??
+            extractBalloonPaymentDate(sourceText),
           paymentPattern: extractedPaymentPattern,
           paymentHistoryProfile:
             tradeline.paymentHistoryProfile || extractedPaymentPattern || null,

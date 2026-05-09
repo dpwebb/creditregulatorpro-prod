@@ -193,8 +193,8 @@ export function extractMonthlyPayment(text: string): number | null {
     /Payment\s+Amount[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
     // "Min Payment: $XXX"
     /Min(?:imum)?\s+Payment[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
-    // "Payment: $XXX"
-    /\bPayment[\s:]+\$?\s*([\d,]+(?:\.\d{2})?)/i,
+    // "Payment: $XXX"; require a dollar sign to avoid dates such as "Last Payment 2023/10/27".
+    /(?:^|\n)\s*Payment[\s:]+\$\s*([\d,]+(?:\.\d{2})?)/i,
   ];
 
   for (const pattern of patterns) {
