@@ -71,13 +71,111 @@ export async function isAiAssistFeatureEnabled({
   }
 }
 
-function parseOpenAiJsonPayload(rawContent: string): unknown {
+function parseJsonCandidate(candidate: string): unknown | null {
   try {
-    return JSON.parse(rawContent);
+    return JSON.parse(candidate.trim());
   } catch {
-    const fenced = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-    if (fenced?.[1]) {
-      return JSON.parse(fenced[1]);
+    return null;
+  }
+}
+
+function extractFirstBalancedJsonObject(rawContent: string): string | null {
+  const start = rawContent.search(/[{\[]/);
+  if (start === -1) return null;
+
+  const opening = rawContent[start];
+  const closing = opening === "{" ? "}" : "]";
+  let depth = 0;
+  let inString = false;
+  let escaping = false;
+
+  for (let index = start; index < rawContent.length; index += 1) {
+    const char = rawContent[index];
+
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (char === opening) {
+      depth += 1;
+    } else if (char === closing) {
+      depth -= 1;
+      if (depth === 0) {
+        return rawContent.slice(start, index + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+export function parseOpenAiJsonPayload(rawContent: string): unknown {
+  const direct = parseJsonCandidate(rawContent);
+  if (direct !== null) return direct;
+
+  const fenced = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced?.[1]) {
+    const fencedParsed = parseJsonCandidate(fenced[1]);
+    if (fencedParsed !== null) return fencedParsed;
+  }
+
+  const embedded = extractFirstBalancedJsonObject(fenced?.[1] ?? rawContent);
+  if (embedded) {
+    const embeddedParsed = parseJsonCandidate(embedded);
+    if (embeddedParsed !== null) return embeddedParsed;
+  }
+
+  throw new Error("openai_json_parse_failed");
+}
+
+function getApiErrorMessage(responseText: string, status: number): string {
+  const parsed = parseJsonCandidate(responseText);
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    "error" in parsed &&
+    typeof (parsed as { error?: unknown }).error === "string"
+  ) {
+    return (parsed as { error: string }).error.slice(0, 160);
+  }
+
+  if (
+    parsed &&
+    typeof parsed === "object" &&
+    "error" in parsed &&
+    typeof (parsed as { error?: unknown }).error === "object"
+  ) {
+    const error = (parsed as { error?: { message?: unknown; code?: unknown } }).error;
+    if (typeof error?.code === "string") return error.code;
+    if (typeof error?.message === "string") return error.message.slice(0, 160);
+  }
+
+  return `openai_http_${status}`;
+}
+
+/*
+ * Parse model JSON without letting provider formatting quirks leak raw
+ * JavaScript parser messages into the admin UI.
+ */
+function parseAssistPayload(rawContent: string): unknown {
+  try {
+    return parseOpenAiJsonPayload(rawContent);
+  } catch (error) {
+    if (error instanceof Error && error.message === "openai_json_parse_failed") {
+      throw error;
     }
     throw new Error("openai_json_parse_failed");
   }
@@ -151,7 +249,8 @@ export async function runOpenAiJsonAssist<T>(
     });
 
     if (!response.ok) {
-      const errorCode = `openai_http_${response.status}`;
+      const responseText = await response.text();
+      const errorCode = getApiErrorMessage(responseText, response.status);
       await recordAiAssistRun({
         featureKey: options.featureKey,
         subjectType: options.subjectType,
@@ -172,7 +271,7 @@ export async function runOpenAiJsonAssist<T>(
       throw new Error("openai_empty_content");
     }
 
-    const parsed = options.parseOutput(parseOpenAiJsonPayload(content));
+    const parsed = options.parseOutput(parseAssistPayload(content));
 
     await recordAiAssistRun({
       featureKey: options.featureKey,

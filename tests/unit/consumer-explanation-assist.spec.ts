@@ -7,6 +7,7 @@ import {
   buildDeterministicConsumerFindingExplanation,
   validateAiConsumerFindingExplanation,
 } from "../../helpers/consumerExplanationAssist";
+import { parseOpenAiJsonPayload } from "../../helpers/aiAssist";
 
 const root = process.cwd();
 
@@ -78,6 +79,24 @@ describe("consumer explanation AI assist guardrails", () => {
     const serialized = JSON.stringify(input);
     expect(serialized).toContain("ending in 7890");
     expect(serialized).not.toContain("1234567890");
+  });
+
+  it("parses provider JSON when extra wrapper text is returned", () => {
+    expect(parseOpenAiJsonPayload('null{"summary":"ok","whyItMatters":"ok","nextStep":"ok"}')).toEqual({
+      summary: "ok",
+      whyItMatters: "ok",
+      nextStep: "ok",
+    });
+
+    expect(parseOpenAiJsonPayload('```json\nnull{"summary":"ok"}\n```')).toEqual({
+      summary: "ok",
+    });
+  });
+
+  it("normalizes malformed provider JSON parse failures", () => {
+    expect(() => parseOpenAiJsonPayload("```json\nnot json\n```")).toThrow(
+      "openai_json_parse_failed",
+    );
   });
 
   it("keeps the endpoint authenticated and scoped to the finding owner", () => {

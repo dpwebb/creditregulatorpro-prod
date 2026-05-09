@@ -9,6 +9,14 @@ export const schema = z.object({
 export type InputType = z.infer<typeof schema>;
 export type OutputType = ConsumerFindingExplanationResult;
 
+function parseJsonResponse(text: string, status: number): unknown {
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(`AI preview returned a non-JSON response (${status})`);
+  }
+}
+
 export const postConsumerFindingExplanationAssist = async (
   body: InputType,
   init?: RequestInit,
@@ -23,10 +31,19 @@ export const postConsumerFindingExplanationAssist = async (
     },
   });
 
+  const responseText = await result.text();
+  const responseObject = parseJsonResponse(responseText, result.status);
+
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    const errorMessage =
+      responseObject &&
+      typeof responseObject === "object" &&
+      "error" in responseObject &&
+      typeof (responseObject as { error?: unknown }).error === "string"
+        ? (responseObject as { error: string }).error
+        : `AI preview request failed (${result.status})`;
+    throw new Error(errorMessage);
   }
 
-  return JSON.parse(await result.text());
+  return responseObject as OutputType;
 };
