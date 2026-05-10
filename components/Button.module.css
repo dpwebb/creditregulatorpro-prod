@@ -7,7 +7,12 @@
     font-family: var(--font-family-base);
     font-weight: 500;
     border-radius: var(--radius);
-    white-space: nowrap;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
     text-decoration: none;
     cursor: pointer;
     transition: all var(--animation-duration-fast) var(--animation-easing);
@@ -33,19 +38,19 @@
 
   /* Size variants */
   .sm {
-    height: 2rem;
+    min-height: 2rem;
     padding: 0 var(--spacing-3);
     font-size: 0.875rem;
   }
 
   .md {
-    height: 2.75rem;
+    min-height: 2.75rem;
     padding: 0 var(--spacing-4);
     font-size: 0.9375rem;
   }
 
   .lg {
-    height: 3.25rem;
+    min-height: 3.25rem;
     padding: 0 var(--spacing-6);
     font-size: 1rem;
     border-radius: var(--radius-lg);
@@ -54,18 +59,21 @@
   /* Icon button sizes */
   .icon,
   .icon-md {
+    flex: 0 0 2.75rem;
     width: 2.75rem;
     height: 2.75rem;
     padding: 0;
   }
 
   .icon-sm {
+    flex: 0 0 2rem;
     width: 2rem;
     height: 2rem;
     padding: 0;
   }
 
   .icon-lg {
+    flex: 0 0 3.25rem;
     width: 3.25rem;
     height: 3.25rem;
     padding: 0;
@@ -225,5 +233,17 @@
 
   .link:active {
     opacity: 0.7;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .sm {
+      min-height: 2.75rem;
+    }
+
+    .icon-sm {
+      flex-basis: 2.75rem;
+      width: 2.75rem;
+      height: 2.75rem;
+    }
   }
 }

@@ -2,6 +2,8 @@
   padding: var(--spacing-6);
   max-width: 1600px;
   margin: 0 auto;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-6);
@@ -36,6 +38,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .cardHeader {
@@ -111,6 +114,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
+  min-width: 0;
 }
 
 .displayName {
@@ -141,6 +145,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--spacing-3);
 }
 
 .detailLabel {
@@ -156,6 +161,8 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .detailIcon {
@@ -216,6 +223,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
+  min-width: 0;
 }
 
 .tabIcon {
@@ -378,6 +386,34 @@
   align-items: flex-start;
   gap: var(--spacing-4);
   background: color-mix(in srgb, var(--error) 5%, transparent);
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-4);
+  }
+
+  .backButton {
+    margin-left: 0;
+  }
+
+  .profileMain,
+  .cardTop,
+  .cardBottom,
+  .cardHeaderLeft {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .detailRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tabsSection,
+  .dangerZone {
+    padding: var(--spacing-4);
+  }
 }
 
 @media (min-width: 768px) {

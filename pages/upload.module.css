@@ -1,6 +1,8 @@
 .container {
   max-width: 800px;
   margin: 0 auto;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-6);
@@ -17,6 +19,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
+  min-width: 0;
 }
 
 .header {
@@ -213,6 +216,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--spacing-3) var(--spacing-6);
+  min-height: 2.75rem;
   background-color: var(--surface);
   border: 1px solid var(--border);
   color: var(--foreground);
@@ -241,6 +245,7 @@
   border: 1px solid var(--border);
   width: 100%;
   max-width: 400px;
+  min-width: 0;
 }
 
 .fileIcon {
@@ -383,6 +388,14 @@
   }
   .uploadArea {
     padding: var(--spacing-4);
+  }
+  .fileInfo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .uploadButton {
+    width: 100%;
+    min-width: 0;
   }
   .regionBanner {
     flex-direction: column;

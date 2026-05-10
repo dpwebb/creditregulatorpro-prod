@@ -1,8 +1,10 @@
 .container {
   width: 100%;
   overflow-x: auto; /* Allow horizontal scroll for small screens */
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
-    max-width: 100%; /* Constrain to parent width */
+  overscroll-behavior-inline: contain;
+  max-width: 100%; /* Constrain to parent width */
   background: var(--card); /* Glass background from vars */
   backdrop-filter: blur(var(--backdrop-blur));
   -webkit-backdrop-filter: blur(var(--backdrop-blur));
@@ -14,6 +16,7 @@
 
 .table {
   width: 100%;
+  min-width: max-content;
   border-collapse: separate; /* Required for border-radius on rows if we want gaps, but using collapse for clean lines mostly */
   border-spacing: 0;
   caption-side: bottom;
@@ -72,13 +75,11 @@
 
 @media (max-width: 768px) {
   .container {
-    border-radius: 0;
-    margin-left: calc(-1 * var(--spacing-4));
-    margin-right: calc(-1 * var(--spacing-4));
-    width: calc(100% + 2 * var(--spacing-4));
-    max-width: none;
-    border-left: none;
-    border-right: none;
+    border-radius: var(--radius);
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    max-width: 100%;
   }
 
   .cell {

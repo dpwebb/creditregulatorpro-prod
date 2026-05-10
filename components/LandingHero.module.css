@@ -19,16 +19,16 @@
 
 .headline {
   font-family: var(--font-family-heading);
-  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-size: 3.75rem;
   font-weight: 800;
   line-height: 1.1;
   color: var(--foreground);
   margin: 0;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .subhead {
-  font-size: clamp(1.125rem, 3vw, 1.5rem);
+  font-size: 1.25rem;
   line-height: 1.6;
   color: var(--muted-foreground);
   margin: 0;
@@ -55,6 +55,20 @@
   .buttonGroup {
     flex-direction: column;
     align-items: center;
+  }
+
+  .headline {
+    font-size: 2.25rem;
+  }
+
+  .subhead {
+    font-size: 1.0625rem;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  .headline {
+    font-size: 3rem;
   }
 }
 

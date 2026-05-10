@@ -28,6 +28,10 @@
   flex-wrap: wrap;
 }
 
+.filters > * {
+  min-width: min(100%, 12rem);
+}
+
 .presetRow {
   display: flex;
   flex-wrap: wrap;
@@ -75,7 +79,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 420px;
+  max-width: min(420px, 48vw);
 }
 
 .userName {
@@ -115,4 +119,25 @@
 .paginationControls {
   display: flex;
   gap: var(--spacing-2);
+}
+
+@media (max-width: 640px) {
+  .filters > * {
+    flex: 1 1 100%;
+  }
+
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    padding: 0;
+  }
+
+  .paginationControls {
+    justify-content: space-between;
+  }
+
+  .previewText {
+    max-width: 16rem;
+  }
 }

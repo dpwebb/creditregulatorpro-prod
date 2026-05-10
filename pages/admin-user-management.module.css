@@ -2,12 +2,15 @@
   padding: var(--spacing-6);
   max-width: 1600px;
   margin: 0 auto;
+  width: 100%;
+  min-width: 0;
 }
 
 .headerTitle {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
+  min-width: 0;
 }
 
 .headerIcon {
@@ -76,6 +79,7 @@
   position: relative;
   flex: 1;
   max-width: 400px;
+  min-width: min(100%, 16rem);
 }
 
 .searchIcon {
@@ -97,6 +101,7 @@
   flex-direction: column;
   gap: var(--spacing-3);
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 @media (min-width: 768px) {
@@ -290,6 +295,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
+  flex-wrap: wrap;
 }
 
 .noAction {
@@ -373,5 +379,9 @@
   .pagination {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .paginationActions {
+    width: 100%;
+    justify-content: space-between;
   }
 }

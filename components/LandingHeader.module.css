@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-    height: 11rem;
+  height: 5rem;
   background-color: var(--background);
   border-bottom: 1px solid var(--border);
   z-index: var(--z-nav-sticky);
@@ -28,8 +28,10 @@
 }
 
 .logoImg {
-  height: 150px;
+  height: 4rem;
   width: auto;
+  max-width: min(14rem, 48vw);
+  object-fit: contain;
 }
 
 .nav {
@@ -63,11 +65,31 @@
 
 /* Mobile: Hide nav links, show only logo and CTA */
 @media (max-width: 768px) {
+  .header {
+    height: 4.5rem;
+  }
+
+  .container {
+    gap: var(--spacing-3);
+  }
+
+  .logoImg {
+    height: 3.5rem;
+    max-width: 52vw;
+  }
+
   .mobileCta {
     display: flex;
     align-items: center;
   }
   .nav {
     display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .logoImg {
+    height: 3rem;
+    max-width: 46vw;
   }
 }

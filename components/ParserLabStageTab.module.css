@@ -5,7 +5,7 @@
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(min(100%, 280px), 380px) minmax(0, 1fr);
   gap: var(--spacing-5);
   align-items: start;
 }
@@ -15,6 +15,7 @@
   border-radius: var(--radius);
   background: var(--card);
   padding: var(--spacing-5);
+  min-width: 0;
 }
 
 .controlPanel {
@@ -132,7 +133,7 @@
 
 .metricsGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(min(100%, 120px), 1fr));
   gap: var(--spacing-3);
 }
 
@@ -237,7 +238,7 @@
 
 .reviewSummaryGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  grid-template-columns: repeat(5, minmax(min(100%, 120px), 1fr));
   gap: var(--spacing-3);
   margin-top: var(--spacing-3);
   padding-top: var(--spacing-3);
@@ -246,7 +247,7 @@
 
 .financialSnapshot {
   display: grid;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  grid-template-columns: repeat(5, minmax(min(100%, 120px), 1fr));
   gap: var(--spacing-3);
   margin-top: var(--spacing-3);
   padding-top: var(--spacing-3);
@@ -255,7 +256,7 @@
 
 .fieldGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(min(100%, 120px), 1fr));
   gap: var(--spacing-3);
   margin-top: var(--spacing-3);
 }
@@ -301,6 +302,9 @@
 .tableScroller {
   max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
@@ -361,7 +365,7 @@
 
 .auditGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(min(100%, 120px), 1fr));
   gap: var(--spacing-3);
   padding: 0 var(--spacing-3) var(--spacing-3);
 }
@@ -455,7 +459,7 @@
 
 .evidenceFieldGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(min(100%, 120px), 1fr));
   gap: var(--spacing-3);
 }
 

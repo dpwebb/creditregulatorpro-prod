@@ -55,11 +55,16 @@
 }
 
 .tableWrapper {
+  max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
 }
 
 .table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
 }
 
@@ -153,6 +158,9 @@
 @media (max-width: 768px) {
   .sectionHeader {
     padding: var(--spacing-4);
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--spacing-3);
   }
 
   .table th {

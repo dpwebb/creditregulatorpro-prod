@@ -2,11 +2,12 @@
   /* FAB Styles */
   .fab {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
     z-index: 9999; /* Required per prompt */
     width: 64px;
     height: 64px;
+    max-width: calc(100vw - 2rem);
     border-radius: var(--radius-full);
     background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary), black 20%));
     color: var(--primary-foreground);
@@ -48,10 +49,10 @@
   /* Panel Styles */
   .panel {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
-    width: 400px;
-    height: 560px;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: min(400px, calc(100vw - 2rem));
+    height: min(560px, calc(100dvh - 2rem));
     z-index: 9999;
     background: var(--card);
     border-radius: var(--radius-lg);
@@ -363,6 +364,7 @@
 
   .input {
     flex: 1;
+    min-width: 0;
     background: var(--input);
     border: 1px solid var(--border);
     color: var(--input-foreground);
@@ -381,5 +383,26 @@
   .input:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  @media (max-width: 480px) {
+    .fab {
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom));
+      width: 56px;
+      height: 56px;
+    }
+
+    .headerTitle {
+      min-width: 0;
+    }
+
+    .badge {
+      display: none;
+    }
+
+    .bubble {
+      max-width: 92%;
+    }
   }
 }

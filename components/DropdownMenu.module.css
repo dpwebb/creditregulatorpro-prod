@@ -2,6 +2,8 @@
   .content,
   .subContent {
     min-width: 12rem;
+    max-width: calc(100vw - 2rem);
+    max-height: min(24rem, calc(100dvh - 2rem));
     overflow: hidden;
     background-color: var(--popup);
     color: var(--popup-foreground);
@@ -28,6 +30,8 @@
     border-radius: var(--radius-sm);
     font-size: 0.9375rem;
     padding: var(--spacing-2) var(--spacing-3);
+    min-height: 2.5rem;
+    overflow-wrap: anywhere;
     outline: none;
     transition:
       background-color var(--animation-duration-fast),
@@ -131,6 +135,15 @@
 
   .inset {
     padding-left: var(--spacing-8);
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .item,
+    .checkboxItem,
+    .radioItem,
+    .subTrigger {
+      min-height: 2.75rem;
+    }
   }
 
   @keyframes scaleIn {

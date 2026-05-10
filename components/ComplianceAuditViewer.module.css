@@ -7,7 +7,7 @@
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: var(--spacing-4);
   padding: var(--spacing-4);
   background: var(--card);
@@ -64,6 +64,7 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-4) 0;
+  gap: var(--spacing-3);
 }
 
 .pageInfo {
@@ -80,6 +81,7 @@
 .paginationButtons {
   display: flex;
   gap: var(--spacing-2);
+  flex-wrap: wrap;
 }
 
 .emptyState {
@@ -115,7 +117,7 @@
 }
 
 .truncatedText {
-  max-width: 200px;
+  max-width: min(200px, 44vw);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -168,7 +170,8 @@
 
 /* Dialog Styles */
 .dialogContent {
-  max-width: 600px;
+  width: min(600px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
 }
 
 .detailsGrid {
@@ -229,6 +232,7 @@
   display: flex;
   gap: var(--spacing-2);
   align-items: flex-start;
+  min-width: 0;
 }
 
 .link {
@@ -242,4 +246,24 @@
 
 .link:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .paginationButtons {
+    justify-content: space-between;
+  }
+
+  .hashContainer,
+  .fullHash {
+    width: 100%;
+  }
 }

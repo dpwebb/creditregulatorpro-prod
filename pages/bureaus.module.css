@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: var(--spacing-4);
   margin-top: var(--spacing-6);
+  width: 100%;
+  min-width: 0;
 }
 
 .listHeader {
@@ -34,6 +36,7 @@
   gap: 1.25rem;
   transition: all var(--animation-duration-fast) var(--animation-easing);
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .selectedCard {
@@ -109,7 +112,7 @@
 
 .cardBottomRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: var(--spacing-6);
   padding-top: var(--spacing-4);
   border-top: 1px solid var(--border);
@@ -297,6 +300,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-3);
 }
 
 .readOnlyField label {
@@ -360,8 +364,17 @@
   .cardTopRow {
     flex-direction: column;
   }
+  .cardTopLeft {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .cardTopRight {
     align-self: flex-end;
     margin-top: calc(var(--spacing-4) * -1);
+  }
+  .readOnlyField,
+  .dialogHeaderWithHelp {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

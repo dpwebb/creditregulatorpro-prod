@@ -3,7 +3,10 @@
   max-width: 1600px;
   margin: 0 auto;
   min-height: 100vh;
-  overflow-x: hidden;
+  min-height: 100dvh;
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .headerActions {
@@ -27,7 +30,7 @@
 /* Stats Cards */
 .statsContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: var(--spacing-4);
   margin-bottom: var(--spacing-6);
 }
@@ -86,7 +89,7 @@
   flex-wrap: wrap;
   gap: var(--spacing-4);
   max-width: 100%;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .filters {
@@ -94,6 +97,7 @@
   align-items: center;
   gap: var(--spacing-4);
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .filterGroup {
@@ -104,6 +108,7 @@
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  min-width: min(100%, 12rem);
 }
 
 .filterIcon {
@@ -148,6 +153,7 @@
   gap: var(--spacing-3);
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 0;
 
   &:hover {
     background-color: color-mix(in srgb, var(--card), var(--muted) 50%);
@@ -181,7 +187,7 @@
 
 .cardTitleSection {
   flex: 1;
-  min-width: 250px;
+  min-width: min(100%, 250px);
 }
 
 .cardMetaSection {
@@ -356,8 +362,10 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 90vw;
-  max-width: 450px;
+  width: min(450px, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
   padding: var(--spacing-6);
   z-index: var(--z-overlay);
   color: var(--foreground);
@@ -379,6 +387,7 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--spacing-3);
+  flex-wrap: wrap;
 }
 
 .cancelButton {
@@ -436,6 +445,14 @@
 
   .filterGroup {
     width: 100%;
+  }
+
+  .cardTitleSection {
+    min-width: 0;
+  }
+
+  .dialogFooter > * {
+    flex: 1 1 10rem;
   }
 
   .select {
