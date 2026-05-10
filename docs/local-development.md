@@ -103,6 +103,10 @@ The password is `LOCAL_DEV_ADMIN_PASSWORD` when set, otherwise the local
 bootstrap default. Set `LOCAL_DEV_SINGLE_ADMIN=false` only when you explicitly
 need to preserve multiple copied admin-role accounts in localhost.
 
+Local Playwright admin tests use the same seeded admin contract when
+`E2E_BASE_URL` points at localhost. For non-local targets, set
+`E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD` explicitly.
+
 ## Commit-Push Local Sync
 
 The integrated staging publish command refreshes localhost from staging after a

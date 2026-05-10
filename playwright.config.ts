@@ -5,6 +5,7 @@ const captureArtifacts = process.env.E2E_CAPTURE_ARTIFACTS === "true";
 
 export default defineConfig({
   testDir: "tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   timeout: 60000,
   expect: {
     timeout: 10000,

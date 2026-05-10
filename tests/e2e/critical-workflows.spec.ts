@@ -1,27 +1,8 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { login, resolveE2EAdminCredentials, resolveE2EUserCredentials } from "./e2eAuth";
 
-const userEmail = process.env.E2E_USER_EMAIL;
-const userPassword = process.env.E2E_USER_PASSWORD;
-const adminEmail = process.env.E2E_ADMIN_EMAIL;
-const adminPassword = process.env.E2E_ADMIN_PASSWORD;
-
-async function login(page: Page, email: string, password: string) {
-  await page.goto("/login");
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password/i).fill(password);
-  await page.getByRole("button", { name: /log in|login/i }).click();
-
-  const outcome = await Promise.race([
-    page.waitForURL((url) => !/\/login$/.test(url.pathname), { timeout: 10000 }).then(() => "navigated" as const),
-    page.getByText(/invalid email or password/i).waitFor({ state: "visible", timeout: 10000 }).then(() => "invalid" as const),
-  ]).catch(() => "timeout" as const);
-
-  if (outcome !== "navigated") {
-    await page.getByLabel(/password/i).fill("");
-    await page.getByLabel(/email/i).fill("");
-    throw new Error(`Login failed for ${email}. Verify the E2E credentials and E2E_BASE_URL target.`);
-  }
-}
+const userCredentials = resolveE2EUserCredentials();
+const adminCredentials = resolveE2EAdminCredentials();
 
 test.describe("public route smoke", () => {
   for (const route of ["/", "/login", "/register", "/try-upload", "/reset-password"]) {
@@ -34,10 +15,10 @@ test.describe("public route smoke", () => {
 });
 
 test.describe("authenticated critical workflow scaffold", () => {
-  test.skip(!userEmail || !userPassword, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run authenticated E2E checks.");
+  test.skip(!userCredentials, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run authenticated E2E checks.");
 
   test("user login, protected upload surface, and logout", async ({ page }) => {
-    await login(page, userEmail!, userPassword!);
+    await login(page, userCredentials!);
     await page.goto("/upload");
     await expect(page.locator("body")).toContainText(/upload/i);
     await page.getByRole("button", { name: /logout|log out|sign out/i }).click();
@@ -46,10 +27,10 @@ test.describe("authenticated critical workflow scaffold", () => {
 });
 
 test.describe("admin critical workflow scaffold", () => {
-  test.skip(!adminEmail || !adminPassword, "Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run admin E2E checks.");
+  test.skip(!adminCredentials, "Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run admin E2E checks.");
 
   test("admin can open lifecycle and correction surfaces", async ({ page }) => {
-    await login(page, adminEmail!, adminPassword!);
+    await login(page, adminCredentials!);
     await page.goto("/admin-mock-lifecycle");
     await expect(page.locator("body")).toContainText(/lifecycle/i);
     await page.goto("/admin-parser-testing");

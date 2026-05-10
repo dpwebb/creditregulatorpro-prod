@@ -14,11 +14,13 @@ describe("admin AI assist pane", () => {
     const versionPage = source("pages/admin-version-management.tsx");
     const app = source("App.tsx");
     const layout = source("components/AppLayout.tsx");
+    const sidebarRoutes = source("helpers/adminSidebarRoutes.ts");
 
     expect(aiAssistPage).toContain("AdminAiAssistTab");
     expect(app).toContain('["./pages/admin-ai-assist.tsx","/admin-ai-assist"]');
     expect(app).toContain('"./pages/admin-ai-assist.tsx": PageLayout_57');
-    expect(layout).toContain('path: "/admin-ai-assist"');
+    expect(layout).toContain("ADMIN_SIDEBAR_ROUTE_GROUPS");
+    expect(sidebarRoutes).toContain('path: "/admin-ai-assist"');
     expect(versionPage).not.toContain("AdminAiAssistTab");
     expect(versionPage).not.toContain('value="ai-assist"');
   });

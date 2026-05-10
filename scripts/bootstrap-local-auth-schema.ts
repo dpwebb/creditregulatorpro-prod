@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 import { hash } from "bcryptjs";
+import { resolveLocalAdminAuth } from "./localAdminAuth";
 
 type EnvMap = Record<string, string>;
 
@@ -68,22 +69,25 @@ async function main() {
   const databaseUrl = resolveLocalDatabaseUrl();
   const envJson = JSON.parse(fs.readFileSync(path.resolve("env.json"), "utf8")) as EnvMap;
   const databaseHost = new URL(databaseUrl).hostname;
+  const isExplicitLocalDev = isTruthy(process.env.CRP_LOCAL_DEV) || isTruthy(envJson.CRP_LOCAL_DEV);
+
+  if (!isExplicitLocalDev) {
+    throw new Error("Refusing to bootstrap local admin unless CRP_LOCAL_DEV=true.");
+  }
+
+  if (!LOCAL_HOSTS.has(databaseHost)) {
+    throw new Error(`Refusing to bootstrap local admin for non-local database host: ${databaseHost}.`);
+  }
+
   const sql = postgres(databaseUrl, { prepare: false, max: 1 });
-  const localAdminEmail =
-    (process.env.LOCAL_DEV_ADMIN_EMAIL || "webbd3500@gmail.com")
-      .trim()
-      .toLowerCase();
-  const localAdminPassword =
-    process.env.LOCAL_DEV_ADMIN_PASSWORD || "LocalAdmin123";
-  const localAdminDisplayName = process.env.LOCAL_DEV_ADMIN_NAME || "Admin";
-  const localAdminSignature =
-    process.env.LOCAL_DEV_ADMIN_SIGNATURE || "DAVID PHILIP WEBB";
+  const localAdminAuth = resolveLocalAdminAuth(process.env);
+  const localAdminEmail = localAdminAuth.email;
+  const localAdminPassword = localAdminAuth.password;
+  const localAdminDisplayName = localAdminAuth.displayName;
+  const localAdminSignature = localAdminAuth.legalNameSignature;
   const shouldNormalizeLocalAdmins =
     (process.env.LOCAL_DEV_SINGLE_ADMIN ?? envJson.LOCAL_DEV_SINGLE_ADMIN ?? "true").trim().toLowerCase() !== "false";
-  const canNormalizeLocalAdmins =
-    shouldNormalizeLocalAdmins &&
-    (isTruthy(process.env.CRP_LOCAL_DEV) || isTruthy(envJson.CRP_LOCAL_DEV)) &&
-    LOCAL_HOSTS.has(databaseHost);
+  const canNormalizeLocalAdmins = shouldNormalizeLocalAdmins;
 
   try {
     await sql`create table if not exists public.users (
@@ -290,8 +294,6 @@ async function main() {
       }
 
       console.log(`Normalized localhost admin accounts: demoted ${demotedUsers.length} non-canonical admin account(s) to support.`);
-    } else if (shouldNormalizeLocalAdmins) {
-      console.log("Skipped single-admin normalization because target is not explicit local dev.");
     }
 
     console.log("Local auth schema bootstrap complete.");

@@ -67,11 +67,12 @@ describe("local bootstrap table coverage", () => {
     const projectRoot = process.cwd();
     const authBootstrap = readFileSync(path.join(projectRoot, "scripts", "bootstrap-local-auth-schema.ts"), "utf8");
 
-    expect(authBootstrap).toContain("webbd3500@gmail.com");
+    expect(authBootstrap).toContain("resolveLocalAdminAuth");
+    expect(authBootstrap).toContain("Refusing to bootstrap local admin unless CRP_LOCAL_DEV=true");
+    expect(authBootstrap).toContain("Refusing to bootstrap local admin for non-local database host");
     expect(authBootstrap).toContain("LOCAL_DEV_SINGLE_ADMIN");
     expect(authBootstrap).toContain("role = 'support'");
     expect(authBootstrap).toContain("Normalized localhost admin accounts");
-    expect(authBootstrap).toContain("target is not explicit local dev");
   });
 
   it("keeps staging refresh transaction timeout handling quiet and compatible", () => {

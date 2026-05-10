@@ -46,6 +46,7 @@ import {
   GitBranch,
   Sparkles,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../helpers/useAuth";
 import { useRequestVerificationEmail } from "../helpers/useEmailVerification";
@@ -59,9 +60,46 @@ import { TrialCountdownBanner } from "./TrialCountdownBanner";
 import { APP_DISPLAY_VERSION } from "../helpers/appVersion";
 import { AISupportChat } from "./AISupportChat";
 import { PLATFORM_SCOPE_NOTICE } from "../helpers/platformScope";
+import { ADMIN_SIDEBAR_ROUTE_GROUPS, type AdminSidebarPath } from "../helpers/adminSidebarRoutes";
 import styles from "./AppLayout.module.css";
 
 const SIDEBAR_MINIMIZED_KEY = "app-sidebar-minimized";
+
+const adminSidebarIcons: Record<AdminSidebarPath, LucideIcon> = {
+  "/": LayoutDashboard,
+  "/admin-user-management": UserCog,
+  "/admin-risk-triage": AlertTriangle,
+  "/admin-compliance-config": ShieldCheck,
+  "/admin-activity-logs": History,
+  "/admin-error-logs": Bug,
+  "/admin-security": Shield,
+  "/support-tickets": MessageSquare,
+  "/admin-knowledge-base": BookOpen,
+  "/admin-letter-templates": FileCheck,
+  "/bureaus": Building2,
+  "/statutes": BookOpen,
+  "/metro2-compliance": BookText,
+  "/creditor-obligations": Scale,
+  "/bureau-obligations": Landmark,
+  "/collector-obligations": Truck,
+  "/enforcement-mechanisms": Gavel,
+  "/regulatory-updates": AlertOctagon,
+  "/admin-mock-lifecycle": ClipboardCheck,
+  "/admin-parser-testing": FlaskConical,
+  "/admin-parser-mappings": Settings2,
+  "/admin-ai-assist": Sparkles,
+  "/admin-version-management": GitBranch,
+};
+
+function buildAdminSidebarItems(): NavItem[] {
+  return ADMIN_SIDEBAR_ROUTE_GROUPS.map((routeGroup) => ({
+    group: routeGroup.group,
+    items: routeGroup.items.map((item) => ({
+      ...item,
+      icon: adminSidebarIcons[item.path],
+    })),
+  }));
+}
 
 export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -119,48 +157,9 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
     const isAdmin = role === "admin"; // Admin User only
     const isSupport = role === "support"; // Support Agent
 
-    const legalAndRulesItems = [
-      { path: "/bureaus", label: "Credit Reporting Companies", icon: Building2 },
-      { path: "/statutes", label: "Laws", icon: BookOpen },
-      { path: "/metro2-compliance", label: "Reporting Format Guide", icon: BookText },
-      { path: "/creditor-obligations", label: "Rules Creditors Must Follow", icon: Scale },
-      { path: "/bureau-obligations", label: "Rules Credit Reporting Companies Must Follow", icon: Landmark },
-      { path: "/collector-obligations", label: "Rules Collectors Must Follow", icon: Truck },
-      { path: "/enforcement-mechanisms", label: "Enforcement", icon: Gavel },
-      { path: "/regulatory-updates", label: "Regulatory Updates", icon: AlertOctagon },
-    ];
-
-    const adminItems: NavItem[] = [
-      {
-        group: "Platform",
-        items: [
-          { path: "/", label: "Home", icon: LayoutDashboard },
-          { path: "/admin-user-management", label: "User Management", icon: UserCog },
-          { path: "/admin-risk-triage", label: "Risk Triage", icon: AlertTriangle },
-          { path: "/admin-compliance-config", label: "Rule Check Settings", icon: ShieldCheck },
-          { path: "/admin-activity-logs", label: "Activity Logs", icon: History },
-          { path: "/admin-error-logs", label: "Error Logs", icon: Bug },
-          { path: "/admin-security", label: "Security & Compliance", icon: Shield },
-          { path: "/support-tickets", label: "Support Tickets", icon: MessageSquare },
-                    { path: "/admin-knowledge-base", label: "Admin Guide", icon: BookOpen },
-          { path: "/admin-letter-templates", label: "Letter Templates", icon: FileCheck },
-        ]
-      },
-      {
-        group: "Legal & Rules",
-        items: legalAndRulesItems
-      },
-      {
-        group: "Tools",
-        items: [
-          { path: "/admin-mock-lifecycle", label: "Lifecycle Testing", icon: ClipboardCheck },
-          { path: "/admin-parser-testing", label: "Parser Testing", icon: FlaskConical },
-          { path: "/admin-parser-mappings", label: "Parser Mappings", icon: Settings2 },
-          { path: "/admin-ai-assist", label: "AI Assist", icon: Sparkles },
-          { path: "/admin-version-management", label: "Version Management", icon: GitBranch },
-        ]
-      }
-    ];
+    const adminItems = buildAdminSidebarItems();
+    const legalAndRulesItems =
+      adminItems.find((item) => "group" in item && item.group === "Legal & Rules")?.items ?? [];
 
     const supportItems: NavItem[] = [
       {
