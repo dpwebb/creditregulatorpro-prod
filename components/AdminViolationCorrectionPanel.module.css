@@ -18,10 +18,13 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .compactSelect {
   width: 180px;
+  max-width: 100%;
 }
 
 .layout {
@@ -249,6 +252,7 @@
   align-items: center;
   gap: var(--spacing-2);
   padding: 0 var(--spacing-3) var(--spacing-3);
+  flex-wrap: wrap;
 }
 
 .evidenceColumn > button,
@@ -342,6 +346,13 @@
   .trainingStrip {
     align-items: stretch;
     grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .toolbarGroup,
+  .actionRow,
+  .requirementRow {
+    align-items: stretch;
     flex-direction: column;
   }
 
