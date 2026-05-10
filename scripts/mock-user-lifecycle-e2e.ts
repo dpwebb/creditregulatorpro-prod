@@ -15,6 +15,7 @@ type CliOptions = {
   outputDir: string;
   strict: boolean;
   useDbAssist: boolean;
+  allowUncleanRun: boolean;
 };
 
 type CoverageStatus = "PASSED" | "FAILED" | "BLOCKED" | "SKIPPED";
@@ -741,6 +742,7 @@ function parseArgs(argv: string[]): CliOptions {
     outputDir: ".local/test-runs",
     strict: false,
     useDbAssist: true,
+    allowUncleanRun: false,
   };
 
   const positional: string[] = [];
@@ -763,6 +765,11 @@ function parseArgs(argv: string[]): CliOptions {
 
     if (token === "--no-db-assist") {
       options.useDbAssist = false;
+      continue;
+    }
+
+    if (token === "--allow-unclean-run") {
+      options.allowUncleanRun = true;
       continue;
     }
 
@@ -857,8 +864,23 @@ Options:
   --output-dir <dir>               Output directory for JSON and Markdown reports
   --strict                         Exit non-zero when any coverage item is FAILED or BLOCKED
   --no-db-assist                   Disable direct DB assist for token retrieval flows
+  --allow-unclean-run              Allow running without admin cleanup access; may leave a test user behind
 `);
   process.exit(code);
+}
+
+function assertAdminCleanupPreflight(options: CliOptions): void {
+  if (options.allowUncleanRun) {
+    return;
+  }
+
+  if (process.env.CRP_LIFECYCLE_ADMIN_COOKIE?.trim()) {
+    return;
+  }
+
+  throw new Error(
+    "Refusing to run mock lifecycle without admin cleanup access. The suite creates a test user and must be able to delete it. Run through /admin-mock-lifecycle, set CRP_LIFECYCLE_ADMIN_COOKIE, or pass --allow-unclean-run only for a throwaway local database."
+  );
 }
 
 async function readFixture(filePath: string): Promise<FixtureData> {
@@ -1774,6 +1796,7 @@ async function exerciseAdminDeletionRegression(input: {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  assertAdminCleanupPreflight(options);
   const runStartedAt = toIsoNow();
   const runId = Date.now().toString(36);
   const api = new ApiClient(options.baseUrl, options.origin);

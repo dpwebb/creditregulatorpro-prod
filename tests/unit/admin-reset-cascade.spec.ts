@@ -47,6 +47,9 @@ describe("admin delete-user lifecycle regression coverage", () => {
     expect(runner).toContain("CRP_LIFECYCLE_ADMIN_COOKIE");
     expect(lifecycle).toContain("admin_delete_user");
     expect(lifecycle).toContain("\"/_api/admin/delete-user\"");
+    expect(lifecycle).toContain("assertAdminCleanupPreflight(options)");
+    expect(lifecycle).toContain("Refusing to run mock lifecycle without admin cleanup access");
+    expect(lifecycle).toContain("--allow-unclean-run");
     expect(lifecycle).toContain("seedAdminDeletionRegressionData");
     expect(lifecycle).toContain("requirePurgedCount(payload.purgedCounts, \"users\", 1");
     expect(lifecycle).toContain("requirePurgedCount(payload.purgedCounts, \"reportArtifacts\", 2");
