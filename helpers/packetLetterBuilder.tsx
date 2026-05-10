@@ -20,6 +20,11 @@ import {
 } from "./equifaxDisputeReasons";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
+import {
+  applyEvidentiaryDisputeStructure,
+  describeDisputedFields,
+  type ConsumerFileReference,
+} from "./disputeLetterStructure";
 import { buildSpecificStatutoryGrounds } from "./disputeLetterStatutoryGrounds";
 
 export interface PacketLetterBuilderParams {
@@ -29,6 +34,7 @@ export interface PacketLetterBuilderParams {
   consumerDOB?: string;
   consumerPhone?: string;
   consumerEmail?: string;
+  consumerFileReference?: ConsumerFileReference;
   creditorName?: string;
   accountNumber?: string;
   transunionCaseId?: string;
@@ -72,6 +78,7 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       consumerDOB: params.consumerDOB,
       consumerPhone: params.consumerPhone,
       consumerEmail: params.consumerEmail,
+      consumerFileReference: params.consumerFileReference,
       creditorName: displayCreditorName,
       accountNumber: displayAccountNumber,
       disputeReasonCode: params.disputeReasonCode,
@@ -95,6 +102,7 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       consumerDOB: params.consumerDOB,
       consumerPhone: params.consumerPhone,
       consumerEmail: params.consumerEmail,
+      consumerFileReference: params.consumerFileReference,
       creditorName: displayCreditorName,
       accountNumber: displayAccountNumber,
       transunionCaseId: params.transunionCaseId,
@@ -164,6 +172,7 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       consumerDOB: params.consumerDOB,
       consumerPhone: params.consumerPhone,
       consumerEmail: params.consumerEmail,
+      consumerFileReference: params.consumerFileReference,
       letterDate,
       recipientName: params.recipientName,
       recipientAddress: params.recipientAddress,
@@ -187,6 +196,12 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
         bureauName: params.recipientName,
         creditorName: displayCreditorName,
         accountNumber: displayAccountNumber,
+        exactDisputedFields: describeDisputedFields(
+          params.effectiveViolationCategory,
+          params.violationDetails
+        ),
+        creditReportReferenceNumber: params.consumerFileReference?.creditReportReferenceNumber,
+        reportDate: params.consumerFileReference?.reportDate,
         province: params.province,
         statutoryReference: params.statuteInfo?.sectionReference || params.statuteInfo?.code,
       },
@@ -206,5 +221,10 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
     existingGrounds: letterContent.statutoryGrounds,
   });
 
-  return letterContent;
+  return applyEvidentiaryDisputeStructure(letterContent, {
+    violationCategory: params.effectiveViolationCategory,
+    violationDetails: params.violationDetails,
+    tradelineDetails: params.tradelineDetails,
+    consumerFileReference: params.consumerFileReference,
+  });
 }

@@ -71,20 +71,27 @@ const STANDARD_DISPUTE_STATUTORY_GROUNDS =
 3. Applicable provincial consumer reporting authority. Relevant statutory text or authority excerpt: consumer reporting information must be based on reasonable procedures, source evidence, and the best evidence reasonably available. Application to this account: the bureau should identify the source records, verify each disputed field, and correct any inaccurate or unsupported reporting.`;
 
 const STANDARD_REQUESTED_ACTION =
-  "Please open a formal dispute investigation for the account identified below. Please identify the furnisher and source records relied on for each disputed field, compare those records against the consumer disclosure and supporting evidence, correct each inaccurate or incomplete field, stop reporting any field that cannot be verified from source documentation, provide the method of verification or documents relied on for any item that remains, and send written findings with the updated disclosure or correction notice.";
+  `Requested correction by disputed field:
+1. Open a formal reinvestigation for each disputed field identified in this letter.
+2. Identify the furnisher, creditor, collector, court, insolvency record, or other source relied on for each field.
+3. Compare the source records against the consumer disclosure and supporting evidence.
+4. Correct any inaccurate, incomplete, stale, internally inconsistent, or unsupported field.
+5. Delete or suppress any account field, inquiry, notation, or tradeline that cannot be verified from source documentation.
+6. Mark the account or item as disputed while the reinvestigation is pending, where your bureau process supports dispute notation.
+7. Provide written findings, an updated credit disclosure, the method of verification, and the documents or source descriptions relied on for any item that remains.`;
 
 const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
   {
     category: "bureau",
     templateKey: "equifax",
     label: "Equifax",
-    subject: "Equifax dispute and reinvestigation request - {{creditorName}} {{accountNumber}}",
+    subject: "Formal Dispute and Reinvestigation Request - Equifax - {{creditorName}} {{accountNumber}}",
     introduction:
-      "I am initiating a formal dispute with Equifax for the account identified below. Based on my review of my consumer disclosure, the reported information appears inaccurate, incomplete, or unsupported by the file evidence. Please open a dispute investigation, review the source records, and provide the results in writing.",
+      "This is a formal dispute and reinvestigation request to Equifax. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
-      "Please complete the investigation within the applicable statutory response period and provide the updated disclosure or correction notice.",
+      "Please complete the reinvestigation within the applicable statutory response period and provide the results in writing, including an updated disclosure or correction notice and the verification method used for any item that remains.",
     consumerStatementRight:
       "If the disputed information remains, please advise how I may add or preserve a consumer statement explaining the dispute.",
     certification: STANDARD_CERTIFICATION,
@@ -97,13 +104,13 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     category: "bureau",
     templateKey: "transunion",
     label: "TransUnion",
-    subject: "TransUnion dispute and reinvestigation request - {{creditorName}} {{accountNumber}}",
+    subject: "Formal Dispute and Reinvestigation Request - TransUnion - {{creditorName}} {{accountNumber}}",
     introduction:
-      "I am initiating a formal dispute with TransUnion for the account identified below. The file information appears inaccurate, incomplete, inconsistent with the supporting records, or not properly verified. Please open a dispute investigation and send the investigation results in writing.",
+      "This is a formal dispute and reinvestigation request to TransUnion. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
-      "Please complete the investigation within the applicable statutory response period and provide written confirmation of all corrections or reasons for retaining the item.",
+      "Please complete the reinvestigation within the applicable statutory response period and provide the results in writing, including an updated disclosure or correction notice and the verification method used for any item that remains.",
     consumerStatementRight:
       "If the item remains after investigation, please provide the available consumer statement process and any file notation options.",
     certification: STANDARD_CERTIFICATION,
@@ -116,13 +123,13 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     category: "bureau",
     templateKey: "generic",
     label: "Generic Bureau",
-    subject: "Credit reporting dispute - {{bureauName}} - {{creditorName}} {{accountNumber}}",
+    subject: "Formal Dispute and Reinvestigation Request - {{bureauName}} - {{creditorName}} {{accountNumber}}",
     introduction:
-      "I am initiating a formal credit reporting dispute regarding the account information identified below. The reporting appears inaccurate, incomplete, unverifiable, or inconsistent with the available account evidence and should be reinvestigated before it continues to appear on my consumer disclosure.",
+      "This is a formal dispute and reinvestigation request regarding the account information identified below. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
-      "Please respond within the statutory period that applies to this dispute and provide an updated disclosure or correction notice.",
+      "Please complete the reinvestigation within the applicable statutory response period and provide the results in writing, including an updated disclosure or correction notice and the verification method used for any item that remains.",
     consumerStatementRight:
       "If the item is not corrected or deleted, please provide the consumer statement or explanatory note process available for this file.",
     certification: STANDARD_CERTIFICATION,
@@ -370,9 +377,9 @@ function buildProvincialTemplate([
     category: "provincial",
     templateKey: key,
     label: titleFromKey(key),
-    subject: `${provinceLabel} provincial credit reporting dispute - {{creditorName}} {{accountNumber}}`,
+    subject: `Formal Dispute and Reinvestigation Request - ${provinceLabel} - {{creditorName}} {{accountNumber}}`,
     introduction:
-      `I am initiating a formal dispute under the ${statuteLabel}. The account identified below appears inaccurate, incomplete, unverifiable, or not supported by the reporting record for my consumer file.`,
+      `This is a formal dispute and reinvestigation request under the ${statuteLabel}. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.`,
     statutoryGrounds:
       `Statutory grounds relied on for this dispute:
 
@@ -382,7 +389,7 @@ function buildProvincialTemplate([
     requestedAction:
       STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
-      `Please complete the review within the response period that applies under the ${statuteLabel} or the applicable provincial dispute process.`,
+      `Please complete the reinvestigation within the response period that applies under the ${statuteLabel} or the applicable provincial dispute process, and provide the results in writing with any updated disclosure or correction notice.`,
     consumerStatementRight:
       "If the information remains after investigation, please provide the available statement, notation, or explanatory-rights process.",
     certification: STANDARD_CERTIFICATION,
@@ -401,12 +408,12 @@ function buildViolationTemplate(key: string): DefaultLetterTemplate {
     category: "violation_narrative",
     templateKey: key,
     label,
-    subject: `Credit reporting dispute: ${label}`,
+    subject: `Formal Dispute and Reinvestigation Request - ${label}`,
     introduction:
-      `I am initiating a formal dispute because ${focus}. The account is identified below, and I am asking the bureau to investigate the specific reporting problem against the source records used to maintain my consumer file.`,
+      `This is a formal dispute and reinvestigation request because ${focus}. The account and exact disputed fields are identified below, and I am asking the bureau to compare the disputed data against source records, supporting evidence, and the consumer disclosure before the information continues to be reported.`,
     statutoryGrounds: buildViolationStatutoryGrounds(key),
     requestedAction:
-      "Please open a dispute investigation for this account. Please verify the exact field or reporting conduct at issue against the furnisher, creditor, collection, payment, assignment, and bureau source records; provide the method of verification or documents relied on for any item that remains; correct each inaccurate or incomplete field; stop reporting any information that cannot be verified; update my consumer disclosure; and send written findings explaining the result.",
+      "Please open a reinvestigation for this account. Please verify each exact disputed field against the furnisher, creditor, collection, payment, assignment, court, insolvency, and bureau source records as applicable; correct each inaccurate, incomplete, stale, internally inconsistent, or unsupported field; delete or suppress any field or tradeline that cannot be verified from source documentation; mark the account disputed while the review is pending where supported by bureau process; update my consumer disclosure; and send written findings explaining the result, the verification method, and the source records relied on for any item that remains.",
     statutoryTimeframe: null,
     consumerStatementRight: null,
     certification: null,

@@ -4,8 +4,7 @@ import {
   getCertifiedMailInstructions,
 } from "./trackingPlaceholders";
 import type { TemplateContext } from "./packetTemplatesCA";
-import { formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
-import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { finalizeProvincialLetter, formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
 
 /**
  * Manitoba Consumer Protection Act dispute template
@@ -57,7 +56,7 @@ export async function manitobaCPA(ctx: TemplateContext): Promise<LetterContent> 
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "manitoba_cpa");
+  return finalizeProvincialLetter(content, "manitoba_cpa", ctx);
 }
 
 /**
@@ -110,7 +109,7 @@ export async function yukonCPA(ctx: TemplateContext): Promise<LetterContent> {
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "yukon_cpa");
+  return finalizeProvincialLetter(content, "yukon_cpa", ctx);
 }
 
 /**
@@ -163,7 +162,7 @@ export async function northwestTerritoriesCPA(ctx: TemplateContext): Promise<Let
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "nwt_cpa");
+  return finalizeProvincialLetter(content, "nwt_cpa", ctx);
 }
 
 /**
@@ -216,5 +215,5 @@ export async function nunavutCPA(ctx: TemplateContext): Promise<LetterContent> {
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "nunavut_cpa");
+  return finalizeProvincialLetter(content, "nunavut_cpa", ctx);
 }

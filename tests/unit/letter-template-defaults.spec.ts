@@ -39,9 +39,17 @@ describe("default letter templates", () => {
 
       if (template.category === "violation_narrative") {
         expect(template.subject).not.toContain("Compliance finding");
+        expect(template.subject).toContain("Formal Dispute and Reinvestigation Request");
         expect(template.introduction).not.toMatch(/Treat this language|before final use/i);
         expect(template.statutoryGrounds).not.toMatch(/reviewer|Mapped statute or authority/i);
-        expect(template.requestedAction).toMatch(/^Please open a dispute investigation/i);
+        expect(template.requestedAction).toContain("delete or suppress");
+        expect(template.requestedAction).toContain("written findings");
+      }
+
+      if (template.category === "bureau" || template.category === "provincial") {
+        expect(template.subject).toContain("Formal Dispute and Reinvestigation Request");
+        expect(template.requestedAction).toContain("Requested correction by disputed field");
+        expect(template.requestedAction).toContain("Delete or suppress");
       }
 
       const validation = validateTemplateSnapshot(
@@ -64,6 +72,9 @@ describe("default letter templates", () => {
       creditorName: "Sample Bank",
       province: "Ontario",
       statutoryReference: "Ontario Consumer Reporting Act",
+      creditReportReferenceNumber: "L121322",
+      exactDisputedFields: "reported balance; account status",
+      reportDate: "2026-04-16",
     };
 
     for (const template of getDefaultLetterTemplates()) {

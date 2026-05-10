@@ -5,8 +5,7 @@ import {
   getRegisteredMailInstructions,
 } from "./trackingPlaceholders";
 import type { TemplateContext } from "./packetTemplatesCA";
-import { formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
-import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { finalizeProvincialLetter, formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
 
 /**
  * Quebec Credit Agents Act dispute template
@@ -58,7 +57,7 @@ export async function quebecCreditAgents(ctx: TemplateContext): Promise<LetterCo
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "quebec_a82");
+  return finalizeProvincialLetter(content, "quebec_a82", ctx);
 }
 
 /**
@@ -111,5 +110,5 @@ export async function albertaPIPA(ctx: TemplateContext): Promise<LetterContent> 
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "alberta_pipa");
+  return finalizeProvincialLetter(content, "alberta_pipa", ctx);
 }

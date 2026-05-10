@@ -5,6 +5,11 @@ import {
 } from "./equifaxDisputeReasons";
 import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAccountId } from "./disputeNarrativeBuilder";
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
+import {
+  applyEvidentiaryDisputeStructure,
+  describeDisputedFields,
+  type ConsumerFileReference,
+} from "./disputeLetterStructure";
 import type { LetterContent } from "./pdfGenerator";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
 import { formatCurrency as formatDollarAmount } from "./formatters";
@@ -96,6 +101,7 @@ export interface EquifaxDisputeContext {
 
   // Specific statute information from the database for this consumer's province
   statuteInfo?: StatuteInfo;
+  consumerFileReference?: ConsumerFileReference;
 }
 
 /**
@@ -487,6 +493,7 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
     consumerDOB: ctx.consumerDOB,
     consumerPhone: ctx.consumerPhone,
     consumerEmail: ctx.consumerEmail,
+    consumerFileReference: ctx.consumerFileReference,
     letterDate: currentDate,
 
     recipientName: "Equifax Canada Co.",
@@ -506,6 +513,12 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
       bureauName: "Equifax Canada",
       creditorName: ctx.creditorName,
       accountNumber: ctx.accountNumber,
+      exactDisputedFields: describeDisputedFields(
+        ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+        ctx.violationDetails
+      ),
+      creditReportReferenceNumber: ctx.consumerFileReference?.creditReportReferenceNumber,
+      reportDate: ctx.consumerFileReference?.reportDate,
       province,
       statutoryReference: ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code,
     },
@@ -515,7 +528,13 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
     letterContent.supportingDocumentation = `Equifax File Number: ${ctx.equifaxFileNumber}`;
   }
 
-  return applyTemplateOverrides(letterContent, "bureau", "equifax");
+  const overridden = await applyTemplateOverrides(letterContent, "bureau", "equifax");
+  return applyEvidentiaryDisputeStructure(overridden, {
+    violationCategory: ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+    violationDetails: ctx.violationDetails,
+    tradelineDetails: ctx.tradelineDetails,
+    consumerFileReference: ctx.consumerFileReference,
+  });
 }
 
 /**

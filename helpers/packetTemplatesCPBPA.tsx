@@ -4,8 +4,7 @@ import {
   getCertifiedMailInstructions,
 } from "./trackingPlaceholders";
 import type { TemplateContext } from "./packetTemplatesCA";
-import { formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
-import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { finalizeProvincialLetter, formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
 
 /**
  * Saskatchewan Consumer Protection and Business Practices Act dispute template
@@ -57,7 +56,7 @@ export async function saskatchewanCPBPA(ctx: TemplateContext): Promise<LetterCon
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "saskatchewan_cpbpa");
+  return finalizeProvincialLetter(content, "saskatchewan_cpbpa", ctx);
 }
 
 /**
@@ -110,5 +109,5 @@ export async function newfoundlandLabradorCPBPA(ctx: TemplateContext): Promise<L
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "nl_cpbpa");
+  return finalizeProvincialLetter(content, "nl_cpbpa", ctx);
 }

@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { calculateTerminalLabel, type TerminalLabelPhase } from "./terminalLabelProgression";
+import type { ConsumerFileReference } from "./disputeLetterStructure";
 import type { TradelineDetails, ViolationDetails } from "./equifaxDisputeTemplate";
 import { fetchTransUnionCaseIdForReportArtifact } from "./bureauContextReferences";
 
@@ -33,6 +34,7 @@ export interface PacketDataResolverResult {
   terminalLabel: TerminalLabelPhase | null;
   tradelineDetails?: TradelineDetails;
   violationDetails?: ViolationDetails;
+  consumerFileReference?: ConsumerFileReference;
   recipientName: string;
   recipientAddress: string[];
   bureauNameRaw: string | null;
@@ -56,6 +58,46 @@ function isThirdPartyRecipientComplete(
     !!tp.recipientProvince?.trim() &&
     !!tp.recipientPostalCode?.trim()
   );
+}
+
+function formatReferenceDate(value: unknown): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value as string | number | Date);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function jsonStringArray(value: unknown): string[] | undefined {
+  if (!value) return undefined;
+  const rawValues = Array.isArray(value) ? value : [];
+  const output = rawValues
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        const record = item as Record<string, unknown>;
+        return [
+          record.fullName,
+          record.name,
+          record.address,
+          record.addressLine1,
+          record.city,
+          record.province,
+          record.postalCode,
+        ]
+          .filter(Boolean)
+          .join(", ")
+          .trim();
+      }
+      return "";
+    })
+    .filter(Boolean);
+
+  return output.length > 0 ? output : undefined;
 }
 
 function inferViolationFieldName(input: {
@@ -100,6 +142,7 @@ export async function packetDataResolver(
   let terminalLabel: TerminalLabelPhase | null = null;
   let tradelineDetails: TradelineDetails | undefined;
   let transunionCaseId: string | undefined;
+  let consumerFileReference: ConsumerFileReference | undefined;
 
   // 1. Fetch full tradeline data if provided
   if (params.tradelineId) {
@@ -177,6 +220,34 @@ export async function packetDataResolver(
       };
 
       transunionCaseId = await fetchTransUnionCaseIdForReportArtifact(tradeline.reportArtifactId);
+
+      if (tradeline.reportArtifactId) {
+        const reportReference = await db
+          .selectFrom("reportArtifact")
+          .leftJoin("reportConsumerInfo", "reportConsumerInfo.reportArtifactId", "reportArtifact.id")
+          .select([
+            "reportArtifact.reportDate as artifactReportDate",
+            "reportConsumerInfo.reportDate as consumerInfoReportDate",
+            "reportConsumerInfo.fileNumber",
+            "reportConsumerInfo.previousAddresses",
+            "reportConsumerInfo.previousNames",
+            "reportConsumerInfo.sinLastDigits",
+          ])
+          .where("reportArtifact.id", "=", tradeline.reportArtifactId)
+          .executeTakeFirst();
+
+        if (reportReference) {
+          consumerFileReference = {
+            previousNames: jsonStringArray(reportReference.previousNames),
+            previousAddresses: jsonStringArray(reportReference.previousAddresses),
+            sinLastDigits: reportReference.sinLastDigits ?? undefined,
+            creditReportReferenceNumber: reportReference.fileNumber ?? undefined,
+            reportDate:
+              formatReferenceDate(reportReference.consumerInfoReportDate) ??
+              formatReferenceDate(reportReference.artifactReportDate),
+          };
+        }
+      }
 
       console.log(
         `Fetched full tradeline details for ID ${params.tradelineId}: creditorName=${tradeline.creditorName}, originalCreditorName=${tradeline.originalCreditorName}, resolvedCreditorName=${resolvedCreditorName}, status=${tradeline.status}, balance=${tradeline.balance}, isCollection=${tradeline.isCollectionAccount}`
@@ -370,6 +441,7 @@ export async function packetDataResolver(
     tradelineDetails,
     transunionCaseId,
     violationDetails,
+    consumerFileReference,
     recipientName,
     recipientAddress,
     bureauNameRaw,

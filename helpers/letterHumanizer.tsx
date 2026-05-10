@@ -231,7 +231,8 @@ Rules:
 8. Do NOT add any new facts, claims, or context not present in the original text.
 9. If any value looks like an internal system code, character count, technical metric, or database ID rather than actual account data (e.g. '28 chars', 'Max 24 chars', 'Non-zero rating'), rephrase it naturally using the surrounding context or omit it entirely.
 10. Remove duplicated sentences or paragraphs if the same point appears in more than one section.
-11. Output a JSON object containing the EXACT SAME keys as the input object, with the rewritten text as the values.`;
+11. Preserve numbered lists, field labels, section labels, account numbers, dates, dollar amounts, bureau names, and correction options exactly.
+12. Output a JSON object containing the EXACT SAME keys as the input object, with the rewritten text as the values.`;
 
     // 3. Call OpenAI API
     const response = await fetch("https://api.openai.com/v1/chat/completions", {

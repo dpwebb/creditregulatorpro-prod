@@ -293,6 +293,7 @@ export async function handle(request: Request) {
 
     const tradelineDetails = resolvedData.tradelineDetails;
     const violationDetails = resolvedData.violationDetails;
+    const consumerFileReference = resolvedData.consumerFileReference;
     const effectiveViolationCategory = violationDetails?.violationCategory ?? null;
     const disputeReasonCode = mapViolationToDisputeReason(
       effectiveViolationCategory ?? instance.obligationType,
@@ -314,6 +315,7 @@ export async function handle(request: Request) {
       consumerDOB: consumerDOB,
       consumerPhone: input.consumerPhone || userAccount.phone || undefined,
       consumerEmail: input.consumerEmail || userAccount.email || undefined,
+      consumerFileReference,
       
       recipientName: recipientName,
       recipientAddress: recipientAddress,
@@ -352,6 +354,7 @@ export async function handle(request: Request) {
         consumerDOB: consumerDOB,
         consumerPhone: input.consumerPhone ?? userAccount.phone ?? undefined,
         consumerEmail: input.consumerEmail ?? userAccount.email ?? undefined,
+        consumerFileReference,
         creditorName: resolvedCreditorName,
         accountNumber: resolvedAccountNumber ?? "",
         disputeReasonCode: disputeReasonCode,
@@ -372,6 +375,7 @@ export async function handle(request: Request) {
         consumerDOB: consumerDOB,
         consumerPhone: input.consumerPhone ?? userAccount.phone ?? undefined,
         consumerEmail: input.consumerEmail ?? userAccount.email ?? undefined,
+        consumerFileReference,
         creditorName: resolvedCreditorName,
         accountNumber: resolvedAccountNumber ?? "",
         transunionCaseId,

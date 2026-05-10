@@ -92,6 +92,19 @@ describe("dispute letter wording cleanup", () => {
     expect(twice.requestedAction).toBe(once.requestedAction);
   });
 
+  it("preserves precise delete or suppress language when tied to verification", () => {
+    const letter = baseLetter({
+      requestedAction:
+        "Please correct the reported balance and delete or suppress the tradeline if it cannot be verified from source documentation.",
+    });
+
+    const cleaned = lintLetterContentForRegulatorSafety(letter);
+
+    expect(cleaned.requestedAction).toContain("delete or suppress");
+    expect(cleaned.requestedAction).toContain("source documentation");
+    expect(cleaned.requestedAction).toContain("updated disclosure");
+  });
+
   it("does not send statutory grounds to the AI rewrite path", async () => {
     vi.stubEnv("OPENAI_API_KEY", "");
     const statutoryGrounds =

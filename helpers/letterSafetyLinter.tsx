@@ -19,19 +19,7 @@ type NarrativeKey = typeof NARRATIVE_KEYS[number];
 const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
   {
     pattern: /\brequest\s+for\s+removal\b/gi,
-    replacement: "request for clarification",
-  },
-  {
-    pattern: /\b(remove|delete|re-delete)\s+(this|the)\s+(tradeline|account|information|item)\b/gi,
-    replacement: "review and correct this reported information",
-  },
-  {
-    pattern: /\bremove\b/gi,
-    replacement: "review and correct",
-  },
-  {
-    pattern: /\bdelete\b/gi,
-    replacement: "review and correct",
+    replacement: "request for reinvestigation and correction",
   },
   {
     pattern: /\bcease reporting\b/gi,
@@ -146,15 +134,15 @@ function buildClarificationRequestedAction(originalAction?: string): string {
 
   const documentationSentence = "Please provide the records and source documentation used to support each reported field.";
   const correctionSentence = "If any field is inaccurate or incomplete, please correct it and provide written confirmation.";
-  const verificationSentence = "If any field cannot be verified, please explain what is missing and what clarification is required to complete verification.";
-  const closeSentence = "Please share your written findings and next steps within the applicable response timeframe.";
+  const verificationSentence = "If any field, inquiry, account notation, or tradeline cannot be verified from source documentation, please delete or suppress the unverifiable information and explain the basis for any item that remains.";
+  const closeSentence = "Please share your written findings, updated disclosure, furnisher name, method of verification, and next steps within the applicable response timeframe.";
 
   const parts = sanitizedOriginal ? [sanitizedOriginal] : [];
 
   appendIfMissing(parts, documentationSentence, ["source documentation", "records used to support", "records and source"]);
   appendIfMissing(parts, correctionSentence, ["correct it", "correct any", "correct the", "written confirmation"]);
-  appendIfMissing(parts, verificationSentence, ["cannot be verified", "if unverified", "unverified information", "complete verification"]);
-  appendIfMissing(parts, closeSentence, ["written findings", "response timeframe"]);
+  appendIfMissing(parts, verificationSentence, ["cannot be verified", "if unverified", "unverified information", "delete or suppress"]);
+  appendIfMissing(parts, closeSentence, ["written findings", "updated disclosure", "method of verification", "response timeframe"]);
 
   return compactWhitespace(parts.join(" "));
 }

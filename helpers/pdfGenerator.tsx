@@ -1,6 +1,7 @@
 import PdfPrinter from "pdfmake";
 import type { TDocumentDefinitions, TFontDictionary, Content } from "pdfmake/interfaces";
 import { generatePdfWatermark } from "./contentMarker";
+import { applyEvidentiaryDisputeStructure, type ConsumerFileReference } from "./disputeLetterStructure";
 import { lintLetterContentForRegulatorSafety } from "./letterSafetyLinter";
 
 const ROBOTO_FONTS = {
@@ -78,6 +79,7 @@ export interface LetterContent {
   consumerDOB?: string;
   consumerPhone?: string;
   consumerEmail?: string;
+  consumerFileReference?: ConsumerFileReference;
   letterDate: string;
   
   // Recipient information
@@ -153,7 +155,9 @@ export async function generatePDF(
       },
     };
   } else {
-    const safeContent = lintLetterContentForRegulatorSafety(content);
+    const safeContent = lintLetterContentForRegulatorSafety(
+      applyEvidentiaryDisputeStructure(content)
+    );
 
     // Structured legal letter format
     const documentContent: Content[] = [];
@@ -169,11 +173,27 @@ export async function generatePDF(
         {
           width: "*",
           stack: [
+            { text: "Consumer Identification", style: "sectionHeading", margin: [0, 0, 0, 4] },
             { text: safeContent.consumerName, style: "consumerInfo" },
             ...safeContent.consumerAddress.map(line => ({ text: line, style: "consumerInfo" })),
             ...(safeContent.consumerDOB ? [{ text: `DOB: ${safeContent.consumerDOB}`, style: "consumerInfo" }] : []),
             ...(safeContent.consumerPhone ? [{ text: `Phone: ${safeContent.consumerPhone}`, style: "consumerInfo" }] : []),
             ...(safeContent.consumerEmail ? [{ text: `Email: ${safeContent.consumerEmail}`, style: "consumerInfo" }] : []),
+            ...(safeContent.consumerFileReference?.previousNames?.length
+              ? [{ text: `Previous names/aliases: ${safeContent.consumerFileReference.previousNames.join("; ")}`, style: "consumerInfo" }]
+              : []),
+            ...(safeContent.consumerFileReference?.previousAddresses?.length
+              ? [{ text: `Previous addresses: ${safeContent.consumerFileReference.previousAddresses.join("; ")}`, style: "consumerInfo" }]
+              : []),
+            ...(safeContent.consumerFileReference?.sinLastDigits
+              ? [{ text: `SIN last four digits: ${safeContent.consumerFileReference.sinLastDigits}`, style: "consumerInfo" }]
+              : []),
+            ...(safeContent.consumerFileReference?.creditReportReferenceNumber
+              ? [{ text: `Credit report/file reference: ${safeContent.consumerFileReference.creditReportReferenceNumber}`, style: "consumerInfo" }]
+              : []),
+            ...(safeContent.consumerFileReference?.reportDate
+              ? [{ text: `Report date disputed: ${safeContent.consumerFileReference.reportDate}`, style: "consumerInfo" }]
+              : []),
           ],
         },
         {
@@ -188,6 +208,7 @@ export async function generatePDF(
     // Recipient address block
     documentContent.push({
       stack: [
+        { text: "Bureau / Recipient Identification", style: "sectionHeading", margin: [0, 0, 0, 4] },
         { text: safeContent.recipientName, style: "recipientInfo" },
         ...safeContent.recipientAddress.map(line => ({ text: line, style: "recipientInfo" })),
       ],
@@ -251,7 +272,7 @@ export async function generatePDF(
     // Supporting Documentation
     if (safeContent.supportingDocumentation) {
       documentContent.push({
-        text: "Supporting Documentation",
+        text: "Supporting Evidence / Attachments Index",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
@@ -311,7 +332,12 @@ export async function generatePDF(
       });
     }
 
-    // Certification
+    // Certification and signature block
+    documentContent.push({
+      text: "Signature",
+      style: "sectionHeading",
+      margin: [0, 0, 0, 8],
+    });
     documentContent.push({
       text: safeContent.certification,
       style: "bodyText",

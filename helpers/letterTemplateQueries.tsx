@@ -74,14 +74,25 @@ export function buildLetterTemplateVariables(letterContent: LetterContent): Temp
     "Primary Collector",
   ]);
   const accountNumber = extractAccountValue(letterContent.accountIdentification, ["Account Number"]);
+  const exactDisputedFields = extractAccountValue(letterContent.accountIdentification, [
+    "Exact Field(s) Disputed",
+  ]);
+  const fileReference = letterContent.consumerFileReference?.creditReportReferenceNumber ?? "";
+  const reportDate = letterContent.consumerFileReference?.reportDate ?? "";
 
   return {
     consumerName: letterContent.consumerName,
     consumerAddress: letterContent.consumerAddress.join(", "),
+    previousNames: letterContent.consumerFileReference?.previousNames?.join("; ") ?? "",
+    previousAddresses: letterContent.consumerFileReference?.previousAddresses?.join("; ") ?? "",
+    sinLastDigits: letterContent.consumerFileReference?.sinLastDigits ?? "",
+    creditReportReferenceNumber: fileReference,
+    reportDate,
     bureauName: letterContent.recipientName,
     currentDate: letterContent.letterDate,
     creditorName,
     accountNumber,
+    exactDisputedFields,
     province: inferProvinceFromAddress(letterContent.consumerAddress),
     statutoryReference: letterContent.statutoryReference,
     ...(letterContent.templateVariables ?? {}),

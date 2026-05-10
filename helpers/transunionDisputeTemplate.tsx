@@ -7,6 +7,11 @@ import type { TradelineDetails, ViolationDetails } from "./equifaxDisputeTemplat
 import { buildBureauRequestedAction } from "./equifaxDisputeTemplate";
 import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAccountId } from "./disputeNarrativeBuilder";
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
+import {
+  applyEvidentiaryDisputeStructure,
+  describeDisputedFields,
+  type ConsumerFileReference,
+} from "./disputeLetterStructure";
 import type { LetterContent } from "./pdfGenerator";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
 import { buildSpecificStatutoryGrounds } from "./disputeLetterStatutoryGrounds";
@@ -44,6 +49,7 @@ export interface TransUnionDisputeContext {
 
   // Specific statute information from the database for this consumer's province
   statuteInfo?: StatuteInfo;
+  consumerFileReference?: ConsumerFileReference;
 }
 
 /**
@@ -127,6 +133,7 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
     consumerDOB: ctx.consumerDOB,
     consumerPhone: ctx.consumerPhone,
     consumerEmail: ctx.consumerEmail,
+    consumerFileReference: ctx.consumerFileReference,
     letterDate: currentDate,
 
     recipientName: "TransUnion of Canada, Inc.",
@@ -146,6 +153,12 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
       bureauName: "TransUnion of Canada, Inc.",
       creditorName: ctx.creditorName,
       accountNumber: ctx.accountNumber,
+      exactDisputedFields: describeDisputedFields(
+        ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+        ctx.violationDetails
+      ),
+      creditReportReferenceNumber: ctx.consumerFileReference?.creditReportReferenceNumber,
+      reportDate: ctx.consumerFileReference?.reportDate,
       province,
       statutoryReference: ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code,
     },
@@ -157,5 +170,11 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
     letterContent.supportingDocumentation = `TransUnion File Number: ${ctx.transunionFileNumber}`;
   }
 
-  return applyTemplateOverrides(letterContent, "bureau", "transunion");
+  const overridden = await applyTemplateOverrides(letterContent, "bureau", "transunion");
+  return applyEvidentiaryDisputeStructure(overridden, {
+    violationCategory: ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+    violationDetails: ctx.violationDetails,
+    tradelineDetails: ctx.tradelineDetails,
+    consumerFileReference: ctx.consumerFileReference,
+  });
 }

@@ -4,8 +4,7 @@ import {
   getCertifiedMailInstructions,
 } from "./trackingPlaceholders";
 import type { TemplateContext } from "./packetTemplatesCA";
-import { formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
-import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { finalizeProvincialLetter, formatDisputedItems, formatAccountIdentification } from "./packetTemplatesCA";
 
 /**
  * Ontario Consumer Reporting Act dispute template
@@ -58,7 +57,7 @@ export async function ontarioCRA(ctx: TemplateContext): Promise<LetterContent> {
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "ontario_cra");
+  return finalizeProvincialLetter(content, "ontario_cra", ctx);
 }
 
 /**
@@ -111,7 +110,7 @@ export async function novaScotiaCRA(ctx: TemplateContext): Promise<LetterContent
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "nova_scotia_cra");
+  return finalizeProvincialLetter(content, "nova_scotia_cra", ctx);
 }
 
 /**
@@ -164,7 +163,7 @@ export async function britishColumbiaCRA(ctx: TemplateContext): Promise<LetterCo
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "bc_cra");
+  return finalizeProvincialLetter(content, "bc_cra", ctx);
 }
 
 /**
@@ -217,7 +216,7 @@ export async function newBrunswickCRA(ctx: TemplateContext): Promise<LetterConte
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "new_brunswick_cra");
+  return finalizeProvincialLetter(content, "new_brunswick_cra", ctx);
 }
 
 /**
@@ -270,5 +269,5 @@ export async function princeEdwardIslandCRA(ctx: TemplateContext): Promise<Lette
     deliveryInstructions: `${deliveryInstructions.serviceName} - ${deliveryInstructions.warning}`,
   };
   
-  return applyTemplateOverrides(content, "provincial", "pei_cra");
+  return finalizeProvincialLetter(content, "pei_cra", ctx);
 }

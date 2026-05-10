@@ -1,4 +1,6 @@
 import type { LetterContent } from "./pdfGenerator";
+import { applyEvidentiaryDisputeStructure, type ConsumerFileReference } from "./disputeLetterStructure";
+import { applyTemplateOverrides } from "./letterTemplateQueries";
 
 
 
@@ -18,6 +20,7 @@ export interface TemplateContext {
   consumerDOB?: string;
   consumerPhone?: string;
   consumerEmail?: string;
+  consumerFileReference?: ConsumerFileReference;
   
   // Recipient information
   recipientName: string;
@@ -69,8 +72,8 @@ export function formatDisputedItems(items: TemplateContext["disputedItems"]): st
       const description = humanizeCode(item.description);
       const reason = item.reason?.trim();
       return reason
-        ? `${index + 1}. ${description}\n   Why I am disputing it: ${reason}`
-        : `${index + 1}. ${description}`;
+        ? `${index + 1}. Exact disputed data: ${description}\n   Factual basis: ${reason}\n   Requested correction: reinvestigate the field, correct it if inaccurate or incomplete, and delete or suppress it if it cannot be verified from source documentation.`
+        : `${index + 1}. Exact disputed data: ${description}\n   Requested correction: reinvestigate the field, correct it if inaccurate or incomplete, and delete or suppress it if it cannot be verified from source documentation.`;
     })
     .join("\n\n");
 }
@@ -93,5 +96,32 @@ export function formatAccountIdentification(ctx: TemplateContext): string {
         : ctx.accountNumber;
     parts.push(`Account Number: ${displayAccountNumber}`);
   }
+  const exactFields = ctx.disputedItems
+    .map((item) => item.description?.trim())
+    .filter(Boolean)
+    .join("; ");
+
+  parts.push("Bureau Section: Account / tradeline section of the consumer disclosure");
+  if (exactFields) {
+    parts.push(`Exact Field(s) Disputed: ${exactFields}`);
+  }
+  if (ctx.consumerFileReference?.reportDate) {
+    parts.push(`Date of Report Being Disputed: ${ctx.consumerFileReference.reportDate}`);
+  }
+  if (ctx.consumerFileReference?.creditReportReferenceNumber) {
+    parts.push(`Credit Report / File Reference: ${ctx.consumerFileReference.creditReportReferenceNumber}`);
+  }
+
   return parts.join("\n");
+}
+
+export async function finalizeProvincialLetter(
+  content: LetterContent,
+  templateKey: string,
+  ctx: TemplateContext
+): Promise<LetterContent> {
+  const overridden = await applyTemplateOverrides(content, "provincial", templateKey);
+  return applyEvidentiaryDisputeStructure(overridden, {
+    consumerFileReference: ctx.consumerFileReference,
+  });
 }
