@@ -1,14 +1,18 @@
 import type { TradelineDetails, ViolationDetails } from "./equifaxDisputeTemplate";
 import { checkDofdSolObstruction } from "./equifaxDisputeTemplate";
-import { enrichAccountIdentification } from "./disputeLetterStructure";
-import { resolveTemplateOverrides } from "./letterTemplateQueries";
+import {
+  buildViolationNarrativeTemplateVariables,
+  enrichAccountIdentification,
+} from "./disputeLetterStructure";
+import { renderLetterTemplateText, resolveTemplateOverrides } from "./letterTemplateQueries";
 import { formatDate, formatCurrency } from "./disputeNarrativeUtils";
 
 export async function getDisputeLetterFraming(
   violationCategory?: string | null,
   bureauName?: string,
   violationDetails?: ViolationDetails,
-  tradelineDetails?: TradelineDetails
+  tradelineDetails?: TradelineDetails,
+  statutoryReference?: string | null
 ): Promise<{ subject: string; introduction: string }> {
   let framing: { subject: string; introduction: string };
 
@@ -113,13 +117,20 @@ export async function getDisputeLetterFraming(
     try {
       const overrides = await resolveTemplateOverrides("violation_narrative", templateKey);
       if (overrides) {
+        const variables = buildViolationNarrativeTemplateVariables({
+          violationCategory,
+          bureauName,
+          violationDetails,
+          tradelineDetails,
+          statutoryReference,
+        });
         if (overrides.subject) {
           console.log(`Applying DB subject override for violation_narrative key "${templateKey}"`);
-          framing.subject = overrides.subject;
+          framing.subject = renderLetterTemplateText(overrides.subject, variables);
         }
         if (overrides.introduction) {
           console.log(`Applying DB introduction override for violation_narrative key "${templateKey}"`);
-          framing.introduction = overrides.introduction;
+          framing.introduction = renderLetterTemplateText(overrides.introduction, variables);
         }
       }
     } catch (err) {

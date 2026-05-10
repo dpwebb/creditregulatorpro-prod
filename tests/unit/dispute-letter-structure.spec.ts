@@ -39,13 +39,19 @@ describe("evidentiary dispute letter structure", () => {
       violationDetails: {
         violationCategory: "BALANCE_CALCULATION_VIOLATION",
         fieldName: "balance",
+        detectedValue: "$250.00",
+        expectedValue: "$100.00",
       },
     });
 
     expect(structured.consumerFileReference?.sinLastDigits).toBe("6789");
     expect(structured.introduction).toContain("formal dispute and reinvestigation request");
     expect(structured.accountIdentification).toContain("Exact Field(s) Disputed: Balance");
+    expect(structured.accountIdentification).toContain("Reported Field Value: $250.00");
+    expect(structured.accountIdentification).toContain("Expected / Source-Supported Value: $100.00");
     expect(structured.accountIdentification).toContain("Date of Report Being Disputed: April 16, 2026");
+    expect(structured.disputedItems).toContain("Disputed field/value: Balance = $250.00");
+    expect(structured.disputedItems).toContain("Specific issue: Balance is reported as $250.00; expected/source-supported value is $100.00.");
     expect(structured.disputedItems).toContain("Factual basis:");
     expect(structured.supportingDocumentation).toContain("Supporting evidence and attachments index");
     expect(structured.requestedAction).toContain("Delete or suppress");

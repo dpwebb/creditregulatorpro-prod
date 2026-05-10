@@ -1,5 +1,6 @@
 import type { LetterContent } from "./pdfGenerator";
 import type { TradelineDetails, ViolationDetails } from "./equifaxDisputeTemplate";
+import { formatCurrency as formatDollarAmount } from "./formatters";
 import { humanizeLabels } from "./humanizeLabels";
 
 export interface ConsumerFileReference {
@@ -15,6 +16,11 @@ export interface EvidentiaryStructureContext {
   violationDetails?: ViolationDetails;
   tradelineDetails?: TradelineDetails;
   consumerFileReference?: ConsumerFileReference;
+}
+
+export interface ViolationNarrativeTemplateVariableContext extends EvidentiaryStructureContext {
+  bureauName?: string | null;
+  statutoryReference?: string | null;
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -48,6 +54,297 @@ function humanizeFieldName(fieldName: string | null | undefined): string | null 
   const normalized = normalizeText(fieldName);
   if (!normalized) return null;
   return humanizeLabels.humanizeFieldName(normalized);
+}
+
+function technicalDetailsString(
+  violationDetails: ViolationDetails | undefined,
+  keys: string[]
+): string | undefined {
+  const details = violationDetails?.technicalDetails;
+  if (!details || typeof details !== "object") return undefined;
+
+  for (const key of keys) {
+    const value = details[key];
+    const serialized = serializeTemplateValue(value);
+    if (serialized) return serialized;
+  }
+
+  return undefined;
+}
+
+function serializeTemplateValue(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined;
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((entry) => serializeTemplateValue(entry))
+      .filter(Boolean)
+      .slice(0, 3) as string[];
+    return parts.length > 0 ? parts.join("; ") : undefined;
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .map(([key, entryValue]) => {
+        const serialized = serializeTemplateValue(entryValue);
+        return serialized ? `${humanizeLabels.humanizeFieldName(key)}: ${serialized}` : null;
+      })
+      .filter(Boolean)
+      .slice(0, 4) as string[];
+    return entries.length > 0 ? entries.join("; ") : undefined;
+  }
+
+  const text = String(value).trim();
+  return text ? text : undefined;
+}
+
+function isMissingReportedValue(value: string | null | undefined): boolean {
+  const normalized = normalizeText(value).toLowerCase();
+  return (
+    !normalized ||
+    normalized === "null" ||
+    normalized === "undefined" ||
+    normalized === "0 or null" ||
+    normalized === "not reported" ||
+    normalized.startsWith("missing:")
+  );
+}
+
+function formatTemplateValue(
+  value: string | null | undefined,
+  fieldName?: string | null,
+  missingLabel: string = "missing / not reported"
+): string {
+  const normalized = normalizeText(value);
+  if (isMissingReportedValue(normalized)) return missingLabel;
+
+  const withoutMissingPrefix = normalized.replace(/^Missing:\s*/i, "").trim();
+  if (!withoutMissingPrefix) return missingLabel;
+
+  const date = new Date(withoutMissingPrefix);
+  if (/^\d{4}-\d{2}-\d{2}/.test(withoutMissingPrefix) && !Number.isNaN(date.getTime())) {
+    return date.toLocaleDateString("en-CA");
+  }
+
+  const fieldText = `${fieldName ?? ""}`.toLowerCase();
+  const isMoneyField =
+    fieldText.includes("balance") ||
+    fieldText.includes("amount") ||
+    fieldText.includes("limit") ||
+    fieldText.includes("payment") ||
+    fieldText.includes("fee") ||
+    fieldText.includes("interest");
+
+  if (isMoneyField) {
+    const formatted = formatDollarAmount(withoutMissingPrefix);
+    if (formatted) return formatted;
+  }
+
+  return withoutMissingPrefix;
+}
+
+function detectedValueForNarrative(violationDetails?: ViolationDetails): string | undefined {
+  return (
+    normalizeText(violationDetails?.detectedValue) ||
+    technicalDetailsString(violationDetails, [
+      "reportedValue",
+      "actualValue",
+      "currentValue",
+      "detectedValue",
+      "baseValue",
+    ])
+  );
+}
+
+function expectedValueForNarrative(violationDetails?: ViolationDetails): string | undefined {
+  const explicit = normalizeText(violationDetails?.expectedValue);
+  if (explicit && explicit !== "All required fields present") return explicit;
+
+  return technicalDetailsString(violationDetails, [
+    "expectedValue",
+    "correctValue",
+    "sourceValue",
+    "requiredValue",
+    "otherValue",
+  ]);
+}
+
+function fieldNameForNarrative(
+  violationCategory?: string | null,
+  violationDetails?: ViolationDetails
+): string {
+  const detectedValue = detectedValueForNarrative(violationDetails);
+  const missingField = detectedValue?.match(/^Missing:\s*(.+)$/i)?.[1];
+  const technicalField = technicalDetailsString(violationDetails, [
+    "fieldName",
+    "field",
+    "matchedField",
+    "check",
+  ]);
+  const direct = humanizeFieldName(violationDetails?.fieldName ?? missingField ?? technicalField);
+  if (direct) return direct;
+
+  const fields = describeDisputedFields(violationCategory, violationDetails)
+    .split(";")
+    .map((field) => field.trim())
+    .filter(Boolean);
+  return fields[0] || "Disputed account field";
+}
+
+function buildSpecificIssue(field: string, reportedValue: string, expectedValue: string): string {
+  if (reportedValue === "missing / not reported") {
+    if (expectedValue && expectedValue !== "source-supported value") {
+      return `${field} is missing or not reported; source records should support ${expectedValue}.`;
+    }
+    return `${field} is missing or not reported, so the tradeline cannot be verified without source support.`;
+  }
+
+  if (expectedValue && expectedValue !== "source-supported value") {
+    return `${field} is reported as ${reportedValue}; expected/source-supported value is ${expectedValue}.`;
+  }
+
+  return `${field} is reported as ${reportedValue} and requires source verification.`;
+}
+
+function ensureRemovalRemedy(remedy: string): string {
+  const normalized = normalizeText(remedy);
+  const fallback =
+    "If that remedy cannot be completed from source records, delete or suppress the tradeline.";
+  if (!normalized) return fallback;
+  if (/\b(delete|remove|suppress)\b/i.test(normalized) && /\btradeline|account|item|information\b/i.test(normalized)) {
+    return normalized;
+  }
+  return `${normalized.replace(/[.;\s]+$/g, "")}. ${fallback}`;
+}
+
+function buildSpecificRemedy(
+  field: string,
+  expectedValue: string,
+  violationDetails?: ViolationDetails,
+  violationCategory?: string | null
+): string {
+  const recommendedAction = normalizeText(violationDetails?.recommendedAction);
+  if (recommendedAction) return ensureRemovalRemedy(recommendedAction);
+
+  const category = normalizeText(violationCategory ?? violationDetails?.violationCategory).toUpperCase();
+
+  if (
+    [
+      "STATUTE_OF_LIMITATIONS",
+      "TIME_BARRED_DEBT_COLLECTION",
+      "COLLECTOR_STATUTE_REVIVAL_ATTEMPT",
+      "STALE_REPORTING_FAILURE",
+      "COLLECTION_LIMITATION_EXCEEDED",
+    ].includes(category)
+  ) {
+    return ensureRemovalRemedy(`Correct the reporting-period field ${field}; remove the tradeline if the chronology or retention basis is not verified`);
+  }
+
+  if (
+    [
+      "DOCUMENTATION_CHAIN_FAILURE",
+      "ORIGINAL_CREDITOR_CHAIN_FAILURE",
+      "DEBT_VALIDATION_FAILURE",
+      "PHANTOM_DEBT_UNVERIFIABLE",
+      "DOFD_REPORTING",
+      "METRO2_FIELD_VIOLATION",
+    ].includes(category)
+  ) {
+    return ensureRemovalRemedy(`Provide source documentation for ${field} and correct the field to the documented value`);
+  }
+
+  if (
+    [
+      "IDENTITY_THEFT_VIOLATION",
+      "MIXED_FILE_PERSONAL_INFO_MISMATCH",
+      "RESPONSE_ADDRESS_MISMATCH",
+    ].includes(category)
+  ) {
+    return ensureRemovalRemedy(`Block, correct, or suppress the unauthorized or mismatched ${field} reporting`);
+  }
+
+  if (["BUREAU_ACCESS_VIOLATION", "FREEZE_PERIOD_VIOLATION"].includes(category)) {
+    return ensureRemovalRemedy(`Remove any unauthorized inquiry, file access, or account reporting tied to ${field}`);
+  }
+
+  if (
+    [
+      "BUREAU_INVESTIGATION_FAILURE",
+      "BUREAU_NOTIFICATION_FAILURE",
+      "BUREAU_DISPUTE_MARKING_FAILURE",
+      "RESPONSE_MOV_MISSING",
+      "RESPONSE_INCOMPLETE",
+      "RESPONSE_NO_DOCUMENTATION",
+      "INVESTIGATION_RUBBER_STAMP",
+    ].includes(category)
+  ) {
+    return ensureRemovalRemedy(`Provide a field-level reinvestigation result for ${field} and correct the field if the source record does not support it`);
+  }
+
+  if (category === "BANKRUPTCY_DISCHARGE_VIOLATION") {
+    return ensureRemovalRemedy(`Correct ${field} to reflect the bankruptcy, proposal, discharge, balance, or post-discharge status supported by source records`);
+  }
+
+  if (
+    [
+      "BALANCE_CALCULATION_VIOLATION",
+      "INCORRECT_BALANCE",
+      "CREDIT_LIMIT_MANIPULATION",
+      "CLOSED_ACCOUNT_BALANCE_INFLATION",
+      "COLLECTOR_UNAUTHORIZED_FEES",
+    ].includes(category)
+  ) {
+    if (expectedValue && expectedValue !== "source-supported value") {
+      return ensureRemovalRemedy(`Correct ${field} to ${expectedValue} and remove unsupported fees, interest, or balance amounts`);
+    }
+    return ensureRemovalRemedy(`Correct ${field} to the itemized amount supported by source records`);
+  }
+
+  if (expectedValue && expectedValue !== "source-supported value") {
+    return ensureRemovalRemedy(`Correct ${field} to ${expectedValue}`);
+  }
+
+  return ensureRemovalRemedy(`Correct ${field} to the value supported by source records`);
+}
+
+export function buildViolationNarrativeTemplateVariables(
+  context: ViolationNarrativeTemplateVariableContext = {}
+): Record<string, string> {
+  const violationCategory = context.violationCategory ?? context.violationDetails?.violationCategory;
+  const field = fieldNameForNarrative(violationCategory, context.violationDetails);
+  const reportedValue = formatTemplateValue(
+    detectedValueForNarrative(context.violationDetails),
+    context.violationDetails?.fieldName
+  );
+  const expectedValue = formatTemplateValue(
+    expectedValueForNarrative(context.violationDetails),
+    context.violationDetails?.fieldName,
+    "source-supported value"
+  );
+  const specificIssue = buildSpecificIssue(field, reportedValue, expectedValue);
+  const specificRemedy = buildSpecificRemedy(
+    field,
+    expectedValue,
+    context.violationDetails,
+    violationCategory
+  );
+  const regulatoryBasis =
+    normalizeText(context.statutoryReference) ||
+    normalizeText(context.violationDetails?.statutoryBasis) ||
+    "PIPEDA, Schedule 1, Principle 4.6 and applicable provincial consumer reporting authority";
+
+  return {
+    bureauName: normalizeText(context.bureauName),
+    exactDisputedFields: describeDisputedFields(violationCategory, context.violationDetails),
+    disputedField: field,
+    reportedValue,
+    expectedValue,
+    specificIssue,
+    specificConcern: specificIssue,
+    specificRemedy,
+    requiredRemedy: specificRemedy,
+    regulatoryBasis,
+  };
 }
 
 function fieldNamesForViolationCategory(category: string | null | undefined): string[] {
@@ -149,8 +446,12 @@ export function enrichAccountIdentification(
     .filter(Boolean);
 
   const violationCategory = context.violationCategory ?? context.violationDetails?.violationCategory;
+  const narrativeVariables = buildViolationNarrativeTemplateVariables(context);
   appendLineIfMissing(lines, "Bureau Section", bureauSectionForViolation(violationCategory));
   appendLineIfMissing(lines, "Exact Field(s) Disputed", describeDisputedFields(violationCategory, context.violationDetails));
+  appendLineIfMissing(lines, "Disputed Field", narrativeVariables.disputedField);
+  appendLineIfMissing(lines, "Reported Field Value", narrativeVariables.reportedValue);
+  appendLineIfMissing(lines, "Expected / Source-Supported Value", narrativeVariables.expectedValue);
 
   if (context.tradelineDetails?.paymentPattern) {
     appendLineIfMissing(lines, "Payment History Period", context.tradelineDetails.paymentPattern);
@@ -188,10 +489,14 @@ function buildDisputedItemsSection(
 
   const violationCategory = context.violationCategory ?? context.violationDetails?.violationCategory;
   const exactFields = describeDisputedFields(violationCategory, context.violationDetails);
+  const narrativeVariables = buildViolationNarrativeTemplateVariables(context);
   const bureauSection = bureauSectionForViolation(violationCategory);
   const factualBasis = existing || "The disputed reporting appears inaccurate, incomplete, inconsistent, or unverifiable based on the consumer disclosure and available account evidence.";
 
   return [
+    `Disputed field/value: ${narrativeVariables.disputedField} = ${narrativeVariables.reportedValue}`,
+    `Expected/source-supported value: ${narrativeVariables.expectedValue}`,
+    `Specific issue: ${narrativeVariables.specificIssue}`,
     `Disputed data fields: ${exactFields}`,
     `Bureau section: ${bureauSection}`,
     `Factual basis: ${factualBasis}`,

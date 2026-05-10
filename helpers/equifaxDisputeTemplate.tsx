@@ -7,11 +7,12 @@ import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAc
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
 import {
   applyEvidentiaryDisputeStructure,
+  buildViolationNarrativeTemplateVariables,
   describeDisputedFields,
   type ConsumerFileReference,
 } from "./disputeLetterStructure";
 import type { LetterContent } from "./pdfGenerator";
-import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { applyTemplateOverrides, renderLetterTemplateText } from "./letterTemplateQueries";
 import { formatCurrency as formatDollarAmount } from "./formatters";
 import { buildSpecificStatutoryGrounds } from "./disputeLetterStatutoryGrounds";
 
@@ -237,7 +238,8 @@ function inferRequestedMissingField(
 export async function buildBureauRequestedAction(
   violationCategory: string | null | undefined,
   tradelineDetails?: TradelineDetails,
-  violationDetails?: ViolationDetails
+  violationDetails?: ViolationDetails,
+  statutoryReference?: string | null
 ): Promise<string> {
   let action: string;
 
@@ -344,7 +346,15 @@ export async function buildBureauRequestedAction(
       const overrides = await resolveViolationNarrativeOverride(templateKey);
       if (overrides?.requestedAction) {
         console.log(`Applying DB requestedAction override for violation_narrative key "${templateKey}"`);
-        return overrides.requestedAction;
+        return renderLetterTemplateText(
+          overrides.requestedAction,
+          buildViolationNarrativeTemplateVariables({
+            violationCategory,
+            violationDetails,
+            tradelineDetails,
+            statutoryReference,
+          })
+        );
       }
     } catch (err) {
       console.error(`Failed to resolve requestedAction override for key "${templateKey}":`, err);
@@ -439,7 +449,8 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
     ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
     "Equifax",
     ctx.violationDetails,
-    ctx.tradelineDetails
+    ctx.tradelineDetails,
+    ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code || ctx.violationDetails?.statutoryBasis
   );
 
   // Build violation-aware account identification
@@ -479,7 +490,8 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
   let requestedAction = await buildBureauRequestedAction(
     ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
     ctx.tradelineDetails,
-    ctx.violationDetails
+    ctx.violationDetails,
+    ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code || ctx.violationDetails?.statutoryBasis
   );
   requestedAction += " You have 30 days to complete this.";
 
@@ -510,6 +522,14 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
     certification,
     closing,
     templateVariables: {
+      ...buildViolationNarrativeTemplateVariables({
+        violationCategory: ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+        bureauName: "Equifax Canada",
+        violationDetails: ctx.violationDetails,
+        tradelineDetails: ctx.tradelineDetails,
+        statutoryReference:
+          ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code || ctx.violationDetails?.statutoryBasis,
+      }),
       bureauName: "Equifax Canada",
       creditorName: ctx.creditorName,
       accountNumber: ctx.accountNumber,

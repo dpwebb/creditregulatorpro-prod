@@ -9,6 +9,7 @@ import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAc
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
 import {
   applyEvidentiaryDisputeStructure,
+  buildViolationNarrativeTemplateVariables,
   describeDisputedFields,
   type ConsumerFileReference,
 } from "./disputeLetterStructure";
@@ -77,7 +78,8 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
     ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
     "TransUnion",
     ctx.violationDetails,
-    ctx.tradelineDetails
+    ctx.tradelineDetails,
+    ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code || ctx.violationDetails?.statutoryBasis
   );
 
   // Build violation-aware account identification
@@ -119,7 +121,8 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
   let requestedAction = await buildBureauRequestedAction(
     ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
     ctx.tradelineDetails,
-    ctx.violationDetails
+    ctx.violationDetails,
+    ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code || ctx.violationDetails?.statutoryBasis
   );
   requestedAction += " You have 30 days to complete this.";
 
@@ -150,6 +153,14 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
     certification,
     closing,
     templateVariables: {
+      ...buildViolationNarrativeTemplateVariables({
+        violationCategory: ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+        bureauName: "TransUnion of Canada, Inc.",
+        violationDetails: ctx.violationDetails,
+        tradelineDetails: ctx.tradelineDetails,
+        statutoryReference:
+          ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code || ctx.violationDetails?.statutoryBasis,
+      }),
       bureauName: "TransUnion of Canada, Inc.",
       creditorName: ctx.creditorName,
       accountNumber: ctx.accountNumber,

@@ -77,8 +77,19 @@ export function buildLetterTemplateVariables(letterContent: LetterContent): Temp
   const exactDisputedFields = extractAccountValue(letterContent.accountIdentification, [
     "Exact Field(s) Disputed",
   ]);
+  const disputedField = extractAccountValue(letterContent.accountIdentification, [
+    "Disputed Field",
+  ]);
+  const reportedValue = extractAccountValue(letterContent.accountIdentification, [
+    "Reported Field Value",
+  ]);
+  const expectedValue = extractAccountValue(letterContent.accountIdentification, [
+    "Expected / Source-Supported Value",
+    "Expected Source-Supported Value",
+  ]);
   const fileReference = letterContent.consumerFileReference?.creditReportReferenceNumber ?? "";
   const reportDate = letterContent.consumerFileReference?.reportDate ?? "";
+  const templateVariables = letterContent.templateVariables ?? {};
 
   return {
     consumerName: letterContent.consumerName,
@@ -93,9 +104,17 @@ export function buildLetterTemplateVariables(letterContent: LetterContent): Temp
     creditorName,
     accountNumber,
     exactDisputedFields,
+    disputedField: templateVariables.disputedField ?? disputedField,
+    reportedValue: templateVariables.reportedValue ?? reportedValue,
+    expectedValue: templateVariables.expectedValue ?? expectedValue,
+    specificIssue: templateVariables.specificIssue ?? "",
+    specificConcern: templateVariables.specificConcern ?? templateVariables.specificIssue ?? "",
+    specificRemedy: templateVariables.specificRemedy ?? "",
+    requiredRemedy: templateVariables.requiredRemedy ?? templateVariables.specificRemedy ?? "",
+    regulatoryBasis: templateVariables.regulatoryBasis ?? letterContent.statutoryReference ?? "",
     province: inferProvinceFromAddress(letterContent.consumerAddress),
     statutoryReference: letterContent.statutoryReference,
-    ...(letterContent.templateVariables ?? {}),
+    ...templateVariables,
   };
 }
 

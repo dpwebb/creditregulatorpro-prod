@@ -22,6 +22,7 @@ import { applyTemplateOverrides } from "./letterTemplateQueries";
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
 import {
   applyEvidentiaryDisputeStructure,
+  buildViolationNarrativeTemplateVariables,
   describeDisputedFields,
   type ConsumerFileReference,
 } from "./disputeLetterStructure";
@@ -127,7 +128,8 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       params.effectiveViolationCategory,
       undefined,
       params.violationDetails,
-      params.tradelineDetails
+      params.tradelineDetails,
+      params.statuteInfo?.sectionReference || params.statuteInfo?.code || params.violationDetails?.statutoryBasis
     );
 
     const accountIdentification = buildViolationAwareAccountId(
@@ -159,7 +161,8 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
     let requestedAction = await buildBureauRequestedAction(
       params.effectiveViolationCategory,
       params.tradelineDetails,
-      params.violationDetails
+      params.violationDetails,
+      params.statuteInfo?.sectionReference || params.statuteInfo?.code || params.violationDetails?.statutoryBasis
     );
     requestedAction += " You have 30 days to complete this.";
 
@@ -193,6 +196,14 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
         "I certify that the information provided in this letter is true and accurate to the best of my knowledge.",
       closing: "Sincerely,",
       templateVariables: {
+        ...buildViolationNarrativeTemplateVariables({
+          violationCategory: params.effectiveViolationCategory,
+          bureauName: params.recipientName,
+          violationDetails: params.violationDetails,
+          tradelineDetails: params.tradelineDetails,
+          statutoryReference:
+            params.statuteInfo?.sectionReference || params.statuteInfo?.code || params.violationDetails?.statutoryBasis,
+        }),
         bureauName: params.recipientName,
         creditorName: displayCreditorName,
         accountNumber: displayAccountNumber,

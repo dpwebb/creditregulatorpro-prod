@@ -42,13 +42,16 @@ describe("default letter templates", () => {
         expect(template.subject).toContain("Formal Dispute and Reinvestigation Request");
         expect(template.introduction).not.toMatch(/Treat this language|before final use/i);
         expect(template.statutoryGrounds).not.toMatch(/reviewer|Mapped statute or authority/i);
-        expect(template.introduction).toContain("Exact disputed field(s):");
-        expect(template.introduction).toContain("Factual basis:");
-        expect(template.introduction).toContain("Evidence to compare:");
-        expect(template.statutoryGrounds).toContain("Specific application to this dispute");
-        expect(template.requestedAction).toContain("delete or suppress");
-        expect(template.requestedAction).toContain("written findings");
+        expect(template.introduction).toContain("Disputed field/value:");
+        expect(template.introduction).toContain("{{disputedField}}");
+        expect(template.introduction).toContain("{{reportedValue}}");
+        expect(template.introduction).toContain("{{specificIssue}}");
+        expect(template.statutoryGrounds).toContain("Field-level application");
+        expect(template.requestedAction).toContain("Requested correction by disputed field");
+        expect(template.requestedAction).toContain("{{specificRemedy}}");
+        expect(template.requestedAction.length).toBeLessThan(120);
         expect(template.requestedAction).not.toContain("this account may contain");
+        expect(template.introduction).not.toContain("Evidence to compare");
       }
 
       if (template.category === "bureau" || template.category === "provincial") {
@@ -70,30 +73,27 @@ describe("default letter templates", () => {
     }
   });
 
-  it("uses specific violation narratives instead of generic category language", () => {
+  it("uses concise field-value violation narratives with specific legal anchors", () => {
     const byKey = new Map(
       getDefaultLetterTemplates()
         .filter((template) => template.category === "violation_narrative")
         .map((template) => [template.templateKey, template])
     );
 
-    expect(byKey.get("balance_calculation_violation")?.introduction).toContain(
-      "reported balance, current balance, past-due amount"
+    expect(byKey.get("balance_calculation_violation")?.statutoryGrounds).toContain(
+      "PIPEDA, Schedule 1, Principle 4.6"
     );
-    expect(byKey.get("balance_calculation_violation")?.requestedAction).toContain(
-      "remove unsupported fees or interest"
+    expect(byKey.get("identity_theft_violation")?.statutoryGrounds).toContain(
+      "PIPEDA, Schedule 1, Principle 4.3"
     );
-    expect(byKey.get("identity_theft_violation")?.introduction).toContain(
-      "account ownership, opening authorization"
+    expect(byKey.get("response_mov_missing")?.statutoryGrounds).toContain(
+      "PIPEDA, Schedule 1, Principle 4.10"
     );
-    expect(byKey.get("identity_theft_violation")?.requestedAction).toContain(
-      "remove unauthorized inquiries"
+    expect(byKey.get("balance_calculation_violation")?.introduction).toBe(
+      "Disputed field/value: {{disputedField}} = {{reportedValue}}. Issue: {{specificIssue}}"
     );
-    expect(byKey.get("response_mov_missing")?.introduction).toContain(
-      "method of verification, furnisher identity"
-    );
-    expect(byKey.get("response_mov_missing")?.requestedAction).toContain(
-      "method of verification and source basis"
+    expect(byKey.get("identity_theft_violation")?.requestedAction).toBe(
+      "Requested correction by disputed field: {{specificRemedy}}"
     );
   });
 
@@ -106,6 +106,18 @@ describe("default letter templates", () => {
       statutoryReference: "Ontario Consumer Reporting Act",
       creditReportReferenceNumber: "L121322",
       exactDisputedFields: "reported balance; account status",
+      disputedField: "Reported Balance",
+      reportedValue: "$1,250.00",
+      expectedValue: "$0.00",
+      specificIssue:
+        "Reported Balance is reported as $1,250.00; expected/source-supported value is $0.00.",
+      specificConcern:
+        "Reported Balance is reported as $1,250.00; expected/source-supported value is $0.00.",
+      specificRemedy:
+        "Correct Reported Balance to $0.00. If that remedy cannot be completed from source records, delete or suppress the tradeline.",
+      requiredRemedy:
+        "Correct Reported Balance to $0.00. If that remedy cannot be completed from source records, delete or suppress the tradeline.",
+      regulatoryBasis: "PIPEDA, Schedule 1, Principle 4.6",
       reportDate: "2026-04-16",
     };
 

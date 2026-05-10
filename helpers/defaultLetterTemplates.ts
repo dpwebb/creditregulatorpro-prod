@@ -689,19 +689,10 @@ function buildProvincialTemplate([
 
 function buildViolationTemplate(key: string): DefaultLetterTemplate {
   const label = titleFromKey(key);
-  const detail = VIOLATION_NARRATIVE_DETAILS[key] ?? {
-    disputedFields: "accuracy, completeness, and verification of the disputed account data",
-    factualBasis: "the account contains a specific reporting problem that should be verified against source records",
-    evidenceToCompare: "the consumer disclosure, furnisher source records, and supporting evidence",
-    requestedCorrection:
-      "correct inaccurate or incomplete fields and delete/suppress any information that cannot be verified from source documentation",
-  };
   const statutoryGrounds = `${buildViolationStatutoryGrounds(key)}
 
-Specific application to this dispute:
-- Exact disputed field(s): ${detail.disputedFields}.
-- Factual trigger: ${detail.factualBasis}.
-- Evidence to compare: ${detail.evidenceToCompare}.`;
+Field-level application:
+The disputed field is {{disputedField}}. The reported value is {{reportedValue}}. The expected or source-supported value is {{expectedValue}}. This authority is relied on only for the field/value issue identified in this dispute.`;
 
   return {
     category: "violation_narrative",
@@ -709,10 +700,10 @@ Specific application to this dispute:
     label,
     subject: `Formal Dispute and Reinvestigation Request - ${label}`,
     introduction:
-      `This dispute concerns ${label}. Exact disputed field(s): ${detail.disputedFields}. Factual basis: ${detail.factualBasis}. Evidence to compare: ${detail.evidenceToCompare}. Please reinvestigate these specific fields before the information continues to be reported.`,
+      `Disputed field/value: {{disputedField}} = {{reportedValue}}. Issue: {{specificIssue}}`,
     statutoryGrounds,
     requestedAction:
-      `Please open a reinvestigation focused on these exact disputed field(s): ${detail.disputedFields}. ${detail.requestedCorrection}. Compare the reporting against ${detail.evidenceToCompare}; provide the furnisher/source identity, method of verification, and source records relied on for any field that remains; delete or suppress any field, inquiry, notation, or tradeline that cannot be verified from source documentation; mark the account disputed while the review is pending where supported by bureau process; update my consumer disclosure; and send written findings explaining each retained, corrected, deleted, or suppressed item.`,
+      "Requested correction by disputed field: {{specificRemedy}}",
     statutoryTimeframe: null,
     consumerStatementRight: null,
     certification: null,
