@@ -12,6 +12,10 @@ export type LetterTemplateSeedResult = {
   total: number;
 };
 
+export type LetterTemplateSeedOptions = {
+  overwriteExisting?: boolean;
+};
+
 function insertValues(defaults: DefaultLetterTemplate, updatedBy: number | null) {
   return {
     category: defaults.category,
@@ -34,7 +38,8 @@ function insertValues(defaults: DefaultLetterTemplate, updatedBy: number | null)
 }
 
 export async function seedLetterTemplateDefaults(
-  updatedBy: number | null
+  updatedBy: number | null,
+  options: LetterTemplateSeedOptions = {}
 ): Promise<LetterTemplateSeedResult> {
   const defaults = getDefaultLetterTemplates();
   let seeded = 0;
@@ -57,7 +62,9 @@ export async function seedLetterTemplateDefaults(
       continue;
     }
 
-    const patch = buildDefaultLetterTemplatePatch(existing, templateDefaults);
+    const patch = options.overwriteExisting
+      ? buildDefaultLetterTemplatePatch(existing, templateDefaults, { overwriteExisting: true })
+      : buildDefaultLetterTemplatePatch(existing, templateDefaults);
     if (Object.keys(patch).length === 0) {
       continue;
     }

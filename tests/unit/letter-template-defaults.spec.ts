@@ -30,6 +30,11 @@ describe("default letter templates", () => {
       expect(template.subject).toEqual(expect.any(String));
       expect(template.introduction).toEqual(expect.any(String));
       expect(template.requestedAction).toEqual(expect.any(String));
+      expect(template.statutoryGrounds).toEqual(expect.any(String));
+
+      if (template.category === "bureau" || template.category === "provincial") {
+        expect(template.statutoryGrounds).toContain("Relevant statutory text or authority excerpt");
+      }
 
       const validation = validateTemplateSnapshot(
         {
@@ -86,6 +91,14 @@ describe("default letter templates", () => {
     expect(hasLetterTemplateContent(customExisting)).toBe(true);
     expect(buildDefaultLetterTemplatePatch(customExisting, defaults!)).not.toMatchObject({
       introduction: defaults!.introduction,
+    });
+
+    expect(
+      buildDefaultLetterTemplatePatch(customExisting, defaults!, { overwriteExisting: true })
+    ).toMatchObject({
+      introduction: defaults!.introduction,
+      statutoryGrounds: defaults!.statutoryGrounds,
+      requestedAction: defaults!.requestedAction,
     });
   });
 });

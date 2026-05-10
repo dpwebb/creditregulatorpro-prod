@@ -21,9 +21,10 @@ function assertLocalDatabase() {
 
 async function main() {
   assertLocalDatabase();
-  const result = await seedLetterTemplateDefaults(null);
+  const overwriteExisting = process.argv.includes("--force");
+  const result = await seedLetterTemplateDefaults(null, { overwriteExisting });
   console.log(
-    `Letter template defaults complete: ${result.seeded} inserted, ${result.updated} updated, ${result.total} expected.`
+    `Letter template defaults complete: ${result.seeded} inserted, ${result.updated} updated, ${result.total} expected. Mode: ${overwriteExisting ? "force" : "fill-blanks"}.`
   );
 }
 
