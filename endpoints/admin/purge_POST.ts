@@ -3,6 +3,7 @@ import { schema, OutputType } from "./purge_POST.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { deleteReportArtifactCascade } from "../../helpers/deleteReportArtifactCascade";
 
 export async function handle(request: Request) {
   try {
@@ -23,15 +24,17 @@ export async function handle(request: Request) {
 
     const now = new Date();
 
-    // Execute the delete operation
-    // We use executeTakeFirst() because we are running a single delete statement
-    // and want a single DeleteResult object.
-    const result = await db
-      .deleteFrom('reportArtifact')
-      .where('expiresAt', '<', now)
-      .executeTakeFirst();
+    const expiredArtifacts = await db
+      .selectFrom("reportArtifact")
+      .select("id")
+      .where("expiresAt", "<", now)
+      .execute();
 
-    const purgedCount = Number(result.numDeletedRows);
+    let purgedCount = 0;
+    for (const artifact of expiredArtifacts) {
+      await deleteReportArtifactCascade(artifact.id, user.id, request);
+      purgedCount += 1;
+    }
 
     // Audit log
     console.log(`[Purge Audit] Successfully purged ${purgedCount} expired report artifacts at ${now.toISOString()}`);

@@ -26,6 +26,15 @@ describe("admin reset cascade", () => {
     expect(schema).toContain("deletedTradelines: number");
     expect(schema).toContain("deletedPackets: number");
   });
+
+  it("keeps expired admin purge on the report artifact cascade path", () => {
+    const endpoint = source("endpoints/admin/purge_POST.ts");
+
+    expect(endpoint).toContain("deleteReportArtifactCascade");
+    expect(endpoint).toContain('selectFrom("reportArtifact")');
+    expect(endpoint).not.toContain("deleteFrom('reportArtifact')");
+    expect(endpoint).not.toContain('deleteFrom("reportArtifact")');
+  });
 });
 
 describe("admin delete-user lifecycle regression coverage", () => {
