@@ -54,10 +54,10 @@ export function useSeedLetterTemplates() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: LETTER_TEMPLATES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: LETTER_TEMPLATE_HISTORY_QUERY_KEY });
-      if (data.seeded > 0) {
-        toast.success(`Seeded ${data.seeded} new templates`);
+      if (data.seeded > 0 || data.updated > 0) {
+        toast.success(`Prepopulated ${data.seeded + data.updated} letter templates`);
       } else {
-        toast.info("No new templates needed to be seeded");
+        toast.info("Letter templates are already prepopulated");
       }
     },
     onError: (error) => {

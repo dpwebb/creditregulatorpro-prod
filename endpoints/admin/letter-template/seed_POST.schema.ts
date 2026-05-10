@@ -8,6 +8,8 @@ export type InputType = z.infer<typeof schema>;
 export type OutputType = {
   ok: boolean;
   seeded: number;
+  updated: number;
+  total: number;
 };
 
 export const postSeedLetterTemplates = async (

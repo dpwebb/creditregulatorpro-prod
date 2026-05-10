@@ -24,6 +24,7 @@
     "bootstrap:local-auth-schema": "tsx scripts/bootstrap-local-auth-schema.ts",
     "bootstrap:local-app-fixtures": "tsx scripts/bootstrap-local-app-fixtures.ts",
     "refresh:local-from-staging": "node scripts/refresh-local-from-staging.mjs",
+    "letter-templates:prepopulate:local": "tsx scripts/prepopulate-letter-template-defaults.ts",
     "core-config:export": "node scripts/core-config.mjs export",
     "core-config:diff": "node scripts/core-config.mjs diff",
     "core-config:apply:staging": "node scripts/core-config.mjs apply-staging",
