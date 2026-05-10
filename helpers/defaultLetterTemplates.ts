@@ -68,10 +68,10 @@ const STANDARD_DISPUTE_STATUTORY_GROUNDS =
 
 2. PIPEDA, Schedule 1, Principle 4.6.1. Relevant statutory text or authority excerpt: "${PIPEDA_SUFFICIENT_ACCURACY_TEXT}" Application to this account: incomplete or unsupported account fields may lead to inappropriate credit decisions and require documented review.
 
-3. Applicable provincial consumer reporting authority for {{province}}: {{statutoryReference}}. Relevant statutory text or authority excerpt: credit information must be based on the best evidence reasonably available and any disputed field must be investigated against source records. Application to this account: the bureau should identify the source records, verify each disputed field, and correct any inaccurate or unsupported reporting.`;
+3. Applicable provincial consumer reporting authority. Relevant statutory text or authority excerpt: consumer reporting information must be based on reasonable procedures, source evidence, and the best evidence reasonably available. Application to this account: the bureau should identify the source records, verify each disputed field, and correct any inaccurate or unsupported reporting.`;
 
 const STANDARD_REQUESTED_ACTION =
-  "Please review the specific account fields identified in this dispute, identify the furnisher and source records relied on for each field, compare those records against the consumer disclosure and supporting evidence, correct any inaccurate or incomplete field, stop reporting any field that cannot be verified from source documentation, provide a written explanation of the investigation steps taken, and send written findings with the updated disclosure or correction notice.";
+  "Please open a formal dispute investigation for the account identified below. Please identify the furnisher and source records relied on for each disputed field, compare those records against the consumer disclosure and supporting evidence, correct each inaccurate or incomplete field, stop reporting any field that cannot be verified from source documentation, provide the method of verification or documents relied on for any item that remains, and send written findings with the updated disclosure or correction notice.";
 
 const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
   {
@@ -80,7 +80,7 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     label: "Equifax",
     subject: "Equifax dispute and reinvestigation request - {{creditorName}} {{accountNumber}}",
     introduction:
-      "I am disputing the Equifax reporting of the account identified below. Based on my review, the reported information appears inaccurate, incomplete, or unsupported by the file evidence. Please complete a documented reinvestigation and provide the results in writing.",
+      "I am initiating a formal dispute with Equifax for the account identified below. Based on my review of my consumer disclosure, the reported information appears inaccurate, incomplete, or unsupported by the file evidence. Please open a dispute investigation, review the source records, and provide the results in writing.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
@@ -99,7 +99,7 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     label: "TransUnion",
     subject: "TransUnion dispute and reinvestigation request - {{creditorName}} {{accountNumber}}",
     introduction:
-      "I am disputing the TransUnion reporting of the account identified below. The file information appears inaccurate, incomplete, inconsistent with the supporting records, or not properly verified. Please investigate the disputed information and send the investigation results in writing.",
+      "I am initiating a formal dispute with TransUnion for the account identified below. The file information appears inaccurate, incomplete, inconsistent with the supporting records, or not properly verified. Please open a dispute investigation and send the investigation results in writing.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
@@ -118,11 +118,11 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     label: "Generic Bureau",
     subject: "Credit reporting dispute - {{bureauName}} - {{creditorName}} {{accountNumber}}",
     introduction:
-      "I am submitting a dispute regarding the account information identified below. The reporting appears inaccurate, incomplete, unverifiable, or inconsistent with the available account evidence and should be reinvestigated before it continues to appear on my consumer disclosure.",
+      "I am initiating a formal credit reporting dispute regarding the account information identified below. The reporting appears inaccurate, incomplete, unverifiable, or inconsistent with the available account evidence and should be reinvestigated before it continues to appear on my consumer disclosure.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
-      "Please respond within the statutory period that applies in {{province}} and provide an updated disclosure or correction notice.",
+      "Please respond within the statutory period that applies to this dispute and provide an updated disclosure or correction notice.",
     consumerStatementRight:
       "If the item is not corrected or deleted, please provide the consumer statement or explanatory note process available for this file.",
     certification: STANDARD_CERTIFICATION,
@@ -276,15 +276,15 @@ const COLLECTION_KEYS = new Set([
 ]);
 
 function buildViolationStatutoryGrounds(key: string): string {
-  const mappedReference =
-    "Mapped statute or authority for this finding: {{statutoryReference}}. Relevant statutory text or authority excerpt: use the exact text/excerpt stored with the mapped authority for the consumer's province and finding type. Application to this account: the reviewer must tie the statutory ground to the specific field, document, reporting act, or response defect before final use.";
+  const provincialReference =
+    "Applicable provincial consumer reporting authority. Relevant statutory text or authority excerpt: consumer reporting information must be based on reasonable procedures, source evidence, and the best evidence reasonably available. Application to this account: the bureau should verify the disputed field or account condition against the underlying source records and correct any inaccurate, incomplete, or unsupported reporting.";
 
   if (key === "bankruptcy_discharge_violation") {
     return `Statutory grounds relied on for this finding:
 
 1. Bankruptcy and Insolvency Act, s.178(2). Relevant statutory text or authority excerpt: "${BIA_DISCHARGE_TEXT}" Application to this account: post-discharge reporting must accurately reflect the legal status of any provable claim.
 
-2. ${mappedReference}`;
+2. ${provincialReference}`;
   }
 
   if (ACCESS_OR_IDENTITY_KEYS.has(key)) {
@@ -294,7 +294,7 @@ function buildViolationStatutoryGrounds(key: string): string {
 
 2. PIPEDA, Schedule 1, Principle 4.7. Relevant statutory text or authority excerpt: "${PIPEDA_SAFEGUARDS_TEXT}" Application to this account: sensitive consumer-reporting information must be protected against inappropriate access or misuse.
 
-3. ${mappedReference}`;
+3. ${provincialReference}`;
   }
 
   if (RETENTION_OR_TIME_KEYS.has(key)) {
@@ -304,7 +304,7 @@ function buildViolationStatutoryGrounds(key: string): string {
 
 2. PIPEDA, Schedule 1, Principle 4.6. Relevant statutory text or authority excerpt: "${PIPEDA_ACCURACY_TEXT}" Application to this account: date-dependent reporting must be accurate, complete, and current for the purpose for which it is used.
 
-3. ${mappedReference}`;
+3. ${provincialReference}`;
   }
 
   if (RESPONSE_OR_INVESTIGATION_KEYS.has(key)) {
@@ -314,7 +314,7 @@ function buildViolationStatutoryGrounds(key: string): string {
 
 2. PIPEDA, Schedule 1, Principle 4.9. Relevant statutory text or authority excerpt: "${PIPEDA_ACCESS_TEXT}" Application to this account: the consumer should receive enough information to understand the existence, use, source basis, and handling of the disputed personal information.
 
-3. ${mappedReference}`;
+3. ${provincialReference}`;
   }
 
   if (COLLECTION_KEYS.has(key)) {
@@ -322,7 +322,7 @@ function buildViolationStatutoryGrounds(key: string): string {
 
 1. PIPEDA, Schedule 1, Principle 4.6. Relevant statutory text or authority excerpt: "${PIPEDA_ACCURACY_TEXT}" Application to this account: collection-account reporting must accurately reflect the creditor, balance, assignment, payment, fee, and ownership evidence used to make decisions about the consumer.
 
-2. ${mappedReference}`;
+2. ${provincialReference}`;
   }
 
   if (key === "consent_withdrawal_not_honored") {
@@ -330,7 +330,7 @@ function buildViolationStatutoryGrounds(key: string): string {
 
 1. PIPEDA, Schedule 1, Principle 4.3.8. Relevant statutory text or authority excerpt: "An individual may withdraw consent at any time, subject to legal or contractual restrictions and reasonable notice, and the organization must inform the individual of the implications." Application to this account: continued reporting after withdrawal must be reviewed against the consent record and any lawful basis for continued processing.
 
-2. ${mappedReference}`;
+2. ${provincialReference}`;
   }
 
   return `Statutory grounds relied on for this finding:
@@ -339,7 +339,7 @@ function buildViolationStatutoryGrounds(key: string): string {
 
 2. PIPEDA, Schedule 1, Principle 4.6.1. Relevant statutory text or authority excerpt: "${PIPEDA_SUFFICIENT_ACCURACY_TEXT}" Application to this account: incomplete or unsupported account data may lead to an inappropriate decision about the consumer.
 
-3. ${mappedReference}`;
+3. ${provincialReference}`;
 }
 
 function titleFromKey(key: string): string {
@@ -372,17 +372,17 @@ function buildProvincialTemplate([
     label: titleFromKey(key),
     subject: `${provinceLabel} provincial credit reporting dispute - {{creditorName}} {{accountNumber}}`,
     introduction:
-      `I am submitting this dispute under the ${statuteLabel}. The account identified below appears inaccurate, incomplete, unverifiable, or not supported by the reporting record for {{province}}.`,
+      `I am initiating a formal dispute under the ${statuteLabel}. The account identified below appears inaccurate, incomplete, unverifiable, or not supported by the reporting record for my consumer file.`,
     statutoryGrounds:
       `Statutory grounds relied on for this dispute:
 
-1. ${statuteLabel}. Relevant statutory text or authority excerpt: credit information must be based on the best evidence reasonably available and disputed reporting must be reviewed against source records. Application to this account: the disputed account fields should be verified against the underlying furnisher, creditor, assignment, payment, and reporting records for {{province}}.
+1. ${statuteLabel}. Relevant statutory text or authority excerpt: credit information must be based on the best evidence reasonably available and disputed reporting must be reviewed against source records. Application to this account: the disputed account fields should be verified against the underlying furnisher, creditor, assignment, payment, and reporting records.
 
 2. PIPEDA, Schedule 1, Principle 4.6. Relevant statutory text or authority excerpt: "${PIPEDA_ACCURACY_TEXT}" Application to this account: credit-reporting data used to make decisions about the consumer must be accurate, complete, and up-to-date for that purpose.`,
     requestedAction:
       STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
-      `Please complete the review within the response period that applies under the ${statuteLabel} or the applicable provincial process for {{province}}.`,
+      `Please complete the review within the response period that applies under the ${statuteLabel} or the applicable provincial dispute process.`,
     consumerStatementRight:
       "If the information remains after investigation, please provide the available statement, notation, or explanatory-rights process.",
     certification: STANDARD_CERTIFICATION,
@@ -401,18 +401,18 @@ function buildViolationTemplate(key: string): DefaultLetterTemplate {
     category: "violation_narrative",
     templateKey: key,
     label,
-    subject: `Compliance finding: ${label} - {{creditorName}} {{accountNumber}}`,
+    subject: `Credit reporting dispute: ${label}`,
     introduction:
-      `This finding concerns whether ${focus}. Treat this language as a compliance finding that must be tied to the uploaded report, source evidence, investigation history, and response packet before final use.`,
+      `I am initiating a formal dispute because ${focus}. The account is identified below, and I am asking the bureau to investigate the specific reporting problem against the source records used to maintain my consumer file.`,
     statutoryGrounds: buildViolationStatutoryGrounds(key),
     requestedAction:
-      "Review the evidence for this account, identify the exact field or conduct at issue, confirm the mapped statutory authority and relevant text, compare the source records against the consumer disclosure, request verification or correction from the responsible party, document any unsupported field, and revise or withdraw this narrative if the source evidence does not support it.",
+      "Please open a dispute investigation for this account. Please verify the exact field or reporting conduct at issue against the furnisher, creditor, collection, payment, assignment, and bureau source records; provide the method of verification or documents relied on for any item that remains; correct each inaccurate or incomplete field; stop reporting any information that cannot be verified; update my consumer disclosure; and send written findings explaining the result.",
     statutoryTimeframe: null,
     consumerStatementRight: null,
     certification: null,
     closing: null,
     fullBodyOverride: null,
-    statutoryReference: "{{statutoryReference}}",
+    statutoryReference: "Applicable PIPEDA and provincial consumer reporting authority",
     sourceUrl: null,
   };
 }

@@ -502,6 +502,13 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
     statutoryTimeframe: undefined,
     certification,
     closing,
+    templateVariables: {
+      bureauName: "Equifax Canada",
+      creditorName: ctx.creditorName,
+      accountNumber: ctx.accountNumber,
+      province,
+      statutoryReference: ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code,
+    },
   };
 
   if (ctx.equifaxFileNumber) {

@@ -109,6 +109,9 @@ export interface LetterContent {
   // Tracking and delivery
   trackingPlaceholder?: string;
   deliveryInstructions?: string;
+
+  // Runtime values used to render admin-managed letter template placeholders.
+  templateVariables?: Record<string, string | number | null | undefined>;
 }
 
 /**

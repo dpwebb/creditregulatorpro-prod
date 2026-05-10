@@ -5,6 +5,7 @@ import {
   hasLetterTemplateContent,
 } from "../../helpers/defaultLetterTemplates";
 import { validateTemplateSnapshot } from "../../helpers/letterTemplateLifecycle";
+import { renderLetterTemplateText } from "../../helpers/letterTemplateQueries";
 
 describe("default letter templates", () => {
   it("prepopulates every supported template key with publishable content", () => {
@@ -36,6 +37,13 @@ describe("default letter templates", () => {
         expect(template.statutoryGrounds).toContain("Relevant statutory text or authority excerpt");
       }
 
+      if (template.category === "violation_narrative") {
+        expect(template.subject).not.toContain("Compliance finding");
+        expect(template.introduction).not.toMatch(/Treat this language|before final use/i);
+        expect(template.statutoryGrounds).not.toMatch(/reviewer|Mapped statute or authority/i);
+        expect(template.requestedAction).toMatch(/^Please open a dispute investigation/i);
+      }
+
       const validation = validateTemplateSnapshot(
         {
           ...template,
@@ -46,6 +54,31 @@ describe("default letter templates", () => {
 
       expect(validation.errors).toEqual([]);
       expect(validation.unknownPlaceholders).toEqual([]);
+    }
+  });
+
+  it("renders default template placeholders before outgoing use", () => {
+    const variables = {
+      accountNumber: "123456789",
+      bureauName: "Equifax Canada",
+      creditorName: "Sample Bank",
+      province: "Ontario",
+      statutoryReference: "Ontario Consumer Reporting Act",
+    };
+
+    for (const template of getDefaultLetterTemplates()) {
+      for (const value of [
+        template.subject,
+        template.introduction,
+        template.statutoryGrounds,
+        template.requestedAction,
+        template.statutoryTimeframe,
+        template.consumerStatementRight,
+      ]) {
+        if (!value) continue;
+        const rendered = renderLetterTemplateText(value, variables);
+        expect(rendered).not.toMatch(/{{|}}/);
+      }
     }
   });
 

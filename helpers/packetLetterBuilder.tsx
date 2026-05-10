@@ -183,6 +183,13 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       certification:
         "I certify that the information provided in this letter is true and accurate to the best of my knowledge.",
       closing: "Sincerely,",
+      templateVariables: {
+        bureauName: params.recipientName,
+        creditorName: displayCreditorName,
+        accountNumber: displayAccountNumber,
+        province: params.province,
+        statutoryReference: params.statuteInfo?.sectionReference || params.statuteInfo?.code,
+      },
     };
 
     // Apply generic bureau overrides

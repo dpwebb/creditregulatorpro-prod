@@ -142,6 +142,13 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
     statutoryTimeframe: undefined,
     certification,
     closing,
+    templateVariables: {
+      bureauName: "TransUnion of Canada, Inc.",
+      creditorName: ctx.creditorName,
+      accountNumber: ctx.accountNumber,
+      province,
+      statutoryReference: ctx.statuteInfo?.sectionReference || ctx.statuteInfo?.code,
+    },
   };
 
   if (ctx.transunionCaseId) {
