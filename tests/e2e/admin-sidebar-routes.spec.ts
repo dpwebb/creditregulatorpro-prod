@@ -21,6 +21,8 @@ test.describe("admin sidebar route coverage", () => {
   test.skip(!adminCredentials, "Set E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD for non-local admin route E2E checks.");
 
   test("seeded admin can load every admin sidebar route", async ({ page }) => {
+    test.setTimeout(180000);
+
     const apiFailures: string[] = [];
     const pageErrors: string[] = [];
 

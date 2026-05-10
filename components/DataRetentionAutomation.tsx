@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Terminal, ExternalLink, ShieldAlert } from "lucide-react";
+import { Copy, Check, Terminal, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "./Accordion";
 import { Button } from "./Button";
@@ -38,6 +38,7 @@ export const DataRetentionAutomation = () => {
             variant="ghost" 
             onClick={handleCopy}
             className={styles.copyButton}
+            aria-label="Copy retention webhook URL"
             title="Copy URL"
           >
             {copied ? <Check size={14} className={styles.successIcon} /> : <Copy size={14} />}

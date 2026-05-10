@@ -4,6 +4,23 @@ import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../../helpers/endpointErrorHandler";
 import { runSemanticAudit } from "../../../helpers/semanticAuditRunner";
 
+function parseRequestBody(text: string): unknown {
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    const parsedSuperJson = superjson.parse(text);
+    if (parsedSuperJson !== undefined) {
+      return parsedSuperJson;
+    }
+  } catch {
+    // Fall back to standard JSON parsing below.
+  }
+
+  return JSON.parse(text);
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -14,7 +31,7 @@ export async function handle(request: Request) {
     }
 
     const text = await request.text();
-    const json = text ? superjson.parse(text) : {};
+    const json = parseRequestBody(text);
     const result = schema.parse(json);
 
     // Execute semantic audit

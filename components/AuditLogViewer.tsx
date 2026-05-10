@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "../helpers/dateUtils";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Eye, RefreshCw } from "lucide-react";
+import { X, Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -15,11 +15,13 @@ import {
 import { Badge } from "./Badge";
 import { Button } from "./Button";
 import { Skeleton } from "./Skeleton";
-import { getAuditLogs, InputType } from "../endpoints/audit/log_GET.schema";
+import { getAuditLogs, InputType } from "../endpoints/admin/audit-logs_GET.schema";
 import {
   AuditActionTypeArrayValues,
   AuditEntityTypeArrayValues,
+  AuditStatusArrayValues,
 } from "../helpers/schema";
+import { ErrorSeverityValues } from "../helpers/errorSeverity";
 import { useDebounce } from "../helpers/useDebounce";
 import styles from "./AuditLogViewer.module.css";
 
@@ -30,27 +32,33 @@ export const AuditLogViewer = () => {
   const [filters, setFilters] = useState({
     actionType: "",
     entityType: "",
+    status: "",
+    severity: "",
     startDate: "",
     endDate: "",
-    userSearch: "",
+    email: "",
+    userId: "",
   });
   const [selectedLog, setSelectedLog] = useState<any>(null);
 
-  const debouncedUserSearch = useDebounce(filters.userSearch, 500);
+  const debouncedEmail = useDebounce(filters.email, 500);
+  const debouncedUserId = useDebounce(filters.userId, 500);
 
   const queryParams: InputType = {
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
     ...(filters.actionType ? { actionType: filters.actionType as any } : {}),
     ...(filters.entityType ? { entityType: filters.entityType as any } : {}),
-    ...(filters.startDate ? { startDate: new Date(filters.startDate) } : {}),
-    ...(filters.endDate ? { endDate: new Date(filters.endDate) } : {}),
-    // Note: userId filtering would require a separate user lookup, 
-    // for now we rely on backend search if implemented or just filter by other fields
+    ...(filters.status ? { status: filters.status as any } : {}),
+    ...(filters.severity ? { severity: filters.severity as any } : {}),
+    ...(filters.startDate ? { startDate: filters.startDate } : {}),
+    ...(filters.endDate ? { endDate: filters.endDate } : {}),
+    ...(debouncedEmail ? { email: debouncedEmail } : {}),
+    ...(debouncedUserId ? { userId: Number(debouncedUserId) } : {}),
   };
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["audit", "logs", queryParams, debouncedUserSearch],
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["audit", "logs", queryParams],
     queryFn: () => getAuditLogs(queryParams),
     refetchInterval: 30000, // Auto-refresh every 30s
     placeholderData: (previousData) => previousData,
@@ -69,14 +77,13 @@ export const AuditLogViewer = () => {
     return "default";
   };
 
-  const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
-
   return (
     <div className={styles.container}>
       <div className={styles.filters}>
         <div className={styles.filterGroup}>
           <label className={styles.label}>Action Type</label>
           <select
+            aria-label="Action Type"
             className={styles.select}
             value={filters.actionType}
             onChange={(e) => handleFilterChange("actionType", e.target.value)}
@@ -93,6 +100,7 @@ export const AuditLogViewer = () => {
         <div className={styles.filterGroup}>
           <label className={styles.label}>Entity Type</label>
           <select
+            aria-label="Entity Type"
             className={styles.select}
             value={filters.entityType}
             onChange={(e) => handleFilterChange("entityType", e.target.value)}
@@ -107,8 +115,43 @@ export const AuditLogViewer = () => {
         </div>
 
         <div className={styles.filterGroup}>
+          <label className={styles.label}>Status</label>
+          <select
+            aria-label="Status"
+            className={styles.select}
+            value={filters.status}
+            onChange={(e) => handleFilterChange("status", e.target.value)}
+          >
+            <option value="">All Statuses</option>
+            {AuditStatusArrayValues.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.filterGroup}>
+          <label className={styles.label}>Error Severity</label>
+          <select
+            aria-label="Error Severity"
+            className={styles.select}
+            value={filters.severity}
+            onChange={(e) => handleFilterChange("severity", e.target.value)}
+          >
+            <option value="">All Severities</option>
+            {ErrorSeverityValues.map((severity) => (
+              <option key={severity} value={severity}>
+                {severity}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.filterGroup}>
           <label className={styles.label}>Start Date</label>
           <input
+            aria-label="Start Date"
             type="date"
             className={styles.input}
             value={filters.startDate}
@@ -119,6 +162,7 @@ export const AuditLogViewer = () => {
         <div className={styles.filterGroup}>
           <label className={styles.label}>End Date</label>
           <input
+            aria-label="End Date"
             type="date"
             className={styles.input}
             value={filters.endDate}
@@ -126,17 +170,30 @@ export const AuditLogViewer = () => {
           />
         </div>
 
-        {/* Note: User search implementation depends on backend support for string search on user email */}
-        {/* <div className={styles.filterGroup}>
-          <label className={styles.label}>User Search</label>
+        <div className={styles.filterGroup}>
+          <label className={styles.label}>User Email</label>
           <input
+            aria-label="User Email"
             type="text"
             className={styles.input}
-            placeholder="Search user..."
-            value={filters.userSearch}
-            onChange={(e) => handleFilterChange("userSearch", e.target.value)}
+            placeholder="Search email..."
+            value={filters.email}
+            onChange={(e) => handleFilterChange("email", e.target.value)}
           />
-        </div> */}
+        </div>
+
+        <div className={styles.filterGroup}>
+          <label className={styles.label}>User ID</label>
+          <input
+            aria-label="User ID"
+            type="number"
+            min="1"
+            className={styles.input}
+            placeholder="Exact ID"
+            value={filters.userId}
+            onChange={(e) => handleFilterChange("userId", e.target.value)}
+          />
+        </div>
       </div>
 
       <TableContainer>
@@ -149,6 +206,7 @@ export const AuditLogViewer = () => {
               <TableHead>Entity</TableHead>
               <TableHead>ID</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Error Severity</TableHead>
               <TableHead>IP Address</TableHead>
               <TableHead>Details</TableHead>
             </TableRow>
@@ -161,6 +219,7 @@ export const AuditLogViewer = () => {
                   <TableCell><Skeleton className="w-40" /></TableCell>
                   <TableCell><Skeleton className="w-24" /></TableCell>
                   <TableCell><Skeleton className="w-24" /></TableCell>
+                  <TableCell><Skeleton className="w-24" /></TableCell>
                   <TableCell><Skeleton className="w-12" /></TableCell>
                   <TableCell><Skeleton className="w-20" /></TableCell>
                   <TableCell><Skeleton className="w-24" /></TableCell>
@@ -169,7 +228,7 @@ export const AuditLogViewer = () => {
               ))
             ) : data?.logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} style={{ textAlign: "center", padding: "2rem" }}>
+                <TableCell colSpan={9} style={{ textAlign: "center", padding: "2rem" }}>
                   No audit logs found matching your criteria.
                 </TableCell>
               </TableRow>
@@ -179,7 +238,7 @@ export const AuditLogViewer = () => {
                   <TableCell>
                     {format(new Date(log.timestamp), "yyyy-MM-dd HH:mm:ss")}
                   </TableCell>
-                  <TableCell>{log.userEmail || "System"}</TableCell>
+                  <TableCell>{log.userEmail || log.userDisplayName || "System"}</TableCell>
                   <TableCell>
                     <Badge variant={getActionBadgeVariant(log.actionType)}>
                       {log.actionType}
@@ -192,12 +251,14 @@ export const AuditLogViewer = () => {
                       {log.status}
                     </Badge>
                   </TableCell>
+                  <TableCell>{log.errorSeverity || "-"}</TableCell>
                   <TableCell>{log.ipAddress || "-"}</TableCell>
                   <TableCell>
                     {log.details && (
                       <Button
                         variant="ghost"
                         size="sm"
+                        aria-label={`View details for audit log ${log.id}`}
                         onClick={() => setSelectedLog(log)}
                       >
                         <Eye size={14} />

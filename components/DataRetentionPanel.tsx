@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./Button";
 import {
+  getRetentionDeletedCount,
   runRetentionEnforcement,
   getRetentionStats,
 } from "../helpers/adminRetentionApi";
@@ -62,8 +63,9 @@ export const DataRetentionPanel = () => {
   const mutation = useMutation({
     mutationFn: runRetentionEnforcement,
     onSuccess: (data) => {
+      const deletedCount = getRetentionDeletedCount(data);
       toast.success("Retention enforcement completed successfully", {
-        description: `Deleted ${data.deletedCount} records.`,
+        description: `Deleted ${deletedCount} records.`,
       });
       setIsConfirmOpen(false);
       setIsConfirmed(false);

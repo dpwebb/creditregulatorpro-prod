@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAuditLogs, InputType } from "../endpoints/audit/log_GET.schema";
+import { getAuditLogs, InputType } from "../endpoints/admin/audit-logs_GET.schema";
 
 export const AUDIT_LOGS_QUERY_KEY = ["audit", "logs"] as const;
 
