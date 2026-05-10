@@ -42,8 +42,13 @@ describe("default letter templates", () => {
         expect(template.subject).toContain("Formal Dispute and Reinvestigation Request");
         expect(template.introduction).not.toMatch(/Treat this language|before final use/i);
         expect(template.statutoryGrounds).not.toMatch(/reviewer|Mapped statute or authority/i);
+        expect(template.introduction).toContain("Exact disputed field(s):");
+        expect(template.introduction).toContain("Factual basis:");
+        expect(template.introduction).toContain("Evidence to compare:");
+        expect(template.statutoryGrounds).toContain("Specific application to this dispute");
         expect(template.requestedAction).toContain("delete or suppress");
         expect(template.requestedAction).toContain("written findings");
+        expect(template.requestedAction).not.toContain("this account may contain");
       }
 
       if (template.category === "bureau" || template.category === "provincial") {
@@ -63,6 +68,33 @@ describe("default letter templates", () => {
       expect(validation.errors).toEqual([]);
       expect(validation.unknownPlaceholders).toEqual([]);
     }
+  });
+
+  it("uses specific violation narratives instead of generic category language", () => {
+    const byKey = new Map(
+      getDefaultLetterTemplates()
+        .filter((template) => template.category === "violation_narrative")
+        .map((template) => [template.templateKey, template])
+    );
+
+    expect(byKey.get("balance_calculation_violation")?.introduction).toContain(
+      "reported balance, current balance, past-due amount"
+    );
+    expect(byKey.get("balance_calculation_violation")?.requestedAction).toContain(
+      "remove unsupported fees or interest"
+    );
+    expect(byKey.get("identity_theft_violation")?.introduction).toContain(
+      "account ownership, opening authorization"
+    );
+    expect(byKey.get("identity_theft_violation")?.requestedAction).toContain(
+      "remove unauthorized inquiries"
+    );
+    expect(byKey.get("response_mov_missing")?.introduction).toContain(
+      "method of verification, furnisher identity"
+    );
+    expect(byKey.get("response_mov_missing")?.requestedAction).toContain(
+      "method of verification and source basis"
+    );
   });
 
   it("renders default template placeholders before outgoing use", () => {

@@ -156,87 +156,374 @@ const PROVINCIAL_TEMPLATES = [
   ["alberta_pipa", "Alberta Personal Information Protection Act", "Alberta"],
 ] as const;
 
-const VIOLATION_FOCUS: Record<string, string> = {
-  statute_of_limitations:
-    "the account age, limitation-period context, or reporting chronology may not support the way the item is being reported or collected",
-  bankruptcy_discharge_violation:
-    "the account may not reflect the consumer's bankruptcy, discharge, proposal, or insolvency-related status accurately",
-  identity_theft_violation:
-    "the account may involve identity-theft indicators, blocked information, or missing identity-theft handling steps",
-  documentation_chain_failure:
-    "the reporting party may not have provided enough source documentation to verify the account, assignment, balance, or ownership trail",
-  balance_calculation_violation:
-    "the balance, past-due amount, fees, interest, or charge-off figures may not reconcile to the evidence",
-  bureau_investigation_failure:
-    "the bureau investigation may be incomplete, unsupported, or not tied to the specific dispute evidence submitted",
-  bureau_notification_failure:
-    "required notices, dispute results, or correction communications may not have been provided or preserved",
-  bureau_dispute_marking_failure:
-    "the account may not have been marked as disputed while an active dispute or investigation was pending",
-  bureau_reinsertion_violation:
-    "previously removed information may have been reinserted without the required verification and notice trail",
-  bureau_access_violation:
-    "the report or account information may have been accessed, used, or disclosed without a valid permissible purpose",
-  furnisher_reaging_violation:
-    "the furnisher may have changed dates or reporting markers in a way that makes the delinquency appear newer than the evidence supports",
-  temporal_manipulation:
-    "reported dates may conflict with the account chronology, last activity, delinquency, assignment, closure, or reporting history",
-  account_status_inconsistency:
-    "the account status may be inconsistent across fields, bureaus, reporting periods, or source documentation",
-  furnisher_status_code_mismatch:
-    "the status code or payment rating may not match the narrative, balance, account state, or evidence",
-  collector_license_failure:
-    "the collector may not have adequate licensing or authority for the jurisdiction and activity at issue",
-  collector_unauthorized_fees:
-    "fees, charges, interest, or collection costs may not be supported by contract, statute, judgment, or account records",
-  collector_duplicate_reporting:
-    "the same debt may be reported more than once, by multiple collectors, or in a way that overstates the obligation",
-  collector_payment_acknowledgment_violation:
-    "payments, settlements, credits, or acknowledgments may not be reflected correctly in the reported account data",
-  response_mov_missing:
-    "the bureau or furnisher response may omit the method of verification or the source basis for keeping the disputed item",
-  response_incomplete:
-    "the response may not address each disputed field, evidence item, or requested correction",
-  response_no_documentation:
-    "the response may confirm reporting without producing documents or records sufficient to verify the disputed information",
-  response_address_mismatch:
-    "the account address, identity data, or response address may not align with the consumer identity evidence",
-  response_unauthorized:
-    "the response may rely on an entity, source, or authorization that does not match the account record or consumer consent evidence",
-  disclosure_deficiency:
-    "the consumer disclosure may omit required data, source information, rights notices, or other required explanatory content",
-  cross_entity_discrepancy:
-    "the same account may be reported differently by bureaus, furnishers, collectors, or source documents",
-  multiple_collector_violation:
-    "multiple collectors may be reporting, collecting, or validating the same obligation without a clear ownership or assignment trail",
-  phantom_debt_unverifiable:
-    "the account may not be traceable to a valid creditor, source contract, assignment record, or consumer obligation",
-  zombie_debt_resurrection:
-    "old or previously resolved debt may have been revived, reassigned, or reported without current verification",
-  stale_reporting_failure:
-    "obsolete, outdated, or time-barred information may still be present despite age or correction requirements",
-  credit_limit_manipulation:
-    "credit limit or high-credit reporting may distort utilization, account history, or the consumer's file presentation",
-  closed_account_balance_inflation:
-    "a closed account may show a balance, past-due amount, or status that is inconsistent with closure or transfer records",
-  last_activity_date_manipulation:
-    "the last activity or reported activity date may be inconsistent with the actual account activity chronology",
-  consumer_statement_suppression:
-    "a consumer statement, dispute notation, or explanatory comment may have been omitted, removed, or not processed",
-  retroactive_history_manipulation:
-    "historical payment, status, or date fields may have been changed retroactively without adequate support",
-  payment_history_manipulation:
-    "payment history may not match the account evidence, monthly reporting record, or documented payment behavior",
-  investigation_rubber_stamp:
-    "the investigation may appear automated, conclusory, or unsupported by field-level review of the submitted dispute",
-  furnisher_joint_account_violation:
-    "joint-account, co-signer, responsibility, or authorization data may not match the consumer's legal relationship to the account",
-  furnisher_authorized_user_misrepresentation:
-    "authorized-user reporting may overstate responsibility or fail to distinguish the consumer from the primary obligor",
-  furnisher_post_dispute_retaliation:
-    "post-dispute reporting may have worsened, reappeared, or changed without adequate evidence-based justification",
-  collector_statute_revival_attempt:
-    "collector activity may imply revival, renewal, or enforceability that is not supported by the account chronology or law",
+type ViolationNarrativeDetail = {
+  disputedFields: string;
+  factualBasis: string;
+  evidenceToCompare: string;
+  requestedCorrection: string;
+};
+
+const VIOLATION_NARRATIVE_DETAILS: Record<string, ViolationNarrativeDetail> = {
+  statute_of_limitations: {
+    disputedFields: "reporting period, date of first delinquency, date of last payment, date of last activity, and collection status",
+    factualBasis:
+      "the account chronology may show that the item is obsolete, time-barred, or being reported beyond the period supported by the source dates",
+    evidenceToCompare:
+      "the consumer disclosure, original account statements, payment records, charge-off records, collection assignment records, and any limitation-period or retention-period records",
+    requestedCorrection:
+      "correct the reporting dates and status, or delete/suppress the tradeline if the reporting period cannot be verified from source records",
+  },
+  bankruptcy_discharge_violation: {
+    disputedFields: "bankruptcy/proposal notation, account status, balance, past-due amount, collection status, and discharge treatment",
+    factualBasis:
+      "the account may still report as collectible, past due, open, charged off, or outstanding after a bankruptcy discharge or consumer proposal event",
+    evidenceToCompare:
+      "bankruptcy discharge records, consumer proposal documents, trustee correspondence, creditor account records, and the bureau disclosure page showing the account",
+    requestedCorrection:
+      "update the account to reflect the insolvency status accurately, correct any balance/status fields that conflict with the discharge, and remove unverifiable post-discharge collection reporting",
+  },
+  identity_theft_violation: {
+    disputedFields: "account ownership, opening authorization, inquiry authorization, address/identity match, and fraud or identity-theft block status",
+    factualBasis:
+      "the account or inquiry may not belong to the consumer and may be tied to unauthorized use of identity information",
+    evidenceToCompare:
+      "identity-theft report or police report, government ID, address proof, bureau identity file, creditor application records, account-opening records, and inquiry authorization records",
+    requestedCorrection:
+      "block or suppress unauthorized information, remove unauthorized inquiries, and provide the furnisher/source records used to verify any item that remains",
+  },
+  documentation_chain_failure: {
+    disputedFields: "original creditor identity, collector identity, account ownership, assignment chain, balance authority, and verification documentation",
+    factualBasis:
+      "the account may not be traceable from the named furnisher or collector back to a valid original creditor and enforceable source obligation",
+    evidenceToCompare:
+      "original contract, charge-off record, bill of sale, assignment agreement, collector placement record, itemized balance record, and furnisher verification response",
+    requestedCorrection:
+      "identify the true original creditor and assignment chain, correct any misidentified creditor/collector fields, and delete/suppress the tradeline if ownership and balance authority cannot be documented",
+  },
+  balance_calculation_violation: {
+    disputedFields: "reported balance, current balance, past-due amount, charge-off amount, fees, interest, and payment credits",
+    factualBasis:
+      "the balance fields may not reconcile to payments, settlement records, charge-off records, fees, interest, or the creditor's final statement",
+    evidenceToCompare:
+      "monthly statements, payment confirmations, settlement letters, payoff records, charge-off records, fee schedules, and collector itemization records",
+    requestedCorrection:
+      "correct each balance-related field to the documented amount, remove unsupported fees or interest, and delete/suppress any amount that cannot be verified from itemized source records",
+  },
+  bureau_investigation_failure: {
+    disputedFields: "investigation result, disputed account fields, method of verification, furnisher response, and correction decision",
+    factualBasis:
+      "the bureau response may have kept or confirmed reporting without showing field-level review of the consumer's specific dispute evidence",
+    evidenceToCompare:
+      "the original dispute letter, exhibits submitted, bureau response, furnisher response, method-of-verification notes, and updated disclosure",
+    requestedCorrection:
+      "conduct a new field-level reinvestigation, address each disputed item separately, provide the method of verification, and correct/delete any field not verified from source documentation",
+  },
+  bureau_notification_failure: {
+    disputedFields: "dispute-result notice, correction notice, updated disclosure, recipient notification, and response date",
+    factualBasis:
+      "the consumer may not have received the written results, correction notice, updated disclosure, or required downstream notice after a dispute or correction",
+    evidenceToCompare:
+      "mailing records, portal messages, bureau response letters, dispute submission records, correction records, and disclosure history",
+    requestedCorrection:
+      "provide the missing notice or updated disclosure, document the date and method of delivery, and identify any recipients notified of corrections",
+  },
+  bureau_dispute_marking_failure: {
+    disputedFields: "dispute notation, account status during investigation, bureau comment codes, and furnisher dispute flag",
+    factualBasis:
+      "the account may not have been marked as disputed while an active bureau or furnisher investigation was pending",
+    evidenceToCompare:
+      "dispute submission date, bureau file snapshots before/during/after investigation, furnisher ACDV or response records, and account comment/status history",
+    requestedCorrection:
+      "add or restore the appropriate dispute notation for the investigated period, correct any status affected by missing dispute marking, and provide written confirmation",
+  },
+  bureau_reinsertion_violation: {
+    disputedFields: "reinserted tradeline or field, reinsertion date, prior deletion record, verification source, and consumer notice",
+    factualBasis:
+      "information previously removed may have reappeared without documented certification of accuracy or notice to the consumer",
+    evidenceToCompare:
+      "prior deletion/correction notice, current disclosure, reinsertion date, furnisher certification or source record, and bureau notice records",
+    requestedCorrection:
+      "remove the reinserted item unless the bureau can provide the required verification basis and notice trail, and identify the source that caused the reinsertion",
+  },
+  bureau_access_violation: {
+    disputedFields: "hard inquiry, soft inquiry, access date, requesting entity, permissible purpose, and consumer authorization",
+    factualBasis:
+      "a bureau file access or inquiry may not be tied to a valid application, account review, collection purpose, consumer request, or other permissible basis",
+    evidenceToCompare:
+      "inquiry record, requesting entity identity, application/authorization record, account-review basis, collection placement record, and security-freeze status if applicable",
+    requestedCorrection:
+      "remove or suppress unauthorized inquiries and provide the requesting entity, purpose, date, and source authorization for any access that remains",
+  },
+  furnisher_reaging_violation: {
+    disputedFields: "date of first delinquency, date of last activity, opened date, reported date, charge-off date, and payment history chronology",
+    factualBasis:
+      "the reported dates may make the delinquency appear newer than supported by the original account chronology",
+    evidenceToCompare:
+      "original delinquency records, payment history, charge-off records, account statements, collection transfer records, and prior bureau disclosures",
+    requestedCorrection:
+      "restore the documented original delinquency chronology, correct any re-aged date fields, and delete/suppress the tradeline if the aging basis cannot be verified",
+  },
+  temporal_manipulation: {
+    disputedFields: "opened date, closed date, last activity date, last payment date, reported date, and date of first delinquency",
+    factualBasis:
+      "one or more account dates may conflict with each other or with the documented account sequence",
+    evidenceToCompare:
+      "account-opening records, monthly statements, payment records, closure records, collection transfer records, and bureau reporting history",
+    requestedCorrection:
+      "correct each inconsistent date field to match the source chronology and provide source records for any date that remains disputed",
+  },
+  account_status_inconsistency: {
+    disputedFields: "account status, open/closed indicator, balance, past-due amount, payment rating, and collection/charge-off status",
+    factualBasis:
+      "the account status may conflict with balance, closure, payment, collection, or charge-off fields in the same disclosure or across reporting periods",
+    evidenceToCompare:
+      "current and prior disclosures, creditor account statements, closure records, payment records, charge-off records, and furnisher status-code history",
+    requestedCorrection:
+      "correct the status and related balance/payment fields so they agree with the source records, or suppress any unsupported status field",
+  },
+  furnisher_status_code_mismatch: {
+    disputedFields: "payment rating, status code, narrative status, account type, responsibility code, and balance",
+    factualBasis:
+      "the furnisher's coded status may not match the plain-language account status, balance, payment history, or responsibility shown elsewhere",
+    evidenceToCompare:
+      "furnisher reporting history, account statements, payment ledger, Metro 2-style field mapping, and bureau disclosure narrative",
+    requestedCorrection:
+      "align the status code and narrative status with the documented account state and provide source verification for any retained code",
+  },
+  collector_license_failure: {
+    disputedFields: "collector identity, collection authority, jurisdiction, collection status, and reporting authority",
+    factualBasis:
+      "the collector reporting or collecting the account may not have documented authority or licensing for the consumer's jurisdiction and activity",
+    evidenceToCompare:
+      "collector license records, jurisdiction records, collection assignment records, creditor placement records, and bureau reporting history",
+    requestedCorrection:
+      "identify the licensed collector and authority for reporting, correct the collector identity/status, and delete/suppress reporting if authority cannot be verified",
+  },
+  collector_unauthorized_fees: {
+    disputedFields: "reported balance, fees, interest, collection costs, past-due amount, and itemized debt total",
+    factualBasis:
+      "the collector may be reporting fees, interest, or collection costs that are not supported by contract, judgment, statute, or account records",
+    evidenceToCompare:
+      "original agreement, judgment if any, itemized debt statement, payment ledger, fee schedule, collector balance calculation, and settlement records",
+    requestedCorrection:
+      "remove unsupported fees/interest/costs, correct the itemized balance, and provide source authority for every amount that remains",
+  },
+  collector_duplicate_reporting: {
+    disputedFields: "duplicate tradeline, collector identity, account number, original creditor, balance, and collection status",
+    factualBasis:
+      "the same debt may be reported more than once by the same collector, successor collector, or overlapping collection tradelines",
+    evidenceToCompare:
+      "all related tradelines, original creditor records, account numbers, assignment dates, collector placement records, and balance itemizations",
+    requestedCorrection:
+      "remove duplicate reporting, identify the single verified reporting party if any, and correct balances/statuses so the obligation is not overstated",
+  },
+  collector_payment_acknowledgment_violation: {
+    disputedFields: "payment credits, settlement status, paid/closed status, balance, past-due amount, and last payment date",
+    factualBasis:
+      "payments, settlements, credits, or acknowledgments may not be reflected in the current balance or status",
+    evidenceToCompare:
+      "payment receipts, bank records, cancelled cheques, settlement letters, creditor/collector ledger, and updated account statements",
+    requestedCorrection:
+      "apply documented payments or settlements, correct balance/status/date fields, and remove any unsupported outstanding amount",
+  },
+  response_mov_missing: {
+    disputedFields: "method of verification, furnisher identity, source documents, verification date, and retained disputed fields",
+    factualBasis:
+      "the response may state that the item was verified without explaining how, by whom, or against which source records",
+    evidenceToCompare:
+      "bureau response, furnisher response, ACDV or equivalent verification record, source documents, and consumer dispute exhibits",
+    requestedCorrection:
+      "provide the method of verification and source basis for each retained field, or complete a new reinvestigation and correct/delete unverifiable data",
+  },
+  response_incomplete: {
+    disputedFields: "unanswered disputed fields, requested corrections, submitted evidence, and written dispute findings",
+    factualBasis:
+      "the response may address only part of the dispute and omit one or more disputed fields, exhibits, or requested corrections",
+    evidenceToCompare:
+      "the consumer's dispute letter, exhibit index, bureau response, furnisher response, and updated disclosure",
+    requestedCorrection:
+      "respond to each disputed field separately, identify the evidence reviewed, and correct/delete any field not supported by source records",
+  },
+  response_no_documentation: {
+    disputedFields: "source documents, account contract, payment ledger, assignment records, balance records, and verification support",
+    factualBasis:
+      "the response may confirm the item without producing or describing documents sufficient to verify the disputed reporting",
+    evidenceToCompare:
+      "source contracts, statements, payment ledger, assignment records, creditor/collector correspondence, and bureau/furnisher verification notes",
+    requestedCorrection:
+      "produce or describe the source documentation relied on for each retained field, and delete/suppress any item that cannot be documented",
+  },
+  response_address_mismatch: {
+    disputedFields: "consumer address, account address, response mailing address, identity match, and mixed-file indicators",
+    factualBasis:
+      "the response or account may rely on an address that does not match the consumer's identity or file history",
+    evidenceToCompare:
+      "government ID, address proof, bureau personal information section, account application address, response envelope/address, and prior disclosures",
+    requestedCorrection:
+      "correct address-linked identity data, investigate mixed-file risk, and suppress accounts or responses tied to an unverifiable address match",
+  },
+  response_unauthorized: {
+    disputedFields: "authorization source, responding entity, account ownership, consent record, and furnisher authority",
+    factualBasis:
+      "the response may rely on an entity or authorization that does not match the consumer, account, or consent evidence",
+    evidenceToCompare:
+      "consumer authorization records, creditor/furnisher identity records, account application, consent withdrawal records, and dispute response source",
+    requestedCorrection:
+      "identify the authorized source, correct account ownership or authorization fields, and suppress any reporting not tied to valid authority",
+  },
+  disclosure_deficiency: {
+    disputedFields: "consumer disclosure content, source information, creditor/furnisher identity, rights notices, and omitted account fields",
+    factualBasis:
+      "the disclosure may be missing required information needed to understand, verify, or dispute the reported data",
+    evidenceToCompare:
+      "the complete consumer disclosure, raw report pages, bureau source-information records, account tradeline details, and rights-notice text",
+    requestedCorrection:
+      "provide a complete disclosure, identify the source of each disputed item, and correct any account fields that cannot be fully disclosed or verified",
+  },
+  cross_entity_discrepancy: {
+    disputedFields: "same-account balance, status, dates, ownership, payment history, and collector/furnisher identity across entities",
+    factualBasis:
+      "the same account may be reported differently by bureaus, furnishers, collectors, or source documents",
+    evidenceToCompare:
+      "Equifax disclosure, TransUnion disclosure, creditor records, collector records, source statements, and prior dispute responses",
+    requestedCorrection:
+      "resolve the discrepancy to the documented source value, identify the entity supplying each value, and correct/delete any unsupported version",
+  },
+  multiple_collector_violation: {
+    disputedFields: "collector identity, duplicate collector tradelines, account ownership, assignment date, balance, and collection status",
+    factualBasis:
+      "more than one collector may be reporting or validating the same obligation without a clear current owner or assignment trail",
+    evidenceToCompare:
+      "collector assignment records, creditor placement records, duplicate tradelines, collector correspondence, account numbers, and balance itemizations",
+    requestedCorrection:
+      "identify the single current reporting party if verified, remove duplicate collector reporting, and correct any overstated balance or status",
+  },
+  phantom_debt_unverifiable: {
+    disputedFields: "creditor identity, account number, original contract, assignment chain, balance, and consumer obligation",
+    factualBasis:
+      "the account may not be traceable to a valid original creditor, contract, purchase/assignment record, or consumer obligation",
+    evidenceToCompare:
+      "original creditor records, signed agreement or application, statements, assignment records, itemized balance, and collector validation documents",
+    requestedCorrection:
+      "verify the debt from original source documents or delete/suppress the tradeline and any related collection notation",
+  },
+  zombie_debt_resurrection: {
+    disputedFields: "reappeared account, reporting date, last activity date, collection status, balance, and prior closure/deletion status",
+    factualBasis:
+      "old, deleted, settled, paid, or otherwise resolved debt may have reappeared or been updated without a current verification basis",
+    evidenceToCompare:
+      "prior disclosures, deletion/correction notices, settlement or payment records, last activity records, assignment records, and current disclosure",
+    requestedCorrection:
+      "remove the resurrected reporting unless the bureau can document a current permissible reporting basis and accurate date chronology",
+  },
+  stale_reporting_failure: {
+    disputedFields: "obsolete account status, reporting date, date of first delinquency, date closed, last activity date, and retention-period basis",
+    factualBasis:
+      "outdated or obsolete information may still be present after the age or retention period supported by the account chronology",
+    evidenceToCompare:
+      "first delinquency records, closure records, last payment/activity records, prior disclosures, and statutory retention references",
+    requestedCorrection:
+      "correct obsolete dates/statuses and delete/suppress any reporting that is too old or cannot be tied to a valid retention basis",
+  },
+  credit_limit_manipulation: {
+    disputedFields: "credit limit, high credit, balance, utilization-related fields, account type, and reported status",
+    factualBasis:
+      "credit limit or high-credit values may be missing, understated, overstated, or changed in a way that distorts account utilization",
+    evidenceToCompare:
+      "credit agreements, monthly statements, limit-change notices, high-credit records, balance history, and bureau tradeline fields",
+    requestedCorrection:
+      "correct the limit/high-credit fields to the documented source value or suppress unsupported utilization-affecting fields",
+  },
+  closed_account_balance_inflation: {
+    disputedFields: "closed status, balance, past-due amount, date closed, charge-off amount, and transfer/sale status",
+    factualBasis:
+      "a closed, transferred, paid, discharged, or sold account may still show an inflated balance or past-due amount",
+    evidenceToCompare:
+      "closure records, final statements, transfer/sale records, payment records, charge-off records, and collector assignment records",
+    requestedCorrection:
+      "correct the balance/status combination to match the closure or transfer records and suppress any unsupported balance",
+  },
+  last_activity_date_manipulation: {
+    disputedFields: "last activity date, last payment date, reported date, date of first delinquency, and account aging",
+    factualBasis:
+      "the last activity date may have been moved or reported in a way that affects age, retention, or collection interpretation",
+    evidenceToCompare:
+      "payment records, transaction ledger, monthly statements, charge-off records, collection placement records, and prior disclosures",
+    requestedCorrection:
+      "restore the documented last activity/payment chronology and delete/suppress any date field that cannot be verified",
+  },
+  consumer_statement_suppression: {
+    disputedFields: "consumer statement, dispute notation, explanatory comment, statement date, and account comment codes",
+    factualBasis:
+      "a consumer statement or dispute notation may have been omitted, removed, shortened, or not attached to the relevant file item",
+    evidenceToCompare:
+      "consumer statement submission, bureau confirmation, current disclosure, prior disclosure, account comments, and dispute history",
+    requestedCorrection:
+      "add or restore the consumer statement/dispute notation and provide written confirmation of where it appears in the file",
+  },
+  retroactive_history_manipulation: {
+    disputedFields: "historical payment status, month-by-month ratings, status history, reported dates, and correction history",
+    factualBasis:
+      "historical fields may have changed after the fact without supporting account records or a documented correction basis",
+    evidenceToCompare:
+      "prior bureau disclosures, current disclosure, creditor payment ledger, monthly statements, correction history, and furnisher reporting history",
+    requestedCorrection:
+      "restore or correct the historical fields to match source records and identify the source and date of any retroactive change",
+  },
+  payment_history_manipulation: {
+    disputedFields: "monthly payment history, late-payment markers, payment rating, date of last payment, and delinquency sequence",
+    factualBasis:
+      "late-payment history or payment ratings may not match actual payment records or prior reporting",
+    evidenceToCompare:
+      "payment receipts, bank records, monthly statements, creditor ledger, prior disclosures, and furnisher reporting history",
+    requestedCorrection:
+      "correct each inaccurate monthly payment marker and provide source records for any late-payment notation that remains",
+  },
+  investigation_rubber_stamp: {
+    disputedFields: "investigation procedure, furnisher verification, disputed fields reviewed, evidence considered, and response rationale",
+    factualBasis:
+      "the investigation may appear conclusory or automated because it confirms reporting without addressing the specific field-level evidence",
+    evidenceToCompare:
+      "the dispute package, exhibit index, bureau investigation notes, furnisher response, method-of-verification record, and final response",
+    requestedCorrection:
+      "perform a substantive field-level reinvestigation, identify records reviewed for each disputed field, and correct/delete unsupported reporting",
+  },
+  furnisher_joint_account_violation: {
+    disputedFields: "account responsibility, joint/individual/co-signer status, ownership, authorization, and balance responsibility",
+    factualBasis:
+      "the consumer may be reported as jointly responsible, co-signer, or primary obligor when source records do not support that relationship",
+    evidenceToCompare:
+      "credit application, account agreement, signature records, authorized user records, creditor responsibility code, and bureau tradeline responsibility field",
+    requestedCorrection:
+      "correct the responsibility code and ownership status, remove unsupported liability reporting, and provide the source agreement if responsibility remains",
+  },
+  furnisher_authorized_user_misrepresentation: {
+    disputedFields: "authorized user status, responsibility code, ownership status, balance liability, and payment history attribution",
+    factualBasis:
+      "an authorized-user relationship may be reported as if the consumer is contractually liable or may fail to distinguish the primary obligor",
+    evidenceToCompare:
+      "account agreement, authorized-user records, primary cardholder records, responsibility codes, statements, and bureau tradeline ownership fields",
+    requestedCorrection:
+      "correct the account to accurately show authorized-user status or remove unsupported responsibility/balance reporting",
+  },
+  furnisher_post_dispute_retaliation: {
+    disputedFields: "post-dispute status changes, balance changes, late markers, collection updates, reinsertion, and reporting dates",
+    factualBasis:
+      "reporting may have worsened, reappeared, or changed after a dispute without a documented account event supporting the change",
+    evidenceToCompare:
+      "pre-dispute disclosure, dispute submission, post-dispute disclosure, furnisher updates, account ledger, and correction/reinsertion records",
+    requestedCorrection:
+      "reverse unsupported post-dispute changes, identify the source event for any retained change, and correct/delete unverifiable updated reporting",
+  },
+  collector_statute_revival_attempt: {
+    disputedFields: "last payment date, acknowledgment date, limitation-period status, collection status, balance, and reporting date",
+    factualBasis:
+      "collector reporting or communication may imply that an old debt was revived or remains enforceable without source evidence of a valid payment or acknowledgment",
+    evidenceToCompare:
+      "payment records, written acknowledgment records, collector letters, limitation-period records, account ledger, and bureau reporting history",
+    requestedCorrection:
+      "correct limitation-period and activity-date fields, remove unsupported revival implications, and suppress reporting that cannot be verified from source chronology",
+  },
 };
 
 const RETENTION_OR_TIME_KEYS = new Set([
@@ -287,7 +574,7 @@ function buildViolationStatutoryGrounds(key: string): string {
     "Applicable provincial consumer reporting authority. Relevant statutory text or authority excerpt: consumer reporting information must be based on reasonable procedures, source evidence, and the best evidence reasonably available. Application to this account: the bureau should verify the disputed field or account condition against the underlying source records and correct any inaccurate, incomplete, or unsupported reporting.";
 
   if (key === "bankruptcy_discharge_violation") {
-    return `Statutory grounds relied on for this finding:
+    return `Statutory grounds relied on for this dispute:
 
 1. Bankruptcy and Insolvency Act, s.178(2). Relevant statutory text or authority excerpt: "${BIA_DISCHARGE_TEXT}" Application to this account: post-discharge reporting must accurately reflect the legal status of any provable claim.
 
@@ -295,7 +582,7 @@ function buildViolationStatutoryGrounds(key: string): string {
   }
 
   if (ACCESS_OR_IDENTITY_KEYS.has(key)) {
-    return `Statutory grounds relied on for this finding:
+    return `Statutory grounds relied on for this dispute:
 
 1. PIPEDA, Schedule 1, Principle 4.3. Relevant statutory text or authority excerpt: "${PIPEDA_CONSENT_TEXT}" Application to this account: access, disclosure, account ownership, or identity-theft handling must be supported by consent, authorization, or a lawful exception.
 
@@ -305,7 +592,7 @@ function buildViolationStatutoryGrounds(key: string): string {
   }
 
   if (RETENTION_OR_TIME_KEYS.has(key)) {
-    return `Statutory grounds relied on for this finding:
+    return `Statutory grounds relied on for this dispute:
 
 1. PIPEDA, Schedule 1, Principle 4.5. Relevant statutory text or authority excerpt: "${PIPEDA_RETENTION_TEXT}" Application to this account: obsolete or time-sensitive reporting must be supported by a valid retention and reporting-period basis.
 
@@ -315,7 +602,7 @@ function buildViolationStatutoryGrounds(key: string): string {
   }
 
   if (RESPONSE_OR_INVESTIGATION_KEYS.has(key)) {
-    return `Statutory grounds relied on for this finding:
+    return `Statutory grounds relied on for this dispute:
 
 1. PIPEDA, Schedule 1, Principle 4.10. Relevant statutory text or authority excerpt: "${PIPEDA_CHALLENGE_TEXT}" Application to this account: the dispute response should address the consumer's specific challenge and show the basis for maintaining, correcting, or updating the reporting.
 
@@ -325,7 +612,7 @@ function buildViolationStatutoryGrounds(key: string): string {
   }
 
   if (COLLECTION_KEYS.has(key)) {
-    return `Statutory grounds relied on for this finding:
+    return `Statutory grounds relied on for this dispute:
 
 1. PIPEDA, Schedule 1, Principle 4.6. Relevant statutory text or authority excerpt: "${PIPEDA_ACCURACY_TEXT}" Application to this account: collection-account reporting must accurately reflect the creditor, balance, assignment, payment, fee, and ownership evidence used to make decisions about the consumer.
 
@@ -333,14 +620,14 @@ function buildViolationStatutoryGrounds(key: string): string {
   }
 
   if (key === "consent_withdrawal_not_honored") {
-    return `Statutory grounds relied on for this finding:
+    return `Statutory grounds relied on for this dispute:
 
 1. PIPEDA, Schedule 1, Principle 4.3.8. Relevant statutory text or authority excerpt: "An individual may withdraw consent at any time, subject to legal or contractual restrictions and reasonable notice, and the organization must inform the individual of the implications." Application to this account: continued reporting after withdrawal must be reviewed against the consent record and any lawful basis for continued processing.
 
 2. ${provincialReference}`;
   }
 
-  return `Statutory grounds relied on for this finding:
+  return `Statutory grounds relied on for this dispute:
 
 1. PIPEDA, Schedule 1, Principle 4.6. Relevant statutory text or authority excerpt: "${PIPEDA_ACCURACY_TEXT}" Application to this account: the disputed reporting must be accurate, complete, and current for the purpose for which the information is used.
 
@@ -402,7 +689,19 @@ function buildProvincialTemplate([
 
 function buildViolationTemplate(key: string): DefaultLetterTemplate {
   const label = titleFromKey(key);
-  const focus = VIOLATION_FOCUS[key] ?? "the account may contain a compliance-significant reporting issue";
+  const detail = VIOLATION_NARRATIVE_DETAILS[key] ?? {
+    disputedFields: "accuracy, completeness, and verification of the disputed account data",
+    factualBasis: "the account contains a specific reporting problem that should be verified against source records",
+    evidenceToCompare: "the consumer disclosure, furnisher source records, and supporting evidence",
+    requestedCorrection:
+      "correct inaccurate or incomplete fields and delete/suppress any information that cannot be verified from source documentation",
+  };
+  const statutoryGrounds = `${buildViolationStatutoryGrounds(key)}
+
+Specific application to this dispute:
+- Exact disputed field(s): ${detail.disputedFields}.
+- Factual trigger: ${detail.factualBasis}.
+- Evidence to compare: ${detail.evidenceToCompare}.`;
 
   return {
     category: "violation_narrative",
@@ -410,10 +709,10 @@ function buildViolationTemplate(key: string): DefaultLetterTemplate {
     label,
     subject: `Formal Dispute and Reinvestigation Request - ${label}`,
     introduction:
-      `This is a formal dispute and reinvestigation request because ${focus}. The account and exact disputed fields are identified below, and I am asking the bureau to compare the disputed data against source records, supporting evidence, and the consumer disclosure before the information continues to be reported.`,
-    statutoryGrounds: buildViolationStatutoryGrounds(key),
+      `This dispute concerns ${label}. Exact disputed field(s): ${detail.disputedFields}. Factual basis: ${detail.factualBasis}. Evidence to compare: ${detail.evidenceToCompare}. Please reinvestigate these specific fields before the information continues to be reported.`,
+    statutoryGrounds,
     requestedAction:
-      "Please open a reinvestigation for this account. Please verify each exact disputed field against the furnisher, creditor, collection, payment, assignment, court, insolvency, and bureau source records as applicable; correct each inaccurate, incomplete, stale, internally inconsistent, or unsupported field; delete or suppress any field or tradeline that cannot be verified from source documentation; mark the account disputed while the review is pending where supported by bureau process; update my consumer disclosure; and send written findings explaining the result, the verification method, and the source records relied on for any item that remains.",
+      `Please open a reinvestigation focused on these exact disputed field(s): ${detail.disputedFields}. ${detail.requestedCorrection}. Compare the reporting against ${detail.evidenceToCompare}; provide the furnisher/source identity, method of verification, and source records relied on for any field that remains; delete or suppress any field, inquiry, notation, or tradeline that cannot be verified from source documentation; mark the account disputed while the review is pending where supported by bureau process; update my consumer disclosure; and send written findings explaining each retained, corrected, deleted, or suppressed item.`,
     statutoryTimeframe: null,
     consumerStatementRight: null,
     certification: null,
@@ -428,7 +727,7 @@ export function getDefaultLetterTemplates(): DefaultLetterTemplate[] {
   return [
     ...BUREAU_TEMPLATES,
     ...PROVINCIAL_TEMPLATES.map(buildProvincialTemplate),
-    ...Object.keys(VIOLATION_FOCUS).map(buildViolationTemplate),
+    ...Object.keys(VIOLATION_NARRATIVE_DETAILS).map(buildViolationTemplate),
   ].sort((left, right) =>
     `${left.category}:${left.templateKey}`.localeCompare(`${right.category}:${right.templateKey}`)
   );
