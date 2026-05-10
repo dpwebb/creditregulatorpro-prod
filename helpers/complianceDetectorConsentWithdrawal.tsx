@@ -56,7 +56,7 @@ export async function detectConsentWithdrawalNotHonored(
           detectedValue: "Reporting continued after consent withdrawal",
           regulationIds: ["PIPEDA_4_3_8"],
         },
-        recommendedAction: "Demand the immediate deletion of this account, as continuing to process your data after consent withdrawal is a violation of PIPEDA.",
+        recommendedAction: "Request verification of the continued reporting and ask for correction or removal if the furnisher cannot support processing after consent withdrawal.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
       });

@@ -24,18 +24,18 @@ export const KBCompliance = () => {
     <div className={styles.container}>
       <KnowledgeBaseSection
         id="compliance-scanner"
-        title="35 Built-in Checks"
+        title="Compliance Finding Checks"
         icon={ScanSearch}
         badge="Auto-Detection"
         badgeVariant="primary"
       >
         <p>
-          Our built-in checks are the heart of Credit Regulator Pro. It automatically looks at every account using 35 rules to find errors. You can use these errors to ask for corrections or deletions.
+          The compliance scanner is the heart of Credit Regulator Pro. It checks each account against authority-backed finding categories and supporting runtime rules. Use those findings to ask for verification, correction, or removal when the reporting cannot be supported.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
           <AccordionItem value="scanner-modules">
-            <AccordionTrigger>Complete Detection Module List</AccordionTrigger>
+            <AccordionTrigger>Core Detection Areas</AccordionTrigger>
             <AccordionContent>
               <div className={styles.moduleGrid}>
                 <div className={styles.moduleCard}>
@@ -191,7 +191,7 @@ export const KBCompliance = () => {
                 <div className={styles.moduleCard}>
                   <Badge variant="error">26</Badge>
                   <h4>Date Moving</h4>
-                  <p>Finds when a company illegally moves a date forward.</p>
+                  <p>Finds date changes that may make an old account look newer than the source evidence supports.</p>
                 </div>
 
                 <div className={styles.moduleCard}>
@@ -255,7 +255,7 @@ export const KBCompliance = () => {
             <AccordionTrigger>Format Check System</AccordionTrigger>
             <AccordionContent>
               <p>
-                Credit Regulator Pro includes format checks to make sure companies follow the rules.
+                Credit Regulator Pro includes format checks to review whether account data follows supported reporting standards.
               </p>
               <ul>
                 <li>
@@ -274,10 +274,10 @@ export const KBCompliance = () => {
               <div className={styles.note}>
                 <Badge variant="info">TECHNICAL</Badge>
                 <p>
-                  We show you exactly what rule was broken, how serious it is, and what the value should be.
+                  We show the rule or standard involved, how serious the finding is, and what value appears inconsistent.
                 </p>
                 <p>
-                  All errors we find are saved in your account. We show you how sure we are, explain the error simply, and tell you what to do next.
+                  Findings are saved in your account. We show confidence, explain the issue simply, and suggest next steps.
                 </p>
               </div>
             </AccordionContent>
@@ -287,10 +287,10 @@ export const KBCompliance = () => {
             <AccordionTrigger>Collection Agency Rules</AccordionTrigger>
             <AccordionContent>
               <p>
-                We make sure collection agencies follow local laws. When they break these rules, it gives you a strong reason to challenge them.
+                We review collection accounts against local rules and available source data. When the record appears unsupported or inconsistent, it gives you a stronger reason to challenge it.
               </p>
               <h4>Time Limits by Province</h4>
-              <p className={styles.subText}>They cannot collect or report debts after these time limits (starting from the first late date):</p>
+              <p className={styles.subText}>Reporting and collection limits vary by province and account facts. These common limitation windows are used as review anchors:</p>
               <div className={styles.tableWrapper}>
                 <table className={styles.simpleTable}>
                   <thead>
@@ -309,7 +309,7 @@ export const KBCompliance = () => {
               
               <h4>Important Rules</h4>
               <ul>
-                <li><strong>Proving the Debt:</strong> Collectors must prove you owe the debt within 30 days if you ask, or they must stop collecting.</li>
+                <li><strong>Supporting the Debt:</strong> Collectors should be able to provide records supporting ownership, balance, and collection authority when challenged.</li>
                 <li><strong>Warning Letter:</strong> They must send you a letter before adding the debt to your credit report.</li>
                 <li><strong>Who You Owe:</strong> They must tell you who originally owned the debt.</li>
                 <li><strong>While Disputing:</strong> They cannot say the debt is "active" if you are currently challenging it.</li>
@@ -328,7 +328,7 @@ export const KBCompliance = () => {
                 <li><strong>User Explanation:</strong> A simple explanation of what went wrong.</li>
                 <li><strong>Technical Details:</strong> The raw data we found.</li>
                 <li><strong>Suggested Action:</strong> The best way to challenge the error.</li>
-                <li><strong>Law Broken:</strong> Which local or federal law they broke.</li>
+                <li><strong>Authority Reference:</strong> Which local, federal, or reporting-standard reference supports the finding.</li>
               </ul>
             </AccordionContent>
           </AccordionItem>
@@ -465,7 +465,7 @@ export const KBCompliance = () => {
         badge="Live Feed"
       >
         <p>
-          Credit Regulator Pro watches for any changes to Canadian credit laws.
+          Credit Regulator Pro tracks Canadian credit-law and reporting-rule changes for admin review.
         </p>
         <Accordion type="single" collapsible className={styles.accordion}>
           <AccordionItem value="update-process">

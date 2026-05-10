@@ -80,7 +80,7 @@ export const deleteEvidence = async (attachmentId: number) => {
 };
 
 /**
- * Generates a comprehensive court-ready PDF evidence package.
+ * Generates a comprehensive PDF evidence package.
  * Includes cover page, executive summary, chain of custody, challenge documentation,
  * evidence attachments index, statutory references, and appendices.
  */

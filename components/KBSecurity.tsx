@@ -22,7 +22,7 @@ export const KBSecurity = () => {
       >
         <p>
           Credit Regulator Pro uses SHA-256 cryptographic hash chaining to create an immutable evidence trail
-          that is mathematically verifiable and court-admissible.
+          that is mathematically verifiable.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -48,11 +48,11 @@ export const KBSecurity = () => {
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="legal-admissibility">
-            <AccordionTrigger>Legal Admissibility</AccordionTrigger>
+          <AccordionItem value="integrity-verification">
+            <AccordionTrigger>Integrity Verification</AccordionTrigger>
             <AccordionContent>
               <p>
-                Hash chains provide court-admissible proof that:
+                Hash chains provide a verifiable record showing whether:
               </p>
               <ul>
                 <li>Evidence has not been altered since creation</li>
@@ -61,7 +61,7 @@ export const KBSecurity = () => {
               </ul>
               <p>
                 Evidence packages include hash verification tables allowing independent validation
-                by forensic experts or opposing counsel.
+                by reviewers, experts, or counsel.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -233,7 +233,7 @@ export const KBSecurity = () => {
               <ul>
                 <li>Written to append-only database table</li>
                 <li>Retained for the duration of the data retention period (1 year)</li>
-                <li>Included in evidence packages for legal proceedings</li>
+                <li>Included in evidence packages for compliance review or escalation</li>
               </ul>
               <p>
                 If a log write fails, the system logs to console but does not fail the main

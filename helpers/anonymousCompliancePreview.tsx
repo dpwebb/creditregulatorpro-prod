@@ -129,9 +129,9 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         if (isExpiredAsOfReport) {
           tradelineVerifiedProblems.push({
             type: "sol_expired",
-            title: `${creditorName} — Expired Debt`,
-            detail: `${creditorName} is past the legal reporting limit for ${province}. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
-            solution: `This debt has expired under ${province} law (${expiryResult.statuteReference}). We can generate a legal removal letter demanding its deletion.`,
+            title: `${creditorName} - Possible Expired Reporting Item`,
+            detail: `${creditorName} appears past the reporting-limit window for ${province}. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
+            solution: `The dates suggest this item may be unsupported under ${province} law (${expiryResult.statuteReference}). We can draft a review letter asking for verification, correction, or removal if the reporting cannot be supported.`,
             urgency: "expired",
             severity: 100
           });
@@ -141,8 +141,8 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
             tradelineSupportingProblems.push({
               type: "sol_approaching",
               title: `${creditorName} — Expiring Soon`,
-              detail: `${creditorName} is close to its legal reporting limit. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
-              solution: `This expires in ${monthsRemaining} months. We'll track it and auto-generate removal paperwork when it's time.`,
+              detail: `${creditorName} is close to the reporting-limit window. Evidence: reference date ${formatEvidenceDate(referenceDate)} and expiry date ${formatEvidenceDate(expiryResult.expiryDate)}.`,
+              solution: `This appears to reach the reporting-limit window in ${monthsRemaining} months. We can track the date and prepare review paperwork when action is appropriate.`,
               urgency: "approaching",
               severity: 90
             });
@@ -178,8 +178,8 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
       tradelineVerifiedProblems.push({
         type: "date_logic",
         title: `${creditorName} — Impossible Dates`,
-        detail: `The dates on ${creditorName} do not make sense (like closing before opening). This is illegal to report.`,
-        solution: "These dates are logically impossible. We can file a dispute citing inaccurate reporting.",
+        detail: `The dates on ${creditorName} do not make sense, such as closing before opening. This is an accuracy finding that should be reviewed against the source report.`,
+        solution: "These dates appear logically inconsistent. We can draft a dispute asking the bureau or furnisher to verify and correct the reporting.",
         urgency: "violation",
         severity: 85
       });
@@ -194,7 +194,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         type: "status_inconsistency",
         title: `${creditorName} — Account Status Error`,
         detail: `${creditorName} shows it was paid or written off, but still shows a balance. This lowers your score.`,
-        solution: "This is a reporting error. We can file a formal correction dispute.",
+        solution: "This appears inconsistent. We can draft a formal correction dispute and ask for supporting records.",
         urgency: "violation",
         severity: 75
       });
@@ -205,8 +205,8 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
       tradelineSupportingProblems.push({
         type: "collection_account",
         title: `${creditorName} — Collection Account Found`,
-        detail: `${creditorName} is reporting this debt. They often lack the legal proof to do so.`,
-        solution: "Under Canadian law, they must prove you owe this. We can challenge the debt validation.",
+        detail: `${creditorName} is reporting this debt. Collection accounts often need supporting records to confirm ownership, balance, and reporting authority.`,
+        solution: "We can draft a validation request asking for the records that support the collection reporting.",
         urgency: "warning",
         severity: 70
       });
@@ -218,7 +218,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         type: "past_due",
         title: `${creditorName} — Past Due Balance`,
         detail: `${creditorName} shows a past due amount of ${formatCurrency(pastDue)}. Even small errors here hurt your credit score.`,
-        solution: "If this amount is wrong, we can dispute it. Our deep scan checks 200+ rules to find errors.",
+        solution: "If this amount is wrong, we can dispute it. The full scan checks authority-backed finding categories and runtime rules for accuracy issues.",
         urgency: "warning",
         severity: 60
       });
@@ -230,7 +230,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
         type: "derogatory_status",
         title: `${creditorName} — Negative Mark Found`,
         detail: `${creditorName} has a negative status. This is hurting your overall credit profile.`,
-        solution: "We can analyze this for hidden violations and generate dispute letters.",
+        solution: "We can analyze this for evidence-backed compliance findings and generate draft dispute letters for your review.",
         urgency: "warning",
         severity: 65
       });
@@ -257,7 +257,7 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     }
   }
 
-  // 5. Always show every verified violation. Softer signals can fill remaining preview space.
+  // 5. Always show every priority finding. Softer signals can fill remaining preview space.
   const sortedVerifiedProblems = sortProblemsBySeverity(verifiedProblems);
   const supportingSlots = Math.max(0, 5 - sortedVerifiedProblems.length);
   const previewProblems = [
@@ -270,8 +270,8 @@ export function generateAnonymousPreview(parseResult: ComprehensiveParseResult):
     return [{
       type: "info_deep_scan",
       title: "Ready for Deep Scan",
-      detail: "Your surface data looks clean, but errors are often hidden deep in the details.",
-      solution: "Our deep scan checks 200+ rules to find hidden errors. We can help ensure your report is 100% accurate.",
+      detail: "The preview did not find high-priority signals in the extracted surface data, but a full account scan may still identify evidence-backed compliance findings.",
+      solution: "The full scan checks authority-backed finding categories and supporting runtime rules to help you review accuracy. It does not guarantee a perfect report or a specific legal outcome.",
       urgency: "info",
       severity: 10
     }];

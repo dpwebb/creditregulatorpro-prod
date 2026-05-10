@@ -22,11 +22,11 @@ import {
 export const section1 = (): Content[] => [
   sectionHeader(1, "Getting Started"),
   subHeader("Welcome to Credit Regulator Pro: Hostile Credit Bureau Audit Engine"),
-  body("Welcome to Credit Regulator Pro, the specialized hostile credit bureau audit engine designed exclusively for the Canadian credit reporting landscape. This system takes an adversarial stance against credit bureaus, creditors, and collectors by systematically challenging procedural compliance without ever admitting debt validity."),
-  body("The system is built upon a rigid, unyielding framework that uses the Personal Information Protection and Electronic Documents Act (PIPEDA) and provincial Consumer Reporting Acts to challenge unsupported derogatory tradelines. By engaging the proprietary 35-Module Compliance Scanner, the software detects credit reporting issues and authority-mapped compliance findings that manual auditors miss."),
+  body("Welcome to Credit Regulator Pro, a Canadian credit-report review and challenge platform. The system helps users review supported Canadian reports, document possible compliance findings, and prepare evidence-based requests without admitting debt validity."),
+  body("The system uses PIPEDA, provincial Consumer Reporting Acts, reporting standards, and local authority mappings to help challenge unsupported derogatory tradelines. The compliance scanner detects credit reporting issues and authority-mapped findings for user review."),
 
-  subHeader("35-Module Compliance Scanner"),
-  body("Credit Regulator Pro automatically scans every tradeline using 35 specialized detection modules to identify compliance findings. All detected findings are automatically logged with confidence scores, user-friendly explanations, and recommended actions. Here is the exhaustive list of active detection modules:"),
+  subHeader("Compliance Finding Scanner"),
+  body("Credit Regulator Pro automatically scans every tradeline using supported detection areas, authority-backed finding categories, and runtime rules. Detected findings are logged with confidence scores, user-friendly explanations, and recommended actions for review. This list summarizes the core detection areas:"),
   ...MODULES_DATA.map((mod, i) => createNumberedModule(i + 1, mod.title, mod.desc, mod.sev)),
 
   subHeader("Canadian Policy Enforcement"),
@@ -36,7 +36,7 @@ export const section1 = (): Content[] => [
   ),
   bulletList([
     { text: ["Region Lock: Canada Only.", " All data storage and processing is strictly limited to Canadian regions. Cross-border transfer is blocked. The AWS environment is rigidly set to ca-central-1. US Bureau rejection is built into the ingestion engine."] },
-    { text: ["Data Retention: 1 Year.", " Evidence and personal data are retained for exactly 1 year from the date of creation or last action. Purging scripts run automatically. You must export court-ready packets before this expiration."] },
+    { text: ["Data Retention: 1 Year.", " Evidence and personal data are scheduled for retention for up to 1 year from the date of creation or last action. Export needed packets before expiration and verify purge jobs are running as expected."] },
     { text: ["Terminal Label Progression:", " Disputes must follow the strict 4-phase progression. You cannot circumvent phases. Phase 4 (Procedural Exhaustion) is the final phase of the dispute cycle."] }
   ]),
 
@@ -45,7 +45,7 @@ export const section1 = (): Content[] => [
   bulletList([
     "Compliance Findings: Displays the real-time count of active authority-mapped findings detected across your tradelines.",
     "Active Challenges: Shows the number of obligations currently in the OBLIGATION_PENDING or CHALLENGED states, awaiting creditor or bureau response.",
-    "Procedural Exhaustion: Highlights tradelines that have reached Phase 4 of the dispute cycle, making them ripe for legal action or regulatory complaints.",
+    "Procedural Exhaustion: Highlights tradelines that have reached Phase 4 of the dispute cycle, making them candidates for regulatory complaints or outside legal review.",
     "Success Metrics: Aggregates outcomes showing the counts of DELETED, CORRECTED, REMOVED, and UPDATED items, driving your global success rate."
   ]),
 
@@ -53,7 +53,7 @@ export const section1 = (): Content[] => [
   numberedList([
     "Complete Your Profile: Ensure your full legal name, Canadian address, date of birth, and identity documentation are fully uploaded and verified.",
     "Deploy Initial Audit Scan (Upload Report): Ingest your Equifax or TransUnion credit report using the secure upload pipeline.",
-    "Review Compliance Findings: Evaluate the Infraction Findings Panel to see which of the 35 modules triggered an ERROR or WARNING.",
+    "Review Compliance Findings: Evaluate the Infraction Findings Panel to see which supported finding categories triggered an ERROR or WARNING.",
     "Generate Adversarial Packets: Initiate the rotation strategy by launching Phase 1 (Foundational Challenge) packets to target AUTHORITY_TO_REPORT."
   ])
 ];
@@ -91,13 +91,13 @@ export const section2 = (): Content[] => [
   body("The Change Detection system monitors for drift across snapshots, identifying discrepancies between expected and actual data in credit reports. It tracks variations over time without explicit notification from the bureau:"),
   bulletList([
     "Balance Inflation: Detects mathematically impossible increases in debt balances, especially on closed accounts.",
-    "DOFD Changes: Flags illegal Date of First Delinquency re-aging attempts.",
+    "DOFD Changes: Flags Date of First Delinquency changes that may indicate unsupported re-aging.",
     "Status Alterations: Monitors for sudden shifts in account status codes (e.g., from 11 to 97).",
     "Removed/Re-inserted Accounts: Tracks phantom debt that vanishes and reappears, triggering a Bureau Reinsertion Violation."
   ]),
 
   subHeader("Report Artifact Management"),
-  createWarningBox("1-YEAR RETENTION ENFORCED", "Report artifacts are retained for exactly one year from their creation date."),
+  createWarningBox("1-YEAR RETENTION TARGET", "Report artifacts are scheduled for retention for up to one year from their creation date."),
   body("Report Artifacts represent the snapshots of uploaded reports. You can perform inline editing for artifact types and dates. The interface displays expiration statuses with badges and shows 'Not Linked' for artifacts without associated tradelines. Once the 1-year mark is hit, the blob and corresponding rows are irreversibly purged.")
 ];
 
@@ -106,8 +106,8 @@ export const section3 = (): Content[] => [
   subHeader("Definition & Data Model"),
   body("Tradelines represent individual accounts on a credit report. They form the foundational data entity in Credit Regulator Pro, linked to obligations, packets, and evidence events. The model captures balances, payment histories, account designations, and specific industry codes."),
 
-  subHeader("Compliance & 35-Module Scanning"),
-  body("Every tradeline is subjected to the 35-Module Compliance Scanner (see Section 9 for full details). This integration ensures that every data point is cross-referenced with statutory limits and Metro2 standards."),
+  subHeader("Compliance Finding Scanning"),
+  body("Every tradeline is subjected to the Compliance Finding Scanner (see Section 9 for full details). This integration checks available data against statutory limits, mapped authority references, and reporting standards."),
 
   subHeader("Metro2 Validation Rules"),
   body("Credit Regulator Pro validates tradelines against version-aware Metro2 standards. Key validations include:"),
@@ -130,7 +130,7 @@ export const section3 = (): Content[] => [
   ]),
 
   subHeader("Drift Detection & Re-aging"),
-  body("Drift detection spots unnotified changes. A prime example is 'Re-aging', where a furnisher illegally advances the DOFD to keep a derogatory tradeline on the report longer than the provincial limitation allows. The system flags this immediately as a 'Furnisher Re-aging Violation'."),
+  body("Drift detection spots unnotified changes. A prime example is 'Re-aging', where a furnisher appears to advance the DOFD in a way that could keep a derogatory tradeline on the report longer than the available source evidence supports. The system flags this for review as a 'Furnisher Re-aging Violation'."),
 
   subHeader("Compliance Hub Features"),
   body("The tradeline detail page acts as a Compliance Hub. It aggregates:"),
@@ -138,7 +138,7 @@ export const section3 = (): Content[] => [
     "Violation Summary: A comprehensive list of infractions.",
     "Recommended Vectors: AI-driven suggestions for the next dispute phase.",
     "Confidence Scores: 0-100 system certainty metric.",
-    "Technical Details & Statutory Basis: Deep-dive logs into the exact law violated.",
+    "Technical Details & Authority Basis: Deep-dive logs into the source evidence and mapped authority reference.",
     "Action Buttons: One-click dispute packet generation."
   ]),
 
@@ -197,7 +197,7 @@ export const section4 = (): Content[] => [
   ]),
 
   subHeader("Evidence Packaging (Court-Ready PDFs)"),
-  body("When compiling an escalation to a regulatory body, Credit Regulator Pro generates a court-ready PDF containing 7 sections:"),
+  body("When compiling an escalation to a regulatory body, Credit Regulator Pro generates a hash-verified evidence PDF containing 7 sections:"),
   numberedList([
     "Cover Letter & Affidavit of Truth",
     "Table of Contents",
@@ -217,7 +217,7 @@ export const section4 = (): Content[] => [
     "Ensure the entire page is visible, including headers/footers.",
     "Upload responses on the exact day they are received.",
     "Never alter or redact files before uploading (let the system handle parsing).",
-    "Export your court-ready packages locally before the 1-year purge."
+    "Export needed evidence packages locally before the retention purge."
   ])
 ];
 

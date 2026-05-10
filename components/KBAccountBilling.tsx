@@ -73,8 +73,8 @@ export const KBAccountBilling = () => {
         badgeVariant="error"
       >
         <p>
-          In order to legally interact with credit bureaus and creditors, your profile must 
-          be strictly completed.
+          To generate formal letters for credit bureaus and creditors, your profile must
+          be completed.
         </p>
         <Accordion type="single" collapsible className={styles.accordion}>
           <AccordionItem value="requirements">

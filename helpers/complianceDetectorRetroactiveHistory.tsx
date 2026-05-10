@@ -123,7 +123,7 @@ export function detectRetroactiveHistoryManipulation(
               detectedValue: `${oldCode} -> ${newCode}`,
               regulationIds: ["PIPEDA_4_6", "METRO2_PAYMENT_RATING"],
             },
-            recommendedAction: "Dispute this account and demand they revert the illegal retroactive change to your payment history or delete the account.",
+            recommendedAction: "Dispute this account and request correction or removal if the retroactive payment-history change cannot be supported.",
             responsibleEntity: "CREDITOR",
           });
         }

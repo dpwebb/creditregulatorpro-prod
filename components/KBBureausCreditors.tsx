@@ -131,7 +131,7 @@ export const KBBureausCreditors = () => {
                 <li>If all 4 steps are done, mark the challenge as finished.</li>
               </ol>
               <p>
-                This ensures you use every legal option without skipping steps.
+                This ensures you use every available challenge option without skipping steps.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -140,7 +140,7 @@ export const KBBureausCreditors = () => {
             <AccordionTrigger>Tracking Deadlines</AccordionTrigger>
             <AccordionContent>
               <p>
-                Calculates the legal deadline for them to reply based on your province.
+                Calculates the tracked response deadline based on your province and challenge type.
               </p>
               <ul>
                 <li>The deadline depends on what kind of challenge you send.</li>
@@ -179,7 +179,7 @@ export const KBBureausCreditors = () => {
                     <li>"irrelevant"</li>
                   </ul>
                   <p className={styles.deficiency}>
-                    <strong>Problem:</strong> They ignored your legal request.
+                    <strong>Problem:</strong> They ignored your specific request.
                   </p>
                 </div>
 
@@ -206,7 +206,7 @@ export const KBBureausCreditors = () => {
         badge="AUTOMATED"
       >
         <p>
-          Credit Regulator Pro automatically checks all replies to see if they are helpful or legally complete.
+          Credit Regulator Pro checks replies to see whether they address the request, include support, and meet the tracked response deadline.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -219,7 +219,7 @@ export const KBBureausCreditors = () => {
               <ul>
                 <li><strong>Did they answer the question?</strong> Did they address your specific challenge?</li>
                 <li><strong>Did they give proof?</strong> Did they include the documents you asked for?</li>
-                <li><strong>Did they reply on time?</strong> Was the letter received before the legal deadline?</li>
+                <li><strong>Did they reply on time?</strong> Was the letter received before the tracked response deadline?</li>
               </ul>
               <p>
                 If the reply scores poorly, the system will suggest moving to the next step in the dispute process.
@@ -269,13 +269,13 @@ export const KBBureausCreditors = () => {
                 <div className={styles.severityItem}>
                   <Badge variant="error">ERROR</Badge>
                   <p>
-                    A critical error. The data is impossible or breaks a major rule. This is a very strong reason for deletion.
+                    A critical finding. The data appears impossible or unsupported and may justify a correction or removal request.
                   </p>
                 </div>
                 <div className={styles.severityItem}>
                   <Badge variant="warning">WARNING</Badge>
                   <p>
-                    The data is likely incorrect or suspicious. Good for challenging accuracy.
+                    The data appears inconsistent or suspicious. Good for challenging accuracy.
                   </p>
                 </div>
                 <div className={styles.severityItem}>

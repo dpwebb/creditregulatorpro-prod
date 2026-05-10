@@ -72,7 +72,7 @@ export function detectZombieDebtResurrection(
           regulationIds: ["PIPEDA_4_6"],
         },
         recommendedAction:
-          "Demand immediate deletion of this 'Zombie Debt' which has been illegally resurrected on your credit report.",
+          "Request verification of the reinserted account and ask for correction or removal if the reporting cannot be supported.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
       });

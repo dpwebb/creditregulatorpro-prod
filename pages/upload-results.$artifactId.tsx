@@ -97,7 +97,7 @@ export default function UploadResultsPage() {
       {!isLoading && data && (
         <div className={styles.footer}>
           <div className={styles.strategyNote}>
-            <strong>Tip:</strong> Even if no big problems showed up, it's still worth sending letters. The companies must prove everything is correct.
+            <strong>Tip:</strong> Even if no major findings showed up, review the source report before sending letters. Requests should ask companies to support specific facts, not assume every item is wrong.
           </div>
         </div>
       )}

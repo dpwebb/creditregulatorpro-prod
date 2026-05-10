@@ -69,7 +69,7 @@ export function detectClosedAccountBalanceInflation(
           regulationIds: ["PIPEDA_4_6"],
         },
         recommendedAction:
-          "Demand they immediately correct the balance to zero or delete the account entirely for illegal balance manipulation.",
+          "Request verification of the balance change and ask for correction or removal if the reporting cannot be supported.",
         tradelineId: tradeline.id,
         responsibleEntity: "CREDITOR",
       });

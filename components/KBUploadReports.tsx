@@ -114,7 +114,7 @@ export const KBUploadReports = () => {
         badgeVariant="info"
       >
         <p>
-          You can try our system before creating an account. Upload a credit report to see what errors the scanner finds.
+          You can try our system before creating an account. Upload a supported Canadian credit report to see what possible findings the scanner identifies.
         </p>
         <ul className={styles.list}>
           <li>The preview shows the compliance findings we detected and a summary of your credit accounts.</li>
@@ -133,17 +133,17 @@ export const KBUploadReports = () => {
         badgeVariant="primary"
       >
         <p>
-          Credit Regulator Pro employs a sophisticated multi-stage pipeline for ingesting credit reports,
-          ensuring high-fidelity data extraction and immediate compliance scanning.
+          Credit Regulator Pro uses a multi-stage pipeline for supported Canadian credit reports,
+          combining deterministic extraction, user review, and compliance scanning.
         </p>
         <div className={styles.processBox}>
           <h3>The Complete Flow</h3>
           <ol className={styles.list}>
             <li><strong>Upload PDF:</strong> Provide your Canadian Equifax or TransUnion credit report.</li>
-            <li><strong>OCR Extraction:</strong> Advanced AI extracts text into structured data.</li>
+            <li><strong>Text Extraction:</strong> The system extracts report text into structured data where the PDF contains readable text.</li>
             <li><strong>Review Parsed Data:</strong> Human-in-the-loop validation of extracted fields.</li>
             <li><strong>Approve & Finalize:</strong> Tradelines are generated in the database.</li>
-            <li><strong>Compliance Scan:</strong> The 35-module compliance scanner auto-runs.</li>
+            <li><strong>Compliance Scan:</strong> The authority-backed compliance scanner auto-runs.</li>
           </ol>
           <Button asChild className={styles.actionButton}>
             <Link to="/upload">Upload a Report</Link>
@@ -152,15 +152,15 @@ export const KBUploadReports = () => {
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection
-        title="OCR Data Extraction Process"
+        title="Credit Report Extraction Process"
         icon={ScanSearch}
-        badge="AI POWERED"
+        badge="SUPPORTED PDFS"
         badgeVariant="success"
       >
         <p>
-          We utilize state-of-the-art Gemini OCR technology to reliably parse complex 
-          PDF and HTML credit reports. The system automatically detects the bureau 
-          (Equifax vs. TransUnion) and routes it to the appropriate parser.
+          The extraction engine is tuned for supported Canadian Equifax and TransUnion PDF reports.
+          Text-based PDFs provide the best results; scanned or image-only reports may require
+          additional review before the data can be relied on.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -179,9 +179,9 @@ export const KBUploadReports = () => {
             <AccordionTrigger>Handling OCR Errors</AccordionTrigger>
             <AccordionContent>
               <p>
-                While highly accurate, OCR can occasionally misinterpret distorted text. 
-                The system flags low-confidence extractions and relies on the subsequent 
-                <strong> Upload Review</strong> phase to ensure perfect data integrity.
+                Parsing can occasionally misread or miss report details, especially in scanned,
+                image-only, or unfamiliar layouts. The system flags low-confidence extractions
+                and relies on the subsequent <strong> Upload Review</strong> phase before data is finalized.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -196,13 +196,13 @@ export const KBUploadReports = () => {
       >
         <p>
           After extraction, the report enters the <strong>Upload Review</strong> phase. 
-          This human-in-the-loop step is critical for maintaining legally accurate records.
+          This human-in-the-loop step is critical for maintaining evidence-backed records.
         </p>
         <ul className={styles.list}>
           <li><strong>Field-by-Field Approval:</strong> Review the extracted data side-by-side with the source document.</li>
           <li><strong>Correcting Errors:</strong> Manually fix any parsing inaccuracies before they enter the database.</li>
           <li><strong>Tradeline Creation:</strong> Once approved, the data is formally instantiated as Tradeline entities.</li>
-          <li><strong>Upload Results:</strong> View a summary of created tradelines and automatically detected compliance infractions.</li>
+          <li><strong>Upload Results:</strong> View a summary of created tradelines and automatically detected compliance findings.</li>
         </ul>
       </KnowledgeBaseSection>
 

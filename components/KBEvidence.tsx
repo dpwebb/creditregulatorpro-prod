@@ -53,8 +53,8 @@ export const KBEvidence = () => {
                 <li>Any mismatch indicates tampering or data corruption</li>
               </ol>
               <p>
-                This provides court-admissible proof that evidence has not been altered since
-                the moment of creation.
+                This provides a verifiable integrity record showing whether evidence has changed
+                since the moment of creation.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -145,9 +145,8 @@ export const KBEvidence = () => {
                 <li>Hash chain verification at each step.</li>
               </ul>
               <p>
-                This timeline is crucial for proving "Procedural Exhaustion" — showing that you
-                have taken every reasonable step to resolve the issue with cryptographic proof
-                of chronology.
+                This timeline helps document "Procedural Exhaustion" by showing the steps taken
+                to resolve the issue and preserving cryptographic proof of chronology.
               </p>
               <Button asChild variant="outline" size="sm" className={styles.actionButton}>
                 <Link to="/evidence-events">View Evidence Log</Link>
@@ -158,13 +157,13 @@ export const KBEvidence = () => {
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection
-        title="Evidence Packaging for Legal Proceedings"
+        title="Evidence Packaging"
         icon={FileCheck}
-        badge="COURT-READY"
+        badge="HASH-VERIFIED"
         badgeVariant="info"
       >
         <p>
-          Credit Regulator Pro can generate comprehensive court-ready PDF evidence packages with:
+          Credit Regulator Pro can generate comprehensive PDF evidence packages with:
         </p>
 
         <Accordion type="single" collapsible>
@@ -204,8 +203,8 @@ export const KBEvidence = () => {
           <li><strong>Deletion Events:</strong> Retention policy enforcement and manual deletions</li>
         </ul>
         <p>
-          This audit trail provides a complete record of all evidence handling for regulatory
-          compliance and legal proceedings.
+          This audit trail provides a record of evidence handling for compliance review,
+          regulatory complaints, or outside legal review.
         </p>
       </KnowledgeBaseSection>
 
@@ -216,18 +215,17 @@ export const KBEvidence = () => {
         badgeVariant="error"
       >
         <p>
-          To comply with Canadian privacy laws and minimize data liability, Credit Regulator Pro enforces
-          a strict retention policy.
+          To support Canadian privacy expectations and minimize data liability, Credit Regulator Pro uses
+          a time-limited retention policy.
         </p>
         <div className={styles.policyBox}>
-          <h3>1-Year Hard Retention Limit</h3>
+          <h3>1-Year Retention Target</h3>
           <p>
-            All evidence artifacts (PDFs, images, logs) are retained for exactly <strong>365 days</strong> from their creation date.
+            Evidence artifacts (PDFs, images, logs) are scheduled for retention for up to <strong>365 days</strong> from their creation date.
           </p>
           <p>
-            <strong>Warning:</strong> After 1 year, data is permanently purged. There is no
-            "soft delete" or recovery option. If you need to keep records for longer (e.g.,
-            for court proceedings), you must export them before the expiration date.
+            <strong>Warning:</strong> After 1 year, data is eligible for purge. If you need to keep records
+            for longer, export them before the expiration date.
           </p>
         </div>
       </KnowledgeBaseSection>

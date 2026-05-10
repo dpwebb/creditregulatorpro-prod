@@ -166,13 +166,13 @@ export const KBRulesRegulations = () => {
       <KnowledgeBaseSection
         title="What We Check & Which Laws Apply"
         icon={ScanSearch}
-        badge="35+ CHECKS"
+        badge="AUTHORITY-MAPPED"
         badgeVariant="error"
       >
         <p>
           Credit Regulator Pro automatically scans your credit report for these
-          common errors. When it finds a problem, it uses the specific laws listed
-          below to demand a fix.
+          common issues. When it finds a problem, it uses the mapped references listed
+          below to support a verification, correction, or removal request.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -192,7 +192,7 @@ export const KBRulesRegulations = () => {
                 },
                 {
                   id: "FURNISHER_REAGING_VIOLATION",
-                  desc: "A company illegally changed the dates to make an old debt look new.",
+                  desc: "A company appears to have changed dates in a way that could make an old debt look newer than the source record supports.",
                   laws: ["PIPEDA 4.6"],
                 },
                 {
@@ -463,8 +463,8 @@ export const KBRulesRegulations = () => {
       >
         <p>
           Each province and territory has its own consumer protection and credit
-          reporting rules. We automatically apply the right local rules based on
-          where you live.
+          reporting rules. We suggest local references based on where you live and
+          the finding context.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>

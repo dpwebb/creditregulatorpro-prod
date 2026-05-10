@@ -69,7 +69,7 @@ export async function detectPhantomDebtUnverifiable(
         regulationIds: ["PIPEDA_4_6"],
       },
       recommendedAction:
-        "Demand that the collection agency provide full chain-of-title documentation proving they own this debt, or demand its immediate deletion.",
+        "Request chain-of-title documentation supporting the collection account and ask for correction or removal if ownership cannot be supported.",
       responsibleEntity: "COLLECTOR",
     });
     return violations;

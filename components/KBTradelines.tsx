@@ -22,18 +22,18 @@ export const KBTradelines = () => {
           A <strong>Tradeline</strong> is a credit account on your report, like a credit card or loan. Tradelines are the main items we check during the dispute process.
         </p>
         <p>
-          Having correct data helps us make valid dispute letters and find broken rules.
+          Having correct data helps us make stronger draft dispute letters and identify possible compliance findings.
         </p>
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection
-        title="35 Built-In Checks"
+        title="Compliance Finding Checks"
         icon={ScanSearch}
         badge="AUTO-DETECTION"
         badgeVariant="primary"
       >
         <p>
-          Every account is automatically checked using our 35 built-in checks when you add or change it.
+          Every account is automatically checked against authority-backed finding categories and supporting runtime rules when you add or change it.
         </p>
 
         <Accordion type="single" collapsible>
@@ -44,7 +44,7 @@ export const KBTradelines = () => {
                 The scanner runs automatically and:
               </p>
               <ol className={styles.list}>
-                <li>Checks account data against 35 rules.</li>
+                <li>Checks account data against supported finding categories and runtime rules.</li>
                 <li>Compares new reports with old ones to find hidden changes.</li>
                 <li>Makes sure the format follows reporting rules.</li>
                 <li>Scores how sure we are about each error.</li>
@@ -84,7 +84,7 @@ export const KBTradelines = () => {
         badgeVariant="info"
       >
         <p>
-          Credit Regulator Pro checks if your account data follows the standard reporting rules to find errors.
+          Credit Regulator Pro checks whether your account data follows supported reporting standards and flags possible issues for review.
         </p>
         
         <Accordion type="single" collapsible>
@@ -103,7 +103,7 @@ export const KBTradelines = () => {
                 <li><strong>Payment History:</strong> Must match the account status.</li>
               </ul>
               <p>
-                We show you exactly what rule was broken, how serious it is, and what the value should be.
+                We show the rule or standard involved, how serious the finding is, and what value appears inconsistent.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -156,14 +156,14 @@ export const KBTradelines = () => {
               <ol className={styles.list}>
                 <li>Looks at old reports and compares them to the new one.</li>
                 <li>Finds changed dates, balances, or payment histories.</li>
-                <li>Flags bad changes that break the rules.</li>
+                <li>Flags changes that appear unsupported or inconsistent with the source evidence.</li>
                 <li>Scores how sure we are about the change.</li>
                 <li>Saves a record of the error.</li>
               </ol>
               <div className={styles.driftExample}>
                 <h4>Example: Changed Dates</h4>
                 <p>
-                  If your first late date changes from 2021-01-15 to 2022-03-20 without a good reason, the system flags this as a serious error.
+                  If your first late date changes from 2021-01-15 to 2022-03-20 without support in the source record, the system flags this as a serious accuracy issue.
                 </p>
               </div>
             </AccordionContent>
@@ -177,7 +177,7 @@ export const KBTradelines = () => {
         badge="VIOLATION TRACKER"
       >
         <p>
-          Each account has an Error Tracker showing all broken rules and what to do.
+          Each account has an Error Tracker showing possible findings and recommended next steps.
         </p>
 
         <Accordion type="single" collapsible>
@@ -201,7 +201,7 @@ export const KBTradelines = () => {
                   <strong>Technical Details:</strong> The raw data for the error.
                 </li>
                 <li>
-                  <strong>Law Broken:</strong> Which local or federal law they broke.
+                  <strong>Authority Reference:</strong> Which local, federal, or reporting-standard reference supports the finding.
                 </li>
                 <li>
                   <strong>Action Buttons:</strong> Make a letter, check again, or view history.
@@ -227,8 +227,8 @@ export const KBTradelines = () => {
                 <li>Navigate to the <strong>Upload</strong> page.</li>
                 <li>Select your credit report file.</li>
                 <li>The system will read the file and pull out your account details.</li>
-                <li>It will automatically check for errors.</li>
-                <li>Review the data and errors before saving.</li>
+                <li>It will automatically check for possible findings.</li>
+                <li>Review the extracted data and findings before saving.</li>
               </ol>
               <Button asChild variant="outline" size="sm" className={styles.actionButton}>
                 <Link to="/upload">Go to Upload</Link>
@@ -255,7 +255,7 @@ export const KBTradelines = () => {
             <li><strong>First Late Date:</strong> Date of First Delinquency (if applicable).</li>
               </ul>
               <p>
-                The system will check it for errors automatically after you save.
+                The system will check it for possible findings automatically after you save.
               </p>
               <Button asChild variant="outline" size="sm" className={styles.actionButton}>
                 <Link to="/my-accounts">Manage Accounts</Link>
@@ -279,7 +279,7 @@ export const KBTradelines = () => {
         </p>
         <ul className={styles.list}>
           <li>
-            <strong>Figuring Out the Problem:</strong> Finds the best way to challenge the account based on the errors.
+            <strong>Figuring Out the Problem:</strong> Finds a suitable challenge strategy based on the findings.
           </li>
           <li>
             <strong>Picking the Next Step:</strong> Moves you through our step-by-step challenge plan.

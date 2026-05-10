@@ -169,7 +169,7 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
                             <Badge variant="warning">⏳ Expiring soon</Badge>
                           )}
                           {p.urgency === "violation" && (
-                            <Badge variant="error">⚠️ Bureau error found</Badge>
+                            <Badge variant="error">Priority finding</Badge>
                           )}
                           {p.urgency === "warning" && (
                             <Badge variant="default">⚡ Potential issue</Badge>
@@ -197,8 +197,8 @@ export const AnonymousUploadPreview: React.FC<AnonymousUploadPreviewProps> = ({
         <h3 className={styles.gateTitle}>Unlock Your Full Report</h3>
         <p className={styles.gateSubtitle}>
           {problemCount > 0
-            ? "Create an account to view all issues and generate legal dispute letters."
-            : "Create an account to run deep Metro-2 compliance checks and find hidden violations."}
+            ? "Create an account to view all findings and generate draft dispute letters."
+            : "Create an account to run deeper Metro-2 compliance checks and review possible findings."}
         </p>
         <div className={styles.actions}>
           <Button asChild size="lg" className={styles.ctaButton}>

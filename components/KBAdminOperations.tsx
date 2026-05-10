@@ -110,8 +110,8 @@ export const KBAdminOperations = () => {
             <AccordionTrigger>1-Year Policy</AccordionTrigger>
             <AccordionContent>
               <p>
-                All evidence and generated packets are kept for exactly 1 year. 
-                After 365 days, the system deletes them automatically. 
+                Evidence and generated packets are scheduled for retention for up to 1 year.
+                After 365 days, purge workflows remove expired records when retention enforcement runs.
                 You can view stats in the Security Dashboard to see how much data was recently purged.
               </p>
             </AccordionContent>
@@ -126,7 +126,7 @@ export const KBAdminOperations = () => {
         badgeVariant="primary"
       >
         <p>
-          The Data Retention Dashboard shows you stats on how much old data has been deleted, what will be deleted soon, and how the app follows our data rules. An automatic background job (cron job) runs to purge data when it expires.
+          The Data Retention Dashboard shows stats on how much old data has been deleted, what will be deleted soon, and how the app follows retention rules. Use the dashboard to verify that scheduled purge jobs are running as expected.
         </p>
       </KnowledgeBaseSection>
 

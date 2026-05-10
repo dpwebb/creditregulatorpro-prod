@@ -123,14 +123,14 @@ export const section17 = (): Content[] => [
   subHeader("Common Questions"),
   numberedList([
     "What happens if the bureau doesn't respond? -> Auto-escalation to the next vector initiates automatically after the deadline.",
-    "Can I skip phases? -> No, the system strictly requires sequential progression to build a court-ready case.",
+    "Can I skip phases? -> No, the system requires sequential progression to build a documented challenge record.",
     "What if my profile doesn't match my ID? -> Packets are blocked until the profile is corrected to match legal identity documents.",
     "How do I know if a dispute was successful? -> Check the obligation instance status and the analytics dashboard.",
-    "What is Procedural Exhaustion? -> All 4 phases have been completed (Phase 4 reached), making the tradeline ready for legal action or regulatory complaints.",
+    "What is Procedural Exhaustion? -> All 4 phases have been completed (Phase 4 reached), making the tradeline ready for regulatory complaint review or outside legal advice.",
     "How long do bureaus have to investigate? -> Generally 30 days, though it varies slightly by province (e.g., 30 business days in ON/BC).",
     "Can I dispute with both bureaus at once? -> Yes, but you must create separate tradelines per bureau in the system.",
-    "What if I receive a generic response? -> The system auto-detects deficiency patterns and recommends immediate escalation.",
-    "How do I export evidence for court? -> Use the evidence packaging feature to download a complete, hash-verified, court-ready PDF.",
-    "What happens after 1 year? -> All data is irrevocably purged per the strict retention policy — export your files before expiration."
+    "What if I receive a generic response? -> The system detects deficiency patterns and recommends a next step for review.",
+    "How do I export evidence? -> Use the evidence packaging feature to download a hash-verified evidence PDF.",
+    "What happens after 1 year? -> Expired data becomes eligible for retention purge, so export needed files before expiration."
   ])
 ];

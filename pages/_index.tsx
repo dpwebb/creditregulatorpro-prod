@@ -98,7 +98,7 @@ function DashboardContent() {
               }
               {isAdmin && (
                 <HelpTooltip 
-                  content="This app only works for Canadian credit reports. Your information stays in Canada." 
+                  content="This app is scoped to Canadian credit-report workflows and configured for Canadian data-residency controls."
                   className={styles.tooltip}
                 />
               )}

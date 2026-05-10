@@ -25,25 +25,25 @@ export const KBPackets = () => {
           letter, supporting evidence, and identity verification.
         </p>
         <p>
-          Credit Regulator Pro automates the creation of these packets, ensuring they cite the correct
-          provincial statutes based on your residence.
+          Credit Regulator Pro helps create draft packets with evidence, templates, and province-based
+          references. Review every packet before sending it.
         </p>
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection
         title="All 13 Canadian Provinces & Territories"
         icon={Globe}
-        badge="COMPLETE COVERAGE"
+        badge="JURISDICTION TEMPLATES"
         badgeVariant="primary"
       >
         <p>
           Credit Regulator Pro provides dispute letter templates for all Canadian jurisdictions with
-          proper statutory citations:
+          jurisdiction-specific statutory references:
         </p>
 
         <Accordion type="single" collapsible>
           <AccordionItem value="provinces">
-            <AccordionTrigger>Complete Jurisdiction List</AccordionTrigger>
+            <AccordionTrigger>Jurisdiction Template List</AccordionTrigger>
             <AccordionContent>
               <div className={styles.jurisdictionGrid}>
                 <div className={styles.jurisdictionCard}>
@@ -125,24 +125,23 @@ export const KBPackets = () => {
                 </div>
               </div>
               <p className={styles.note}>
-                Quebec templates are provided in French with proper legal formatting per
-                Quebec civil law requirements.
+                Quebec templates are provided in French with province-specific formatting.
               </p>
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="statutes">
-            <AccordionTrigger>Automatic Statute Selection</AccordionTrigger>
+            <AccordionTrigger>Province-Based Reference Selection</AccordionTrigger>
             <AccordionContent>
               <p>
-                The system automatically detects your province from your profile address and
-                inserts the relevant consumer protection laws.
+                The system uses your profile province to suggest relevant consumer protection references.
+                Confirm the province, facts, and cited references before sending any packet.
               </p>
               <p>
                 Each template includes:
               </p>
               <ul className={styles.list}>
-                <li>Complete statutory citations with section numbers</li>
+                <li>Statutory citations with section numbers where mapped</li>
                 <li>Consumer statement rights under provincial law</li>
                 <li>Specific statutory timeframes (typically 30 days)</li>
                 <li>Required notice language per jurisdiction</li>
@@ -191,7 +190,7 @@ export const KBPackets = () => {
                   confirmation
                 </li>
                 <li>
-                  <strong>Quebec:</strong> Registered Mail (recommended for legal proceedings)
+                  <strong>Quebec:</strong> Registered Mail for stronger delivery records
                 </li>
                 <li>
                   <strong>Remote Territories:</strong> Special delivery considerations for
@@ -323,7 +322,7 @@ export const KBPackets = () => {
           </AccordionItem>
         </Accordion>
         <p className={styles.note}>
-          Both methods create an official record in the system to track when the bureau must reply.
+          Both methods create an internal record in the system to track mailing dates and response deadlines.
         </p>
       </KnowledgeBaseSection>
 

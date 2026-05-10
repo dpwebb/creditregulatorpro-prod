@@ -57,7 +57,7 @@ export function detectInvestigationRubberStamp(
             regulationIds: ["PIPEDA_4_10"],
           },
           recommendedAction:
-            "Demand immediate deletion because they failed their legal obligation to conduct a reasonable, substantive investigation.",
+            "Request the investigation records and ask for correction or removal if the bureau cannot show a reasonable review.",
           tradelineId: instance.tradelineId ?? undefined,
           responsibleEntity: "BUREAU",
         });
@@ -89,7 +89,7 @@ export function detectInvestigationRubberStamp(
             regulationIds: ["PIPEDA_4_10"],
           },
           recommendedAction:
-            "Point out that they completely ignored your actual dispute reasons and demand deletion for failure to properly investigate.",
+            "Point out the unaddressed dispute reasons and ask for a documented reinvestigation, correction, or removal if the reporting cannot be supported.",
           tradelineId: instance.tradelineId ?? undefined,
           responsibleEntity: "BUREAU",
         });

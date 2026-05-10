@@ -24,7 +24,7 @@ export const KBAnalytics = () => {
       >
         <p>
           Credit Regulator Pro tracks success rates across multiple dimensions to identify systemic compliance
-          failures and effective legal strategies.
+          patterns and effective challenge strategies.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -49,12 +49,12 @@ export const KBAnalytics = () => {
                   <h4>By Creditor</h4>
                   <p>
                     Tracks compliance patterns for specific creditors and collection agencies
-                    to identify repeat violators.
+                    to identify repeat unresolved patterns.
                   </p>
                   <ul className={styles.metricList}>
                     <li>Creditor-specific success rates</li>
                     <li>Response compliance history</li>
-                    <li>Procedural violation frequency</li>
+                    <li>Procedural finding frequency</li>
                   </ul>
                 </div>
 
@@ -148,7 +148,7 @@ export const KBAnalytics = () => {
                 </div>
                 <div className={styles.metricCard}>
                   <h4>Pressure Score</h4>
-                  <p>A calculated index (0-100) indicating the legal pressure applied to a specific tradeline.</p>
+                  <p>A calculated index (0-100) indicating how much documented challenge activity exists for a specific tradeline.</p>
                 </div>
                 <div className={styles.metricCard}>
                   <h4>Exhaustion Rate</h4>
@@ -195,7 +195,7 @@ export const KBAnalytics = () => {
                 </div>
                 <div className={styles.scoreRange}>
                   <Badge variant="error">81-100</Badge>
-                  <span>Critical pressure - High likelihood of deletion on next escalation</span>
+                  <span>Critical pressure - Review for escalation or outside advice</span>
                 </div>
               </div>
             </AccordionContent>
@@ -226,7 +226,7 @@ export const KBAnalytics = () => {
               </p>
               <ul>
                 <li>Most effective first vector per finding category</li>
-                <li>Average sequences needed to reach deletion</li>
+                <li>Average sequences needed to reach a closed outcome</li>
                 <li>Creditor-specific rotation patterns that work</li>
                 <li>Vector combinations that trigger escalation</li>
               </ul>
@@ -258,9 +258,8 @@ export const KBAnalytics = () => {
                 shows a chronological history of all system events.
               </p>
               <p>
-                This trail is immutable and can be used as evidence in court to
-                prove that you sent disputes and that the bureau failed to
-                respond.
+                This trail is designed to help document that disputes were sent,
+                responses were received or missed, and key events were preserved.
               </p>
               <p>
                 Audit logs include:

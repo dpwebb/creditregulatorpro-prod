@@ -18,7 +18,7 @@ export const KBAnalyticsStrategy = () => {
           <Target className={styles.strategyIcon} />
           <h3>Vector Optimization</h3>
           <p>
-            Monitor which dispute vectors (e.g., "Metro 2 Header Mismatch") are resulting in immediate deletions. If a specific vector has a success rate below 10%, consider switching to a more aggressive legal challenge.
+            Monitor which dispute vectors (e.g., "Metro 2 Header Mismatch") are resulting in corrections, removals, or useful responses. If a specific vector has a low success rate, consider a different evidence-backed challenge strategy.
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export const KBAnalyticsStrategy = () => {
           <TrendingUp className={styles.strategyIcon} />
           <h3>Creditor Profiling</h3>
           <p>
-            Recognize which creditors are "hard" vs "soft" targets. If analytics show a specific creditor ignores 90% of automated challenges, move directly to Certified Mail for those items.
+            Recognize which creditors respond clearly and which often require stronger documentation. If analytics show a specific creditor rarely responds to digital challenges, consider registered mail for those items.
           </p>
         </div>
 

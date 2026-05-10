@@ -11,7 +11,7 @@ interface PartialStandardizedData {
 }
 
 /**
- * Detects if a furnisher illegally moved the Date of Last Activity forward
+ * Detects if a furnisher appears to have moved the Date of Last Activity forward
  * to keep a negative item on the credit report longer, without any associated payment.
  */
 export function detectLastActivityDateManipulation(
@@ -71,7 +71,7 @@ export function detectLastActivityDateManipulation(
               regulationIds: ["PIPEDA_4_6"],
             },
             recommendedAction:
-              "Dispute the manipulated Date of Last Activity and demand the account be deleted immediately for illegal re-aging.",
+              "Dispute the changed Date of Last Activity and request correction or removal if the furnisher cannot support the update.",
             tradelineId: tradeline.id,
             responsibleEntity: "CREDITOR",
           });

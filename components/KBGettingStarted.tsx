@@ -21,10 +21,10 @@ export const KBGettingStarted = () => {
         badgeVariant="primary"
       >
         <p>
-          Welcome to Credit Regulator Pro. This tool is built to help you deal with Canadian credit bureaus, creditors, and debt collectors. It finds rules they broke and challenges them legally, without ever saying the debt is yours.
+          Welcome to Credit Regulator Pro. This tool helps you review Canadian credit reports, identify possible compliance findings, and prepare evidence-based challenge letters without admitting debt validity.
         </p>
         <p>
-          Our system is built only for Canada. It knows the rules for all 13 provinces and territories. It uses 35 built-in checks to find errors and makes dispute letters using your local laws.
+          The system is built for Canadian Equifax and TransUnion report workflows. It checks authority-backed finding categories and supporting runtime rules, then uses your province to draft letters for review.
         </p>
       </KnowledgeBaseSection>
 
@@ -35,7 +35,7 @@ export const KBGettingStarted = () => {
         badgeVariant="warning"
       >
         <p>
-          Credit Regulator Pro automatically checks every account to find rules they broke:
+          Credit Regulator Pro automatically checks every account for possible compliance findings:
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -51,7 +51,7 @@ export const KBGettingStarted = () => {
                 <li><strong>Format Errors:</strong> Checks if they filled out required fields.</li>
               </ul>
               <p className={styles.scannerNote}>
-                For the full list of all checks, see the Rule Checks tab. All errors we find are saved in your account. We show you how sure we are, explain the error simply, and tell you what to do next.
+                For the full list of scanner coverage, see the Rule Checks tab. Findings are saved in your account with confidence, plain-language context, and recommended next steps for review.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -65,7 +65,7 @@ export const KBGettingStarted = () => {
         badgeVariant="error"
       >
         <p>
-          Our system follows strict rules to keep your data safe and legal. Please read these important rules.
+          Our system follows strict rules to keep your data safe and compliant. Please read these important rules.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -73,7 +73,7 @@ export const KBGettingStarted = () => {
             <AccordionTrigger>Region Lock: Canada Only</AccordionTrigger>
             <AccordionContent>
               <p>
-                <strong>Policy:</strong> All your data stays in Canada. We do not send data to other countries. This keeps you safe.
+                <strong>Policy:</strong> The platform is configured for Canadian credit-report workflows and Canadian data-residency controls. Do not upload non-Canadian reports.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -82,7 +82,7 @@ export const KBGettingStarted = () => {
             <AccordionTrigger>Data Retention: 1 Year</AccordionTrigger>
             <AccordionContent>
               <p>
-                <strong>Policy:</strong> We keep your files and data for exactly 1 year. After 1 year, we delete it to protect your privacy. Make sure you download what you need.
+                <strong>Policy:</strong> Files and generated records are scheduled for retention for up to 1 year, then purge workflows remove expired data. Download anything you need before it expires.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -110,7 +110,7 @@ export const KBGettingStarted = () => {
         </p>
         <ul className={styles.list}>
           <li>
-            <strong>Rules Broken:</strong> A live count of errors we found.
+            <strong>Compliance Findings:</strong> A live count of possible issues detected.
           </li>
           <li>
             <strong>Active Challenges:</strong> Letters you sent that are waiting for answers.
@@ -135,13 +135,13 @@ export const KBGettingStarted = () => {
         badge="ACTION REQUIRED"
         badgeVariant="warning"
       >
-        <p>Follow these steps to start finding errors:</p>
+        <p>Follow these steps to start reviewing possible credit-report issues:</p>
         <div className={styles.checklist}>
           <div className={styles.checkItem}>
             <div className={styles.stepNumber}>1</div>
             <div className={styles.stepContent}>
               <h3>Complete Your Profile</h3>
-              <p>Ensure your full legal name and current Canadian address are entered correctly. This information appears on all legal letters.</p>
+              <p>Ensure your full legal name and current Canadian address are entered correctly. This information appears on all formal letters.</p>
               <Button asChild variant="link" size="sm">
                 <Link to="/my-info?tab=profile">Update Profile &rarr;</Link>
               </Button>
@@ -152,7 +152,7 @@ export const KBGettingStarted = () => {
             <div className={styles.stepNumber}>2</div>
             <div className={styles.stepContent}>
               <h3>Upload Your Credit Report</h3>
-              <p>Upload your credit report to let the system find your accounts and run the 35 built-in checks.</p>
+              <p>Upload your Canadian Equifax or TransUnion PDF report so the system can extract accounts and run the compliance scanner.</p>
               <Button asChild variant="link" size="sm">
                 <Link to="/upload">Upload Report &rarr;</Link>
               </Button>
@@ -163,7 +163,7 @@ export const KBGettingStarted = () => {
             <div className={styles.stepNumber}>3</div>
             <div className={styles.stepContent}>
               <h3>See What We Found</h3>
-              <p>Look at the errors we found for each account. We explain the problem and tell you the best way to challenge it.</p>
+              <p>Review the possible findings for each account. We explain the supporting facts and suggest next steps for your review.</p>
               <Button asChild variant="link" size="sm">
                 <Link to="/my-accounts">View Your Accounts &rarr;</Link>
               </Button>
@@ -174,7 +174,7 @@ export const KBGettingStarted = () => {
             <div className={styles.stepNumber}>4</div>
             <div className={styles.stepContent}>
               <h3>Create Your Dispute Letters</h3>
-              <p>Make dispute letters using our suggestions. The system will pick the right laws for your province.</p>
+              <p>Create draft dispute letters using the suggested finding, evidence, and province-based references. Review every letter before sending it.</p>
             </div>
           </div>
         </div>

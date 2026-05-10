@@ -13,7 +13,7 @@ export const KBAnalyticsSuccessDashboard = () => {
       badgeVariant="primary"
     >
       <p>
-        The Success Rate Analytics Dashboard provides a granular view of your dispute performance across multiple dimensions, allowing you to optimize your legal strategy.
+        The Success Rate Analytics Dashboard provides a granular view of dispute performance across multiple dimensions, helping you optimize evidence-backed challenge strategy.
       </p>
 
       <Accordion type="single" collapsible className={styles.accordion}>
@@ -34,7 +34,7 @@ export const KBAnalyticsSuccessDashboard = () => {
                 <strong>Escalation Rate:</strong> How often a first-round dispute requires secondary or tertiary escalation.
               </div>
               <div className={styles.metricItem}>
-                <strong>Exhaustion Rate:</strong> The percentage of items that have reached the "Procedurally Exhausted" state, making them ready for litigation.
+                <strong>Exhaustion Rate:</strong> The percentage of items that have reached the "Procedurally Exhausted" state, making them candidates for escalation review.
               </div>
             </div>
           </AccordionContent>
@@ -67,7 +67,7 @@ export const KBAnalyticsSuccessDashboard = () => {
               </div>
               <div className={styles.guideItem}>
                 <Download size={16} className={styles.guideIcon} />
-                <p><strong>Exporting:</strong> All charts and underlying data tables can be exported as PDF or CSV reports for client presentations or legal evidence folders.</p>
+                <p><strong>Exporting:</strong> All charts and underlying data tables can be exported as PDF or CSV reports for client presentations or evidence folders.</p>
               </div>
             </div>
           </AccordionContent>

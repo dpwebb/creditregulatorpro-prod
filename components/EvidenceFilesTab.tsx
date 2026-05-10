@@ -322,7 +322,7 @@ export function EvidenceFilesTab() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              Generate court-ready PDF
+                              Generate evidence PDF
                             </TooltipContent>
                           </Tooltip>
                         )}

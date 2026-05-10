@@ -33,7 +33,7 @@ export const KBObligations = () => {
         badgeVariant="primary"
       >
         <p>
-          Credit Regulator Pro gives you 7 ways to challenge an account. These ways focus on the rules they broke, without ever saying the debt is yours. They force the company to show proof they often do not have.
+          Credit Regulator Pro gives you 7 ways to challenge an account. These strategies focus on authority, accuracy, verification, and procedure without admitting debt validity. They ask the company to support the reporting with records.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -47,7 +47,7 @@ export const KBObligations = () => {
                     <h4>Right to Report</h4>
                   </div>
                   <p className={styles.vectorDescription}>
-                    "Show you have the legal right to report this account"
+                    "Show the authority you rely on to report this account"
                   </p>
                   <p className={styles.vectorBasis}>
                     <strong>Law:</strong> Data Furnisher Agreement / Reporting Rules
@@ -99,7 +99,7 @@ export const KBObligations = () => {
                     <h4>Accurate Information</h4>
                   </div>
                   <p className={styles.vectorDescription}>
-                    "Show proof that your information is perfectly accurate"
+                    "Show the records supporting the accuracy of this information"
                   </p>
                   <p className={styles.vectorBasis}>
                     <strong>Law:</strong> Consumer Laws — Maximum accuracy rules
@@ -112,7 +112,7 @@ export const KBObligations = () => {
                     <h4>Missed Deadlines</h4>
                   </div>
                   <p className={styles.vectorDescription}>
-                    "Show you followed the legal time limits"
+                    "Show you followed the required response time limits"
                   </p>
                   <p className={styles.vectorBasis}>
                     <strong>Law:</strong> Consumer Laws — 30-day investigation limit
@@ -139,19 +139,19 @@ export const KBObligations = () => {
             <AccordionTrigger>Making Requests Automatically</AccordionTrigger>
             <AccordionContent>
               <p>
-                The system turns the errors it finds into clear, legal requests for information.
+                The system turns possible findings into clear requests for information and verification.
               </p>
               
               <h4>How it works</h4>
               <div className={styles.workflowSteps}>
                 <div className={styles.workflowStep}>
                   <Badge variant="error">1. Find</Badge>
-                  <span>Find an error (like an old debt)</span>
+                  <span>Find a possible issue, such as an old account</span>
                 </div>
                 <ArrowDown size={16} className={styles.vectorArrow} />
                 <div className={styles.workflowStep}>
                   <Badge variant="primary">2. Map</Badge>
-                  <span>Make the right legal request</span>
+                  <span>Map it to an appropriate request</span>
                 </div>
                 <ArrowDown size={16} className={styles.vectorArrow} />
                 <div className={styles.workflowStep}>
@@ -187,7 +187,7 @@ export const KBObligations = () => {
         badgeVariant="info"
       >
         <p>
-          The plan goes through 4 steps to use every legal option you have.
+          The plan goes through 4 steps to preserve a structured challenge record.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>
@@ -228,7 +228,7 @@ export const KBObligations = () => {
                     <span>→ Accurate Information</span>
                     <span>→ How They Investigated</span>
                   </div>
-                  <p>Forces them to swear their facts are perfect.</p>
+                  <p>Asks them to support the accuracy of the reported facts.</p>
                 </div>
 
                 <div className={styles.sequenceCard}>
@@ -304,7 +304,7 @@ export const KBObligations = () => {
                 <li>
                   <Badge variant="info">WAITING</Badge>
                   <span>
-                    Error found, but no letter sent yet.
+                    Possible issue found, but no letter sent yet.
                   </span>
                 </li>
                 <li>
@@ -328,7 +328,7 @@ export const KBObligations = () => {
                 <li>
                   <Badge variant="error">READY FOR NEXT STEPS</Badge>
                   <span>
-                    All 4 steps are done. Time for a formal complaint or legal action.
+                    All 4 steps are done. Consider a formal complaint or outside legal advice.
                   </span>
                 </li>
               </ol>
@@ -367,7 +367,7 @@ export const KBObligations = () => {
         icon={Gavel}
       >
         <p>
-          When a rule is broken, we take action. This is called an enforcement mechanism.
+          When a finding remains unresolved, the system helps you document the next available escalation path. This is called an enforcement mechanism.
         </p>
         <Accordion type="single" collapsible className={styles.accordion}>
           <AccordionItem value="mechanisms">
@@ -411,7 +411,7 @@ export const KBObligations = () => {
         icon={ShieldAlert}
       >
         <p>
-          Our system makes sure no broken rule is ignored. It automatically moves to the next step if they miss a deadline.
+          Our system helps ensure unresolved findings are not ignored. It can suggest the next step if a response deadline passes.
         </p>
 
         <Accordion type="single" collapsible className={styles.accordion}>

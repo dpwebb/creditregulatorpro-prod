@@ -39,7 +39,7 @@ export function detectFurnisherResponseQuality(
           detectedValue: instance.responseStatus,
           regulationIds: ["PIPEDA_4_10"],
         },
-        recommendedAction: "Demand a detailed explanation of exactly how they verified the account, as a rubber-stamp response is not a real investigation.",
+        recommendedAction: "Request a detailed explanation of how they verified the account and what records supported the response.",
         tradelineId: instance.tradelineId ?? undefined,
         responsibleEntity: "CREDITOR",
       });

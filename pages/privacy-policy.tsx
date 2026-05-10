@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>2. Canadian-Only Storage</h2>
             <p className={styles.paragraph}>
-              We are a Canadian company serving Canadian consumers. All of your data stays in Canada. We do not store or move your information across the border.
+              We are a Canadian company serving Canadian consumers. The platform is configured for Canadian credit-report workflows and Canadian storage controls for uploaded report files. Partner services listed below may process limited operational data needed to provide the service.
             </p>
           </section>
 
@@ -62,8 +62,8 @@ export default function PrivacyPolicyPage() {
               We only use your data to provide our service. We use it to:
             </p>
             <ul className={styles.list}>
-              <li className={styles.listItem}>Scan your credit reports for rule-breaking errors.</li>
-              <li className={styles.listItem}>Generate dispute letters for you to send to bureaus and creditors.</li>
+              <li className={styles.listItem}>Scan your credit reports for possible compliance findings.</li>
+              <li className={styles.listItem}>Generate draft dispute letters for you to review and send to bureaus and creditors.</li>
               <li className={styles.listItem}>Track your deadlines and responses.</li>
               <li className={styles.listItem}>Help you log in safely and manage your subscription.</li>
             </ul>
@@ -75,7 +75,7 @@ export default function PrivacyPolicyPage() {
               To make our app work, we use trusted partners. We only share the exact data they need to do their job:
             </p>
             <ul className={styles.list}>
-              <li className={styles.listItem}><strong>Google Cloud Storage:</strong> To safely hold your uploaded files (stored in Canada).</li>
+              <li className={styles.listItem}><strong>Google Cloud Storage:</strong> To safely hold uploaded files in the configured Canadian storage region.</li>
               <li className={styles.listItem}><strong>DocStrange & Nanonets:</strong> To read the text in your credit reports.</li>
               <li className={styles.listItem}><strong>Stripe:</strong> To safely process your subscription payments.</li>
               <li className={styles.listItem}><strong>PostGrid:</strong> To mail your physical dispute letters.</li>
@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>5. How Long We Keep Your Data</h2>
             <p className={styles.paragraph}>
-              We keep your credit reports and dispute records for exactly <strong>1 year</strong>. After 1 year, our system automatically deletes them. You can always upload new reports when you need to check your credit again.
+              We schedule your credit reports and dispute records for retention for up to <strong>1 year</strong>. After 1 year, retention workflows remove expired records when enforcement runs. You can always upload new reports when you need to check your credit again.
             </p>
           </section>
 
