@@ -14,6 +14,11 @@ const DEFAULT_OUTPUT_DIR = ".local/core-config";
 const DEFAULT_REMOTE_APP_DIR = "/opt/creditregulatorpro-staging/app";
 const DEFAULT_REMOTE_APP_CONTAINER = "creditregulatorpro-staging";
 const DEFAULT_STAGING_ONLY_ROLE = "user";
+const LOCAL_BOOTSTRAP_SYSTEM_SETTING_KEYS = new Set([
+  "DOMAIN_GUARD_MODE",
+  "production_mode",
+  "terms_version",
+]);
 const LOGICAL_DUPLICATE_CHECK_TABLES = new Set([
   "dynamic_scanning_rule",
   "enforcement_mechanism",
@@ -27,6 +32,7 @@ const CORE_TABLE_SPECS = [
     name: "system_settings",
     key: ["key"],
     columns: ["key", "value", "description"],
+    excludeKeys: LOCAL_BOOTSTRAP_SYSTEM_SETTING_KEYS,
   },
   {
     name: "feature_flag",
@@ -453,7 +459,14 @@ async function snapshotGenericTable(sql, spec) {
   await assertTableExists(sql, spec);
   const selectList = spec.columns.map(quoteIdentifier).join(", ");
   const orderBy = spec.key.map(quoteIdentifier).join(", ");
-  const rows = await sql.unsafe(`select ${selectList} from ${tableRef(spec)} order by ${orderBy}`);
+  const excludeKeys = spec.excludeKeys ? [...spec.excludeKeys] : [];
+  const whereClause = excludeKeys.length
+    ? ` where ${quoteIdentifier(spec.key[0])} <> all($1)`
+    : "";
+  const rows = await sql.unsafe(
+    `select ${selectList} from ${tableRef(spec)}${whereClause} order by ${orderBy}`,
+    excludeKeys.length ? [excludeKeys] : [],
+  );
   return sortRows(spec, rows.map((row) => normalizeRow(row, spec.columns)));
 }
 

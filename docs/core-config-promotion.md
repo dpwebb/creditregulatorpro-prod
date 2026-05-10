@@ -19,6 +19,8 @@ The core config snapshot includes:
 
 The snapshot does not promote passwords, sessions, OAuth rows, reset tokens, email-verification tokens, login attempts, rate limits, arbitrary user records, uploaded documents, payment records, support tickets, audit logs, IP addresses, user-agent data, or temporary local test users.
 
+The snapshot also excludes local bootstrap runtime settings that must remain environment-specific: `DOMAIN_GUARD_MODE`, `production_mode`, and `terms_version`. Those values are set by local bootstrap and must not be copied upward from localhost.
+
 ## Standard Procedure
 
 For code-only work:

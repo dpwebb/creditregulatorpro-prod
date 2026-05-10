@@ -47,6 +47,8 @@ describe("core config promotion workflow", () => {
     expect(scriptText).toContain("CORE_CONFIG_APPLY_STAGING");
     expect(scriptText).toContain("remote-snapshot");
     expect(scriptText).toContain("remote-apply");
+    expect(scriptText).toContain("LOCAL_BOOTSTRAP_SYSTEM_SETTING_KEYS");
+    expect(scriptText).toContain("DOMAIN_GUARD_MODE");
   });
 
   it("does not define operational or secret-bearing tables as promoted core config", () => {
