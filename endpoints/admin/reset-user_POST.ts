@@ -51,7 +51,7 @@ export async function handle(request: Request) {
 
     // 6. Log the reset action
     await logAudit({
-      action: "DELETE",
+      action: "UPDATE",
       entityType: "USER_ACCOUNT",
       entityId: input.userId,
       userId: adminUser.id,

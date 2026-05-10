@@ -23,6 +23,7 @@ import {
 } from "../helpers/schema";
 import { ErrorSeverityValues } from "../helpers/errorSeverity";
 import { useDebounce } from "../helpers/useDebounce";
+import { getAuditActionBadgeAction, getAuditActionLabel } from "../helpers/auditLogDisplay";
 import styles from "./AuditLogViewer.module.css";
 
 const PAGE_SIZE = 50;
@@ -240,8 +241,8 @@ export const AuditLogViewer = () => {
                   </TableCell>
                   <TableCell>{log.userEmail || log.userDisplayName || "System"}</TableCell>
                   <TableCell>
-                    <Badge variant={getActionBadgeVariant(log.actionType)}>
-                      {log.actionType}
+                    <Badge variant={getActionBadgeVariant(getAuditActionBadgeAction(log))}>
+                      {getAuditActionLabel(log)}
                     </Badge>
                   </TableCell>
                   <TableCell>{log.entityType}</TableCell>

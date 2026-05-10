@@ -25,6 +25,7 @@ import { Spinner } from "../components/Spinner";
 import { useAuditLogs } from "../helpers/adminQueries";
 import { useDebounce } from "../helpers/useDebounce";
 import { AuditActionTypeArrayValues, AuditStatusArrayValues } from "../helpers/schema";
+import { getAuditActionBadgeAction, getAuditActionLabel } from "../helpers/auditLogDisplay";
 import styles from "./admin-activity-logs.module.css";
 
 const PAGE_SIZE = 100;
@@ -34,6 +35,14 @@ function humanizeActionType(value: string): string {
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getActionBadgeVariant(action: string) {
+  if (["CREATE", "UPLOAD", "RESPONSE_RECORDED"].includes(action)) return "success";
+  if (["DELETE", "EXHAUSTION_REACHED", "LOGIN_FAILED"].includes(action)) return "error";
+  if (["LOGIN", "LOGOUT", "DOWNLOAD"].includes(action)) return "info";
+  if (["UPDATE", "CHALLENGE_UPDATED"].includes(action)) return "warning";
+  return "default";
 }
 
 function formatTimestampLocal(value: Date): string {
@@ -261,8 +270,11 @@ export default function AdminActivityLogsPage() {
                       </span>
                     )}
                   </div>
-                  <Badge variant="default" className={styles.actionBadge}>
-                    {humanizeActionType(log.actionType)}
+                  <Badge
+                    variant={getActionBadgeVariant(getAuditActionBadgeAction(log))}
+                    className={styles.actionBadge}
+                  >
+                    {getAuditActionLabel(log)}
                   </Badge>
                   {log.status === "SUCCESS" ? (
                     <Badge variant="success" className={styles.statusBadge}>

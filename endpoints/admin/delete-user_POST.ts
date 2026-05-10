@@ -357,29 +357,14 @@ export async function handle(request: Request) {
       console.warn(`[delete-user] Skipping standalone tradeline cleanup due to schema mismatch:`, error);
     }
 
-    // 21. Log the deletion in audit_log as the admin
-    await logAudit({
-      action: "DELETE",
-      entityType: "USER_ACCOUNT",
-      entityId: targetUser.id,
-      userId: adminUser.id, // The admin doing the deletion
-      details: {
-        action: "FULL_ACCOUNT_DELETION",
-        targetEmail: targetUser.email,
-        purgedCounts,
-      },
-      status: "SUCCESS",
-      request,
-    });
-
-    // 22. Delete remaining audit_log entries belonging to the deleted user
+    // 21. Delete remaining audit_log entries belonging to the deleted user
     const deleteAuditLogResult = await db
       .deleteFrom("auditLog")
       .where("userId", "=", targetUser.id)
       .executeTakeFirst();
     purgedCounts["auditLogs"] = Number(deleteAuditLogResult.numDeletedRows || 0);
 
-    // 22b. SET NULL on FK columns referencing users.id to avoid FK constraint violations on user deletion
+    // 22. SET NULL on FK columns referencing users.id to avoid FK constraint violations on user deletion
 
     // evidence_attachment.uploaded_by
     const nullifyEvidenceAttachmentResult = await db
@@ -523,6 +508,21 @@ export async function handle(request: Request) {
         .executeTakeFirst();
     }
     purgedCounts["users"] = Number(deleteUsersResult.numDeletedRows || 0);
+
+    // 25. Log the deletion only after the core users row is gone.
+    await logAudit({
+      action: "DELETE",
+      entityType: "USER_ACCOUNT",
+      entityId: targetUser.id,
+      userId: adminUser.id, // The admin doing the deletion
+      details: {
+        action: "FULL_ACCOUNT_DELETION",
+        targetEmail: targetUser.email,
+        purgedCounts,
+      },
+      status: "SUCCESS",
+      request,
+    });
 
     const output: OutputType = {
       success: true,

@@ -23,6 +23,8 @@ describe("admin reset cascade", () => {
 
     expect(endpoint).toContain("deleteUserReportDataCascade");
     expect(endpoint).toContain("...resetCounts");
+    expect(endpoint).toContain('action: "UPDATE"');
+    expect(endpoint).toContain('action: "ACCOUNT_DATA_RESET"');
     expect(schema).toContain("deletedTradelines: number");
     expect(schema).toContain("deletedPackets: number");
   });
@@ -38,6 +40,16 @@ describe("admin reset cascade", () => {
 });
 
 describe("admin delete-user lifecycle regression coverage", () => {
+  it("logs full account deletion only after the users row deletion succeeds", () => {
+    const endpoint = source("endpoints/admin/delete-user_POST.ts");
+
+    expect(endpoint.indexOf('purgedCounts["users"]')).toBeGreaterThan(-1);
+    expect(endpoint.indexOf('action: "FULL_ACCOUNT_DELETION"')).toBeGreaterThan(-1);
+    expect(endpoint.indexOf('action: "FULL_ACCOUNT_DELETION"')).toBeGreaterThan(
+      endpoint.indexOf('purgedCounts["users"]')
+    );
+  });
+
   it("keeps the mock lifecycle suite exercising the admin deletion cascade", () => {
     const runner = source("endpoints/admin/mock-lifecycle/jobRunner.ts");
     const endpoint = source("endpoints/admin/mock-lifecycle/run_POST.ts");

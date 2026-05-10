@@ -33,6 +33,7 @@ import {
   AuditEntityTypeArrayValues,
 } from "../helpers/schema";
 import { ErrorSeverityValues } from "../helpers/errorSeverity";
+import { getAuditActionLabel } from "../helpers/auditLogDisplay";
 import styles from "./admin-error-logs.module.css";
 
 const PAGE_SIZE = 100;
@@ -328,7 +329,7 @@ export default function AdminErrorLogsPage() {
                   <Badge variant="default" className={styles.entityBadge}>
                     {log.entityType}
                   </Badge>
-                  <span className={styles.actionText}>{humanizeActionType(log.actionType)}</span>
+                  <span className={styles.actionText}>{getAuditActionLabel(log)}</span>
                   {similarCount > 1 && (
                     <Badge variant="warning" className={styles.duplicateBadge}>
                       Similar in page: {similarCount}

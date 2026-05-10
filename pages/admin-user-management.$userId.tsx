@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/Tabs";
 import { Skeleton } from "../components/Skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "../components/Dialog";
 import { Input } from "../components/Input";
+import { getAuditActionLabel } from "../helpers/auditLogDisplay";
 import styles from "./admin-user-management.$userId.module.css";
 
 export default function AdminUserDetail() {
@@ -304,7 +305,7 @@ export default function AdminUserDetail() {
                         <div className={styles.cardTop}>
                           <div className={styles.cardHeaderLeft}>
                             <Badge variant="default" className={styles.actionBadge}>
-                              {a.actionType.replace(/_/g, " ")}
+                              {getAuditActionLabel(a)}
                             </Badge>
                             <span className={styles.boldText}>{a.entityType}</span>
                           </div>
