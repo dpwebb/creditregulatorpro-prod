@@ -28,6 +28,7 @@ Staging and production should only run code that exists in GitHub at a known com
 - Do not bypass staging by pushing localhost work directly to production.
 - Code moves upward through GitHub: localhost -> `origin/staging` -> staging deploy -> production promotion.
 - Data normally moves downward for reproduction: staging -> localhost refresh.
+- Supported core data/config moves upward only through the guarded core-config workflow.
 
 ## Data And Configuration Promotion
 
@@ -39,6 +40,7 @@ represented as one of:
 - a committed seed/backfill script,
 - a controlled admin operation with verification,
 - an export/import artifact for supported admin data,
+- the guarded core-config export/apply workflow,
 - an audited staging remediation script.
 
 Core truth must not be fixed only in localhost. Core truth includes:
@@ -53,6 +55,10 @@ Core truth must not be fixed only in localhost. Core truth includes:
 - lifecycle/test configuration,
 - seeded platform defaults,
 - database schema.
+
+Use `docs/core-config-promotion.md` for the supported localhost-to-staging
+promotion path for roles, settings, parser config, legal references, rules, and
+templates.
 
 Environment-specific operational data should not automatically move upward from
 localhost to staging or production. This includes sessions, OAuth rows, reset

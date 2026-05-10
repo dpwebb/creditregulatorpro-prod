@@ -77,7 +77,7 @@ staging artifact before validation:
 
 - migration or idempotent schema script,
 - seed/backfill script,
-- supported admin export/import operation,
+- supported core config export/apply operation,
 - controlled admin operation with verification notes,
 - audited remediation script for one-time staging repair.
 
@@ -94,6 +94,18 @@ data, and temporary local test users.
 
 Staging remains the authoritative pre-production validation environment. Do not
 bypass staging by pushing localhost work directly to production.
+
+Use the core-config workflow for supported role/config/reference changes:
+
+```powershell
+pnpm run core-config:export -- --target local
+pnpm run core-config:apply:staging
+pnpm run core-config:apply:staging -- --confirm
+pnpm run core-config:verify
+```
+
+See `docs/core-config-promotion.md` for the exact promoted tables, dry-run
+rules, and privileged-role behavior.
 
 ## Staging Data Refresh
 
