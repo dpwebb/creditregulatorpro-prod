@@ -65,6 +65,36 @@ pnpm run bootstrap:local-app-fixtures
 The app fixture bootstrap refuses to run unless local-dev mode is enabled and
 the resolved database host is localhost.
 
+## Localhost Workbase Policy
+
+Use localhost as the initial workbase for development. Build, inspect, and test
+code/UI/API behavior locally first, then promote code through GitHub to staging.
+
+Do not treat local database edits as staging changes. Localhost data changes do
+not automatically migrate upward. When a local change affects core data or
+configuration that staging must also have, convert it into a reproducible
+staging artifact before validation:
+
+- migration or idempotent schema script,
+- seed/backfill script,
+- supported admin export/import operation,
+- controlled admin operation with verification notes,
+- audited remediation script for one-time staging repair.
+
+Core data/config includes admin and support roles, feature flags, system
+settings, compliance config, parser mappings, statutes/rules/reference data,
+letter templates, lifecycle/test configuration, seeded defaults, and database
+schema.
+
+Environment-specific operational data should remain environment-specific unless
+there is an explicit migration plan. This includes sessions, OAuth rows, reset
+tokens, email-verification tokens, login attempts, rate limits, audit logs,
+uploaded documents, payment records, support tickets, IP addresses, user-agent
+data, and temporary local test users.
+
+Staging remains the authoritative pre-production validation environment. Do not
+bypass staging by pushing localhost work directly to production.
+
 ## Staging Data Refresh
 
 When a local bug depends on real staging relationships, refresh the local

@@ -13,16 +13,52 @@ Staging and production should only run code that exists in GitHub at a known com
 
 1. Make source changes in the local staging repo.
 2. Run local checks (`typecheck` + `build`) for fast feedback only.
-3. Commit the intended changes.
-4. Push the branch to GitHub.
-5. Use staging as the primary validation gate for end-to-end behavior.
-6. Promote to production only from an approved staging commit in GitHub.
+3. Classify whether the work changed only code or also changed core data/config.
+4. Convert meaningful core data/config changes into a reproducible artifact.
+5. Commit the intended changes.
+6. Push the branch to GitHub.
+7. Use staging as the primary validation gate for end-to-end behavior.
+8. Promote to production only from an approved staging commit in GitHub.
 
 ## Hybrid Validation Model
 
-- Localhost is for rapid compile/type checks and quick UI iteration.
+- Localhost is the initial workbase for code, UI, and logic changes.
 - Staging is the first authoritative runtime validation environment.
 - Production promotions are blocked unless staging gate checks pass.
+- Do not bypass staging by pushing localhost work directly to production.
+- Code moves upward through GitHub: localhost -> `origin/staging` -> staging deploy -> production promotion.
+- Data normally moves downward for reproduction: staging -> localhost refresh.
+
+## Data And Configuration Promotion
+
+Localhost database changes are disposable unless they are converted into a
+reproducible staging change. If a local change must exist on staging, it must be
+represented as one of:
+
+- a committed migration or idempotent schema script,
+- a committed seed/backfill script,
+- a controlled admin operation with verification,
+- an export/import artifact for supported admin data,
+- an audited staging remediation script.
+
+Core truth must not be fixed only in localhost. Core truth includes:
+
+- admin/support roles,
+- feature flags,
+- system settings,
+- compliance configuration,
+- parser mappings,
+- statutes, rules, and reference data,
+- letter templates,
+- lifecycle/test configuration,
+- seeded platform defaults,
+- database schema.
+
+Environment-specific operational data should not automatically move upward from
+localhost to staging or production. This includes sessions, OAuth rows, reset
+tokens, email-verification tokens, login attempts, rate limits, audit logs,
+uploaded documents, support tickets, payment records, IP addresses, user-agent
+data, and ad hoc local test users.
 
 ## Rules
 

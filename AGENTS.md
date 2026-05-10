@@ -65,6 +65,18 @@
 - Do not add or require new secrets, tokens, deploy keys, Hostinger authentication, or GitHub authentication
 - Suggest a commit message after each task
 
+## Localhost, staging, and data/config promotion
+- Keep localhost as the initial workbase for code, UI, and logic changes.
+- Do not bypass staging by pushing localhost work directly to production.
+- Treat staging as the authoritative pre-production runtime test environment.
+- Code moves upward through GitHub: localhost -> `origin/staging` -> staging deploy -> production promotion.
+- Data normally moves downward for reproduction: staging -> localhost refresh.
+- Do not assume localhost database, uploaded-file, session, token, role, or configuration changes will appear on staging.
+- Any meaningful data/config change required on staging must be made reproducible as a migration, seed, admin operation, export/import, or audited remediation script.
+- Core truth includes admin/support roles, feature flags, system settings, compliance config, parser mappings, statutes/rules/reference data, letter templates, lifecycle/test configuration, seeded platform defaults, and schema.
+- Environment-specific operational data includes sessions, OAuth rows, reset/email tokens, login attempts, rate limits, audit logs, uploaded documents, payment records, support tickets, IP addresses, and user-agent data.
+- Before staging validation, identify whether the task changed only code or also changed core data/config that must be applied and verified on staging.
+
 ## Browser/testing workflow
 - Use the normal browser for authenticated staging pages
 - Do not rely on the Codex in-app browser for login-protected flows
