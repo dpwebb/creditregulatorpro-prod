@@ -219,10 +219,10 @@ export async function generatePDF(
       });
     }
 
-    // Items for Clarification
+    // Disputed Items
     if (safeContent.disputedItems) {
       documentContent.push({
-        text: "Items for Clarification",
+        text: "Disputed Items",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
@@ -234,6 +234,11 @@ export async function generatePDF(
     }
 
     // Statutory Grounds
+    documentContent.push({
+      text: "Statutory Grounds",
+      style: "sectionHeading",
+      margin: [0, 0, 0, 8],
+    });
     documentContent.push({
       text: safeContent.statutoryGrounds,
       style: "bodyText",
@@ -255,6 +260,11 @@ export async function generatePDF(
     }
 
     // Requested Action
+    documentContent.push({
+      text: "Requested Action",
+      style: "sectionHeading",
+      margin: [0, 0, 0, 8],
+    });
     documentContent.push({
       text: safeContent.requestedAction,
       style: "bodyText",

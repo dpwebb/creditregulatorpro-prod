@@ -20,6 +20,7 @@ import {
 } from "./equifaxDisputeReasons";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
+import { buildSpecificStatutoryGrounds } from "./disputeLetterStatutoryGrounds";
 
 export interface PacketLetterBuilderParams {
   bureauNameRaw: string | null;
@@ -138,14 +139,14 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
       additionalNotes: params.additionalNotes,
     });
 
-    let statutoryGrounds: string;
-    if (params.violationDetails?.statutoryBasis) {
-      statutoryGrounds = `This dispute is filed pursuant to ${params.violationDetails.statutoryBasis}.`;
-    } else if (params.statuteInfo) {
-      statutoryGrounds = `This dispute is filed pursuant to ${params.statuteInfo.code} ${params.statuteInfo.sectionReference}.`;
-    } else {
-      statutoryGrounds = "This dispute is filed pursuant to applicable consumer reporting legislation.";
-    }
+    const statutoryGrounds = buildSpecificStatutoryGrounds({
+      disputeReasonCode: params.disputeReasonCode,
+      province: params.province,
+      statuteInfo: params.statuteInfo,
+      violationCategory: params.effectiveViolationCategory,
+      violationDetails: params.violationDetails,
+      tradelineDetails: params.tradelineDetails,
+    });
 
     let requestedAction = await buildBureauRequestedAction(
       params.effectiveViolationCategory,
@@ -187,6 +188,16 @@ export async function packetLetterBuilder(params: PacketLetterBuilderParams): Pr
     // Apply generic bureau overrides
     letterContent = await applyTemplateOverrides(letterContent, "bureau", "generic");
   }
+
+  letterContent.statutoryGrounds = buildSpecificStatutoryGrounds({
+    disputeReasonCode: params.disputeReasonCode,
+    province: params.province,
+    statuteInfo: params.statuteInfo,
+    violationCategory: params.effectiveViolationCategory,
+    violationDetails: params.violationDetails,
+    tradelineDetails: params.tradelineDetails,
+    existingGrounds: letterContent.statutoryGrounds,
+  });
 
   return letterContent;
 }

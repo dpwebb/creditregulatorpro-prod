@@ -1,7 +1,6 @@
 import {
   EquifaxDisputeReasonCode,
   getDisputeReasonDescription,
-  getDisputeReasonStatutoryBasis,
   type StatuteInfo,
 } from "./equifaxDisputeReasons";
 import type { TradelineDetails, ViolationDetails } from "./equifaxDisputeTemplate";
@@ -10,6 +9,7 @@ import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAc
 import { deduplicateLetterSections } from "./disputeNarrativeFraming";
 import type { LetterContent } from "./pdfGenerator";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
+import { buildSpecificStatutoryGrounds } from "./disputeLetterStatutoryGrounds";
 
 /**
  * Extended context for building TransUnion-specific disputes.
@@ -100,21 +100,14 @@ export async function buildTransUnionDispute(ctx: TransUnionDisputeContext, prov
   const introduction = deduplicateLetterSections(framing.introduction, disputedItemsText);
 
   // Build statutory grounds — single location, no duplication in disputedItems
-  let statutoryGrounds: string;
-  if (province) {
-    const statutoryBasis = getDisputeReasonStatutoryBasis(
-      ctx.disputeReasonCode,
-      province,
-      ctx.statuteInfo
-    );
-    statutoryGrounds = statutoryBasis;
-  } else if (ctx.violationDetails?.statutoryBasis) {
-    statutoryGrounds = `This dispute is filed pursuant to ${ctx.violationDetails.statutoryBasis}.`;
-  } else if (ctx.statuteInfo) {
-    statutoryGrounds = `This dispute is filed pursuant to ${ctx.statuteInfo.code} ${ctx.statuteInfo.sectionReference}.`;
-  } else {
-    statutoryGrounds = "This dispute is filed pursuant to applicable consumer reporting legislation.";
-  }
+  const statutoryGrounds = buildSpecificStatutoryGrounds({
+    disputeReasonCode: ctx.disputeReasonCode,
+    province,
+    statuteInfo: ctx.statuteInfo,
+    violationCategory: ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+    violationDetails: ctx.violationDetails,
+    tradelineDetails: ctx.tradelineDetails,
+  });
 
   // Generate bureau-directed requestedAction
   let requestedAction = await buildBureauRequestedAction(

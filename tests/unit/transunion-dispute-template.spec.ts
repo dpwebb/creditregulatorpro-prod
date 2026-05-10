@@ -19,4 +19,33 @@ describe("TransUnion dispute template", () => {
 
     expect(letter.supportingDocumentation).toBe("TransUnion Case ID: L121322");
   });
+
+  it("includes specific statutory text for mapped dispute violations", async () => {
+    const letter = await buildTransUnionDispute(
+      {
+        consumerName: "TEST CONSUMER",
+        consumerAddress: ["123 MAIN ST", "TORONTO ON M5V 1A1"],
+        creditorName: "BANK OF NOVA SCOTIA",
+        accountNumber: "123456789",
+        disputeReasonCode: "INCORRECT_BALANCE",
+        violationCategory: "BALANCE_CALCULATION_VIOLATION",
+        violationDetails: {
+          violationCategory: "BALANCE_CALCULATION_VIOLATION",
+          fieldName: "balance",
+          detectedValue: "$250.00",
+          expectedValue: "$100.00",
+          technicalDetails: {
+            balance: "$250.00",
+            expectedBalance: "$100.00",
+          },
+        },
+      },
+      "Ontario"
+    );
+
+    expect(letter.statutoryGrounds).toContain("Ontario Consumer Reporting Act");
+    expect(letter.statutoryGrounds).toContain("PIPEDA");
+    expect(letter.statutoryGrounds).toContain("Relevant statutory text or authority excerpt");
+    expect(letter.statutoryGrounds).toContain("Personal information shall be as accurate, complete, and up-to-date");
+  });
 });

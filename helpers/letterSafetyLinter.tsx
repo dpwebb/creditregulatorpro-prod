@@ -58,14 +58,6 @@ const TEXT_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
     replacement: "may not align with",
   },
   {
-    pattern: /\bdisputed\s+items?\b/gi,
-    replacement: "items for clarification",
-  },
-  {
-    pattern: /\bdispute\b/gi,
-    replacement: "clarification request",
-  },
-  {
     pattern: /\blegal\s+time\s+limit\b/gi,
     replacement: "applicable response timeframe",
   },
@@ -111,6 +103,14 @@ function compactWhitespace(text: string): string {
     .trim();
 }
 
+function compactStructuredText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function sanitizeNarrativeText(text: string): string {
   let output = text;
   for (const rule of TEXT_REPLACEMENTS) {
@@ -121,6 +121,26 @@ function sanitizeNarrativeText(text: string): string {
   return compactWhitespace(output);
 }
 
+function normalizeForComparison(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasRequestedActionConcept(text: string, needles: string[]): boolean {
+  const normalized = normalizeForComparison(text);
+  return needles.some((needle) => normalized.includes(normalizeForComparison(needle)));
+}
+
+function appendIfMissing(parts: string[], sentence: string, needles: string[]) {
+  const existing = parts.join(" ");
+  if (!hasRequestedActionConcept(existing, needles)) {
+    parts.push(sentence);
+  }
+}
+
 function buildClarificationRequestedAction(originalAction?: string): string {
   const sanitizedOriginal = originalAction ? sanitizeNarrativeText(originalAction) : "";
 
@@ -129,11 +149,14 @@ function buildClarificationRequestedAction(originalAction?: string): string {
   const verificationSentence = "If any field cannot be verified, please explain what is missing and what clarification is required to complete verification.";
   const closeSentence = "Please share your written findings and next steps within the applicable response timeframe.";
 
-  if (!sanitizedOriginal) {
-    return `${documentationSentence} ${correctionSentence} ${verificationSentence} ${closeSentence}`;
-  }
+  const parts = sanitizedOriginal ? [sanitizedOriginal] : [];
 
-  return `${documentationSentence} ${correctionSentence} ${verificationSentence} ${closeSentence}`;
+  appendIfMissing(parts, documentationSentence, ["source documentation", "records used to support", "records and source"]);
+  appendIfMissing(parts, correctionSentence, ["correct it", "correct any", "correct the", "written confirmation"]);
+  appendIfMissing(parts, verificationSentence, ["cannot be verified", "if unverified", "unverified information", "complete verification"]);
+  appendIfMissing(parts, closeSentence, ["written findings", "response timeframe"]);
+
+  return compactWhitespace(parts.join(" "));
 }
 
 export function lintLetterContentForRegulatorSafety(
@@ -148,6 +171,11 @@ export function lintLetterContentForRegulatorSafety(
     if (key === "requestedAction") {
       (safeContent as Record<NarrativeKey, string>)[key] =
         buildClarificationRequestedAction(value);
+      continue;
+    }
+
+    if (key === "statutoryGrounds") {
+      (safeContent as Record<NarrativeKey, string>)[key] = compactStructuredText(value);
       continue;
     }
 

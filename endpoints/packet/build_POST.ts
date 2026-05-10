@@ -35,6 +35,7 @@ import { letterHumanizer } from "../../helpers/letterHumanizer";
 import { packetDataResolver } from "../../helpers/packetDataResolver";
 import { fetchTransUnionCaseIdForReportArtifact } from "../../helpers/bureauContextReferences";
 import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
+import { buildSpecificStatutoryGrounds } from "../../helpers/disputeLetterStatutoryGrounds";
 
 function extractComplianceViolationId(notes: string | null): number | null {
   const match = notes?.match(/compliance violation #(\d+)/i);
@@ -442,6 +443,16 @@ export async function handle(request: Request) {
       console.warn(`No specific template found for jurisdiction "${jurisdiction}" with statute code "${code}". Defaulting to Ontario CRA template.`);
       letterContent = await ontarioCRA(templateContext);
     }
+
+    letterContent.statutoryGrounds = buildSpecificStatutoryGrounds({
+      disputeReasonCode,
+      province: consumerProvince,
+      statuteInfo,
+      violationCategory: effectiveViolationCategory,
+      violationDetails,
+      tradelineDetails,
+      existingGrounds: letterContent.statutoryGrounds,
+    });
 
     // Keep the legacy obligation-instance path aligned with packet/create letter cleanup.
     letterContent = await letterHumanizer(letterContent);

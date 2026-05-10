@@ -23,6 +23,14 @@ function compactWhitespace(text: string): string {
     .trim();
 }
 
+function compactStructuredText(text: string): string {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function normalizeForComparison(text: string): string {
   return text
     .toLowerCase()
@@ -137,6 +145,10 @@ function cleanNarrativeSection(
   key: NarrativeKey,
   seenParagraphs: string[]
 ): string {
+  if (key === "statutoryGrounds") {
+    return compactStructuredText(text);
+  }
+
   const paragraphs = splitParagraphs(stripEmbeddedSectionLabels(text, key));
   const kept: string[] = [];
 
@@ -196,7 +208,6 @@ export async function letterHumanizer(
 
     if (locallySafe.introduction) sectionsToHumanize.introduction = locallySafe.introduction;
     if (locallySafe.disputedItems) sectionsToHumanize.disputedItems = locallySafe.disputedItems;
-    if (locallySafe.statutoryGrounds) sectionsToHumanize.statutoryGrounds = locallySafe.statutoryGrounds;
     if (locallySafe.requestedAction) sectionsToHumanize.requestedAction = locallySafe.requestedAction;
     if (locallySafe.statutoryTimeframe) sectionsToHumanize.statutoryTimeframe = locallySafe.statutoryTimeframe;
     if (locallySafe.certification) sectionsToHumanize.certification = locallySafe.certification;
@@ -214,7 +225,7 @@ Rules:
 2. Vary sentence length, structure, and vocabulary naturally.
 3. Use first-person voice (e.g., "I noticed...", "When I checked my report...").
 4. Keep ALL factual data exactly intact (dates, dollar amounts, account numbers, statute names/sections, bureau names).
-5. Reference legislation naturally within sentences instead of using formal "Statutory Basis:" labels.
+5. Do not add, remove, rewrite, summarize, or invent legal authorities. The statutoryGrounds section is intentionally excluded from this rewrite.
 6. Keep a firm but polite tone — the consumer is asserting their rights, not being aggressive.
 7. Avoid overly formal legalese — a normal person wouldn't write "I am formally disputing the accuracy and completeness of personal information".
 8. Do NOT add any new facts, claims, or context not present in the original text.
@@ -259,7 +270,7 @@ Rules:
       ...locallySafe,
       introduction: rewrittenSections.introduction ?? locallySafe.introduction,
       disputedItems: rewrittenSections.disputedItems ?? locallySafe.disputedItems,
-      statutoryGrounds: rewrittenSections.statutoryGrounds ?? locallySafe.statutoryGrounds,
+      statutoryGrounds: locallySafe.statutoryGrounds,
       requestedAction: rewrittenSections.requestedAction ?? locallySafe.requestedAction,
       statutoryTimeframe: rewrittenSections.statutoryTimeframe ?? locallySafe.statutoryTimeframe,
       certification: rewrittenSections.certification ?? locallySafe.certification,

@@ -14,7 +14,9 @@ export interface RegulationReference {
   regulationId?: string;
   statute: string;
   section: string;
+  shortLabel?: string;
   description: string;
+  sourceUrl?: string | null;
   specificApplication?: string;
   authorityIssueClassification?: AuthorityIssueClassification;
   authorityIssueLabel?: string;
@@ -29,7 +31,9 @@ function referenceFromEntry(entry: NonNullable<ReturnType<typeof regulationRegis
     regulationId: entry.id,
     statute: entry.statute,
     section: entry.citation,
+    shortLabel: entry.shortLabel,
     description: entry.description,
+    sourceUrl: authority?.sourceUrl ?? entry.sourceUrl ?? null,
     ...(authority
       ? {
           authorityIssueClassification: classifyAuthorityIssue(authority),

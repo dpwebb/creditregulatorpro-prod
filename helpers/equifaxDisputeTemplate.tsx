@@ -1,7 +1,6 @@
 import {
   EquifaxDisputeReasonCode,
   getDisputeReasonDescription,
-  getDisputeReasonStatutoryBasis,
   type StatuteInfo,
 } from "./equifaxDisputeReasons";
 import { disputeNarrativeBuilder, getDisputeLetterFraming, buildViolationAwareAccountId } from "./disputeNarrativeBuilder";
@@ -9,6 +8,7 @@ import { deduplicateLetterSections } from "./disputeNarrativeFraming";
 import type { LetterContent } from "./pdfGenerator";
 import { applyTemplateOverrides } from "./letterTemplateQueries";
 import { formatCurrency as formatDollarAmount } from "./formatters";
+import { buildSpecificStatutoryGrounds } from "./disputeLetterStatutoryGrounds";
 
 /**
  * Rich tradeline details for building specific dispute content.
@@ -460,21 +460,14 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
   const introduction = deduplicateLetterSections(framing.introduction, disputedItemsText);
 
   // Build statutory grounds — single location, no duplication in disputedItems
-  let statutoryGrounds: string;
-  if (province) {
-    const statutoryBasis = getDisputeReasonStatutoryBasis(
-      ctx.disputeReasonCode,
-      province,
-      ctx.statuteInfo
-    );
-    statutoryGrounds = statutoryBasis;
-  } else if (ctx.violationDetails?.statutoryBasis) {
-    statutoryGrounds = `This dispute is filed pursuant to ${ctx.violationDetails.statutoryBasis}.`;
-  } else if (ctx.statuteInfo) {
-    statutoryGrounds = `This dispute is filed pursuant to ${ctx.statuteInfo.code} ${ctx.statuteInfo.sectionReference}.`;
-  } else {
-    statutoryGrounds = "This dispute is filed pursuant to applicable consumer reporting legislation.";
-  }
+  const statutoryGrounds = buildSpecificStatutoryGrounds({
+    disputeReasonCode: ctx.disputeReasonCode,
+    province,
+    statuteInfo: ctx.statuteInfo,
+    violationCategory: ctx.violationDetails?.violationCategory ?? ctx.violationCategory,
+    violationDetails: ctx.violationDetails,
+    tradelineDetails: ctx.tradelineDetails,
+  });
 
   // Generate bureau-directed requested action
   let requestedAction = await buildBureauRequestedAction(
