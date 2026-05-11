@@ -26,6 +26,7 @@ import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { evaluateDisputeOutcomesForTradeline } from "./disputeOutcomeEvaluator";
 import type { DeterministicPipelinePackage } from "./deterministicCreditReportPipeline";
 import type { DeterministicReplayValidation } from "./deterministicReplayValidator";
+import { buildEvidenceLocationIndex } from "./evidenceLocationIndex";
 
 export class IngestPipelineError extends Error {
   constructor(message: string, public code: string) {
@@ -332,6 +333,7 @@ export async function executeIngestPipeline({
     .executeTakeFirst();
 
   const currentQualityData = (artifactForQuality?.data ?? {}) as Record<string, unknown>;
+  const evidenceLocationIndex = buildEvidenceLocationIndex(deterministicPipeline);
   await db
     .updateTable("reportArtifact")
     .set({
@@ -342,6 +344,7 @@ export async function executeIngestPipeline({
         extractionProvenance,
         deterministicPipeline,
         canonicalOutput: deterministicPipeline?.finalOutput ?? null,
+        evidenceLocationIndex,
         replayHash: deterministicPipeline?.replayHash ?? extractionProvenance?.replayHash ?? null,
         replayValidation,
         parserQuality,
