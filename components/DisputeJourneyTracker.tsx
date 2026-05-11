@@ -196,13 +196,15 @@ export const DisputeJourneyTracker: React.FC<DisputeJourneyTrackerProps> = ({
         {renderStep(
           3,
           isStep3Done,
-          "Dispute Letters Reset",
+          "Create Dispute Letters",
           isStep3Done 
-            ? "Your existing letters are still available. New letter creation is paused."
-            : "New dispute letters are paused while the packet process is redesigned.",
+            ? "Your existing letters are available. You can create more when findings are packet-ready."
+            : "Create letters from findings with verified source-report evidence.",
           ScrollText,
-          <Button size="lg" disabled>
-            Redesign Pending
+          <Button asChild size="lg">
+            <Link to="/packets?create=true">
+              Create Letter
+            </Link>
           </Button>,
           "/packets"
         )}

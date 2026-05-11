@@ -2200,10 +2200,10 @@ async function main() {
   selectedTradelineId = firstTradeline?.id ?? null;
   selectedBureauId = firstTradeline?.bureauId ?? null;
 
-  setCoverage("packet_recommend", "BLOCKED", "Packet generation has been reset.");
-  setCoverage("packet_preview_create", "BLOCKED", "Packet generation has been reset.");
-  setCoverage("packet_create_draft", "BLOCKED", "Packet generation has been reset.");
-  setCoverage("packet_duplicate_prevention", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_recommend", "BLOCKED", "Readiness-gated packet generation requires a packet-ready finding fixture.");
+  setCoverage("packet_preview_create", "BLOCKED", "Readiness-gated packet generation requires a packet-ready finding fixture.");
+  setCoverage("packet_create_draft", "BLOCKED", "Readiness-gated packet generation requires a packet-ready finding fixture.");
+  setCoverage("packet_duplicate_prevention", "BLOCKED", "Readiness-gated packet generation requires a packet-ready finding fixture.");
   setCoverage("packet_update_status", "BLOCKED", "No generated packet is available for status update.");
   setCoverage("packet_delivery", "BLOCKED", "No generated packet is available for delivery recording.");
 
@@ -2589,7 +2589,7 @@ async function main() {
     { coverageKey: "report_artifact_list" }
   );
 
-  setCoverage("packet_save", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_save", "BLOCKED", "Readiness-gated packet generation requires a packet-ready finding fixture.");
   setCoverage("packet_delete", "BLOCKED", "No generated packet is available for delete validation.");
 
   if (registeredUserId) {

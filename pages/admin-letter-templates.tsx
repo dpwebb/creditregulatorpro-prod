@@ -7,12 +7,12 @@ export default function AdminLetterTemplatesPage() {
   return (
     <div className={styles.container}>
       <Helmet>
-        <title>Letter Templates Reset | Credit Regulator Pro</title>
+        <title>Letter Templates | Credit Regulator Pro</title>
       </Helmet>
 
       <PageHeader
-        title="Letter Templates Reset"
-        subtitle="The old dispute-letter template editor has been retired while the dispute packet workflow is redesigned."
+        title="Letter Templates"
+        subtitle="Packet generation is active through the readiness-gated packet workflow."
       />
 
       <section className={styles.resetPanel}>
@@ -20,7 +20,7 @@ export default function AdminLetterTemplatesPage() {
         <div>
           <h2>Legacy template tooling is disabled</h2>
           <p>
-            Historical packets can still be viewed, downloaded, and mailed. New dispute-letter creation will be rebuilt around the redesigned dispute process.
+            Historical packets can still be viewed, downloaded, and mailed. New packet creation runs from packet-ready findings with verified evidence.
           </p>
         </div>
       </section>

@@ -81,8 +81,8 @@ obligation_instance
   - New dispute workflow instance creation is reset
 
 packet
-  - Historical dispute letter records and delivery evidence
-  - New packet generation is reset
+  - Historical and newly generated dispute letter records and delivery evidence
+  - New packet generation is active for packet-ready findings with verified source-report evidence
   - Existing records keep immutable hash chain references
 
 evidence_event
@@ -115,10 +115,10 @@ SERVERLESS FUNCTIONS
    Output: 410 Gone
 
 4. POST /_api/packet/build
-   Status: Reset
-   Purpose: Legacy packet generation endpoint disabled during dispute process redesign
-   Output: 410 Gone
-   Note: Historical packet viewing and PDF rendering remain available where records already exist.
+   Status: Active, readiness-gated
+   Purpose: Preview dispute packet content for packet-ready findings
+   Output: Packet preview or readiness/validation error
+   Note: Packet create/save/PDF endpoints remain active with ownership and readiness checks.
 
 5. POST /_api/clock/scan
    Purpose: Scan for expired response windows
@@ -353,7 +353,7 @@ VALIDATION ERRORS
 
 RECOVERY PROCEDURES
   - Expired reports: Not recoverable, await next purge cycle
-  - Failed packet generation: Legacy retry is disabled during reset
+  - Failed packet generation: Recheck readiness blockers before retrying
   - Broken hash chain: Admin alert, investigation required
   - Failed webhook delivery: Retry queue with exponential backoff
 

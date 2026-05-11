@@ -46,11 +46,12 @@ export async function handle(request: Request) {
         ],
       },
       {
-        title: "3. Historical Packet Viewing & Delivery",
+        title: "3. Packet Generation, Viewing & Delivery",
         intro:
-          "Historical dispute packet records remain viewable while new packet generation is reset.",
+          "Dispute packet generation is active for packet-ready findings with verified evidence.",
         items: [
-          "Legacy packet generation endpoints return 410 during redesign",
+          "Packet recommendation, preview, creation, saving, listing, retrieval, and PDF download endpoints are active",
+          "Readiness validation blocks parser-uncertain, unverified, dismissed, and missing-evidence findings",
           "Existing packet PDF rendering remains available",
           "Historical packet compliance and evidence records remain readable",
           "PostGrid registered mail delivery integration",

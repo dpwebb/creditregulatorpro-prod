@@ -56,6 +56,7 @@ export default function PacketsPage() {
     let shouldReplaceParams = false;
 
     if (searchParams.get("create") === "true") {
+      setIsCreateDialogOpen(true);
       nextParams.delete("create");
       shouldReplaceParams = true;
     }
@@ -447,7 +448,7 @@ export default function PacketsPage() {
           <div className={styles.emptyState}>
             <ScrollText size={40} />
             <h3>No Letters Yet</h3>
-            <p>Packet generation has been reset and is not available in this build.</p>
+            <p>Packet generation is active for findings with verified source-report evidence.</p>
           </div>
         )}
       </div>
@@ -600,7 +601,7 @@ function CreatePacketDialog({
         <DialogHeader>
           <DialogTitle>Create Dispute Packet</DialogTitle>
           <DialogDescription>
-            Select supported report issues, review the plain-language packet, then generate the PDF.
+            Select packet-ready report findings, review the plain-language packet, then generate the PDF.
           </DialogDescription>
         </DialogHeader>
 
@@ -682,7 +683,7 @@ function CreatePacketDialog({
             {recommendations.isFetching ? (
               <div className={styles.builderState}>Loading report issues...</div>
             ) : candidates.length === 0 ? (
-              <div className={styles.builderState}>No eligible issues found for this packet type.</div>
+              <div className={styles.builderState}>No packet-ready findings found for this packet type. Review blocked findings before creating a packet.</div>
             ) : (
               <div className={styles.candidateList}>
                 {candidates.map((candidate) => (

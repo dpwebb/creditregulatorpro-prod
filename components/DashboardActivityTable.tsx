@@ -174,9 +174,9 @@ export const DashboardActivityTable = ({
                 <td colSpan={isAdmin ? 3 : 4} className={styles.emptyCell}>
                   <DashboardEmptyState
                     icon={Package}
-                    title="Dispute flow reset"
-                    description="New dispute letters are paused while the packet process is redesigned."
-                    helpContent="Historical letters remain available from My Letters where applicable."
+                    title="No dispute letters yet"
+                    description="Packet generation is active once a finding has verified evidence."
+                    helpContent="Open My Letters to create a packet from packet-ready findings."
                   />
                 </td>
               </tr>

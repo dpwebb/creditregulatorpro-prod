@@ -33,6 +33,7 @@ import { USER_PROFILE_QUERY_KEY } from "../helpers/useUserProfile";
 import { getViolationDisplayLabel } from "../helpers/getViolationLabel";
 import { getEnrichedExplanation, getEnrichedRecommendedAction } from "../helpers/getEnrichedExplanation";
 import { summarizeVisibleProblemReviews } from "../helpers/problemReviewVisibility";
+import { useNavigate } from "react-router-dom";
 
 import styles from "./TradelineComplianceHub.module.css";
 
@@ -58,6 +59,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
 }) => {
   const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { profile } = useUserProfile();
 
   // Province alert state
@@ -80,7 +82,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const { data: packetsData } = useTradelinePackets(tradelineId);
   const { mutateAsync: dismissViolation } = useDismissViolation();
   
-  const isPacketGenerationPaused = true;
   const [viewingSourceReport, setViewingSourceReport] = useState(false);
 
   // Packet Viewing State
@@ -192,7 +193,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
 
   // Handlers
   const handleGeneratePacket = (_violationId: number) => {
-    return;
+    navigate("/packets?create=true");
   };
 
   const handleDismissViolation = async (violationId: number, status: "dismissed" | "verified", reason?: string) => {
@@ -315,13 +316,12 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
             variant="default"
             className={isSolPacketSent ? styles.bannerButtonSent : styles.bannerButton}
             onClick={() => solPacket ? handleViewPacket(statuteOfLimitationsViolation.id) : handleGeneratePacket(statuteOfLimitationsViolation.id)}
-            disabled={!solPacket && isPacketGenerationPaused}
           >
             {isSolPacketSent 
               ? "View Sent Letter"
               : solPacket
                 ? "View Dispute Letter"
-                : "Dispute Flow Reset"}
+                : "Create Packet"}
           </Button>
         </div>
       )}
@@ -431,12 +431,12 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                   key={v.id}
                   violation={v}
                   tradelineId={tradelineId}
-                  disabled={isPacketGenerationPaused && !hasPacketForThisViolation}
                   reportArtifactId={currentTradeline?.reportArtifactId ?? null}
                   sourceText={currentTradeline?.sourceText ?? null}
                   onViewSource={() => setViewingSourceReport(true)}
                   hasExistingPacket={hasPacketForThisViolation}
                   onViewPacket={() => handleViewPacket(v.id)}
+                  onCreatePacket={() => handleGeneratePacket(v.id)}
                   isDisputed={isDisputed}
                   onDismiss={handleDismissViolation}
                   isDismissed={false}
@@ -464,12 +464,12 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                           key={v.id}
                           violation={v}
                           tradelineId={tradelineId}
-                          disabled={isPacketGenerationPaused && !hasPacketForThisViolation}
                           reportArtifactId={currentTradeline?.reportArtifactId ?? null}
                           sourceText={currentTradeline?.sourceText ?? null}
                           onViewSource={() => setViewingSourceReport(true)}
                           hasExistingPacket={hasPacketForThisViolation}
                           onViewPacket={() => handleViewPacket(v.id)}
+                          onCreatePacket={() => handleGeneratePacket(v.id)}
                           isDisputed={isDisputed}
                           onDismiss={handleDismissViolation}
                           isDismissed={true}
@@ -517,14 +517,13 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                     <Button 
                       size="lg"
                       onClick={() => packetForTopViolation ? handleViewPacket(topViolation.id) : handleGeneratePacket(topViolation.id)}
-                      disabled={isPacketGenerationPaused && !packetForTopViolation}
                                             variant={isTopViolationDisputed || packetForTopViolation ? "secondary" : "primary"}
                     >
                                         {isTopViolationDisputed 
                         ? "View Your Letter"
                         : packetForTopViolation
                           ? "Review & Send Letter"
-                          : "Dispute Flow Reset"}
+                          : "Create Packet"}
                     </Button>
                   )}
                 </div>
@@ -563,9 +562,8 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                             size="sm"
                             variant={pForThis ? "default" : "secondary"}
                             onClick={() => pForThis ? handleViewPacket(v.id) : handleGeneratePacket(v.id)}
-                            disabled={isPacketGenerationPaused && !pForThis}
                           >
-                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Dispute Flow Reset"}
+                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Create Packet"}
                           </Button>
                         )}
                       </div>

@@ -50,7 +50,7 @@ REPORT INGESTION PIPELINE
 * DocStrange HTML extraction returns creditor names correctly in the parsed HTML response
 * htmlReportParser.parseAccount() extracts creditorName from HTML tables and tags
 * Creditor names are stored in the `creditor` table (via creditor_id FK) and also denormalized into `tradeline.originalCreditorName` for all tradelines (not just collection accounts)
-* Legacy packet generation is reset. Do not use `packet/build_POST` for new dispute creation; it returns 410 during the redesign.
+* Packet generation is active through readiness-gated packet endpoints. Use packet recommendation, preview, create/save, and PDF endpoints only for findings with verified source-report evidence.
 
 REPORT INGESTION PIPELINE - PARSER ARCHITECTURE:
 * Bureau-specific parsing is compartmentalized into separate modules

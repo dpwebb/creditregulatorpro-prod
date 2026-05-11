@@ -16,6 +16,7 @@ import {
   type SimpleDisputePacketContent,
   type SimpleDisputedItemInput,
 } from "./disputePacketTemplate";
+import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 
 export interface DisputePacketRecipientInput {
   name?: string | null;
@@ -52,6 +53,59 @@ export interface DisputePacketCandidate {
   reportDate: string | null;
 }
 
+export const PACKET_READINESS_REASON_CODES = [
+  "NO_FINDINGS",
+  "FINDING_NOT_FOUND",
+  "UNAUTHORIZED_FINDING",
+  "MIXED_OWNER_SELECTION",
+  "MIXED_TRADELINE_SELECTION",
+  "MIXED_BUREAU_SELECTION",
+  "RECIPIENT_BUREAU_MISMATCH",
+  "PACKET_TYPE_UNAVAILABLE",
+  "COLLECTION_AGENCY_REQUIRED",
+  "DISMISSED_FINDING",
+  "PARSER_UNCERTAIN",
+  "NEEDS_USER_REVIEW",
+  "EXTRACTION_CONFIDENCE_NOT_READY",
+  "MISSING_REQUIRED_EVIDENCE",
+  "MANUAL_REVIEW_REQUIRED",
+] as const;
+
+export type PacketReadinessReasonCode = typeof PACKET_READINESS_REASON_CODES[number];
+
+export interface PacketReadinessBlocker {
+  findingId?: number;
+  code: PacketReadinessReasonCode;
+  message: string;
+}
+
+export interface PacketReadinessWarning {
+  findingId?: number;
+  code: PacketReadinessReasonCode;
+  message: string;
+}
+
+export interface PacketReadinessResult {
+  packetReady: boolean;
+  blockers: PacketReadinessBlocker[];
+  warnings: PacketReadinessWarning[];
+  eligibleFindingIds: number[];
+  ineligibleFindingIds: number[];
+  reasonCodes: PacketReadinessReasonCode[];
+}
+
+export interface PacketReadinessIssueInput {
+  issueId: number;
+  userId: number | null;
+  tradelineId: number | null;
+  bureauId?: number | null;
+  userStatus?: string | null;
+  validationStatus?: string | null;
+  technicalDetails?: unknown;
+  evidenceReference?: string | null;
+  packetTypes?: DisputePacketType[];
+}
+
 type IssueRow = {
   issueId: number;
   issueUserExplanation: string | null;
@@ -60,6 +114,7 @@ type IssueRow = {
   issueDisputeVector: string | null;
   issueTechnicalDetails: unknown;
   issueUserStatus: string | null;
+  issueValidationStatus: string | null;
   tradelineId: number;
   userId: number | null;
   userEmail: string | null;
@@ -231,6 +286,241 @@ function packetTypesForRow(row: IssueRow): DisputePacketType[] {
     types.push("collection_agency");
   }
   return types;
+}
+
+function dedupeIssueIds(issueIds: number[]): number[] {
+  return Array.from(new Set(issueIds.map((id) => Number(id)).filter((id) => Number.isFinite(id))));
+}
+
+function readStoredExtractionGate(value: unknown): { packetReady: boolean | null; status: string | null } {
+  const details = objectValue(value);
+  const gate = objectValue(details?.extractionConfidenceGate);
+  return {
+    packetReady: typeof gate?.packetReady === "boolean" ? gate.packetReady : null,
+    status: typeof gate?.status === "string" ? gate.status.toLowerCase() : null,
+  };
+}
+
+function isNeedsManualReviewEvidence(evidenceReference: string | null | undefined): boolean {
+  return !evidenceReference?.trim() || evidenceReference.trim().toLowerCase() === "needs manual review";
+}
+
+function readinessIssueFromRow(row: IssueRow): PacketReadinessIssueInput {
+  const details = parseDetails(row.issueTechnicalDetails);
+  return {
+    issueId: row.issueId,
+    userId: row.userId,
+    tradelineId: row.tradelineId,
+    bureauId: row.bureauId,
+    userStatus: row.issueUserStatus,
+    validationStatus: row.issueValidationStatus,
+    technicalDetails: details,
+    evidenceReference: evidenceReferenceForRow(row, details),
+    packetTypes: packetTypesForRow(row),
+  };
+}
+
+function addBlocker(
+  blockers: PacketReadinessBlocker[],
+  code: PacketReadinessReasonCode,
+  message: string,
+  findingId?: number,
+): void {
+  blockers.push(findingId === undefined ? { code, message } : { findingId, code, message });
+}
+
+function reasonCodesFor(
+  blockers: PacketReadinessBlocker[],
+  warnings: PacketReadinessWarning[],
+): PacketReadinessReasonCode[] {
+  return Array.from(new Set([...blockers.map((blocker) => blocker.code), ...warnings.map((warning) => warning.code)]));
+}
+
+export function evaluatePacketReadinessForIssues(
+  user: Pick<User, "id" | "role">,
+  input: DisputePacketBuildInput,
+  issues: PacketReadinessIssueInput[],
+): PacketReadinessResult {
+  const selectedIssueIds = dedupeIssueIds(input.selectedIssueIds);
+  const blockers: PacketReadinessBlocker[] = [];
+  const warnings: PacketReadinessWarning[] = [];
+  const blockedFindingIds = new Set<number>();
+  const issueById = new Map(issues.map((issue) => [issue.issueId, issue]));
+  const missingIssueIds = selectedIssueIds.filter((issueId) => !issueById.has(issueId));
+  const selectedIssues = selectedIssueIds
+    .map((issueId) => issueById.get(issueId))
+    .filter((issue): issue is PacketReadinessIssueInput => Boolean(issue));
+
+  if (selectedIssueIds.length === 0) {
+    addBlocker(blockers, "NO_FINDINGS", "Select at least one report finding before creating a packet.");
+  }
+
+  for (const issueId of missingIssueIds) {
+    blockedFindingIds.add(issueId);
+    addBlocker(blockers, "FINDING_NOT_FOUND", `Finding #${issueId} was not found.`, issueId);
+  }
+
+  const ownerIds = Array.from(
+    new Set(selectedIssues.map((issue) => issue.userId).filter((id): id is number => typeof id === "number")),
+  );
+  if (ownerIds.length > 1) {
+    addBlocker(blockers, "MIXED_OWNER_SELECTION", "Select findings for one consumer at a time.");
+  }
+
+  if (user.role !== "admin") {
+    for (const issue of selectedIssues) {
+      if (issue.userId !== user.id) {
+        blockedFindingIds.add(issue.issueId);
+        addBlocker(blockers, "UNAUTHORIZED_FINDING", "You do not have access to this finding.", issue.issueId);
+      }
+    }
+  }
+
+  const tradelineIds = Array.from(
+    new Set(selectedIssues.map((issue) => issue.tradelineId).filter((id): id is number => typeof id === "number")),
+  );
+  if (selectedIssues.length > 1 && tradelineIds.length > 1) {
+    addBlocker(blockers, "MIXED_TRADELINE_SELECTION", "Create one packet per account/tradeline.");
+  }
+
+  if (input.packetType === "credit_bureau") {
+    const bureauIds = Array.from(
+      new Set(selectedIssues.map((issue) => issue.bureauId).filter((id): id is number => typeof id === "number")),
+    );
+    if (!input.recipientBureauId && bureauIds.length > 1) {
+      addBlocker(blockers, "MIXED_BUREAU_SELECTION", "Select findings from one credit bureau at a time.");
+    }
+    if (input.recipientBureauId) {
+      for (const issue of selectedIssues) {
+        if (issue.bureauId && issue.bureauId !== input.recipientBureauId) {
+          blockedFindingIds.add(issue.issueId);
+          addBlocker(
+            blockers,
+            "RECIPIENT_BUREAU_MISMATCH",
+            "This finding does not match the requested credit bureau.",
+            issue.issueId,
+          );
+        }
+      }
+    }
+  }
+
+  if (input.packetType === "collection_agency") {
+    for (const issue of selectedIssues) {
+      if (!issue.packetTypes?.includes("collection_agency")) {
+        blockedFindingIds.add(issue.issueId);
+        addBlocker(
+          blockers,
+          "PACKET_TYPE_UNAVAILABLE",
+          "This finding is not eligible for a collection agency packet.",
+          issue.issueId,
+        );
+      }
+    }
+  }
+
+  for (const issue of selectedIssues) {
+    const userStatus = issue.userStatus?.toLowerCase() ?? "active";
+    const validationStatus = issue.validationStatus?.toUpperCase() ?? null;
+    const confidenceGate = evaluateViolationPacketConfidenceGate({
+      technicalDetails: issue.technicalDetails,
+      validationStatus: issue.validationStatus,
+      userStatus: issue.userStatus,
+    });
+    const storedExtractionGate = readStoredExtractionGate(issue.technicalDetails);
+
+    if (userStatus === "dismissed") {
+      blockedFindingIds.add(issue.issueId);
+      addBlocker(blockers, "DISMISSED_FINDING", "Dismissed findings cannot be used to create packets.", issue.issueId);
+    }
+
+    if (confidenceGate.blockerCode === "parser_uncertain" || validationStatus === "PARSER_UNCERTAIN") {
+      blockedFindingIds.add(issue.issueId);
+      addBlocker(
+        blockers,
+        "PARSER_UNCERTAIN",
+        "Parser-uncertain findings need parser review before packet creation.",
+        issue.issueId,
+      );
+    } else if (confidenceGate.blockerCode === "violation_needs_review" || validationStatus === "NEEDS_USER_REVIEW") {
+      if (userStatus !== "verified") {
+        blockedFindingIds.add(issue.issueId);
+        addBlocker(
+          blockers,
+          "NEEDS_USER_REVIEW",
+          "This finding must be verified before packet creation.",
+          issue.issueId,
+        );
+      }
+    }
+
+    const verifiedUserReview =
+      userStatus === "verified" &&
+      (validationStatus === "NEEDS_USER_REVIEW" || storedExtractionGate.status === "needs_user_review");
+    if (
+      storedExtractionGate.packetReady === false &&
+      confidenceGate.blockerCode === null &&
+      !verifiedUserReview
+    ) {
+      blockedFindingIds.add(issue.issueId);
+      addBlocker(
+        blockers,
+        "EXTRACTION_CONFIDENCE_NOT_READY",
+        "The source report extraction is not packet-ready for this finding.",
+        issue.issueId,
+      );
+    }
+
+    if (isNeedsManualReviewEvidence(issue.evidenceReference)) {
+      blockedFindingIds.add(issue.issueId);
+      addBlocker(
+        blockers,
+        "MISSING_REQUIRED_EVIDENCE",
+        "Required source-report evidence is missing for this finding.",
+        issue.issueId,
+      );
+      addBlocker(
+        blockers,
+        "MANUAL_REVIEW_REQUIRED",
+        "This finding is marked Needs manual review.",
+        issue.issueId,
+      );
+    }
+  }
+
+  const eligibleFindingIds = selectedIssues
+    .filter((issue) => !blockedFindingIds.has(issue.issueId))
+    .map((issue) => issue.issueId);
+  const ineligibleFindingIds = Array.from(new Set([...missingIssueIds, ...blockedFindingIds]));
+  const reasonCodes = reasonCodesFor(blockers, warnings);
+
+  return {
+    packetReady: blockers.length === 0 && eligibleFindingIds.length === selectedIssueIds.length && selectedIssueIds.length > 0,
+    blockers,
+    warnings,
+    eligibleFindingIds,
+    ineligibleFindingIds,
+    reasonCodes,
+  };
+}
+
+export function assertPacketReadiness(readiness: PacketReadinessResult): void {
+  if (readiness.packetReady) return;
+  const firstBlocker = readiness.blockers[0];
+  const statusCode = readiness.reasonCodes.includes("UNAUTHORIZED_FINDING")
+    ? 403
+    : readiness.reasonCodes.includes("FINDING_NOT_FOUND")
+      ? 404
+      : 400;
+  throw new BusinessRuleError(
+    firstBlocker?.message ?? "Packet readiness requirements are not satisfied.",
+    statusCode,
+  );
+}
+
+export function resolvePacketCreditorObligationTestId(selectedIssueIds: number[]): number | null {
+  const uniqueIds = dedupeIssueIds(selectedIssueIds);
+  return uniqueIds.length === 1 ? uniqueIds[0] : null;
 }
 
 function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit_bureau"): DisputePacketCandidate {
@@ -415,6 +705,11 @@ function assertRowsCanBuild(user: User, rows: IssueRow[], input: DisputePacketBu
     throw new BusinessRuleError("Unauthorized access to disputed items.", 403);
   }
 
+  const tradelineIds = Array.from(new Set(rows.map((row) => row.tradelineId)));
+  if (rows.length > 1 && tradelineIds.length > 1) {
+    throw new BusinessRuleError("Create one packet per account/tradeline.");
+  }
+
   if (input.packetType === "credit_bureau") {
     const bureauIds = Array.from(new Set(rows.map((row) => row.bureauId).filter((id): id is number => typeof id === "number")));
     if (!input.recipientBureauId && bureauIds.length > 1) {
@@ -447,6 +742,7 @@ async function getIssueRows(issueIds: number[]): Promise<IssueRow[]> {
       "issue.disputeVector as issueDisputeVector",
       "issue.technicalDetails as issueTechnicalDetails",
       "issue.userStatus as issueUserStatus",
+      "issue.validationStatus as issueValidationStatus",
       "tradeline.id as tradelineId",
       "tradeline.userId as userId",
       "users.email as userEmail",
@@ -513,6 +809,7 @@ export async function getDisputePacketCandidates(
       "issue.disputeVector as issueDisputeVector",
       "issue.technicalDetails as issueTechnicalDetails",
       "issue.userStatus as issueUserStatus",
+      "issue.validationStatus as issueValidationStatus",
       "tradeline.id as tradelineId",
       "tradeline.userId as userId",
       "users.email as userEmail",
@@ -565,8 +862,35 @@ export async function getDisputePacketCandidates(
 
   const rows = await query.execute() as IssueRow[];
   return rows
+    .filter((row) => {
+      const packetType = input.packetType ?? "credit_bureau";
+      const readiness = evaluatePacketReadinessForIssues(
+        user,
+        { packetType, selectedIssueIds: [row.issueId] },
+        [readinessIssueFromRow(row)],
+      );
+      return readiness.packetReady;
+    })
     .map((row) => candidateFromRow(row, input.packetType ?? "credit_bureau"))
     .filter((candidate) => !input.packetType || candidate.packetTypes.includes(input.packetType));
+}
+
+export async function validateDisputePacketReadiness(
+  user: User,
+  input: DisputePacketBuildInput,
+): Promise<PacketReadinessResult> {
+  const selectedIssueIds = dedupeIssueIds(input.selectedIssueIds);
+  const rows = await getIssueRows(selectedIssueIds);
+
+  if (user.role !== "admin" && rows.some((row) => row.userId !== user.id)) {
+    throw new BusinessRuleError("Unauthorized access to disputed items.", 403);
+  }
+
+  return evaluatePacketReadinessForIssues(
+    user,
+    { ...input, selectedIssueIds },
+    rows.map(readinessIssueFromRow),
+  );
 }
 
 export async function buildDisputePacketPreview(
@@ -578,10 +902,18 @@ export async function buildDisputePacketPreview(
   ownerUserId: number;
   firstTradelineId: number;
   bureauId: number | null;
+  selectedIssueIds: number[];
+  linkedFindingId: number | null;
 }> {
-  const uniqueIssueIds = Array.from(new Set(input.selectedIssueIds.map((id) => Number(id))));
+  const uniqueIssueIds = dedupeIssueIds(input.selectedIssueIds);
   const rows = await getIssueRows(uniqueIssueIds);
   assertRowsCanBuild(user, rows, { ...input, selectedIssueIds: uniqueIssueIds });
+  const readiness = evaluatePacketReadinessForIssues(
+    user,
+    { ...input, selectedIssueIds: uniqueIssueIds },
+    rows.map(readinessIssueFromRow),
+  );
+  assertPacketReadiness(readiness);
 
   const firstRow = rows[0];
   const ownerUserId = Number(firstRow.userId);
@@ -616,6 +948,8 @@ export async function buildDisputePacketPreview(
     ownerUserId,
     firstTradelineId: firstRow.tradelineId,
     bureauId: input.packetType === "credit_bureau" ? (input.recipientBureauId ?? firstRow.bureauId) : null,
+    selectedIssueIds: uniqueIssueIds,
+    linkedFindingId: resolvePacketCreditorObligationTestId(uniqueIssueIds),
   };
 }
 
@@ -634,6 +968,7 @@ export async function createDisputePacketRecord(
         userId: preview.ownerUserId,
         tradelineId: preview.firstTradelineId,
         bureauId: preview.bureauId,
+        creditorObligationTestId: preview.linkedFindingId,
         type: packetType,
         status: "generated",
         processingStatus: "completed",
@@ -655,6 +990,7 @@ export async function createDisputePacketRecord(
       packetId: packet.id,
       packetType,
       selectedIssueIds: preview.packet.metadata.selectedIssueIds,
+      creditorObligationTestId: preview.linkedFindingId,
       generatedAt: now.toISOString(),
     };
 
@@ -682,6 +1018,7 @@ export async function createDisputePacketRecord(
           packetType,
           ownerUserId: preview.ownerUserId,
           selectedIssueIds: preview.packet.metadata.selectedIssueIds,
+          creditorObligationTestId: preview.linkedFindingId,
         } as any,
         status: "SUCCESS",
         timestamp: now,

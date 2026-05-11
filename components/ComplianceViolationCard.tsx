@@ -36,6 +36,7 @@ interface ViolationCardProps {
   onViewSource?: () => void;
   hasExistingPacket?: boolean;
   onViewPacket?: () => void;
+  onCreatePacket?: () => void;
   isDisputed?: boolean;
   onDismiss?: (violationId: number, status: "dismissed" | "verified", reason?: string) => void;
   isDismissed?: boolean;
@@ -73,6 +74,7 @@ export const ComplianceViolationCard = ({
   onViewSource,
   hasExistingPacket,
   onViewPacket,
+  onCreatePacket,
   isDisputed,
   onDismiss,
   isDismissed,
@@ -304,10 +306,11 @@ export const ComplianceViolationCard = ({
               size="sm"
               variant="secondary"
               className={styles.actionButton}
-              disabled
-              title="The dispute packet flow is being redesigned"
+              onClick={onCreatePacket}
+              disabled={!onCreatePacket}
+              title="Create a packet after readiness checks pass"
             >
-              Dispute Flow Reset
+              Create Packet
             </Button>
           )}
         </div>
