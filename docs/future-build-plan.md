@@ -52,15 +52,15 @@ Updated May 11, 2026.
 14. Repo-level and subsystem-level `AGENTS.md` guardrails exist for deterministic parsing, evidence, violation, packet, regulation, and service safety.
 15. Stage Lab scanned-PDF/OCR rejection now maps known `SCANNED_PDF_UNSUPPORTED` errors to a controlled 400 response with side-effect-free parser-lab regression coverage.
 16. Endpoint-backed packet lifecycle regression coverage now exists for readiness validation, packet preview/build, packet create, PDF download, non-owner PDF denial, missing/manual-review evidence rejection, dismissed finding rejection, and single-issue `creditorObligationTestId` persistence.
+17. Real scanned-PDF staging smoke testing has been run against Stage Lab. The running staging and production containers expose `tesseract`, `pdftoppm`, and `CRP_DETERMINISTIC_OCR_ENABLED=true`; the smoke input used deterministic OCR, stayed side-effect free, produced no report/canonical/violation/evidence/packet rows, and returned controlled manual-review diagnostics when parser quality was not packet/canonical-ready.
 
 ### Remaining High-Priority Work
 
 1. Add page-aware and bounding-box evidence where extraction tooling can supply it.
-2. Add a real scanned-PDF staging smoke test that proves OCR binaries are available inside the running containers and that low-quality OCR fails safely.
-3. Add dedicated deterministic rule packs for creditor statements and collection letters.
-4. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
-5. Create a design-only plan for packet-to-finding relational rows before any multi-issue packet schema work.
-6. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path.
+2. Add dedicated deterministic rule packs for creditor statements and collection letters.
+3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
+4. Create a design-only plan for packet-to-finding relational rows before any multi-issue packet schema work.
+5. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path.
 
 ---
 
@@ -115,17 +115,15 @@ Exit criteria:
 
 Goal: support scanned or image-heavy PDFs without allowing AI-derived authoritative extraction.
 
-Status: Code readiness, Docker runtime dependency installation, and controlled Stage Lab scanned-PDF rejection handling are complete. Real scanned-PDF acceptance still needs controlled staging validation.
+Status: Code readiness, Docker runtime dependency installation, controlled Stage Lab scanned-PDF rejection handling, and a real scanned-PDF staging smoke test are complete. Phase 2 remains fail-closed and deterministic; broad scanned-PDF acceptance is not guaranteed because OCR quality and parser quality can still block canonical use.
 
 Work:
 
-1. Confirm localhost, staging, and production app processes can see `tesseract`, `pdftoppm`, and `CRP_DETERMINISTIC_OCR_ENABLED=true`.
-2. Run one real scanned-PDF staging smoke test. Use a non-sensitive or anonymized file where possible.
-3. Confirm no report artifact is created by Stage Lab because it has no persistence side effects.
-4. Confirm production and staging containers both expose OCR binaries inside the running app container, not only on the VPS host.
-5. Keep OCR fail-closed. Low-quality OCR must not become canonical data.
-6. Keep Stage Lab scanned-PDF controlled-error regression coverage green as OCR paths evolve.
-7. Consider `tesseract-ocr-fra` later only if French-language Canadian reports become in-scope.
+1. Keep operational OCR runtime checks available for localhost, staging, and production app processes: `tesseract`, `pdftoppm`, and `CRP_DETERMINISTIC_OCR_ENABLED=true`.
+2. Keep Stage Lab side-effect free for scanned-PDF diagnostics.
+3. Keep OCR fail-closed. Low-quality OCR or low-quality parser output must not become canonical data.
+4. Keep Stage Lab scanned-PDF controlled-error regression coverage green as OCR paths evolve.
+5. Consider `tesseract-ocr-fra` later only if French-language Canadian reports become in-scope.
 
 Exit criteria:
 
@@ -133,7 +131,8 @@ Exit criteria:
 2. Image-only PDFs fail explicitly when deterministic OCR is unavailable or low-quality.
 3. AI OCR cannot become canonical.
 4. Stage Lab reports scanned-PDF OCR failure as a safe diagnostic response, not an app crash.
-5. The running containers prove OCR binary availability.
+5. The running staging and production containers prove OCR binary availability.
+6. Stage Lab scanned-PDF smoke inputs remain side-effect free; no report artifact, canonical, violation, evidence, or packet rows are created by Stage Lab.
 
 ---
 
@@ -346,8 +345,8 @@ Exit criteria:
 2. Golden Path protects the logical chain, and packet lifecycle endpoint coverage now protects one critical API path. Additional endpoint-backed tests may still be needed for other critical user flows.
 3. Multi-issue packets currently rely on structured metadata rather than per-finding relational rows.
 4. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
-5. Scanned PDFs can still fail if OCR output is low-quality. That is correct fail-closed behavior, but the user-facing diagnostic must be clear.
-6. Localhost, staging, and production must be checked separately because host-level OCR tools are not enough when the app runs in Docker.
+5. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
+6. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
 7. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
 8. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
 9. Admin corrections need deeper controlled promotion into future deterministic rules.
@@ -358,10 +357,9 @@ Exit criteria:
 
 ## Next Recommended Work Order
 
-1. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
-2. Run a real scanned-PDF staging smoke test and verify OCR tools inside both staging and production containers.
-3. Start Phase 3 evidence hardening by adding page-aware and bounding-box evidence where extraction tooling can reliably supply it.
-4. Create a design-only packet-to-finding relational model plan before any multi-issue packet schema work.
-5. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
-6. Only after the above, revisit regulation/reference update governance.
-7. Do not add admin override yet.
+1. Start Phase 3 evidence hardening by adding page-aware and bounding-box evidence where extraction tooling can reliably supply it.
+2. Create a design-only packet-to-finding relational model plan before any multi-issue packet schema work.
+3. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
+4. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+5. Only after the above, revisit regulation/reference update governance.
+6. Do not add admin override yet.
