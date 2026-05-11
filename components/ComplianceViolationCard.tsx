@@ -42,6 +42,30 @@ interface ViolationCardProps {
   dismissReason?: string | null;
 }
 
+type LegalReferenceForLabel = {
+  statute?: string | null;
+  section?: string | null;
+  citation?: string | null;
+  id?: string | null;
+};
+
+export function buildLegalReferenceTriggerLabel(regulations: LegalReferenceForLabel[]): string {
+  const references = regulations
+    .map((reg) =>
+      [reg.statute, reg.section || reg.citation || reg.id]
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        .join(" ")
+        .trim(),
+    )
+    .filter(Boolean);
+  const primary = references[0] ?? "the mapped rule or reference";
+  const remaining = references.length > 1
+    ? ` and ${references.length - 1} more reference${references.length === 2 ? "" : "s"}`
+    : "";
+
+  return `This item may require review under ${primary}${remaining}`;
+}
+
 export const ComplianceViolationCard = ({
   violation,
   disabled,
@@ -65,15 +89,7 @@ export const ComplianceViolationCard = ({
   const isLicenseFailure = violation.violationCategory === "COLLECTOR_LICENSE_FAILURE";
   const isLinkedDisputed = violation.obligationState === "ADDRESSED_VIA_LINKED_DISPUTE";
   const [isLawsOpen, setIsLawsOpen] = useState(false);
-  const authorityTriggerLabel = regulations.every(
-    (reg) => reg.authorityIssueClassification === "mapped_reporting_standard_issue",
-  )
-    ? "See mapped reporting-standard issue"
-    : regulations.some(
-        (reg) => reg.authorityIssueClassification === "confirmed_legal_violation",
-      )
-      ? "See confirmed legal violation basis"
-      : "See mapped legal authority";
+  const authorityTriggerLabel = buildLegalReferenceTriggerLabel(regulations);
 
   return (
     <div className={`${styles.violationCard} ${isPrimaryViolation && !isDismissed ? styles.primaryViolationCard : ''} ${isDisputed && !isDismissed ? styles.disputedCard : ''} ${isLinkedDisputed && !isDismissed ? styles.linkedDisputedCard : ''} ${isDismissed ? styles.dismissedCard : ''}`}>

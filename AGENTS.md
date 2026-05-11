@@ -22,6 +22,14 @@
 - Give exact test steps after each task
 - If uncertain, inspect first and summarize before editing
 
+## Codex task checkpoint
+- Before Codex edits any file, run:
+  - `git status`
+  - `git add .`
+  - `git commit -m "checkpoint before codex task"`
+- If the working tree includes secrets, `.env` files, forbidden deployment config, or files outside this repo, stop instead of staging.
+- Treat the checkpoint as a rollback marker only; do not use it to hide or overwrite user work.
+
 ## Platform engineering doctrine
 
 ### Primary rule
@@ -106,6 +114,37 @@ Every meaningful change must:
 - validate adjacent flows
 - validate no regression
 - preserve existing deterministic behavior
+
+The fixed golden path must stay green before merge:
+- `pnpm run test:golden-path`
+- `pnpm run test:regression-dashboard` when a human-readable pass/fail table is needed
+
+The golden path covers upload payload contract, parse, canonical map, anomaly detect, violation detect, evidence bind, packet generate, and PDF download.
+
+### High-risk explain-before-edit rule
+For parser, violation, evidence, regulation, packet, audit, admin truth-layer, and schema changes, Codex must explain before editing:
+- selected model path and risk level
+- upstream callers and downstream consumers
+- impact boundary
+- protected systems touched
+- regression risks and exact tests to run
+
+Do not modify protected subsystem code until that explanation is visible.
+
+### No Silent Truth Change
+Nothing may change canonical truth, parser mappings, regulation mappings, violation rules, evidence binding, seeded reference data, packet truth, or schema behavior without:
+- a test update proving the intended truth
+- a version, migration, or explicit update marker
+- an audit log or review trail
+- an admin review path when human approval is needed
+
+### Consumer clarity and legal-reference wording
+Every consumer-facing page must answer: could a non-technical user understand what to do next in under 30 seconds?
+
+Consumer-facing legal language must separate references from conclusions. Prefer:
+`This item may require review under [rule/reference].`
+
+Do not call an item a confirmed legal violation in consumer-facing copy unless a reviewed authority classification explicitly supports that wording and the surface is approved for it.
 
 ### Failure rule
 If the requested change requires broad architectural modification:
