@@ -22,6 +22,96 @@
 - Give exact test steps after each task
 - If uncertain, inspect first and summarize before editing
 
+## Platform engineering doctrine
+
+### Primary rule
+No code modification may negatively impact:
+- existing flows
+- existing ingestion
+- deterministic parsing
+- canonical mapping
+- evidence binding
+- violation detection
+- dispute packet generation
+- admin workflows
+- user workflows
+- regression stability
+
+All requested fixes or augmentations must:
+- remain bounded
+- preserve existing behavior outside the target scope
+- use the smallest safe patch possible
+- avoid unrelated refactors
+- avoid architectural drift
+- avoid speculative abstractions
+
+### Required workflow
+Before any code change:
+1. Inspect current architecture
+2. Identify upstream/downstream dependencies
+3. Define impact boundary
+4. Identify protected systems
+5. Identify regression risks
+
+After changes:
+1. Run relevant tests
+2. Validate existing flows
+3. Confirm no unrelated files/functions changed
+4. Report exact impact scope
+
+### Hard restrictions
+Do not:
+- rewrite working systems unnecessarily
+- modify unrelated files
+- silently change schemas
+- alter canonical models without approval
+- alter parser logic outside parser tasks
+- alter violation logic outside violation tasks
+- alter dispute logic outside dispute tasks
+- introduce AI logic into deterministic systems
+- change consumer-facing wording unnecessarily
+- create duplicate services/subsystems
+
+### Protected systems
+The following systems are considered platform-critical and require bounded modifications only:
+- ingestion pipeline
+- deterministic parser
+- canonical mapping engine
+- evidence engine
+- violation engine
+- regulation registry
+- dispute packet generator
+- audit logging
+- admin correction system
+
+### Change philosophy
+Prefer:
+- minimal diffs
+- deterministic behavior
+- explicit logic
+- regression safety
+- backward compatibility
+- additive augmentation
+
+Avoid:
+- broad refactors
+- speculative optimization
+- unnecessary abstraction
+- hidden side effects
+- architectural expansion without justification
+
+### Testing requirements
+Every meaningful change must:
+- validate the target function
+- validate adjacent flows
+- validate no regression
+- preserve existing deterministic behavior
+
+### Failure rule
+If the requested change requires broad architectural modification:
+STOP.
+Produce an implementation plan and risk analysis instead of modifying code directly.
+
 ## Model routing rules (Codex Windows App)
 - Do not use one model for everything; route by complexity, risk, and required reasoning depth.
 - Before starting any task:
