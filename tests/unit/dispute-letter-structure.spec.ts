@@ -52,10 +52,42 @@ describe("evidentiary dispute letter structure", () => {
     expect(structured.accountIdentification).toContain("Date of Report Being Disputed: April 16, 2026");
     expect(structured.disputedItems).toContain("Disputed field/value: Balance = $250.00");
     expect(structured.disputedItems).toContain("Specific issue: Balance is reported as $250.00; expected/source-supported value is $100.00.");
+    expect(structured.disputedItems).toContain("Exact disputed fields: Balance");
     expect(structured.disputedItems).toContain("Factual basis:");
-    expect(structured.supportingDocumentation).toContain("Supporting evidence and attachments index");
+    expect(structured.applicationToAccount).toContain("reported as $250.00");
+    expect(structured.applicationToAccount).toContain("itemized source records");
+    expect(structured.supportingDocumentation).toContain("Supporting evidence and attachments");
+    expect(structured.supportingDocumentation).toContain("Final creditor statement");
     expect(structured.requestedAction).toContain("Delete or suppress");
+    expect(structured.requestedAction).toContain("Field-specific remedy");
     expect(structured.statutoryTimeframe).toContain("results of your reinvestigation in writing");
     expect(structured.deliveryConfirmation).toContain("Delivery and audit record");
+  });
+
+  it("builds SOL-style particulars, application, and evidence from tradeline chronology", () => {
+    const structured = applyEvidentiaryDisputeStructure(baseLetter(), {
+      violationCategory: "STATUTE_OF_LIMITATIONS",
+      violationDetails: {
+        violationCategory: "STATUTE_OF_LIMITATIONS",
+        fieldName: "dateOfLastPayment",
+        detectedValue: "2012-08-20",
+        expectedValue: "outside reportable retention period",
+      },
+      tradelineDetails: {
+        openedDate: new Date("2011-11-02T00:00:00.000Z"),
+        dateOfLastPayment: new Date("2012-08-20T00:00:00.000Z"),
+        lastActivityDate: new Date("2012-08-20T00:00:00.000Z"),
+        dateOfFirstDelinquency: new Date("2012-09-20T00:00:00.000Z"),
+      },
+    });
+
+    expect(structured.accountIdentification).toContain("date of last payment");
+    expect(structured.disputedItems).toContain("opened on 2011-11-02");
+    expect(structured.disputedItems).toContain("last payment reported as 2012-08-20");
+    expect(structured.disputedItems).toContain("continued reporting of this tradeline");
+    expect(structured.applicationToAccount).toContain("date of last payment");
+    expect(structured.applicationToAccount).toContain("deletion or suppression of the tradeline");
+    expect(structured.supportingDocumentation).toContain("date of last payment");
+    expect(structured.supportingDocumentation).toContain("source chronology");
   });
 });

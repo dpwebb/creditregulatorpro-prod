@@ -436,6 +436,168 @@ function bureauSectionForViolation(category: string | null | undefined): string 
   return "Account / tradeline section of the consumer disclosure";
 }
 
+function categoryKey(category: string | null | undefined): string {
+  return normalizeText(category).toUpperCase();
+}
+
+function categoryMatches(category: string | null | undefined, values: string[]): boolean {
+  return values.includes(categoryKey(category));
+}
+
+function formatDateValue(value: Date | string | null | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return normalizeText(String(value)) || undefined;
+
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(date);
+}
+
+function yearsSince(value: Date | string | null | undefined): number | undefined {
+  if (!value) return undefined;
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+
+  const now = new Date();
+  let years = now.getUTCFullYear() - date.getUTCFullYear();
+  const beforeAnniversary =
+    now.getUTCMonth() < date.getUTCMonth() ||
+    (now.getUTCMonth() === date.getUTCMonth() && now.getUTCDate() < date.getUTCDate());
+  if (beforeAnniversary) years -= 1;
+
+  return years >= 0 ? years : undefined;
+}
+
+function chronologySentence(context: EvidentiaryStructureContext): string | undefined {
+  const details = context.tradelineDetails;
+  if (!details) return undefined;
+
+  const opened = formatDateValue(details.openedDate);
+  const lastPayment = formatDateValue(details.dateOfLastPayment);
+  const lastActivity = formatDateValue(details.lastActivityDate);
+  const firstDelinquency = formatDateValue(details.dateOfFirstDelinquency);
+
+  const parts = [
+    opened ? `opened on ${opened}` : null,
+    lastPayment ? `last payment reported as ${lastPayment}` : null,
+    lastActivity ? `last activity reported as ${lastActivity}` : null,
+    firstDelinquency ? `date of first delinquency reported as ${firstDelinquency}` : null,
+  ].filter(Boolean);
+
+  if (parts.length === 0) return undefined;
+
+  const ageBase =
+    details.dateOfLastPayment ?? details.lastActivityDate ?? details.dateOfFirstDelinquency;
+  const age = yearsSince(ageBase);
+  const ageText = age !== undefined ? ` That date is more than ${age} year${age === 1 ? "" : "s"} old.` : "";
+
+  return `This account is reported as ${parts.join(", ")}.${ageText}`;
+}
+
+function buildCategoryParticulars(
+  violationCategory: string | null | undefined,
+  narrativeVariables: Record<string, string>,
+  context: EvidentiaryStructureContext,
+  existing: string
+): string {
+  const category = categoryKey(violationCategory);
+  const chronology = chronologySentence(context);
+  const field = narrativeVariables.disputedField;
+  const reportedValue = narrativeVariables.reportedValue;
+  const expectedValue = narrativeVariables.expectedValue;
+
+  if (
+    categoryMatches(category, [
+      "STATUTE_OF_LIMITATIONS",
+      "TIME_BARRED_DEBT_COLLECTION",
+      "COLLECTOR_STATUTE_REVIVAL_ATTEMPT",
+      "STALE_REPORTING_FAILURE",
+      "COLLECTION_LIMITATION_EXCEEDED",
+    ])
+  ) {
+    const chronologyText =
+      chronology ||
+      `The reporting period is disputed because the source chronology for ${field} is missing, incomplete, stale, or not verifiable from the consumer disclosure.`;
+    return `Factual basis: ${chronologyText} The disputed concern is whether the reporting chronology still supports continued reporting of this tradeline under the applicable retention and accuracy requirements.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "BALANCE_CALCULATION_VIOLATION",
+      "INCORRECT_BALANCE",
+      "CREDIT_LIMIT_MANIPULATION",
+      "CLOSED_ACCOUNT_BALANCE_INFLATION",
+      "COLLECTOR_UNAUTHORIZED_FEES",
+    ])
+  ) {
+    return `Factual basis: ${field} is reported as ${reportedValue}, while the expected or source-supported value is ${expectedValue}. The bureau should compare the reported balance, past-due amount, fees, interest, credits, settlement records, and final creditor statement before continuing to report the amount.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "ACCOUNT_STATUS_INCONSISTENCY",
+      "FURNISHER_STATUS_CODE_MISMATCH",
+      "INCORRECT_PAYMENT_STATUS",
+      "PAYMENT_HISTORY_MANIPULATION",
+      "RETROACTIVE_HISTORY_MANIPULATION",
+      "FURNISHER_REAGING_VIOLATION",
+      "TEMPORAL_MANIPULATION",
+      "LAST_ACTIVITY_DATE_MANIPULATION",
+      "DOFD_REPORTING",
+    ])
+  ) {
+    return `Factual basis: ${field} is the disputed status, payment, or date field. The bureau should verify the payment chronology, account status, date sequence, and furnisher reporting history against source records rather than relying on a summary code alone.`;
+  }
+
+  if (category === "BANKRUPTCY_DISCHARGE_VIOLATION") {
+    return `Factual basis: ${field} must be reconciled with the bankruptcy, consumer proposal, trustee, discharge, balance, and post-discharge collection records. Any status, balance, past-due amount, or collection notation that conflicts with the insolvency record should be corrected or suppressed.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "DOCUMENTATION_CHAIN_FAILURE",
+      "ORIGINAL_CREDITOR_CHAIN_FAILURE",
+      "DEBT_VALIDATION_FAILURE",
+      "PHANTOM_DEBT_UNVERIFIABLE",
+    ])
+  ) {
+    return `Factual basis: ${field} depends on a verifiable chain from the original creditor to the current furnisher or collector. The bureau should verify the original contract, assignment chain, placement record, ownership authority, and itemized balance before treating the tradeline as verified.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "IDENTITY_THEFT_VIOLATION",
+      "MIXED_FILE_PERSONAL_INFO_MISMATCH",
+      "RESPONSE_ADDRESS_MISMATCH",
+    ])
+  ) {
+    return `Factual basis: ${field} is disputed because the account, inquiry, address, or identity match may not belong to this consumer or may not have been authorized by this consumer. The bureau should verify identity matching, account-opening authorization, address history, and furnisher source records.`;
+  }
+
+  if (categoryMatches(category, ["BUREAU_ACCESS_VIOLATION", "FREEZE_PERIOD_VIOLATION"])) {
+    return `Factual basis: ${field} is disputed because the inquiry, file access, or reporting event must be tied to a permissible purpose and any active freeze or access restriction. The bureau should identify the accessing party, date, purpose, and authorization record.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "BUREAU_INVESTIGATION_FAILURE",
+      "BUREAU_NOTIFICATION_FAILURE",
+      "BUREAU_DISPUTE_MARKING_FAILURE",
+      "RESPONSE_MOV_MISSING",
+      "RESPONSE_INCOMPLETE",
+      "RESPONSE_NO_DOCUMENTATION",
+      "INVESTIGATION_RUBBER_STAMP",
+    ])
+  ) {
+    return `Factual basis: ${field} is disputed because the investigation result, notice, dispute notation, or method of verification does not show field-level review of the consumer's specific evidence. The bureau should identify the furnisher response, source records, correction decision, and method of verification.`;
+  }
+
+  if (existing) return `Factual basis: ${existing}`;
+
+  return "Factual basis: The disputed reporting appears inaccurate, incomplete, inconsistent, or unverifiable based on the consumer disclosure and available account evidence.";
+}
+
 export function enrichAccountIdentification(
   accountIdentification: string | undefined,
   context: EvidentiaryStructureContext = {}
@@ -485,22 +647,174 @@ function buildDisputedItemsSection(
   context: EvidentiaryStructureContext = {}
 ): string {
   const existing = normalizeText(existingDisputedItems);
-  if (existing.toLowerCase().startsWith("disputed data fields:")) return existing;
+  const existingLower = existing.toLowerCase();
+  if (
+    existingLower.includes("disputed field/value:") &&
+    existingLower.includes("specific issue:")
+  ) {
+    return existing;
+  }
 
   const violationCategory = context.violationCategory ?? context.violationDetails?.violationCategory;
   const exactFields = describeDisputedFields(violationCategory, context.violationDetails);
   const narrativeVariables = buildViolationNarrativeTemplateVariables(context);
   const bureauSection = bureauSectionForViolation(violationCategory);
-  const factualBasis = existing || "The disputed reporting appears inaccurate, incomplete, inconsistent, or unverifiable based on the consumer disclosure and available account evidence.";
+  const particulars = buildCategoryParticulars(
+    violationCategory,
+    narrativeVariables,
+    context,
+    existing
+  );
 
   return [
     `Disputed field/value: ${narrativeVariables.disputedField} = ${narrativeVariables.reportedValue}`,
     `Expected/source-supported value: ${narrativeVariables.expectedValue}`,
     `Specific issue: ${narrativeVariables.specificIssue}`,
-    `Disputed data fields: ${exactFields}`,
+    `Exact disputed fields: ${exactFields}`,
     `Bureau section: ${bureauSection}`,
-    `Factual basis: ${factualBasis}`,
-  ].join("\n");
+    particulars,
+    existing && !particulars.includes(existing) ? `Consumer explanation / additional particulars: ${existing}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function evidenceItemsForViolationCategory(category: string | null | undefined): string[] {
+  const normalized = categoryKey(category);
+
+  if (
+    categoryMatches(normalized, [
+      "STATUTE_OF_LIMITATIONS",
+      "TIME_BARRED_DEBT_COLLECTION",
+      "COLLECTOR_STATUTE_REVIVAL_ATTEMPT",
+      "STALE_REPORTING_FAILURE",
+      "COLLECTION_LIMITATION_EXCEEDED",
+      "FURNISHER_REAGING_VIOLATION",
+      "TEMPORAL_MANIPULATION",
+      "LAST_ACTIVITY_DATE_MANIPULATION",
+      "DOFD_REPORTING",
+    ])
+  ) {
+    return [
+      "Credit report or consumer disclosure page showing the disputed tradeline, date opened, date of last payment, date of last activity, date of first delinquency, current status, and collection status.",
+      "Payment records, account statements, charge-off record, assignment or placement record, and any source chronology used to support the reported dates.",
+      "Any bureau case ID, file number, prior dispute correspondence, or correction history tied to the reporting-period issue.",
+    ];
+  }
+
+  if (
+    categoryMatches(normalized, [
+      "BALANCE_CALCULATION_VIOLATION",
+      "INCORRECT_BALANCE",
+      "CREDIT_LIMIT_MANIPULATION",
+      "CLOSED_ACCOUNT_BALANCE_INFLATION",
+      "COLLECTOR_UNAUTHORIZED_FEES",
+    ])
+  ) {
+    return [
+      "Credit report or consumer disclosure page showing the exact balance, past-due amount, fee, interest, or credit-limit field being disputed.",
+      "Final creditor statement, monthly statements, payment confirmations, settlement letter, payoff record, cancelled cheque, or bank record supporting the expected value.",
+      "Itemized fee, interest, charge-off, collector placement, and payment-credit records used by the furnisher to calculate the reported amount.",
+    ];
+  }
+
+  if (
+    categoryMatches(normalized, [
+      "ACCOUNT_STATUS_INCONSISTENCY",
+      "FURNISHER_STATUS_CODE_MISMATCH",
+      "INCORRECT_PAYMENT_STATUS",
+      "PAYMENT_HISTORY_MANIPULATION",
+      "RETROACTIVE_HISTORY_MANIPULATION",
+    ])
+  ) {
+    return [
+      "Credit report or consumer disclosure page showing the exact status, rating, or payment-history period being disputed.",
+      "Monthly statements, payment confirmations, account closure records, creditor correspondence, and source payment chronology.",
+      "Furnisher reporting history or investigation notes showing how the status and payment-history fields were verified.",
+    ];
+  }
+
+  if (normalized === "BANKRUPTCY_DISCHARGE_VIOLATION") {
+    return [
+      "Credit report or consumer disclosure page showing the account, public-record notation, balance, status, and collection fields being disputed.",
+      "Bankruptcy discharge, consumer proposal, trustee correspondence, court or insolvency records, and creditor post-discharge correspondence.",
+      "Source records supporting any balance, past-due amount, collection status, or reporting date retained after the insolvency event.",
+    ];
+  }
+
+  if (
+    categoryMatches(normalized, [
+      "DOCUMENTATION_CHAIN_FAILURE",
+      "ORIGINAL_CREDITOR_CHAIN_FAILURE",
+      "DEBT_VALIDATION_FAILURE",
+      "PHANTOM_DEBT_UNVERIFIABLE",
+    ])
+  ) {
+    return [
+      "Credit report or consumer disclosure page showing the furnisher, collector, original creditor, ownership, and balance fields being disputed.",
+      "Original contract or application, bill of sale, assignment agreement, placement record, itemized balance, and validation correspondence.",
+      "Furnisher verification response or source-document description used to connect the reporting party to the alleged account.",
+    ];
+  }
+
+  if (
+    categoryMatches(normalized, [
+      "COLLECTOR_DUPLICATE_REPORTING",
+      "MULTIPLE_COLLECTOR_VIOLATION",
+    ])
+  ) {
+    return [
+      "Credit report or consumer disclosure pages showing each duplicate tradeline, collector, balance, account number, and date sequence.",
+      "Original creditor records, assignment or transfer notices, collector placement records, and correspondence showing which party has current reporting authority.",
+      "Balance and status records proving whether the same obligation is being reported more than once.",
+    ];
+  }
+
+  if (
+    categoryMatches(normalized, [
+      "IDENTITY_THEFT_VIOLATION",
+      "MIXED_FILE_PERSONAL_INFO_MISMATCH",
+      "RESPONSE_ADDRESS_MISMATCH",
+    ])
+  ) {
+    return [
+      "Government ID and current address verification sufficient to match the consumer file without over-disclosing sensitive information.",
+      "Credit report or consumer disclosure page showing the account, inquiry, address, or identity field that does not match the consumer.",
+      "Police report, identity-theft statement, creditor application, inquiry authorization, address history, or account-opening records when available.",
+    ];
+  }
+
+  if (categoryMatches(normalized, ["BUREAU_ACCESS_VIOLATION", "FREEZE_PERIOD_VIOLATION"])) {
+    return [
+      "Credit report or consumer disclosure page showing the inquiry, access event, file-freeze notation, or account reporting at issue.",
+      "Freeze request, freeze confirmation, thaw authorization, permissible-purpose documentation, or correspondence with the accessing party.",
+      "Bureau access logs or source records identifying who accessed the file, when, and for what stated purpose.",
+    ];
+  }
+
+  if (
+    categoryMatches(normalized, [
+      "BUREAU_INVESTIGATION_FAILURE",
+      "BUREAU_NOTIFICATION_FAILURE",
+      "BUREAU_DISPUTE_MARKING_FAILURE",
+      "RESPONSE_MOV_MISSING",
+      "RESPONSE_INCOMPLETE",
+      "RESPONSE_NO_DOCUMENTATION",
+      "INVESTIGATION_RUBBER_STAMP",
+    ])
+  ) {
+    return [
+      "Original dispute letter, exhibits submitted, delivery confirmation, and the credit report or disclosure page disputed.",
+      "Bureau response letter, updated disclosure, method-of-verification response, furnisher response, and correction or deletion history.",
+      "Evidence showing any missing notice, missing dispute notation, incomplete response, or lack of field-level verification.",
+    ];
+  }
+
+  return [
+    "Credit report or consumer disclosure page showing the disputed item, exact field, reported value, and report date.",
+    "Account statements, payment records, creditor correspondence, court or insolvency records, identity documents, screenshots, or other source records that support the factual basis of the dispute.",
+    "Bureau or furnisher verification records, method-of-verification notes, correction history, and any documents relied on to keep reporting the item.",
+  ];
 }
 
 function buildSupportingDocumentationSection(
@@ -508,10 +822,15 @@ function buildSupportingDocumentationSection(
   context: EvidentiaryStructureContext = {}
 ): string {
   const existing = normalizeText(existingSupportingDocumentation);
-  if (existing.toLowerCase().includes("supporting evidence and attachments index")) {
+  if (existing.toLowerCase().includes("supporting evidence and attachments")) {
     return existing;
   }
 
+  const violationCategory = context.violationCategory ?? context.violationDetails?.violationCategory;
+  const evidenceItems = [
+    "Consumer identification and current address verification.",
+    ...evidenceItemsForViolationCategory(violationCategory),
+  ];
   const referenceLines = [
     context.consumerFileReference?.creditReportReferenceNumber
       ? `Bureau file/reference number: ${context.consumerFileReference.creditReportReferenceNumber}`
@@ -523,18 +842,105 @@ function buildSupportingDocumentationSection(
   ].filter(Boolean) as string[];
 
   return [
-    "Supporting evidence and attachments index:",
-    "1. Consumer identification and current address verification.",
-    "2. Credit report or consumer disclosure page showing the disputed item.",
-    "3. Account-specific support for the disputed fields, such as statements, payment confirmations, settlement or closure records, court or insolvency documents, police or identity-theft reports, creditor correspondence, screenshots, or cancelled cheques when applicable.",
-    "4. Requested bureau/furnisher verification records, including source documents, method of verification, furnisher identity, correction history, and any documents relied on to keep reporting the item.",
+    "Supporting evidence and attachments:",
+    ...evidenceItems.map((item, index) => `${index + 1}. ${item}`),
     ...referenceLines.map((line) => `Reference: ${line}`),
   ].join("\n");
 }
 
-function buildRequestedActionSection(existingRequestedAction: string): string {
+function buildApplicationToAccountSection(
+  existingApplication: string | undefined,
+  context: EvidentiaryStructureContext = {}
+): string {
+  const existing = normalizeText(existingApplication);
+  if (existing) return existing;
+
+  const violationCategory = context.violationCategory ?? context.violationDetails?.violationCategory;
+  const category = categoryKey(violationCategory);
+  const narrativeVariables = buildViolationNarrativeTemplateVariables(context);
+  const field = narrativeVariables.disputedField;
+  const reportedValue = narrativeVariables.reportedValue;
+  const expectedValue = narrativeVariables.expectedValue;
+  const remedy = narrativeVariables.specificRemedy;
+  const common =
+    `The authority above is applied to ${field} on this tradeline, reported as ${reportedValue}.`;
+
+  if (
+    categoryMatches(category, [
+      "STATUTE_OF_LIMITATIONS",
+      "TIME_BARRED_DEBT_COLLECTION",
+      "COLLECTOR_STATUTE_REVIVAL_ATTEMPT",
+      "STALE_REPORTING_FAILURE",
+      "COLLECTION_LIMITATION_EXCEEDED",
+    ])
+  ) {
+    return `${common} The bureau and furnisher must verify the date opened, date of last payment, date of last activity, date of first delinquency, and retention basis before continuing to report the item. If the chronology does not support continued reporting, or if the source dates cannot be verified, the required remedy is correction of the reporting dates and deletion or suppression of the tradeline.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "BALANCE_CALCULATION_VIOLATION",
+      "INCORRECT_BALANCE",
+      "CREDIT_LIMIT_MANIPULATION",
+      "CLOSED_ACCOUNT_BALANCE_INFLATION",
+      "COLLECTOR_UNAUTHORIZED_FEES",
+    ])
+  ) {
+    return `${common} The expected or source-supported value is ${expectedValue}. The bureau should reconcile the amount against itemized source records, payments, settlement or payoff records, fees, interest, and charge-off records. If the amount cannot be verified at the field level, the unsupported balance information should be corrected, deleted, or suppressed.`;
+  }
+
+  if (category === "BANKRUPTCY_DISCHARGE_VIOLATION") {
+    return `${common} The account must be checked against the insolvency event, discharge or proposal records, trustee records, and post-discharge reporting. Any balance, status, or collection field that conflicts with those records should be corrected, deleted, or suppressed if not verified.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "DOCUMENTATION_CHAIN_FAILURE",
+      "ORIGINAL_CREDITOR_CHAIN_FAILURE",
+      "DEBT_VALIDATION_FAILURE",
+      "PHANTOM_DEBT_UNVERIFIABLE",
+    ])
+  ) {
+    return `${common} Verification requires a documented chain from the original creditor to the current reporting party, plus itemized balance authority. If that chain or source documentation is not provided, the tradeline should not remain as verified and should be deleted or suppressed.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "IDENTITY_THEFT_VIOLATION",
+      "MIXED_FILE_PERSONAL_INFO_MISMATCH",
+      "RESPONSE_ADDRESS_MISMATCH",
+    ])
+  ) {
+    return `${common} Verification requires identity matching, authorization, address history, and source account-opening records specific to this consumer. If the account, inquiry, or personal-information field cannot be matched and authorized, the disputed reporting should be blocked, corrected, deleted, or suppressed.`;
+  }
+
+  if (
+    categoryMatches(category, [
+      "BUREAU_INVESTIGATION_FAILURE",
+      "BUREAU_NOTIFICATION_FAILURE",
+      "BUREAU_DISPUTE_MARKING_FAILURE",
+      "RESPONSE_MOV_MISSING",
+      "RESPONSE_INCOMPLETE",
+      "RESPONSE_NO_DOCUMENTATION",
+      "INVESTIGATION_RUBBER_STAMP",
+    ])
+  ) {
+    return `${common} The prior investigation or response must be reviewed at the field level against the consumer's submitted evidence. If the bureau cannot identify the furnisher, method of verification, source documents, and correction decision for this field, the item should be reinvestigated and any unsupported reporting corrected, deleted, or suppressed.`;
+  }
+
+  return `${common} ${remedy}`;
+}
+
+function buildRequestedActionSection(
+  existingRequestedAction: string,
+  context: EvidentiaryStructureContext = {}
+): string {
   const existing = normalizeText(existingRequestedAction);
-  if (existing.toLowerCase().includes("requested correction by disputed field")) return existing;
+  const specificRemedy = buildViolationNarrativeTemplateVariables(context).specificRemedy;
+  if (existing.toLowerCase().includes("requested correction by disputed field")) {
+    if (existing.toLowerCase().includes("specific requested action:")) return existing;
+    return `${existing}\nSpecific requested action: ${specificRemedy}`;
+  }
 
   const specificRequest = existing || "Please reinvestigate the disputed account information and correct any inaccurate, incomplete, or unverifiable reporting.";
 
@@ -547,6 +953,7 @@ function buildRequestedActionSection(existingRequestedAction: string): string {
     "5. Mark the account or item as disputed while the investigation is pending, where your bureau process supports dispute notation.",
     "6. Provide written results, an updated credit disclosure, the furnisher name, the method of verification, and copies or descriptions of the records relied on for any item that remains.",
     `Specific requested action: ${specificRequest}`,
+    `Field-specific remedy: ${specificRemedy}`,
   ].join("\n");
 }
 
@@ -605,11 +1012,15 @@ export function applyEvidentiaryDisputeStructure(
     introduction: buildPurposeStatement(letterContent.introduction),
     accountIdentification: enrichAccountIdentification(letterContent.accountIdentification, effectiveContext),
     disputedItems: buildDisputedItemsSection(letterContent.disputedItems, effectiveContext),
+    applicationToAccount: buildApplicationToAccountSection(
+      letterContent.applicationToAccount,
+      effectiveContext
+    ),
     supportingDocumentation: buildSupportingDocumentationSection(
       letterContent.supportingDocumentation,
       effectiveContext
     ),
-    requestedAction: buildRequestedActionSection(letterContent.requestedAction),
+    requestedAction: buildRequestedActionSection(letterContent.requestedAction, effectiveContext),
     statutoryTimeframe: buildTimeframeSection(letterContent.statutoryTimeframe),
     consumerStatementRight: buildConsumerStatementRight(letterContent.consumerStatementRight),
     deliveryConfirmation: buildDeliveryConfirmation(
@@ -618,7 +1029,7 @@ export function applyEvidentiaryDisputeStructure(
     ),
     certification:
       normalizeText(letterContent.certification) ||
-      "I certify that this dispute is submitted in good faith and that the information provided is accurate to the best of my knowledge.",
+      "I certify that I am submitting this dispute in good faith and that the information provided is accurate to the best of my knowledge.",
     closing: normalizeText(letterContent.closing) || "Sincerely,",
   };
 }

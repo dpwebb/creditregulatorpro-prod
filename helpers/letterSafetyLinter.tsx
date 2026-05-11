@@ -6,6 +6,7 @@ const NARRATIVE_KEYS = [
   "accountIdentification",
   "disputedItems",
   "statutoryGrounds",
+  "applicationToAccount",
   "supportingDocumentation",
   "requestedAction",
   "statutoryTimeframe",

@@ -17,10 +17,12 @@ describe("TransUnion dispute template", () => {
       disputeReasonCode: "ACCOUNT_NOT_MINE",
     });
 
-    expect(letter.supportingDocumentation).toContain("Supporting evidence and attachments index");
+    expect(letter.supportingDocumentation).toContain("Supporting evidence and attachments");
     expect(letter.supportingDocumentation).toContain("TransUnion Case ID: L121322");
     expect(letter.accountIdentification).toContain("Exact Field(s) Disputed");
+    expect(letter.applicationToAccount).toContain("tradeline");
     expect(letter.requestedAction).toContain("Requested correction by disputed field");
+    expect(letter.closing).toBe("Sincerely,");
   });
 
   it("includes specific statutory text for mapped dispute violations", async () => {

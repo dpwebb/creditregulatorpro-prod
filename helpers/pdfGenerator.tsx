@@ -94,6 +94,7 @@ export interface LetterContent {
   accountIdentification?: string;
   disputedItems?: string;
   statutoryGrounds: string;
+  applicationToAccount?: string;
   supportingDocumentation?: string;
   requestedAction: string;
   statutoryTimeframe?: string;
@@ -167,40 +168,36 @@ export async function generatePDF(
       watermarkConfig = generatePdfWatermark(userId, packetId);
     }
 
-    // Consumer address block (top left) and date (top right) in columns
+    // Date and consumer identification block.
     documentContent.push({
-      columns: [
-        {
-          width: "*",
-          stack: [
-            { text: "Consumer Identification", style: "sectionHeading", margin: [0, 0, 0, 4] },
-            { text: safeContent.consumerName, style: "consumerInfo" },
-            ...safeContent.consumerAddress.map(line => ({ text: line, style: "consumerInfo" })),
-            ...(safeContent.consumerDOB ? [{ text: `DOB: ${safeContent.consumerDOB}`, style: "consumerInfo" }] : []),
-            ...(safeContent.consumerPhone ? [{ text: `Phone: ${safeContent.consumerPhone}`, style: "consumerInfo" }] : []),
-            ...(safeContent.consumerEmail ? [{ text: `Email: ${safeContent.consumerEmail}`, style: "consumerInfo" }] : []),
-            ...(safeContent.consumerFileReference?.previousNames?.length
-              ? [{ text: `Previous names/aliases: ${safeContent.consumerFileReference.previousNames.join("; ")}`, style: "consumerInfo" }]
-              : []),
-            ...(safeContent.consumerFileReference?.previousAddresses?.length
-              ? [{ text: `Previous addresses: ${safeContent.consumerFileReference.previousAddresses.join("; ")}`, style: "consumerInfo" }]
-              : []),
-            ...(safeContent.consumerFileReference?.sinLastDigits
-              ? [{ text: `SIN last four digits: ${safeContent.consumerFileReference.sinLastDigits}`, style: "consumerInfo" }]
-              : []),
-            ...(safeContent.consumerFileReference?.creditReportReferenceNumber
-              ? [{ text: `Credit report/file reference: ${safeContent.consumerFileReference.creditReportReferenceNumber}`, style: "consumerInfo" }]
-              : []),
-            ...(safeContent.consumerFileReference?.reportDate
-              ? [{ text: `Report date disputed: ${safeContent.consumerFileReference.reportDate}`, style: "consumerInfo" }]
-              : []),
-          ],
-        },
-        {
-          width: "auto",
-          text: safeContent.letterDate,
-          style: "date",
-        },
+      text: safeContent.letterDate,
+      style: "date",
+      margin: [0, 0, 0, 16],
+    });
+
+    documentContent.push({
+      stack: [
+        { text: "Consumer Identification", style: "sectionHeading", margin: [0, 0, 0, 4] },
+        { text: safeContent.consumerName, style: "consumerInfo" },
+        ...safeContent.consumerAddress.map(line => ({ text: line, style: "consumerInfo" })),
+        ...(safeContent.consumerDOB ? [{ text: `DOB: ${safeContent.consumerDOB}`, style: "consumerInfo" }] : []),
+        ...(safeContent.consumerPhone ? [{ text: `Phone: ${safeContent.consumerPhone}`, style: "consumerInfo" }] : []),
+        ...(safeContent.consumerEmail ? [{ text: `Email: ${safeContent.consumerEmail}`, style: "consumerInfo" }] : []),
+        ...(safeContent.consumerFileReference?.previousNames?.length
+          ? [{ text: `Previous names/aliases: ${safeContent.consumerFileReference.previousNames.join("; ")}`, style: "consumerInfo" }]
+          : []),
+        ...(safeContent.consumerFileReference?.previousAddresses?.length
+          ? [{ text: `Previous addresses: ${safeContent.consumerFileReference.previousAddresses.join("; ")}`, style: "consumerInfo" }]
+          : []),
+        ...(safeContent.consumerFileReference?.sinLastDigits
+          ? [{ text: `SIN last four digits: ${safeContent.consumerFileReference.sinLastDigits}`, style: "consumerInfo" }]
+          : []),
+        ...(safeContent.consumerFileReference?.creditReportReferenceNumber
+          ? [{ text: `Credit report/file reference: ${safeContent.consumerFileReference.creditReportReferenceNumber}`, style: "consumerInfo" }]
+          : []),
+        ...(safeContent.consumerFileReference?.reportDate
+          ? [{ text: `Report date disputed: ${safeContent.consumerFileReference.reportDate}`, style: "consumerInfo" }]
+          : []),
       ],
       margin: [0, 0, 0, 24],
     });
@@ -243,10 +240,10 @@ export async function generatePDF(
       });
     }
 
-    // Disputed Items
+    // Particulars
     if (safeContent.disputedItems) {
       documentContent.push({
-        text: "Disputed Items",
+        text: "Particulars",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
@@ -269,15 +266,15 @@ export async function generatePDF(
       margin: [0, 0, 0, 12],
     });
 
-    // Supporting Documentation
-    if (safeContent.supportingDocumentation) {
+    // Application to this account
+    if (safeContent.applicationToAccount) {
       documentContent.push({
-        text: "Supporting Evidence / Attachments Index",
+        text: "Application to this account",
         style: "sectionHeading",
         margin: [0, 0, 0, 8],
       });
       documentContent.push({
-        text: safeContent.supportingDocumentation,
+        text: safeContent.applicationToAccount,
         style: "bodyText",
         margin: [0, 0, 0, 12],
       });
@@ -294,6 +291,20 @@ export async function generatePDF(
       style: "bodyText",
       margin: [0, 0, 0, 12],
     });
+
+    // Supporting Documentation
+    if (safeContent.supportingDocumentation) {
+      documentContent.push({
+        text: "Supporting evidence and attachments",
+        style: "sectionHeading",
+        margin: [0, 0, 0, 8],
+      });
+      documentContent.push({
+        text: safeContent.supportingDocumentation,
+        style: "bodyText",
+        margin: [0, 0, 0, 12],
+      });
+    }
 
     // Statutory Timeframe
     if (safeContent.statutoryTimeframe) {
@@ -364,11 +375,6 @@ export async function generatePDF(
         width: 150,
         height: 50,
         margin: [0, 8, 0, 8],
-      });
-    } else {
-      documentContent.push({
-        text: "\n\n\n",
-        margin: [0, 0, 0, 0],
       });
     }
 
@@ -478,7 +484,7 @@ export async function generatePDF(
         },
         date: {
           fontSize: 11,
-          alignment: "right",
+          alignment: "left",
         },
         recipientInfo: {
           fontSize: 11,

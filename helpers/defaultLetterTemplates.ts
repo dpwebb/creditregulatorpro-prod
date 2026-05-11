@@ -33,7 +33,7 @@ export const LETTER_TEMPLATE_DEFAULT_FIELDS = [
 ] as const satisfies ReadonlyArray<keyof DefaultLetterTemplate>;
 
 const STANDARD_CERTIFICATION =
-  "I certify that this dispute is submitted in good faith and that the information provided is accurate to the best of my knowledge.";
+  "I certify that I am submitting this dispute in good faith and that the information provided is accurate to the best of my knowledge.";
 
 const STANDARD_CLOSING = "Sincerely,";
 
@@ -87,7 +87,7 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     label: "Equifax",
     subject: "Formal Dispute and Reinvestigation Request - Equifax - {{creditorName}} {{accountNumber}}",
     introduction:
-      "This is a formal dispute and reinvestigation request to Equifax. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.",
+      "I am writing to dispute and ask Equifax to reinvestigate the item identified below. Please correct or remove any information that cannot be verified and provide the results in writing.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
@@ -106,7 +106,7 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     label: "TransUnion",
     subject: "Formal Dispute and Reinvestigation Request - TransUnion - {{creditorName}} {{accountNumber}}",
     introduction:
-      "This is a formal dispute and reinvestigation request to TransUnion. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.",
+      "I am writing to dispute and ask TransUnion to reinvestigate the item identified below. Please correct or remove any information that cannot be verified and provide the results in writing.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
@@ -125,7 +125,7 @@ const BUREAU_TEMPLATES: DefaultLetterTemplate[] = [
     label: "Generic Bureau",
     subject: "Formal Dispute and Reinvestigation Request - {{bureauName}} - {{creditorName}} {{accountNumber}}",
     introduction:
-      "This is a formal dispute and reinvestigation request regarding the account information identified below. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.",
+      "I am writing to dispute and ask {{bureauName}} to reinvestigate the item identified below. Please correct or remove any information that cannot be verified and provide the results in writing.",
     statutoryGrounds: STANDARD_DISPUTE_STATUTORY_GROUNDS,
     requestedAction: STANDARD_REQUESTED_ACTION,
     statutoryTimeframe:
@@ -666,7 +666,7 @@ function buildProvincialTemplate([
     label: titleFromKey(key),
     subject: `Formal Dispute and Reinvestigation Request - ${provinceLabel} - {{creditorName}} {{accountNumber}}`,
     introduction:
-      `This is a formal dispute and reinvestigation request under the ${statuteLabel}. The letter is intended to identify me, identify the exact account and disputed fields, state the factual basis, reference supporting evidence, request correction or deletion of unverifiable data, and preserve a written audit trail.`,
+      `I am writing to dispute and ask for reinvestigation under the ${statuteLabel}. Please correct or remove any information that cannot be verified and provide the results in writing.`,
     statutoryGrounds:
       `Statutory grounds relied on for this dispute:
 

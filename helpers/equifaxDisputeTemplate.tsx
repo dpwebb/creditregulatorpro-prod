@@ -496,7 +496,7 @@ export async function buildEquifaxDisputeLetter(ctx: EquifaxDisputeContext, prov
   requestedAction += " You have 30 days to complete this.";
 
   const certification =
-    "I certify that the information provided in this letter is true and accurate to the best of my knowledge.";
+    "I certify that I am submitting this dispute in good faith and that the information provided is accurate to the best of my knowledge.";
   const closing = "Sincerely,";
 
   const letterContent: LetterContent = {
