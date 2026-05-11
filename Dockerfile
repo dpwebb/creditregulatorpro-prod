@@ -2,6 +2,13 @@ FROM node:22-bookworm-slim
 
 WORKDIR /app
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    poppler-utils \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
 COPY package.json pnpm-lock.yaml ./
@@ -13,6 +20,7 @@ RUN pnpm run build
 
 ENV NODE_ENV=production
 ENV PORT=3334
+ENV CRP_DETERMINISTIC_OCR_ENABLED=true
 
 EXPOSE 3334
 
