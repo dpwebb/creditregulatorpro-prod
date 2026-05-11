@@ -2,183 +2,366 @@
 
 ## Core Promise
 
-Upload a credit report, extract facts reliably, identify defensible violations, help the user take action, and track outcomes.
+Credit Regulator Pro should let a Canadian consumer upload a credit report, extract facts reliably, identify defensible credit-reporting issues, prepare simple evidence-backed action packets, and track what changed after action is taken.
 
-All future work should protect this promise before adding breadth or convenience.
+All future work must protect this promise before adding breadth, convenience, or new automation.
 
-## Build Principles
+## Product Boundaries
 
-1. Credit ingestion remains deterministic, replayable, and auditable.
-2. AI and DocStrange remain diagnostic-only unless a future explicit deterministic validation path accepts their suggestions.
-3. Parser fixes become durable rules, aliases, templates, validation rules, or regression fixtures.
-4. Null or missing values must not overwrite valid extracted values without explicit justification.
-5. Violation search compatibility must be preserved across ingestion and violation-model changes.
-6. Personal PDFs and personal extracted text must not be committed as fixtures; convert observed layouts into anonymized synthetic fixtures.
-7. Every phase must include targeted regression tests and a pass/fail report before moving to the next phase.
+1. Canada only.
+2. Consumer-facing language must stay plain and understandable.
+3. Credit-report ingestion remains deterministic, replayable, and auditable.
+4. AI and DocStrange may assist extraction or diagnostics only where deterministic validation accepts the result.
+5. The system must not create unsupported legal conclusions.
+6. The system must not create direct consumer-to-furnisher dispute packet flows.
+7. Furnisher-related data issues are challenged through the Credit Bureau packet path.
+8. Collection Agency packets remain a supported direct packet type.
+9. Every user-visible issue, packet claim, and regulatory reference must be traceable to canonical data and evidence.
+10. Personal PDFs and personal extracted text must not be committed as fixtures. Observed layouts must be converted into anonymized synthetic fixtures.
+
+## Engineering Rules
+
+1. Parser fixes must become durable deterministic rules, aliases, templates, validation rules, or regression fixtures.
+2. Null or missing values must not overwrite valid extracted values without explicit justification.
+3. Violation search compatibility must be preserved across ingestion and violation-model changes.
+4. Packet generation must remain readiness-gated.
+5. Every meaningful change must include targeted tests and a pass/fail report.
+6. Broad refactors should not occur while critical flows are still being hardened.
+7. Schema changes require a design-only pass first unless the change is trivial and already approved.
+8. Admin override paths must not be added until evidence gates, endpoint lifecycle tests, and packet-to-finding tracking are stable.
 
 ## Current Implementation Status
 
 Updated May 11, 2026.
 
-Implemented:
+### Implemented
 
-1. Phase 1: Completed deterministic extraction coverage expansion with 11 anonymized synthetic fixtures covering TransUnion consumer disclosure, collapsed TransUnion text, TransUnion legacy numbered sections, TransUnion exported portal text order, TransUnion regional numbered disclosure, Equifax revolving plus collection, Equifax installment, Equifax account-only, Equifax mortgage, and collapsed Equifax collection sections.
-2. Phase 1: Tightened `pnpm run test:deterministic-ingestion-report` so each fixture must preserve exact tradeline counts, bureau metadata, report dates, TransUnion case IDs where present, DOB/address expectations where present, date and money fields, 100% required evidence coverage, replay-hash stability, and violation-search compatibility.
-3. Phase 1: Added parser-test/canonical-ingest path coverage for the new layout families while keeping bureau-specific collection parsing isolated from generic TransUnion parsing.
-4. Phase 2: Added deterministic OCR readiness with a fail-closed Tesseract plus Poppler provider, OCR provenance, page confidence diagnostics, deterministic validation before OCR text can feed canonical fields, scanned-PDF failure fixtures, and OCR-derived success fixtures.
-5. Phase 3: Added stable canonical evidence IDs to field evidence for downstream violation and packet traceability.
-6. Phase 8: Added `pnpm run test:deterministic-ingestion-report` and included it in `pnpm run check` so replay stability, required evidence coverage, fixture support, and violation-search preservation are visible before publish.
+1. Phase 1 deterministic extraction coverage has been expanded with 11 anonymized synthetic fixtures covering major TransUnion and Equifax layout families.
+2. `pnpm run test:deterministic-ingestion-report` now protects exact tradeline counts, bureau metadata, report dates, TransUnion case IDs where present, DOB/address expectations where present, date/money fields, evidence coverage, replay-hash stability, and violation-search compatibility.
+3. Parser-test and canonical-ingest coverage now include multiple layout families while keeping bureau-specific collection parsing isolated from generic report parsing.
+4. Deterministic OCR code readiness exists with a fail-closed Tesseract/Poppler provider, OCR provenance, page confidence diagnostics, deterministic validation, scanned-PDF failure fixtures, and OCR-derived success fixtures.
+5. Docker runtime dependencies for deterministic OCR are now installed in the app image: `poppler-utils`, `tesseract-ocr`, and `tesseract-ocr-eng`.
+6. `CRP_DETERMINISTIC_OCR_ENABLED=true` is now set in the container image.
+7. Stable canonical evidence IDs exist for field evidence to support downstream violation and packet traceability.
+8. Golden Path regression protection exists and covers the logical chain: upload contract, parse, canonical map, anomaly detection, violation detection, evidence binding, packet generation, and PDF download.
+9. Packet generation is now active and readiness-gated. Build/create/save paths should reject parser-uncertain, dismissed, unverified, missing-evidence, manual-review, wrong-owner, wrong-bureau, mixed-owner, and unsafe cross-tradeline findings.
+10. Single-issue packets now set `creditorObligationTestId`.
+11. Multi-issue packets are constrained to the same owner and same tradeline; selected finding IDs remain preserved in structured packet content/metadata.
+12. Packet UI and documentation now describe packet generation as active but readiness-gated rather than reset/paused.
+13. Packet-dialog preselection from originating findings is implemented: clicking Create Packet from an eligible finding routes to the central packet dialog with the originating finding preselected, ineligible findings show a readiness-blocker message, and generic packet creation still works.
+14. Repo-level and subsystem-level `AGENTS.md` guardrails exist for deterministic parsing, evidence, violation, packet, regulation, and service safety.
+15. Stage Lab scanned-PDF/OCR rejection now maps known `SCANNED_PDF_UNSUPPORTED` errors to a controlled 400 response with side-effect-free parser-lab regression coverage.
+16. Endpoint-backed packet lifecycle regression coverage now exists for readiness validation, packet preview/build, packet create, PDF download, non-owner PDF denial, missing/manual-review evidence rejection, dismissed finding rejection, and single-issue `creditorObligationTestId` persistence.
 
-Remaining high-priority work:
+### Remaining High-Priority Work
 
-1. Install and enable the deterministic OCR runtime in any environment that should accept scanned PDFs: `tesseract`, `pdftoppm`, and `CRP_DETERMINISTIC_OCR_ENABLED=true`.
-2. Page-aware bounding-box evidence.
-3. Dedicated deterministic rule packs for creditor statements and collection letters.
-4. Deeper admin-correction promotion into future parser, validation, violation, exception, and regression rules.
+1. Add page-aware and bounding-box evidence where extraction tooling can supply it.
+2. Add a real scanned-PDF staging smoke test that proves OCR binaries are available inside the running containers and that low-quality OCR fails safely.
+3. Add dedicated deterministic rule packs for creditor statements and collection letters.
+4. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
+5. Create a design-only plan for packet-to-finding relational rows before any multi-issue packet schema work.
+6. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path.
+
+---
+
+## Phase 0: Governance and Release Safety
+
+Goal: keep Codex and human changes bounded, reviewable, and regression-safe.
+
+Status: Mostly complete.
+
+Work:
+
+1. Keep root and subsystem `AGENTS.md` files current.
+2. Require explain-before-edit for parser, evidence, violation, packet, regulation, schema, admin truth-layer, and deployment changes.
+3. Avoid `git add -A` when unrelated working-tree changes exist.
+4. Add a safer selective publish path or require Codex to list staged files before commit.
+5. Keep a checkpoint commit before high-risk Codex work.
+6. Review whether the standard `commit-push` command is too broad for mixed working trees.
+
+Exit criteria:
+
+1. Every Codex task reports changed files, risk boundaries, tests run, and remaining risk.
+2. Release commits do not include unrelated changes.
+3. The Golden Path and required regression checks stay green before promotion.
+
+---
 
 ## Phase 1: Deterministic Extraction Coverage
 
-Goal: improve supported report layouts without loosening parser behavior.
+Goal: improve supported credit-report layouts without loosening parser behavior.
 
-Status: Complete as of May 11, 2026. The active regression gate covers 11 anonymized layouts and fails if replay hashes change, exact tradeline counts drift, required source evidence drops below 100%, or violation-search compatibility is lost.
+Status: Complete for current known fixtures; ongoing for new observed layouts.
 
 Work:
 
-1. Add anonymized fixtures for more TransUnion disclosure variations.
-2. Add anonymized fixtures for more Equifax account-section and collection-section variations.
-3. Add exported portal PDF text-order fixtures.
-4. Add older bureau layout fixtures where observed.
+1. Add anonymized fixtures for newly observed TransUnion disclosure variations.
+2. Add anonymized fixtures for newly observed Equifax account-section and collection-section variations.
+3. Add exported portal PDF text-order fixtures when observed.
+4. Add older and regional bureau layout fixtures when observed.
 5. Keep bureau-specific template/rule logic isolated from generic parsing.
+6. Preserve collection-account parsing differences between TransUnion and Equifax.
 
 Exit criteria:
 
-1. DOB, address, TransUnion case ID, bureau metadata, tradelines, dates, and money fields survive parser-test and ingest paths.
+1. DOB, address, TransUnion case ID, bureau metadata, tradelines, dates, balances, and account status survive parser-test and ingest paths.
 2. Replay hashes stay stable for identical inputs.
 3. False-positive tradeline creation does not increase.
+4. Violation search compatibility remains intact.
 
-## Phase 2: Deterministic OCR Readiness
+---
 
-Goal: support scanned or image-heavy PDFs without AI-derived authoritative extraction.
+## Phase 2: Deterministic OCR Acceptance
 
-Status: Complete as of May 11, 2026 for code readiness. Scanned PDFs fail explicitly when deterministic OCR is unavailable. OCR text can become canonical only with deterministic OCR provenance, page confidence diagnostics, deterministic text-quality validation, replay metadata, and `sourceMethod: "ocr_text"`. AI OCR remains unable to become canonical. Operational scanned-PDF acceptance still requires installing `tesseract` and `pdftoppm` and enabling `CRP_DETERMINISTIC_OCR_ENABLED=true`.
+Goal: support scanned or image-heavy PDFs without allowing AI-derived authoritative extraction.
+
+Status: Code readiness, Docker runtime dependency installation, and controlled Stage Lab scanned-PDF rejection handling are complete. Real scanned-PDF acceptance still needs controlled staging validation.
 
 Work:
 
-1. Evaluate deterministic OCR tooling that can run locally or server-side without probabilistic field mapping.
-2. Store OCR text with provenance, page references, and confidence diagnostics.
-3. Require deterministic validation before OCR text can feed canonical fields.
-4. Add scanned-PDF failure fixtures and OCR-derived success fixtures.
+1. Confirm localhost, staging, and production app processes can see `tesseract`, `pdftoppm`, and `CRP_DETERMINISTIC_OCR_ENABLED=true`.
+2. Run one real scanned-PDF staging smoke test. Use a non-sensitive or anonymized file where possible.
+3. Confirm no report artifact is created by Stage Lab because it has no persistence side effects.
+4. Confirm production and staging containers both expose OCR binaries inside the running app container, not only on the VPS host.
+5. Keep OCR fail-closed. Low-quality OCR must not become canonical data.
+6. Keep Stage Lab scanned-PDF controlled-error regression coverage green as OCR paths evolve.
+7. Consider `tesseract-ocr-fra` later only if French-language Canadian reports become in-scope.
 
 Exit criteria:
 
-1. Image-only PDFs fail explicitly when deterministic OCR is unavailable.
-2. OCR-derived canonical fields include source method, page, snippet, and replay metadata.
+1. OCR-derived canonical fields include source method, page, snippet, confidence/provenance, and replay metadata.
+2. Image-only PDFs fail explicitly when deterministic OCR is unavailable or low-quality.
 3. AI OCR cannot become canonical.
+4. Stage Lab reports scanned-PDF OCR failure as a safe diagnostic response, not an app crash.
+5. The running containers prove OCR binary availability.
+
+---
 
 ## Phase 3: Evidence Model Hardening
 
-Goal: make every user-visible violation defensible and traceable.
+Goal: make every user-visible issue defensible and traceable.
+
+Status: Stable canonical evidence IDs exist. Page-aware and bounding-box evidence remains the next strategic hardening item.
 
 Work:
 
 1. Expand field evidence coverage for required identity, report, and tradeline fields.
-2. Add page-aware evidence where PDF text extraction provides page boundaries.
-3. Add stable evidence IDs that survive parser-test, ingest, violation detection, and dispute packet generation.
-4. Add regression checks for evidence link presence on violations.
+2. Add page-aware evidence where PDF text extraction supplies page boundaries.
+3. Add bounding-box or coordinate evidence where extraction tooling can supply it reliably.
+4. Link page/coordinate evidence through violation detection and packet generation.
+5. Add regression checks for evidence link presence on every final issue.
+6. Store evidence provenance without exposing unnecessary consumer data.
+7. Ensure OCR evidence carries method, page, confidence, and snippet details.
 
 Exit criteria:
 
-1. Each final violation has a rule ID, factual trigger, regulation reference, source fields, and evidence link.
-2. Existing violation search fields and filters remain backward-compatible.
+1. Each final issue has a rule ID, factual trigger, regulation/reference mapping, source fields, and evidence link.
+2. Evidence IDs survive parser-test, ingest, violation detection, packet generation, and PDF output.
+3. Existing violation search fields and filters remain backward-compatible.
+4. Packet claims can point to evidence without relying on raw AI interpretation.
+
+---
 
 ## Phase 4: Violation Rule Defensibility
 
-Goal: improve violation quality without inventing legal conclusions.
+Goal: improve issue quality without inventing legal conclusions.
+
+Status: Ongoing.
 
 Work:
 
-1. Review deterministic violation rules against current regulation mappings.
+1. Review deterministic violation rules against current regulation/reference mappings.
 2. Separate factual triggers from legal/regulatory references.
 3. Add rule-level tests for creditor, bureau, collector, tradeline, evidence, and review-status search paths.
-4. Strengthen neutral wording for user-facing violation explanations.
+4. Strengthen neutral wording for user-facing explanations.
+5. Ensure consumer-facing language says an item may require review under a reference unless reviewed authority classification supports stronger wording.
+6. Preserve search by issue type, regulation/reference, consumer/report ID, tradeline, creditor, collection agency, evidence link, review status, and date.
 
 Exit criteria:
 
-1. No violation fires without a deterministic factual trigger and mapped authority.
-2. Search by violation type, regulation reference, consumer/report ID, tradeline, creditor, collection agency, evidence link, review status, and date remains intact.
+1. No issue fires without a deterministic factual trigger.
+2. No consumer-facing surface states unsupported legal conclusions.
+3. Regulation/reference mappings are traceable and testable.
+4. Search behavior remains stable.
+
+---
 
 ## Phase 5: Admin Truth Loop
 
 Goal: turn admin corrections into future deterministic behavior.
 
+Status: Partially planned; needs controlled implementation.
+
 Work:
 
-1. Convert accepted parser corrections into candidate aliases, mappings, templates, or parser extraction rules.
-2. Convert violation corrections into rule updates, exception rules, regulation mappings, or regression fixtures.
+1. Convert accepted parser corrections into candidate aliases, mappings, templates, parser extraction rules, or validation rules.
+2. Convert issue/violation corrections into rule updates, exception rules, regulation/reference mappings, or regression fixtures.
 3. Require validation before any promoted rule activates.
-4. Track promoted, blocked, and pending rule candidates.
+4. Track promoted, blocked, pending, and rejected rule candidates.
+5. Add audit logs for promotion decisions.
+6. Prevent admin corrections from silently changing canonical truth without a replayable rule or reviewed override record.
 
 Exit criteria:
 
 1. Admin corrections are replayable and auditable.
 2. A correction can explain what future deterministic behavior changed.
-3. Rule activation cannot silently break parser or violation regression tests.
+3. Rule activation cannot silently break parser, evidence, violation, or packet regression tests.
+4. Human review is required before a promoted rule becomes active truth.
+
+---
 
 ## Phase 6: User Action Reliability
 
-Goal: connect extracted facts and violations to useful user actions.
+Goal: connect extracted facts and detected issues to simple, useful user actions.
+
+Status: Packet generation is active and readiness-gated. Originating-finding preselection is implemented in the central packet dialog, and endpoint-backed packet lifecycle coverage now exists for readiness, preview/build, create, PDF download, and non-owner PDF denial.
 
 Work:
 
 1. Ensure dispute packets pull canonical fields and evidence links, not legacy parser artifacts.
-2. Include bureau-specific reference details such as TransUnion case ID where available.
-3. Confirm dollar fields render consistently in UI, letters, saved outputs, and evidence.
-4. Add tests for packet generation from deterministic violation evidence.
+2. Keep packet scope limited to Credit Bureau packets and Collection Agency packets.
+3. Do not create direct Furnisher packet flows.
+4. Include bureau-specific reference details such as TransUnion case ID where available.
+5. Confirm dollar fields render consistently in UI, letters, saved outputs, evidence, and PDFs.
+6. Add tests for packet generation from deterministic issue evidence.
+7. Keep packet-dialog preselection covered so originating findings remain selected only when the existing eligible recommendation list says they are packet-ready.
+8. Keep endpoint-backed packet lifecycle coverage green for readiness -> preview/build -> create -> PDF download -> non-owner denial.
+9. Keep final packet creation blocked for missing evidence, manual review, dismissed findings, parser uncertainty, wrong owner, wrong bureau, and unsafe multi-issue selections.
+10. Do not add admin override until evidence gates, endpoint lifecycle tests, and packet-to-finding tracking are stable.
+11. Design packet-to-finding relational rows later, before scaling multi-issue packets.
 
 Exit criteria:
 
-1. A generated action is traceable back to canonical fields and violation evidence.
-2. Existing packet and outcome flows continue to work.
+1. A generated packet is traceable back to canonical fields and issue evidence.
+2. A user can understand why an item is or is not packet-ready.
+3. Clicking Create Packet from a finding continues to open the central packet dialog with the originating finding preselected when eligible, while ineligible findings show readiness blockers.
+4. Endpoint-backed packet lifecycle tests prove packet-ready findings can validate, preview/build, create, persist `creditorObligationTestId`, download PDF, and deny non-owner PDF access.
+5. Existing packet and outcome flows continue to work.
+6. Multi-issue packet behavior remains constrained and auditable.
+
+---
 
 ## Phase 7: Outcome Tracking
 
-Goal: close the loop after disputes or bureau/creditor responses.
+Goal: close the loop after disputes, bureau responses, or collection-agency responses.
+
+Status: Future work.
 
 Work:
 
 1. Compare later uploads against earlier canonical snapshots.
 2. Detect changed, deleted, reinserted, or unchanged tradelines.
-3. Link changes to dispute activity and deadlines.
+3. Link changes to dispute activity, packet delivery, and response deadlines.
 4. Preserve silent-correction and stale-reporting guard behavior.
+5. Show users plain-language outcome summaries.
+6. Keep outcome summaries deterministic and evidence-linked.
 
 Exit criteria:
 
 1. Users can see what changed after they acted.
 2. Outcome summaries use deterministic snapshot comparisons.
+3. The platform can distinguish corrected, removed, unchanged, reinserted, and newly created issues.
+4. Outcome tracking does not depend on AI interpretation.
+
+---
 
 ## Phase 8: Operational Regression Dashboard
 
 Goal: make stability visible before deployment.
 
+Status: Golden Path exists and packet lifecycle endpoint coverage has been added. Broader endpoint-level release confidence and operator-readable dashboarding remain ongoing.
+
 Work:
 
-1. Summarize parser fixture coverage, replay status, evidence coverage, and violation-search preservation.
+1. Summarize parser fixture coverage, replay status, evidence coverage, violation-search preservation, packet readiness, and PDF generation.
 2. Add a local/staging regression report that can be run before promotion.
 3. Track unsupported layouts and known risks.
+4. Include packet lifecycle endpoint coverage in operational release checks.
+5. Keep Stage Lab scanned-PDF controlled-error regression coverage visible in release checks.
+6. Add endpoint-backed coverage for other critical user actions beyond packet lifecycle.
+7. Show pass/fail output that a non-developer operator can read before approving deployment.
 
 Exit criteria:
 
-1. A release can show parser pass/fail, replay pass/fail, evidence coverage, and violation-search compatibility in one place.
+1. A release can show parser pass/fail, replay pass/fail, evidence coverage, packet-readiness pass/fail, and violation-search compatibility in one place.
 2. Unsupported layouts are explicit rather than hidden.
+3. Endpoint lifecycle tests exist for critical user actions.
+4. The dashboard distinguishes helper-level logical tests from real endpoint/API tests.
+
+---
+
+## Phase 9: Regulation and Reference Governance
+
+Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
+
+Status: Future work.
+
+Work:
+
+1. Create or formalize a regulation/reference registry if not already sufficient.
+2. Support admin-triggered update checks.
+3. Support optional scheduled scans that create a review queue only.
+4. Do not activate new or modified references without admin approval.
+5. Store source URL, jurisdiction, effective date, version, category, summary, citation format, and approval status.
+6. Map references to deterministic issue rules and packet language.
+7. Preserve old versions and rollback history.
+8. Separate regulatory references from legal conclusions in consumer-facing copy.
+
+Exit criteria:
+
+1. No law or regulation is silently invented, modified, or activated.
+2. Each reference has an authoritative source and version history.
+3. Each active mapping is approved and auditable.
+4. Packet and issue wording can cite references without overstating conclusions.
+
+---
+
+## Phase 10: Dedicated Document Type Expansion
+
+Goal: add support for creditor statements and collection letters without weakening credit-report parsing.
+
+Status: Future work.
+
+Work:
+
+1. Create deterministic rule packs for creditor statements.
+2. Create deterministic rule packs for collection letters.
+3. Keep these inputs separate from bureau credit-report parsing.
+4. Add document-type detection before extraction.
+5. Require separate fixtures and regression tests.
+6. Do not allow creditor-statement or collection-letter parsing to overwrite credit-report canonical facts without explicit comparison rules.
+
+Exit criteria:
+
+1. Creditor statements and collection letters have separate deterministic extraction paths.
+2. Extracted document facts are evidence-linked.
+3. Credit-report canonical facts remain protected from unrelated document parser behavior.
+4. Unsupported document layouts fail clearly.
+
+---
 
 ## Current Known Risks
 
-1. Scanned image-only PDFs require the deterministic OCR runtime to be installed and enabled before they can be accepted outside tests.
-2. PDF bounding boxes are not yet populated in canonical evidence.
-3. Creditor statements and collection letters need dedicated deterministic rule packs before broad support.
-4. Admin corrections need deeper automated conversion into future deterministic rules.
-5. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+1. Page-aware and bounding-box evidence is not yet populated in canonical evidence.
+2. Golden Path protects the logical chain, and packet lifecycle endpoint coverage now protects one critical API path. Additional endpoint-backed tests may still be needed for other critical user flows.
+3. Multi-issue packets currently rely on structured metadata rather than per-finding relational rows.
+4. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
+5. Scanned PDFs can still fail if OCR output is low-quality. That is correct fail-closed behavior, but the user-facing diagnostic must be clear.
+6. Localhost, staging, and production must be checked separately because host-level OCR tools are not enough when the app runs in Docker.
+7. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
+8. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
+9. Admin corrections need deeper controlled promotion into future deterministic rules.
+10. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+11. French OCR support is not installed unless added later as a specific requirement.
 
-## Next Recommended Work Item
+---
 
-Start Phase 3 evidence hardening by adding deterministic bounding-box/page-coordinate evidence where the text extractor can supply coordinates, then link that evidence through violations and dispute packets.
+## Next Recommended Work Order
+
+1. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+2. Run a real scanned-PDF staging smoke test and verify OCR tools inside both staging and production containers.
+3. Start Phase 3 evidence hardening by adding page-aware and bounding-box evidence where extraction tooling can reliably supply it.
+4. Create a design-only packet-to-finding relational model plan before any multi-issue packet schema work.
+5. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
+6. Only after the above, revisit regulation/reference update governance.
+7. Do not add admin override yet.
