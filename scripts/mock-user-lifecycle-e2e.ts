@@ -2191,164 +2191,26 @@ async function main() {
 
   ensureScopeExpectation("Upload #1", firstUploadResults);
 
-  const recommendations = await runStep(
-    "Packet recommendations",
-    () => api.json<PacketRecommendResponse>("/_api/packet/recommend"),
-    { coverageKey: "packet_recommend", critical: true }
-  );
-
   const tradelines = await runStep(
     "Tradeline list",
     () => api.json<TradelineListResponse>("/_api/tradeline/list?limit=250"),
     { critical: true }
   );
 
-  if (!recommendations || !tradelines) {
-    throw new Error("Could not load tradelines/recommendations for packet flow.");
+  if (!tradelines) {
+    throw new Error("Could not load tradelines.");
   }
 
-  const packetCandidates = buildPacketCandidates(
-    recommendations.recommendations,
-    tradelines.tradelines,
-    options.packetCount
-  );
+  const firstTradeline = tradelines.tradelines[0];
+  selectedTradelineId = firstTradeline?.id ?? null;
+  selectedBureauId = firstTradeline?.bureauId ?? null;
 
-  if (packetCandidates.length === 0) {
-    throw new Error("No tradelines were available to build packet test scenarios.");
-  }
-
-  const primaryCandidate = packetCandidates[0];
-  selectedTradelineId = primaryCandidate.tradelineId;
-  selectedBureauId = primaryCandidate.bureauId;
-  selectedViolationId = primaryCandidate.violationId;
-  selectedViolationCategory = primaryCandidate.violationCategory;
-  selectedDisputeReasonCode = primaryCandidate.disputeReasonCode;
-
-  const previewPacketResponse = await runStep(
-    "Create packet preview",
-    () =>
-      api.json<PacketCreateResponse>("/_api/packet/create", {
-        method: "POST",
-        body: {
-          tradelineId: selectedTradelineId,
-          bureauId: selectedBureauId ?? undefined,
-          status: "Draft",
-          preview: true,
-          content: `Preview letter for run ${runId}`,
-          creditorObligationTestId: selectedViolationId ?? undefined,
-          disputeReasonCode: selectedDisputeReasonCode ?? undefined,
-          violationCategory: selectedViolationCategory ?? undefined,
-          ...(selectedBureauId
-            ? {}
-            : {
-                recipientName: "Equifax Canada",
-                recipientAddressLine1: "5700 Yonge Street",
-                recipientCity: "Toronto",
-                recipientProvince: "ON",
-                recipientPostalCode: "M2M 4K2",
-              }),
-        },
-      }),
-    { coverageKey: "packet_preview_create" }
-  );
-  previewPacket = previewPacketResponse?.packet ?? null;
-
-  const draftPacketResponse = await runStep(
-    "Create draft packet",
-    () =>
-      api.json<PacketCreateResponse>("/_api/packet/create", {
-        method: "POST",
-        body: {
-          tradelineId: selectedTradelineId,
-          bureauId: selectedBureauId ?? undefined,
-          status: "Draft",
-          content: `Draft dispute letter for run ${runId}`,
-          creditorObligationTestId: selectedViolationId ?? undefined,
-          disputeReasonCode: selectedDisputeReasonCode ?? undefined,
-          violationCategory: selectedViolationCategory ?? undefined,
-          ...(selectedBureauId
-            ? {}
-            : {
-                recipientName: "Equifax Canada",
-                recipientAddressLine1: "5700 Yonge Street",
-                recipientCity: "Toronto",
-                recipientProvince: "ON",
-                recipientPostalCode: "M2M 4K2",
-              }),
-        },
-      }),
-    { coverageKey: "packet_create_draft", critical: true }
-  );
-  draftPacket = draftPacketResponse?.packet ?? null;
-
-  if (!draftPacket?.id) {
-    throw new Error("Draft packet creation failed to return a packet ID.");
-  }
-
-  deliveredPacketId = draftPacket.id;
-
-  await runExpectedFailure(
-    "Duplicate draft prevention check",
-    "packet_duplicate_prevention",
-    () =>
-      api.json<PacketCreateResponse>("/_api/packet/create", {
-        method: "POST",
-        body: {
-          tradelineId: selectedTradelineId,
-          bureauId: selectedBureauId ?? undefined,
-          status: "Draft",
-          content: `Duplicate draft attempt for run ${runId}`,
-          creditorObligationTestId: selectedViolationId ?? undefined,
-          disputeReasonCode: selectedDisputeReasonCode ?? undefined,
-          violationCategory: selectedViolationCategory ?? undefined,
-          ...(selectedBureauId
-            ? {}
-            : {
-                recipientName: "Equifax Canada",
-                recipientAddressLine1: "5700 Yonge Street",
-                recipientCity: "Toronto",
-                recipientProvince: "ON",
-                recipientPostalCode: "M2M 4K2",
-              }),
-        },
-      }),
-    ["draft dispute letter already exists", "409"]
-  );
-
-  await runStep(
-    "Update packet status",
-    () =>
-      api.json<{ success: boolean; packetId: number; status: string }>("/_api/packet/update-status", {
-        method: "POST",
-        body: {
-          packetId: deliveredPacketId,
-          status: "Draft - QA Reviewed",
-        },
-      }),
-    { coverageKey: "packet_update_status" }
-  );
-
-  const deliveryResult = await runStep(
-    "Record packet delivery",
-    () =>
-      api.json<PacketDeliveryResponse>("/_api/packet/delivery", {
-        method: "POST",
-        body: {
-          packetId: deliveredPacketId,
-          deliveryMethod: "registered_mail",
-          trackingNumber: `MOCK-${runId.toUpperCase()}`,
-          sentDate: new Date().toISOString(),
-          consumerCertification: true,
-          userReviewed: true,
-          userApproved: true,
-        },
-      }),
-    { coverageKey: "packet_delivery", critical: true }
-  );
-
-  if (deliveryResult?.obligationInstanceId) {
-    obligationInstanceId = deliveryResult.obligationInstanceId;
-  }
+  setCoverage("packet_recommend", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_preview_create", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_create_draft", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_duplicate_prevention", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_update_status", "BLOCKED", "No generated packet is available for status update.");
+  setCoverage("packet_delivery", "BLOCKED", "No generated packet is available for delivery recording.");
 
   const obligationList = await runStep(
     "List obligations",
@@ -2446,77 +2308,84 @@ async function main() {
     );
   }
 
-  const evidenceCreate = await runStep(
-    "Create evidence event",
-    () =>
-      api.json<EvidenceCreateResponse>("/_api/evidence/create", {
-        method: "POST",
-        body: {
-          packetId: deliveredPacketId,
-          eventType: "SUITE_MARKER",
-          description: `Suite evidence marker for run ${runId}`,
-        },
-      }),
-    { coverageKey: "evidence_event_create" }
-  );
+  if (deliveredPacketId) {
+    const evidenceCreate = await runStep(
+      "Create evidence event",
+      () =>
+        api.json<EvidenceCreateResponse>("/_api/evidence/create", {
+          method: "POST",
+          body: {
+            packetId: deliveredPacketId,
+            eventType: "SUITE_MARKER",
+            description: `Suite evidence marker for run ${runId}`,
+          },
+        }),
+      { coverageKey: "evidence_event_create" }
+    );
 
-  if (evidenceCreate?.event?.id) {
-    evidenceEventId = evidenceCreate.event.id;
-  }
-
-  await runStep(
-    "Upload bureau communication",
-    () =>
-      api.json<BureauCommunicationResponse>("/_api/evidence/bureau-communication", {
-        method: "POST",
-        body: {
-          fileDataBase64: SAMPLE_PDF_BASE64,
-          fileName: `bureau-response-${runId}.pdf`,
-          fileType: "application/pdf",
-          communicationType: "BUREAU_RESPONSE_RECEIVED",
-          packetId: deliveredPacketId,
-          obligationInstanceId: obligationInstanceId ?? undefined,
-          description: "Mock bureau response uploaded by lifecycle suite",
-          responseStatus: "response received",
-          responseDocumentationProvided: false,
-          runAudit: true,
-        },
-      }),
-    {
-      coverageKey: "evidence_bureau_communication",
-      blockedPatterns: ["upload", "storage", "bucket", "credential"],
+    if (evidenceCreate?.event?.id) {
+      evidenceEventId = evidenceCreate.event.id;
     }
-  );
 
-  const evidenceAttachmentUpload = await runStep(
-    "Upload evidence attachment",
-    () =>
-      api.json<EvidenceAttachmentUploadResponse>("/_api/evidence-attachment/upload", {
-        method: "POST",
-        body: {
-          packetId: deliveredPacketId,
-          fileName: `attachment-${runId}.txt`,
-          fileType: "text/plain",
-          fileDataBase64: SAMPLE_TEXT_BASE64,
-          description: "Lifecycle suite attachment",
-        },
-      }),
-    {
-      coverageKey: "evidence_attachment_upload",
-      blockedPatterns: ["storage", "bucket", "credential", "gcs", "upload"],
+    await runStep(
+      "Upload bureau communication",
+      () =>
+        api.json<BureauCommunicationResponse>("/_api/evidence/bureau-communication", {
+          method: "POST",
+          body: {
+            fileDataBase64: SAMPLE_PDF_BASE64,
+            fileName: `bureau-response-${runId}.pdf`,
+            fileType: "application/pdf",
+            communicationType: "BUREAU_RESPONSE_RECEIVED",
+            packetId: deliveredPacketId,
+            obligationInstanceId: obligationInstanceId ?? undefined,
+            description: "Mock bureau response uploaded by lifecycle suite",
+            responseStatus: "response received",
+            responseDocumentationProvided: false,
+            runAudit: true,
+          },
+        }),
+      {
+        coverageKey: "evidence_bureau_communication",
+        blockedPatterns: ["upload", "storage", "bucket", "credential"],
+      }
+    );
+
+    const evidenceAttachmentUpload = await runStep(
+      "Upload evidence attachment",
+      () =>
+        api.json<EvidenceAttachmentUploadResponse>("/_api/evidence-attachment/upload", {
+          method: "POST",
+          body: {
+            packetId: deliveredPacketId,
+            fileName: `attachment-${runId}.txt`,
+            fileType: "text/plain",
+            fileDataBase64: SAMPLE_TEXT_BASE64,
+            description: "Lifecycle suite attachment",
+          },
+        }),
+      {
+        coverageKey: "evidence_attachment_upload",
+        blockedPatterns: ["storage", "bucket", "credential", "gcs", "upload"],
+      }
+    );
+
+    if (evidenceAttachmentUpload?.attachment?.id) {
+      evidenceAttachmentId = evidenceAttachmentUpload.attachment.id;
     }
-  );
 
-  if (evidenceAttachmentUpload?.attachment?.id) {
-    evidenceAttachmentId = evidenceAttachmentUpload.attachment.id;
+    await runStep(
+      "List evidence attachments",
+      () =>
+        api.json<EvidenceAttachmentListItem[]>(`/_api/evidence-attachment/list?packetId=${deliveredPacketId}`),
+      { coverageKey: "evidence_attachment_list" }
+    );
+  } else {
+    setCoverage("evidence_event_create", "BLOCKED", "No generated packet is available for evidence event creation.");
+    setCoverage("evidence_bureau_communication", "BLOCKED", "No generated packet is available for bureau communication upload.");
+    setCoverage("evidence_attachment_upload", "BLOCKED", "No generated packet is available for attachment upload.");
+    setCoverage("evidence_attachment_list", "BLOCKED", "No generated packet is available for attachment listing.");
   }
-
-  await runStep(
-    "List evidence attachments",
-    () =>
-      api.json<EvidenceAttachmentListItem[]>(`/_api/evidence-attachment/list?packetId=${deliveredPacketId}`),
-    { coverageKey: "evidence_attachment_list" }
-  );
 
   if (obligationInstanceId) {
     await runStep(
@@ -2759,77 +2628,8 @@ async function main() {
     { coverageKey: "report_artifact_list" }
   );
 
-  if (previewPacket?.pdfStorageUrl && selectedTradelineId) {
-    await runStep(
-      "Packet save",
-      () =>
-        api.json<PacketCreateResponse>("/_api/packet/save", {
-          method: "POST",
-          body: {
-            tradelineId: selectedTradelineId,
-            bureauId: selectedBureauId ?? null,
-            status: "Draft",
-            content: previewPacket.content ?? "Saved packet content",
-            pdfStorageUrl: previewPacket.pdfStorageUrl,
-            creditorObligationTestId: selectedViolationId ?? null,
-            signatureMode: null,
-            type: null,
-          },
-        }),
-      {
-        coverageKey: "packet_save",
-        blockedPatterns: ["storage", "bucket", "credential", "gcs", "upload"],
-      }
-    );
-  } else {
-    setCoverage("packet_save", "BLOCKED", "No preview packet PDF was available for packet/save endpoint test.");
-  }
-
-  if (selectedTradelineId) {
-    const deleteCandidate = await runStep(
-      "Create packet for delete test",
-      () =>
-        api.json<PacketCreateResponse>("/_api/packet/create", {
-          method: "POST",
-          body: {
-            tradelineId: selectedTradelineId,
-            bureauId: selectedBureauId ?? undefined,
-            status: "Draft",
-            content: `Delete candidate packet for run ${runId}`,
-            ...(selectedBureauId
-              ? {}
-              : {
-                  recipientName: "Equifax Canada",
-                  recipientAddressLine1: "5700 Yonge Street",
-                  recipientCity: "Toronto",
-                  recipientProvince: "ON",
-                  recipientPostalCode: "M2M 4K2",
-                }),
-          },
-        }),
-      {
-        blockedPatterns: ["storage", "bucket", "credential", "gcs", "upload"],
-      }
-    );
-
-    packetForDelete = deleteCandidate?.packet ?? null;
-
-    if (packetForDelete?.id) {
-      await runStep(
-        "Delete packet",
-        () =>
-          api.json<{ success: boolean }>("/_api/packet/delete", {
-            method: "POST",
-            body: { id: packetForDelete!.id },
-          }),
-        { coverageKey: "packet_delete" }
-      );
-    } else {
-      setCoverage("packet_delete", "BLOCKED", "Could not create a packet to validate packet/delete.");
-    }
-  } else {
-    setCoverage("packet_delete", "BLOCKED", "No tradeline was available for delete-packet test.");
-  }
+  setCoverage("packet_save", "BLOCKED", "Packet generation has been reset.");
+  setCoverage("packet_delete", "BLOCKED", "No generated packet is available for delete validation.");
 
   if (registeredUserId) {
     adminDeletionRegression = await runStep(

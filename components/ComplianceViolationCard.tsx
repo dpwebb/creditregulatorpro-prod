@@ -294,11 +294,11 @@ export const ComplianceViolationCard = ({
               disabled={disabled}
               title={
                 disabled
-                  ? "Letter creation is not available right now"
+                  ? "Packet generation has been reset"
                   : "Create a dispute letter about this problem"
               }
             >
-              Create Dispute Letter <ArrowRight size={14} />
+              {disabled ? "Packet Generation Paused" : "Create Dispute Letter"} {!disabled && <ArrowRight size={14} />}
             </Button>
           )}
         </div>

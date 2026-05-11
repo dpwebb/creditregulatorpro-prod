@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getPacketList as fetchPacketList } from "../endpoints/packet/list_GET.schema";
-import { postPacketCreate as createPacket, InputType as CreateInput } from "../endpoints/packet/create_POST.schema";
 import { postPacketDelete as deletePacket, InputType as DeleteInput } from "../endpoints/packet/delete_POST.schema";
-import { postPacketSave as savePacket, InputType as SaveInput } from "../endpoints/packet/save_POST.schema";
 
 export const usePacketList = () => {
   return useQuery({
@@ -24,30 +22,6 @@ export const useTradelinePackets = (tradelineId: number) => {
       };
     },
     enabled: !!tradelineId
-  });
-};
-
-export const useSavePacket = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: SaveInput) => savePacket(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["packets"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["tradeline"] });
-    },
-  });
-};
-
-export const useCreatePacket = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: CreateInput) => createPacket(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["packets"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["tradeline"] });
-    },
   });
 };
 

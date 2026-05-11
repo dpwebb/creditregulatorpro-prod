@@ -5,7 +5,6 @@ import { schema as uploadSchema } from "../../endpoints/ingest/report_POST.schem
 import { schema as approveReviewSchema } from "../../endpoints/review/approve_POST.schema";
 import { schema as rejectReviewSchema } from "../../endpoints/review/reject_POST.schema";
 import { schema as profileSchema } from "../../endpoints/user/profile_POST.schema";
-import { schema as packetBuildSchema } from "../../endpoints/packet/build_POST.schema";
 import { schema as supportTicketSchema } from "../../endpoints/support-ticket/create_POST.schema";
 import { schema as violationCorrectionSchema } from "../../endpoints/admin/violation-correction/create_POST.schema";
 import { schema as violationCorrectionEvidenceSchema } from "../../endpoints/admin/violation-correction/evidence_POST.schema";
@@ -119,9 +118,6 @@ describe("critical API schema contracts", () => {
   });
 
   it("validates packet, support, and admin correction workflow inputs", () => {
-    expect(packetBuildSchema.safeParse({ obligationInstanceId: 123 }).success).toBe(true);
-    expect(packetBuildSchema.safeParse({ obligationInstanceId: "123" }).success).toBe(false);
-
     expect(
       supportTicketSchema.safeParse({
         subject: "Upload question",

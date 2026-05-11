@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +11,17 @@ import { Button } from "./Button";
 import { Badge } from "./Badge";
 import { Skeleton } from "./Skeleton";
 import { usePacketViewer } from "../helpers/usePacketViewer";
-import { useSavePacket, useDeletePacket } from "../helpers/packetQueries";
-import type { PreviewPacket } from "../endpoints/packet/create_POST.schema";
-
-import { Printer, Download, FileText, AlertCircle, Send, CheckCircle2, Save, Trash2, FileCheck } from "lucide-react";
+import { useDeletePacket } from "../helpers/packetQueries";
+import {
+  Printer,
+  Download,
+  FileText,
+  AlertCircle,
+  Send,
+  CheckCircle2,
+  Trash2,
+  FileCheck,
+} from "lucide-react";
 import { format } from "../helpers/dateUtils";
 import { Viewer, Worker } from "@react-pdf-viewer/core";
 import { toast } from "sonner";
@@ -28,8 +35,6 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import styles from "./PacketViewer.module.css";
 
-// Extend the packet type locally to include delivery fields that might be returned by backend
-// but are not in the strict Pick<...> type of the schema file
 type ExtendedPacket = PacketDetail & {
   deliveryMethod?: string | null;
   trackingNumber?: string | null;
@@ -43,138 +48,43 @@ interface PacketViewerProps {
   packetId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  previewData?: PreviewPacket | null;
-  onSaved?: (packetId: number) => void;
   onDeleted?: (packetId: number) => void;
   className?: string;
-}
-
-/**
- * Converts a base64 PDF string to a blob URL.
- */
-function base64ToBlobUrl(base64: string): string {
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
-  const blob = new Blob([byteArray], { type: "application/pdf" });
-  return URL.createObjectURL(blob);
 }
 
 export function PacketViewer({
   packetId,
   open,
   onOpenChange,
-  previewData,
-  onSaved,
   onDeleted,
   className,
 }: PacketViewerProps) {
-  const { packet: rawPacket, isLoading, error } = usePacketViewer(packetId, previewData);
+  const { packet: rawPacket, isLoading, error } = usePacketViewer(packetId);
   const packet = rawPacket as ExtendedPacket | null;
-  
+
   const [isPrinting, setIsPrinting] = useState(false);
   const [isDeliveryWizardOpen, setIsDeliveryWizardOpen] = useState(false);
   const [wizardInitialStep, setWizardInitialStep] = useState<"choose" | "crp" | "self">("choose");
-  const [createdPacketId, setCreatedPacketId] = useState<number | null>(null);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-
-    // Reset createdPacketId when new previewData arrives (prevents stale ID from previous send)
-  useEffect(() => {
-    if (previewData) {
-      setCreatedPacketId(null);
-    }
-  }, [previewData]);
-
-  const effectivePacketId = packetId || createdPacketId;
-  const { mutateAsync: savePacket, isPending: isSaving } = useSavePacket();
-  const { mutateAsync: deletePacket, isPending: isDeleting } = useDeletePacket();
-  const updatePacketStatus = useUpdatePacketStatus();
-  
-  // State for the resolved blob URL (handles both signed HTTPS URLs and legacy base64)
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
 
+  const { mutateAsync: deletePacket, isPending: isDeleting } = useDeletePacket();
+  const updatePacketStatus = useUpdatePacketStatus();
   const printFrameRef = useRef<HTMLIFrameElement>(null);
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   useEffect(() => {
-    let createdBlobUrl: string | null = null;
-
-    if (previewData?.pdfStorageUrl) {
-      try {
-        const blobUrl = base64ToBlobUrl(previewData.pdfStorageUrl);
-        createdBlobUrl = blobUrl;
-        setPdfBlobUrl(blobUrl);
-      } catch (e) {
-        console.error("Failed to resolve preview PDF URL", e);
-        setPdfBlobUrl(null);
-      }
-    } else if (packet?.id) {
+    if (packet?.id) {
       setPdfBlobUrl(getPacketPdfUrl({ packetId: packet.id }));
     } else {
       setPdfBlobUrl(null);
     }
-
-    return () => {
-      if (createdBlobUrl) {
-        URL.revokeObjectURL(createdBlobUrl);
-      }
-    };
-  }, [previewData?.pdfStorageUrl, packet?.id]);
-
-  const handleSave = async () => {
-    if (createdPacketId) return createdPacketId;
-    if (!previewData) return null;
-    try {
-      const res = await savePacket({
-        tradelineId: previewData.tradelineId!,
-        bureauId: previewData.bureauId,
-        status: previewData.status || "Draft",
-        terminalLabel: previewData.terminalLabel,
-        content: previewData.content || "",
-        pdfStorageUrl: previewData.pdfStorageUrl || "",
-        creditorObligationTestId: previewData.creditorObligationTestId,
-        signatureMode: previewData.signatureMode,
-        type: previewData.type,
-        recipientName: previewData.recipientName ?? undefined,
-        recipientAddressLine1: previewData.recipientAddressLine1 ?? undefined,
-        recipientAddressLine2: previewData.recipientAddressLine2 ?? undefined,
-        recipientCity: previewData.recipientCity ?? undefined,
-        recipientProvince: previewData.recipientProvince ?? undefined,
-        recipientPostalCode: previewData.recipientPostalCode ?? undefined,
-      });
-      const newId = res.packet.id;
-      setCreatedPacketId(newId);
-      return newId;
-    } catch (e) {
-      console.error("Failed to save packet", e);
-      return null;
-    }
-  };
+  }, [packet?.id]);
 
   const handlePrint = async () => {
-    let printUrl = pdfBlobUrl;
-    if (!printUrl && !previewData) return;
-    
+    if (!pdfBlobUrl) return;
+
     setIsPrinting(true);
-
-    if (previewData) {
-      const id = await handleSave();
-      if (!id) {
-        setIsPrinting(false);
-        return;
-      }
-      printUrl = getPacketPdfUrl({ packetId: id });
-    }
-
-    if (!printUrl) {
-      setIsPrinting(false);
-      return;
-    }
-
-    // Use the hidden iframe for printing
     const iframe = printFrameRef.current;
     if (!iframe) {
       setIsPrinting(false);
@@ -183,7 +93,7 @@ export function PacketViewer({
 
     iframe.onload = () => {
       try {
-        iframe?.contentWindow?.print();
+        iframe.contentWindow?.print();
       } catch (e) {
         console.error("Print failed", e);
       } finally {
@@ -191,7 +101,7 @@ export function PacketViewer({
       }
     };
 
-    iframe.src = printUrl;
+    iframe.src = pdfBlobUrl;
   };
 
   const handleDeleteClick = async () => {
@@ -211,23 +121,12 @@ export function PacketViewer({
   };
 
   const handleDownload = async () => {
-    let targetUrl = pdfBlobUrl;
-    let targetId = packet?.id || effectivePacketId;
-
-    if (!targetUrl && !previewData) return;
-
-    if (previewData) {
-      const id = await handleSave();
-      if (!id) return;
-      targetUrl = getPacketPdfUrl({ packetId: id });
-      targetId = id;
-    }
-
-    if (!targetUrl || !targetId) return;
+    const targetId = packet?.id || packetId;
+    if (!pdfBlobUrl || !targetId) return;
 
     try {
       const link = document.createElement("a");
-      link.href = targetUrl;
+      link.href = pdfBlobUrl;
       link.download = `packet-${targetId}-${format(new Date(), "yyyyMMdd")}.pdf`;
       document.body.appendChild(link);
       link.click();
@@ -237,7 +136,6 @@ export function PacketViewer({
     }
   };
 
-  // Helper to determine badge variant based on status
   const getStatusVariant = (status: string | null) => {
     switch (status?.toLowerCase()) {
       case "generated":
@@ -256,7 +154,7 @@ export function PacketViewer({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={styles.dialogContent}>
+        <DialogContent className={[styles.dialogContent, className].filter(Boolean).join(" ")}>
           <DialogHeader className={styles.header}>
             <div className={styles.headerTop}>
               <div className={styles.titleGroup}>
@@ -266,62 +164,42 @@ export function PacketViewer({
                 <div>
                   <DialogTitle>Your Letter</DialogTitle>
                   <DialogDescription asChild>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }} className="text-muted-foreground text-sm">
-                      <span>{previewData ? "Preview — not saved yet" : packetId ? `Letter #${packetId}` : "Loading..."}</span>
-                      {previewData && <Badge variant="warning">Preview</Badge>}
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: "var(--spacing-2)" }}
+                      className="text-muted-foreground text-sm"
+                    >
+                      <span>{packetId ? `Letter #${packetId}` : "Loading..."}</span>
                     </div>
                   </DialogDescription>
                 </div>
               </div>
               <div className={styles.actions}>
-                {previewData && (
-                  <Button variant="primary" size="sm" onClick={async () => {
-                    const newId = await handleSave();
-                    if (newId) {
-                      setCreatedPacketId(newId);
-                      setWizardInitialStep("choose");
-                      setIsDeliveryWizardOpen(true);
-                    }
-                  }} disabled={isSaving || isLoading}>
-                    <Save size={16} />
-                    {isSaving ? "Saving..." : "Save Letter"}
-                  </Button>
-                )}
-                
                 {!isLoading && packet && !packet.sentDate && (
-                  previewData ? (
-                    <Button variant="outline" size="sm" onClick={async () => {
-                      const newId = await handleSave();
-                      if (newId) {
-                        setCreatedPacketId(newId);
-                        setWizardInitialStep("choose");
+                  packet.status === "Ready to Mail" ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setWizardInitialStep("self");
                         setIsDeliveryWizardOpen(true);
-                      }
-                    }} disabled={isSaving}>
-                      <Send size={16} />
-                      Send This Letter
-                    </Button>
-                  ) : packet.status === "Ready to Mail" ? (
-                    <Button variant="primary" size="sm" onClick={() => {
-                      setWizardInitialStep("self");
-                      setIsDeliveryWizardOpen(true);
-                    }}>
+                      }}
+                    >
                       <Send size={16} />
                       Record Mailing
                     </Button>
                   ) : (
                     <>
                       {packet.status === "Draft" && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => {
                             updatePacketStatus.mutate(
                               { packetId: packet.id, status: "Ready to Mail" },
                               {
                                 onSuccess: () => {
                                   toast.success("Letter marked as ready to mail.");
-                                }
+                                },
                               }
                             );
                           }}
@@ -331,17 +209,21 @@ export function PacketViewer({
                           {updatePacketStatus.isPending ? "Marking..." : "Mark Ready to Mail"}
                         </Button>
                       )}
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setWizardInitialStep("choose");
-                        setIsDeliveryWizardOpen(true);
-                      }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setWizardInitialStep("choose");
+                          setIsDeliveryWizardOpen(true);
+                        }}
+                      >
                         <Send size={16} />
                         Send This Letter
                       </Button>
                     </>
                   )
                 )}
-                
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -380,9 +262,7 @@ export function PacketViewer({
                 <div className={styles.metadataItem}>
                   <span className={styles.label}>Created</span>
                   <span className={styles.value}>
-                    {packet.createdAt
-                      ? format(new Date(packet.createdAt), "MMM d, yyyy HH:mm")
-                      : "-"}
+                    {packet.createdAt ? format(new Date(packet.createdAt), "MMM d, yyyy HH:mm") : "-"}
                   </span>
                 </div>
                 <div className={styles.metadataItem}>
@@ -397,8 +277,7 @@ export function PacketViewer({
                     {packet.terminalLabel || "-"}
                   </span>
                 </div>
-                
-                {/* Delivery Information */}
+
                 {packet.sentDate && (
                   <>
                     <div className={styles.metadataItem}>
@@ -422,7 +301,10 @@ export function PacketViewer({
                     {packet.consumerCertification && (
                       <div className={styles.metadataItem}>
                         <span className={styles.label}>Certified</span>
-                        <span className={styles.value} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span
+                          className={styles.value}
+                          style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                        >
                           <CheckCircle2 size={14} className="text-success" />
                           Yes
                         </span>
@@ -447,10 +329,7 @@ export function PacketViewer({
             ) : pdfBlobUrl ? (
               <div className={styles.viewerContainer}>
                 <Worker workerUrl={PDF_WORKER_URL}>
-                  <Viewer
-                    fileUrl={pdfBlobUrl}
-                    plugins={[defaultLayoutPluginInstance]}
-                  />
+                  <Viewer fileUrl={pdfBlobUrl} plugins={[defaultLayoutPluginInstance]} />
                 </Worker>
               </div>
             ) : (
@@ -462,7 +341,7 @@ export function PacketViewer({
           </div>
 
           <DialogFooter className={styles.footer}>
-            {!previewData && packetId && (
+            {packetId && (
               <div className={styles.footerLeft}>
                 <Button
                   variant={isConfirmingDelete ? "destructive" : "ghost"}
@@ -481,28 +360,19 @@ export function PacketViewer({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {effectivePacketId && isDeliveryWizardOpen && (
+
+      {packetId && isDeliveryWizardOpen && (
         <DeliveryWizard
-          packetId={effectivePacketId}
+          packetId={packetId}
           bureauName={packet?.recipientName || packet?.bureauName || "the credit bureau"}
           open={isDeliveryWizardOpen}
-          onOpenChange={(open) => {
-            setIsDeliveryWizardOpen(open);
-            if (!open && createdPacketId && onSaved) {
-              onSaved(createdPacketId);
-            }
-          }}
-          onComplete={() => {
-            setIsDeliveryWizardOpen(false);
-            if (createdPacketId && onSaved) {
-              onSaved(createdPacketId);
-            }
-          }}
+          onOpenChange={setIsDeliveryWizardOpen}
+          onComplete={() => setIsDeliveryWizardOpen(false)}
           onDownloadPdf={handleDownload}
           initialStep={wizardInitialStep}
         />
       )}
-      {/* Hidden iframe for printing */}
+
       <iframe
         ref={printFrameRef}
         style={{ display: "none", position: "absolute", width: 0, height: 0 }}

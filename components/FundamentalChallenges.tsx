@@ -15,7 +15,7 @@ interface FundamentalChallengesProps {
   isCollectionAccount: boolean;
   bureauId: number | null;
   accountNumber: string | null;
-  onCreateChallengeLetter: (challengeAccessPointId: string) => void;
+  onCreateChallengeLetter?: (challengeAccessPointId: string) => void;
   className?: string;
 }
 
@@ -121,9 +121,10 @@ export const FundamentalChallenges: React.FC<FundamentalChallengesProps> = ({
             <div className={styles.cardFooter}>
               <Button
                 variant="outline"
-                onClick={() => onCreateChallengeLetter(point.id)}
+                onClick={() => onCreateChallengeLetter?.(point.id)}
+                disabled={!onCreateChallengeLetter}
               >
-                Send Challenge Letter
+                {onCreateChallengeLetter ? "Send Challenge Letter" : "Packet Generation Paused"}
               </Button>
             </div>
           </div>

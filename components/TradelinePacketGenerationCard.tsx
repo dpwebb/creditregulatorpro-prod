@@ -5,8 +5,8 @@ import { Badge } from "./Badge";
 import styles from "./TradelinePacketGenerationCard.module.css";
 
 interface TradelinePacketGenerationCardProps {
-  isGenerating: boolean;
-  onGenerate: () => void;
+  isGenerating?: boolean;
+  onGenerate?: () => void;
   onViewCompliance: () => void;
   existingPacketId?: number | null;
   onViewPacket?: () => void;
@@ -45,10 +45,10 @@ export const TradelinePacketGenerationCard: React.FC<TradelinePacketGenerationCa
               ? isReadyToMail
                 ? "Your letter is ready to mail. Record your mailing details after you've sent it."
                 : "A dispute letter has already been generated for this account. You can view, print, or download the existing letter below."
-              : "Create a dispute letter for this account. We'll pick the best approach and use the right legal template for your province."}
+              : "Packet generation has been reset and is not available in this build."}
           </p>
 
-          {!hasExistingPacket && (
+          {!hasExistingPacket && onGenerate && (
             <div className={styles.complianceNote}>
               <Info size={14} className={styles.infoIcon} />
               <p>
@@ -58,7 +58,7 @@ export const TradelinePacketGenerationCard: React.FC<TradelinePacketGenerationCa
           )}
         </div>
 
-        {!hasExistingPacket && (
+        {!hasExistingPacket && onGenerate && (
           <div className={styles.noticeBox}>
             <p>
               <strong>Note:</strong> Creating a letter requires your profile to be complete with your full name, address, and date of birth.
@@ -92,10 +92,10 @@ export const TradelinePacketGenerationCard: React.FC<TradelinePacketGenerationCa
             <Button
               variant="default"
               onClick={onGenerate}
-              disabled={isGenerating}
+              disabled={!onGenerate || isGenerating}
               className={styles.fullWidth}
             >
-              {isGenerating ? "Generating..." : "Create Dispute Letter"}
+              {onGenerate ? (isGenerating ? "Generating..." : "Create Dispute Letter") : "Packet Generation Paused"}
             </Button>
           )}
         </div>

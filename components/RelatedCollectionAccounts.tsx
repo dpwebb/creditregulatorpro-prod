@@ -137,9 +137,9 @@ export const RelatedCollectionAccounts = ({
         })}
       </div>
 
-            {(onCreateDispute || onViewPacket) && !isSent && (
+      {((isCreated && onViewPacket) || (!isCreated && onCreateDispute)) && !isSent && (
         <div className={styles.footer}>
-                    <Button
+          <Button
             size="lg"
             variant={isCreated ? "secondary" : "destructive"}
             onClick={isCreated && onViewPacket ? onViewPacket : onCreateDispute}

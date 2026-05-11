@@ -16,7 +16,6 @@ import { Progress } from "./Progress";
 import { Button } from "./Button";
 import { ComplianceViolationCard } from "./ComplianceViolationCard";
 import { ComplianceRescanButton } from "./ComplianceRescanButton";
-import { CreatePacketDialog } from "./CreatePacketDialog";
 import { ProfileCompletionDialog } from "./ProfileCompletionDialog";
 import { SourceReportViewer } from "./SourceReportViewer";
 import { Badge } from "./Badge";
@@ -25,7 +24,6 @@ const PacketViewer = React.lazy(() => import("./PacketViewer").then(m => ({ defa
 
 import { useComplianceViolations, useDismissViolation } from "../helpers/complianceViolationQueries";
 import { useObligationInstanceList } from "../helpers/obligationInstanceQueries";
-import { usePacketReadiness } from "../helpers/usePacketReadiness";
 import { useAuth } from "../helpers/useAuth";
 import { useTradelineList } from "../helpers/tradelineQueries";
 import { useTradelinePackets } from "../helpers/packetQueries";
@@ -58,7 +56,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   hideSummaryBar = false,
   focusViolationId,
 }) => {
-  const { authState, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const { profile } = useUserProfile();
 
@@ -82,18 +80,12 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const { data: packetsData } = useTradelinePackets(tradelineId);
   const { mutateAsync: dismissViolation } = useDismissViolation();
   
-  // Packet Creation State
-  const { mutateAsync: validateReadiness, isPending: isValidating } = usePacketReadiness();
-  const [isPacketDialogOpen, setIsPacketDialogOpen] = useState(false);
-  const [selectedViolationId, setSelectedViolationId] = useState<number | null>(null);
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [missingUserFields, setMissingUserFields] = useState<string[]>([]);
+  const isPacketGenerationPaused = true;
   const [viewingSourceReport, setViewingSourceReport] = useState(false);
 
   // Packet Viewing State
   const [isPacketViewerOpen, setIsPacketViewerOpen] = useState(false);
   const [viewingPacketId, setViewingPacketId] = useState<number | null>(null);
-  const [previewPacketData, setPreviewPacketData] = useState<any | null>(null);
 
   // For autofill resolution
   const currentTradeline = useMemo(() => 
@@ -199,22 +191,8 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const isSolPacketSent = solPacket?.status?.toUpperCase() === "SENT" || !!solPacket?.sentDate;
 
   // Handlers
-  const handleGeneratePacket = async (violationId: number) => {
-    if (authState.type !== "authenticated") return;
-
-    setSelectedViolationId(violationId);
-
-    try {
-      const readiness = await validateReadiness({ tradelineId });
-      if (readiness.missingUserFields.length > 0) {
-        setMissingUserFields(readiness.missingUserFields);
-        setShowProfileDialog(true);
-      } else {
-        setIsPacketDialogOpen(true);
-      }
-    } catch (error) {
-      console.error("Failed to validate packet readiness", error);
-    }
+  const handleGeneratePacket = (_violationId: number) => {
+    return;
   };
 
   const handleDismissViolation = async (violationId: number, status: "dismissed" | "verified", reason?: string) => {
@@ -232,24 +210,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
     if (packet) {
       setViewingPacketId(packet.id);
       setIsPacketViewerOpen(true);
-    }
-  };
-
-  const handleProfileCompleted = async () => {
-    setShowProfileDialog(false);
-    // If we were blocked, try to proceed
-    if (authState.type === "authenticated") {
-      try {
-        const readiness = await validateReadiness({ tradelineId });
-        if (readiness.missingUserFields.length > 0) {
-          setMissingUserFields(readiness.missingUserFields);
-          setShowProfileDialog(true);
-        } else {
-          setIsPacketDialogOpen(true);
-        }
-      } catch (error) {
-        console.error("Failed to re-validate packet readiness", error);
-      }
     }
   };
 
@@ -355,13 +315,13 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
             variant="default"
             className={isSolPacketSent ? styles.bannerButtonSent : styles.bannerButton}
             onClick={() => solPacket ? handleViewPacket(statuteOfLimitationsViolation.id) : handleGeneratePacket(statuteOfLimitationsViolation.id)}
-            disabled={isValidating}
+            disabled={!solPacket && isPacketGenerationPaused}
           >
             {isSolPacketSent 
               ? "View Sent Letter"
               : solPacket
                 ? "View Dispute Letter"
-                : "Create Dispute Letter"}
+                : "Packet Generation Paused"}
           </Button>
         </div>
       )}
@@ -472,7 +432,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                   violation={v}
                   tradelineId={tradelineId}
                   onGeneratePacket={handleGeneratePacket}
-                  disabled={isValidating}
+                  disabled={isPacketGenerationPaused && !hasPacketForThisViolation}
                   reportArtifactId={currentTradeline?.reportArtifactId ?? null}
                   sourceText={currentTradeline?.sourceText ?? null}
                   onViewSource={() => setViewingSourceReport(true)}
@@ -506,7 +466,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                           violation={v}
                           tradelineId={tradelineId}
                           onGeneratePacket={handleGeneratePacket}
-                          disabled={isValidating}
+                          disabled={isPacketGenerationPaused && !hasPacketForThisViolation}
                           reportArtifactId={currentTradeline?.reportArtifactId ?? null}
                           sourceText={currentTradeline?.sourceText ?? null}
                           onViewSource={() => setViewingSourceReport(true)}
@@ -559,14 +519,14 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                     <Button 
                       size="lg"
                       onClick={() => packetForTopViolation ? handleViewPacket(topViolation.id) : handleGeneratePacket(topViolation.id)}
-                      disabled={isValidating}
+                      disabled={isPacketGenerationPaused && !packetForTopViolation}
                                             variant={isTopViolationDisputed || packetForTopViolation ? "secondary" : "primary"}
                     >
                                         {isTopViolationDisputed 
                         ? "View Your Letter"
                         : packetForTopViolation
                           ? "Review & Send Letter"
-                          : "Create Dispute Letter"}
+                          : "Packet Generation Paused"}
                     </Button>
                   )}
                 </div>
@@ -605,9 +565,9 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                             size="sm"
                             variant={pForThis ? "default" : "secondary"}
                             onClick={() => pForThis ? handleViewPacket(v.id) : handleGeneratePacket(v.id)}
-                            disabled={isValidating}
+                            disabled={isPacketGenerationPaused && !pForThis}
                           >
-                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Create Letter"}
+                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Packet Generation Paused"}
                           </Button>
                         )}
                       </div>
@@ -620,45 +580,15 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
         )}
       </div>
 
-      {/* Dialogs */}
-      <CreatePacketDialog
-        open={isPacketDialogOpen}
-        onOpenChange={(open) => {
-          setIsPacketDialogOpen(open);
-          if (!open) setSelectedViolationId(null);
-        }}
-        onPacketCreated={(packetData) => {
-          setPreviewPacketData(packetData);
-          setViewingPacketId(null);
-          setIsPacketViewerOpen(true);
-        }}
-        autofillViolationId={selectedViolationId || undefined}
-        autofillTradelineId={tradelineId}
-        autofillBureauId={currentTradeline?.bureauId || undefined}
-      />
-
       <Suspense fallback={<Skeleton className={styles.contentSkeleton} />}>
         <PacketViewer 
           packetId={viewingPacketId}
-          previewData={previewPacketData}
           open={isPacketViewerOpen}
           onOpenChange={(open) => {
             setIsPacketViewerOpen(open);
-            if (!open) setPreviewPacketData(null);
-          }}
-          onSaved={(newId) => {
-            setPreviewPacketData(null);
-            setViewingPacketId(newId);
           }}
         />
       </Suspense>
-
-      <ProfileCompletionDialog
-        open={showProfileDialog}
-        onOpenChange={setShowProfileDialog}
-        missingUserFields={missingUserFields}
-        onComplete={handleProfileCompleted}
-      />
 
       <ProfileCompletionDialog
         open={showProvinceDialog}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useMemo, Suspense } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet";
 
@@ -41,14 +41,9 @@ import { useObligationInstanceList } from "../helpers/obligationInstanceQueries"
 import { useComplianceViolations } from "../helpers/complianceViolationQueries";
 import { calculateTerminalLabel, TerminalLabelPhase } from "../helpers/terminalLabelProgression";
 
-import { usePacketReadiness } from "../helpers/usePacketReadiness";
-import { ProfileCompletionDialog } from "../components/ProfileCompletionDialog";
 import { DeliveryWizard } from "../components/DeliveryWizard";
 import { SourceReportViewer } from "../components/SourceReportViewer";
 import { useTradelinePackets } from "../helpers/packetQueries";
-import { CreatePacketDialog } from "../components/CreatePacketDialog";
-import { postSelect } from "../endpoints/planner/select_POST.schema";
-import { postBuildPacket } from "../endpoints/packet/build_POST.schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { ComplianceRescanButton } from "../components/ComplianceRescanButton";
 import { RelatedCollectionAccounts } from "../components/RelatedCollectionAccounts";
@@ -71,27 +66,10 @@ export default function TradelineDetailPage() {
   }
   const focusedViolationId = Number(searchParams.get("reviewViolationId")) || undefined;
 
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isBureauUploadOpen, setIsBureauUploadOpen] = useState(false);
   const [viewingSourceReport, setViewingSourceReport] = useState(false);
   const [viewingPacketId, setViewingPacketId] = useState<number | null>(null);
-  const [previewPacketData, setPreviewPacketData] = useState<any | null>(null);
   const [isRecordMailingOpen, setIsRecordMailingOpen] = useState(false);
-  
-  // Create Packet Dialog State (Manual / Return Flow)
-  const [isCreatePacketOpen, setIsCreatePacketOpen] = useState(false);
-  const [createPacketContext, setCreatePacketContext] = useState<{
-    bureauId?: number;
-    violationId?: number;
-  }>({});
-  const [challengeAccessPointId, setChallengeAccessPointId] = useState<string | undefined>(undefined);
-  const [isDefaultDisputeBoth, setIsDefaultDisputeBoth] = useState(false);
-
-  const { mutateAsync: validateReadiness } = usePacketReadiness();
-
-  // Profile Completion Dialog State
-  const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [missingUserFields, setMissingUserFields] = useState<string[]>([]);
 
   // Fetch single tradeline by ID
   const { data: tradelineData, isLoading: isTradelineLoading, error: tradelineError } = useTradeline(tradelineId);
@@ -131,95 +109,6 @@ export default function TradelineDetailPage() {
     return activeViolations.length === 0 || allViolationsExhausted;
   }, [violationsData?.obligationTests, packetsData?.packets]);
 
-  // Handle return flow from profile settings
-  useEffect(() => {
-    const openCreate = searchParams.get("openCreatePacket");
-    if (openCreate === "true") {
-      const bureauIdStr = searchParams.get("bureauId");
-      const violationIdStr = searchParams.get("violationId");
-      
-      setCreatePacketContext({
-        bureauId: bureauIdStr ? parseInt(bureauIdStr) : undefined,
-        violationId: violationIdStr ? parseInt(violationIdStr) : undefined,
-      });
-      setIsCreatePacketOpen(true);
-
-      // Clean up params but keep tab
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete("openCreatePacket");
-      newParams.delete("bureauId");
-      newParams.delete("violationId");
-      setSearchParams(newParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Sign & Generate Logic
-  const handleSignAndGenerate = async () => {
-    if (!tradelineId) return;
-    setIsGenerating(true);
-
-    try {
-      // 1. Validate readiness first
-      const readiness = await validateReadiness({ tradelineId });
-
-      if (!readiness.isReady && readiness.missingUserFields.length > 0) {
-        setMissingUserFields(readiness.missingUserFields);
-        setShowProfileDialog(true);
-        setIsGenerating(false);
-        return;
-      }
-
-      if (!readiness.isReady && readiness.missingBureauInfo) {
-        toast.error(`Bureau ${readiness.bureauName || 'Unknown'} is missing address information. Please update bureau details before generating a packet.`);
-        setIsGenerating(false);
-        return;
-      }
-
-      // 2. Proceed with generation if ready
-      await performPacketGeneration();
-    } catch (e) {
-      console.error("[TradelineDetail] Validation failed:", e);
-      toast.error(e instanceof Error ? e.message : "Validation failed");
-      setIsGenerating(false);
-    }
-  };
-
-  const performPacketGeneration = async () => {
-    if (!tradelineId) return;
-    
-    try {
-      const selectResult = await postSelect({ tradelineId });
-      if (!selectResult.ok) throw new Error("Failed to select obligation instance");
-
-      const buildResult = await postBuildPacket({ 
-        obligationInstanceId: selectResult.selectedInstanceId 
-      });
-
-      if (!buildResult.ok) throw new Error("Failed to build packet");
-
-      toast.success(`Packet #${buildResult.packetId} generated successfully`);
-      queryClient.invalidateQueries({ queryKey: ["evidence"] });
-      queryClient.invalidateQueries({ queryKey: ["packets", { tradelineId }] });
-    } catch (e) {
-      console.error("[TradelineDetail] Generation failed:", e);
-      toast.error(e instanceof Error ? e.message : "Generation failed");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleProfileComplete = async () => {
-    setShowProfileDialog(false);
-    handleSignAndGenerate();
-  };
-
-  const handleManualPacketCreation = (disputeBoth: boolean = false) => {
-    setCreatePacketContext({});
-    setChallengeAccessPointId(undefined);
-    setIsDefaultDisputeBoth(disputeBoth);
-    setIsCreatePacketOpen(true);
-  };
-
   const handleViewRelatedAccountsPacket = () => {
     const multipleCollectorViolation = violationsData?.obligationTests?.find(
       v => v.violationCategory === "MULTIPLE_COLLECTOR_VIOLATION"
@@ -229,37 +118,6 @@ export default function TradelineDetailPage() {
       if (packet) {
         setViewingPacketId(packet.id);
       }
-    }
-  };
-
-  const handleDisputeRelatedAccounts = async () => {
-    if (!tradelineId) return;
-    try {
-      const readiness = await validateReadiness({ tradelineId });
-
-      if (!readiness.isReady && readiness.missingUserFields.length > 0) {
-        setMissingUserFields(readiness.missingUserFields);
-        setShowProfileDialog(true);
-        return;
-      }
-
-      if (!readiness.isReady && readiness.missingBureauInfo) {
-        toast.error(`Bureau ${readiness.bureauName || 'Unknown'} is missing address information. Please update bureau details before generating a packet.`);
-        return;
-      }
-
-      const multipleCollectorViolation = violationsData?.obligationTests?.find(
-        v => v.violationCategory === "MULTIPLE_COLLECTOR_VIOLATION"
-      );
-
-      setCreatePacketContext({
-        bureauId: tradeline?.bureauId ?? undefined,
-        violationId: multipleCollectorViolation?.id
-      });
-      setIsCreatePacketOpen(true);
-    } catch (e) {
-      console.error("[TradelineDetail] Validation failed:", e);
-      toast.error(e instanceof Error ? e.message : "Validation failed");
     }
   };
 
@@ -365,57 +223,17 @@ export default function TradelineDetailPage() {
 
       <RelatedCollectionAccounts 
         relatedTradelines={tradeline.relatedCollectionTradelines || []} 
-        onCreateDispute={handleDisputeRelatedAccounts}
         onViewPacket={handleViewRelatedAccountsPacket}
-      />
-
-      <ProfileCompletionDialog 
-        open={showProfileDialog}
-        onOpenChange={setShowProfileDialog}
-        missingUserFields={missingUserFields}
-        onComplete={handleProfileComplete}
-      />
-
-      <CreatePacketDialog
-        open={isCreatePacketOpen}
-        onOpenChange={(open) => {
-          setIsCreatePacketOpen(open);
-          if (!open) {
-            setChallengeAccessPointId(undefined);
-            setIsDefaultDisputeBoth(false);
-          }
-        }}
-        autofillTradelineId={tradelineId}
-        autofillBureauId={createPacketContext.bureauId}
-        autofillViolationId={createPacketContext.violationId}
-        challengeAccessPointId={challengeAccessPointId}
-        crossBureauTradelineId={tradeline.crossBureauTradeline?.id}
-        crossBureauBureauId={tradeline.crossBureauTradeline?.bureauId}
-        crossBureauBureauName={tradeline.crossBureauTradeline?.bureauName}
-        defaultDisputeBoth={isDefaultDisputeBoth}
-        onPacketCreated={(packetData) => {
-          setPreviewPacketData(packetData);
-          setViewingPacketId(null);
-          setIsCreatePacketOpen(false);
-          setChallengeAccessPointId(undefined);
-          setIsDefaultDisputeBoth(false);
-        }}
       />
 
       <Suspense fallback={<Skeleton className="h-24 w-full" />}>
         <PacketViewer 
           packetId={viewingPacketId}
-          previewData={previewPacketData}
-          open={!!viewingPacketId || !!previewPacketData}
+          open={!!viewingPacketId}
           onOpenChange={(open) => {
             if (!open) {
               setViewingPacketId(null);
-              setPreviewPacketData(null);
             }
-          }}
-          onSaved={(newId) => {
-            setPreviewPacketData(null);
-            setViewingPacketId(newId);
           }}
         />
       </Suspense>
@@ -469,10 +287,6 @@ export default function TradelineDetailPage() {
               isCollectionAccount={tradeline.isCollectionAccount ?? false}
               bureauId={tradeline.bureauId ?? null}
               accountNumber={tradeline.accountNumber ?? null}
-              onCreateChallengeLetter={(id) => {
-                setChallengeAccessPointId(id);
-                setIsCreatePacketOpen(true);
-              }}
             />
           )}
 
@@ -484,12 +298,6 @@ export default function TradelineDetailPage() {
                   Log a Response
                 </Button>
               )}
-              {tradeline.crossBureauTradeline && (
-                <Button onClick={() => handleManualPacketCreation(true)} size="sm" variant="secondary">
-                  Dispute Both Bureaus
-                </Button>
-              )}
-              
             </div>
           )}
 
@@ -650,8 +458,6 @@ export default function TradelineDetailPage() {
                 <TradelineExportSection tradelineId={tradelineId} />
 
                 <TradelinePacketGenerationCard 
-                  isGenerating={isGenerating}
-                  onGenerate={handleSignAndGenerate}
                   onViewCompliance={() => setSearchParams({ tab: "compliance" })}
                   existingPacketId={existingPacket?.id}
                   onViewPacket={() => existingPacket && setViewingPacketId(existingPacket.id)}

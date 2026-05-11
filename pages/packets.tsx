@@ -9,8 +9,7 @@ import { Badge } from "../components/Badge";
 import { PageHeader } from "../components/PageHeader";
 
 import { PacketComplianceBadge } from "../components/PacketComplianceBadge";
-import { Plus, Trash2, ScrollText, Calendar, AlertCircle, FileStack, Eye, Mail, FileCheck } from "lucide-react";
-import { CreatePacketDialog } from "../components/CreatePacketDialog";
+import { Trash2, ScrollText, Calendar, AlertCircle, FileStack, Eye, Mail, FileCheck } from "lucide-react";
 
 const PacketViewer = React.lazy(() => import("../components/PacketViewer").then(m => ({ default: m.PacketViewer })));
 import { DeliveryWizard } from "../components/DeliveryWizard";
@@ -23,7 +22,6 @@ import { generateReportPDF } from "../helpers/reportGenerator";
 import { formatDateTime, formatRelativeTime, formatDate } from "../helpers/formatters";
 import { useAuth } from "../helpers/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import type { PreviewPacket } from "../endpoints/packet/create_POST.schema";
 import styles from "./packets.module.css";
 
 export default function PacketsPage() {
@@ -32,9 +30,7 @@ export default function PacketsPage() {
   const { mutateAsync: deletePacketMutation } = useDeletePacket();
   const { mutate: updateStatus } = useUpdatePacketStatus();
   
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewingPacketId, setViewingPacketId] = useState<number | null>(null);
-  const [previewPacketData, setPreviewPacketData] = useState<PreviewPacket | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deliveryWizardPacketId, setDeliveryWizardPacketId] = useState<number | null>(null);
@@ -48,7 +44,6 @@ export default function PacketsPage() {
     let shouldReplaceParams = false;
 
     if (searchParams.get("create") === "true") {
-      setIsCreateOpen(true);
       nextParams.delete("create");
       shouldReplaceParams = true;
     }
@@ -225,9 +220,6 @@ export default function PacketsPage() {
               label="Export All"
             />
           )}
-          <Button onClick={() => setIsCreateOpen(true)} className={styles.createButton}>
-            <Plus size={16} /> Write a New Letter
-          </Button>
         </div>
       </PageHeader>
 
@@ -439,10 +431,7 @@ export default function PacketsPage() {
           <div className={styles.emptyState}>
             <ScrollText size={40} />
             <h3>No Letters Yet</h3>
-            <p>Write your first dispute letter to get started.</p>
-            <Button variant="default" size="sm" onClick={() => setIsCreateOpen(true)}>
-              Write a New Letter
-            </Button>
+            <p>Packet generation has been reset and is not available in this build.</p>
           </div>
         )}
       </div>
@@ -458,31 +447,14 @@ export default function PacketsPage() {
         />
       )}
 
-      <CreatePacketDialog 
-        open={isCreateOpen} 
-        onOpenChange={setIsCreateOpen} 
-        onPacketCreated={(packetData) => {
-          if (packetData?.id != null) {
-            setViewingPacketId(packetData.id);
-          } else {
-            setPreviewPacketData(packetData);
-          }
-        }}
-      />
       <Suspense fallback={<Skeleton style={{ height: "400px", width: "100%" }} />}>
         <PacketViewer 
           packetId={viewingPacketId} 
-          previewData={previewPacketData}
-          open={viewingPacketId !== null || previewPacketData !== null} 
+          open={viewingPacketId !== null} 
           onOpenChange={(open) => {
             if (!open) {
               setViewingPacketId(null);
-              setPreviewPacketData(null);
             }
-          }}
-          onSaved={(packetId) => {
-            setPreviewPacketData(null);
-            setViewingPacketId(packetId);
           }}
           onDeleted={() => {
             setViewingPacketId(null);

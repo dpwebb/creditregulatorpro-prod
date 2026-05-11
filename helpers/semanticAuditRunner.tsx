@@ -166,7 +166,7 @@ export async function runSemanticAudit(targetUserId?: number): Promise<AuditRepo
       addFinding({
         category: "Role-Based Data Isolation",
         severity: "ERROR",
-        endpoint: "packet/build_POST",
+        endpoint: "packet records",
         field: "packet.tradelineId",
         expected: "Matching userId",
         actual: `${leakedPackets.length} mismatch(es)`,

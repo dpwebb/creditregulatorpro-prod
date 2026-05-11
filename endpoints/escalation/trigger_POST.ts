@@ -4,7 +4,6 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { db } from "../../helpers/db";
 import { triggerEscalation } from "../../helpers/autoEscalation";
 import { checkRateLimit } from "../../helpers/rateLimiter";
-import { generateExhaustionComplaintPackets } from "../../helpers/exhaustionComplaintPackets";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 
 export async function handle(request: Request) {
@@ -47,19 +46,7 @@ export async function handle(request: Request) {
     let fcacPacketId: number | null = null;
     let provincialPacketId: number | null = null;
 
-    if (newInstance.state === "PROCEDURALLY_EXHAUSTED") {
-      try {
-        const packets = await generateExhaustionComplaintPackets(newInstance);
-        fcacPacketId = packets.fcacPacketId;
-        provincialPacketId = packets.provincialPacketId;
-      } catch (complaintError) {
-        console.error(
-          "Failed to generate exhaustion complaint packets for obligationInstance id=",
-          newInstance.id,
-          complaintError instanceof Error ? complaintError.message : complaintError
-        );
-      }
-    }
+    // Packet generation is reset; escalation still advances state without creating complaint packets.
 
     return new Response(
       JSON.stringify({
