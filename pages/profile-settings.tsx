@@ -8,6 +8,7 @@ import { Skeleton } from "../components/Skeleton";
 import { ProfileForm, ProfileFormValues } from "../components/ProfileForm";
 import { SubscriptionSection } from "../components/SubscriptionSection";
 import { ConsumerIdentificationManager } from "../components/ConsumerIdentificationManager";
+import { UserDataDeletionManager } from "../components/UserDataDeletionManager";
 import styles from "./profile-settings.module.css";
 
 export default function ProfileSettingsPage() {
@@ -80,6 +81,8 @@ export default function ProfileSettingsPage() {
           isUpdating={isUpdating}
           onSubmit={onSubmit}
         />
+
+        <UserDataDeletionManager />
       </div>
     </div>
   );

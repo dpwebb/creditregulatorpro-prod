@@ -3,6 +3,7 @@ import { db } from "../../helpers/db";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import { deleteReportArtifactCascade, deleteTradeline } from "../../helpers/deleteReportArtifactCascade";
+import { deleteConsumerIdentificationDocument } from "../../helpers/consumerIdentification";
 import { logAudit } from "../../helpers/auditLogger";
 import postgres from "postgres";
 
@@ -246,6 +247,10 @@ export async function handle(request: Request) {
       .where("userId", "=", targetUser.id)
       .executeTakeFirst();
     purgedCounts["consumerSignatures"] = Number(deleteSignaturesResult.numDeletedRows || 0);
+
+    // 8b. Delete saved consumer identification image and stored file
+    purgedCounts["consumerIdentificationDocuments"] =
+      (await deleteConsumerIdentificationDocument(targetUser.id)) ? 1 : 0;
 
     // 9. Delete postal_transaction
     const deletePostalTxResult = await db
