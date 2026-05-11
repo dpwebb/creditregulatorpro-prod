@@ -147,6 +147,21 @@ async function main() {
       created_at timestamptz null default now()
     )`;
 
+    await sql`create table if not exists public.consumer_identification_document (
+      id bigserial primary key,
+      user_id bigint not null unique references public.users(id) on delete cascade,
+      file_name text not null,
+      file_type text not null,
+      file_size_bytes integer not null,
+      storage_url text not null,
+      sha256 text not null,
+      region text not null default 'CA',
+      uploaded_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )`;
+
+    await sql`create index if not exists idx_consumer_identification_document_user_id on public.consumer_identification_document(user_id)`;
+
     await sql`create table if not exists public.sessions (
       id text primary key,
       user_id bigint not null references public.users(id) on delete cascade,

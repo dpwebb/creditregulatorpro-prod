@@ -231,6 +231,19 @@ export interface ConsumerSignature {
   verifiedBy: number | null;
 }
 
+export interface ConsumerIdentificationDocument {
+  fileName: string;
+  fileSizeBytes: number;
+  fileType: string;
+  id: Generated<number>;
+  region: Generated<string>;
+  sha256: string;
+  storageUrl: string;
+  updatedAt: Generated<Timestamp>;
+  uploadedAt: Generated<Timestamp>;
+  userId: number;
+}
+
 export interface Creditor {
   address: string | null;
   contactEmail: string | null;
@@ -1464,6 +1477,7 @@ export interface DB {
   betaIssueReport: BetaIssueReport;
   bureau: Bureau;
   complianceConfig: ComplianceConfig;
+  consumerIdentificationDocument: ConsumerIdentificationDocument;
   consumerSignature: ConsumerSignature;
   creditor: Creditor;
   creditorObligationTest: CreditorObligationTest;

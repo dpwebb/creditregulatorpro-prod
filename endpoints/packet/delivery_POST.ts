@@ -5,6 +5,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { createHash } from "crypto";
 import { calculateDeadline, createDeadlineEvent } from "../../helpers/deadlineCalculator";
+import { hasConsumerIdentification } from "../../helpers/consumerIdentification";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -45,6 +46,11 @@ export async function handle(request: Request) {
     if (representationFlag) {
       console.warn(`Integrity check failed: representationFlag is true for userId=${userId}`);
       return new Response(JSON.stringify({ error: INTEGRITY_BLOCK_MESSAGE }), { status: 403 });
+    }
+
+    const identificationOnFile = await hasConsumerIdentification(userId);
+    if (!identificationOnFile) {
+      return new Response(JSON.stringify({ error: "Please upload your identification in profile settings before recording delivery." }), { status: 400 });
     }
 
     // Verify user owns the packet

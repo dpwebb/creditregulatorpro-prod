@@ -107,6 +107,8 @@ export interface LetterContent {
   statutoryGrounds: string;
   applicationToAccount?: string;
   supportingDocumentation?: string;
+  consumerIdentificationImage?: string;
+  consumerIdentificationFileName?: string;
   requestedAction: string;
   statutoryTimeframe?: string;
   consumerStatementRight?: string;
@@ -311,6 +313,28 @@ export async function generatePDF(
       documentContent.push({
         text: safeContent.supportingDocumentation,
         style: "bodyText",
+        margin: [0, 0, 0, 12],
+      });
+    }
+
+    if (safeContent.consumerIdentificationImage) {
+      documentContent.push({
+        text: "Consumer Identification Attachment",
+        style: "sectionHeading",
+        pageBreak: "before",
+        margin: [0, 0, 0, 8],
+      });
+      documentContent.push({
+        text: safeContent.consumerIdentificationFileName
+          ? `Identification image on file: ${safeContent.consumerIdentificationFileName}`
+          : "Identification image on file",
+        style: "bodyText",
+        margin: [0, 0, 0, 12],
+      });
+      documentContent.push({
+        image: safeContent.consumerIdentificationImage,
+        fit: [450, 610],
+        alignment: "center",
         margin: [0, 0, 0, 12],
       });
     }

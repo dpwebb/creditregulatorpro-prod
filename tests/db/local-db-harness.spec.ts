@@ -43,6 +43,7 @@ describe("local bootstrap table coverage", () => {
     const criticalTables = [
       "users",
       "userAccount",
+      "consumerIdentificationDocument",
       "sessions",
       "subscriptions",
       "reportArtifact",

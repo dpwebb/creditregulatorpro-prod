@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const STORAGE_PREFIX = "local:";
@@ -42,6 +42,14 @@ function decodeBase64File(base64File: string): Buffer {
   return Buffer.from(base64Data, "base64");
 }
 
+function getObjectNameFromStorageUrl(storageUrl: string): string | null {
+  if (!storageUrl.startsWith(STORAGE_PREFIX)) {
+    return null;
+  }
+
+  return storageUrl.substring(STORAGE_PREFIX.length);
+}
+
 export async function uploadFile(
   base64File: string,
   objectName: string,
@@ -52,4 +60,27 @@ export async function uploadFile(
   await writeFile(filePath, decodeBase64File(base64File));
 
   return `${STORAGE_PREFIX}${objectName}`;
+}
+
+export async function readStoredFile(storageUrl: string): Promise<Buffer> {
+  const objectName = getObjectNameFromStorageUrl(storageUrl);
+
+  if (objectName) {
+    return readFile(getSafeObjectPath(objectName));
+  }
+
+  return decodeBase64File(storageUrl);
+}
+
+export async function deleteStoredFile(storageUrl: string): Promise<void> {
+  const objectName = getObjectNameFromStorageUrl(storageUrl);
+  if (!objectName) return;
+
+  try {
+    await unlink(getSafeObjectPath(objectName));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
 }

@@ -13,6 +13,11 @@ export const schema = z.object({
   termsAccepted: z.literal(true, { errorMap: () => ({ message: "You must accept the Terms of Use" }) }),
   dataConsentAccepted: z.literal(true, { errorMap: () => ({ message: "You must consent to data use" }) }),
   legalNameSignature: z.string().min(2, "Please type your full legal name"),
+  identificationFileName: z.string().min(1, "Identification image is required"),
+  identificationFileType: z.enum(["image/jpeg", "image/png"], {
+    errorMap: () => ({ message: "Upload a PNG or JPEG image of your identification" }),
+  }),
+  identificationFileDataBase64: z.string().min(1, "Identification image is required"),
 });
 
 export type OutputType = {

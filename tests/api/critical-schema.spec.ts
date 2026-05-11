@@ -13,6 +13,8 @@ import { schema as violationCorrectionUpdateSchema } from "../../endpoints/admin
 import { schema as parserTestDeleteSchema } from "../../endpoints/parser-test-case/delete_POST.schema";
 
 const pdfBase64 = Buffer.from("%PDF-1.4\n%%EOF", "utf8").toString("base64");
+const idImageDataUrl =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lEQP2wAAAABJRU5ErkJggg==";
 
 describe("critical API schema contracts", () => {
   it("validates auth login and registration boundaries", () => {
@@ -27,6 +29,9 @@ describe("critical API schema contracts", () => {
         termsAccepted: true,
         dataConsentAccepted: true,
         legalNameSignature: "New User",
+        identificationFileName: "id.png",
+        identificationFileType: "image/png",
+        identificationFileDataBase64: idImageDataUrl,
       }).success
     ).toBe(true);
     expect(registerSchema.safeParse({ email: "new.user@example.com", password: "short" }).success).toBe(false);

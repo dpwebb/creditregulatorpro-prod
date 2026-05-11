@@ -7,6 +7,7 @@ import { Skeleton } from "../components/Skeleton";
 
 import { ProfileForm, ProfileFormValues } from "../components/ProfileForm";
 import { SubscriptionSection } from "../components/SubscriptionSection";
+import { ConsumerIdentificationManager } from "../components/ConsumerIdentificationManager";
 import styles from "./profile-settings.module.css";
 
 export default function ProfileSettingsPage() {
@@ -71,6 +72,8 @@ export default function ProfileSettingsPage() {
             <strong>Important:</strong> This info goes into your dispute letters. Make sure it matches your ID and where you live right now.
           </p>
         </div>
+
+        <ConsumerIdentificationManager />
 
         <ProfileForm 
           initialData={profile}

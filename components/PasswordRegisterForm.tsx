@@ -15,6 +15,7 @@ import { Button } from "./Button";
 import { Spinner } from "./Spinner";
 import { Checkbox } from "./Checkbox";
 import { TermsDialog } from "./TermsDialog";
+import { FileDropzone } from "./FileDropzone";
 import { useAuth } from "../helpers/useAuth";
 import {
   schema as registerSchema,
@@ -26,9 +27,26 @@ import {
   getAnonymousReportForSignup,
 } from "../helpers/anonymousReportHandoff";
 import { toast } from "sonner";
+import { FileImage, X } from "lucide-react";
 import styles from "./PasswordRegisterForm.module.css";
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+const MAX_ID_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Failed to read identification image"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function inferImageMimeType(file: File): "image/jpeg" | "image/png" {
+  if (file.type === "image/png" || file.name.toLowerCase().endsWith(".png")) return "image/png";
+  return "image/jpeg";
+}
 
 interface PasswordRegisterFormProps {
   className?: string;
@@ -42,6 +60,8 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isImportingReport, setIsImportingReport] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [idFile, setIdFile] = useState<File | null>(null);
+  const [idFileError, setIdFileError] = useState<string | null>(null);
   const [termsDialogOpen, setTermsDialogOpen] = useState(false);
   const { onLogin } = useAuth();
   const navigate = useNavigate();
@@ -55,6 +75,9 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
       termsAccepted: undefined,
       dataConsentAccepted: undefined,
       legalNameSignature: "",
+      identificationFileName: "",
+      identificationFileType: "image/jpeg",
+      identificationFileDataBase64: "",
     },
   });
 
@@ -65,7 +88,43 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
     isLoading ||
     !termsChecked ||
     !dataConsentChecked ||
-    legalNameValue.trim().length < 2;
+    legalNameValue.trim().length < 2 ||
+    !form.values.identificationFileDataBase64;
+
+  const handleIdentificationSelected = async (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+
+    if (file.type && file.type !== "image/jpeg" && file.type !== "image/png") {
+      setIdFileError("Upload a PNG or JPEG image of your identification");
+      return;
+    }
+
+    try {
+      const dataUrl = await readAsDataUrl(file);
+      setIdFile(file);
+      setIdFileError(null);
+      form.setValues((prev) => ({
+        ...prev,
+        identificationFileName: file.name,
+        identificationFileType: inferImageMimeType(file),
+        identificationFileDataBase64: dataUrl,
+      }));
+    } catch (readError) {
+      setIdFileError(readError instanceof Error ? readError.message : "Failed to read identification image");
+    }
+  };
+
+  const clearIdentification = () => {
+    setIdFile(null);
+    setIdFileError(null);
+    form.setValues((prev) => ({
+      ...prev,
+      identificationFileName: "",
+      identificationFileType: "image/jpeg",
+      identificationFileDataBase64: "",
+    }));
+  };
 
   const handleSubmit = async (data: z.infer<typeof registerSchema>) => {
     setError(null);
@@ -199,6 +258,45 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
             <FormDescription>
               Use at least 8 characters. Include an uppercase letter, a lowercase letter, and a number.
             </FormDescription>
+            <FormMessage />
+          </FormItem>
+
+          <FormItem name="identificationFileDataBase64">
+            <FormLabel>Identification Image</FormLabel>
+            <FormDescription>
+              Upload a clear PNG or JPEG image of government-issued ID. It is saved to your account for future dispute packages.
+            </FormDescription>
+            {idFile ? (
+              <div className={styles.idFilePreview}>
+                <div className={styles.idFileIcon}>
+                  <FileImage size={20} />
+                </div>
+                <div className={styles.idFileInfo}>
+                  <span>{idFile.name}</span>
+                  <small>{Math.max(1, Math.round(idFile.size / 1024))} KB</small>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={clearIdentification}
+                  aria-label="Remove identification image"
+                >
+                  <X size={16} />
+                </Button>
+              </div>
+            ) : (
+              <FileDropzone
+                accept=".png,.jpg,.jpeg"
+                maxSize={MAX_ID_FILE_SIZE_BYTES}
+                onFilesSelected={handleIdentificationSelected}
+                disabled={isLoading}
+                title="Upload identification image"
+                subtitle="PNG or JPEG, max 8 MB"
+                className={styles.idDropzone}
+              />
+            )}
+            {idFileError && <p className={styles.fieldError}>{idFileError}</p>}
             <FormMessage />
           </FormItem>
 

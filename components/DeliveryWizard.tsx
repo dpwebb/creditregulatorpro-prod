@@ -7,6 +7,7 @@ import {
   Printer,
   CheckCircle2,
   ChevronLeft,
+  FileImage,
   PenTool,
   Mail,
   Tag,
@@ -278,7 +279,7 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
                   <div className={styles.optionContent}>
                     <h3 className={styles.optionTitle}>Let us mail it for you</h3>
                     <p className={styles.optionDesc}>
-                      We print your approved letter, add your approved signature, and mail it as a service.
+                      We print your approved letter, add your approved signature and saved ID image, and mail it as a service.
                     </p>
                   </div>
                 </button>
@@ -390,8 +391,8 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
             {step === "crp" && (
               <div className={styles.stepContent}>
                 <div className={styles.summaryBox}>
-                  <p className={styles.summaryText}>
-                    We will print and mail your approved letter to <strong>{displayName}</strong> as a mailing service.
+                    <p className={styles.summaryText}>
+                    We will print and mail your approved letter with your saved ID image to <strong>{displayName}</strong> as a mailing service.
                   </p>
                   <div className={styles.costBox}>
                     {isPricingLoading ? (
@@ -516,6 +517,10 @@ export const DeliveryWizard: React.FC<DeliveryWizardProps> = ({
                       <div className={styles.checklistItem}>
                         <PenTool size={20} className={styles.checklistIcon} />
                         <span>Sign it</span>
+                      </div>
+                      <div className={styles.checklistItem}>
+                        <FileImage size={20} className={styles.checklistIcon} />
+                        <span>Include the ID image page</span>
                       </div>
                       <div className={styles.checklistItem}>
                         <Mail size={20} className={styles.checklistIcon} />

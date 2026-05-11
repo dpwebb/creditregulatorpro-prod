@@ -10,6 +10,8 @@ import { Link } from "react-router-dom";
 import { useAcceptTerms } from "../helpers/useAcceptTerms";
 import { evaluateSubscriptionAccess } from "../helpers/subscriptionAccess";
 import { needsTermsAcceptance } from "../helpers/termsAcceptance";
+import { useConsumerIdentification } from "../helpers/useConsumerIdentification";
+import { ConsumerIdentificationManager } from "./ConsumerIdentificationManager";
 import styles from "./ProtectedRoute.module.css";
 
 const TermsAcceptanceBlock: React.FC = () => {
@@ -118,6 +120,37 @@ const TermsAcceptanceBlock: React.FC = () => {
   );
 };
 
+const IdentificationRequiredGate: React.FC<{
+  user: User;
+  children: React.ReactNode;
+}> = ({ user, children }) => {
+  const { identification, isLoading } = useConsumerIdentification();
+
+  if (user.role !== "user") {
+    return <>{children}</>;
+  }
+
+  if (isLoading) {
+    return <AuthLoadingState title="Checking identification" />;
+  }
+
+  if (!identification) {
+    return (
+      <div className={styles.lockedContainer}>
+        <div className={styles.identityRequirement}>
+          <h1 className={styles.lockedTitle}>Identification Required</h1>
+          <p className={styles.identityMessage}>
+            Upload your identification before continuing. It will be saved to your account and used only for dispute packages that require consumer identification.
+          </p>
+          <ConsumerIdentificationManager />
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 /**
  * Higher-order component factory to create protected route layouts.
  * Routes are named based on the User Persona they represent, while the internal 
@@ -189,8 +222,11 @@ const MakeProtectedRoute: (roles: Array<User["role"] | "support">) => React.FC<{
       return <TermsAcceptanceBlock />;
     }
 
-    // Render children if authenticated
-    return <>{children}</>;
+    return (
+      <IdentificationRequiredGate user={user}>
+        {children}
+      </IdentificationRequiredGate>
+    );
   };
 
 /**

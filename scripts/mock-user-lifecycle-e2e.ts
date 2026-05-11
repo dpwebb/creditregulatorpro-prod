@@ -18,6 +18,9 @@ type CliOptions = {
   allowUncleanRun: boolean;
 };
 
+const MOCK_IDENTIFICATION_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lEQP2wAAAABJRU5ErkJggg==";
+
 type CoverageStatus = "PASSED" | "FAILED" | "BLOCKED" | "SKIPPED";
 
 type CoverageEntry = {
@@ -1959,6 +1962,9 @@ async function main() {
           termsAccepted: true,
           dataConsentAccepted: true,
           legalNameSignature: options.legalNameSignature,
+          identificationFileName: "mock-identification.png",
+          identificationFileType: "image/png",
+          identificationFileDataBase64: MOCK_IDENTIFICATION_DATA_URL,
         },
       }),
     { coverageKey: "auth_register", critical: true }

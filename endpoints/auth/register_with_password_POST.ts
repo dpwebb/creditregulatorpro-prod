@@ -13,13 +13,22 @@ import { getSubscriptionDefaults } from "../../helpers/getSubscriptionDefaults";
 import { getAppBaseUrl } from "../../helpers/getAppBaseUrl";
 import { assertOriginAllowed } from "../../helpers/assertOriginAllowed";
 import { logger } from "../../helpers/logger";
+import { saveConsumerIdentificationDocument } from "../../helpers/consumerIdentification";
 
 export async function handle(request: Request) {
   try {
     await assertOriginAllowed(request);
 
     const json = await request.json();
-    const { email, password, displayName, legalNameSignature } = schema.parse(json);
+    const {
+      email,
+      password,
+      displayName,
+      legalNameSignature,
+      identificationFileName,
+      identificationFileType,
+      identificationFileDataBase64,
+    } = schema.parse(json);
 
     // Rate limit by email to prevent registration spam
     const rateLimitResult = await checkRateLimit(
@@ -161,6 +170,13 @@ export async function handle(request: Request) {
       }
 
       return user;
+    });
+
+    await saveConsumerIdentificationDocument({
+      userId: newUser.id,
+      fileName: identificationFileName,
+      fileType: identificationFileType,
+      fileDataBase64: identificationFileDataBase64,
     });
 
     // Create a new session

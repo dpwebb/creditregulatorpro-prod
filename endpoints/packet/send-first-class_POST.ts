@@ -12,6 +12,10 @@ import { verifyPaymentIntent, refundPaymentIntent } from "../../helpers/stripeSe
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { evaluateSubscriptionAccess, subscriptionAccessErrorResponse } from "../../helpers/subscriptionAccess";
+import {
+  attachConsumerIdentificationToLetterContent,
+  getConsumerIdentificationPdfAttachment,
+} from "../../helpers/consumerIdentification";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -213,6 +217,11 @@ export async function handle(request: Request) {
       return subscriptionAccessErrorResponse(subscriptionAccess);
     }
 
+    const identificationAttachment = await getConsumerIdentificationPdfAttachment(userId);
+    if (!identificationAttachment) {
+      return new Response(JSON.stringify({ error: "Please upload your identification in profile settings before sending." }), { status: 400 });
+    }
+
     // 3. Payment verification. Subscription access does not waive postal costs.
     if (!input.paymentIntentId) {
       return new Response(
@@ -350,9 +359,11 @@ export async function handle(request: Request) {
           postalOrZip: "Unknown",
           countryCode: "CA"
         };
-        return new Response(JSON.stringify({ error: "Could not determine recipient bureau address." }), { status: 400 });
+          return new Response(JSON.stringify({ error: "Could not determine recipient bureau address." }), { status: 400 });
       }
     }
+
+    attachConsumerIdentificationToLetterContent(letterContent, identificationAttachment);
 
     // 7. Generate PDF base64 with signature included
     const base64Pdf = await generatePDF(letterContent, userId.toString(), input.packetId.toString());
