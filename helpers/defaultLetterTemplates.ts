@@ -703,7 +703,7 @@ The disputed field is {{disputedField}}. The reported value is {{reportedValue}}
       `Disputed field/value: {{disputedField}} = {{reportedValue}}. Issue: {{specificIssue}}`,
     statutoryGrounds,
     requestedAction:
-      "Requested correction by disputed field: {{specificRemedy}}",
+      "Requested correction by disputed field: {{specificRemedy}} If unverifiable, delete, remove, or suppress the tradeline.",
     statutoryTimeframe: null,
     consumerStatementRight: null,
     certification: null,

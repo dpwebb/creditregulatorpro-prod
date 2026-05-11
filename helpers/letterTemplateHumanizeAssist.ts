@@ -125,6 +125,27 @@ function hasRemovalFallback(text: string): boolean {
   );
 }
 
+function hasSpecificRemedyPlaceholder(text: string): boolean {
+  return /\{\{\s*(specificRemedy|requiredRemedy)\s*\}\}/.test(text);
+}
+
+function hasRequestedCorrectionCue(text: string): boolean {
+  const normalized = text.toLowerCase();
+  return /\b(correct|correction|remedy|repair|update|delete|remove|suppress|request|requested)\b/.test(
+    normalized
+  );
+}
+
+function ensureSpecificRemedyRemovalFallback(text: string): string {
+  if (!hasSpecificRemedyPlaceholder(text) || hasRemovalFallback(text)) {
+    return text;
+  }
+
+  return compactText(
+    `${text} If unverifiable, delete, remove, or suppress the tradeline.`
+  );
+}
+
 function assertRequiredRemedyConcepts(
   field: TemplateTextField,
   original: string | null,
@@ -134,7 +155,7 @@ function assertRequiredRemedyConcepts(
 
   if (
     original.toLowerCase().includes("requested correction by disputed field") &&
-    !rewritten.toLowerCase().includes("requested correction by disputed field")
+    (!hasSpecificRemedyPlaceholder(rewritten) || !hasRequestedCorrectionCue(rewritten))
   ) {
     throw new Error("ai_letter_template_missing_disputed_field_correction");
   }
@@ -167,6 +188,7 @@ function naturalizeTemplateText(field: TemplateTextField, text: string): string 
       .replace(/^I request that you:\s*/i, "Please:")
       .replace(/\bconduct a reasonable investigation\b/gi, "review the disputed information carefully")
       .replace(/\bcorrect or delete\b/gi, "correct, delete, or suppress");
+    output = ensureSpecificRemedyRemovalFallback(output);
   }
 
   return compactText(output);

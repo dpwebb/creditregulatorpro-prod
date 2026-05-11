@@ -49,6 +49,8 @@ describe("default letter templates", () => {
         expect(template.statutoryGrounds).toContain("Field-level application");
         expect(template.requestedAction).toContain("Requested correction by disputed field");
         expect(template.requestedAction).toContain("{{specificRemedy}}");
+        expect(template.requestedAction).toContain("If unverifiable");
+        expect(template.requestedAction).toContain("delete, remove, or suppress the tradeline");
         expect(template.requestedAction.length).toBeLessThan(120);
         expect(template.requestedAction).not.toContain("this account may contain");
         expect(template.introduction).not.toContain("Evidence to compare");
@@ -93,7 +95,7 @@ describe("default letter templates", () => {
       "Disputed field/value: {{disputedField}} = {{reportedValue}}. Issue: {{specificIssue}}"
     );
     expect(byKey.get("identity_theft_violation")?.requestedAction).toBe(
-      "Requested correction by disputed field: {{specificRemedy}}"
+      "Requested correction by disputed field: {{specificRemedy}} If unverifiable, delete, remove, or suppress the tradeline."
     );
   });
 
