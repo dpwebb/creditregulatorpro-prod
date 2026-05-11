@@ -166,6 +166,19 @@ function getApiErrorMessage(responseText: string, status: number): string {
   return `openai_http_${status}`;
 }
 
+function getOpenAiModelCandidates(primaryModel: string): string[] {
+  const fallbackModels = (process.env.AI_ASSIST_OPENAI_FALLBACK_MODELS || "gpt-4o-mini")
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([primaryModel, ...fallbackModels]));
+}
+
+function shouldRetryWithFallbackModel(errorCode: string | null | undefined): boolean {
+  return (errorCode || "").toLowerCase() === "model_not_found";
+}
+
 /*
  * Parse model JSON without letting provider formatting quirks leak raw
  * JavaScript parser messages into the admin UI.
@@ -204,7 +217,7 @@ export async function runOpenAiJsonAssist<T>(
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.AI_ASSIST_OPENAI_MODEL || "gpt-5-mini";
+  const primaryModel = process.env.AI_ASSIST_OPENAI_MODEL || "gpt-5-mini";
 
   if (!apiKey) {
     await recordAiAssistRun({
@@ -213,7 +226,7 @@ export async function runOpenAiJsonAssist<T>(
       subjectId: options.subjectId ?? null,
       userId: options.userId ?? null,
       provider: "openai",
-      model,
+      model: primaryModel,
       status: "unavailable",
       input: options.inputForHash,
       errorCode: "missing_openai_api_key",
@@ -221,36 +234,84 @@ export async function runOpenAiJsonAssist<T>(
     return {
       status: "unavailable",
       provider: "openai",
-      model,
+      model: primaryModel,
       output: null,
       errorCode: "missing_openai_api_key",
     };
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 10_000);
+  const modelCandidates = getOpenAiModelCandidates(primaryModel);
+  let lastFailedResult: AiAssistResult<T> | null = null;
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+  for (const [index, model] of modelCandidates.entries()) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 10_000);
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: options.systemPrompt },
+            { role: "user", content: options.userPrompt },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        const errorCode = getApiErrorMessage(responseText, response.status);
+        await recordAiAssistRun({
+          featureKey: options.featureKey,
+          subjectType: options.subjectType,
+          subjectId: options.subjectId ?? null,
+          userId: options.userId ?? null,
+          provider: "openai",
+          model,
+          status: "failed",
+          input: options.inputForHash,
+          errorCode,
+        });
+        lastFailedResult = { status: "failed", provider: "openai", model, output: null, errorCode };
+        if (
+          shouldRetryWithFallbackModel(errorCode) &&
+          index < modelCandidates.length - 1
+        ) {
+          continue;
+        }
+        return lastFailedResult;
+      }
+
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content;
+      if (typeof content !== "string" || !content.trim()) {
+        throw new Error("openai_empty_content");
+      }
+
+      const parsed = options.parseOutput(parseAssistPayload(content));
+
+      await recordAiAssistRun({
+        featureKey: options.featureKey,
+        subjectType: options.subjectType,
+        subjectId: options.subjectId ?? null,
+        userId: options.userId ?? null,
+        provider: "openai",
         model,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: options.systemPrompt },
-          { role: "user", content: options.userPrompt },
-        ],
-      }),
-    });
+        status: "ok",
+        input: options.inputForHash,
+        outputJson: parsed,
+      });
 
-    if (!response.ok) {
-      const responseText = await response.text();
-      const errorCode = getApiErrorMessage(responseText, response.status);
+      return { status: "ok", provider: "openai", model, output: parsed };
+    } catch (error) {
+      const errorCode = error instanceof Error ? error.message : "openai_assist_failed";
       await recordAiAssistRun({
         featureKey: options.featureKey,
         subjectType: options.subjectType,
@@ -263,44 +324,16 @@ export async function runOpenAiJsonAssist<T>(
         errorCode,
       });
       return { status: "failed", provider: "openai", model, output: null, errorCode };
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
-    if (typeof content !== "string" || !content.trim()) {
-      throw new Error("openai_empty_content");
-    }
-
-    const parsed = options.parseOutput(parseAssistPayload(content));
-
-    await recordAiAssistRun({
-      featureKey: options.featureKey,
-      subjectType: options.subjectType,
-      subjectId: options.subjectId ?? null,
-      userId: options.userId ?? null,
-      provider: "openai",
-      model,
-      status: "ok",
-      input: options.inputForHash,
-      outputJson: parsed,
-    });
-
-    return { status: "ok", provider: "openai", model, output: parsed };
-  } catch (error) {
-    const errorCode = error instanceof Error ? error.message : "openai_assist_failed";
-    await recordAiAssistRun({
-      featureKey: options.featureKey,
-      subjectType: options.subjectType,
-      subjectId: options.subjectId ?? null,
-      userId: options.userId ?? null,
-      provider: "openai",
-      model,
-      status: "failed",
-      input: options.inputForHash,
-      errorCode,
-    });
-    return { status: "failed", provider: "openai", model, output: null, errorCode };
-  } finally {
-    clearTimeout(timeout);
   }
+
+  return lastFailedResult ?? {
+    status: "failed",
+    provider: "openai",
+    model: primaryModel,
+    output: null,
+    errorCode: "openai_assist_failed",
+  };
 }
