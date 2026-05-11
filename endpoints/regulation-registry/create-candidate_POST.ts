@@ -1,5 +1,6 @@
 import { schema, OutputType } from "./create-candidate_POST.schema";
 import { createRegulationCandidate } from "../../helpers/regulationRegistryService";
+import type { RegulationDraft } from "../../helpers/regulationUpdateEngine";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
@@ -16,7 +17,26 @@ export async function handle(request: Request) {
     }
 
     const input = schema.parse(JSON.parse(await request.text()));
-    const result = await createRegulationCandidate(input, { allowUnchanged: true });
+    const draft: RegulationDraft = {
+      regulationId: input.regulationId,
+      jurisdiction: input.jurisdiction,
+      authoritySource: input.authoritySource,
+      regulationTitle: input.regulationTitle,
+      sectionNumber: input.sectionNumber,
+      subsection: input.subsection ?? null,
+      shortTitle: input.shortTitle,
+      fullText: input.fullText,
+      plainLanguageSummary: input.plainLanguageSummary,
+      officialSourceUrl: input.officialSourceUrl,
+      publicationDate: input.publicationDate ?? null,
+      effectiveDate: input.effectiveDate ?? null,
+      repealSupersededStatus: input.repealSupersededStatus ?? "current",
+      regulationCategory: input.regulationCategory,
+      tags: input.tags ?? [],
+      citationFormat: input.citationFormat,
+      sourceDocumentUrl: input.sourceDocumentUrl ?? null,
+    };
+    const result = await createRegulationCandidate(draft, { allowUnchanged: true });
 
     await logAudit({
       action: "CREATE",
@@ -26,7 +46,7 @@ export async function handle(request: Request) {
       details: {
         component: "regulation_registry",
         mode: "candidate_created",
-        regulationId: input.regulationId,
+        regulationId: draft.regulationId,
         skippedReason: result.skippedReason,
       },
       status: "SUCCESS",

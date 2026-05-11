@@ -1,140 +1,116 @@
 .container {
   padding: var(--spacing-6);
-  max-width: 1600px;
+  max-width: 1500px;
   margin: 0 auto;
   min-height: 100vh;
-  min-height: 100dvh;
   width: 100%;
-  min-width: 0;
-  overflow-x: clip;
 }
 
 .headerActions {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--spacing-3);
-  width: 100%;
+  flex-wrap: wrap;
 }
 
-.headerTitle {
+.safetyBanner {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
-  color: var(--error); /* Emphasize critical nature */
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-5);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--success) 9%, var(--card));
+  color: var(--foreground);
+  font-size: 0.9rem;
 }
 
-.headerIcon {
-  color: var(--error);
-}
-
-/* Stats Cards */
 .statsContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--spacing-4);
   margin-bottom: var(--spacing-6);
 }
 
 .statCard {
-  background-color: var(--card);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--spacing-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  backdrop-filter: blur(var(--backdrop-blur));
-}
-
-.statWarning {
-  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
-  background: linear-gradient(to bottom right, var(--card), color-mix(in srgb, var(--warning) 10%, transparent));
-}
-
-.statUrgent {
-  border-color: color-mix(in srgb, var(--error) 30%, transparent);
-  background: linear-gradient(to bottom right, var(--card), color-mix(in srgb, var(--error) 10%, transparent));
 }
 
 .statLabel {
-  font-size: 0.875rem;
   color: var(--muted-foreground);
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .statValue {
-  font-size: 2rem;
-  font-weight: 700;
   color: var(--foreground);
   font-family: var(--font-family-monospace);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: var(--spacing-2);
 }
 
 .statSkeleton {
-  height: 2.5rem;
   width: 4rem;
+  height: 2.25rem;
 }
 
-/* Toolbar & Filters */
+.tabsContainer {
+  min-width: 0;
+}
+
 .toolbar {
-  background-color: var(--card);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--spacing-4);
-  margin-bottom: var(--spacing-6);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--spacing-4);
-  max-width: 100%;
-  overflow: clip;
+  margin-bottom: var(--spacing-4);
 }
 
 .filters {
   display: flex;
   align-items: center;
-  gap: var(--spacing-4);
   flex-wrap: wrap;
-  min-width: 0;
+  gap: var(--spacing-3);
 }
 
 .filterGroup {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  background-color: rgba(0, 0, 0, 0.2);
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--radius);
+  min-width: min(100%, 14rem);
   border: 1px solid var(--border);
-  min-width: min(100%, 12rem);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--background);
 }
 
 .filterIcon {
   color: var(--muted-foreground);
+  flex: 0 0 auto;
 }
 
-.select {
-  background: transparent;
-  border: none;
-  color: var(--foreground);
-  font-family: var(--font-family-base);
-  font-size: 0.875rem;
-  outline: none;
-  cursor: pointer;
-  min-width: 120px;
-
-  option {
-    background-color: var(--background);
-    color: var(--foreground);
-  }
-}
-
-/* Card Layout Styles */
-.content {
-  min-height: 400px;
+.select,
+.inputInline {
   width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
 }
 
 .cardList {
@@ -144,33 +120,15 @@
 }
 
 .updateCard {
-  background-color: var(--card);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--spacing-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 0;
-
-  &:hover {
-    background-color: color-mix(in srgb, var(--card), var(--muted) 50%);
-    border-color: color-mix(in srgb, var(--border), var(--primary) 20%);
-  }
 }
 
-.urgentCard {
-  background-color: color-mix(in srgb, var(--error) 5%, var(--card));
-  border-left: 3px solid var(--error);
-  
-  &:hover {
-    background-color: color-mix(in srgb, var(--error) 8%, var(--card));
-  }
-}
-
-.cardTopRow {
+.cardTopRow,
+.cardBottomRow,
+.metaLine {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -178,249 +136,170 @@
 }
 
 .cardBottomRow {
-  display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--spacing-4);
+  margin-top: var(--spacing-3);
 }
 
 .cardTitleSection {
-  flex: 1;
-  min-width: min(100%, 250px);
-}
-
-.cardMetaSection {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-4);
-  flex-wrap: wrap;
-}
-
-.statusCell {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.autoEscalatedIconWrapper {
-  display: flex;
-  align-items: center;
-}
-
-.autoEscalatedIcon {
-  color: var(--accent);
-}
-
-.dateText {
-  font-family: var(--font-family-monospace);
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
-  margin-left: auto;
-}
-
-.jurisdictionText {
-  font-weight: 500;
-  color: var(--foreground);
-  font-size: 0.875rem;
-}
-
-.typeBadge {
-  font-size: 0.75rem;
-  white-space: nowrap;
+  flex: 1 1 32rem;
+  min-width: 0;
 }
 
 .title {
-  font-weight: 600;
   color: var(--foreground);
-  margin-bottom: var(--spacing-1);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.description {
+  color: var(--muted-foreground);
+  line-height: 1.55;
+  margin: var(--spacing-2) 0 0;
+}
+
+.reference,
+.dateText,
+.jurisdictionText,
+.metaLine {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
 }
 
 .reference {
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
   font-family: var(--font-family-monospace);
-}
-
-.mutedText {
-  color: var(--muted-foreground);
-  opacity: 0.5;
-}
-
-.sourceCell {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  max-width: 200px;
-}
-
-.sourceText {
-  font-size: 0.875rem;
-  color: var(--foreground);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.linkIcon {
-  color: var(--primary);
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  
-  &:hover {
-    opacity: 1;
-  }
 }
 
 .actions {
   display: flex;
   gap: var(--spacing-2);
-  justify-content: flex-end;
-}
-
-.actionButton {
-  background: transparent;
-  border: none;
-  color: var(--muted-foreground);
-  padding: var(--spacing-2);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background-color: var(--muted);
-    color: var(--foreground);
-  }
-}
-
-.deleteButton:hover {
-  background-color: color-mix(in srgb, var(--error), transparent 90%);
-  color: var(--error);
-}
-
-.tabsContainer {
-  margin-top: var(--spacing-6);
-  min-width: 0;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.loading {
-  padding: var(--spacing-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
-
-.skeletonRow {
-  height: 48px;
-}
-
-.emptyState,
-.errorState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-12);
-  color: var(--muted-foreground);
-  gap: var(--spacing-4);
-  background-color: var(--card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-}
-
-.errorState {
-  color: var(--error);
-}
-
-/* Dialog Styles */
-.dialogOverlay {
-  background-color: rgba(0, 0, 0, 0.5);
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-overlay);
-  backdrop-filter: blur(4px);
-}
-
-.dialogContent {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(450px, calc(100vw - 2rem));
-  max-width: calc(100vw - 2rem);
-  max-height: calc(100dvh - 2rem);
-  overflow: auto;
-  padding: var(--spacing-6);
-  z-index: var(--z-overlay);
-  color: var(--foreground);
-}
-
-.dialogTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: var(--spacing-2);
-}
-
-.dialogDescription {
-  color: var(--muted-foreground);
-  margin-bottom: var(--spacing-6);
-  line-height: 1.5;
-}
-
-.dialogFooter {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-3);
   flex-wrap: wrap;
 }
 
-.cancelButton {
-  background: transparent;
+.actionButton {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
   color: var(--foreground);
-  padding: var(--spacing-2) var(--spacing-4);
-  border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: var(--muted);
-  }
 }
 
-.confirmDeleteButton {
-  background-color: var(--error);
-  border: none;
-  color: white;
-  padding: var(--spacing-2) var(--spacing-4);
+.actionButton:hover {
+  border-color: var(--primary);
+}
+
+.compareGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+}
+
+.compareGrid > div {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-3);
+  background: var(--background);
+  min-width: 0;
+}
+
+.compareGrid strong {
+  display: block;
+  margin-bottom: var(--spacing-2);
+}
+
+.compareGrid p {
+  color: var(--muted-foreground);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.warningText {
+  color: var(--warning);
+  margin: var(--spacing-3) 0 0;
+}
+
+.formPanel {
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
+}
 
-  &:hover {
-    opacity: 0.9;
-  }
+.formHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--foreground);
+  font-weight: 700;
+  margin-bottom: var(--spacing-4);
+}
 
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: var(--spacing-3);
+}
+
+.input,
+.textarea,
+.textareaInline,
+.textareaLarge {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  padding: var(--spacing-3);
+  min-width: 0;
+}
+
+.textarea {
+  min-height: 6rem;
+  margin-top: var(--spacing-3);
+}
+
+.textareaInline {
+  min-height: 4.5rem;
+  margin-top: var(--spacing-3);
+}
+
+.textareaLarge {
+  min-height: 12rem;
+  margin-top: var(--spacing-3);
+  font-family: var(--font-family-monospace);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-4);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.skeletonRow {
+  height: 4.5rem;
+}
+
+.emptyState {
+  padding: var(--spacing-8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted-foreground);
+  background: var(--card);
+  text-align: center;
 }
 
 @media (max-width: 768px) {
@@ -428,35 +307,15 @@
     padding: var(--spacing-4);
   }
 
-  .statsContainer {
-    grid-template-columns: 1fr;
-  }
-
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .filters {
-    flex-direction: column;
     align-items: stretch;
-    width: 100%;
   }
 
   .filterGroup {
     width: 100%;
   }
 
-  .cardTitleSection {
-    min-width: 0;
-  }
-
-  .dialogFooter > * {
-    flex: 1 1 10rem;
-  }
-
-  .select {
-    width: 100%;
-    min-width: auto;
+  .cardBottomRow {
+    flex-direction: column;
   }
 }

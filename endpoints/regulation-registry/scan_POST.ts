@@ -1,5 +1,6 @@
 import { schema, OutputType } from "./scan_POST.schema";
 import { runRegulationUpdateScan } from "../../helpers/regulationRegistryService";
+import type { RegulationDraft } from "../../helpers/regulationUpdateEngine";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
@@ -16,10 +17,30 @@ export async function handle(request: Request) {
     }
 
     const input = schema.parse(JSON.parse((await request.text()) || "{}"));
+    const sourceDocuments: RegulationDraft[] = input.sourceDocuments.map((document) => ({
+      regulationId: document.regulationId,
+      jurisdiction: document.jurisdiction,
+      authoritySource: document.authoritySource,
+      regulationTitle: document.regulationTitle,
+      sectionNumber: document.sectionNumber,
+      subsection: document.subsection ?? null,
+      shortTitle: document.shortTitle,
+      fullText: document.fullText,
+      plainLanguageSummary: document.plainLanguageSummary,
+      officialSourceUrl: document.officialSourceUrl,
+      publicationDate: document.publicationDate ?? null,
+      effectiveDate: document.effectiveDate ?? null,
+      repealSupersededStatus: document.repealSupersededStatus ?? "current",
+      regulationCategory: document.regulationCategory,
+      tags: document.tags ?? [],
+      citationFormat: document.citationFormat,
+      sourceDocumentUrl: document.sourceDocumentUrl ?? null,
+    }));
+
     const result = await runRegulationUpdateScan({
       mode: input.mode,
       triggeredByUserId: user.id,
-      sourceDocuments: input.sourceDocuments,
+      sourceDocuments,
       fetchConfiguredSources: input.fetchConfiguredSources,
     });
 

@@ -17,7 +17,15 @@ export async function handle(request: Request) {
 
     const input = schema.parse(JSON.parse(await request.text()));
     const mapping = await upsertRegulationViolationMapping({
-      ...input,
+      id: input.id ?? null,
+      violationCategory: input.violationCategory,
+      regulationId: input.regulationId,
+      regulationRecordId: input.regulationRecordId ?? null,
+      sectionNumber: input.sectionNumber,
+      subsection: input.subsection ?? null,
+      jurisdiction: input.jurisdiction,
+      explanationTemplate: input.explanationTemplate,
+      active: input.active ?? true,
       adminUserId: user.id,
     });
 

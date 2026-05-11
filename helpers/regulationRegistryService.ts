@@ -168,7 +168,7 @@ export async function createRegulationCandidate(
       proposedVersion,
       normalizedTextHash,
       confidenceScore: confidence.confidenceScore,
-      diffReport,
+      diffReport: diffReport as any,
       confidenceReasons: confidence.reasons,
       ambiguityReasons: confidence.ambiguityReasons,
       duplicateCandidateIds: duplicateIds,
