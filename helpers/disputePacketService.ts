@@ -973,7 +973,7 @@ export async function createDisputePacketRecord(
         status: "generated",
         processingStatus: "completed",
         content: JSON.stringify(preview.packet),
-        terminalLabel: preview.packet.title,
+        terminalLabel: null,
         letterDate: now,
         recipientName: preview.recipientRecord.name,
         recipientAddressLine1: preview.recipientRecord.addressLine1,
