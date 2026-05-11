@@ -5,17 +5,21 @@ import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpoi
 import { validateOrigin } from "../../helpers/domainGuard";
 import { createHash } from "crypto";
 import { calculateDeadline, createDeadlineEvent } from "../../helpers/deadlineCalculator";
-import { generatePDF, LetterContent } from "../../helpers/pdfGenerator";
 import { sendRegisteredMail } from "../../helpers/postgridClient";
 import { getBureauRegisteredMailAddress } from "../../helpers/bureauDisputeAddresses";
 import { verifyPaymentIntent, refundPaymentIntent } from "../../helpers/stripeServer";
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { evaluateSubscriptionAccess, subscriptionAccessErrorResponse } from "../../helpers/subscriptionAccess";
+import { getConsumerIdentificationPdfAttachment } from "../../helpers/consumerIdentification";
 import {
-  attachConsumerIdentificationToLetterContent,
-  getConsumerIdentificationPdfAttachment,
-} from "../../helpers/consumerIdentification";
+  applyRecipientOverrideToPacketContent,
+  applySignatureToPacketContent,
+  attachIdentificationToPacketContent,
+  generatePacketContentPdfBase64,
+  parseStoredPacketContent,
+} from "../../helpers/packetPdfContent";
+import { isSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -192,7 +196,7 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Unauthorized access to packet" }), { status: 403 });
     }
 
-    const allowedStatuses = ["GENERATED", "PENDING", "Draft", "Ready to Mail"];
+    const allowedStatuses = ["GENERATED", "PENDING", "Draft", "Ready to Mail", "generated", "downloaded", "ready to mail"];
     if (packet.status && !allowedStatuses.includes(packet.status)) {
       return new Response(JSON.stringify({ error: "Packet has already been sent or is processing" }), { status: 400 });
     }
@@ -259,33 +263,22 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Packet content is empty." }), { status: 400 });
     }
 
-    let letterContent: LetterContent;
+    let packetContent;
     try {
-      letterContent = JSON.parse(packet.content);
+      packetContent = parseStoredPacketContent(packet.content);
     } catch {
       return new Response(JSON.stringify({ error: "Packet content is not structured properly." }), { status: 400 });
     }
 
-    // Add signature image dynamically
-    letterContent.signatureImage = signature.signatureData;
-
-    // Override letterContent recipient fields if packet has custom recipient address
-    if (
-      packet.recipientName &&
-      packet.recipientAddressLine1 &&
-      packet.recipientCity &&
-      packet.recipientProvince &&
-      packet.recipientPostalCode
-    ) {
-      letterContent.recipientName = packet.recipientName;
-      const recipientAddressLines: string[] = [packet.recipientAddressLine1];
-      if (packet.recipientAddressLine2) {
-        recipientAddressLines.push(packet.recipientAddressLine2);
-      }
-      recipientAddressLines.push(`${packet.recipientCity}, ${packet.recipientProvince} ${packet.recipientPostalCode}`);
-      letterContent.recipientAddress = recipientAddressLines;
-      console.log(`Overriding letterContent recipient address from packet fields (packetId=${input.packetId})`);
-    }
+    applySignatureToPacketContent(packetContent, signature.signatureData);
+    applyRecipientOverrideToPacketContent(packetContent, {
+      name: packet.recipientName,
+      addressLine1: packet.recipientAddressLine1,
+      addressLine2: packet.recipientAddressLine2,
+      city: packet.recipientCity,
+      province: packet.recipientProvince,
+      postalCode: packet.recipientPostalCode,
+    });
 
     // 5. Fetch user account for sender address
     const userAccount = await db.selectFrom("userAccount")
@@ -350,23 +343,29 @@ export async function handle(request: Request) {
     }
 
     if (!bureauAddress) {
-      if (letterContent.recipientName && letterContent.recipientAddress && letterContent.recipientAddress.length >= 2) {
+      if (
+        !isSimpleDisputePacketContent(packetContent) &&
+        packetContent.recipientName &&
+        packetContent.recipientAddress &&
+        packetContent.recipientAddress.length >= 2
+      ) {
         bureauAddress = {
-          name: letterContent.recipientName,
-          addressLine1: letterContent.recipientAddress[0],
+          name: packetContent.recipientName,
+          addressLine1: packetContent.recipientAddress[0],
           city: "Unknown",
           provinceOrState: "Unknown",
           postalOrZip: "Unknown",
           countryCode: "CA"
         };
-          return new Response(JSON.stringify({ error: "Could not determine recipient bureau address." }), { status: 400 });
+      } else {
+        return new Response(JSON.stringify({ error: "Could not determine recipient address." }), { status: 400 });
       }
     }
 
-    attachConsumerIdentificationToLetterContent(letterContent, identificationAttachment);
+    attachIdentificationToPacketContent(packetContent, identificationAttachment);
 
     // 7. Generate PDF base64 with signature included
-    const base64Pdf = await generatePDF(letterContent, userId.toString(), input.packetId.toString());
+    const base64Pdf = await generatePacketContentPdfBase64(packetContent, userId.toString(), input.packetId.toString());
     const dataUri = `data:application/pdf;base64,${base64Pdf}`;
 
     // 8. Call PostGrid for First Class Mail (lettermail)
@@ -456,7 +455,7 @@ export async function handle(request: Request) {
           trackingNumber: pgResponse.trackingNumber || null,
           postgridLetterId: pgResponse.id,
           sentDate: now,
-          status: "SENT",
+          status: "sent",
         })
         .where("id", "=", input.packetId)
         .execute();

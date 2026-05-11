@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { buildPacketLifecycleSummary } from "../../helpers/packetLifecycle";
+import { maskAccountNumber } from "../../helpers/disputePacketTemplate";
 
 export async function handle(request: Request) {
   try {
@@ -96,6 +97,9 @@ export async function handle(request: Request) {
       };
       return {
         ...rest,
+        tradelineAccountNumber: rest.tradelineAccountNumber
+          ? maskAccountNumber(rest.tradelineAccountNumber)
+          : null,
         tradelineCreditorName: tradelineCreditorNameFromTable ?? tradelineOriginalCreditorName ?? null,
         bureauName: (p as typeof p & { bureauName: string | null }).bureauName ?? null,
         recipientName: (p as typeof p & { recipientName: string | null }).recipientName ?? null,

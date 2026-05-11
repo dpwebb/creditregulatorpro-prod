@@ -1,12 +1,24 @@
-const PACKET_GENERATION_RESET_MESSAGE =
-  "Packet generation has been reset and is not available in this build.";
+import { schema, type OutputType } from "./recommend_GET.schema";
+import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { getDisputePacketCandidates } from "../../helpers/disputePacketService";
 
-export async function handle(_request: Request) {
-  return new Response(
-    JSON.stringify({ error: PACKET_GENERATION_RESET_MESSAGE }),
-    {
-      status: 410,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+export async function handle(request: Request) {
+  try {
+    const { user } = await getServerUserSession(request);
+    const url = new URL(request.url);
+    const input = schema.parse({
+      packetType: url.searchParams.get("packetType") ?? undefined,
+      limit: url.searchParams.get("limit") ?? undefined,
+    });
+
+    const recommendations = await getDisputePacketCandidates(user, input);
+
+    return new Response(
+      JSON.stringify({ recommendations } satisfies OutputType),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  } catch (error) {
+    return handleEndpointError(error);
+  }
 }

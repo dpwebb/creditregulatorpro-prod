@@ -5,11 +5,43 @@ import { validateOrigin } from "../../helpers/domainGuard";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { readStoredPdf } from "../../helpers/documentStorage";
 import { buildPacketPdfFilename } from "../../helpers/packetFileNaming";
-import { generatePDF, LetterContent } from "../../helpers/pdfGenerator";
 import {
   attachConsumerIdentificationToLetterContent,
   getConsumerIdentificationPdfAttachment,
 } from "../../helpers/consumerIdentification";
+import {
+  attachIdentificationToPacketContent,
+  generatePacketContentPdfBase64,
+  parseStoredPacketContent,
+} from "../../helpers/packetPdfContent";
+import { isSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+
+async function recordPacketDownload(packetId: number, actorUserId: number, currentStatus: string | null) {
+  const now = new Date();
+  await db.transaction().execute(async (trx) => {
+    if (["generated", "draft", "GENERATED", "Draft"].includes(currentStatus ?? "")) {
+      await trx
+        .updateTable("packet")
+        .set({ status: "downloaded" })
+        .where("id", "=", packetId)
+        .execute();
+    }
+
+    await trx
+      .insertInto("auditLog")
+      .values({
+        actionType: "DOWNLOAD",
+        entityType: "PACKET",
+        entityId: packetId,
+        userId: actorUserId,
+        details: { statusBeforeDownload: currentStatus } as any,
+        status: "SUCCESS",
+        timestamp: now,
+        region: "CA",
+      })
+      .execute();
+  });
+}
 
 export async function handle(request: Request) {
   try {
@@ -35,6 +67,7 @@ export async function handle(request: Request) {
       .select([
         "packet.userId",
         "packet.pdfStorageUrl",
+        "packet.status",
         "packet.content",
         "packet.letterDate",
         "packet.createdAt",
@@ -70,21 +103,25 @@ export async function handle(request: Request) {
 
     if (packet.content) {
       try {
-        const letterContent = JSON.parse(packet.content) as LetterContent;
+        const packetContent = parseStoredPacketContent(packet.content);
         const identificationAttachment = packet.userId
           ? await getConsumerIdentificationPdfAttachment(packet.userId)
           : null;
 
-        if (!identificationAttachment && packet.userId === user.id) {
+        if (!identificationAttachment && packet.userId === user.id && !isSimpleDisputePacketContent(packetContent)) {
           return new Response(JSON.stringify({ error: "Please upload your identification in profile settings before downloading this packet." }), { status: 400, headers: { "Content-Type": "application/json" } });
         }
 
         if (identificationAttachment) {
-          attachConsumerIdentificationToLetterContent(letterContent, identificationAttachment);
+          if (isSimpleDisputePacketContent(packetContent)) {
+            attachIdentificationToPacketContent(packetContent, identificationAttachment);
+          } else {
+            attachConsumerIdentificationToLetterContent(packetContent, identificationAttachment);
+          }
         }
 
-        const base64Pdf = await generatePDF(
-          letterContent,
+        const base64Pdf = await generatePacketContentPdfBase64(
+          packetContent,
           String(packet.userId ?? user.id),
           String(input.packetId)
         );
@@ -93,6 +130,8 @@ export async function handle(request: Request) {
           bytes.byteOffset,
           bytes.byteOffset + bytes.byteLength
         ) as ArrayBuffer;
+
+        await recordPacketDownload(input.packetId, user.id, packet.status ?? null);
 
         return new Response(pdfBody, {
           headers: {
@@ -116,6 +155,8 @@ export async function handle(request: Request) {
       bytes.byteOffset,
       bytes.byteOffset + bytes.byteLength
     ) as ArrayBuffer;
+
+    await recordPacketDownload(input.packetId, user.id, packet.status ?? null);
 
     return new Response(pdfBody, {
       headers: {

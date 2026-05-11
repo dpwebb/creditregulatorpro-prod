@@ -93,7 +93,7 @@ export async function handle(request: Request) {
           sentDate: input.sentDate,
           consumerCertification: input.consumerCertification,
           letterDate: letterDate,
-          status: "SENT",
+          status: "sent",
         })
         .where("id", "=", input.packetId)
         .execute();

@@ -1,15 +1,23 @@
 import React, { useState, Suspense } from "react";
 import { Helmet } from "react-helmet";
-import { usePacketList, useDeletePacket } from "../helpers/packetQueries";
+import {
+  useBuildPacketPreview,
+  useCreatePacket,
+  usePacketList,
+  useDeletePacket,
+  usePacketRecommendations,
+} from "../helpers/packetQueries";
 import { useUpdatePacketStatus } from "../helpers/useUpdatePacketStatus";
 import { Button } from "../components/Button";
+import { Checkbox } from "../components/Checkbox";
+import { Input } from "../components/Input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from "../components/Dialog";
 import { Skeleton } from "../components/Skeleton";
 import { Badge } from "../components/Badge";
 import { PageHeader } from "../components/PageHeader";
 
 import { PacketComplianceBadge } from "../components/PacketComplianceBadge";
-import { Trash2, ScrollText, Calendar, AlertCircle, FileStack, Eye, Mail, FileCheck } from "lucide-react";
+import { Trash2, ScrollText, Calendar, AlertCircle, FileStack, Eye, Mail, FileCheck, Plus } from "lucide-react";
 
 const PacketViewer = React.lazy(() => import("../components/PacketViewer").then(m => ({ default: m.PacketViewer })));
 import { DeliveryWizard } from "../components/DeliveryWizard";
@@ -22,6 +30,9 @@ import { generateReportPDF } from "../helpers/reportGenerator";
 import { formatDateTime, formatRelativeTime, formatDate } from "../helpers/formatters";
 import { useAuth } from "../helpers/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
+import type { DisputePacketType } from "../helpers/disputePacketTemplate";
+import type { DisputePacketCandidate } from "../helpers/disputePacketService";
+import type { SimpleDisputePacketContent } from "../helpers/disputePacketTemplate";
 import styles from "./packets.module.css";
 
 export default function PacketsPage() {
@@ -35,6 +46,7 @@ export default function PacketsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deliveryWizardPacketId, setDeliveryWizardPacketId] = useState<number | null>(null);
   const [deliveryWizardBureauName, setDeliveryWizardBureauName] = useState<string>("the credit bureau");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
   const { showSuccess, showError } = useToast();
   const { isAdmin } = useAuth();
@@ -212,6 +224,10 @@ export default function PacketsPage() {
         }
       >
         <div className="flex gap-2">
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus size={16} />
+            Create Packet
+          </Button>
           {isAdmin && (
             <ExportDropdown 
               onExportCSV={handleCSVExport} 
@@ -461,6 +477,11 @@ export default function PacketsPage() {
           }}
         />
       </Suspense>
+      <CreatePacketDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onCreated={(packetId) => setViewingPacketId(packetId)}
+      />
       {deliveryWizardPacketId !== null && (() => {
         const activePacket = data?.packets.find(p => p.id === deliveryWizardPacketId);
         return (
@@ -477,6 +498,262 @@ export default function PacketsPage() {
         );
       })()}
     </>
+  );
+}
+
+function CreatePacketDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (packetId: number) => void;
+}) {
+  const [packetType, setPacketType] = useState<DisputePacketType>("credit_bureau");
+  const [selectedIssueIds, setSelectedIssueIds] = useState<Set<number>>(new Set());
+  const [preview, setPreview] = useState<SimpleDisputePacketContent | null>(null);
+  const [recipient, setRecipient] = useState({
+    name: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    province: "",
+    postalCode: "",
+  });
+
+  const recommendations = usePacketRecommendations(packetType);
+  const buildPreview = useBuildPacketPreview();
+  const createPacket = useCreatePacket();
+  const { showSuccess, showError } = useToast();
+
+  React.useEffect(() => {
+    setSelectedIssueIds(new Set());
+    setPreview(null);
+    setRecipient({
+      name: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      province: "",
+      postalCode: "",
+    });
+  }, [packetType, open]);
+
+  const candidates = recommendations.data?.recommendations ?? [];
+  const selectedCandidates = candidates.filter((candidate) => selectedIssueIds.has(candidate.issueId));
+
+  const toggleSelection = (candidate: DisputePacketCandidate) => {
+    setPreview(null);
+    setSelectedIssueIds((current) => {
+      const next = new Set(current);
+      if (next.has(candidate.issueId)) {
+        next.delete(candidate.issueId);
+      } else {
+        next.add(candidate.issueId);
+      }
+      return next;
+    });
+  };
+
+  const normalizedRecipient = () => {
+    const cleaned = Object.fromEntries(
+      Object.entries(recipient)
+        .map(([key, value]) => [key, value.trim()])
+        .filter(([, value]) => value)
+    );
+    return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+  };
+
+  const buildInput = () => ({
+    packetType,
+    selectedIssueIds: Array.from(selectedIssueIds),
+    recipient: normalizedRecipient(),
+  });
+
+  const handlePreview = async () => {
+    try {
+      const result = await buildPreview.mutateAsync(buildInput());
+      setPreview(result.packet);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Could not build packet preview");
+    }
+  };
+
+  const handleCreate = async () => {
+    try {
+      const result = await createPacket.mutateAsync(buildInput());
+      showSuccess("Packet generated");
+      onCreated(result.packetId);
+      onOpenChange(false);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : "Could not generate packet");
+    }
+  };
+
+  const canPreview = selectedIssueIds.size > 0 && !buildPreview.isPending;
+  const canCreate = Boolean(preview) && !createPacket.isPending;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={styles.createDialog}>
+        <DialogHeader>
+          <DialogTitle>Create Dispute Packet</DialogTitle>
+          <DialogDescription>
+            Select supported report issues, review the plain-language packet, then generate the PDF.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className={styles.packetTypeTabs}>
+          <button
+            type="button"
+            className={packetType === "credit_bureau" ? styles.packetTypeTabActive : styles.packetTypeTab}
+            onClick={() => setPacketType("credit_bureau")}
+          >
+            Credit Bureau
+          </button>
+          <button
+            type="button"
+            className={packetType === "collection_agency" ? styles.packetTypeTabActive : styles.packetTypeTab}
+            onClick={() => setPacketType("collection_agency")}
+          >
+            Collection Agency
+          </button>
+        </div>
+
+        {packetType === "collection_agency" && (
+          <div className={styles.recipientFields}>
+            <div className={styles.fieldGrid}>
+              <label>
+                <span>Recipient name</span>
+                <Input
+                  value={recipient.name}
+                  onChange={(event) => setRecipient((current) => ({ ...current, name: event.target.value }))}
+                  placeholder="Collection agency name"
+                />
+              </label>
+              <label>
+                <span>Address line 1</span>
+                <Input
+                  value={recipient.addressLine1}
+                  onChange={(event) => setRecipient((current) => ({ ...current, addressLine1: event.target.value }))}
+                  placeholder="Needed for mail service"
+                />
+              </label>
+              <label>
+                <span>Address line 2</span>
+                <Input
+                  value={recipient.addressLine2}
+                  onChange={(event) => setRecipient((current) => ({ ...current, addressLine2: event.target.value }))}
+                  placeholder="Optional"
+                />
+              </label>
+              <label>
+                <span>City</span>
+                <Input
+                  value={recipient.city}
+                  onChange={(event) => setRecipient((current) => ({ ...current, city: event.target.value }))}
+                />
+              </label>
+              <label>
+                <span>Province</span>
+                <Input
+                  value={recipient.province}
+                  onChange={(event) => setRecipient((current) => ({ ...current, province: event.target.value }))}
+                />
+              </label>
+              <label>
+                <span>Postal code</span>
+                <Input
+                  value={recipient.postalCode}
+                  onChange={(event) => setRecipient((current) => ({ ...current, postalCode: event.target.value }))}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        <div className={styles.builderColumns}>
+          <div className={styles.candidatePane}>
+            <div className={styles.builderSectionHeader}>
+              <h3>Disputed Items</h3>
+              <span>{selectedIssueIds.size} selected</span>
+            </div>
+            {recommendations.isFetching ? (
+              <div className={styles.builderState}>Loading report issues...</div>
+            ) : candidates.length === 0 ? (
+              <div className={styles.builderState}>No eligible issues found for this packet type.</div>
+            ) : (
+              <div className={styles.candidateList}>
+                {candidates.map((candidate) => (
+                  <label key={candidate.issueId} className={styles.candidateRow}>
+                    <Checkbox
+                      checked={selectedIssueIds.has(candidate.issueId)}
+                      onChange={() => toggleSelection(candidate)}
+                    />
+                    <span className={styles.candidateBody}>
+                      <span className={styles.candidateTitle}>
+                        {candidate.creditorCollectorName} - {candidate.maskedAccountNumber}
+                      </span>
+                      <span className={styles.candidateMeta}>
+                        {[candidate.bureauName, candidate.issueType, candidate.needsManualReview ? "Needs manual review" : "Evidence linked"]
+                          .filter(Boolean)
+                          .join(" | ")}
+                      </span>
+                      {candidate.userEmail && (
+                        <span className={styles.candidateMeta}>{candidate.userEmail}</span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={styles.previewPane}>
+            <div className={styles.builderSectionHeader}>
+              <h3>Preview</h3>
+              <span>{packetType === "credit_bureau" ? "Bureau path" : "Collector path"}</span>
+            </div>
+            {!preview ? (
+              <div className={styles.builderState}>
+                Select one or more items and preview the packet before generating it.
+              </div>
+            ) : (
+              <div className={styles.previewContent}>
+                <h4>{preview.title}</h4>
+                <p><strong>To:</strong> {preview.recipient.name}</p>
+                <p>{preview.openingParagraph}</p>
+                <ul>
+                  {preview.disputedItems.map((item) => (
+                    <li key={`${item.issueId}-${item.disputedField}`}>
+                      {item.creditorCollectorName}: {item.disputedField} - {item.requestedAction}
+                    </li>
+                  ))}
+                </ul>
+                <p><strong>Evidence:</strong> {preview.evidenceList.join("; ")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handlePreview}
+            disabled={!canPreview}
+          >
+            {buildPreview.isPending ? "Building..." : "Preview Packet"}
+          </Button>
+          <Button onClick={handleCreate} disabled={!canCreate}>
+            {createPacket.isPending ? "Generating..." : "Generate PDF"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

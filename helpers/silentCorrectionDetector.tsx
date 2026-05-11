@@ -267,7 +267,7 @@ export async function detectAndRecordSilentCorrections(
           .selectFrom("packet")
           .select(["id"])
           .where("tradelineId", "=", tradelineId)
-          .where("status", "in", ["GENERATED", "SENT"])
+          .where("status", "in", ["GENERATED", "SENT", "generated", "downloaded", "sent"])
           .orderBy("createdAt", "desc")
           .limit(1)
           .executeTakeFirst();

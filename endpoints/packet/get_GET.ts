@@ -5,6 +5,7 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { resolvePdfStorageUrl } from "../../helpers/documentStorage";
 import { buildPacketLifecycleSummary } from "../../helpers/packetLifecycle";
+import { maskAccountNumber } from "../../helpers/disputePacketTemplate";
 
 export async function handle(request: Request) {
   try {
@@ -66,6 +67,9 @@ export async function handle(request: Request) {
     return new Response(JSON.stringify({
       packet: {
         ...safePacket,
+        tradelineAccountNumber: safePacket.tradelineAccountNumber
+          ? maskAccountNumber(safePacket.tradelineAccountNumber)
+          : null,
         pdfStorageUrl: resolvedPdfStorageUrl,
         lifecycle: buildPacketLifecycleSummary({
           status: safePacket.status,

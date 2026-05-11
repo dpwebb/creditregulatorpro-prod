@@ -364,7 +364,7 @@ export async function handle(request: Request) {
 
             if (linkedPackets.length > 0) {
               const hasSent = linkedPackets.some(
-                (p) => p.status === 'SENT' || p.sentDate != null
+                (p) => p.status?.toLowerCase() === 'sent' || p.sentDate != null
               );
               linkedDisputeStatus = hasSent ? 'sent' : 'created';
             }
