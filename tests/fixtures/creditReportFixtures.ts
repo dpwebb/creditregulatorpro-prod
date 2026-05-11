@@ -105,6 +105,7 @@ Date Verified 2026/04/16
 
 export const transUnionPortalLayoutFixture = `
 Credit Report
+TransUnion Canada
 Report Date 2026-01-10
 Consumer Information
 DOB 1961-01-30
@@ -144,6 +145,7 @@ Jan 2026 2345 100 0 R1 100 5000 0 0 AC /
 `;
 
 export const transUnionCollapsedSyntheticFixture = `
+TransUnion Canada Consumer Disclosure
 JASON ANDREW MILLER , SYN-TU-001Saturday 10 January 2026 19:34
 Account(s):
 This section lists synthetic accounts reported by fictional institutions.
@@ -227,4 +229,115 @@ Opened
 2025/12/01
 Last Reported
 2026/04/16
+`;
+
+export const transUnionRegionalDisclosureTextFixture = `
+TRANSUNION CANADA CONSUMER DISCLOSURE
+Your file as of Feb 05, 2026
+TU Case ID: AB-2026-77
+
+Personal Information:
+Consumer Name: ALEX TESTER
+Birth Date Feb 05, 1982
+
+Address(es):
+55 SAMPLE RD
+MONCTON NB E1C 1A1
+
+4. INSTALLMENT LOANS
+Creditor Name PRAIRIE AUTO CREDIT
+Account Number ********4455
+Account Type INSTALLMENT / INDIVIDUAL
+Balance $8,765.00
+Status Account Closed
+Opened Date May 14, 2018
+Reported Date Feb 05, 2026
+Last Payment Date Jan 20, 2026
+Payment History
+Feb 2026 8765 325 0 I1 325 16000 0 0 AC /
+`;
+
+export const transUnionPortalTwoAccountTextOrderFixture = `
+Credit Report
+TransUnion Canada
+Report Date 2026-02-05
+TU Case ID PORT-2026-445
+Consumer Information
+Name ALEX TESTER
+DOB 1982-02-05
+Current Address 55 SAMPLE RD MONCTON NB E1C 1A1
+
+Account Information
+Creditor Name COASTAL CREDIT CARD
+Account Number ********9911
+Account Type REVOLVING / INDIVIDUAL
+Status Open
+Opened Date 2020-04-02
+Reported Date 2026-02-05
+Balance $410.25
+Payment History
+Feb 2026 410 35 0 R1 35 900 1500 0 0 AC /
+
+Account Information
+Creditor Name ATLANTIC AUTO LOAN
+Account Number ********8844
+Account Type INSTALLMENT / INDIVIDUAL
+Status Open
+Opened Date 2021-09-10
+Reported Date 2026-02-05
+Balance $9,900.00
+High Credit $18,500.00
+Payment History
+Feb 2026 9900 410 0 I1 410 18500 0 0 AC /
+`;
+
+export const equifaxMortgageTextFixture = `
+Equifax Canada Co.
+Credit ReportRequest Date 2026/05/02
+
+Personal Information
+Name ALEX TESTER
+Date of Birth 1982-02-05
+Current Address
+55 SAMPLE RD
+MONCTON NB E1C 1A1
+
+Accounts - Mortgage
+SAMPLE TRUST MORTGAGE
+Account
+Number
+********7788
+Status
+Mortgage - Pays as agreed
+Balance And Amounts
+Balance
+$245,000.00
+Highest Balance
+$250,000.00
+Past Due
+$0.00
+Account Dates
+Opened
+2019/08/01
+Last Reported
+2026/05/02
+Payment Details
+Payment Responsibility
+Individual
+`;
+
+export const equifaxCollapsedCollectionsTextFixture = `
+Equifax Canada Co.
+Credit ReportRequest Date 2026/05/02
+
+Personal Information
+Name ALEX TESTER
+Date of Birth 1982-02-05
+Current Address
+55 SAMPLE RD
+MONCTON NB E1C 1A1
+
+Collections
+EASTERN COLLECTIONS INC Date Assigned2024/07/15 Member NameORIGINAL STORE LTD Phone Number Member NumberEC123 Account Number***902 Amount$721 Balance$721 StatusUnpaid Date Verified2026/05/02 Last Payment Date2022/12/01
+NORTHERN RECOVERY SERVICES Date Assigned2025/01/10 Member NameSAMPLE TELCO Phone Number Member NumberNR777 First Delinquency2023/05/06 Account Number***903 Amount$312 Balance$300 StatusPaid Date Verified2026/05/02 Last Payment Date2023/05/06
 `;

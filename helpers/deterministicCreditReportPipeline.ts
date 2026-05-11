@@ -774,6 +774,19 @@ function lineContainsStatusEvidence(fieldKey: string, line: TextLine, value: unk
   return codes.some((code) => new RegExp(`\\b${code}\\b`, "i").test(line.text));
 }
 
+function lineContainsDateValue(line: TextLine, value: unknown): boolean {
+  const normalizedDate = normalizeCanonicalDate(value);
+  if (!normalizedDate) return false;
+
+  const dateSearchText = line.text
+    .replace(/([A-Za-z])(\d{4}[-/]\d{1,2}[-/]\d{1,2})/g, "$1 $2")
+    .replace(/([A-Za-z])(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/g, "$1 $2");
+
+  return [...dateSearchText.matchAll(new RegExp(DATE_PATTERN.source, "gi"))].some(
+    (match) => normalizeCanonicalDate(match[0]) === normalizedDate,
+  );
+}
+
 function findEvidenceLine(
   lines: TextLine[],
   value: unknown,
@@ -791,8 +804,7 @@ function findEvidenceLine(
       const normalizedDate = normalizeCanonicalDate(searchValue);
       const normalizedText = normalizeTokenText(searchValue);
       if (normalizedDate) {
-        const match = line.text.match(DATE_PATTERN);
-        return Boolean(match && normalizeCanonicalDate(match[0]) === normalizedDate);
+        return lineContainsDateValue(line, searchValue);
       }
       return normalizedText.length > 0 && line.normalizedText.includes(normalizedText);
     });

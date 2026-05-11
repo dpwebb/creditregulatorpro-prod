@@ -18,25 +18,28 @@ All future work should protect this promise before adding breadth or convenience
 
 ## Current Implementation Status
 
-Updated May 7, 2026.
+Updated May 11, 2026.
 
-Started and partially implemented:
+Implemented:
 
-1. Phase 1: Added anonymized TransUnion legacy numbered-section coverage, Equifax installment coverage, and Equifax account-only coverage. Hardened consumer identity fallback so account-section creditor names are not promoted to consumer names.
-2. Phase 3: Added stable canonical evidence IDs to field evidence for downstream violation and packet traceability.
-3. Phase 8: Added `pnpm run test:deterministic-ingestion-report` and included it in `pnpm run check` so replay stability, required evidence coverage, fixture support, and violation-search preservation are visible before publish.
+1. Phase 1: Completed deterministic extraction coverage expansion with 11 anonymized synthetic fixtures covering TransUnion consumer disclosure, collapsed TransUnion text, TransUnion legacy numbered sections, TransUnion exported portal text order, TransUnion regional numbered disclosure, Equifax revolving plus collection, Equifax installment, Equifax account-only, Equifax mortgage, and collapsed Equifax collection sections.
+2. Phase 1: Tightened `pnpm run test:deterministic-ingestion-report` so each fixture must preserve exact tradeline counts, bureau metadata, report dates, TransUnion case IDs where present, DOB/address expectations where present, date and money fields, 100% required evidence coverage, replay-hash stability, and violation-search compatibility.
+3. Phase 1: Added parser-test/canonical-ingest path coverage for the new layout families while keeping bureau-specific collection parsing isolated from generic TransUnion parsing.
+4. Phase 3: Added stable canonical evidence IDs to field evidence for downstream violation and packet traceability.
+5. Phase 8: Added `pnpm run test:deterministic-ingestion-report` and included it in `pnpm run check` so replay stability, required evidence coverage, fixture support, and violation-search preservation are visible before publish.
 
 Remaining high-priority work:
 
 1. Deterministic OCR evaluation and scanned-PDF fixtures.
-2. More anonymized older/regional bureau layouts.
-3. Page-aware and bounding-box evidence.
-4. Dedicated deterministic rule packs for creditor statements and collection letters.
-5. Deeper admin-correction promotion into future parser, validation, violation, exception, and regression rules.
+2. Page-aware and bounding-box evidence.
+3. Dedicated deterministic rule packs for creditor statements and collection letters.
+4. Deeper admin-correction promotion into future parser, validation, violation, exception, and regression rules.
 
 ## Phase 1: Deterministic Extraction Coverage
 
 Goal: improve supported report layouts without loosening parser behavior.
+
+Status: Complete as of May 11, 2026. The active regression gate covers 11 anonymized layouts and fails if replay hashes change, exact tradeline counts drift, required source evidence drops below 100%, or violation-search compatibility is lost.
 
 Work:
 
@@ -168,10 +171,10 @@ Exit criteria:
 ## Current Known Risks
 
 1. Scanned image-only PDFs still need deterministic OCR before canonical ingestion.
-2. Older and regional bureau layouts need more anonymized fixtures.
-3. PDF bounding boxes are not yet populated in canonical evidence.
-4. Creditor statements and collection letters need dedicated deterministic rule packs before broad support.
-5. Admin corrections need deeper automated conversion into future deterministic rules.
+2. PDF bounding boxes are not yet populated in canonical evidence.
+3. Creditor statements and collection letters need dedicated deterministic rule packs before broad support.
+4. Admin corrections need deeper automated conversion into future deterministic rules.
+5. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
 
 ## Next Recommended Work Item
 

@@ -11,12 +11,16 @@ import { buildDeterministicCreditReportPipelinePackage } from "../../helpers/det
 import { parseHtmlToRawText } from "../../helpers/_htmlParserUtils";
 import {
   equifaxAccountOnlyTextFixture,
+  equifaxCollapsedCollectionsTextFixture,
   equifaxInstallmentTextFixture,
+  equifaxMortgageTextFixture,
   equifaxTextFixture,
   equifaxHtmlFixture,
   transUnionCollapsedSyntheticFixture,
   transUnionLegacyDisclosureFixture,
   transUnionPortalLayoutFixture,
+  transUnionPortalTwoAccountTextOrderFixture,
+  transUnionRegionalDisclosureTextFixture,
   transUnionHtmlFixture,
   transUnionTextFixture,
 } from "../fixtures/creditReportFixtures";
@@ -437,6 +441,47 @@ Payment ResponsibilityIndividual
     expect(tradelines[0].dates.reported?.toISOString().slice(0, 10)).toBe("2026-01-10");
   });
 
+  it("extracts regional TransUnion numbered disclosures with case ID, dates, and money fields", () => {
+    const metadata = extractReportMetadata(transUnionRegionalDisclosureTextFixture);
+    const consumerInfo = extractConsumerInfo(transUnionRegionalDisclosureTextFixture);
+    const tradelines = extractTradelines(transUnionRegionalDisclosureTextFixture);
+
+    expect(metadata.bureauName).toBe("TransUnion Canada");
+    expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-02-05");
+    expect(metadata.transUnionCaseId).toBe("AB-2026-77");
+    expect(consumerInfo.fullName).toBe("ALEX TESTER");
+    expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1982-02-05");
+    expect(consumerInfo.postalCode).toBe("E1C 1A1");
+    expect(tradelines).toHaveLength(1);
+    expect(tradelines[0].creditorName).toBe("PRAIRIE AUTO CREDIT");
+    expect(tradelines[0].accountNumber).toBe("********4455");
+    expect(tradelines[0].balance).toBe(8765);
+    expect(tradelines[0].amounts.high).toBe(325);
+    expect(tradelines[0].creditLimit).toBe(16000);
+    expect(tradelines[0].dates.opened?.toISOString().slice(0, 10)).toBe("2018-05-14");
+    expect(tradelines[0].lastPaymentDate?.toISOString().slice(0, 10)).toBe("2026-01-20");
+  });
+
+  it("keeps exported TransUnion portal text order split into exact account records", () => {
+    const metadata = extractReportMetadata(transUnionPortalTwoAccountTextOrderFixture);
+    const consumerInfo = extractConsumerInfo(transUnionPortalTwoAccountTextOrderFixture);
+    const tradelines = extractTradelines(transUnionPortalTwoAccountTextOrderFixture);
+
+    expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-02-05");
+    expect(metadata.transUnionCaseId).toBe("PORT-2026-445");
+    expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1982-02-05");
+    expect(tradelines).toHaveLength(2);
+    expect(tradelines.map((tradeline) => tradeline.creditorName)).toEqual([
+      "COASTAL CREDIT CARD",
+      "ATLANTIC AUTO LOAN",
+    ]);
+    expect(tradelines[0].balance).toBe(410.25);
+    expect(tradelines[0].creditLimit).toBe(1500);
+    expect(tradelines[1].balance).toBe(9900);
+    expect(tradelines[1].amounts.high).toBe(18500);
+    expect(tradelines[1].dates.opened?.toISOString().slice(0, 10)).toBe("2021-09-10");
+  });
+
   it("extracts Equifax installment sections and does not promote account-only creditors to consumer identity", () => {
     const installmentConsumerInfo = extractConsumerInfo(equifaxInstallmentTextFixture);
     const installmentTradelines = extractEquifaxTradelines(equifaxInstallmentTextFixture);
@@ -456,6 +501,44 @@ Payment ResponsibilityIndividual
     expect(accountOnlyTradelines).toHaveLength(1);
     expect(accountOnlyTradelines[0].creditorName).toBe("SAMPLE TELCO");
     expect(accountOnlyTradelines[0].balance).toBe(89.1);
+  });
+
+  it("extracts Equifax mortgage account sections without creating extra tradelines", () => {
+    const metadata = extractReportMetadata(equifaxMortgageTextFixture);
+    const consumerInfo = extractConsumerInfo(equifaxMortgageTextFixture);
+    const tradelines = extractEquifaxTradelines(equifaxMortgageTextFixture);
+
+    expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-05-02");
+    expect(consumerInfo.postalCode).toBe("E1C 1A1");
+    expect(tradelines).toHaveLength(1);
+    expect(tradelines[0].creditorName).toBe("SAMPLE TRUST MORTGAGE");
+    expect(tradelines[0].accountType).toBe("Mortgage");
+    expect(tradelines[0].balance).toBe(245000);
+    expect(tradelines[0].amounts.high).toBe(250000);
+    expect(tradelines[0].amounts.pastDue).toBe(0);
+    expect(tradelines[0].dates.opened?.toISOString().slice(0, 10)).toBe("2019-08-01");
+  });
+
+  it("extracts Equifax collection records when labels are collapsed on agency lines", () => {
+    const metadata = extractReportMetadata(equifaxCollapsedCollectionsTextFixture);
+    const consumerInfo = extractConsumerInfo(equifaxCollapsedCollectionsTextFixture);
+    const tradelines = extractEquifaxTradelines(equifaxCollapsedCollectionsTextFixture);
+
+    expect(metadata.reportDate?.toISOString().slice(0, 10)).toBe("2026-05-02");
+    expect(consumerInfo.dateOfBirth?.toISOString().slice(0, 10)).toBe("1982-02-05");
+    expect(tradelines).toHaveLength(2);
+    expect(tradelines.map((tradeline) => tradeline.creditorName)).toEqual([
+      "EASTERN COLLECTIONS INC",
+      "NORTHERN RECOVERY SERVICES",
+    ]);
+    expect(tradelines.map((tradeline) => tradeline.isCollectionAccount)).toEqual([true, true]);
+    expect(tradelines[0].accountNumber).toBe("***902");
+    expect(tradelines[0].originalCreditorName).toBe("ORIGINAL STORE LTD");
+    expect(tradelines[0].dateAssignedToCollection?.toISOString().slice(0, 10)).toBe("2024-07-15");
+    expect(tradelines[0].originalBalance).toBe(721);
+    expect(tradelines[1].dates.dofd?.toISOString().slice(0, 10)).toBe("2023-05-06");
+    expect(tradelines[1].balance).toBe(300);
+    expect(tradelines[1].originalBalance).toBe(312);
   });
 
   it("detects semantic zones for Equifax and exported portal layouts", () => {

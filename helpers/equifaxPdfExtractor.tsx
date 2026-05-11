@@ -379,13 +379,17 @@ function parseAccountBlock(lines: Line[], accountType: AccountSection["accountTy
 function splitCollectionBlocks(lines: Line[]): Line[][] {
   const starts: number[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (/^Date Assigned/i.test(lines[i].text)) {
+    if (/\bDate\s*Assigned/i.test(lines[i].text)) {
       let start = i;
-      for (let j = i - 1; j >= 0; j--) {
-        if (isPageNoise(lines[j].text) || isMajorHeader(lines[j].text) || /^Last Payment/i.test(lines[j].text)) break;
-        if (!isLabelOnly(lines[j].text)) start = j;
-        if (i - start >= 3) break;
+      const dateAssignedStartsLine = /^Date\s*Assigned/i.test(lines[i].text);
+      if (dateAssignedStartsLine) {
+        for (let j = i - 1; j >= 0; j--) {
+          if (isPageNoise(lines[j].text) || isMajorHeader(lines[j].text) || /^Last Payment/i.test(lines[j].text)) break;
+          if (!isLabelOnly(lines[j].text)) start = j;
+          if (i - start >= 3) break;
+        }
       }
+      if (starts.at(-1) === start) continue;
       starts.push(start);
     }
   }
@@ -416,7 +420,7 @@ function amountAfterCollectionLabel(rawText: string, label: RegExp): number | nu
 }
 
 function parseCollectionBlock(lines: Line[]): ParsedTradeline | null {
-  const rawText = lines.map((line) => line.text).join("\n");
+  const rawText = ["Collections", ...lines.map((line) => line.text)].join("\n");
   const accountNumber = extractAccountNumber(rawText);
   if (accountNumber === "Unknown") return null;
 

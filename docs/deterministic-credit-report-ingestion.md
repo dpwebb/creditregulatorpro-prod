@@ -81,9 +81,17 @@ The regression suite now includes deterministic synthetic fixtures for:
 
 1. TransUnion Canada consumer disclosure text with a page-one TransUnion case ID
 2. TransUnion collapsed personal-information cells
-3. TransUnion exported portal-style layout
-4. Equifax Canada `Accounts - Revolving` account sections
-5. Equifax collection-account section parsing
+3. TransUnion collapsed two-tradeline exported text order
+4. TransUnion legacy numbered-section disclosure
+5. TransUnion regional numbered disclosure
+6. TransUnion exported portal-style layout
+7. Equifax Canada `Accounts - Revolving` account sections
+8. Equifax installment account sections
+9. Equifax account-only sections that must not become consumer identity
+10. Equifax mortgage account sections
+11. Equifax collection-account sections, including collapsed agency-line label/value records
+
+`pnpm run test:deterministic-ingestion-report` verifies exact tradeline counts for every fixture, DOB/address expectations where present, bureau metadata, TransUnion case IDs where present, date and money fields, 100% required source-evidence coverage, stable replay hashes, and violation-search compatibility. Parser-test and canonical-ingest path coverage also exercises the new Phase 1 fixture families through the shared deterministic PDF parser path with AI fallback disabled.
 
 The production PDFs supplied for local verification remain read-only reference inputs. Do not commit personal report PDFs or personal extracted text as fixtures. Convert observed layouts into anonymized deterministic fixtures before they enter the regression library.
 
