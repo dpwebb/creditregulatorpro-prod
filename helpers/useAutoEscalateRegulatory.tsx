@@ -12,7 +12,7 @@ export function useAutoEscalateRegulatory() {
       queryClient.invalidateQueries({ queryKey: REGULATORY_UPDATES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: REGULATORY_NOTIFICATIONS_QUERY_KEY });
       toast.success(
-        `Auto-escalation complete: ${data.escalated} escalated, ${data.notificationsCreated} notifications, ${data.statutesLinked} statutes linked.`
+        `Review check complete: ${data.escalated} moved to review, ${data.notificationsCreated} notifications created. No regulations were applied.`
       );
     },
     onError: (error) => {

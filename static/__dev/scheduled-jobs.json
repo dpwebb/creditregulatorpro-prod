@@ -23,5 +23,12 @@
     "enabled": true,
     "schedule": "0 8 * * *",
     "timezone": "America/Halifax"
+  },
+  "cronRegulationRegistryScan": {
+    "enabled": false,
+    "schedule": "0 5 * * 1",
+    "timezone": "America/Halifax",
+    "endpoint": "/_api/regulation-registry/scheduled-scan",
+    "mode": "scheduled review candidates only"
   }
 }

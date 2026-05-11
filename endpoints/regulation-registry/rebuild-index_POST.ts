@@ -1,4 +1,5 @@
-import { schema } from "./scan_POST.schema";
+import { schema, OutputType } from "./rebuild-index_POST.schema";
+import { rebuildRegulationIndexes } from "../../helpers/regulationRegistryService";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
@@ -15,27 +16,24 @@ export async function handle(request: Request) {
     }
 
     schema.parse(JSON.parse((await request.text()) || "{}"));
+    const result = await rebuildRegulationIndexes();
 
     await logAudit({
       action: "SYSTEM_CHANGE",
       entityType: "REGULATORY_UPDATE",
       userId: user.id,
       details: {
-        component: "regulatory_update_legacy_scan",
-        mode: "blocked",
-        reason: "AI regulatory scan disabled by regulation registry safety policy",
+        component: "regulation_registry",
+        mode: "index_rebuilt",
+        rebuilt: result.rebuilt,
       },
       status: "SUCCESS",
       request,
     });
 
-    return new Response(
-      JSON.stringify({
-        error:
-          "AI regulatory scanning is disabled. Use the Regulations Registry scan workflow with authoritative source text.",
-      }),
-      { status: 409, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify(result satisfies OutputType), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     return handleEndpointError(error);
   }

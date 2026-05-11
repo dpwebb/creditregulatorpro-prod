@@ -1,4 +1,5 @@
-import { schema } from "./scan_POST.schema";
+import { schema, OutputType } from "./scan_POST.schema";
+import { runRegulationUpdateScan } from "../../helpers/regulationRegistryService";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
@@ -14,28 +15,32 @@ export async function handle(request: Request) {
       });
     }
 
-    schema.parse(JSON.parse((await request.text()) || "{}"));
+    const input = schema.parse(JSON.parse((await request.text()) || "{}"));
+    const result = await runRegulationUpdateScan({
+      mode: input.mode,
+      triggeredByUserId: user.id,
+      sourceDocuments: input.sourceDocuments,
+      fetchConfiguredSources: input.fetchConfiguredSources,
+    });
 
     await logAudit({
       action: "SYSTEM_CHANGE",
       entityType: "REGULATORY_UPDATE",
       userId: user.id,
       details: {
-        component: "regulatory_update_legacy_scan",
-        mode: "blocked",
-        reason: "AI regulatory scan disabled by regulation registry safety policy",
+        component: "regulation_registry",
+        mode: "admin_scan",
+        inserted: result.inserted,
+        skipped: result.skipped,
+        errors: result.errors,
       },
-      status: "SUCCESS",
+      status: result.errors.length > 0 ? "FAILURE" : "SUCCESS",
       request,
     });
 
-    return new Response(
-      JSON.stringify({
-        error:
-          "AI regulatory scanning is disabled. Use the Regulations Registry scan workflow with authoritative source text.",
-      }),
-      { status: 409, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify(result satisfies OutputType), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     return handleEndpointError(error);
   }

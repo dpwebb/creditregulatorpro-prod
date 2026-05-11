@@ -101,6 +101,18 @@ export type RegulatoryUpdateSource = "AUTOMATED_SCAN" | "COURT_DECISION" | "GOVE
 
 export type RegulatoryUpdateStatus = "APPLIED" | "ARCHIVED" | "DETECTED" | "DISMISSED" | "UNDER_REVIEW" | "VERIFIED";
 
+export type RegulationActiveStatus = "active" | "inactive" | "superseded";
+
+export type RegulationCategory = "collection_activity" | "consumer_access_rights" | "credit_reporting" | "debt_validation" | "disclosure_requirements" | "dispute_investigation" | "identity_verification" | "privacy" | "record_accuracy" | "stale_reporting";
+
+export type RegulationChangeClassification = "ambiguous" | "modified" | "new" | "possible_duplicate" | "repealed" | "unchanged";
+
+export type RegulationReviewStatus = "approved" | "draft" | "needs_manual_review" | "pending_review" | "rejected";
+
+export type RegulationUpdateCandidateStatus = "approved" | "pending_review" | "rejected";
+
+export type RegulationUpdateMode = "assisted" | "manual_only" | "scheduled";
+
 export type ResponsibilityCode = "authorized_user" | "cosigner" | "individual" | "joint" | "on_behalf_of" | "terminated" | "unknown";
 
 export type SignatureType = "document_signing" | "freeze_authorization" | "identity_verification" | "thaw_authorization";
@@ -1011,6 +1023,124 @@ export interface RegulatoryUpdateLog {
   title: string;
 }
 
+export interface RegulationRegistry {
+  activeStatus: Generated<RegulationActiveStatus>;
+  approvalNotes: string | null;
+  approvedAt: Timestamp | null;
+  approvedBy: number | null;
+  authoritySource: string;
+  citationFormat: string;
+  confidenceScore: Generated<Numeric>;
+  createdAt: Generated<Timestamp>;
+  effectiveDate: Timestamp | null;
+  fullText: string;
+  id: Generated<number>;
+  jurisdiction: string;
+  officialSourceUrl: string;
+  parserSafeNormalizedText: string;
+  plainLanguageSummary: string;
+  publicationDate: Timestamp | null;
+  regulationCategory: RegulationCategory;
+  regulationId: string;
+  regulationTitle: string;
+  repealSupersededStatus: Generated<string>;
+  reviewStatus: Generated<RegulationReviewStatus>;
+  sectionNumber: string;
+  shortTitle: string;
+  sourceContentHash: string;
+  sourceDocumentUrl: string | null;
+  subsection: string | null;
+  supersededByRecordId: number | null;
+  supersedesRecordId: number | null;
+  tags: Generated<ArrayType<string>>;
+  updateVersion: number;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface RegulationSourceScan {
+  completedAt: Timestamp | null;
+  contentHash: string | null;
+  detectedChangeCount: Generated<number>;
+  errorMessage: string | null;
+  fetchedUrl: string | null;
+  id: Generated<number>;
+  mode: RegulationUpdateMode;
+  sourceId: number | null;
+  startedAt: Generated<Timestamp>;
+  status: Generated<string>;
+  triggeredBy: number | null;
+}
+
+export interface RegulationUpdateCandidate {
+  ambiguityReasons: Generated<ArrayType<string>>;
+  authoritySource: string;
+  candidateRegulationId: string;
+  changeClassification: RegulationChangeClassification;
+  citationFormat: string;
+  confidenceReasons: Generated<ArrayType<string>>;
+  confidenceScore: Generated<Numeric>;
+  createdRegulationRecordId: number | null;
+  detectedAt: Generated<Timestamp>;
+  diffReport: Generated<Json>;
+  duplicateCandidateIds: Generated<ArrayType<number>>;
+  effectiveDate: Timestamp | null;
+  existingRegulationRecordId: number | null;
+  fullText: string;
+  id: Generated<number>;
+  jurisdiction: string;
+  normalizedTextHash: string;
+  officialSourceUrl: string;
+  parserSafeNormalizedText: string;
+  plainLanguageSummary: string;
+  proposedVersion: Generated<number>;
+  publicationDate: Timestamp | null;
+  regulationCategory: RegulationCategory;
+  regulationTitle: string;
+  repealSupersededStatus: Generated<string>;
+  reviewNotes: string | null;
+  reviewedAt: Timestamp | null;
+  reviewedBy: number | null;
+  sectionNumber: string;
+  shortTitle: string;
+  sourceDocumentUrl: string | null;
+  sourceScanId: number | null;
+  status: Generated<RegulationUpdateCandidateStatus>;
+  subsection: string | null;
+  tags: Generated<ArrayType<string>>;
+}
+
+export interface RegulationUpdateSource {
+  authoritySource: string;
+  createdAt: Generated<Timestamp>;
+  enabled: Generated<boolean>;
+  id: Generated<number>;
+  jurisdiction: string;
+  lastCheckedAt: Timestamp | null;
+  lastContentHash: string | null;
+  name: string;
+  regulationCategory: RegulationCategory;
+  sourceUrl: string;
+  updatedAt: Generated<Timestamp>;
+  updateMode: Generated<RegulationUpdateMode>;
+}
+
+export interface RegulationViolationMapping {
+  active: Generated<boolean>;
+  approvedAt: Timestamp | null;
+  approvedBy: number | null;
+  createdAt: Generated<Timestamp>;
+  explanationTemplate: string;
+  id: Generated<number>;
+  jurisdiction: string;
+  regulationId: string;
+  regulationRecordId: number | null;
+  reviewStatus: Generated<RegulationReviewStatus>;
+  sectionNumber: string;
+  subsection: string | null;
+  updatedAt: Generated<Timestamp>;
+  violationCategory: string;
+}
+
 export interface ReportArtifact {
   artifactType: string | null;
   createdAt: Generated<Timestamp | null>;
@@ -1521,6 +1651,11 @@ export interface DB {
   passwordResetTokens: PasswordResetTokens;
   postalTransaction: PostalTransaction;
   rateLimitEntry: RateLimitEntry;
+  regulationRegistry: RegulationRegistry;
+  regulationSourceScan: RegulationSourceScan;
+  regulationUpdateCandidate: RegulationUpdateCandidate;
+  regulationUpdateSource: RegulationUpdateSource;
+  regulationViolationMapping: RegulationViolationMapping;
   regulatoryNotification: RegulatoryNotification;
   regulatoryUpdateLog: RegulatoryUpdateLog;
   reportArtifact: ReportArtifact;
@@ -1561,6 +1696,12 @@ export const EnforcementMechanismTypeArrayValues: [EnforcementMechanismType, ...
 export const RegulatoryUpdateStatusArrayValues: [RegulatoryUpdateStatus, ...RegulatoryUpdateStatus[]] = ["APPLIED","ARCHIVED","DETECTED","DISMISSED","UNDER_REVIEW","VERIFIED"];
 export const RegulatoryUpdateSourceArrayValues: [RegulatoryUpdateSource, ...RegulatoryUpdateSource[]] = ["AUTOMATED_SCAN","COURT_DECISION","GOVERNMENT_NOTICE","INDUSTRY_BULLETIN","LEGAL_NEWSLETTER","MANUAL_ENTRY"];
 export const RegulatoryChangeTypeArrayValues: [RegulatoryChangeType, ...RegulatoryChangeType[]] = ["CASE_LAW","ENFORCEMENT_CHANGE","NEW_REGULATION","NEW_STATUTE","PROCEDURAL_CHANGE","REGULATION_AMENDMENT","STATUTE_AMENDMENT","STATUTE_REPEAL"];
+export const RegulationCategoryArrayValues: [RegulationCategory, ...RegulationCategory[]] = ["collection_activity","consumer_access_rights","credit_reporting","debt_validation","disclosure_requirements","dispute_investigation","identity_verification","privacy","record_accuracy","stale_reporting"];
+export const RegulationActiveStatusArrayValues: [RegulationActiveStatus, ...RegulationActiveStatus[]] = ["active","inactive","superseded"];
+export const RegulationReviewStatusArrayValues: [RegulationReviewStatus, ...RegulationReviewStatus[]] = ["approved","draft","needs_manual_review","pending_review","rejected"];
+export const RegulationChangeClassificationArrayValues: [RegulationChangeClassification, ...RegulationChangeClassification[]] = ["ambiguous","modified","new","possible_duplicate","repealed","unchanged"];
+export const RegulationUpdateCandidateStatusArrayValues: [RegulationUpdateCandidateStatus, ...RegulationUpdateCandidateStatus[]] = ["approved","pending_review","rejected"];
+export const RegulationUpdateModeArrayValues: [RegulationUpdateMode, ...RegulationUpdateMode[]] = ["assisted","manual_only","scheduled"];
 export const CraObligationTypeArrayValues: [CraObligationType, ...CraObligationType[]] = ["ACCURACY_INTEGRITY","CORRECTION_DUTY","DATA_VALIDATION","DISPUTE_INVESTIGATION","DOFD_REPORTING","MONTHLY_REPORTING"];
 export const ValidationSeverityArrayValues: [ValidationSeverity, ...ValidationSeverity[]] = ["ERROR","INFO","WARNING"];
 export const ObligationStateArrayValues: [ObligationState, ...ObligationState[]] = ["ADDRESSED_VIA_LINKED_DISPUTE","CHALLENGED","INSUFFICIENT_RESPONSE","NO_RESPONSE","OBLIGATION_PENDING","PROCEDURALLY_EXHAUSTED"];
