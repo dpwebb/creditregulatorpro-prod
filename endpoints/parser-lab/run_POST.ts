@@ -3,6 +3,23 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { runParserLabStage } from "../../helpers/parserLabStage";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { schema, OutputType } from "./run_POST.schema";
+import {
+  isScannedPdfUnsupportedError,
+  SCANNED_PDF_UNSUPPORTED_CODE,
+} from "../../helpers/creditReportPdfEligibility";
+
+const parserLabScannedPdfUnsupportedResponse = () =>
+  new Response(
+    JSON.stringify({
+      error: SCANNED_PDF_UNSUPPORTED_CODE,
+      message:
+        "This PDF appears to be scanned or image-only. Deterministic OCR did not produce valid credit-report text.",
+      action: "Try a text-based credit report PDF or verify OCR support before retrying.",
+      stage: "parser_lab",
+      sideEffects: "none",
+    }),
+    { status: 400, headers: { "Content-Type": "application/json" } },
+  );
 
 export async function handle(request: Request) {
   try {
@@ -31,6 +48,10 @@ export async function handle(request: Request) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    if (isScannedPdfUnsupportedError(error)) {
+      return parserLabScannedPdfUnsupportedResponse();
+    }
+
     return handleEndpointError(error);
   }
 }

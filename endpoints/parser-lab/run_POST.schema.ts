@@ -88,8 +88,18 @@ export const runParserLabStage = async (
   });
 
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    const errorObject = JSON.parse(await result.text()) as {
+      error?: unknown;
+      message?: unknown;
+    };
+    const message =
+      typeof errorObject.message === "string" && errorObject.message.trim()
+        ? errorObject.message
+        : typeof errorObject.error === "string" && errorObject.error.trim()
+          ? errorObject.error
+          : "Parser lab run failed";
+
+    throw new Error(message);
   }
 
   return JSON.parse(await result.text());
