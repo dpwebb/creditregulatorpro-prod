@@ -5,6 +5,7 @@ import { postDeleteLetterTemplate } from "../endpoints/admin/letter-template/del
 import { postSeedLetterTemplates } from "../endpoints/admin/letter-template/seed_POST.schema";
 import { getLetterTemplateHistory } from "../endpoints/admin/letter-template/history_GET.schema";
 import { postRollbackLetterTemplate } from "../endpoints/admin/letter-template/rollback_POST.schema";
+import { postHumanizeLetterTemplate } from "../endpoints/admin/letter-template/humanize_POST.schema";
 import { toast } from "sonner";
 
 export const LETTER_TEMPLATES_QUERY_KEY = ["letterTemplates"];
@@ -86,6 +87,25 @@ export function useRollbackLetterTemplate() {
     },
     onError: (error) => {
       toast.error(`Failed to rollback template: ${error.message}`);
+    },
+  });
+}
+
+export function useHumanizeLetterTemplate() {
+  return useMutation({
+    mutationFn: (input: Parameters<typeof postHumanizeLetterTemplate>[0]) =>
+      postHumanizeLetterTemplate(input),
+    onSuccess: (result) => {
+      if (result.source === "ai") {
+        toast.success("AI human draft generated");
+      } else if (result.status === "disabled") {
+        toast.info("AI is disabled; local human draft applied");
+      } else {
+        toast.info("AI unavailable; local human draft applied");
+      }
+    },
+    onError: (error) => {
+      toast.error(`Failed to create human draft: ${error.message}`);
     },
   });
 }

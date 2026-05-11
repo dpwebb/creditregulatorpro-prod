@@ -220,6 +220,12 @@
   border-top: 1px solid var(--border);
 }
 
+.leftActions {
+  display: flex;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
 .actionGroup {
   display: flex;
   gap: var(--spacing-3);
@@ -236,6 +242,9 @@
     align-items: stretch;
   }
   .actionGroup {
+    flex-direction: column;
+  }
+  .leftActions {
     flex-direction: column;
   }
 }

@@ -5,6 +5,7 @@ import { LetterTemplate, LetterTemplateCategory } from "../helpers/schema";
 import {
   useLetterTemplateHistory,
   useLetterTemplates,
+  useHumanizeLetterTemplate,
   useRollbackLetterTemplate,
   useSeedLetterTemplates,
   useUpsertLetterTemplate,
@@ -16,7 +17,7 @@ import { Badge } from "../components/Badge";
 import { Switch } from "../components/Switch";
 import { Textarea } from "../components/Textarea";
 import { Skeleton } from "../components/Skeleton";
-import { AlertTriangle, ChevronDown, ChevronUp, Download, RotateCcw, Undo2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Download, RotateCcw, Sparkles, Undo2 } from "lucide-react";
 import {
   buildTemplateSnapshot,
   renderTemplatePreview,
@@ -35,6 +36,7 @@ const TemplateEditor = ({
   const [formData, setFormData] = useState<Partial<Selectable<LetterTemplate>>>(template);
   const [useFullBody, setUseFullBody] = useState(!!template.fullBodyOverride);
   const upsertMutation = useUpsertLetterTemplate();
+  const humanizeMutation = useHumanizeLetterTemplate();
   const rollbackMutation = useRollbackLetterTemplate();
   const { data: historyData, isLoading: historyLoading } = useLetterTemplateHistory(template.id);
 
@@ -73,33 +75,58 @@ const TemplateEditor = ({
     publishValidation.unknownPlaceholders.length === 0 &&
     preview.unresolvedPlaceholders.length === 0;
 
+  const buildTemplatePayload = (mode: "DRAFT" | "PUBLISH") => ({
+    id: template.id,
+    category: template.category,
+    templateKey: template.templateKey,
+    label: template.label,
+    mode,
+    isActive: mode === "PUBLISH",
+    subject: formData.subject || null,
+    introduction: formData.introduction || null,
+    statutoryGrounds: formData.statutoryGrounds || null,
+    requestedAction: formData.requestedAction || null,
+    statutoryTimeframe: formData.statutoryTimeframe || null,
+    consumerStatementRight: formData.consumerStatementRight || null,
+    certification: formData.certification || null,
+    closing: formData.closing || null,
+    fullBodyOverride: useFullBody ? formData.fullBodyOverride || null : null,
+    statutoryReference: formData.statutoryReference || null,
+    sourceUrl: formData.sourceUrl || null,
+  });
+
   const handleSave = (mode: "DRAFT" | "PUBLISH") => {
     upsertMutation.mutate(
-      {
-        id: template.id,
-        category: template.category,
-        templateKey: template.templateKey,
-        label: template.label,
-        mode,
-        isActive: mode === "PUBLISH",
-        subject: formData.subject || null,
-        introduction: formData.introduction || null,
-        statutoryGrounds: formData.statutoryGrounds || null,
-        requestedAction: formData.requestedAction || null,
-        statutoryTimeframe: formData.statutoryTimeframe || null,
-        consumerStatementRight: formData.consumerStatementRight || null,
-        certification: formData.certification || null,
-        closing: formData.closing || null,
-        fullBodyOverride: useFullBody ? formData.fullBodyOverride || null : null,
-        statutoryReference: formData.statutoryReference || null,
-        sourceUrl: formData.sourceUrl || null,
-      },
+      buildTemplatePayload(mode),
       {
         onSuccess: () => {
           onCancel();
         },
       }
     );
+  };
+
+  const handleHumanize = () => {
+    humanizeMutation.mutate(buildTemplatePayload("DRAFT"), {
+      onSuccess: (result) => {
+        const next = result.template;
+        setFormData((prev) => ({
+          ...prev,
+          subject: next.subject,
+          introduction: next.introduction,
+          statutoryGrounds: next.statutoryGrounds,
+          requestedAction: next.requestedAction,
+          statutoryTimeframe: next.statutoryTimeframe,
+          consumerStatementRight: next.consumerStatementRight,
+          certification: next.certification,
+          closing: next.closing,
+          fullBodyOverride: next.fullBodyOverride,
+          statutoryReference: next.statutoryReference,
+          sourceUrl: next.sourceUrl,
+        }));
+        setUseFullBody(Boolean(next.fullBodyOverride));
+      },
+    });
   };
 
   const handleReset = () => {
@@ -357,10 +384,21 @@ const TemplateEditor = ({
       </div>
 
       <div className={styles.editorActions}>
-        <Button variant="outline" onClick={handleReset} type="button">
-          <RotateCcw size={16} />
-          Reset Fields
-        </Button>
+        <div className={styles.leftActions}>
+          <Button variant="outline" onClick={handleReset} type="button">
+            <RotateCcw size={16} />
+            Reset Fields
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleHumanize}
+            disabled={humanizeMutation.isPending}
+            type="button"
+          >
+            <Sparkles size={16} />
+            {humanizeMutation.isPending ? "Drafting..." : "AI Human Draft"}
+          </Button>
+        </div>
         <div className={styles.actionGroup}>
           <Button variant="ghost" onClick={onCancel} type="button">
             Cancel
