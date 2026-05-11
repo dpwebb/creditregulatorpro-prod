@@ -13,6 +13,7 @@ import { validateTradelines } from "./ingestTradelineValidator";
 import { buildIngestResponse } from "./ingestResponseBuilder";
 import { ComprehensiveParseResult, ExtractedPaymentHistory } from "./reportParserTypes";
 import { deriveDeterministicDraftExtractions } from "./deterministicDraftExtraction";
+import type { ExtractionSourceMethod } from "./passAExtractorTypes";
 
 import { snapshotDisputedTradelines, detectAndRecordSilentCorrections } from "./silentCorrectionDetector";
 import { getLatestTwoSnapshots, createSnapshotsForBatch } from "./tradelineSnapshotManager";
@@ -279,6 +280,7 @@ export async function executeIngestPipeline({
   let extractionProvenance: Record<string, unknown> | null = null;
   let deterministicPipeline: DeterministicPipelinePackage | null = null;
   let replayValidation: DeterministicReplayValidation | null = null;
+  let extractionSourceMethod: ExtractionSourceMethod = "pdf_text";
   try {
     const canonicalExtraction = await extractCanonicalCreditReport({
       bytesBase64,
@@ -294,6 +296,7 @@ export async function executeIngestPipeline({
     extractionProvenance = canonicalExtraction.provenance as unknown as Record<string, unknown>;
     deterministicPipeline = canonicalExtraction.deterministicPipeline;
     replayValidation = canonicalExtraction.provenance.replayValidation;
+    extractionSourceMethod = canonicalExtraction.extractionSource === "ocr_text" ? "ocr_text" : "pdf_text";
   } catch (error: unknown) {
     console.error(`[Ingest] Canonical extraction failed:`, error);
     throw new IngestPipelineError(
@@ -306,7 +309,11 @@ export async function executeIngestPipeline({
     throw new IngestPipelineError("Credit report extraction failed.", "EXTRACTION_FAILED");
   }
 
-  const extractionResult = deriveDeterministicDraftExtractions(parseResult, artifactId);
+  const extractionResult = deriveDeterministicDraftExtractions(
+    parseResult,
+    artifactId,
+    extractionSourceMethod,
+  );
 
   const { passA, fullExtraction } = extractionResult;
   

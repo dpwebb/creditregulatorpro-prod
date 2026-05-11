@@ -1,4 +1,5 @@
 import { sha256Hex } from "./reportBinaryUtils";
+import type { DeterministicOcrProvenance } from "./deterministicOcr";
 import type { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 
@@ -25,6 +26,8 @@ export const DETERMINISTIC_PIPELINE_STAGES = [
 export type DeterministicPipelineStage =
   (typeof DETERMINISTIC_PIPELINE_STAGES)[number];
 
+export type CanonicalTextSourceMethod = "pdf_text" | "ocr_text";
+
 export type TokenClass =
   | "amount"
   | "date"
@@ -35,6 +38,7 @@ export type TokenClass =
 
 export interface CanonicalFieldEvidence {
   evidenceId?: string;
+  sourceMethod?: CanonicalTextSourceMethod;
   pageNumber?: number;
   textSnippet?: string;
   tokenIndexes?: number[];
@@ -162,7 +166,8 @@ export interface DeterministicNormalizedReport {
 export interface DeterministicPipelinePackage {
   version: typeof DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION;
   stages: readonly DeterministicPipelineStage[];
-  sourceMethod: "pdf_text";
+  sourceMethod: CanonicalTextSourceMethod;
+  ocrProvenance?: DeterministicOcrProvenance | null;
   documentBinarySha256: string;
   rawTextSha256: string;
   canonicalResultSha256: string;
@@ -193,6 +198,8 @@ export interface BuildDeterministicPipelineInput {
   parseResult: ComprehensiveParseResult;
   rawText: string;
   documentBinarySha256: string;
+  sourceMethod?: CanonicalTextSourceMethod;
+  ocrProvenance?: DeterministicOcrProvenance | null;
   appliedParserRuleIds?: number[];
   nonCanonicalDiagnostics?: DeterministicFieldCandidate[];
 }
@@ -727,9 +734,16 @@ function buildTextStructure(rawText: string): {
 function lineEvidence(
   line: TextLine | null,
   ruleId?: string,
+  sourceMethod?: CanonicalTextSourceMethod,
 ): CanonicalFieldEvidence {
-  if (!line) return ruleId ? { ruleId } : {};
+  if (!line) {
+    return {
+      ...(sourceMethod ? { sourceMethod } : {}),
+      ...(ruleId ? { ruleId } : {}),
+    };
+  }
   return {
+    ...(sourceMethod ? { sourceMethod } : {}),
     pageNumber: line.pageNumber,
     textSnippet: line.text,
     tokenIndexes: line.tokenIndexes,
@@ -846,6 +860,7 @@ function extractLabelDateCandidates(params: {
   lines: TextLine[];
   zoneName: string;
   sourceMethod: string;
+  evidenceSourceMethod: CanonicalTextSourceMethod;
   ruleId: string;
   orderStart: number;
 }): DeterministicFieldCandidate[] {
@@ -867,7 +882,7 @@ function extractLabelDateCandidates(params: {
           normalizedValue: normalized,
           sourceStage: "RAW_TOKENIZATION",
           sourceMethod: params.sourceMethod,
-          evidence: lineEvidence(candidateLine, params.ruleId),
+          evidence: lineEvidence(candidateLine, params.ruleId, params.evidenceSourceMethod),
           order: order++,
           scoreBreakdown: {
             labelProximity: 5,
@@ -950,6 +965,7 @@ function addParseFieldCandidate(params: {
   fieldKey: string;
   value: unknown;
   sourceMethod: string;
+  evidenceSourceMethod: CanonicalTextSourceMethod;
   preferredZone?: string;
   order: number;
 }): number {
@@ -958,7 +974,7 @@ function addParseFieldCandidate(params: {
   if (!hasCanonicalValue(normalizedValue)) return params.order;
 
   const evidenceLine = findEvidenceLine(params.lines, candidateValue, params.preferredZone, params.fieldKey);
-  const evidence = lineEvidence(evidenceLine, "parse-result-field-v1");
+  const evidence = lineEvidence(evidenceLine, "parse-result-field-v1", params.evidenceSourceMethod);
   const candidate = buildCandidate({
     fieldKey: params.fieldKey,
     value: candidateValue,
@@ -1159,6 +1175,17 @@ function sourceLinesFor(
   fallbackLines: TextLine[],
 ): TextLine[] {
   if (typeof rawSectionText !== "string" || !rawSectionText.trim()) return fallbackLines;
+  const normalizedSection = normalizeTokenText(rawSectionText);
+  const matchedLines = fallbackLines.filter(
+    (line) => line.normalizedText.length > 3 && normalizedSection.includes(line.normalizedText),
+  );
+  if (matchedLines.length > 0) {
+    return matchedLines.map((line) => ({
+      ...line,
+      sectionName,
+      zoneName,
+    }));
+  }
   return buildTextStructure(rawSectionText).lines.map((line) => ({
     ...line,
     sectionName,
@@ -1185,9 +1212,11 @@ function getReportMetadataValue(
 function buildCandidatePools(
   parseResult: ComprehensiveParseResult,
   lines: TextLine[],
+  sourceMethod: CanonicalTextSourceMethod,
 ): Map<string, DeterministicFieldCandidate[]> {
   const pools = new Map<string, DeterministicFieldCandidate[]>();
   let order = 0;
+  const sourcePath = (path: string) => `${sourceMethod}.${path}`;
 
   if (parseResult.sourceBureau?.bureauName) {
     order = addParseFieldCandidate({
@@ -1195,7 +1224,8 @@ function buildCandidatePools(
       lines,
       fieldKey: "sourceBureau.bureauName",
       value: parseResult.sourceBureau.bureauName,
-      sourceMethod: "parseResult.sourceBureau.bureauName",
+      sourceMethod: sourcePath("parseResult.sourceBureau.bureauName"),
+      evidenceSourceMethod: sourceMethod,
       preferredZone: "report_header",
       order,
     });
@@ -1207,7 +1237,8 @@ function buildCandidatePools(
       lines,
       fieldKey: `reportMetadata.${path}`,
       value: getReportMetadataValue(parseResult.reportMetadata, path),
-      sourceMethod: `parseResult.reportMetadata.${path}`,
+      sourceMethod: sourcePath(`parseResult.reportMetadata.${path}`),
+      evidenceSourceMethod: sourceMethod,
       preferredZone: "report_header",
       order,
     });
@@ -1220,7 +1251,8 @@ function buildCandidatePools(
         lines,
         fieldKey: `consumerInfo.${path}`,
         value: getValueAtPath(parseResult.consumerInfo, path),
-        sourceMethod: `parseResult.consumerInfo.${path}`,
+        sourceMethod: sourcePath(`parseResult.consumerInfo.${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "consumer_identity",
         order,
       });
@@ -1232,7 +1264,8 @@ function buildCandidatePools(
     labelPatterns: DOB_LABEL_PATTERNS,
     lines,
     zoneName: "consumer_identity",
-    sourceMethod: "rawText.labelWindow.dateOfBirth",
+    sourceMethod: sourcePath("rawText.labelWindow.dateOfBirth"),
+    evidenceSourceMethod: sourceMethod,
     ruleId: "consumer-dob-label-window-v1",
     orderStart: order,
   })) {
@@ -1247,7 +1280,8 @@ function buildCandidatePools(
     labelPatterns: REPORT_DATE_LABEL_PATTERNS,
     lines,
     zoneName: "report_header",
-    sourceMethod: "rawText.labelWindow.reportDate",
+    sourceMethod: sourcePath("rawText.labelWindow.reportDate"),
+    evidenceSourceMethod: sourceMethod,
     ruleId: "report-date-label-window-v1",
     orderStart: order,
   })) {
@@ -1258,13 +1292,7 @@ function buildCandidatePools(
   }
 
   parseResult.tradelines.forEach((tradeline, index) => {
-    const sourceLines = tradeline.sourceText
-      ? buildTextStructure(tradeline.sourceText).lines.map((line) => ({
-          ...line,
-          sectionName: "tradeline_accounts",
-          zoneName: "tradeline_accounts",
-        }))
-      : lines;
+    const sourceLines = sourceLinesFor(tradeline.sourceText, "tradeline_accounts", "tradeline_accounts", lines);
 
     for (const path of TRADELINE_FIELD_PATHS) {
       order = addParseFieldCandidate({
@@ -1272,7 +1300,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `tradelines[${index}].${path}`,
         value: getValueAtPath(tradeline, path),
-        sourceMethod: `parseResult.tradelines[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.tradelines[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "tradeline_accounts",
         order,
       });
@@ -1287,7 +1316,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `creditScores[${index}].${path}`,
         value: getValueAtPath(score, path),
-        sourceMethod: `parseResult.creditScores[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.creditScores[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "report_header",
         order,
       });
@@ -1302,7 +1332,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `inquiries[${index}].${path}`,
         value: getValueAtPath(inquiry, path),
-        sourceMethod: `parseResult.inquiries[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.inquiries[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "inquiries",
         order,
       });
@@ -1317,7 +1348,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `publicRecords[${index}].${path}`,
         value: getValueAtPath(record, path),
-        sourceMethod: `parseResult.publicRecords[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.publicRecords[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "public_records",
         order,
       });
@@ -1332,7 +1364,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `consumerStatements[${index}].${path}`,
         value: getValueAtPath(statement, path),
-        sourceMethod: `parseResult.consumerStatements[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.consumerStatements[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "consumer_statement",
         order,
       });
@@ -1347,7 +1380,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `employmentInfo[${index}].${path}`,
         value: getValueAtPath(employment, path),
-        sourceMethod: `parseResult.employmentInfo[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.employmentInfo[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "employment",
         order,
       });
@@ -1362,7 +1396,8 @@ function buildCandidatePools(
         lines: sourceLines,
         fieldKey: `paymentHistories[${index}].${path}`,
         value: getValueAtPath(paymentHistory, path),
-        sourceMethod: `parseResult.paymentHistories[${index}].${path}`,
+        sourceMethod: sourcePath(`parseResult.paymentHistories[${index}].${path}`),
+        evidenceSourceMethod: sourceMethod,
         preferredZone: "tradeline_accounts",
         order,
       });
@@ -1436,6 +1471,7 @@ function attachEvidenceId(
 ): CanonicalFieldEvidence {
   const seed = {
     fieldKey,
+    sourceMethod: evidence.sourceMethod ?? null,
     pageNumber: evidence.pageNumber ?? null,
     tokenIndexes: evidence.tokenIndexes ?? [],
     textSnippet: evidence.textSnippet ?? null,
@@ -1596,6 +1632,7 @@ function hasSourceEvidence(evidence: CanonicalFieldEvidence | null | undefined):
   if (!evidence) return false;
   return Boolean(
     evidence.textSnippet?.trim() &&
+      evidence.sourceMethod &&
       evidence.pageNumber != null &&
       Array.isArray(evidence.tokenIndexes) &&
       evidence.tokenIndexes.length > 0,
@@ -1685,8 +1722,10 @@ function buildFinalOutput(
 export function buildDeterministicCreditReportPipelinePackage(
   input: BuildDeterministicPipelineInput,
 ): DeterministicPipelinePackage {
+  const sourceMethod = input.sourceMethod ?? "pdf_text";
+  const ocrProvenance = sourceMethod === "ocr_text" ? input.ocrProvenance ?? null : null;
   const structure = buildTextStructure(input.rawText);
-  const pools = buildCandidatePools(input.parseResult, structure.lines);
+  const pools = buildCandidatePools(input.parseResult, structure.lines, sourceMethod);
   const fields: Record<string, CanonicalFieldObject> = {};
   const candidatePools: CandidatePool[] = [];
 
@@ -1700,6 +1739,8 @@ export function buildDeterministicCreditReportPipelinePackage(
   const canonicalResultSha256 = sha256Hex(stableCanonicalJson(finalOutput));
   const replayBase = {
     version: DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION,
+    sourceMethod,
+    ocrProvenance,
     documentBinarySha256: input.documentBinarySha256,
     rawTextSha256: sha256Hex(input.rawText),
     finalOutput,
@@ -1710,7 +1751,8 @@ export function buildDeterministicCreditReportPipelinePackage(
   return {
     version: DETERMINISTIC_CREDIT_REPORT_PIPELINE_VERSION,
     stages: DETERMINISTIC_PIPELINE_STAGES,
-    sourceMethod: "pdf_text",
+    sourceMethod,
+    ocrProvenance,
     documentBinarySha256: input.documentBinarySha256,
     rawTextSha256: sha256Hex(input.rawText),
     canonicalResultSha256,

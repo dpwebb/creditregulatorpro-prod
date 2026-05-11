@@ -100,6 +100,7 @@ export async function handle(request: Request) {
         bytesBase64: input.bytesBase64,
         mimeType: input.mimeType,
         quality: error.quality,
+        ocrDiagnostics: error.ocrDiagnostics,
         request,
       });
 

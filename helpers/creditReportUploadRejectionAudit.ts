@@ -5,6 +5,7 @@ import {
 } from "./creditReportPdfEligibility";
 import { base64PayloadToBuffer, sha256Hex } from "./reportBinaryUtils";
 import type { TextQualityAssessment } from "./pdfTextQualityChecker";
+import type { DeterministicOcrDiagnostics } from "./deterministicOcr";
 
 export type CreditReportUploadRoute =
   | "anonymous_preview"
@@ -18,6 +19,7 @@ export interface RejectedScannedPdfUploadAuditInput {
   userId?: number | null;
   request?: Request;
   quality?: TextQualityAssessment | null;
+  ocrDiagnostics?: DeterministicOcrDiagnostics | null;
 }
 
 function getUploadMetrics(bytesBase64: string): {
@@ -52,6 +54,19 @@ function summarizeTextQuality(quality: TextQualityAssessment | null | undefined)
   };
 }
 
+function summarizeOcrDiagnostics(diagnostics: DeterministicOcrDiagnostics | null | undefined) {
+  if (!diagnostics) return null;
+  return {
+    enabled: diagnostics.enabled,
+    available: diagnostics.available,
+    engine: diagnostics.engine,
+    renderer: diagnostics.renderer,
+    engineVersion: diagnostics.engineVersion,
+    rendererVersion: diagnostics.rendererVersion,
+    reason: diagnostics.reason,
+  };
+}
+
 export async function logRejectedScannedPdfUpload(
   input: RejectedScannedPdfUploadAuditInput,
 ): Promise<void> {
@@ -73,6 +88,7 @@ export async function logRejectedScannedPdfUpload(
       sha256: metrics.sha256,
       persistedArtifact: false,
       textQuality: summarizeTextQuality(input.quality),
+      ocrDiagnostics: summarizeOcrDiagnostics(input.ocrDiagnostics),
     },
   });
 }

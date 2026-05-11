@@ -5,6 +5,7 @@ import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
 import { sha256HexOfBase64Payload } from "./reportBinaryUtils";
 import {
   buildDeterministicCreditReportPipelinePackage,
+  type CanonicalTextSourceMethod,
   DeterministicNormalizedReport,
   DeterministicPipelinePackage,
 } from "./deterministicCreditReportPipeline";
@@ -23,10 +24,16 @@ import {
 } from "./parserPipelineFieldReconciliation";
 import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 import { assertTextBasedCreditReportPdf } from "./creditReportPdfEligibility";
+import type {
+  DeterministicOcrDiagnostics,
+  DeterministicOcrProvider,
+  DeterministicOcrProvenance,
+} from "./deterministicOcr";
+import type { TextQualityAssessment } from "./pdfTextQualityChecker";
 
 export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "deterministic-state-machine-2026-05-v1";
 
-export type CanonicalExtractionMethod = "pdf_text" | "gemini" | "openai";
+export type CanonicalExtractionMethod = "pdf_text" | "ocr_text" | "gemini" | "openai";
 
 export interface CanonicalExtractionAttempt {
   method: CanonicalExtractionMethod;
@@ -42,7 +49,11 @@ export interface CanonicalExtractionProvenance {
   version: string;
   selectedMethod: CanonicalExtractionMethod;
   normalizedByAi: boolean;
-  sourceEvidence: "pdf_text" | "ai_generated_html";
+  sourceEvidence: CanonicalTextSourceMethod;
+  textQuality: TextQualityAssessment;
+  pdfTextQuality?: TextQualityAssessment;
+  ocrProvenance?: DeterministicOcrProvenance;
+  ocrDiagnostics?: DeterministicOcrDiagnostics;
   documentBinarySha256: string;
   canonicalResultSha256: string;
   replayHash: string;
@@ -72,6 +83,8 @@ export interface ExtractCanonicalCreditReportInput {
   bytesBase64: string;
   mimeType: string;
   allowAiFallback?: boolean;
+  allowDeterministicOcr?: boolean;
+  deterministicOcrProvider?: DeterministicOcrProvider;
 }
 
 interface CandidateExtraction {
@@ -81,6 +94,7 @@ interface CandidateExtraction {
   rawHtml: string | null;
   rawText: string;
   parserQuality: ParserQualityAssessment;
+  ocrProvenance?: DeterministicOcrProvenance;
 }
 
 function sanitizeTradelineCreditorNames(tradeline: ParsedTradeline): ParsedTradeline {
@@ -298,7 +312,24 @@ export async function extractCanonicalCreditReport(
   const attempts: CanonicalExtractionAttempt[] = [];
   const documentBinarySha256 = sha256HexOfBase64Payload(input.bytesBase64);
   const requestedAiFallback = input.allowAiFallback ?? false;
-  const pdfEligibility = await assertTextBasedCreditReportPdf(input);
+  const pdfEligibility = await assertTextBasedCreditReportPdf(input, {
+    allowDeterministicOcr: input.allowDeterministicOcr ?? true,
+    deterministicOcrProvider: input.deterministicOcrProvider,
+  });
+  const deterministicSourceMethod: CanonicalTextSourceMethod =
+    pdfEligibility.sourceMethod === "ocr_text" ? "ocr_text" : "pdf_text";
+
+  if (deterministicSourceMethod === "ocr_text") {
+    attempts.push(
+      summarizeAttempt(
+        "pdf_text",
+        "failed",
+        null,
+        0,
+        pdfEligibility.pdfTextQuality?.invalidReason ?? "PDF text quality was insufficient; deterministic OCR was selected.",
+      ),
+    );
+  }
 
   let deterministic: CandidateExtraction | null = null;
 
@@ -316,20 +347,28 @@ export async function extractCanonicalCreditReport(
       llmData,
       parseResult,
       parsedTradelines: parseResult.tradelines,
-      extractionSource: "pdf_text",
+      extractionSource: deterministicSourceMethod,
     });
 
     deterministic = {
-      method: "pdf_text",
+      method: deterministicSourceMethod,
       parseResult,
       llmData,
       rawHtml: null,
       rawText: parseResult.rawText,
       parserQuality,
+      ocrProvenance: pdfEligibility.ocrProvenance,
     };
-    attempts.push(summarizeAttempt("pdf_text", "succeeded", parserQuality, parseResult.tradelines.length));
+    attempts.push(
+      summarizeAttempt(
+        deterministicSourceMethod,
+        "succeeded",
+        parserQuality,
+        parseResult.tradelines.length,
+      ),
+    );
   } catch (error) {
-    attempts.push(summarizeAttempt("pdf_text", "failed", null, 0, error));
+    attempts.push(summarizeAttempt(deterministicSourceMethod, "failed", null, 0, error));
   }
 
   attempts.push(
@@ -404,10 +443,14 @@ export async function extractCanonicalCreditReport(
     selectedParseResult = sanitizeParseResultCreditorNames(fieldReconciliation.parseResult);
   }
 
+  const selectedSourceMethod: CanonicalTextSourceMethod =
+    selected.method === "ocr_text" ? "ocr_text" : "pdf_text";
   const deterministicPipelineInput = {
     parseResult: selectedParseResult,
     rawText: selected.rawText,
     documentBinarySha256,
+    sourceMethod: selectedSourceMethod,
+    ocrProvenance: selected.ocrProvenance ?? null,
     appliedParserRuleIds,
   };
   const deterministicPipeline = buildDeterministicCreditReportPipelinePackage(
@@ -433,7 +476,11 @@ export async function extractCanonicalCreditReport(
       version: CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION,
       selectedMethod: selected.method,
       normalizedByAi: false,
-      sourceEvidence: "pdf_text",
+      sourceEvidence: selected.method === "ocr_text" ? "ocr_text" : "pdf_text",
+      textQuality: pdfEligibility.quality,
+      pdfTextQuality: pdfEligibility.pdfTextQuality,
+      ocrProvenance: pdfEligibility.ocrProvenance,
+      ocrDiagnostics: pdfEligibility.ocrDiagnostics,
       documentBinarySha256,
       canonicalResultSha256: deterministicPipeline.canonicalResultSha256,
       replayHash: deterministicPipeline.replayHash,

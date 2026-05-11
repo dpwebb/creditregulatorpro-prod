@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TextQualityAssessment } from "../../helpers/pdfTextQualityChecker";
+import type {
+  DeterministicOcrDiagnostics,
+  DeterministicOcrProvenance,
+} from "../../helpers/deterministicOcr";
 
 const mocks = vi.hoisted(() => ({
   extractTextFromPdfWithQuality: vi.fn(),
@@ -34,6 +38,44 @@ const invalidQuality: TextQualityAssessment = {
   invalidReason: "Text too short (< 100 characters)",
 };
 
+const ocrUnavailableDiagnostics: DeterministicOcrDiagnostics = {
+  enabled: false,
+  available: false,
+  engine: "tesseract-cli",
+  renderer: "pdftoppm",
+  engineVersion: null,
+  rendererVersion: null,
+  reason: "Deterministic OCR is disabled.",
+};
+
+const ocrProvenance: DeterministicOcrProvenance = {
+  sourceMethod: "ocr_text",
+  engine: "tesseract-cli",
+  renderer: "pdftoppm",
+  engineVersion: "tesseract 5.3.0",
+  rendererVersion: "pdftoppm 23.11.0",
+  pageCount: 1,
+  overallConfidence: 0.92,
+  pages: [
+    {
+      pageNumber: 1,
+      sourceMethod: "ocr_text",
+      engine: "tesseract-cli",
+      renderer: "pdftoppm",
+      confidence: 0.92,
+      charCount: 5000,
+      wordCount: 800,
+      textSnippet: "TransUnion Canada Consumer Disclosure",
+    },
+  ],
+  quality: validQuality,
+  validation: {
+    deterministic: true,
+    qualityAccepted: true,
+    minimumRules: ["OCR text passed deterministic credit-report text quality checks"],
+  },
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -53,10 +95,17 @@ describe("credit report PDF eligibility", () => {
     expect(result).toEqual({
       rawText: "TransUnion credit report account balance payment inquiry",
       quality: validQuality,
+      sourceMethod: "pdf_text",
+      pdfTextQuality: undefined,
+      ocrProvenance: undefined,
+      ocrDiagnostics: undefined,
     });
     expect(mocks.extractTextFromPdfWithQuality).toHaveBeenCalledWith(
       "JVBERi0xLjQ=",
-      { allowOcrFallback: false },
+      expect.objectContaining({
+        allowOcrFallback: false,
+        allowDeterministicOcr: false,
+      }),
     );
   });
 
@@ -64,6 +113,9 @@ describe("credit report PDF eligibility", () => {
     mocks.extractTextFromPdfWithQuality.mockResolvedValue({
       text: "",
       quality: invalidQuality,
+      sourceMethod: "pdf_text",
+      pdfTextQuality: invalidQuality,
+      ocrDiagnostics: ocrUnavailableDiagnostics,
     });
 
     let caught: unknown;
@@ -83,7 +135,41 @@ describe("credit report PDF eligibility", () => {
       statusCode: 400,
       message: SCANNED_PDF_UNSUPPORTED_MESSAGE,
       quality: invalidQuality,
+      ocrDiagnostics: ocrUnavailableDiagnostics,
     });
+  });
+
+  it("accepts OCR text only when deterministic OCR provenance and quality are present", async () => {
+    mocks.extractTextFromPdfWithQuality.mockResolvedValue({
+      text: "TransUnion credit report account balance payment inquiry",
+      quality: validQuality,
+      sourceMethod: "ocr_text",
+      pdfTextQuality: invalidQuality,
+      ocrProvenance,
+    });
+
+    const result = await assertTextBasedCreditReportPdf(
+      {
+        bytesBase64: "JVBERi0xLjQ=",
+        mimeType: "application/pdf",
+      },
+      { allowDeterministicOcr: true },
+    );
+
+    expect(result).toMatchObject({
+      rawText: "TransUnion credit report account balance payment inquiry",
+      sourceMethod: "ocr_text",
+      quality: validQuality,
+      pdfTextQuality: invalidQuality,
+      ocrProvenance,
+    });
+    expect(mocks.extractTextFromPdfWithQuality).toHaveBeenCalledWith(
+      "JVBERi0xLjQ=",
+      expect.objectContaining({
+        allowOcrFallback: false,
+        allowDeterministicOcr: true,
+      }),
+    );
   });
 
   it("does not parse unsupported MIME types", async () => {

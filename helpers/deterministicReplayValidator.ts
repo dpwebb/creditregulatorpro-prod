@@ -38,6 +38,8 @@ export function validateDeterministicReplay(
     "canonicalResultSha256",
     "candidatePools",
     "finalOutput",
+    "sourceMethod",
+    "ocrProvenance",
     "rawTextSha256",
     "documentBinarySha256",
   ];
@@ -50,6 +52,10 @@ export function validateDeterministicReplay(
   if (candidatePoolsSha256 !== replayedCandidatePoolsSha256) differences.push("candidatePools");
   if (hashCanonical(expected.finalOutput) !== hashCanonical(replayed.finalOutput)) {
     differences.push("finalOutput");
+  }
+  if (expected.sourceMethod !== replayed.sourceMethod) differences.push("sourceMethod");
+  if (hashCanonical(expected.ocrProvenance ?? null) !== hashCanonical(replayed.ocrProvenance ?? null)) {
+    differences.push("ocrProvenance");
   }
   if (expected.rawTextSha256 !== replayed.rawTextSha256) differences.push("rawTextSha256");
   if (expected.documentBinarySha256 !== replayed.documentBinarySha256) {

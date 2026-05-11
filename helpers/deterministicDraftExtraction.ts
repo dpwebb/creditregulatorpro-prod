@@ -4,6 +4,7 @@ import {
 } from "./openaiPassAValidator";
 import {
   ExtractedValue,
+  ExtractionSourceMethod,
   PassADraftExtraction,
   ProvenanceEvidence,
   RawEvidenceItem,
@@ -103,6 +104,21 @@ function addRawEvidence(
   });
 }
 
+function retargetEvidenceSourceMethod<T>(value: T, sourceMethod: ExtractionSourceMethod): T {
+  if (sourceMethod === "pdf_text" || value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    value.forEach((entry) => retargetEvidenceSourceMethod(entry, sourceMethod));
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (record.source_method === "pdf_text") {
+    record.source_method = sourceMethod;
+  }
+  Object.values(record).forEach((entry) => retargetEvidenceSourceMethod(entry, sourceMethod));
+  return value;
+}
+
 function splitName(fullName: string | null | undefined): {
   given?: string;
   middle?: string;
@@ -121,6 +137,7 @@ function splitName(fullName: string | null | undefined): {
 export function deriveDeterministicDraftExtractions(
   parseResult: ComprehensiveParseResult,
   artifactId: number,
+  sourceMethod: ExtractionSourceMethod = "pdf_text",
 ): DeterministicDraftExtractionResult {
   const rawEvidence: RawEvidenceItem[] = [];
   const sourceBureauName =
@@ -338,7 +355,7 @@ export function deriveDeterministicDraftExtractions(
   } as FullDraftExtraction;
 
   return {
-    passA,
-    fullExtraction,
+    passA: retargetEvidenceSourceMethod(passA, sourceMethod),
+    fullExtraction: retargetEvidenceSourceMethod(fullExtraction, sourceMethod),
   };
 }

@@ -65,6 +65,8 @@ export async function handleIngestSubmit(
     await assertTextBasedCreditReportPdf({
       bytesBase64: input.bytesBase64,
       mimeType: "application/pdf",
+    }, {
+      allowDeterministicOcr: true,
     });
   } catch (error) {
     if (isScannedPdfUnsupportedError(error)) {
@@ -74,6 +76,7 @@ export async function handleIngestSubmit(
         bytesBase64: input.bytesBase64,
         mimeType: "application/pdf",
         quality: error.quality,
+        ocrDiagnostics: error.ocrDiagnostics,
         request,
       });
 

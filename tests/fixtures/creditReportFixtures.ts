@@ -341,3 +341,32 @@ Collections
 EASTERN COLLECTIONS INC Date Assigned2024/07/15 Member NameORIGINAL STORE LTD Phone Number Member NumberEC123 Account Number***902 Amount$721 Balance$721 StatusUnpaid Date Verified2026/05/02 Last Payment Date2022/12/01
 NORTHERN RECOVERY SERVICES Date Assigned2025/01/10 Member NameSAMPLE TELCO Phone Number Member NumberNR777 First Delinquency2023/05/06 Account Number***903 Amount$312 Balance$300 StatusPaid Date Verified2026/05/02 Last Payment Date2023/05/06
 `;
+
+export const scannedImageOnlyPdfBase64Fixture =
+  "JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoKPDwvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlIC9QYWdlcyAvS2lkcyBbMyAwIFJdIC9Db3VudCAxPj4KZW5kb2JqCjMgMCBvYmoKPDwvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9SZXNvdXJjZXMgPDwvWE9iamVjdCA8PC9JbTEgNCAwIFI+Pj4+IC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9Db250ZW50cyA1IDAgUj4+CmVuZG9iago0IDAgb2JqCjw8L1R5cGUgL1hPYmplY3QgL1N1YnR5cGUgL0ltYWdlIC9XaWR0aCAxIC9IZWlnaHQgMSAvQ29sb3JTcGFjZSAvRGV2aWNlUkdCIC9CaXRzUGVyQ29tcG9uZW50IDggL0xlbmd0aCAzPj4Kc3RyZWFtCv///wplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwvTGVuZ3RoIDM1Pj4Kc3RyZWFtCnEKNjEyIDAgMCA3OTIgMCAwIGNtCi9JbTEgRG8KUQplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY0IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKMDAwMDAwMDI2OSAwMDAwMCBuIAowMDAwMDAwNDMwIDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA2IC9Sb290IDEgMCBSPj4Kc3RhcnR4cmVmCjUxNQolJUVPRgo=";
+
+export const ocrDerivedTransUnionTextFixture = `
+TransUnion Canada Consumer Disclosure
+Your file as of Mar 03, 2026
+TU Case ID OCR-2026-01
+
+Personal Information:
+Consumer Name: OCR TESTER
+Birth Date Mar 03, 1980
+
+Address(es):
+77 SCAN ST
+HALIFAX NS B3J 2K9
+
+\f
+Account(s):
+Creditor Name SCAN BANK VISA
+Account Number ********7001
+Account Type REVOLVING / INDIVIDUAL
+Status Open
+Opened Date Mar 01, 2020
+Reported Date Mar 03, 2026
+Balance $321.00
+Payment History
+Mar 2026 321 25 0 R1 25 800 1000 0 0 AC /
+`;

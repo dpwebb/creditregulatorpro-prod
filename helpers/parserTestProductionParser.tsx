@@ -23,7 +23,7 @@ export async function parsePdfThroughProductionHtmlPipeline(
 ): Promise<{
   parseResult: ComprehensiveParseResult;
   rawExtractedText: string;
-  extractionSource: "pdf_text" | "openai" | "gemini";
+  extractionSource: "pdf_text" | "ocr_text" | "openai" | "gemini";
   parserPipelineAudit: ParserPipelineFieldAudit;
   deterministicPipeline: DeterministicPipelinePackage;
   canonicalOutput: DeterministicNormalizedReport;

@@ -69,6 +69,7 @@ export async function handle(request: Request) {
           bytesBase64: input.bytesBase64,
           mimeType: input.mimeType,
           quality: e.quality,
+          ocrDiagnostics: e.ocrDiagnostics,
           request,
         });
 

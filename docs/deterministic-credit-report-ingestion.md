@@ -54,7 +54,7 @@ Violation search path:
 
 ## Deterministic Architecture
 
-The canonical extraction path is now PDF text first and deterministic only. The authoritative output package is produced by `helpers/deterministicCreditReportPipeline.ts` and includes:
+The canonical extraction path is now selectable PDF text first, deterministic OCR second, and deterministic only. The authoritative output package is produced by `helpers/deterministicCreditReportPipeline.ts` and includes:
 
 1. target pipeline stage list from upload through final output
 2. structural segmentation based on normalized text and section/header patterns
@@ -65,8 +65,9 @@ The canonical extraction path is now PDF text first and deterministic only. The 
 7. selected canonical fields with `confidence: 1.0`, `deterministic: true`, evidence, alternatives, and history
 8. null overwrite policy: reject null over valid canonical values
 9. LLM policy: diagnostic candidates cannot become canonical
-10. stable `canonicalResultSha256` and `replayHash`
-11. replay validation through `helpers/deterministicReplayValidator.ts`, which rebuilds the package from the same typed inputs and fails closed if hashes, candidate pools, or final output diverge
+10. field evidence source method, page, snippet, token indexes, zone, and stable evidence IDs
+11. stable `canonicalResultSha256` and `replayHash`
+12. replay validation through `helpers/deterministicReplayValidator.ts`, which rebuilds the package from the same typed inputs and fails closed if source method, OCR provenance, hashes, candidate pools, or final output diverge
 
 Parser-test, parser lab, and ingest storage now use the same deterministic package:
 
@@ -74,6 +75,23 @@ Parser-test, parser lab, and ingest storage now use the same deterministic packa
 2. parser-test run/run-all store `canonicalOutput`, `replayHash`, and `replayValidation` in `parserTestRun.fieldResults`
 3. ingest stores `deterministicPipeline`, `canonicalOutput`, `replayHash`, and `replayValidation` in `reportArtifact.data`
 4. final ingest SSE output includes additive `canonicalOutput`, `replayHash`, and `replayValidation`
+
+## Deterministic OCR Readiness
+
+OCR readiness is implemented in `helpers/deterministicOcr.ts` and wired through `helpers/pdfTextExtractor.tsx`, `helpers/creditReportPdfEligibility.ts`, and `helpers/canonicalCreditReportExtractor.tsx`.
+
+Runtime policy:
+
+1. `pdf-parse` remains the primary text source.
+2. If PDF text quality fails, deterministic OCR may run only when explicitly allowed and `CRP_DETERMINISTIC_OCR_ENABLED=true`.
+3. The current deterministic OCR provider uses `pdftoppm` to render PDF pages and `tesseract` to extract text and word confidence.
+4. OCR output is accepted only after the same deterministic credit-report text-quality validation passes.
+5. Accepted OCR canonical fields carry `sourceMethod: "ocr_text"`, page number, snippet, token indexes where available, OCR provenance, replay hash, and replay validation.
+6. OCR provenance stores engine, renderer, versions, page count, page snippets, page confidence, word counts, overall confidence, and validation rules.
+7. If deterministic OCR is disabled, unavailable, fails, or produces low-quality text, scanned/image-only PDFs fail explicitly with `SCANNED_PDF_UNSUPPORTED`.
+8. AI OCR, Gemini OCR, OpenAI extraction, and DocStrange/LLM output remain diagnostic-only and cannot become canonical.
+
+The local Windows check during Phase 2 found `tesseract` unavailable on PATH, so local scanned-PDF behavior is fail-closed until the runtime is installed and enabled. Server-side scanned-PDF acceptance requires both `tesseract` and `pdftoppm` on PATH plus `CRP_DETERMINISTIC_OCR_ENABLED=true`.
 
 ## Current Fixture Coverage
 
@@ -90,6 +108,8 @@ The regression suite now includes deterministic synthetic fixtures for:
 9. Equifax account-only sections that must not become consumer identity
 10. Equifax mortgage account sections
 11. Equifax collection-account sections, including collapsed agency-line label/value records
+12. scanned image-only PDF failure behavior when deterministic OCR is unavailable
+13. OCR-derived TransUnion disclosure text that preserves DOB, address, case ID, tradeline, page-aware evidence, OCR provenance, and replay metadata
 
 `pnpm run test:deterministic-ingestion-report` verifies exact tradeline counts for every fixture, DOB/address expectations where present, bureau metadata, TransUnion case IDs where present, date and money fields, 100% required source-evidence coverage, stable replay hashes, and violation-search compatibility. Parser-test and canonical-ingest path coverage also exercises the new Phase 1 fixture families through the shared deterministic PDF parser path with AI fallback disabled.
 
@@ -144,11 +164,11 @@ These components are retained only as compatibility shims or admin diagnostics; 
 6. AI scanning-rule generation, which is disabled so rules must be explicit deterministic definitions
 7. legacy stored `docstrangeRawHtml` artifacts, which are counted and skipped by compliance backfill
 
-Direct `parseReport` and `extractTextFromPdf` defaults are now deterministic: OCR fallback and AI augmentation default to `false`.
+Direct `parseReport` and `extractTextFromPdf` defaults are now deterministic: OCR fallback and AI augmentation default to `false`. Canonical ingestion can enable deterministic OCR, but AI OCR remains disabled for authoritative extraction.
 
 ## Remaining Parser Risks
 
-1. Scanned image-only PDFs require a deterministic OCR engine before they can be fully supported without AI.
+1. Scanned image-only PDFs require installed and enabled deterministic OCR runtime before they can be accepted outside tests.
 2. Older bureau layouts and regional variations need more explicit rule packs and fixtures.
 3. Current semantic zones use text structure and section patterns; PDF bounding boxes are not yet populated.
 4. Known template rules should be added for bureau-specific legacy formats instead of broadening generic patterns.

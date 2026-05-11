@@ -25,13 +25,14 @@ Implemented:
 1. Phase 1: Completed deterministic extraction coverage expansion with 11 anonymized synthetic fixtures covering TransUnion consumer disclosure, collapsed TransUnion text, TransUnion legacy numbered sections, TransUnion exported portal text order, TransUnion regional numbered disclosure, Equifax revolving plus collection, Equifax installment, Equifax account-only, Equifax mortgage, and collapsed Equifax collection sections.
 2. Phase 1: Tightened `pnpm run test:deterministic-ingestion-report` so each fixture must preserve exact tradeline counts, bureau metadata, report dates, TransUnion case IDs where present, DOB/address expectations where present, date and money fields, 100% required evidence coverage, replay-hash stability, and violation-search compatibility.
 3. Phase 1: Added parser-test/canonical-ingest path coverage for the new layout families while keeping bureau-specific collection parsing isolated from generic TransUnion parsing.
-4. Phase 3: Added stable canonical evidence IDs to field evidence for downstream violation and packet traceability.
-5. Phase 8: Added `pnpm run test:deterministic-ingestion-report` and included it in `pnpm run check` so replay stability, required evidence coverage, fixture support, and violation-search preservation are visible before publish.
+4. Phase 2: Added deterministic OCR readiness with a fail-closed Tesseract plus Poppler provider, OCR provenance, page confidence diagnostics, deterministic validation before OCR text can feed canonical fields, scanned-PDF failure fixtures, and OCR-derived success fixtures.
+5. Phase 3: Added stable canonical evidence IDs to field evidence for downstream violation and packet traceability.
+6. Phase 8: Added `pnpm run test:deterministic-ingestion-report` and included it in `pnpm run check` so replay stability, required evidence coverage, fixture support, and violation-search preservation are visible before publish.
 
 Remaining high-priority work:
 
-1. Deterministic OCR evaluation and scanned-PDF fixtures.
-2. Page-aware and bounding-box evidence.
+1. Install and enable the deterministic OCR runtime in any environment that should accept scanned PDFs: `tesseract`, `pdftoppm`, and `CRP_DETERMINISTIC_OCR_ENABLED=true`.
+2. Page-aware bounding-box evidence.
 3. Dedicated deterministic rule packs for creditor statements and collection letters.
 4. Deeper admin-correction promotion into future parser, validation, violation, exception, and regression rules.
 
@@ -58,6 +59,8 @@ Exit criteria:
 ## Phase 2: Deterministic OCR Readiness
 
 Goal: support scanned or image-heavy PDFs without AI-derived authoritative extraction.
+
+Status: Complete as of May 11, 2026 for code readiness. Scanned PDFs fail explicitly when deterministic OCR is unavailable. OCR text can become canonical only with deterministic OCR provenance, page confidence diagnostics, deterministic text-quality validation, replay metadata, and `sourceMethod: "ocr_text"`. AI OCR remains unable to become canonical. Operational scanned-PDF acceptance still requires installing `tesseract` and `pdftoppm` and enabling `CRP_DETERMINISTIC_OCR_ENABLED=true`.
 
 Work:
 
@@ -170,7 +173,7 @@ Exit criteria:
 
 ## Current Known Risks
 
-1. Scanned image-only PDFs still need deterministic OCR before canonical ingestion.
+1. Scanned image-only PDFs require the deterministic OCR runtime to be installed and enabled before they can be accepted outside tests.
 2. PDF bounding boxes are not yet populated in canonical evidence.
 3. Creditor statements and collection letters need dedicated deterministic rule packs before broad support.
 4. Admin corrections need deeper automated conversion into future deterministic rules.
@@ -178,4 +181,4 @@ Exit criteria:
 
 ## Next Recommended Work Item
 
-Start with Phase 1 fixture expansion using anonymized text derived from observed TransUnion and Equifax variations. This gives the safest signal before changing deeper parser logic.
+Start Phase 3 evidence hardening by adding deterministic bounding-box/page-coordinate evidence where the text extractor can supply coordinates, then link that evidence through violations and dispute packets.

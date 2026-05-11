@@ -175,6 +175,14 @@ describe("deterministic ingestion lockdown", () => {
     expect(result.fullExtraction.accounts[0].creditor_name.evidence.source_method).toBe("pdf_text");
   });
 
+  it("can derive deterministic draft records with OCR text provenance after canonical OCR validation", () => {
+    const result = deriveDeterministicDraftExtractions(parseResult(), 42, "ocr_text");
+
+    expect(result.passA.raw_evidence.every((item) => item.evidence.source_method === "ocr_text")).toBe(true);
+    expect(result.passA.consumer_profile.date_of_birth?.evidence.source_method).toBe("ocr_text");
+    expect(result.fullExtraction.accounts[0].creditor_name.evidence.source_method).toBe("ocr_text");
+  });
+
   it("sanitizes creditor name label bleed before Full extraction materialization", () => {
     const base = parseResult();
     const result = deriveDeterministicDraftExtractions(
