@@ -498,6 +498,17 @@
   text-align: center;
 }
 
+.originatingFindingNotice {
+  border: 1px solid color-mix(in srgb, var(--warning), var(--border) 45%);
+  border-radius: var(--radius-sm);
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--warning), transparent 88%);
+  padding: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 .previewContent {
   color: var(--foreground);
   font-size: 0.9rem;

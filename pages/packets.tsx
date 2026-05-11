@@ -35,6 +35,13 @@ import type { DisputePacketCandidate } from "../helpers/disputePacketService";
 import type { SimpleDisputePacketContent } from "../helpers/disputePacketTemplate";
 import styles from "./packets.module.css";
 
+export function parseInitialPacketIssueId(searchParams: URLSearchParams): number | null {
+  const issueIdParam = searchParams.get("issueId");
+  if (issueIdParam === null) return null;
+  const parsedIssueId = Number(issueIdParam);
+  return Number.isInteger(parsedIssueId) && parsedIssueId > 0 ? parsedIssueId : null;
+}
+
 export default function PacketsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data, isFetching, error } = usePacketList();
@@ -47,6 +54,7 @@ export default function PacketsPage() {
   const [deliveryWizardPacketId, setDeliveryWizardPacketId] = useState<number | null>(null);
   const [deliveryWizardBureauName, setDeliveryWizardBureauName] = useState<string>("the credit bureau");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [initialIssueId, setInitialIssueId] = useState<number | null>(null);
   
   const { showSuccess, showError } = useToast();
   const { isAdmin } = useAuth();
@@ -57,7 +65,9 @@ export default function PacketsPage() {
 
     if (searchParams.get("create") === "true") {
       setIsCreateDialogOpen(true);
+      setInitialIssueId(parseInitialPacketIssueId(searchParams));
       nextParams.delete("create");
+      nextParams.delete("issueId");
       shouldReplaceParams = true;
     }
 
@@ -162,6 +172,13 @@ export default function PacketsPage() {
     }
   };
 
+  const handleCreateDialogOpenChange = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    if (!open) {
+      setInitialIssueId(null);
+    }
+  };
+
   const hasReadyToMail = data?.packets.some((p) => p.status?.toLowerCase() === "ready to mail");
   const hasSent = data?.packets.some((p) => ["sent", "completed"].includes(p.status?.toLowerCase() || ""));
   const hasDrafts = data?.packets.some((p) => p.status?.toLowerCase() === "draft");
@@ -225,7 +242,12 @@ export default function PacketsPage() {
         }
       >
         <div className="flex gap-2">
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button
+            onClick={() => {
+              setInitialIssueId(null);
+              setIsCreateDialogOpen(true);
+            }}
+          >
             <Plus size={16} />
             Create Packet
           </Button>
@@ -480,8 +502,9 @@ export default function PacketsPage() {
       </Suspense>
       <CreatePacketDialog
         open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+        onOpenChange={handleCreateDialogOpenChange}
         onCreated={(packetId) => setViewingPacketId(packetId)}
+        initialIssueId={initialIssueId}
       />
       {deliveryWizardPacketId !== null && (() => {
         const activePacket = data?.packets.find(p => p.id === deliveryWizardPacketId);
@@ -506,13 +529,17 @@ function CreatePacketDialog({
   open,
   onOpenChange,
   onCreated,
+  initialIssueId = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (packetId: number) => void;
+  initialIssueId?: number | null;
 }) {
   const [packetType, setPacketType] = useState<DisputePacketType>("credit_bureau");
   const [selectedIssueIds, setSelectedIssueIds] = useState<Set<number>>(new Set());
+  const [initialIssueReadinessMessage, setInitialIssueReadinessMessage] = useState(false);
+  const [handledInitialIssueKey, setHandledInitialIssueKey] = useState<string | null>(null);
   const [preview, setPreview] = useState<SimpleDisputePacketContent | null>(null);
   const [recipient, setRecipient] = useState({
     name: "",
@@ -527,9 +554,14 @@ function CreatePacketDialog({
   const buildPreview = useBuildPacketPreview();
   const createPacket = useCreatePacket();
   const { showSuccess, showError } = useToast();
+  const candidates = recommendations.data?.recommendations ?? [];
+  const selectedCandidates = candidates.filter((candidate) => selectedIssueIds.has(candidate.issueId));
+  const initialIssueKey = initialIssueId ? `${packetType}:${initialIssueId}` : null;
 
   React.useEffect(() => {
     setSelectedIssueIds(new Set());
+    setInitialIssueReadinessMessage(false);
+    setHandledInitialIssueKey(null);
     setPreview(null);
     setRecipient({
       name: "",
@@ -541,8 +573,27 @@ function CreatePacketDialog({
     });
   }, [packetType, open]);
 
-  const candidates = recommendations.data?.recommendations ?? [];
-  const selectedCandidates = candidates.filter((candidate) => selectedIssueIds.has(candidate.issueId));
+  React.useEffect(() => {
+    if (!open || !initialIssueId || !initialIssueKey || recommendations.isFetching) return;
+    if (handledInitialIssueKey === initialIssueKey) return;
+
+    const matchingCandidate = candidates.find((candidate) => candidate.issueId === initialIssueId);
+    setPreview(null);
+    if (matchingCandidate) {
+      setSelectedIssueIds(new Set([matchingCandidate.issueId]));
+      setInitialIssueReadinessMessage(false);
+    } else {
+      setInitialIssueReadinessMessage(true);
+    }
+    setHandledInitialIssueKey(initialIssueKey);
+  }, [
+    candidates,
+    handledInitialIssueKey,
+    initialIssueId,
+    initialIssueKey,
+    open,
+    recommendations.isFetching,
+  ]);
 
   const toggleSelection = (candidate: DisputePacketCandidate) => {
     setPreview(null);
@@ -680,6 +731,11 @@ function CreatePacketDialog({
               <h3>Disputed Items</h3>
               <span>{selectedIssueIds.size} selected</span>
             </div>
+            {initialIssueReadinessMessage && (
+              <div className={styles.originatingFindingNotice}>
+                This finding is not packet-ready yet. Review the readiness blockers before creating a packet.
+              </div>
+            )}
             {recommendations.isFetching ? (
               <div className={styles.builderState}>Loading report issues...</div>
             ) : candidates.length === 0 ? (

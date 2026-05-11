@@ -51,6 +51,14 @@ interface TradelineComplianceHubProps {
   focusViolationId?: number;
 }
 
+export function buildCreatePacketRouteForFinding(violationId: number): string {
+  const params = new URLSearchParams({
+    create: "true",
+    issueId: String(violationId),
+  });
+  return `/packets?${params.toString()}`;
+}
+
 export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   tradelineId,
   className,
@@ -192,8 +200,8 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
   const isSolPacketSent = solPacket?.status?.toUpperCase() === "SENT" || !!solPacket?.sentDate;
 
   // Handlers
-  const handleGeneratePacket = (_violationId: number) => {
-    navigate("/packets?create=true");
+  const handleGeneratePacket = (violationId: number) => {
+    navigate(buildCreatePacketRouteForFinding(violationId));
   };
 
   const handleDismissViolation = async (violationId: number, status: "dismissed" | "verified", reason?: string) => {
