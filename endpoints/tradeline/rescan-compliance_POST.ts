@@ -4,7 +4,6 @@ import { db } from "../../helpers/db";
 import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { validateOrigin } from "../../helpers/domainGuard";
 import { scanForViolations, mapViolationToObligationType, getAdminReviewedStatutoryBasis } from "../../helpers/complianceScanner";
-import { mapViolationToDisputeVector } from "../../helpers/violationToDisputeVector";
 import { normalizeDetectedViolations } from "../../helpers/complianceFindingNormalizer";
 import { getDeterministicViolationStatutoryBasis } from "../../helpers/violationRuleEvidence";
 import { evaluateViolationPacketConfidenceGate } from "../../helpers/violationPacketConfidenceGate";
@@ -103,16 +102,8 @@ export async function handle(request: Request) {
       `Deleted ${deleteResult[0]?.numDeletedRows ?? 0} existing auto-generated violations for tradeline ${input.tradelineId}`
     );
 
-    // Delete any existing OBLIGATION_PENDING obligation instances for this tradeline
-    // to avoid duplicates from repeated rescans. Instances in other states are preserved.
-    const deletedInstancesResult = await db
-      .deleteFrom("obligationInstance")
-      .where("tradelineId", "=", input.tradelineId)
-      .where("state", "=", "OBLIGATION_PENDING")
-      .execute();
-
     console.log(
-      `Deleted ${deletedInstancesResult[0]?.numDeletedRows ?? 0} existing OBLIGATION_PENDING obligation instances for tradeline ${input.tradelineId}`
+      `Dispute workflow instance mutation is reset; preserved existing obligation instances for tradeline ${input.tradelineId}`
     );
 
     // 6. Run the compliance scan
@@ -122,11 +113,10 @@ export async function handle(request: Request) {
 
     console.log(`Detected ${detectedViolations.length} violations from scan`);
 
-    // 7. Insert all detected compliance findings fresh, create corresponding obligation instances,
-    //    and re-link packets by violation category
+    // 7. Insert all detected compliance findings fresh and re-link historical packets by violation category.
+    //    Dispute workflow instance creation is reset pending the new dispute-process architecture.
     const insertedIds: number[] = [];
     let totalRelinkedPackets = 0;
-    let createdInstanceCount = 0;
 
     for (const violation of detectedViolations) {
       try {
@@ -179,40 +169,11 @@ export async function handle(request: Request) {
           const newViolationId = Number(result.id);
           insertedIds.push(newViolationId);
 
-          if (packetConfidenceGate.packetReady) {
-            // Create a corresponding obligation instance for this violation
-            try {
-              const mappedVector = mapViolationToDisputeVector(violation.violationCategory, technicalDetails);
-              // Fall back to "AUTHORITY_TO_REPORT" (first in canonical sequence) if no mapping found
-              const disputeVector = mappedVector ?? "AUTHORITY_TO_REPORT";
-
-              await db
-                .insertInto("obligationInstance")
-                .values({
-                  tradelineId: input.tradelineId,
-                  userId: user.id,
-                  state: "OBLIGATION_PENDING",
-                  disputeVector: disputeVector,
-                  notes: `Auto-created from compliance violation #${newViolationId}`,
-                  createdAt: new Date(),
-                })
-                .execute();
-
-              createdInstanceCount++;
-              console.log(
-                `Created obligation instance for violation #${newViolationId} with vector: ${disputeVector}`
-              );
-            } catch (instanceError) {
-              console.error(
-                `Failed to create obligation instance for violation #${newViolationId}:`,
-                instanceError instanceof Error ? instanceError.message : instanceError
-              );
-            }
-          } else {
-            console.log(
-              `Skipped obligation instance for violation #${newViolationId}: ${packetConfidenceGate.message}`
-            );
-          }
+          console.log(
+            packetConfidenceGate.packetReady
+              ? `Dispute workflow instance creation is reset; persisted violation #${newViolationId} without creating an obligation instance.`
+              : `Persisted violation #${newViolationId} with review gate: ${packetConfidenceGate.message}`
+          );
 
           // Re-link any packets that were previously associated with an old violation
           // of the same violation category
@@ -246,7 +207,7 @@ export async function handle(request: Request) {
     }
 
     console.log(
-      `Persisted ${insertedIds.length} violations. Created ${createdInstanceCount} obligation instance(s). Re-linked ${totalRelinkedPackets} packet(s) across all categories.`
+      `Persisted ${insertedIds.length} violations. Dispute workflow instance creation is reset. Re-linked ${totalRelinkedPackets} packet(s) across all categories.`
     );
 
     // 8. Log the action
@@ -261,7 +222,7 @@ export async function handle(request: Request) {
           action: "manual_compliance_rescan",
           totalDetected: detectedViolations.length,
           inserted: insertedIds.length,
-          obligationInstancesCreated: createdInstanceCount,
+          obligationInstancesCreated: 0,
           packetsRelinked: totalRelinkedPackets,
         } as any,
         status: "SUCCESS",
@@ -274,7 +235,7 @@ export async function handle(request: Request) {
     const output: OutputType = {
       ok: true,
       violationsFound: detectedViolations.length,
-      message: `Rescan complete. Found ${detectedViolations.length} total issues. ${insertedIds.length} were successfully recorded. ${createdInstanceCount} obligation instance(s) created. ${totalRelinkedPackets} packet(s) were re-linked to updated violations.`,
+      message: `Rescan complete. Found ${detectedViolations.length} total issues. ${insertedIds.length} were successfully recorded. Dispute workflow instance creation is reset. ${totalRelinkedPackets} packet(s) were re-linked to updated violations.`,
     };
 
     return new Response(JSON.stringify(output));

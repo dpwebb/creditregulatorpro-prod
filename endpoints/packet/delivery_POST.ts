@@ -5,44 +5,11 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { createHash } from "crypto";
 import { calculateDeadline, createDeadlineEvent } from "../../helpers/deadlineCalculator";
-import { Transaction } from "kysely";
-import { DB } from "../../helpers/schema";
-import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
 function generateHash(data: string): string {
   return createHash('sha256').update(data).digest('hex');
-}
-
-async function buildAndInsertObligationInstance(
-  trx: Transaction<DB>,
-  params: {
-    tradelineId: number | null;
-    userId: number;
-    challengeSentDate: Date;
-    responseDeadline: Date;
-    disputeVector: string | null;
-    packetId: number;
-    deliveryMethod: string;
-  }
-): Promise<number> {
-  const result = await trx
-    .insertInto("obligationInstance")
-    .values({
-      tradelineId: params.tradelineId,
-      userId: params.userId,
-      challengeSentDate: params.challengeSentDate,
-      state: "CHALLENGED",
-      responseDeadline: params.responseDeadline,
-      disputeVector: params.disputeVector,
-      notes: `Packet #${params.packetId} sent via ${params.deliveryMethod}`,
-      createdAt: new Date(),
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-
-  return result.id;
 }
 
 export async function handle(request: Request) {
@@ -87,7 +54,6 @@ export async function handle(request: Request) {
       .select([
         "packet.id",
         "packet.tradelineId",
-        "packet.creditorObligationTestId",
         "tradeline.userId",
         "packet.status"
       ])
@@ -102,28 +68,11 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Unauthorized access to packet" }), { status: 403 });
     }
 
-    await assertCreditorObligationPacketReady({
-      creditorObligationTestId: packet.creditorObligationTestId,
-      tradelineId: packet.tradelineId,
-      userId,
-      isAdmin: session.user.role === "admin",
-    });
-
-    // Fetch creditorObligationTest data if linked
-    let disputeVector: string | null = null;
-    if (packet.creditorObligationTestId != null) {
-      const cot = await db
-        .selectFrom("creditorObligationTest")
-        .select(["disputeVector"])
-        .where("id", "=", packet.creditorObligationTestId)
-        .executeTakeFirst();
-      disputeVector = cot?.disputeVector ?? null;
-    }
-
     // Calculate the response deadline: sentDate + 30 days
     const { deadline: responseDeadline } = calculateDeadline(input.sentDate, "CA", false);
 
-    // Run the main transaction: update packet, create evidence event, create obligation instance
+    // Run the main transaction: update packet and create evidence/audit events.
+    // Legacy dispute workflow instance creation is reset.
     let newObligationInstanceId: number | null = null;
 
     await db.transaction().execute(async (trx) => {
@@ -200,18 +149,7 @@ export async function handle(request: Request) {
         })
         .execute();
 
-      // Create obligation instance
-      newObligationInstanceId = await buildAndInsertObligationInstance(trx, {
-        tradelineId: packet.tradelineId,
-        userId,
-        challengeSentDate: input.sentDate,
-        responseDeadline,
-        disputeVector,
-        packetId: input.packetId,
-        deliveryMethod: input.deliveryMethod,
-      });
-
-      console.log(`Created obligationInstance id=${newObligationInstanceId} for packet ${input.packetId}`);
+      console.log(`Delivery recorded for packet ${input.packetId}; dispute workflow instance creation is reset.`);
     });
 
     // Create deadline event OUTSIDE the transaction (createDeadlineEvent does its own insert)

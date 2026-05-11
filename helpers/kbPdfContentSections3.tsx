@@ -18,14 +18,14 @@ import {
 export const section13 = (): Content[] => [
   sectionHeader(13, "Security"),
   subHeader("SHA-256 Hash Chain & Auditing"),
-  body("Uses SHA-256 hash chaining for legal admissibility, originating from a verified genesis block. Comprehensive audit logging records all actions immutably. Logged actions include authentication, CRUD operations, evidence attachment, packet generation, and system operations. Log entries contain Action Type, Timestamp, User ID, IP, Entity, Status, Change Records, and Region."),
+  body("Uses SHA-256 hash chaining for legal admissibility, originating from a verified genesis block. Comprehensive audit logging records all actions immutably. Logged actions include authentication, CRUD operations, evidence attachment, historical packet activity, delivery records, and system operations. Log entries contain Action Type, Timestamp, User ID, IP, Entity, Status, Change Records, and Region."),
 
   subHeader("Rate Limiting"),
   createTable(
     ["Operation", "Limit"],
     [
       ["Evidence Uploads", "10 per hour"],
-      ["Packet Generation", "5 per hour"],
+      ["Packet Delivery", "5 per hour"],
       ["Compliance Rescans", "20 per day"],
       ["API Requests (General)", "1000 per hour"]
     ]
@@ -34,7 +34,7 @@ export const section13 = (): Content[] => [
   subHeader("Session Management & RBAC"),
   body("JWT-based stateless session management ensures security. Tokens expire in 24hr and use HTTP-only cookies. Roles:"),
   bulletList([
-    "USER: Can access own tradelines/packets, evidence, packet generation, compliance tools, and profile.",
+    "USER: Can access own tradelines/packets, evidence, historical packet records, compliance tools, and profile.",
     "ADMIN: Possesses all USER permissions plus user management, system analytics, security logs, bureau management, regulatory updates, and escalation triggers."
   ]),
 
@@ -57,7 +57,7 @@ export const section14 = (): Content[] => [
   body("New registrations receive a 7-day Trial User period. If billing fails or the trial expires without subscription, the account is locked until payment is resolved."),
 
   subHeader("Profile Requirements & Auth"),
-  body("A full legal name and Canadian address are strictly required. Missing profile data blocks packet generation. Authentication supports email verification, password hashing, and OAuth (Google).")
+  body("A full legal name and Canadian address are strictly required for delivery workflows. Authentication supports email verification, password hashing, and OAuth (Google).")
 ];
 
 export const section15 = (): Content[] => [

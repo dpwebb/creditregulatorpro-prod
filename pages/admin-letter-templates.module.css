@@ -3,6 +3,29 @@
   margin: 0 auto;
 }
 
+.resetPanel {
+  display: flex;
+  gap: var(--spacing-4);
+  align-items: flex-start;
+  padding: var(--spacing-6);
+  margin-top: var(--spacing-6);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+}
+
+.resetPanel h2 {
+  margin: 0 0 var(--spacing-2);
+  font-size: 1.125rem;
+}
+
+.resetPanel p {
+  margin: 0;
+  color: var(--muted-foreground);
+  line-height: 1.5;
+}
+
 .tabContent {
   margin-top: var(--spacing-6);
   outline: none;

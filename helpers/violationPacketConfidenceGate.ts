@@ -141,7 +141,7 @@ export function evaluateParserConfidenceGateFromArtifactData(
       requiresManualReview,
       reasonCodes: Array.from(new Set(reasonCodes)),
       message:
-        "The source report extraction needs parser review before a dispute packet can be generated.",
+        "The source report extraction needs parser review before it can be used in the dispute process.",
     });
   }
 
@@ -155,7 +155,7 @@ export function evaluateParserConfidenceGateFromArtifactData(
       requiresManualReview,
       reasonCodes: Array.from(new Set(reasonCodes)),
       message:
-        "Review and verify this finding before creating a dispute packet.",
+        "Review and verify this finding before it can be used in the dispute process.",
     });
   }
 
@@ -165,7 +165,7 @@ export function evaluateParserConfidenceGateFromArtifactData(
     confidenceScore,
     requiresManualReview,
     reasonCodes: Array.from(new Set(reasonCodes)),
-    message: "The source report extraction is confirmed for packet generation.",
+    message: "The source report extraction is confirmed for dispute review.",
   });
 }
 
@@ -234,7 +234,7 @@ export function evaluateViolationPacketConfidenceGate(input: {
       confidenceScore: storedGate?.confidenceScore ?? null,
       message:
         storedGate?.message ||
-        "The source report extraction needs parser review before a dispute packet can be generated.",
+        "The source report extraction needs parser review before it can be used in the dispute process.",
     };
   }
 
@@ -252,7 +252,7 @@ export function evaluateViolationPacketConfidenceGate(input: {
       confidenceScore: storedGate?.confidenceScore ?? null,
       message:
         storedGate?.message ||
-        "Review and verify this finding before creating a dispute packet.",
+        "Review and verify this finding before it can be used in the dispute process.",
     };
   }
 
@@ -263,6 +263,6 @@ export function evaluateViolationPacketConfidenceGate(input: {
     packetReady: true,
     blockerCode: null,
     confidenceScore: storedGate?.confidenceScore ?? null,
-    message: storedGate?.message ?? "This compliance finding is available for packet generation.",
+    message: storedGate?.message ?? "This compliance finding is available for dispute review.",
   };
 }

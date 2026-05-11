@@ -174,13 +174,9 @@ export const DashboardActivityTable = ({
                 <td colSpan={isAdmin ? 3 : 4} className={styles.emptyCell}>
                   <DashboardEmptyState
                     icon={Package}
-                    title="Nothing yet"
-                    description="You haven't written any dispute letters yet. Write one to get started."
-                    action={{
-                      label: "Write a Letter",
-                      onClick: () => navigate("/packets")
-                    }}
-                    helpContent="Dispute letters are what you send to fix mistakes on your credit report."
+                    title="Dispute flow reset"
+                    description="New dispute letters are paused while the packet process is redesigned."
+                    helpContent="Historical letters remain available from My Letters where applicable."
                   />
                 </td>
               </tr>

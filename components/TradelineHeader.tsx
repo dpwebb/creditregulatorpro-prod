@@ -50,7 +50,7 @@ export const TradelineHeader: React.FC<TradelineHeaderProps> = ({
   balance,
   openedDate,
   accountType,
-  terminalPhase = "PHASE 1: FOUNDATIONAL CHALLENGE — PENDING",
+  terminalPhase = "DISPUTE PROCESS RESET",
   className,
   isCollectionAccount,
   collectionAgencyName,
@@ -69,8 +69,8 @@ export const TradelineHeader: React.FC<TradelineHeaderProps> = ({
   crossBureauTradeline,
 }) => {
   const { isAdmin } = useAuth();
-  const phaseProgress = getPhaseProgress(terminalPhase);
-  const isExhausted = phaseProgress.current === phaseProgress.total;
+  const phaseProgress = getPhaseProgress();
+  const isExhausted = phaseProgress.total > 0 && phaseProgress.current === phaseProgress.total;
 
   const getResponsibilityLabel = (code: string) => {
     const map: Record<string, string> = {
@@ -245,7 +245,7 @@ export const TradelineHeader: React.FC<TradelineHeaderProps> = ({
       <div className={`${styles.terminalBar} ${isExhausted ? styles.exhaustedBar : styles.pendingBar}`}>
         <div className={styles.terminalLabelText}>{isExhausted ? "ALL STEPS COMPLETE" : terminalPhase}</div>
         <div className={styles.terminalLabelProgress}>
-          Step {phaseProgress.current} of {phaseProgress.total}
+          {phaseProgress.total > 0 ? `Step ${phaseProgress.current} of ${phaseProgress.total}` : "Redesign pending"}
         </div>
       </div>
     </div>

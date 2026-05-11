@@ -57,7 +57,7 @@ export const adminKbPdfContentSections = () => {
       { text: "6. Operations", style: "header", tocItem: true, id: "sec6" },
       { text: "System monitoring and maintenance tools to ensure high availability and compliance.", style: "body" },
       { ul: [
-        "Activity Logs: Track user actions including logins, uploads, and packet generation across the entire system.",
+        "Activity Logs: Track user actions including logins, uploads, historical packet activity, and delivery records across the entire system.",
         "Error Logs: Review system failures, failed extractions, and exceptions for detailed debugging.",
         "Data Retention: Monitor compliance with the strict 1-year data retention policy and trigger manual cleanups if necessary.",
       ], style: "list" },

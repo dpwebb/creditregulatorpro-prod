@@ -705,40 +705,9 @@ export async function executeIngestPipeline({
               }
             }
 
-            const pendingInstance = await db
-              .selectFrom("obligationInstance")
-              .select("id")
-              .where("tradelineId", "=", tradelineId)
-              .where("state", "=", "OBLIGATION_PENDING")
-              .orderBy("createdAt", "desc")
-              .executeTakeFirst();
-
-                        if (pendingInstance) {
-              // Keep as OBLIGATION_PENDING — drift detection should not mark as CHALLENGED (Letter Sent)
-              // Just update escalation info on the existing pending instance
-              await db
-                .updateTable("obligationInstance")
-                .set({
-                  escalationDate: new Date(),
-                  escalationTriggered: true,
-                })
-                .where("id", "=", pendingInstance.id)
-                .execute();
-            } else {
-              await db
-                .insertInto("obligationInstance")
-                .values({
-                  tradelineId,
-                  userId: user.id,
-                  state: "OBLIGATION_PENDING",
-                  disputeVector: "DATA_DRIFT",
-                  pressureScore: significantChanges.some(c => c.severity === "ERROR") ? 80 : 40,
-                  notes: `Auto-generated from significant data drift detected.`,
-                  escalationTriggered: true,
-                  escalationDate: new Date(),
-                })
-                .execute();
-            }
+            console.log(
+              `Dispute workflow instance mutation is reset; recorded drift challenge logs for tradeline ${tradelineId}.`
+            );
           }
 
           // Link report changes to active disputes and classify outcome signals.

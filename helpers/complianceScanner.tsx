@@ -62,7 +62,6 @@ import {
 } from "./complianceDetectors";
 import { resolveTradelineProvince } from "./resolveTradelineProvince";
 import { executeActiveRules } from "./dynamicRuleExecutor";
-import { mapViolationToDisputeVector } from "./violationToDisputeVector";
 import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 import { applyViolationCorrectionTruthLayer } from "./violationCorrectionRetrieval";
 import {
@@ -594,50 +593,10 @@ function violationMatchesSourceArtifact(
   return scopeIds.length === 0 || scopeIds.includes(sourceReportArtifactId);
 }
 
-async function createPendingObligationInstanceForViolation(
-  tradelineId: number,
-  userId: number | null,
-  violation: DetectedViolation,
-  violationId: number
-): Promise<boolean> {
-  if (!userId) return false;
-
-  const technicalDetails = violation.technicalDetails as { fieldName?: string } | null | undefined;
-  const disputeVector =
-    mapViolationToDisputeVector(violation.violationCategory, technicalDetails) ??
-    "AUTHORITY_TO_REPORT";
-
-  const existing = await db
-    .selectFrom("obligationInstance")
-    .select("id")
-    .where("tradelineId", "=", tradelineId)
-    .where("userId", "=", userId)
-    .where("state", "=", "OBLIGATION_PENDING")
-    .where("disputeVector", "=", disputeVector)
-    .executeTakeFirst();
-
-  if (existing) {
-    return false;
-  }
-
-  await db
-    .insertInto("obligationInstance")
-    .values({
-      tradelineId,
-      userId,
-      state: "OBLIGATION_PENDING",
-      disputeVector,
-      notes: `Auto-created from compliance violation #${violationId}`,
-      createdAt: new Date(),
-    })
-    .execute();
-
-  return true;
-}
-
 /**
  * Persists detected compliance findings to the creditor_obligation_test table.
  * Automatically deduplicates based on signature (category + obligationType + userExplanation).
+ * Dispute workflow records are not created here while the dispute process is reset.
  * 
  * @param violations - Array of detected compliance findings to persist
  * @param tradelineId - The tradeline ID these violations are associated with
@@ -763,22 +722,12 @@ export async function persistViolations(
         insertedIds.push(violationId);
 
         if (packetConfidenceGate.packetReady) {
-          try {
-            await createPendingObligationInstanceForViolation(
-              tradelineId,
-              tradelineForWorkflow?.userId ?? null,
-              violation,
-              violationId
-            );
-          } catch (workflowError) {
-            console.error(
-              `Failed to create pending obligation instance for violation ${violationId}:`,
-              workflowError
-            );
-          }
+          console.log(
+            `Dispute workflow instance creation is reset; persisted violation ${violationId} without creating an obligation instance.`
+          );
         } else {
           console.log(
-            `Skipped pending obligation instance for violation ${violationId}: ${packetConfidenceGate.message}`
+            `Persisted violation ${violationId} with review gate: ${packetConfidenceGate.message}`
           );
         }
       }

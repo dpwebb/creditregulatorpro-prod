@@ -6,8 +6,6 @@ import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpoi
 import { validateOrigin } from "../../helpers/domainGuard";
 import { createHash } from "crypto";
 import { calculateDeadline, createDeadlineEvent } from "../../helpers/deadlineCalculator";
-import { Transaction } from "kysely";
-import { DB } from "../../helpers/schema";
 import { generatePDF, LetterContent } from "../../helpers/pdfGenerator";
 import { sendRegisteredMail } from "../../helpers/postgridClient";
 import { getBureauRegisteredMailAddress } from "../../helpers/bureauDisputeAddresses";
@@ -15,7 +13,6 @@ import { verifyPaymentIntent, refundPaymentIntent } from "../../helpers/stripeSe
 import { getPostalPricingFromDB } from "../../helpers/getPostalPricingFromDB";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { evaluateSubscriptionAccess, subscriptionAccessErrorResponse } from "../../helpers/subscriptionAccess";
-import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -100,36 +97,6 @@ function parsePostGridError(rawMessage: string): { errorType: PostGridErrorType;
     userMessage:
       "Something went wrong when trying to mail your letter. Your payment has been refunded. Please try again later.",
   };
-}
-
-async function buildAndInsertObligationInstance(
-  trx: Transaction<DB>,
-  params: {
-    tradelineId: number | null;
-    userId: number;
-    challengeSentDate: Date;
-    responseDeadline: Date;
-    disputeVector: string | null;
-    packetId: number;
-    deliveryMethod: string;
-  }
-): Promise<number> {
-  const result = await trx
-    .insertInto("obligationInstance")
-    .values({
-      tradelineId: params.tradelineId,
-      userId: params.userId,
-      challengeSentDate: params.challengeSentDate,
-      state: "CHALLENGED",
-      responseDeadline: params.responseDeadline,
-      disputeVector: params.disputeVector,
-      notes: `Packet #${params.packetId} sent via ${params.deliveryMethod}`,
-      createdAt: new Date(),
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-
-  return result.id;
 }
 
 export async function handle(request: Request) {
@@ -230,13 +197,6 @@ export async function handle(request: Request) {
     if (packet.userId !== userId) {
       return new Response(JSON.stringify({ error: "Unauthorized access to packet" }), { status: 403 });
     }
-
-    await assertCreditorObligationPacketReady({
-      creditorObligationTestId: packet.creditorObligationTestId,
-      tradelineId: packet.tradelineId,
-      userId,
-      isAdmin: session.user.role === "admin",
-    });
 
     if (packet.status && packet.status !== "GENERATED" && packet.status !== "PENDING") {
       return new Response(JSON.stringify({ error: "Packet has already been sent or is processing" }), { status: 400 });
@@ -485,20 +445,7 @@ export async function handle(request: Request) {
     const now = new Date();
     const postgridLetterId: string = pgResponse.id;
 
-    // 9. Fetch dispute vector
-    let disputeVector: string | null = null;
-    if (packet.creditorObligationTestId != null) {
-      const cot = await db
-        .selectFrom("creditorObligationTest")
-        .select(["disputeVector"])
-        .where("id", "=", packet.creditorObligationTestId)
-        .executeTakeFirst();
-      disputeVector = cot?.disputeVector ?? null;
-    }
-
     const { deadline: responseDeadline } = calculateDeadline(now, "CA", false);
-
-    let newObligationInstanceId: number | null = null;
 
     // 10. Execute Data Transaction (PostGrid succeeded — safe to persist)
     await db.transaction().execute(async (trx) => {
@@ -590,20 +537,7 @@ export async function handle(request: Request) {
         })
         .execute();
 
-      // Only create an obligation instance when the packet has an associated tradeline
-      if (packet.tradelineId != null) {
-        newObligationInstanceId = await buildAndInsertObligationInstance(trx, {
-          tradelineId: packet.tradelineId,
-          userId,
-          challengeSentDate: now,
-          responseDeadline,
-          disputeVector,
-          packetId: input.packetId,
-          deliveryMethod: "Canada Post Registered Mail",
-        });
-      } else {
-        console.log(`Skipping obligation instance creation — packet ${input.packetId} has no associated tradeline`);
-      }
+      console.log(`Packet ${input.packetId} sent; dispute workflow instance creation is reset.`);
     });
 
     // 11. Create statutory deadline external to the main transaction
@@ -611,7 +545,6 @@ export async function handle(request: Request) {
 
     try {
       await createDeadlineEvent({
-        obligationInstanceId: newObligationInstanceId ?? undefined,
         packetId: input.packetId,
         eventType: "BUREAU_RESPONSE_DEADLINE",
         deadline: responseDeadline,
@@ -619,9 +552,9 @@ export async function handle(request: Request) {
         description: `30-day statutory response deadline for packet sent via Canada Post Registered Mail on ${now.toLocaleDateString("en-CA")}`,
         region: "CA",
       });
-      console.log(`Created deadlineEvent for packet ${input.packetId} (obligationInstance ${newObligationInstanceId})`);
+      console.log(`Created deadlineEvent for packet ${input.packetId}`);
     } catch (deadlineError) {
-      console.error(`Failed to create deadlineEvent for packet ${input.packetId} (obligationInstance ${newObligationInstanceId}):`, deadlineError);
+      console.error(`Failed to create deadlineEvent for packet ${input.packetId}:`, deadlineError);
       deadlineWarning = "Your letter was sent successfully, but the 30-day response deadline reminder could not be created. Please contact support.";
     }
 

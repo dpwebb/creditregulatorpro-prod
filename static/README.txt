@@ -77,13 +77,13 @@ obligation
 
 obligation_instance
   - Indexed by tradeline_id and state
-  - Tracks state transitions through procedural phases
-  - Linked to packet generation events
+  - Legacy procedural state records retained for historical data
+  - New dispute workflow instance creation is reset
 
 packet
-  - Generated dispute letters in PDF format
-  - Immutable hash chain references
-  - Terminal label included in all packets
+  - Historical dispute letter records and delivery evidence
+  - New packet generation is reset
+  - Existing records keep immutable hash chain references
 
 evidence_event
   - Immutable audit log of all packet and dispute events
@@ -110,24 +110,15 @@ SERVERLESS FUNCTIONS
    Logic: Extracts trade lines, matches to statute templates
 
 3. POST /_api/planner/select
-   Purpose: Select highest priority obligation for dispute
-   Input: user_id
-   Output: Selected obligation with priority score
-   Algorithm: Prioritizes by:
-     - Response clock expiration urgency
-     - Debt amount
-     - Violation type severity
-     - Evidence quality
-   Guardrails: Only suggests obligations not yet disputed
+   Status: Reset
+   Purpose: Legacy planner endpoint disabled during dispute process redesign
+   Output: 410 Gone
 
 4. POST /_api/packet/build
-   Purpose: Generate dispute letter PDF and packet record
-   Input: obligation_id, user_id
-   Output: packet record, PDF binary data
-   Terminal Label: All packets include standardized label
-   PDF Generation: Uses pdfmake library
-   Hash Chain: References previous event hash
-   Storage: Packet stored in CA region
+   Status: Reset
+   Purpose: Legacy packet generation endpoint disabled during dispute process redesign
+   Output: 410 Gone
+   Note: Historical packet viewing and PDF rendering remain available where records already exist.
 
 5. POST /_api/clock/scan
    Purpose: Scan for expired response windows
@@ -339,11 +330,10 @@ ENFORCEMENT IMPLEMENTATION
 ================================================================================
 
 TERMINAL LABEL ENFORCEMENT
-  All packets must include: "PHASE 4: PROCEDURAL EXHAUSTION — PENDING"
+  Legacy terminal label progression is reset.
   Implementation:
-  - Template variable in packet generation
-  - Validation check before PDF creation
-  - Verification in evidence_event record
+  - Existing packet records remain readable
+  - New dispute process labels must be defined in the redesign
 
 REGION ENFORCEMENT
   All database writes enforce region='CA':
@@ -363,7 +353,7 @@ VALIDATION ERRORS
 
 RECOVERY PROCEDURES
   - Expired reports: Not recoverable, await next purge cycle
-  - Failed packet generation: Retry button available
+  - Failed packet generation: Legacy retry is disabled during reset
   - Broken hash chain: Admin alert, investigation required
   - Failed webhook delivery: Retry queue with exponential backoff
 
@@ -395,7 +385,7 @@ INITIAL FEATURES:
 - 1-year evidence retention
 - Response clock management (ON/NS/QC)
 - Immutable evidence chain
-- PDF packet generation
+- Historical packet PDF viewing
 - Automated purge and clock scan
 
 ================================================================================

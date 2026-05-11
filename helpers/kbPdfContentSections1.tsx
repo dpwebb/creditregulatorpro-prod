@@ -136,10 +136,10 @@ export const section3 = (): Content[] => [
   body("The tradeline detail page acts as a Compliance Hub. It aggregates:"),
   bulletList([
     "Violation Summary: A comprehensive list of infractions.",
-    "Recommended Vectors: AI-driven suggestions for the next dispute phase.",
+    "Dispute Status: Reset state for the retired dispute generation flow.",
     "Confidence Scores: 0-100 system certainty metric.",
     "Technical Details & Authority Basis: Deep-dive logs into the source evidence and mapped authority reference.",
-    "Action Buttons: One-click dispute packet generation."
+    "Action Buttons: Reset notices or historical packet review actions."
   ]),
 
   subHeader("Managing Tradelines"),

@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { ChallengeAccessPoint } from "../../helpers/challengeAccessPointGenerator";
 import { ParserQualityAssessment } from "../../helpers/parserQuality";
 
 export const schema = z.object({
@@ -91,6 +90,8 @@ export type OutputType = {
   crossReference?: CrossReference;
   disputeOutcomeSummary?: DisputeOutcomeSummary;
 };
+
+export type ChallengeAccessPoint = never;
 
 export const getUploadResults = async (
   input: InputType,

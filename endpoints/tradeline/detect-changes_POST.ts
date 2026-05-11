@@ -97,36 +97,9 @@ export async function handle(request: Request) {
         }
       }
 
-      // 6. Escalate next OBLIGATION_PENDING instance
-      const nextObligation = await db
-        .selectFrom("obligationInstance")
-        .select(["id", "pressureScore"])
-        .where("tradelineId", "=", tradelineId)
-        .where("state", "=", "OBLIGATION_PENDING")
-        .orderBy("id", "asc")
-        .limit(1)
-        .executeTakeFirst();
-
-      if (nextObligation) {
-        const pressureIncrease = significantDiffs.reduce((acc, d) => {
-          return acc + (d.severity === "ERROR" ? 20 : 10);
-        }, 0);
-
-        await db
-          .updateTable("obligationInstance")
-          .set({
-            state: "CHALLENGED",
-            escalationDate: new Date(),
-            escalationTriggered: true,
-            pressureScore:
-              (Number(nextObligation.pressureScore) || 0) + pressureIncrease,
-            notes: "Auto-escalated due to data drift detection",
-          })
-          .where("id", "=", nextObligation.id)
-          .execute();
-
-        obligationsUnlocked++;
-      }
+      console.log(
+        `Dispute workflow instance mutation is reset; recorded ${allChanges.length} change log(s) without escalating obligations.`
+      );
     }
 
     return new Response(

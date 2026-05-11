@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { formatCurrency, parseCurrencyAmount } from "../../helpers/formatters";
-import { formatCurrency as formatNarrativeCurrency } from "../../helpers/disputeNarrativeUtils";
 
 describe("reported dollar-value formatting", () => {
   it("formats credit report money values with a dollar sign, grouping, and fixed cents", () => {
@@ -18,8 +17,4 @@ describe("reported dollar-value formatting", () => {
     expect(parseCurrencyAmount("Not reported")).toBeNull();
   });
 
-  it("keeps dispute narrative money formatting aligned with the shared formatter", () => {
-    expect(formatNarrativeCurrency("1234.5")).toBe("$1,234.50");
-    expect(formatNarrativeCurrency("$12,345")).toBe("$12,345.00");
-  });
 });

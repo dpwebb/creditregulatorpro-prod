@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, FileText, FileSearch, Eye, ChevronDown } from "lucide-react";
+import { FileText, FileSearch, Eye, ChevronDown } from "lucide-react";
 import { HelpTooltip } from "./HelpTooltip";
 import { Badge } from "./Badge";
 import { Button } from "./Button";
@@ -30,7 +30,6 @@ const PROVINCE_NAMES: Record<string, string> = {
 interface ViolationCardProps {
   violation: ObligationTestWithDetails;
   tradelineId: number;
-  onGeneratePacket: (violationId: number) => void;
   disabled?: boolean;
   reportArtifactId?: number | null;
   sourceText?: string | null;
@@ -45,7 +44,6 @@ interface ViolationCardProps {
 
 export const ComplianceViolationCard = ({
   violation,
-  onGeneratePacket,
   disabled,
   reportArtifactId,
   onViewSource,
@@ -290,15 +288,10 @@ export const ComplianceViolationCard = ({
               size="sm"
               variant="secondary"
               className={styles.actionButton}
-              onClick={() => onGeneratePacket(violation.id)}
-              disabled={disabled}
-              title={
-                disabled
-                  ? "Packet generation has been reset"
-                  : "Create a dispute letter about this problem"
-              }
+              disabled
+              title="The dispute packet flow is being redesigned"
             >
-              {disabled ? "Packet Generation Paused" : "Create Dispute Letter"} {!disabled && <ArrowRight size={14} />}
+              Dispute Flow Reset
             </Button>
           )}
         </div>

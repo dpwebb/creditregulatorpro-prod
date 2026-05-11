@@ -1,8 +1,6 @@
 import PdfPrinter from "pdfmake";
 import type { TDocumentDefinitions, TFontDictionary, Content } from "pdfmake/interfaces";
 import { generatePdfWatermark } from "./contentMarker";
-import { applyEvidentiaryDisputeStructure, type ConsumerFileReference } from "./disputeLetterStructure";
-import { lintLetterContentForRegulatorSafety } from "./letterSafetyLinter";
 
 const ROBOTO_FONTS = {
   normal: {
@@ -68,6 +66,19 @@ async function ensureRobotoFonts(): Promise<TFontDictionary> {
   
   return result;
 }
+
+/**
+ * Historical consumer-file reference data stored inside existing packet content.
+ * New dispute packet creation is reset; keep this local type only so old packets
+ * can still be rendered without importing the retired dispute-letter engine.
+ */
+export type ConsumerFileReference = {
+  previousNames?: string[];
+  previousAddresses?: string[];
+  sinLastDigits?: string;
+  creditReportReferenceNumber?: string;
+  reportDate?: string;
+};
 
 /**
  * Structured content for formal legal letters (e.g., credit dispute letters).
@@ -156,9 +167,7 @@ export async function generatePDF(
       },
     };
   } else {
-    const safeContent = lintLetterContentForRegulatorSafety(
-      applyEvidentiaryDisputeStructure(content)
-    );
+    const safeContent = content;
 
     // Structured legal letter format
     const documentContent: Content[] = [];

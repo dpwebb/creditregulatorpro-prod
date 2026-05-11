@@ -144,7 +144,7 @@ export const RelatedCollectionAccounts = ({
             variant={isCreated ? "secondary" : "destructive"}
             onClick={isCreated && onViewPacket ? onViewPacket : onCreateDispute}
           >
-            {isCreated ? "Review & Send Letter" : "Create Dispute Letter"}
+            {isCreated ? "Review & Send Letter" : "Dispute Flow Reset"}
           </Button>
         </div>
       )}

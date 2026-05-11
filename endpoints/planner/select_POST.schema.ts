@@ -1,37 +1,31 @@
 import { z } from "zod";
 
-
-export const schema = z.object({
-  tradelineId: z.number()
-});
+export const schema = z.object({});
 
 export type InputType = z.infer<typeof schema>;
 
 export type OutputType = {
-  ok: boolean;
-  selectedInstanceId: number;
-  disputeVector: string | null;
-  recommendation: {
-    recommendedVector: string;
-    confidence: number;
-    reasoning: string;
-  } | null;
+  error: string;
 };
 
-export const postSelect = async (body: InputType, init?: RequestInit): Promise<OutputType> => {
-  const validatedInput = schema.parse(body);
+export const postSelect = async (
+  body: InputType,
+  init?: RequestInit
+): Promise<OutputType> => {
   const result = await fetch(`/_api/planner/select`, {
     method: "POST",
-    body: JSON.stringify(validatedInput),
+    body: JSON.stringify(schema.parse(body)),
     ...init,
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
   });
+
+  const payload = JSON.parse(await result.text()) as OutputType;
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    throw new Error(payload.error);
   }
-  return JSON.parse(await result.text());
+
+  return payload;
 };

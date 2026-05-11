@@ -36,9 +36,9 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
     return <UploadScanSummarySkeleton />;
   }
 
-  const { stats, topFindings, challengeAccessPoints } = data;
+  const { stats, topFindings } = data;
   const hasViolations = stats.highSeverity + stats.mediumSeverity + stats.lowSeverity > 0;
-  const hasProceduralPoints = challengeAccessPoints && challengeAccessPoints.length > 0;
+  const hasProceduralPoints = false;
   const isFollowUp = !!data.crossReference;
   const hasParserReview = Boolean(data.parserQuality?.requiresManualReview);
 
@@ -55,7 +55,6 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
     if (hasParserReview) return "This report needs parser review before relying on the scan.";
     if (stats.threatScore > 60) return "We found serious problems. You should act now.";
     if (stats.threatScore > 30) return "We found some problems.";
-    if (!hasViolations && hasProceduralPoints) return "No mistakes in the data, but you can still challenge how they reported it.";
     return "Things look good! Keep checking back.";
   };
 
@@ -302,55 +301,6 @@ export const UploadScanSummary: React.FC<UploadScanSummaryProps> = ({
         </div>
       )}
 
-      {/* Procedural Challenges Section */}
-      {hasProceduralPoints && (
-        <div className={styles.proceduralSection}>
-          <div className={styles.proceduralHeader}>
-            <div>
-              <h3 className={styles.sectionTitle}>Other Ways to Challenge</h3>
-              <p className={styles.sectionSubtitle}>These don't depend on mistakes in the data</p>
-            </div>
-          </div>
-          
-          <div className={styles.proceduralGrid}>
-            {challengeAccessPoints.map((point) => (
-              <div key={point.id} className={styles.proceduralCard}>
-                <div className={styles.proceduralCardHeader}>
-                  <div className={styles.proceduralIconWrapper}>
-                    {point.entityType === "BUREAU" && <Building2 size={18} />}
-                    {point.entityType === "CREDITOR" && <Landmark size={18} />}
-                    {point.entityType === "COLLECTOR" && <Gavel size={18} />}
-                  </div>
-                  <div className={styles.proceduralBadges}>
-                    <Badge variant="default" className={styles.tinyBadge}>{point.entityType}</Badge>
-                    <Badge 
-                      variant={
-                        point.priority === "HIGH" ? "error" : 
-                        point.priority === "MEDIUM" ? "warning" : "info"
-                      }
-                      className={`${styles.tinyBadge} ${point.priority === "HIGH" ? styles.pulseBadge : ''}`}
-                    >
-                      {point.priority}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <h4 className={styles.proceduralTitle}>{point.label}</h4>
-                <p className={styles.proceduralDescription}>{point.description}</p>
-                
-                <div className={styles.proceduralFooter}>
-                  <div className={styles.statutoryRef}>
-                    <Scale size={12} /> {point.statutoryBasis}
-                  </div>
-                  <div className={styles.applicability}>
-                    <Target size={12} /> {point.applicability}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 

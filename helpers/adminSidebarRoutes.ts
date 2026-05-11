@@ -23,7 +23,6 @@ export const ADMIN_SIDEBAR_ROUTE_GROUPS = [
       { path: "/admin-security", label: "Security & Compliance" },
       { path: "/support-tickets", label: "Support Tickets" },
       { path: "/admin-knowledge-base", label: "Admin Guide" },
-      { path: "/admin-letter-templates", label: "Letter Templates" },
     ],
   },
   {

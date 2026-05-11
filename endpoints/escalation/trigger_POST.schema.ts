@@ -1,34 +1,31 @@
 import { z } from "zod";
 
-import { Selectable } from "kysely";
-import { ObligationInstance } from "../../helpers/schema";
-
-export const schema = z.object({
-  obligationInstanceId: z.number(),
-});
+export const schema = z.object({});
 
 export type InputType = z.infer<typeof schema>;
 
 export type OutputType = {
-  newObligationInstance: Selectable<ObligationInstance>;
-  fcacPacketId?: number | null;
-  provincialPacketId?: number | null;
+  error: string;
 };
 
-export const triggerEscalation = async (body: InputType, init?: RequestInit): Promise<OutputType> => {
+export const triggerEscalation = async (
+  body: InputType,
+  init?: RequestInit
+): Promise<OutputType> => {
   const result = await fetch(`/_api/escalation/trigger`, {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify(schema.parse(body)),
     ...init,
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
   });
-  
+
+  const payload = JSON.parse(await result.text()) as OutputType;
   if (!result.ok) {
-    const errorObject = JSON.parse(await result.text());
-    throw new Error(errorObject.error);
+    throw new Error(payload.error);
   }
-  return JSON.parse(await result.text());
+
+  return payload;
 };

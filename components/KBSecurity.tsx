@@ -30,7 +30,7 @@ export const KBSecurity = () => {
             <AccordionTrigger>Chain Mechanism</AccordionTrigger>
             <AccordionContent>
               <p>
-                Every evidence event (upload, packet generation, bureau communication) computes:
+                Every evidence event (upload, historical packet event, bureau communication) computes:
               </p>
               <code className={styles.formula}>
                 newHash = SHA256(previousHash + currentPayload)

@@ -228,17 +228,6 @@ type ObligationListResponse = {
   total: number;
 };
 
-type EscalationTriggerResponse = {
-  newObligationInstance: {
-    id: number;
-    state: string;
-    disputeVector: string | null;
-    tradelineId: number | null;
-  };
-  fcacPacketId?: number | null;
-  provincialPacketId?: number | null;
-};
-
 type RecordResponseOutput = {
   success: boolean;
   obligationInstance: {
@@ -2244,52 +2233,18 @@ async function main() {
       { coverageKey: "obligation_record_response" }
     );
 
-    let exhausted = false;
-    let escalationIterations = 0;
-    let currentObligationId = obligationInstanceId;
-    let fcacPacketId: number | null = null;
-    let provincialPacketId: number | null = null;
-
-    while (!exhausted && escalationIterations < 9) {
-      escalationIterations += 1;
-      const escalationResult = await runStep(
-        `Escalation trigger ${escalationIterations}`,
-        () =>
-          api.json<EscalationTriggerResponse>("/_api/escalation/trigger", {
-            method: "POST",
-            body: {
-              obligationInstanceId: currentObligationId,
-            },
-          }),
-        { coverageKey: "escalation_trigger" }
-      );
-
-      if (!escalationResult) {
-        break;
-      }
-
-      currentObligationId = escalationResult.newObligationInstance.id;
-      obligationInstanceId = currentObligationId;
-      fcacPacketId = escalationResult.fcacPacketId ?? fcacPacketId;
-      provincialPacketId = escalationResult.provincialPacketId ?? provincialPacketId;
-      exhausted = escalationResult.newObligationInstance.state === "PROCEDURALLY_EXHAUSTED";
-    }
-
-    if (exhausted) {
-      setCoverage(
-        "escalation_exhaustion",
-        "PASSED",
-        "Procedural exhaustion reached via escalation loop.",
-        { escalationIterations, obligationInstanceId, fcacPacketId, provincialPacketId }
-      );
-    } else {
-      setCoverage(
-        "escalation_exhaustion",
-        "FAILED",
-        "Escalation loop ended before reaching PROCEDURALLY_EXHAUSTED.",
-        { escalationIterations, obligationInstanceId }
-      );
-    }
+    setCoverage(
+      "escalation_trigger",
+      "BLOCKED",
+      "Legacy dispute escalation has been reset pending the new dispute process architecture.",
+      { obligationInstanceId }
+    );
+    setCoverage(
+      "escalation_exhaustion",
+      "BLOCKED",
+      "Legacy procedural exhaustion has been reset pending the new dispute process architecture.",
+      { obligationInstanceId }
+    );
   } else {
     setCoverage(
       "obligation_record_response",

@@ -1081,10 +1081,6 @@ export default function Metro2CompliancePage() {
                 <Scale size={16} />
                 Law Registry
               </Link>
-              <Link to="/admin-letter-templates" className={styles.integrationLink}>
-                <FileText size={16} />
-                Letter Templates
-              </Link>
               <Link to="/bureaus" className={styles.integrationLink}>
                 <ShieldCheck size={16} />
                 Bureau Records

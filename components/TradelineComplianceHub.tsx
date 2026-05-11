@@ -321,7 +321,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
               ? "View Sent Letter"
               : solPacket
                 ? "View Dispute Letter"
-                : "Packet Generation Paused"}
+                : "Dispute Flow Reset"}
           </Button>
         </div>
       )}
@@ -431,7 +431,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                   key={v.id}
                   violation={v}
                   tradelineId={tradelineId}
-                  onGeneratePacket={handleGeneratePacket}
                   disabled={isPacketGenerationPaused && !hasPacketForThisViolation}
                   reportArtifactId={currentTradeline?.reportArtifactId ?? null}
                   sourceText={currentTradeline?.sourceText ?? null}
@@ -465,7 +464,6 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                           key={v.id}
                           violation={v}
                           tradelineId={tradelineId}
-                          onGeneratePacket={handleGeneratePacket}
                           disabled={isPacketGenerationPaused && !hasPacketForThisViolation}
                           reportArtifactId={currentTradeline?.reportArtifactId ?? null}
                           sourceText={currentTradeline?.sourceText ?? null}
@@ -526,7 +524,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                         ? "View Your Letter"
                         : packetForTopViolation
                           ? "Review & Send Letter"
-                          : "Packet Generation Paused"}
+                          : "Dispute Flow Reset"}
                     </Button>
                   )}
                 </div>
@@ -567,7 +565,7 @@ export const TradelineComplianceHub: React.FC<TradelineComplianceHubProps> = ({
                             onClick={() => pForThis ? handleViewPacket(v.id) : handleGeneratePacket(v.id)}
                             disabled={isPacketGenerationPaused && !pForThis}
                           >
-                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Packet Generation Paused"}
+                            {isDisp ? "View Sent Letter" : pForThis ? "View Letter" : "Dispute Flow Reset"}
                           </Button>
                         )}
                       </div>

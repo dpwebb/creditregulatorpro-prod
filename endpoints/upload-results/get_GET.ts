@@ -22,7 +22,6 @@ const COLLECTOR_VIOLATION_CATEGORIES = new Set([
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
-import { generateAccessPointsWhenNoViolations, ChallengeAccessPoint } from "../../helpers/challengeAccessPointGenerator";
 import { PLATFORM_COMPLIANCE_SCOPE, PLATFORM_REGION } from "../../helpers/platformScope";
 import { shouldSuppressStaleReportingViolation } from "../../helpers/staleReportingGuard";
 
@@ -96,7 +95,7 @@ export async function handle(request: Request) {
           transunionViolations: 0,
         },
         topFindings: [],
-        challengeAccessPoints: generateAccessPointsWhenNoViolations(0),
+        challengeAccessPoints: [],
         ...(parserQuality ? { parserQuality } : {}),
       } satisfies OutputType));
     }
@@ -224,22 +223,8 @@ export async function handle(request: Request) {
       bureauName: v.bureauName || "Unknown Bureau",
     }));
 
-    // 7. Determine Challenge Access Points
-    let challengeAccessPoints: ChallengeAccessPoint[] = [];
-
-    if (filteredViolations.length === 0) {
-      challengeAccessPoints = generateAccessPointsWhenNoViolations(tradelineIds.length);
-      console.log(`No violations found for artifact ${input.artifactId}. Generated ${challengeAccessPoints.length} procedural access points.`);
-    } else if (filteredViolations.length < 3) {
-      const allAccessPoints = generateAccessPointsWhenNoViolations(tradelineIds.length);
-      challengeAccessPoints = allAccessPoints
-        .filter(ap => ["BUREAU_AUTHORITY", "CREDITOR_AUTHORITY", "CREDITOR_PURPOSE"].includes(ap.id))
-        .slice(0, 3);
-      console.log(`${filteredViolations.length} violations found for artifact ${input.artifactId}. Added ${challengeAccessPoints.length} supplementary access points.`);
-    } else {
-      challengeAccessPoints = [];
-      console.log(`${filteredViolations.length} violations found for artifact ${input.artifactId}. No supplementary access points needed.`);
-    }
+    // 7. Legacy procedural challenge suggestions are reset while the dispute process is redesigned.
+    const challengeAccessPoints: OutputType["challengeAccessPoints"] = [];
 
     // 7b. Resolve artifact's bureau name from the first tradeline's bureau
     let artifactBureauName = "Unknown";

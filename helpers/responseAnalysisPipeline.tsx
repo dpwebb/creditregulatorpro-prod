@@ -5,7 +5,6 @@ import {
   calculateTimingDrift,
   determineEscalationPath,
 } from "./obligationTestEngine";
-import { triggerEscalation, markAsExhausted } from "./autoEscalation";
 import { ObligationState } from "./schema";
 import type { DisputeVectorType } from "./obligationVectors";
 
@@ -129,27 +128,12 @@ export async function analyzeAndEscalate(
     .where("id", "=", obligationInstanceId)
     .execute();
 
-  let escalationResult = null;
-  let nextVector = null;
+  const escalationResult = null;
+  const nextVector = null;
 
   try {
-    // 3. Execute the recommended escalation path
-    if (
-      recommendedPath === "CONTINUE_SEQUENCE" ||
-      recommendedPath === "ESCALATE_TO_FCAC" ||
-      recommendedPath === "RETRY"
-    ) {
-      escalationResult = await triggerEscalation(obligationInstanceId, request);
-      nextVector = escalationResult.disputeVector;
-    } else if (recommendedPath === "MARK_EXHAUSTED") {
-      escalationResult = await markAsExhausted(
-        instance.tradelineId!,
-        instance.userId || undefined,
-        request,
-      );
-      // TIMING_COMPLIANCE is the terminal vector for exhausted tradelines
-      nextVector = "TIMING_COMPLIANCE";
-    }
+    // 3. Legacy escalation side effects are reset.
+    // Keep the analysis and audit trail, but do not create the next dispute vector.
 
     // 4. Log the successful orchestration
     await logAudit({

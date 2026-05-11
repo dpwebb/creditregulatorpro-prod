@@ -15,7 +15,6 @@ describe("admin sidebar route registry", () => {
       "/admin-security",
       "/support-tickets",
       "/admin-knowledge-base",
-      "/admin-letter-templates",
       "/bureaus",
       "/statutes",
       "/metro2-compliance",

@@ -13,7 +13,6 @@ import {
   BarChart3,
   ChevronDown
 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
 import { Skeleton } from "../components/Skeleton";
@@ -27,7 +26,6 @@ import { TradelineValidationSection } from "../components/TradelineValidationSec
 import { TradelineDriftPanel } from "../components/TradelineDriftPanel";
 import { TradelineComplianceHub } from "../components/TradelineComplianceHub";
 import { TradelineExportSection } from "../components/TradelineExportSection";
-import { TradelinePacketGenerationCard } from "../components/TradelinePacketGenerationCard";
 import { ParsedDataOverview } from "../components/ParsedDataOverview";
 import { AccountChangesSummary } from "../components/AccountChangesSummary";
 import { DiscriminationClaimsList } from "../components/DiscriminationClaimsList";
@@ -41,13 +39,10 @@ import { useObligationInstanceList } from "../helpers/obligationInstanceQueries"
 import { useComplianceViolations } from "../helpers/complianceViolationQueries";
 import { calculateTerminalLabel, TerminalLabelPhase } from "../helpers/terminalLabelProgression";
 
-import { DeliveryWizard } from "../components/DeliveryWizard";
 import { SourceReportViewer } from "../components/SourceReportViewer";
 import { useTradelinePackets } from "../helpers/packetQueries";
-import { useQueryClient } from "@tanstack/react-query";
 import { ComplianceRescanButton } from "../components/ComplianceRescanButton";
 import { RelatedCollectionAccounts } from "../components/RelatedCollectionAccounts";
-import { FundamentalChallenges } from "../components/FundamentalChallenges";
 import styles from "./tradelines.$id.module.css";
 
 const PacketViewer = React.lazy(() => import("../components/PacketViewer").then((m) => ({ default: m.PacketViewer })));
@@ -56,7 +51,6 @@ export default function TradelineDetailPage() {
   const { isAdmin } = useAuth();
   const { id } = useParams<{ id: string }>();
   const tradelineId = Number(id);
-  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   
   let defaultTab = isAdmin ? "overview" : "compliance";
@@ -69,7 +63,6 @@ export default function TradelineDetailPage() {
   const [isBureauUploadOpen, setIsBureauUploadOpen] = useState(false);
   const [viewingSourceReport, setViewingSourceReport] = useState(false);
   const [viewingPacketId, setViewingPacketId] = useState<number | null>(null);
-  const [isRecordMailingOpen, setIsRecordMailingOpen] = useState(false);
 
   // Fetch single tradeline by ID
   const { data: tradelineData, isLoading: isTradelineLoading, error: tradelineError } = useTradeline(tradelineId);
@@ -77,7 +70,6 @@ export default function TradelineDetailPage() {
 
   // Fetch packets for this tradeline
   const { data: packetsData } = useTradelinePackets(tradelineId);
-  const existingPacket = packetsData?.packets?.length ? [...packetsData.packets].sort((a, b) => b.id - a.id)[0] : undefined;
 
   // Fetch evidence for this tradeline
   const { data: evidenceData, isLoading: isEvidenceLoading } = useTradelineEvidence(tradelineId);
@@ -88,26 +80,11 @@ export default function TradelineDetailPage() {
   const obligationInstances = obligationInstancesData?.instances || [];
   
   // Calculate Terminal Phase
-  const terminalPhase: TerminalLabelPhase = calculateTerminalLabel(obligationInstances);
+  const terminalPhase: TerminalLabelPhase = calculateTerminalLabel();
 
   const challengesSentCount = obligationInstances.filter(c => !!c.challengeSentDate).length;
   const { data: violationsData } = useComplianceViolations(tradelineId);
   const responsesReceivedCount = obligationInstances.filter(c => c.state === "RESPONSE_RECORDED").length;
-
-  const showProceduralChallenges = useMemo(() => {
-    const activeViolations = (violationsData?.obligationTests || []).filter(
-      (v) => 
-        v.userStatus !== "dismissed" && 
-        v.userStatus !== "verified" && 
-        v.violationCategory !== "MULTIPLE_COLLECTOR_VIOLATION" &&
-        v.violationCategory !== "STATUTE_APPROACHING"
-    );
-    const allViolationsExhausted = activeViolations.every(v => {
-      const packet = packetsData?.packets?.find(p => p.creditorObligationTestId === v.id);
-      return packet && (packet.status?.toUpperCase() === "SENT" || !!packet.sentDate);
-    });
-    return activeViolations.length === 0 || allViolationsExhausted;
-  }, [violationsData?.obligationTests, packetsData?.packets]);
 
   const handleViewRelatedAccountsPacket = () => {
     const multipleCollectorViolation = violationsData?.obligationTests?.find(
@@ -251,26 +228,6 @@ export default function TradelineDetailPage() {
         defaultTradelineId={tradelineId}
       />
 
-      <DeliveryWizard
-        packetId={existingPacket?.id ?? 0}
-        bureauName={tradeline.bureauName || "the credit bureau"}
-        open={isRecordMailingOpen}
-        onOpenChange={setIsRecordMailingOpen}
-        initialStep="self"
-        onComplete={() => {
-          queryClient.invalidateQueries({ queryKey: ["packets", { tradelineId }] });
-          queryClient.invalidateQueries({ queryKey: ["evidence"] });
-          queryClient.invalidateQueries({ queryKey: ["tradeline", tradelineId] });
-        }}
-        onDownloadPdf={() => {
-          if (existingPacket?.id) {
-            window.open(`/_api/packet/pdf?packetId=${existingPacket.id}`, '_blank');
-          } else {
-            toast.error("PDF not available yet.");
-          }
-        }}
-      />
-
       {!isAdmin ? (
         <div className={styles.nonAdminLayout}>
           <TradelineComplianceHub
@@ -278,17 +235,6 @@ export default function TradelineDetailPage() {
             hideSummaryBar={true}
             focusViolationId={focusedViolationId}
           />
-
-          {showProceduralChallenges && (
-            <FundamentalChallenges
-              tradelineId={tradelineId}
-              creditorName={tradeline.creditorName || ""}
-              status={tradeline.status}
-              isCollectionAccount={tradeline.isCollectionAccount ?? false}
-              bureauId={tradeline.bureauId ?? null}
-              accountNumber={tradeline.accountNumber ?? null}
-            />
-          )}
 
           {packetsData?.packets && packetsData.packets.length > 0 && (
             <div className={styles.nonAdminActionBar}>
@@ -457,13 +403,6 @@ export default function TradelineDetailPage() {
 
                 <TradelineExportSection tradelineId={tradelineId} />
 
-                <TradelinePacketGenerationCard 
-                  onViewCompliance={() => setSearchParams({ tab: "compliance" })}
-                  existingPacketId={existingPacket?.id}
-                  onViewPacket={() => existingPacket && setViewingPacketId(existingPacket.id)}
-                  existingPacketStatus={existingPacket?.status}
-                  onRecordMailing={() => setIsRecordMailingOpen(true)}
-                />
               </div>
 
               {/* Right Column: Timeline */}

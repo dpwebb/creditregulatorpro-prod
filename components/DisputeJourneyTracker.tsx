@@ -196,15 +196,13 @@ export const DisputeJourneyTracker: React.FC<DisputeJourneyTrackerProps> = ({
         {renderStep(
           3,
           isStep3Done,
-          "Write Your Dispute Letters",
+          "Dispute Letters Reset",
           isStep3Done 
-            ? "You've written letters — you can always write more."
-            : "We'll help you write letters to fix the problems.",
+            ? "Your existing letters are still available. New letter creation is paused."
+            : "New dispute letters are paused while the packet process is redesigned.",
           ScrollText,
-          <Button asChild size="lg">
-            <Link to="/packets?create=true">
-              {isStep3Done ? "Write Another Letter" : "Write a Letter"}
-            </Link>
+          <Button size="lg" disabled>
+            Redesign Pending
           </Button>,
           "/packets"
         )}

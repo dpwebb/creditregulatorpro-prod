@@ -32,7 +32,7 @@ export const KBEvidence = () => {
             newChainHash = SHA256(previousHash + currentFileHash + metadata)
           </code>
           <p>
-            Each evidence upload, bureau communication, or packet generation creates a new link
+            Each evidence upload, bureau communication, or historical packet event creates a new link
             in the chain. The system stores both the file hash and the chain hash, allowing
             independent verification of both file integrity and chronological sequence.
           </p>

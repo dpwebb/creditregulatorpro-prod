@@ -46,22 +46,19 @@ export async function handle(request: Request) {
         ],
       },
       {
-        title: "3. Dispute Letter (Packet) Generation & Delivery",
+        title: "3. Historical Packet Viewing & Delivery",
         intro:
-          "End-to-end system for generating and delivering compliance-aligned dispute packages.",
+          "Historical dispute packet records remain viewable while new packet generation is reset.",
         items: [
-          "Auto-generated dispute packets per tradeline and violation",
-          "Multi-template system (CRA, CPA, CPBPA, other bureau-specific templates)",
-          "Smart challenge recommendation engine",
-          "Packet compliance audit (regulatory alignment check)",
-          "PDF packet generation with consumer certification & signature",
+          "Legacy packet generation endpoints return 410 during redesign",
+          "Existing packet PDF rendering remains available",
+          "Historical packet compliance and evidence records remain readable",
           "PostGrid registered mail delivery integration",
           "First-class mail delivery option",
           "Tracking number and delivery status monitoring",
           "Packet impact assessment (baseline vs follow-up snapshot comparison)",
           "Packet readiness validation before sending",
-          "GCS cloud storage for generated PDFs",
-          "Third-party recipient letter support",
+          "GCS cloud storage for historical PDFs",
         ],
       },
       {
