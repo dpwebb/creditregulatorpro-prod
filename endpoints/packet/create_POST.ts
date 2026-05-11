@@ -9,7 +9,7 @@ import { packetDataResolver } from "../../helpers/packetDataResolver";
 import { packetLetterBuilder } from "../../helpers/packetLetterBuilder";
 import { packetEvidenceCreator } from "../../helpers/packetEvidenceCreator";
 import { mapViolationToDisputeReason, type EquifaxDisputeReasonCode, type StatuteInfo } from "../../helpers/equifaxDisputeReasons";
-import { letterHumanizer } from "../../helpers/letterHumanizer";
+import { finalizePacketLetterContent } from "../../helpers/packetLetterFinalizer";
 import { logPacketGenerated } from "../../helpers/auditLogger";
 import { ensureUserSignature } from "../../helpers/signatureGenerator";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
@@ -271,9 +271,13 @@ export async function handle(request: Request) {
       recipientAddress,
     });
 
-    // Humanize the letter content via OpenAI before generating the PDF
-    letterContent = await letterHumanizer(letterContent);
-    console.log("Letter humanized via OpenAI gpt-5-mini");
+    letterContent = await finalizePacketLetterContent(letterContent, {
+      violationCategory: effectiveViolationCategory,
+      violationDetails,
+      tradelineDetails,
+      consumerFileReference,
+    });
+    console.log("Letter finalized with humanized wording and evidentiary packet layout");
 
     // Attach user's digital signature to the letter
     const signatureImage = await ensureUserSignature(user.id);

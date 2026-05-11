@@ -31,7 +31,7 @@ import { getLatestTwoSnapshots } from "../../helpers/tradelineSnapshotManager";
 import { ensureUserSignature } from "../../helpers/signatureGenerator";
 import { buildPacketStorageObjectName } from "../../helpers/packetFileNaming";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
-import { letterHumanizer } from "../../helpers/letterHumanizer";
+import { finalizePacketLetterContent } from "../../helpers/packetLetterFinalizer";
 import { packetDataResolver } from "../../helpers/packetDataResolver";
 import { fetchTransUnionCaseIdForReportArtifact } from "../../helpers/bureauContextReferences";
 import { assertCreditorObligationPacketReady } from "../../helpers/packetViolationConfidenceGuard";
@@ -459,7 +459,12 @@ export async function handle(request: Request) {
     });
 
     // Keep the legacy obligation-instance path aligned with packet/create letter cleanup.
-    letterContent = await letterHumanizer(letterContent);
+    letterContent = await finalizePacketLetterContent(letterContent, {
+      violationCategory: effectiveViolationCategory,
+      violationDetails,
+      tradelineDetails,
+      consumerFileReference,
+    });
 
     // 11. Attach user's digital signature to the letter
     const signatureImage = await ensureUserSignature(user.id);
