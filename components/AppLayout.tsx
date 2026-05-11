@@ -56,7 +56,7 @@ import { AppSidebarUser } from "./AppSidebarUser";
 import { AppSidebarToggle } from "./AppSidebarToggle";
 import { AppSidebarPlatformFunctionsButton } from "./AppSidebarPlatformFunctionsButton";
 import { TrialCountdownBanner } from "./TrialCountdownBanner";
-import { APP_DISPLAY_VERSION } from "../helpers/appVersion";
+import { useCurrentVersion } from "../helpers/versionQueries";
 import { AISupportChat } from "./AISupportChat";
 import { PLATFORM_SCOPE_NOTICE } from "../helpers/platformScope";
 import { ADMIN_SIDEBAR_ROUTE_GROUPS, type AdminSidebarPath } from "../helpers/adminSidebarRoutes";
@@ -107,6 +107,11 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const [isEmailBannerDismissed, setIsEmailBannerDismissed] = useState(false);
   const { mutate: sendVerificationEmail, isPending: isSendingVerification } = useRequestVerificationEmail();
   const { showSuccess, showError } = useToast();
+  const shouldLoadCurrentVersion = authState.type === "authenticated";
+  const { data: currentVersion } = useCurrentVersion({
+    enabled: shouldLoadCurrentVersion,
+  });
+  const sidebarVersionLabel = currentVersion?.version ?? "...";
 
   // Initialize from localStorage
   const [isMinimized, setIsMinimized] = useState<boolean>(() => {
@@ -246,7 +251,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <AppSidebarPlatformFunctionsButton isMinimized={isMinimized} />
           )}
           <div className={styles.versionBadge} data-minimized={isMinimized}>
-            v{APP_DISPLAY_VERSION}
+            v{sidebarVersionLabel}
           </div>
           {authState.type === "authenticated" && (
             <AppSidebarUser 

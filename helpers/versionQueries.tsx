@@ -25,10 +25,11 @@ export function useVersions() {
   });
 }
 
-export function useCurrentVersion() {
+export function useCurrentVersion({ enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: VERSION_KEYS.current,
     queryFn: () => getCurrentVersion(),
+    enabled,
   });
 }
 
