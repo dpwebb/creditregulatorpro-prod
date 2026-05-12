@@ -17,6 +17,10 @@ import {
   type SimpleDisputedItemInput,
 } from "./disputePacketTemplate";
 import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
+import {
+  resolveEvidenceLocation,
+  type EvidenceLocationSummary,
+} from "./evidenceLocationIndex";
 
 export interface DisputePacketRecipientInput {
   name?: string | null;
@@ -153,6 +157,7 @@ type IssueRow = {
   originalCreditorName: string | null;
   isCollectionAccount: boolean | null;
   reportArtifactId: number | null;
+  reportArtifactData: unknown;
   reportDate: Date | null;
   sourceText: string | null;
 };
@@ -266,6 +271,66 @@ function evidenceReferenceForRow(row: IssueRow, details: Record<string, unknown>
   if (parts.length > 0) return parts.join("; ");
   if (row.sourceText && row.sourceText.trim()) return `Source report text for tradeline #${row.tradelineId}`;
   return "Needs manual review";
+}
+
+export interface PacketEvidenceLocationSource {
+  issueId: number;
+  reportArtifactId?: number | null;
+  reportArtifactData?: unknown;
+  technicalDetails?: unknown;
+}
+
+function evidenceLocationRequestForIssue(
+  source: PacketEvidenceLocationSource,
+  details: Record<string, unknown>,
+) {
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
+  return {
+    reportArtifactId: evidence?.reportArtifactId ?? evidence?.sourceReportArtifactId ?? source.reportArtifactId,
+    evidenceId: firstText(details, ["evidenceId", "canonicalEvidenceId"]) ??
+      (evidence ? firstText(evidence, ["evidenceId", "canonicalEvidenceId"]) : null),
+    fieldKey: firstText(details, ["fieldKey", "canonicalFieldKey"]) ??
+      (evidence ? firstText(evidence, ["fieldKey", "canonicalFieldKey"]) : null),
+    sourceField: firstText(details, ["sourceField", "canonicalField", "disputedField"]) ??
+      (evidence ? firstText(evidence, ["sourceField", "canonicalField", "field"]) : null),
+    fieldName: firstKnownText([
+      firstText(details, ["fieldName", "canonicalField", "field", "sourceField", "disputedField"]),
+      evidence ? firstText(evidence, ["fieldName", "field"]) : null,
+    ]),
+  };
+}
+
+export function buildPacketEvidenceLocationsForIssues(
+  sources: PacketEvidenceLocationSource[],
+): Record<string, EvidenceLocationSummary[]> | undefined {
+  const entries = sources
+    .map((source): [string, EvidenceLocationSummary[]] | null => {
+      const details = parseDetails(source.technicalDetails);
+      const evidenceLocation = resolveEvidenceLocation(
+        { reportArtifactData: source.reportArtifactData },
+        evidenceLocationRequestForIssue(source, details),
+      );
+      return evidenceLocation ? [String(source.issueId), [evidenceLocation]] : null;
+    })
+    .filter((entry): entry is [string, EvidenceLocationSummary[]] => Boolean(entry));
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+}
+
+function attachEvidenceLocationsToPacket(
+  packet: SimpleDisputePacketContent,
+  rows: IssueRow[],
+): SimpleDisputePacketContent {
+  const evidenceLocations = buildPacketEvidenceLocationsForIssues(
+    rows.map((row) => ({
+      issueId: row.issueId,
+      reportArtifactId: row.reportArtifactId,
+      reportArtifactData: row.reportArtifactData,
+      technicalDetails: row.issueTechnicalDetails,
+    })),
+  );
+
+  return evidenceLocations ? { ...packet, evidenceLocations } : packet;
 }
 
 function rowHasCollectionRecipient(row: IssueRow): boolean {
@@ -781,6 +846,7 @@ async function getIssueRows(issueIds: number[]): Promise<IssueRow[]> {
       "tradeline.originalCreditorName as originalCreditorName",
       "tradeline.isCollectionAccount as isCollectionAccount",
       "tradeline.reportArtifactId as reportArtifactId",
+      "reportArtifact.data as reportArtifactData",
       "reportArtifact.reportDate as reportDate",
       "tradeline.sourceText as sourceText",
     ])
@@ -848,6 +914,7 @@ export async function getDisputePacketCandidates(
       "tradeline.originalCreditorName as originalCreditorName",
       "tradeline.isCollectionAccount as isCollectionAccount",
       "tradeline.reportArtifactId as reportArtifactId",
+      "reportArtifact.data as reportArtifactData",
       "reportArtifact.reportDate as reportDate",
       "tradeline.sourceText as sourceText",
     ])
@@ -927,7 +994,7 @@ export async function buildDisputePacketPreview(
       ? "Collection agency account information"
       : `${firstRow.bureauName || "Credit Bureau"} credit report`;
 
-  const packet = buildSimpleDisputePacketContent({
+  const packet = attachEvidenceLocationsToPacket(buildSimpleDisputePacketContent({
     packetType: input.packetType,
     reportType,
     reportDate,
@@ -940,7 +1007,7 @@ export async function buildDisputePacketPreview(
     disputedItems: rows.map((row) => toDisputedItemInput(row, input.packetType)),
     reportArtifactIds: rows.map((row) => row.reportArtifactId),
     generatedByUserId: user.id,
-  });
+  }), rows);
 
   return {
     packet,

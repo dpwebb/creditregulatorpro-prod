@@ -35,6 +35,66 @@ export interface EvidenceLocationIndexEntry {
 
 export type EvidenceLocationIndex = Record<string, EvidenceLocationIndexEntry>;
 
+export type EvidenceLocationSummary = EvidenceLocationIndexEntry;
+
+export interface EvidenceLocationResolveContext {
+  reportArtifactData?: unknown;
+  reportArtifactDataById?: Map<number, unknown> | Record<string, unknown>;
+}
+
+export interface EvidenceLocationResolveRequest {
+  reportArtifactId?: unknown;
+  evidenceId?: unknown;
+  fieldKey?: unknown;
+  sourceField?: unknown;
+  fieldName?: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function positiveInteger(value: unknown): number | undefined {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function readProvenance(value: unknown): EvidenceLocationProvenance | null {
+  if (!isRecord(value)) return null;
+  const deterministicPipelineVersion = stringValue(value.deterministicPipelineVersion);
+  const documentBinarySha256 = stringValue(value.documentBinarySha256);
+  const rawTextSha256 = stringValue(value.rawTextSha256);
+  const canonicalResultSha256 = stringValue(value.canonicalResultSha256);
+  const replayHash = stringValue(value.replayHash);
+  if (
+    !deterministicPipelineVersion ||
+    !documentBinarySha256 ||
+    !rawTextSha256 ||
+    !canonicalResultSha256 ||
+    !replayHash
+  ) {
+    return null;
+  }
+
+  return {
+    deterministicPipelineVersion,
+    documentBinarySha256,
+    rawTextSha256,
+    canonicalResultSha256,
+    replayHash,
+    ...(stringValue(value.ocrEngine) ? { ocrEngine: stringValue(value.ocrEngine) } : {}),
+    ...(stringValue(value.ocrRenderer) ? { ocrRenderer: stringValue(value.ocrRenderer) } : {}),
+    ...(typeof value.ocrOverallConfidence === "number"
+      ? { ocrOverallConfidence: value.ocrOverallConfidence }
+      : {}),
+    ...(typeof value.ocrPageConfidence === "number" ? { ocrPageConfidence: value.ocrPageConfidence } : {}),
+  };
+}
+
 function compactSnippet(value: string): string | undefined {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) return undefined;
@@ -140,4 +200,123 @@ export function buildEvidenceLocationIndex(
     .sort(([left], [right]) => left.localeCompare(right));
 
   return Object.fromEntries(entries);
+}
+
+function readReportArtifactDataForContext(
+  context: EvidenceLocationResolveContext | null | undefined,
+  reportArtifactId: unknown,
+): unknown {
+  const parsedArtifactId = positiveInteger(reportArtifactId);
+  if (parsedArtifactId !== undefined && context?.reportArtifactDataById) {
+    if (context.reportArtifactDataById instanceof Map) {
+      return context.reportArtifactDataById.get(parsedArtifactId);
+    }
+    const keyed = context.reportArtifactDataById[String(parsedArtifactId)];
+    if (keyed !== undefined) return keyed;
+  }
+  return context?.reportArtifactData;
+}
+
+function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | null {
+  if (!isRecord(value)) return null;
+  const evidenceId = stringValue(value.evidenceId);
+  const fieldKey = stringValue(value.fieldKey);
+  const provenance = readProvenance(value.provenance);
+  if (!evidenceId || !fieldKey || !provenance) return null;
+
+  const sourceMethod = isSourceMethod(value.sourceMethod) ? value.sourceMethod : undefined;
+  const extractionMethod =
+    value.extractionMethod === "native_pdf_text" || value.extractionMethod === "ocr_text"
+      ? value.extractionMethod
+      : undefined;
+  const pageNumber = positiveInteger(value.pageNumber);
+  const tokenIndexes = Array.isArray(value.tokenIndexes)
+    ? value.tokenIndexes.filter((index): index is number => Number.isInteger(index))
+    : undefined;
+
+  return {
+    evidenceId,
+    fieldKey,
+    ...(stringValue(value.sourceField) ? { sourceField: stringValue(value.sourceField) } : {}),
+    ...(sourceMethod ? { sourceMethod } : {}),
+    ...(extractionMethod ? { extractionMethod } : {}),
+    ...(pageNumber !== undefined ? { pageNumber } : {}),
+    ...(stringValue(value.sectionName) ? { sectionName: stringValue(value.sectionName) } : {}),
+    ...(stringValue(value.zoneName) ? { zoneName: stringValue(value.zoneName) } : {}),
+    ...(stringValue(value.textSnippet) ? { textSnippet: compactSnippet(stringValue(value.textSnippet)!) } : {}),
+    ...(tokenIndexes && tokenIndexes.length > 0 ? { tokenIndexes } : {}),
+    ...(stringValue(value.ruleId) ? { ruleId: stringValue(value.ruleId) } : {}),
+    ...(typeof value.confidence === "number" ? { confidence: value.confidence } : {}),
+    provenance,
+  };
+}
+
+export function readEvidenceLocationIndex(reportArtifactData: unknown): EvidenceLocationIndex | null {
+  if (!isRecord(reportArtifactData) || !isRecord(reportArtifactData.evidenceLocationIndex)) return null;
+
+  const entries = Object.entries(reportArtifactData.evidenceLocationIndex)
+    .flatMap(([key, value]): Array<[string, EvidenceLocationIndexEntry]> => {
+      const entry = toEvidenceLocationSummary(value);
+      if (!entry || entry.evidenceId !== key) return [];
+      return [[key, entry]];
+    })
+    .sort(([left], [right]) => left.localeCompare(right));
+
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+function terminalFieldName(fieldKey: string): string {
+  return fieldKey.replace(/\[\d+\]/g, "").split(".").at(-1) ?? fieldKey;
+}
+
+function entryMatchesFieldName(entry: EvidenceLocationIndexEntry, fieldName: string): boolean {
+  return (
+    entry.fieldKey === fieldName ||
+    terminalFieldName(entry.fieldKey) === fieldName ||
+    entry.sourceField === fieldName ||
+    Boolean(entry.sourceField?.endsWith(`.${fieldName}`))
+  );
+}
+
+function matchingEntries(
+  entries: EvidenceLocationIndexEntry[],
+  predicate: (entry: EvidenceLocationIndexEntry) => boolean,
+): EvidenceLocationIndexEntry[] {
+  return entries.filter(predicate);
+}
+
+export function resolveEvidenceLocation(
+  context: EvidenceLocationResolveContext | null | undefined,
+  request: EvidenceLocationResolveRequest,
+): EvidenceLocationSummary | null {
+  const reportArtifactData = readReportArtifactDataForContext(context, request.reportArtifactId);
+  const index = readEvidenceLocationIndex(reportArtifactData);
+  if (!index) return null;
+
+  const evidenceId = stringValue(request.evidenceId);
+  if (evidenceId && index[evidenceId]) return toEvidenceLocationSummary(index[evidenceId]);
+
+  const entries = Object.values(index);
+  const fieldKey = stringValue(request.fieldKey);
+  if (fieldKey) {
+    const matches = matchingEntries(entries, (entry) => entry.fieldKey === fieldKey);
+    if (matches.length > 1) return null;
+    if (matches.length === 1) return toEvidenceLocationSummary(matches[0]);
+  }
+
+  const sourceField = stringValue(request.sourceField);
+  if (sourceField) {
+    const matches = matchingEntries(entries, (entry) => entry.sourceField === sourceField);
+    if (matches.length > 1) return null;
+    if (matches.length === 1) return toEvidenceLocationSummary(matches[0]);
+  }
+
+  const fieldName = stringValue(request.fieldName);
+  if (fieldName) {
+    const matches = matchingEntries(entries, (entry) => entryMatchesFieldName(entry, fieldName));
+    if (matches.length > 1) return null;
+    if (matches.length === 1) return toEvidenceLocationSummary(matches[0]);
+  }
+
+  return null;
 }

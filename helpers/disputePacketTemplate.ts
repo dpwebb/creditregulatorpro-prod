@@ -1,4 +1,5 @@
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
+import type { EvidenceLocationSummary } from "./evidenceLocationIndex";
 
 export const DISPUTE_PACKET_VERSION = "simple-dispute-packet-v1" as const;
 
@@ -83,6 +84,7 @@ export interface SimpleDisputePacketContent {
   evidenceList: string[];
   attachmentChecklist: string[];
   signatureLine: string;
+  evidenceLocations?: Record<string, EvidenceLocationSummary[]>;
   metadata: {
     selectedIssueIds: number[];
     reportArtifactIds: number[];

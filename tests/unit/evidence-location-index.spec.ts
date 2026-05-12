@@ -6,7 +6,7 @@ import {
   buildDeterministicCreditReportPipelinePackage,
   type CanonicalTextSourceMethod,
 } from "../../helpers/deterministicCreditReportPipeline";
-import { buildEvidenceLocationIndex } from "../../helpers/evidenceLocationIndex";
+import { buildEvidenceLocationIndex, resolveEvidenceLocation } from "../../helpers/evidenceLocationIndex";
 import type { DeterministicOcrProvenance } from "../../helpers/deterministicOcr";
 import type { ComprehensiveParseResult, ParsedTradeline } from "../../helpers/reportParserTypes";
 
@@ -272,5 +272,98 @@ describe("evidence location index sidecar", () => {
 
     expect(ingestCore).toContain("buildEvidenceLocationIndex(deterministicPipeline)");
     expect(ingestCore).toContain("evidenceLocationIndex");
+  });
+
+  it("resolves deterministic locations by evidenceId before field fallback", () => {
+    const reportArtifactData = {
+      evidenceLocationIndex: {
+        "evidence-balance": {
+          evidenceId: "evidence-balance",
+          fieldKey: "tradelines[0].balance",
+          sourceField: "pdf_text.parseResult.tradelines[0].balance",
+          sourceMethod: "pdf_text",
+          extractionMethod: "native_pdf_text",
+          pageNumber: 2,
+          textSnippet: "Balance $2,345.67 Reported Date 2026-01-10",
+          tokenIndexes: [4, 5, 6],
+          provenance: {
+            deterministicPipelineVersion: "test-v1",
+            documentBinarySha256: "document-sha",
+            rawTextSha256: "raw-sha",
+            canonicalResultSha256: "canonical-sha",
+            replayHash: "replay-sha",
+          },
+        },
+      },
+    };
+
+    const resolved = resolveEvidenceLocation({ reportArtifactData }, {
+      evidenceId: "evidence-balance",
+      fieldName: "balance",
+    });
+
+    expect(resolved).toEqual(
+      expect.objectContaining({
+        evidenceId: "evidence-balance",
+        fieldKey: "tradelines[0].balance",
+        pageNumber: 2,
+      }),
+    );
+    expect(resolved).not.toHaveProperty("boundingBox");
+  });
+
+  it("omits locations when the sidecar is missing or field fallback is ambiguous", () => {
+    const ambiguousReportArtifactData = {
+      evidenceLocationIndex: {
+        "evidence-balance-0": {
+          evidenceId: "evidence-balance-0",
+          fieldKey: "tradelines[0].balance",
+          provenance: {
+            deterministicPipelineVersion: "test-v1",
+            documentBinarySha256: "document-sha",
+            rawTextSha256: "raw-sha",
+            canonicalResultSha256: "canonical-sha",
+            replayHash: "replay-sha",
+          },
+        },
+        "evidence-balance-1": {
+          evidenceId: "evidence-balance-1",
+          fieldKey: "tradelines[1].balance",
+          provenance: {
+            deterministicPipelineVersion: "test-v1",
+            documentBinarySha256: "document-sha",
+            rawTextSha256: "raw-sha",
+            canonicalResultSha256: "canonical-sha",
+            replayHash: "replay-sha",
+          },
+        },
+      },
+    };
+
+    expect(resolveEvidenceLocation({ reportArtifactData: null }, { fieldName: "balance" })).toBeNull();
+    expect(resolveEvidenceLocation({ reportArtifactData: ambiguousReportArtifactData }, { fieldName: "balance" })).toBeNull();
+  });
+
+  it("does not invent page numbers when a matched sidecar entry has none", () => {
+    const reportArtifactData = {
+      evidenceLocationIndex: {
+        "evidence-balance": {
+          evidenceId: "evidence-balance",
+          fieldKey: "tradelines[0].balance",
+          provenance: {
+            deterministicPipelineVersion: "test-v1",
+            documentBinarySha256: "document-sha",
+            rawTextSha256: "raw-sha",
+            canonicalResultSha256: "canonical-sha",
+            replayHash: "replay-sha",
+          },
+        },
+      },
+    };
+
+    const resolved = resolveEvidenceLocation({ reportArtifactData }, { fieldName: "balance" });
+
+    expect(resolved).not.toHaveProperty("pageNumber");
+    expect(resolved).not.toHaveProperty("boundingBox");
   });
 });

@@ -213,6 +213,9 @@ async function createFixtureUser(marker: string, label: string): Promise<AuthUse
 }
 
 async function createPacketSourceFixture(owner: AuthUser, marker: string) {
+  const balanceEvidenceId = `evidence-${marker}-balance`;
+  const balanceEvidenceSnippet =
+    "Synthetic source report line: balance field reports 200 while expected balance is 100.";
   const bureau = await db
     .insertInto("bureau")
     .values({
@@ -249,7 +252,33 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
       userId: owner.id,
       artifactType: "packet_lifecycle_endpoint_test",
       processingStatus: "completed",
-      data: { marker, synthetic: true },
+      data: {
+        marker,
+        synthetic: true,
+        evidenceLocationIndex: {
+          [balanceEvidenceId]: {
+            evidenceId: balanceEvidenceId,
+            fieldKey: "tradelines[0].balance",
+            sourceField: "pdf_text.parseResult.tradelines[0].balance",
+            sourceMethod: "pdf_text",
+            extractionMethod: "native_pdf_text",
+            pageNumber: 2,
+            sectionName: "tradeline_accounts",
+            zoneName: "tradeline_accounts",
+            textSnippet: balanceEvidenceSnippet,
+            tokenIndexes: [12, 13, 14],
+            ruleId: "canonical-field-selected-v1",
+            confidence: 1,
+            provenance: {
+              deterministicPipelineVersion: "test-v1",
+              documentBinarySha256: "synthetic-document-sha",
+              rawTextSha256: "synthetic-raw-text-sha",
+              canonicalResultSha256: "synthetic-canonical-sha",
+              replayHash: "synthetic-replay-hash",
+            },
+          },
+        },
+      },
       reportDate,
       storageUrl: null,
       sha256: null,
@@ -282,7 +311,7 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
       amountPastDue: 0,
       openedDate: new Date("2024-01-15T00:00:00.000Z"),
       lastReportedDate: reportDate,
-      sourceText: "Synthetic source report line: balance field reports 200 while expected balance is 100.",
+      sourceText: balanceEvidenceSnippet,
       originalCreditorName: null,
       collectionAgencyName: null,
       isCollectionAccount: false,
@@ -321,9 +350,10 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
       expectedValue: "$100",
       evidenceLink: {
         reportArtifactId: reportArtifact.id,
+        evidenceId: balanceEvidenceId,
         field: "balance",
         pageNumber: 2,
-        textSnippet: "Synthetic source report line: balance field reports 200 while expected balance is 100.",
+        textSnippet: balanceEvidenceSnippet,
       },
       extractionConfidenceGate: {
         status: "confirmed",
@@ -381,6 +411,7 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
     readyIssueId: readyIssue,
     blockedIssueId: blockedIssue,
     dismissedIssueId: dismissedIssue,
+    balanceEvidenceId,
   };
 }
 
@@ -461,6 +492,15 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
     expect(["credit_bureau", "collection_agency"]).toContain(built.packet.recipient.type);
     expect(built.packet.packetType).not.toMatch(/furnisher/i);
     expect(built.packet.metadata.selectedIssueIds).toEqual([fixture.readyIssueId]);
+    expect(built.packet.evidenceLocations?.[String(fixture.readyIssueId)]).toEqual([
+      expect.objectContaining({
+        evidenceId: fixture.balanceEvidenceId,
+        fieldKey: "tradelines[0].balance",
+        pageNumber: 2,
+        sourceMethod: "pdf_text",
+        extractionMethod: "native_pdf_text",
+      }),
+    ]);
     expect(built.packet.disputedItems).toEqual(
       expect.arrayContaining([expect.objectContaining({ issueId: fixture.readyIssueId })]),
     );
@@ -484,6 +524,13 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
 
     const persistedContent = JSON.parse(persisted.content ?? "{}");
     expect(persistedContent.metadata.selectedIssueIds).toEqual([fixture.readyIssueId]);
+    expect(persistedContent.evidenceLocations?.[String(fixture.readyIssueId)]).toEqual([
+      expect.objectContaining({
+        evidenceId: fixture.balanceEvidenceId,
+        fieldKey: "tradelines[0].balance",
+        pageNumber: 2,
+      }),
+    ]);
     expect(persistedContent.disputedItems).toEqual(
       expect.arrayContaining([expect.objectContaining({ issueId: fixture.readyIssueId })]),
     );

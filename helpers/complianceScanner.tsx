@@ -73,6 +73,7 @@ import {
   evaluateParserConfidenceGateFromArtifactData,
   evaluateViolationPacketConfidenceGate,
 } from "./violationPacketConfidenceGate";
+import type { EvidenceLocationResolveContext } from "./evidenceLocationIndex";
 
 // Re-export types for convenience
 export type { DetectedViolation };
@@ -244,6 +245,7 @@ export async function scanForViolations(
 
   const parserGateArtifactId = context.sourceReportArtifactId ?? tradeline.reportArtifactId ?? null;
   let parserConfidenceGate: ReturnType<typeof evaluateParserConfidenceGateFromArtifactData> | null = null;
+  let parserGateArtifactData: unknown = null;
 
   if (parserGateArtifactId) {
     const artifact = await db.selectFrom("reportArtifact")
@@ -252,6 +254,7 @@ export async function scanForViolations(
       .executeTakeFirst();
       
     if (artifact?.data) {
+      parserGateArtifactData = artifact.data;
       parserConfidenceGate = evaluateParserConfidenceGateFromArtifactData(artifact.data);
 
       if (parserConfidenceGate.status === "parser_uncertain") {
@@ -300,6 +303,17 @@ export async function scanForViolations(
     }
   }
   console.log(`Found ${artifacts.length} artifacts for tradeline ${tradelineId}`);
+  const evidenceLocationReportArtifactDataById = new Map<number, unknown>();
+  for (const artifact of artifacts) {
+    if (artifact.data) evidenceLocationReportArtifactDataById.set(artifact.id, artifact.data);
+  }
+  if (parserGateArtifactId && parserGateArtifactData) {
+    evidenceLocationReportArtifactDataById.set(parserGateArtifactId, parserGateArtifactData);
+  }
+  const evidenceLocationContext: EvidenceLocationResolveContext | undefined =
+    evidenceLocationReportArtifactDataById.size > 0
+      ? { reportArtifactDataById: evidenceLocationReportArtifactDataById }
+      : undefined;
   const latestReportDate = getMostRecentArtifactReportDate(artifacts);
   const analysisDate = resolveAnalysisDate(context.analysisDate, artifacts, tradeline);
 
@@ -467,7 +481,7 @@ export async function scanForViolations(
   }
 
   const truthLayerViolations = await applyViolationCorrectionTruthLayer(finalViolations, tradeline);
-  const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(truthLayerViolations);
+  const ruleLinkedViolations = enrichDetectedViolationsRuleEvidence(truthLayerViolations, evidenceLocationContext);
   const authorityLinkedViolations = filterViolationsWithLocalAuthorityLinks(ruleLinkedViolations);
   const confidenceAnnotatedViolations =
     parserConfidenceGate && parserConfidenceGate.status !== "unknown"
@@ -607,8 +621,22 @@ export async function persistViolations(
   tradelineId: number,
   options: PersistViolationOptions = {},
 ): Promise<number[]> {
+  let evidenceLocationContext: EvidenceLocationResolveContext | undefined;
+  if (options.sourceReportArtifactId) {
+    const sourceArtifact = await db
+      .selectFrom("reportArtifact")
+      .select("data")
+      .where("id", "=", options.sourceReportArtifactId)
+      .executeTakeFirst();
+    if (sourceArtifact?.data) {
+      evidenceLocationContext = {
+        reportArtifactDataById: new Map([[options.sourceReportArtifactId, sourceArtifact.data]]),
+      };
+    }
+  }
+
   const normalizedViolations = normalizeDetectedViolations(
-    filterViolationsWithLocalAuthorityLinks(enrichDetectedViolationsRuleEvidence(violations)),
+    filterViolationsWithLocalAuthorityLinks(enrichDetectedViolationsRuleEvidence(violations, evidenceLocationContext)),
   );
 
   if (normalizedViolations.length === 0) {

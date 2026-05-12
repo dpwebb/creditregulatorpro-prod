@@ -8,13 +8,20 @@ import {
 } from "./legalAuthorityRegistry";
 import { regulationRegistry, type RegulationEntry } from "./regulationRegistry";
 import type { ViolationCategory } from "./schema";
+import {
+  resolveEvidenceLocation,
+  type EvidenceLocationResolveContext,
+  type EvidenceLocationSummary,
+} from "./evidenceLocationIndex";
 
 export interface DeterministicViolationEvidenceLink {
   tradelineId?: number;
   reportArtifactId?: number;
+  evidenceId?: string;
   fieldName?: string;
   pageNumber?: number;
   textSnippet?: string;
+  evidenceLocation?: EvidenceLocationSummary;
   source: "detector_technical_details";
 }
 
@@ -59,6 +66,10 @@ function firstDefined(details: Record<string, any>, keys: string[]): unknown {
     if (value !== undefined && value !== null && value !== "") return value;
   }
   return null;
+}
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 }
 
 const RULE_FIELD_MAP: Record<string, string> = {
@@ -225,8 +236,12 @@ function factualTrigger(violation: DetectedViolation): string {
     : compactWords(violation.userExplanation || violation.violationCategory, 30);
 }
 
-function evidenceLink(violation: DetectedViolation): DeterministicViolationEvidenceLink {
+function evidenceLink(
+  violation: DetectedViolation,
+  context?: EvidenceLocationResolveContext,
+): DeterministicViolationEvidenceLink {
   const details = detailsOf(violation);
+  const existingEvidence = objectValue(details.evidenceLink);
   const pageNumber = Number(details.pageNumber ?? details.page ?? details.sourcePage);
   const fieldName = inferredFieldName(violation);
   const snippet = firstString(details, [
@@ -236,17 +251,37 @@ function evidenceLink(violation: DetectedViolation): DeterministicViolationEvide
     "excerpt",
     "rawSectionText",
   ]);
+  const reportArtifactId = Number(
+    existingEvidence?.reportArtifactId ??
+      existingEvidence?.sourceReportArtifactId ??
+      details.reportArtifactId ??
+      details.sourceReportArtifactId,
+  );
+  const evidenceId = firstString(details, ["evidenceId", "canonicalEvidenceId"]) ??
+    firstString(existingEvidence ?? {}, ["evidenceId", "canonicalEvidenceId"]);
+  const evidenceFieldKey = firstString(details, ["fieldKey", "canonicalFieldKey"]) ??
+    firstString(existingEvidence ?? {}, ["fieldKey", "canonicalFieldKey"]);
+  const evidenceSourceField = firstString(details, ["sourceField", "canonicalField", "disputedField"]) ??
+    firstString(existingEvidence ?? {}, ["sourceField", "canonicalField", "field"]);
+  const evidenceLocation = resolveEvidenceLocation(context, {
+    reportArtifactId,
+    evidenceId,
+    fieldKey: evidenceFieldKey,
+    sourceField: evidenceSourceField,
+    fieldName,
+  });
 
   return {
+    ...(existingEvidence ?? {}),
     ...(violation.tradelineId ?? details.tradelineId ? { tradelineId: Number(violation.tradelineId ?? details.tradelineId) } : {}),
-    ...(details.reportArtifactId ?? details.sourceReportArtifactId
-      ? { reportArtifactId: Number(details.reportArtifactId ?? details.sourceReportArtifactId) }
-      : {}),
+    ...(Number.isFinite(reportArtifactId) && reportArtifactId > 0 ? { reportArtifactId } : {}),
+    ...(evidenceId ? { evidenceId } : {}),
     ...(fieldName ? { fieldName } : {}),
     ...(Number.isFinite(pageNumber) ? { pageNumber } : {}),
     ...(snippet ? { textSnippet: compactWords(snippet, 40) } : {}),
+    ...(evidenceLocation ? { evidenceLocation } : {}),
     source: "detector_technical_details",
-  };
+  } as DeterministicViolationEvidenceLink;
 }
 
 function isFieldSpecificReferenceAllowed(
@@ -340,6 +375,7 @@ function regulationReferences(
 
 export function buildDeterministicViolationRuleEnvelope(
   violation: DetectedViolation,
+  context?: EvidenceLocationResolveContext,
 ): DeterministicViolationRuleEnvelope | null {
   if (!violation.violationCategory) return null;
   const details = detailsOf(violation);
@@ -357,7 +393,7 @@ export function buildDeterministicViolationRuleEnvelope(
     violationType: category,
     factualTrigger: trigger,
     sourceFields: sourceFields(details, fieldName),
-    evidence: evidenceLink(violation),
+    evidence: evidenceLink(violation, context),
     regulationReferences: refs,
     explanation: `Rule ${ruleId} fired because ${trigger}.`,
   };
@@ -365,8 +401,9 @@ export function buildDeterministicViolationRuleEnvelope(
 
 export function enrichDetectedViolationRuleEvidence(
   violation: DetectedViolation,
+  context?: EvidenceLocationResolveContext,
 ): DetectedViolation {
-  const deterministicRule = buildDeterministicViolationRuleEnvelope(violation);
+  const deterministicRule = buildDeterministicViolationRuleEnvelope(violation, context);
   if (!deterministicRule) return violation;
   const resolvedRegulationIds = deterministicRule.regulationReferences.map((ref) => ref.id);
 
@@ -482,8 +519,9 @@ export function filterViolationsWithLocalAuthorityLinks(
 
 export function enrichDetectedViolationsRuleEvidence(
   violations: DetectedViolation[],
+  context?: EvidenceLocationResolveContext,
 ): DetectedViolation[] {
-  return violations.map(enrichDetectedViolationRuleEvidence);
+  return violations.map((violation) => enrichDetectedViolationRuleEvidence(violation, context));
 }
 
 export function getDeterministicViolationStatutoryBasis(
