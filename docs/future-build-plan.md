@@ -58,13 +58,14 @@ Updated May 12, 2026.
 20. Phase 3 Coordinate Slice 1 is complete for OCR TSV word boxes: OCR TSV word boxes are parsed, OCR-derived `evidenceLocationIndex` entries can include optional `boundingBox` metadata when a deterministic, unambiguous, confidence-safe, non-sensitive OCR word-span match exists, `boundingBox` uses `px` units against rendered OCR image coordinates, `coordinateSource` is `tesseract_tsv_word`, bounding boxes remain optional, no schema change was made, and canonical values, evidence IDs, replay hash behavior, violation rules, OCR acceptance rules, packet readiness, packet wording, and packet PDF layout were not changed.
 21. Phase 3 Coordinate Slice 2 is complete for native PDF/pdfjs coordinate sidecars: `pdfjs-dist` is used only as a sidecar while `pdf-parse` remains parser truth, native PDF `evidenceLocationIndex` entries can include optional `boundingBox` metadata when a deterministic, unambiguous, non-sensitive pdfjs text-item match exists, `boundingBox` uses `pt` units, `coordinateSource` is `pdfjs_text_item`, no schema change was made, and canonical values, evidence IDs, replay hash behavior, violation rules, OCR behavior, packet readiness, packet wording, packet UI, and packet PDF layout were not changed.
 22. Synthetic Phase 3 coordinate sidecar edge-case coverage has been expanded for OCR TSV and native PDF/pdfjs fixtures, including repeated values, ambiguity omission, sensitive-overexposure omission, OCR low-confidence omission, no-match omission, and page ambiguity coverage.
+23. The minimal packet-to-finding relational model is implemented through `dispute_packet_findings`: packet rows link to included findings, single-issue packets still set `creditorObligationTestId`, multi-issue packets create one row per selected finding, `selectedIssueIds` remain preserved in packet content/metadata, old packets without join rows remain readable, evidence snapshots are compact and privacy-safe, no backfill was performed, and no admin override was added.
 
 ### Remaining High-Priority Work
 
-1. Continue Phase 3 evidence hardening by broadening page-aware field coverage, converting observed complex real-world coordinate layouts into anonymized fixtures, and keeping packet-to-finding relational model work design-only until reviewed.
+1. Continue Phase 3 evidence hardening by broadening page-aware field coverage and converting observed complex real-world coordinate layouts into anonymized fixtures.
 2. Add dedicated deterministic rule packs for creditor statements and collection letters.
 3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
-4. Create a design-only plan for packet-to-finding relational rows before any multi-issue packet schema work.
+4. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening before adding broader packet outcome tracking.
 5. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path.
 
 ---
@@ -221,7 +222,7 @@ Exit criteria:
 
 Goal: connect extracted facts and detected issues to simple, useful user actions.
 
-Status: Packet generation is active and readiness-gated. Originating-finding preselection is implemented in the central packet dialog, and endpoint-backed packet lifecycle coverage now exists for readiness, preview/build, create, PDF download, and non-owner PDF denial.
+Status: Packet generation is active and readiness-gated. Originating-finding preselection is implemented in the central packet dialog, endpoint-backed packet lifecycle coverage now exists for readiness, preview/build, create, PDF download, and non-owner PDF denial, and packet-to-finding tracking is implemented at a minimal relational level through `dispute_packet_findings`.
 
 Work:
 
@@ -234,8 +235,9 @@ Work:
 7. Keep packet-dialog preselection covered so originating findings remain selected only when the existing eligible recommendation list says they are packet-ready.
 8. Keep endpoint-backed packet lifecycle coverage green for readiness -> preview/build -> create -> PDF download -> non-owner denial.
 9. Keep final packet creation blocked for missing evidence, manual review, dismissed findings, parser uncertainty, wrong owner, wrong bureau, and unsafe multi-issue selections.
-10. Do not add admin override until evidence gates, endpoint lifecycle tests, and packet-to-finding tracking are stable.
-11. Design packet-to-finding relational rows later, before scaling multi-issue packets.
+10. Maintain minimal packet-to-finding relational rows while keeping stored packet content as the PDF source of truth.
+11. Do not add admin override until evidence gates, endpoint lifecycle tests, and packet-to-finding tracking are stronger.
+12. Consider broader outcome tracking later, after rule defensibility and admin truth-loop hardening.
 
 Exit criteria:
 
@@ -245,6 +247,7 @@ Exit criteria:
 4. Endpoint-backed packet lifecycle tests prove packet-ready findings can validate, preview/build, create, persist `creditorObligationTestId`, download PDF, and deny non-owner PDF access.
 5. Existing packet and outcome flows continue to work.
 6. Multi-issue packet behavior remains constrained and auditable.
+7. Packet-to-finding rows remain additive and old packets without rows remain readable.
 
 ---
 
@@ -356,23 +359,25 @@ Exit criteria:
 5. No backfill exists for older persisted violations or packets created before evidence-location metadata was linked.
 6. Ambiguous field-name matches intentionally omit evidence-location metadata.
 7. Golden Path protects the logical chain, and packet lifecycle endpoint coverage now protects one critical API path. Additional endpoint-backed tests may still be needed for other critical user flows.
-8. Multi-issue packets currently rely on structured metadata rather than per-finding relational rows; packet-to-finding relational rows remain future design work.
-9. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
-10. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
-11. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
-12. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
-13. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
-14. Admin corrections need deeper controlled promotion into future deterministic rules.
-15. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-16. French OCR support is not installed unless added later as a specific requirement.
+8. Packet-to-finding relational rows exist, but broader outcome tracking and retention/delete behavior should still be monitored.
+9. Old packets are not backfilled into `dispute_packet_findings` and must remain readable through legacy packet content.
+10. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
+11. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
+12. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
+13. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
+14. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
+15. Admin corrections need deeper controlled promotion into future deterministic rules.
+16. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+17. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
 1. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
-2. Keep packet-to-finding relational model work as a later design-only task before any multi-issue packet schema work.
-3. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
-4. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
-5. Only after the above, revisit regulation/reference update governance.
-6. Do not add admin override yet.
+2. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
+3. Consider broader packet outcome tracking later, after the minimal packet-to-finding relational rows have proven stable.
+4. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
+5. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+6. Only after the above, revisit regulation/reference update governance.
+7. Do not add admin override yet.
