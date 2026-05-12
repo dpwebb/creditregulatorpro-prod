@@ -56,10 +56,11 @@ Updated May 12, 2026.
 18. Phase 3 Slice 1 evidence hardening has started with a no-schema evidence-location sidecar under `reportArtifact.data.evidenceLocationIndex`; it is keyed by stable `evidenceId`, preserves `pageNumber` only when reliable, omits missing or ambiguous page numbers, and leaves schema, canonical values, evidence IDs, replay hashes, violation logic, and packet readiness unchanged.
 19. Phase 3 Slice 2 evidence enrichment is complete: violation evidence links now preserve structured `evidenceLocation` metadata when deterministically resolved, packet content preserves structured evidence location metadata by finding ID, readable packet evidence references remain unchanged, packet readiness and violation rules remain unchanged, and no schema change was made.
 20. Phase 3 Coordinate Slice 1 is complete for OCR TSV word boxes: OCR TSV word boxes are parsed, OCR-derived `evidenceLocationIndex` entries can include optional `boundingBox` metadata when a deterministic, unambiguous, confidence-safe, non-sensitive OCR word-span match exists, `boundingBox` uses `px` units against rendered OCR image coordinates, `coordinateSource` is `tesseract_tsv_word`, bounding boxes remain optional, no schema change was made, and canonical values, evidence IDs, replay hash behavior, violation rules, OCR acceptance rules, packet readiness, packet wording, and packet PDF layout were not changed.
+21. Phase 3 Coordinate Slice 2 is complete for native PDF/pdfjs coordinate sidecars: `pdfjs-dist` is used only as a sidecar while `pdf-parse` remains parser truth, native PDF `evidenceLocationIndex` entries can include optional `boundingBox` metadata when a deterministic, unambiguous, non-sensitive pdfjs text-item match exists, `boundingBox` uses `pt` units, `coordinateSource` is `pdfjs_text_item`, no schema change was made, and canonical values, evidence IDs, replay hash behavior, violation rules, OCR behavior, packet readiness, packet wording, packet UI, and packet PDF layout were not changed.
 
 ### Remaining High-Priority Work
 
-1. Continue Phase 3 evidence hardening by broadening page-aware field coverage, designing native PDF/pdfjs coordinate sidecar behavior before implementation, validating OCR coordinate behavior with anonymized or synthetic real-world fixtures, and keeping packet-to-finding relational model work design-only until reviewed.
+1. Continue Phase 3 evidence hardening by broadening page-aware field coverage, expanding anonymized or synthetic coordinate-sidecar fixture coverage for OCR and native PDF layouts, and keeping packet-to-finding relational model work design-only until reviewed.
 2. Add dedicated deterministic rule packs for creditor statements and collection letters.
 3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
 4. Create a design-only plan for packet-to-finding relational rows before any multi-issue packet schema work.
@@ -143,7 +144,7 @@ Exit criteria:
 
 Goal: make every user-visible issue defensible and traceable.
 
-Status: Started. No-schema evidence-location sidecar exists, violation and packet evidence metadata are enriched where deterministically resolvable, and OCR TSV bounding boxes are now supported for OCR-derived evidence when safely matched. Native PDF/pdfjs coordinates remain future design/implementation work.
+Status: Started. No-schema evidence-location sidecar exists, violation and packet evidence metadata are enriched where deterministically resolvable, OCR TSV bounding boxes are supported for OCR-derived evidence, and native PDF/pdfjs sidecar bounding boxes are supported for native PDF evidence when safely matched.
 
 Work:
 
@@ -152,10 +153,11 @@ Work:
 3. Maintain additive violation evidence-link metadata from `evidenceLocationIndex` without changing violation rules or search behavior.
 4. Maintain additive packet evidence-reference metadata from `evidenceLocationIndex` without changing readiness or packet wording.
 5. Maintain OCR TSV bounding-box evidence only where extraction tooling supplies authoritative deterministic coordinates and matching remains deterministic, unambiguous, confidence-safe, and non-sensitive.
-6. Design native PDF/pdfjs coordinate sidecar behavior before any native coordinate implementation.
-7. Add regression checks for evidence link presence on every final issue.
-8. Store evidence provenance without exposing unnecessary consumer data.
-9. Ensure OCR evidence carries method, page, confidence, and snippet details.
+6. Maintain native PDF/pdfjs bounding-box evidence only where sidecar extraction supplies deterministic `pt` coordinates and matching remains deterministic, unambiguous, and non-sensitive while `pdf-parse` remains parser truth.
+7. Expand synthetic fixture coverage for multi-column, repeated-value, rotated, scaled, and unusual PDF coordinate layouts.
+8. Add regression checks for evidence link presence on every final issue.
+9. Store evidence provenance without exposing unnecessary consumer data.
+10. Ensure OCR evidence carries method, page, confidence, and snippet details.
 
 Exit criteria:
 
@@ -347,29 +349,29 @@ Exit criteria:
 ## Current Known Risks
 
 1. Page-aware evidence metadata is linked into violation and packet references where deterministically resolvable, but broader field coverage is not complete.
-2. Native PDF bounding boxes are not implemented.
+2. Native PDF bounding boxes are optional and omitted on ambiguity, no match, sensitive overexposure, missing page data, or unusual layout uncertainty.
 3. OCR bounding boxes are optional and omitted on ambiguity, low confidence, sensitive overexposure, or missing page data.
-4. No backfill exists for older persisted violations or packets created before evidence-location metadata was linked.
-5. Ambiguous field-name matches intentionally omit evidence-location metadata.
-6. Golden Path protects the logical chain, and packet lifecycle endpoint coverage now protects one critical API path. Additional endpoint-backed tests may still be needed for other critical user flows.
-7. Multi-issue packets currently rely on structured metadata rather than per-finding relational rows.
-8. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
-9. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
-10. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
-11. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
-12. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
-13. Admin corrections need deeper controlled promotion into future deterministic rules.
-14. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-15. French OCR support is not installed unless added later as a specific requirement.
+4. `pdfjs-dist` item ordering can differ from `pdf-parse` text ordering on complex PDFs, so parser truth remains `pdf-parse`.
+5. No backfill exists for older persisted violations or packets created before evidence-location metadata was linked.
+6. Ambiguous field-name matches intentionally omit evidence-location metadata.
+7. Golden Path protects the logical chain, and packet lifecycle endpoint coverage now protects one critical API path. Additional endpoint-backed tests may still be needed for other critical user flows.
+8. Multi-issue packets currently rely on structured metadata rather than per-finding relational rows.
+9. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
+10. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
+11. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
+12. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
+13. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
+14. Admin corrections need deeper controlled promotion into future deterministic rules.
+15. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+16. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Create a design-only native PDF/pdfjs coordinate sidecar plan.
-2. Do not implement native PDF coordinates yet and do not add schema yet.
-3. Keep packet-to-finding relational model work as a later design-only task before any multi-issue packet schema work.
-4. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
-5. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
-6. Only after the above, revisit regulation/reference update governance.
-7. Do not add admin override yet.
+1. Expand synthetic fixture coverage for coordinate sidecars, including multi-column layouts, repeated values, rotated or scaled layouts, unusual native PDF text ordering, and sensitive-overexposure cases.
+2. Keep packet-to-finding relational model work as a later design-only task before any multi-issue packet schema work.
+3. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
+4. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+5. Only after the above, revisit regulation/reference update governance.
+6. Do not add admin override yet.
