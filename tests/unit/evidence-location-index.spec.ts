@@ -973,6 +973,42 @@ describe("evidence location index sidecar", () => {
     expect(resolved).not.toHaveProperty("boundingBox");
   });
 
+  it("resolves JSON-string sidecars and normalizes numeric evidence IDs", () => {
+    const reportArtifactData = JSON.stringify({
+      evidenceLocationIndex: {
+        "12345": {
+          evidenceId: 12345,
+          fieldKey: "tradelines[0].balance",
+          sourceField: "pdf_text.parseResult.tradelines[0].balance",
+          sourceMethod: "pdf_text",
+          extractionMethod: "native_pdf_text",
+          pageNumber: 2,
+          textSnippet: "Balance $2,345.67 Reported Date 2026-01-10",
+          provenance: {
+            deterministicPipelineVersion: "test-v1",
+            documentBinarySha256: "document-sha",
+            rawTextSha256: "raw-sha",
+            canonicalResultSha256: "canonical-sha",
+            replayHash: "replay-sha",
+          },
+        },
+      },
+    });
+
+    const resolved = resolveEvidenceLocation({ reportArtifactData }, {
+      evidenceId: 12345,
+      fieldName: "balance",
+    });
+
+    expect(resolved).toEqual(
+      expect.objectContaining({
+        evidenceId: "12345",
+        fieldKey: "tradelines[0].balance",
+        pageNumber: 2,
+      }),
+    );
+  });
+
   it("omits locations when the sidecar is missing or field fallback is ambiguous", () => {
     const ambiguousReportArtifactData = {
       evidenceLocationIndex: {

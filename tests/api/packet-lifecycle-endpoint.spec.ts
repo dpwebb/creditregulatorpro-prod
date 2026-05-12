@@ -732,6 +732,12 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
       }),
     ]);
     expect(jsonValue<Record<string, unknown>[]>(linkedRow.evidenceLocationSnapshot)[0]).not.toHaveProperty("textSnippet");
+    expect(JSON.stringify(jsonValue<Record<string, unknown>[]>(linkedRow.evidenceLocationSnapshot))).not.toContain(
+      `ACCT-${marker}-READY`,
+    );
+    expect(JSON.stringify(jsonValue<Record<string, unknown>[]>(linkedRow.evidenceLocationSnapshot))).not.toMatch(
+      /\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/,
+    );
     expect(jsonValue<Record<string, unknown>>(linkedRow.readinessSnapshot)).toMatchObject({
       packetReady: true,
       findingEligible: true,

@@ -313,6 +313,11 @@ function evidenceLocationRequestForIssue(
   };
 }
 
+type EvidenceLocationRequest = ReturnType<typeof evidenceLocationRequestForIssue>;
+type EvidenceLocationLookupContext = {
+  reportArtifactData?: unknown;
+};
+
 export function buildPacketEvidenceLocationsForIssues(
   sources: PacketEvidenceLocationSource[],
 ): Record<string, EvidenceLocationSummary[]> | undefined {
@@ -367,25 +372,259 @@ function reportArtifactIdForRow(row: IssueRow): number | null {
   return row.reportArtifactId;
 }
 
-function sanitizedEvidenceLocationSnapshot(packet: SimpleDisputePacketContent, issueId: number): Record<string, unknown>[] {
-  const locations = packet.evidenceLocations?.[String(issueId)] ?? [];
-  return locations.map((location) => {
-    const { textSnippet: _textSnippet, ...safeLocation } = location;
-    return safeLocation as Record<string, unknown>;
-  });
+function positiveIntegerValue(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function finiteNumberValue(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function stringIdValue(value: unknown): string | null {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "bigint") return value.toString();
+  return null;
+}
+
+function sanitizedBoundingBox(value: unknown): Record<string, unknown> | null {
+  const box = objectValue(value);
+  if (!box) return null;
+  const x = finiteNumberValue(box.x);
+  const y = finiteNumberValue(box.y);
+  const width = finiteNumberValue(box.width);
+  const height = finiteNumberValue(box.height);
+  const pageNumber = positiveIntegerValue(box.pageNumber);
+  if (
+    x === null ||
+    y === null ||
+    width === null ||
+    height === null ||
+    width <= 0 ||
+    height <= 0 ||
+    pageNumber === null ||
+    box.coordinateValidated !== true
+  ) {
+    return null;
+  }
+  if (box.unit === "px" && box.coordinateSource === "tesseract_tsv_word") {
+    return {
+      x,
+      y,
+      width,
+      height,
+      unit: "px",
+      pageNumber,
+      coordinateSource: "tesseract_tsv_word",
+      coordinateValidated: true,
+    };
+  }
+  if (box.unit === "pt" && box.coordinateSource === "pdfjs_text_item") {
+    return {
+      x,
+      y,
+      width,
+      height,
+      unit: "pt",
+      pageNumber,
+      coordinateSource: "pdfjs_text_item",
+      coordinateValidated: true,
+    };
+  }
+  return null;
+}
+
+function sanitizedPageDimensions(value: unknown): Record<string, unknown> | null {
+  const dimensions = objectValue(value);
+  if (!dimensions) return null;
+  const width = finiteNumberValue(dimensions.width);
+  const height = finiteNumberValue(dimensions.height);
+  if (
+    width === null ||
+    height === null ||
+    width <= 0 ||
+    height <= 0 ||
+    (dimensions.unit !== "px" && dimensions.unit !== "pt")
+  ) {
+    return null;
+  }
+  return { width, height, unit: dimensions.unit };
+}
+
+function sanitizedProvenance(value: unknown): Record<string, unknown> | null {
+  const provenance = objectValue(value);
+  if (!provenance) return null;
+  const output: Record<string, unknown> = {};
+  for (const key of [
+    "deterministicPipelineVersion",
+    "documentBinarySha256",
+    "rawTextSha256",
+    "canonicalResultSha256",
+    "replayHash",
+    "ocrEngine",
+    "ocrRenderer",
+  ]) {
+    const text = firstText(provenance, [key]);
+    if (text) output[key] = text;
+  }
+  for (const key of ["ocrOverallConfidence", "ocrPageConfidence"]) {
+    const parsed = finiteNumberValue(provenance[key]);
+    if (parsed !== null) output[key] = parsed;
+  }
+  return Object.keys(output).length > 0 ? output : null;
+}
+
+function sanitizedEvidenceLocationEntry(location: unknown): Record<string, unknown> | null {
+  const record = objectValue(location);
+  if (!record) return null;
+  const output: Record<string, unknown> = {};
+  const evidenceId = stringIdValue(record.evidenceId);
+  if (evidenceId) output.evidenceId = evidenceId;
+  for (const key of [
+    "fieldKey",
+    "sourceField",
+    "sourceMethod",
+    "extractionMethod",
+    "sectionName",
+    "zoneName",
+    "ruleId",
+    "matchedTextHash",
+    "canonicalValueHash",
+    "sourceTextHash",
+    "coordinateExtractorVersion",
+  ]) {
+    const text = firstText(record, [key]);
+    if (text) output[key] = text;
+  }
+  const pageNumber = positiveIntegerValue(record.pageNumber);
+  if (pageNumber !== null) output.pageNumber = pageNumber;
+  for (const key of ["confidence", "coordinateConfidence"]) {
+    const parsed = finiteNumberValue(record[key]);
+    if (parsed !== null) output[key] = parsed;
+  }
+  const boundingBox = sanitizedBoundingBox(record.boundingBox);
+  if (boundingBox) output.boundingBox = boundingBox;
+  const pageDimensions = sanitizedPageDimensions(record.pageDimensions);
+  if (pageDimensions) output.pageDimensions = pageDimensions;
+  const provenance = sanitizedProvenance(record.provenance);
+  if (provenance) output.provenance = provenance;
+  return Object.keys(output).length > 0 ? output : null;
+}
+
+function sanitizedEvidenceLocationSnapshot(locations: unknown[]): Record<string, unknown>[] {
+  const seen = new Set<string>();
+  return locations
+    .map(sanitizedEvidenceLocationEntry)
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry))
+    .filter((entry) => {
+      const key = JSON.stringify(entry);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function directEvidenceLocationsFromDetails(details: Record<string, unknown>): unknown[] {
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
+  return [
+    details.evidenceLocation,
+    evidence?.evidenceLocation,
+    objectValue(details.deterministicRule)?.evidenceLocation,
+    objectValue(objectValue(details.deterministicRule)?.evidence)?.evidenceLocation,
+  ].filter((location) => objectValue(location));
+}
+
+function evidenceIdsFromDetails(details: Record<string, unknown>): string[] {
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
+  const directLocations = directEvidenceLocationsFromDetails(details);
+  return Array.from(new Set([
+    stringIdValue(details.evidenceId),
+    stringIdValue(details.canonicalEvidenceId),
+    evidence ? stringIdValue(evidence.evidenceId) : null,
+    evidence ? stringIdValue(evidence.canonicalEvidenceId) : null,
+    ...directLocations.map((location) => stringIdValue(objectValue(location)?.evidenceId)),
+  ].filter((id): id is string => Boolean(id))));
+}
+
+function resolveReportArtifactLocationByEvidenceIds(
+  context: EvidenceLocationLookupContext,
+  request: EvidenceLocationRequest,
+  evidenceIds: string[],
+): Record<string, unknown>[] {
+  const locations = evidenceIds
+    .map((evidenceId) =>
+      resolveEvidenceLocation(
+        { reportArtifactData: context.reportArtifactData },
+        {
+          reportArtifactId: request.reportArtifactId,
+          evidenceId,
+        },
+      ),
+    )
+    .filter((location): location is EvidenceLocationSummary => Boolean(location));
+  return sanitizedEvidenceLocationSnapshot(locations);
+}
+
+function resolveReportArtifactLocationByField(
+  context: EvidenceLocationLookupContext,
+  request: EvidenceLocationRequest,
+): Record<string, unknown>[] {
+  const location = resolveEvidenceLocation(
+    { reportArtifactData: context.reportArtifactData },
+    {
+      reportArtifactId: request.reportArtifactId,
+      fieldKey: request.fieldKey,
+      sourceField: request.sourceField,
+    },
+  );
+  return location ? sanitizedEvidenceLocationSnapshot([location]) : [];
+}
+
+export function buildPacketFindingEvidenceLocationSnapshot(input: {
+  packet: SimpleDisputePacketContent;
+  issueId: number;
+  reportArtifactId?: number | null;
+  reportArtifactData?: unknown;
+  technicalDetails?: unknown;
+}): Record<string, unknown>[] {
+  const packetLocations = input.packet.evidenceLocations?.[String(input.issueId)] ?? [];
+  const packetSnapshot = sanitizedEvidenceLocationSnapshot(packetLocations);
+  if (packetSnapshot.length > 0) return packetSnapshot;
+
+  const details = parseDetails(input.technicalDetails);
+  const directSnapshot = sanitizedEvidenceLocationSnapshot(directEvidenceLocationsFromDetails(details));
+  if (directSnapshot.length > 0) return directSnapshot;
+
+  const source = {
+    issueId: input.issueId,
+    reportArtifactId: input.reportArtifactId,
+    reportArtifactData: input.reportArtifactData,
+    technicalDetails: input.technicalDetails,
+  };
+  const request = evidenceLocationRequestForIssue(source, details);
+  const evidenceIds = evidenceIdsFromDetails(details);
+  const evidenceIdSnapshot = resolveReportArtifactLocationByEvidenceIds(
+    { reportArtifactData: input.reportArtifactData },
+    request,
+    evidenceIds,
+  );
+  if (evidenceIdSnapshot.length > 0) return evidenceIdSnapshot;
+
+  return resolveReportArtifactLocationByField(
+    { reportArtifactData: input.reportArtifactData },
+    request,
+  );
 }
 
 function evidenceIdsForIssue(row: IssueRow, evidenceLocations: Record<string, unknown>[]): string[] {
   const ids = evidenceLocations
-    .map((location) => location.evidenceId)
-    .filter((evidenceId): evidenceId is string => typeof evidenceId === "string" && evidenceId.trim().length > 0);
+    .map((location) => stringIdValue(location.evidenceId))
+    .filter((evidenceId): evidenceId is string => Boolean(evidenceId));
 
   const details = parseDetails(row.issueTechnicalDetails);
-  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
-  const detailEvidenceId = firstText(details, ["evidenceId", "canonicalEvidenceId"]);
-  const linkedEvidenceId = evidence ? firstText(evidence, ["evidenceId", "canonicalEvidenceId"]) : null;
-
-  return Array.from(new Set([...ids, detailEvidenceId, linkedEvidenceId].filter((id): id is string => Boolean(id))));
+  return Array.from(new Set([...ids, ...evidenceIdsFromDetails(details)]));
 }
 
 function readinessSnapshotForIssue(readiness: PacketReadinessResult, issueId: number): Record<string, unknown> {
@@ -457,7 +696,13 @@ function buildDisputePacketFindingRows(
   now: Date,
 ) {
   return preview.issueRows.map((row) => {
-    const evidenceLocationSnapshot = sanitizedEvidenceLocationSnapshot(preview.packet, row.issueId);
+    const evidenceLocationSnapshot = buildPacketFindingEvidenceLocationSnapshot({
+      packet: preview.packet,
+      issueId: row.issueId,
+      reportArtifactId: reportArtifactIdForRow(row),
+      reportArtifactData: row.reportArtifactData,
+      technicalDetails: row.issueTechnicalDetails,
+    });
     return {
       disputePacketId: packetId,
       creditorObligationTestId: row.issueId,

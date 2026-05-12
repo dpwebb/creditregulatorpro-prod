@@ -82,8 +82,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function recordValue(value: unknown): Record<string, unknown> | null {
+  if (isRecord(value)) return value;
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function stringIdentifierValue(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "bigint") return value.toString();
+  return undefined;
 }
 
 function positiveInteger(value: unknown): number | undefined {
@@ -368,52 +386,53 @@ function readReportArtifactDataForContext(
 }
 
 function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | null {
-  if (!isRecord(value)) return null;
-  const evidenceId = stringValue(value.evidenceId);
-  const fieldKey = stringValue(value.fieldKey);
-  const provenance = readProvenance(value.provenance);
+  const record = recordValue(value);
+  if (!record) return null;
+  const evidenceId = stringIdentifierValue(record.evidenceId);
+  const fieldKey = stringValue(record.fieldKey);
+  const provenance = readProvenance(record.provenance);
   if (!evidenceId || !fieldKey || !provenance) return null;
 
-  const sourceMethod = isSourceMethod(value.sourceMethod) ? value.sourceMethod : undefined;
+  const sourceMethod = isSourceMethod(record.sourceMethod) ? record.sourceMethod : undefined;
   const extractionMethod =
-    value.extractionMethod === "native_pdf_text" || value.extractionMethod === "ocr_text"
-      ? value.extractionMethod
+    record.extractionMethod === "native_pdf_text" || record.extractionMethod === "ocr_text"
+      ? record.extractionMethod
       : undefined;
-  const pageNumber = positiveInteger(value.pageNumber);
-  const tokenIndexes = Array.isArray(value.tokenIndexes)
-    ? value.tokenIndexes.filter((index): index is number => Number.isInteger(index))
+  const pageNumber = positiveInteger(record.pageNumber);
+  const tokenIndexes = Array.isArray(record.tokenIndexes)
+    ? record.tokenIndexes.filter((index): index is number => Number.isInteger(index))
     : undefined;
-  const wordSpanIndexes = Array.isArray(value.wordSpanIndexes)
-    ? value.wordSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
+  const wordSpanIndexes = Array.isArray(record.wordSpanIndexes)
+    ? record.wordSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
     : undefined;
-  const itemSpanIndexes = Array.isArray(value.itemSpanIndexes)
-    ? value.itemSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
+  const itemSpanIndexes = Array.isArray(record.itemSpanIndexes)
+    ? record.itemSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
     : undefined;
-  const boundingBox = readBoundingBox(value.boundingBox);
-  const pageDimensions = readPageDimensions(value.pageDimensions);
+  const boundingBox = readBoundingBox(record.boundingBox);
+  const pageDimensions = readPageDimensions(record.pageDimensions);
 
   return {
     evidenceId,
     fieldKey,
-    ...(stringValue(value.sourceField) ? { sourceField: stringValue(value.sourceField) } : {}),
+    ...(stringValue(record.sourceField) ? { sourceField: stringValue(record.sourceField) } : {}),
     ...(sourceMethod ? { sourceMethod } : {}),
     ...(extractionMethod ? { extractionMethod } : {}),
     ...(pageNumber !== undefined ? { pageNumber } : {}),
-    ...(stringValue(value.sectionName) ? { sectionName: stringValue(value.sectionName) } : {}),
-    ...(stringValue(value.zoneName) ? { zoneName: stringValue(value.zoneName) } : {}),
-    ...(stringValue(value.textSnippet) ? { textSnippet: compactSnippet(stringValue(value.textSnippet)!) } : {}),
+    ...(stringValue(record.sectionName) ? { sectionName: stringValue(record.sectionName) } : {}),
+    ...(stringValue(record.zoneName) ? { zoneName: stringValue(record.zoneName) } : {}),
+    ...(stringValue(record.textSnippet) ? { textSnippet: compactSnippet(stringValue(record.textSnippet)!) } : {}),
     ...(tokenIndexes && tokenIndexes.length > 0 ? { tokenIndexes } : {}),
-    ...(stringValue(value.ruleId) ? { ruleId: stringValue(value.ruleId) } : {}),
-    ...(typeof value.confidence === "number" ? { confidence: value.confidence } : {}),
+    ...(stringValue(record.ruleId) ? { ruleId: stringValue(record.ruleId) } : {}),
+    ...(typeof record.confidence === "number" ? { confidence: record.confidence } : {}),
     ...(boundingBox ? { boundingBox } : {}),
-    ...(typeof value.coordinateConfidence === "number" ? { coordinateConfidence: value.coordinateConfidence } : {}),
+    ...(typeof record.coordinateConfidence === "number" ? { coordinateConfidence: record.coordinateConfidence } : {}),
     ...(wordSpanIndexes && wordSpanIndexes.length > 0 ? { wordSpanIndexes } : {}),
     ...(itemSpanIndexes && itemSpanIndexes.length > 0 ? { itemSpanIndexes } : {}),
-    ...(stringValue(value.matchedTextHash) ? { matchedTextHash: stringValue(value.matchedTextHash) } : {}),
-    ...(stringValue(value.canonicalValueHash) ? { canonicalValueHash: stringValue(value.canonicalValueHash) } : {}),
-    ...(stringValue(value.sourceTextHash) ? { sourceTextHash: stringValue(value.sourceTextHash) } : {}),
-    ...(stringValue(value.coordinateExtractorVersion)
-      ? { coordinateExtractorVersion: stringValue(value.coordinateExtractorVersion) }
+    ...(stringValue(record.matchedTextHash) ? { matchedTextHash: stringValue(record.matchedTextHash) } : {}),
+    ...(stringValue(record.canonicalValueHash) ? { canonicalValueHash: stringValue(record.canonicalValueHash) } : {}),
+    ...(stringValue(record.sourceTextHash) ? { sourceTextHash: stringValue(record.sourceTextHash) } : {}),
+    ...(stringValue(record.coordinateExtractorVersion)
+      ? { coordinateExtractorVersion: stringValue(record.coordinateExtractorVersion) }
       : {}),
     ...(pageDimensions ? { pageDimensions } : {}),
     provenance,
@@ -421,13 +440,16 @@ function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | nu
 }
 
 export function readEvidenceLocationIndex(reportArtifactData: unknown): EvidenceLocationIndex | null {
-  if (!isRecord(reportArtifactData) || !isRecord(reportArtifactData.evidenceLocationIndex)) return null;
+  const reportData = recordValue(reportArtifactData);
+  const evidenceLocationIndex = recordValue(reportData?.evidenceLocationIndex);
+  if (!evidenceLocationIndex) return null;
 
-  const entries = Object.entries(reportArtifactData.evidenceLocationIndex)
+  const entries = Object.entries(evidenceLocationIndex)
     .flatMap(([key, value]): Array<[string, EvidenceLocationIndexEntry]> => {
       const entry = toEvidenceLocationSummary(value);
-      if (!entry || entry.evidenceId !== key) return [];
-      return [[key, entry]];
+      const normalizedKey = String(key);
+      if (!entry || entry.evidenceId !== normalizedKey) return [];
+      return [[normalizedKey, entry]];
     })
     .sort(([left], [right]) => left.localeCompare(right));
 
@@ -462,7 +484,7 @@ export function resolveEvidenceLocation(
   const index = readEvidenceLocationIndex(reportArtifactData);
   if (!index) return null;
 
-  const evidenceId = stringValue(request.evidenceId);
+  const evidenceId = stringIdentifierValue(request.evidenceId);
   if (evidenceId && index[evidenceId]) return toEvidenceLocationSummary(index[evidenceId]);
 
   const entries = Object.values(index);
