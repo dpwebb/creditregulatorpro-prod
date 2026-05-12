@@ -25,6 +25,7 @@ import {
 import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 import { assertTextBasedCreditReportPdf } from "./creditReportPdfEligibility";
 import type {
+  DeterministicOcrCoordinateIndex,
   DeterministicOcrDiagnostics,
   DeterministicOcrProvider,
   DeterministicOcrProvenance,
@@ -77,6 +78,7 @@ export interface CanonicalCreditReportExtraction {
   fieldReconciliation: ParserPipelineFieldAudit;
   deterministicPipeline: DeterministicPipelinePackage;
   canonicalOutput: DeterministicNormalizedReport;
+  ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
 }
 
 export interface ExtractCanonicalCreditReportInput {
@@ -95,6 +97,7 @@ interface CandidateExtraction {
   rawText: string;
   parserQuality: ParserQualityAssessment;
   ocrProvenance?: DeterministicOcrProvenance;
+  ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
 }
 
 function sanitizeTradelineCreditorNames(tradeline: ParsedTradeline): ParsedTradeline {
@@ -358,6 +361,7 @@ export async function extractCanonicalCreditReport(
       rawText: parseResult.rawText,
       parserQuality,
       ocrProvenance: pdfEligibility.ocrProvenance,
+      ocrCoordinateIndex: pdfEligibility.ocrCoordinateIndex,
     };
     attempts.push(
       summarizeAttempt(
@@ -471,6 +475,7 @@ export async function extractCanonicalCreditReport(
     fieldReconciliation: fieldReconciliation.audit,
     deterministicPipeline,
     canonicalOutput: deterministicPipeline.finalOutput,
+    ocrCoordinateIndex: selected.ocrCoordinateIndex,
     provenance: {
       strategy: "deterministic_pdf_text_state_machine",
       version: CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION,

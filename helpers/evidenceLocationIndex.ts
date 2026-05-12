@@ -2,6 +2,11 @@ import type {
   CanonicalTextSourceMethod,
   DeterministicPipelinePackage,
 } from "./deterministicCreditReportPipeline";
+import type { DeterministicOcrCoordinateIndex, OcrPageDimensions } from "./deterministicOcr";
+import {
+  matchOcrEvidenceCoordinates,
+  type OcrEvidenceBoundingBox,
+} from "./ocrEvidenceCoordinates";
 
 export type EvidenceLocationExtractionMethod = "native_pdf_text" | "ocr_text";
 
@@ -17,6 +22,8 @@ export interface EvidenceLocationProvenance {
   ocrPageConfidence?: number;
 }
 
+export type EvidenceLocationBoundingBox = OcrEvidenceBoundingBox;
+
 export interface EvidenceLocationIndexEntry {
   evidenceId: string;
   fieldKey: string;
@@ -30,6 +37,14 @@ export interface EvidenceLocationIndexEntry {
   tokenIndexes?: number[];
   ruleId?: string;
   confidence?: number;
+  boundingBox?: EvidenceLocationBoundingBox;
+  coordinateConfidence?: number;
+  wordSpanIndexes?: number[];
+  matchedTextHash?: string;
+  canonicalValueHash?: string;
+  sourceTextHash?: string;
+  coordinateExtractorVersion?: string;
+  pageDimensions?: OcrPageDimensions;
   provenance: EvidenceLocationProvenance;
 }
 
@@ -50,6 +65,10 @@ export interface EvidenceLocationResolveRequest {
   fieldName?: unknown;
 }
 
+export interface EvidenceLocationIndexBuildOptions {
+  ocrCoordinateIndex?: DeterministicOcrCoordinateIndex | null;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -61,6 +80,61 @@ function stringValue(value: unknown): string | undefined {
 function positiveInteger(value: unknown): number | undefined {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function nonNegativeFiniteNumber(value: unknown): number | undefined {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function readBoundingBox(value: unknown): EvidenceLocationBoundingBox | undefined {
+  if (!isRecord(value)) return undefined;
+  const x = nonNegativeFiniteNumber(value.x);
+  const y = nonNegativeFiniteNumber(value.y);
+  const width = nonNegativeFiniteNumber(value.width);
+  const height = nonNegativeFiniteNumber(value.height);
+  const pageNumber = positiveInteger(value.pageNumber);
+  if (
+    x === undefined ||
+    y === undefined ||
+    width === undefined ||
+    height === undefined ||
+    width <= 0 ||
+    height <= 0 ||
+    pageNumber === undefined ||
+    value.unit !== "px" ||
+    value.coordinateSource !== "tesseract_tsv_word" ||
+    value.coordinateValidated !== true
+  ) {
+    return undefined;
+  }
+
+  return {
+    x,
+    y,
+    width,
+    height,
+    unit: "px",
+    pageNumber,
+    coordinateSource: "tesseract_tsv_word",
+    coordinateValidated: true,
+  };
+}
+
+function readPageDimensions(value: unknown): OcrPageDimensions | undefined {
+  if (!isRecord(value)) return undefined;
+  const width = nonNegativeFiniteNumber(value.width);
+  const height = nonNegativeFiniteNumber(value.height);
+  if (
+    width === undefined ||
+    height === undefined ||
+    width <= 0 ||
+    height <= 0 ||
+    value.unit !== "px"
+  ) {
+    return undefined;
+  }
+  return { width, height, unit: "px" };
 }
 
 function readProvenance(value: unknown): EvidenceLocationProvenance | null {
@@ -155,6 +229,7 @@ function provenanceFor(
 
 export function buildEvidenceLocationIndex(
   pipeline: DeterministicPipelinePackage | null | undefined,
+  options: EvidenceLocationIndexBuildOptions = {},
 ): EvidenceLocationIndex {
   if (!pipeline) return {};
 
@@ -172,6 +247,16 @@ export function buildEvidenceLocationIndex(
       const tokenIndexes = Array.isArray(evidence.tokenIndexes)
         ? evidence.tokenIndexes.filter((index) => Number.isInteger(index))
         : undefined;
+      const coordinateMatch =
+        sourceMethod === "ocr_text" && pageNumber !== undefined
+          ? matchOcrEvidenceCoordinates({
+              coordinateIndex: options.ocrCoordinateIndex,
+              pageNumber,
+              fieldKey,
+              textSnippet,
+              canonicalValue: field.value,
+            })
+          : null;
 
       const entry: EvidenceLocationIndexEntry = {
         evidenceId,
@@ -192,6 +277,20 @@ export function buildEvidenceLocationIndex(
         ...(tokenIndexes && tokenIndexes.length > 0 ? { tokenIndexes } : {}),
         ...(typeof evidence.ruleId === "string" && evidence.ruleId.trim() ? { ruleId: evidence.ruleId } : {}),
         ...(typeof field.confidence === "number" ? { confidence: field.confidence } : {}),
+        ...(coordinateMatch
+          ? {
+              boundingBox: coordinateMatch.boundingBox,
+              coordinateConfidence: coordinateMatch.coordinateConfidence,
+              wordSpanIndexes: coordinateMatch.wordSpanIndexes,
+              matchedTextHash: coordinateMatch.matchedTextHash,
+              ...(coordinateMatch.canonicalValueHash
+                ? { canonicalValueHash: coordinateMatch.canonicalValueHash }
+                : {}),
+              ...(coordinateMatch.sourceTextHash ? { sourceTextHash: coordinateMatch.sourceTextHash } : {}),
+              coordinateExtractorVersion: coordinateMatch.coordinateExtractorVersion,
+              ...(coordinateMatch.pageDimensions ? { pageDimensions: coordinateMatch.pageDimensions } : {}),
+            }
+          : {}),
         provenance: provenanceFor(pipeline, pageNumber),
       };
 
@@ -233,6 +332,11 @@ function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | nu
   const tokenIndexes = Array.isArray(value.tokenIndexes)
     ? value.tokenIndexes.filter((index): index is number => Number.isInteger(index))
     : undefined;
+  const wordSpanIndexes = Array.isArray(value.wordSpanIndexes)
+    ? value.wordSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
+    : undefined;
+  const boundingBox = readBoundingBox(value.boundingBox);
+  const pageDimensions = readPageDimensions(value.pageDimensions);
 
   return {
     evidenceId,
@@ -247,6 +351,16 @@ function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | nu
     ...(tokenIndexes && tokenIndexes.length > 0 ? { tokenIndexes } : {}),
     ...(stringValue(value.ruleId) ? { ruleId: stringValue(value.ruleId) } : {}),
     ...(typeof value.confidence === "number" ? { confidence: value.confidence } : {}),
+    ...(boundingBox ? { boundingBox } : {}),
+    ...(typeof value.coordinateConfidence === "number" ? { coordinateConfidence: value.coordinateConfidence } : {}),
+    ...(wordSpanIndexes && wordSpanIndexes.length > 0 ? { wordSpanIndexes } : {}),
+    ...(stringValue(value.matchedTextHash) ? { matchedTextHash: stringValue(value.matchedTextHash) } : {}),
+    ...(stringValue(value.canonicalValueHash) ? { canonicalValueHash: stringValue(value.canonicalValueHash) } : {}),
+    ...(stringValue(value.sourceTextHash) ? { sourceTextHash: stringValue(value.sourceTextHash) } : {}),
+    ...(stringValue(value.coordinateExtractorVersion)
+      ? { coordinateExtractorVersion: stringValue(value.coordinateExtractorVersion) }
+      : {}),
+    ...(pageDimensions ? { pageDimensions } : {}),
     provenance,
   };
 }

@@ -26,6 +26,7 @@ import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { evaluateDisputeOutcomesForTradeline } from "./disputeOutcomeEvaluator";
 import type { DeterministicPipelinePackage } from "./deterministicCreditReportPipeline";
 import type { DeterministicReplayValidation } from "./deterministicReplayValidator";
+import type { DeterministicOcrCoordinateIndex } from "./deterministicOcr";
 import { buildEvidenceLocationIndex } from "./evidenceLocationIndex";
 
 export class IngestPipelineError extends Error {
@@ -280,6 +281,7 @@ export async function executeIngestPipeline({
   let llmData;
   let extractionProvenance: Record<string, unknown> | null = null;
   let deterministicPipeline: DeterministicPipelinePackage | null = null;
+  let ocrCoordinateIndex: DeterministicOcrCoordinateIndex | null = null;
   let replayValidation: DeterministicReplayValidation | null = null;
   let extractionSourceMethod: ExtractionSourceMethod = "pdf_text";
   try {
@@ -296,6 +298,7 @@ export async function executeIngestPipeline({
     parserQuality = canonicalExtraction.parserQuality;
     extractionProvenance = canonicalExtraction.provenance as unknown as Record<string, unknown>;
     deterministicPipeline = canonicalExtraction.deterministicPipeline;
+    ocrCoordinateIndex = canonicalExtraction.ocrCoordinateIndex ?? null;
     replayValidation = canonicalExtraction.provenance.replayValidation;
     extractionSourceMethod = canonicalExtraction.extractionSource === "ocr_text" ? "ocr_text" : "pdf_text";
   } catch (error: unknown) {
@@ -333,7 +336,9 @@ export async function executeIngestPipeline({
     .executeTakeFirst();
 
   const currentQualityData = (artifactForQuality?.data ?? {}) as Record<string, unknown>;
-  const evidenceLocationIndex = buildEvidenceLocationIndex(deterministicPipeline);
+  const evidenceLocationIndex = buildEvidenceLocationIndex(deterministicPipeline, {
+    ocrCoordinateIndex,
+  });
   await db
     .updateTable("reportArtifact")
     .set({

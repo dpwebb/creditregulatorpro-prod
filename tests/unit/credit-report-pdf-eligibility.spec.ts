@@ -98,6 +98,7 @@ describe("credit report PDF eligibility", () => {
       sourceMethod: "pdf_text",
       pdfTextQuality: undefined,
       ocrProvenance: undefined,
+      ocrCoordinateIndex: undefined,
       ocrDiagnostics: undefined,
     });
     expect(mocks.extractTextFromPdfWithQuality).toHaveBeenCalledWith(
@@ -162,6 +163,7 @@ describe("credit report PDF eligibility", () => {
       quality: validQuality,
       pdfTextQuality: invalidQuality,
       ocrProvenance,
+      ocrCoordinateIndex: undefined,
     });
     expect(mocks.extractTextFromPdfWithQuality).toHaveBeenCalledWith(
       "JVBERi0xLjQ=",

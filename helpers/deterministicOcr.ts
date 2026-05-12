@@ -12,6 +12,48 @@ const execFileAsync = promisify(execFile);
 export type DeterministicOcrSourceMethod = "ocr_text";
 export type DeterministicOcrEngine = "tesseract-cli";
 export type DeterministicOcrRenderer = "pdftoppm";
+export const OCR_COORDINATE_EXTRACTOR_VERSION = "ocr-coordinate-extractor-v1";
+
+export interface OcrPageDimensions {
+  width: number;
+  height: number;
+  unit: "px";
+}
+
+export interface TesseractTsvWordBox {
+  wordIndex: number;
+  pageNumber: number;
+  blockNumber?: number;
+  paragraphNumber?: number;
+  lineNumber?: number;
+  wordNumber?: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  confidence: number | null;
+  text: string;
+}
+
+export interface ParsedTesseractTsv {
+  confidence: number | null;
+  wordCount: number;
+  wordBoxes: TesseractTsvWordBox[];
+  pageDimensions?: OcrPageDimensions;
+}
+
+export interface DeterministicOcrCoordinatePage {
+  pageNumber: number;
+  words: TesseractTsvWordBox[];
+  pageDimensions?: OcrPageDimensions;
+}
+
+export interface DeterministicOcrCoordinateIndex {
+  sourceMethod: DeterministicOcrSourceMethod;
+  coordinateSource: "tesseract_tsv_word";
+  coordinateExtractorVersion: typeof OCR_COORDINATE_EXTRACTOR_VERSION;
+  pages: DeterministicOcrCoordinatePage[];
+}
 
 export interface DeterministicOcrPageProvenance {
   pageNumber: number;
@@ -57,6 +99,7 @@ export type DeterministicOcrResult =
       text: string;
       quality: TextQualityAssessment;
       provenance: DeterministicOcrProvenance;
+      coordinateIndex?: DeterministicOcrCoordinateIndex;
     }
   | {
       status: "unavailable" | "failed" | "low_quality";
@@ -113,30 +156,126 @@ async function availability(): Promise<DeterministicOcrDiagnostics> {
   };
 }
 
-function parseTesseractTsv(tsv: string): { confidence: number | null; wordCount: number } {
+function optionalPositiveInteger(value: string | undefined): number | undefined {
+  if (value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function finiteCoordinate(value: string | undefined): number | null {
+  if (value === undefined || value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function confidenceValue(value: string | undefined): number | null {
+  if (value === undefined || value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed / 100 : null;
+}
+
+export function parseTesseractTsv(
+  tsv: string,
+  options: { pageNumber?: number; wordIndexStart?: number } = {},
+): ParsedTesseractTsv {
   const rows = tsv.split(/\r?\n/).filter(Boolean);
   const header = rows.shift()?.split("\t") ?? [];
+  const levelIndex = header.indexOf("level");
+  const pageIndex = header.indexOf("page_num");
+  const blockIndex = header.indexOf("block_num");
+  const paragraphIndex = header.indexOf("par_num");
+  const lineIndex = header.indexOf("line_num");
+  const wordIndex = header.indexOf("word_num");
+  const leftIndex = header.indexOf("left");
+  const topIndex = header.indexOf("top");
+  const widthIndex = header.indexOf("width");
+  const heightIndex = header.indexOf("height");
   const confidenceIndex = header.indexOf("conf");
   const textIndex = header.indexOf("text");
-  if (confidenceIndex === -1 || textIndex === -1) {
-    return { confidence: null, wordCount: 0 };
+  if (
+    textIndex === -1 ||
+    leftIndex === -1 ||
+    topIndex === -1 ||
+    widthIndex === -1 ||
+    heightIndex === -1
+  ) {
+    return { confidence: null, wordCount: 0, wordBoxes: [] };
   }
 
   const confidences: number[] = [];
+  const wordBoxes: TesseractTsvWordBox[] = [];
+  let pageDimensions: OcrPageDimensions | undefined;
+  const wordIndexStart = options.wordIndexStart ?? 0;
+
   for (const row of rows) {
     const columns = row.split("\t");
-    const text = columns[textIndex]?.trim();
-    const confidence = Number(columns[confidenceIndex]);
-    if (text && Number.isFinite(confidence) && confidence >= 0) {
-      confidences.push(confidence / 100);
+    const level = levelIndex >= 0 ? optionalPositiveInteger(columns[levelIndex]) : undefined;
+    const tsvPageNumber = pageIndex >= 0 ? optionalPositiveInteger(columns[pageIndex]) : undefined;
+    const pageNumber = options.pageNumber ?? tsvPageNumber;
+    const left = finiteCoordinate(columns[leftIndex]);
+    const top = finiteCoordinate(columns[topIndex]);
+    const width = finiteCoordinate(columns[widthIndex]);
+    const height = finiteCoordinate(columns[heightIndex]);
+
+    if (
+      level === 1 &&
+      pageDimensions === undefined &&
+      width !== null &&
+      height !== null &&
+      width > 0 &&
+      height > 0
+    ) {
+      pageDimensions = { width, height, unit: "px" };
     }
+
+    if (levelIndex >= 0 && level !== 5) continue;
+    const text = columns[textIndex]?.trim();
+    if (!text || pageNumber === undefined) continue;
+    if (left === null || top === null || width === null || height === null) continue;
+    if (width <= 0 || height <= 0) continue;
+
+    const confidence = confidenceIndex >= 0 ? confidenceValue(columns[confidenceIndex]) : null;
+    if (confidence !== null) {
+      confidences.push(confidence);
+    }
+    wordBoxes.push({
+      wordIndex: wordIndexStart + wordBoxes.length,
+      pageNumber,
+      ...(blockIndex >= 0 && optionalPositiveInteger(columns[blockIndex]) !== undefined
+        ? { blockNumber: optionalPositiveInteger(columns[blockIndex]) }
+        : {}),
+      ...(paragraphIndex >= 0 && optionalPositiveInteger(columns[paragraphIndex]) !== undefined
+        ? { paragraphNumber: optionalPositiveInteger(columns[paragraphIndex]) }
+        : {}),
+      ...(lineIndex >= 0 && optionalPositiveInteger(columns[lineIndex]) !== undefined
+        ? { lineNumber: optionalPositiveInteger(columns[lineIndex]) }
+        : {}),
+      ...(wordIndex >= 0 && optionalPositiveInteger(columns[wordIndex]) !== undefined
+        ? { wordNumber: optionalPositiveInteger(columns[wordIndex]) }
+        : {}),
+      left,
+      top,
+      width,
+      height,
+      confidence,
+      text,
+    });
   }
 
-  if (confidences.length === 0) return { confidence: null, wordCount: 0 };
+  if (confidences.length === 0) {
+    return {
+      confidence: null,
+      wordCount: wordBoxes.length,
+      wordBoxes,
+      ...(pageDimensions ? { pageDimensions } : {}),
+    };
+  }
   const average = confidences.reduce((sum, value) => sum + value, 0) / confidences.length;
   return {
     confidence: Number(average.toFixed(4)),
-    wordCount: confidences.length,
+    wordCount: wordBoxes.length,
+    wordBoxes,
+    ...(pageDimensions ? { pageDimensions } : {}),
   };
 }
 
@@ -188,15 +327,23 @@ export function createDeterministicCliOcrProvider(): DeterministicOcrProvider {
         }
 
         const pages: DeterministicOcrPageProvenance[] = [];
+        const coordinatePages: DeterministicOcrCoordinatePage[] = [];
         const pageTexts: string[] = [];
+        let wordIndexStart = 0;
         for (const [index, imageFile] of imageFiles.entries()) {
           const imagePath = join(workspace, imageFile);
           const text = await run("tesseract", [imagePath, "stdout", "-l", "eng", "--psm", "6"], workspace);
           const tsv = await run("tesseract", [imagePath, "stdout", "-l", "eng", "--psm", "6", "tsv"], workspace);
-          const parsed = parseTesseractTsv(tsv);
           const pageNumber = index + 1;
+          const parsed = parseTesseractTsv(tsv, { pageNumber, wordIndexStart });
+          wordIndexStart += parsed.wordBoxes.length;
           const normalizedPageText = text.trim();
           pageTexts.push(normalizedPageText);
+          coordinatePages.push({
+            pageNumber,
+            words: parsed.wordBoxes,
+            ...(parsed.pageDimensions ? { pageDimensions: parsed.pageDimensions } : {}),
+          });
           pages.push({
             pageNumber,
             sourceMethod: "ocr_text",
@@ -252,7 +399,18 @@ export function createDeterministicCliOcrProvider(): DeterministicOcrProvider {
           };
         }
 
-        return { status: "succeeded", text, quality, provenance };
+        return {
+          status: "succeeded",
+          text,
+          quality,
+          provenance,
+          coordinateIndex: {
+            sourceMethod: "ocr_text",
+            coordinateSource: "tesseract_tsv_word",
+            coordinateExtractorVersion: OCR_COORDINATE_EXTRACTOR_VERSION,
+            pages: coordinatePages,
+          },
+        };
       } catch (error) {
         return {
           status: "failed",

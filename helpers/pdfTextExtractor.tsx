@@ -3,6 +3,7 @@ import { assessTextQuality } from "./pdfTextQualityChecker";
 import type { TextQualityAssessment } from "./pdfTextQualityChecker";
 import {
   createDeterministicCliOcrProvider,
+  type DeterministicOcrCoordinateIndex,
   type DeterministicOcrDiagnostics,
   type DeterministicOcrProvider,
   type DeterministicOcrProvenance,
@@ -17,6 +18,7 @@ export interface PdfTextExtractionResult {
   sourceMethod?: PdfTextSourceMethod;
   pdfTextQuality?: TextQualityAssessment;
   ocrProvenance?: DeterministicOcrProvenance;
+  ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
   ocrDiagnostics?: DeterministicOcrDiagnostics;
 }
 
@@ -117,6 +119,7 @@ export async function extractTextFromPdfWithQuality(
             sourceMethod: "ocr_text",
             pdfTextQuality: quality,
             ocrProvenance: ocrResult.provenance,
+            ocrCoordinateIndex: ocrResult.coordinateIndex,
           };
         }
 

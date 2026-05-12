@@ -2,6 +2,7 @@ import { extractTextFromPdfWithQuality } from "./pdfTextExtractor";
 import type { TextQualityAssessment } from "./pdfTextQualityChecker";
 import type {
   DeterministicOcrDiagnostics,
+  DeterministicOcrCoordinateIndex,
   DeterministicOcrProvider,
   DeterministicOcrProvenance,
 } from "./deterministicOcr";
@@ -43,6 +44,7 @@ export interface CreditReportPdfEligibility {
   sourceMethod: PdfTextSourceMethod;
   pdfTextQuality?: TextQualityAssessment;
   ocrProvenance?: DeterministicOcrProvenance;
+  ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
   ocrDiagnostics?: DeterministicOcrDiagnostics;
 }
 
@@ -80,6 +82,7 @@ export async function assertTextBasedCreditReportPdf(input: {
     sourceMethod,
     pdfTextQuality: result.pdfTextQuality,
     ocrProvenance: result.ocrProvenance,
+    ocrCoordinateIndex: result.ocrCoordinateIndex,
     ocrDiagnostics: result.ocrDiagnostics,
   };
 }
