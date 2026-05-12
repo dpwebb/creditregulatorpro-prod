@@ -7,6 +7,12 @@ import {
   matchOcrEvidenceCoordinates,
   type OcrEvidenceBoundingBox,
 } from "./ocrEvidenceCoordinates";
+import {
+  matchPdfjsEvidenceCoordinates,
+  type PdfjsCoordinateIndex,
+  type PdfjsEvidenceBoundingBox,
+  type PdfjsPageDimensions,
+} from "./pdfjsEvidenceCoordinates";
 
 export type EvidenceLocationExtractionMethod = "native_pdf_text" | "ocr_text";
 
@@ -22,7 +28,8 @@ export interface EvidenceLocationProvenance {
   ocrPageConfidence?: number;
 }
 
-export type EvidenceLocationBoundingBox = OcrEvidenceBoundingBox;
+export type EvidenceLocationBoundingBox = OcrEvidenceBoundingBox | PdfjsEvidenceBoundingBox;
+export type EvidenceLocationPageDimensions = OcrPageDimensions | PdfjsPageDimensions;
 
 export interface EvidenceLocationIndexEntry {
   evidenceId: string;
@@ -40,11 +47,12 @@ export interface EvidenceLocationIndexEntry {
   boundingBox?: EvidenceLocationBoundingBox;
   coordinateConfidence?: number;
   wordSpanIndexes?: number[];
+  itemSpanIndexes?: number[];
   matchedTextHash?: string;
   canonicalValueHash?: string;
   sourceTextHash?: string;
   coordinateExtractorVersion?: string;
-  pageDimensions?: OcrPageDimensions;
+  pageDimensions?: EvidenceLocationPageDimensions;
   provenance: EvidenceLocationProvenance;
 }
 
@@ -67,6 +75,7 @@ export interface EvidenceLocationResolveRequest {
 
 export interface EvidenceLocationIndexBuildOptions {
   ocrCoordinateIndex?: DeterministicOcrCoordinateIndex | null;
+  nativePdfCoordinateIndex?: PdfjsCoordinateIndex | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -102,26 +111,41 @@ function readBoundingBox(value: unknown): EvidenceLocationBoundingBox | undefine
     width <= 0 ||
     height <= 0 ||
     pageNumber === undefined ||
-    value.unit !== "px" ||
-    value.coordinateSource !== "tesseract_tsv_word" ||
     value.coordinateValidated !== true
   ) {
     return undefined;
   }
 
-  return {
-    x,
-    y,
-    width,
-    height,
-    unit: "px",
-    pageNumber,
-    coordinateSource: "tesseract_tsv_word",
-    coordinateValidated: true,
-  };
+  if (value.unit === "px" && value.coordinateSource === "tesseract_tsv_word") {
+    return {
+      x,
+      y,
+      width,
+      height,
+      unit: "px",
+      pageNumber,
+      coordinateSource: "tesseract_tsv_word",
+      coordinateValidated: true,
+    };
+  }
+
+  if (value.unit === "pt" && value.coordinateSource === "pdfjs_text_item") {
+    return {
+      x,
+      y,
+      width,
+      height,
+      unit: "pt",
+      pageNumber,
+      coordinateSource: "pdfjs_text_item",
+      coordinateValidated: true,
+    };
+  }
+
+  return undefined;
 }
 
-function readPageDimensions(value: unknown): OcrPageDimensions | undefined {
+function readPageDimensions(value: unknown): EvidenceLocationPageDimensions | undefined {
   if (!isRecord(value)) return undefined;
   const width = nonNegativeFiniteNumber(value.width);
   const height = nonNegativeFiniteNumber(value.height);
@@ -130,11 +154,11 @@ function readPageDimensions(value: unknown): OcrPageDimensions | undefined {
     height === undefined ||
     width <= 0 ||
     height <= 0 ||
-    value.unit !== "px"
+    (value.unit !== "px" && value.unit !== "pt")
   ) {
     return undefined;
   }
-  return { width, height, unit: "px" };
+  return value.unit === "px" ? { width, height, unit: "px" } : { width, height, unit: "pt" };
 }
 
 function readProvenance(value: unknown): EvidenceLocationProvenance | null {
@@ -257,6 +281,16 @@ export function buildEvidenceLocationIndex(
               canonicalValue: field.value,
             })
           : null;
+      const nativePdfCoordinateMatch =
+        sourceMethod === "pdf_text"
+          ? matchPdfjsEvidenceCoordinates({
+              coordinateIndex: options.nativePdfCoordinateIndex,
+              pageNumber,
+              fieldKey,
+              textSnippet,
+              canonicalValue: field.value,
+            })
+          : null;
 
       const entry: EvidenceLocationIndexEntry = {
         evidenceId,
@@ -289,6 +323,23 @@ export function buildEvidenceLocationIndex(
               ...(coordinateMatch.sourceTextHash ? { sourceTextHash: coordinateMatch.sourceTextHash } : {}),
               coordinateExtractorVersion: coordinateMatch.coordinateExtractorVersion,
               ...(coordinateMatch.pageDimensions ? { pageDimensions: coordinateMatch.pageDimensions } : {}),
+            }
+          : {}),
+        ...(nativePdfCoordinateMatch
+          ? {
+              boundingBox: nativePdfCoordinateMatch.boundingBox,
+              itemSpanIndexes: nativePdfCoordinateMatch.itemSpanIndexes,
+              matchedTextHash: nativePdfCoordinateMatch.matchedTextHash,
+              ...(nativePdfCoordinateMatch.canonicalValueHash
+                ? { canonicalValueHash: nativePdfCoordinateMatch.canonicalValueHash }
+                : {}),
+              ...(nativePdfCoordinateMatch.sourceTextHash
+                ? { sourceTextHash: nativePdfCoordinateMatch.sourceTextHash }
+                : {}),
+              coordinateExtractorVersion: nativePdfCoordinateMatch.coordinateExtractorVersion,
+              ...(nativePdfCoordinateMatch.pageDimensions
+                ? { pageDimensions: nativePdfCoordinateMatch.pageDimensions }
+                : {}),
             }
           : {}),
         provenance: provenanceFor(pipeline, pageNumber),
@@ -335,6 +386,9 @@ function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | nu
   const wordSpanIndexes = Array.isArray(value.wordSpanIndexes)
     ? value.wordSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
     : undefined;
+  const itemSpanIndexes = Array.isArray(value.itemSpanIndexes)
+    ? value.itemSpanIndexes.filter((index): index is number => Number.isInteger(index) && index >= 0)
+    : undefined;
   const boundingBox = readBoundingBox(value.boundingBox);
   const pageDimensions = readPageDimensions(value.pageDimensions);
 
@@ -354,6 +408,7 @@ function toEvidenceLocationSummary(value: unknown): EvidenceLocationSummary | nu
     ...(boundingBox ? { boundingBox } : {}),
     ...(typeof value.coordinateConfidence === "number" ? { coordinateConfidence: value.coordinateConfidence } : {}),
     ...(wordSpanIndexes && wordSpanIndexes.length > 0 ? { wordSpanIndexes } : {}),
+    ...(itemSpanIndexes && itemSpanIndexes.length > 0 ? { itemSpanIndexes } : {}),
     ...(stringValue(value.matchedTextHash) ? { matchedTextHash: stringValue(value.matchedTextHash) } : {}),
     ...(stringValue(value.canonicalValueHash) ? { canonicalValueHash: stringValue(value.canonicalValueHash) } : {}),
     ...(stringValue(value.sourceTextHash) ? { sourceTextHash: stringValue(value.sourceTextHash) } : {}),

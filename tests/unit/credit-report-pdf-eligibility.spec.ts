@@ -100,12 +100,14 @@ describe("credit report PDF eligibility", () => {
       ocrProvenance: undefined,
       ocrCoordinateIndex: undefined,
       ocrDiagnostics: undefined,
+      nativePdfCoordinateIndex: undefined,
     });
     expect(mocks.extractTextFromPdfWithQuality).toHaveBeenCalledWith(
       "JVBERi0xLjQ=",
       expect.objectContaining({
         allowOcrFallback: false,
         allowDeterministicOcr: false,
+        extractNativePdfCoordinates: true,
       }),
     );
   });
@@ -170,6 +172,7 @@ describe("credit report PDF eligibility", () => {
       expect.objectContaining({
         allowOcrFallback: false,
         allowDeterministicOcr: true,
+        extractNativePdfCoordinates: true,
       }),
     );
   });

@@ -30,6 +30,7 @@ import type {
   DeterministicOcrProvider,
   DeterministicOcrProvenance,
 } from "./deterministicOcr";
+import type { PdfjsCoordinateIndex } from "./pdfjsEvidenceCoordinates";
 import type { TextQualityAssessment } from "./pdfTextQualityChecker";
 
 export const CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION = "deterministic-state-machine-2026-05-v1";
@@ -79,6 +80,7 @@ export interface CanonicalCreditReportExtraction {
   deterministicPipeline: DeterministicPipelinePackage;
   canonicalOutput: DeterministicNormalizedReport;
   ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
+  nativePdfCoordinateIndex?: PdfjsCoordinateIndex;
 }
 
 export interface ExtractCanonicalCreditReportInput {
@@ -98,6 +100,7 @@ interface CandidateExtraction {
   parserQuality: ParserQualityAssessment;
   ocrProvenance?: DeterministicOcrProvenance;
   ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
+  nativePdfCoordinateIndex?: PdfjsCoordinateIndex;
 }
 
 function sanitizeTradelineCreditorNames(tradeline: ParsedTradeline): ParsedTradeline {
@@ -362,6 +365,7 @@ export async function extractCanonicalCreditReport(
       parserQuality,
       ocrProvenance: pdfEligibility.ocrProvenance,
       ocrCoordinateIndex: pdfEligibility.ocrCoordinateIndex,
+      nativePdfCoordinateIndex: pdfEligibility.nativePdfCoordinateIndex,
     };
     attempts.push(
       summarizeAttempt(
@@ -476,6 +480,7 @@ export async function extractCanonicalCreditReport(
     deterministicPipeline,
     canonicalOutput: deterministicPipeline.finalOutput,
     ocrCoordinateIndex: selected.ocrCoordinateIndex,
+    nativePdfCoordinateIndex: selected.nativePdfCoordinateIndex,
     provenance: {
       strategy: "deterministic_pdf_text_state_machine",
       version: CANONICAL_CREDIT_REPORT_EXTRACTION_VERSION,

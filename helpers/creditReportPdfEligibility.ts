@@ -7,6 +7,7 @@ import type {
   DeterministicOcrProvenance,
 } from "./deterministicOcr";
 import type { PdfTextSourceMethod } from "./pdfTextExtractor";
+import type { PdfjsCoordinateIndex } from "./pdfjsEvidenceCoordinates";
 
 export const SCANNED_PDF_UNSUPPORTED_CODE = "SCANNED_PDF_UNSUPPORTED";
 export const SCANNED_PDF_UNSUPPORTED_MESSAGE =
@@ -46,6 +47,7 @@ export interface CreditReportPdfEligibility {
   ocrProvenance?: DeterministicOcrProvenance;
   ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
   ocrDiagnostics?: DeterministicOcrDiagnostics;
+  nativePdfCoordinateIndex?: PdfjsCoordinateIndex;
 }
 
 export interface CreditReportPdfEligibilityOptions {
@@ -65,6 +67,7 @@ export async function assertTextBasedCreditReportPdf(input: {
     allowOcrFallback: false,
     allowDeterministicOcr: options.allowDeterministicOcr ?? false,
     deterministicOcrProvider: options.deterministicOcrProvider,
+    extractNativePdfCoordinates: true,
   });
   const sourceMethod = result.sourceMethod ?? "pdf_text";
 
@@ -84,5 +87,6 @@ export async function assertTextBasedCreditReportPdf(input: {
     ocrProvenance: result.ocrProvenance,
     ocrCoordinateIndex: result.ocrCoordinateIndex,
     ocrDiagnostics: result.ocrDiagnostics,
+    nativePdfCoordinateIndex: sourceMethod === "pdf_text" ? result.nativePdfCoordinateIndex : undefined,
   };
 }

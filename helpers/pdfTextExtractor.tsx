@@ -8,6 +8,10 @@ import {
   type DeterministicOcrProvider,
   type DeterministicOcrProvenance,
 } from "./deterministicOcr";
+import {
+  extractPdfjsCoordinateIndex,
+  type PdfjsCoordinateIndex,
+} from "./pdfjsEvidenceCoordinates";
 import { base64PayloadToBuffer, sha256Hex } from "./reportBinaryUtils";
 
 export type PdfTextSourceMethod = "pdf_text" | "ocr_text";
@@ -20,12 +24,14 @@ export interface PdfTextExtractionResult {
   ocrProvenance?: DeterministicOcrProvenance;
   ocrCoordinateIndex?: DeterministicOcrCoordinateIndex;
   ocrDiagnostics?: DeterministicOcrDiagnostics;
+  nativePdfCoordinateIndex?: PdfjsCoordinateIndex;
 }
 
 export interface PdfTextExtractionOptions {
   allowOcrFallback?: boolean;
   allowDeterministicOcr?: boolean;
   deterministicOcrProvider?: DeterministicOcrProvider;
+  extractNativePdfCoordinates?: boolean;
 }
 
 /**
@@ -46,6 +52,20 @@ async function extractTextWithPdfParse(pdfData: Uint8Array): Promise<string> {
       console.error("[PDF Extract] pdf-parse failed:", error);
     }
     return "";
+  }
+}
+
+async function tryExtractNativePdfCoordinateIndex(
+  pdfData: Uint8Array,
+): Promise<PdfjsCoordinateIndex | undefined> {
+  try {
+    return (await extractPdfjsCoordinateIndex(pdfData)) ?? undefined;
+  } catch (error) {
+    console.warn(
+      "[PDF Extract] pdfjs coordinate sidecar extraction failed; continuing without native PDF coordinates.",
+      error instanceof Error ? error.message : error,
+    );
+    return undefined;
   }
 }
 
@@ -72,6 +92,8 @@ export async function extractTextFromPdfWithQuality(
     const allowOcrFallback = options.allowOcrFallback ?? false;
     const allowDeterministicOcr =
       options.allowDeterministicOcr ?? allowOcrFallback;
+    const shouldExtractNativePdfCoordinates =
+      options.extractNativePdfCoordinates ?? false;
 
     const base64Clean = base64Data.includes(",")
       ? base64Data.split(",")[1]
@@ -147,7 +169,16 @@ export async function extractTextFromPdfWithQuality(
     }
 
     console.log("[PDF Extract] Text quality acceptable, using pdf-parse text");
-    return { text: textFromParse, quality, sourceMethod: "pdf_text", pdfTextQuality: quality };
+    const nativePdfCoordinateIndex = shouldExtractNativePdfCoordinates
+      ? await tryExtractNativePdfCoordinateIndex(bytes)
+      : undefined;
+    return {
+      text: textFromParse,
+      quality,
+      sourceMethod: "pdf_text",
+      pdfTextQuality: quality,
+      ...(nativePdfCoordinateIndex ? { nativePdfCoordinateIndex } : {}),
+    };
   } catch (error) {
     if (error instanceof Error) {
       console.error("[PDF Extract] Failed to extract text from PDF:", error.message);

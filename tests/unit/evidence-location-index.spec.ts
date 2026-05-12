@@ -13,6 +13,11 @@ import {
   type DeterministicOcrProvenance,
   type TesseractTsvWordBox,
 } from "../../helpers/deterministicOcr";
+import {
+  PDFJS_COORDINATE_EXTRACTOR_VERSION,
+  type PdfjsCoordinateIndex,
+  type PdfjsTextItemCoordinate,
+} from "../../helpers/pdfjsEvidenceCoordinates";
 import type { ComprehensiveParseResult, ParsedTradeline } from "../../helpers/reportParserTypes";
 
 function source(path: string): string {
@@ -144,6 +149,43 @@ function ocrCoordinateIndex(words: TesseractTsvWordBox[], pageNumber = 1): Deter
         pageNumber,
         pageDimensions: { width: 800, height: 1000, unit: "px" },
         words,
+      },
+    ],
+  };
+}
+
+function pdfItem(
+  text: string,
+  itemIndex: number,
+  x: number,
+  pageNumber = 2,
+  width = 40,
+): PdfjsTextItemCoordinate {
+  return {
+    pageNumber,
+    itemIndex,
+    text,
+    x,
+    y: 20,
+    width,
+    height: 12,
+    unit: "pt",
+    pageWidth: 612,
+    pageHeight: 792,
+    source: "pdfjs_text_item",
+  };
+}
+
+function pdfCoordinateIndex(items: PdfjsTextItemCoordinate[], pageNumber = 2): PdfjsCoordinateIndex {
+  return {
+    sourceMethod: "pdf_text",
+    coordinateSource: "pdfjs_text_item",
+    coordinateExtractorVersion: PDFJS_COORDINATE_EXTRACTOR_VERSION,
+    pages: [
+      {
+        pageNumber,
+        pageDimensions: { width: 612, height: 792, unit: "pt" },
+        items,
       },
     ],
   };
@@ -417,6 +459,173 @@ describe("evidence location index sidecar", () => {
     expect(index[dobEvidence.evidenceId!]).not.toHaveProperty("boundingBox");
   });
 
+  it("stores optional boundingBox only for native PDF entries with one safe pdfjs span", () => {
+    const rawText = [
+      "TransUnion Canada Credit Report",
+      "Report Date 2026-01-10",
+      "Personal Information",
+      "Date of Birth Apr 11, 1977",
+      "\f",
+      "Account Information",
+      "Creditor Name SECOND PAGE BANK VISA",
+      "Account Number ********1111",
+      "Balance $2,345.67",
+      "Reported Date 2026-01-10",
+    ].join("\n");
+    const pipeline = build(rawText, {
+      tradelines: [
+        tradeline({
+          sourceText:
+            "Creditor Name SECOND PAGE BANK VISA Account Number ********1111 Balance $2,345.67 Reported Date 2026-01-10",
+        }),
+      ],
+    });
+    const creditorEvidence = pipeline.finalOutput.fields["tradelines[0].creditorName"].evidence;
+    const evidenceIdBefore = creditorEvidence.evidenceId;
+    const canonicalBefore = JSON.stringify(pipeline.finalOutput);
+    const replayHashBefore = pipeline.replayHash;
+    const index = buildEvidenceLocationIndex(pipeline, {
+      nativePdfCoordinateIndex: pdfCoordinateIndex([
+        pdfItem("SECOND", 0, 10, 2, 45),
+        pdfItem("PAGE", 1, 60, 2, 35),
+        pdfItem("BANK", 2, 100, 2, 35),
+        pdfItem("VISA", 3, 140, 2, 32),
+      ]),
+    });
+    const entry = index[creditorEvidence.evidenceId!];
+
+    expect(entry).toMatchObject({
+      evidenceId: evidenceIdBefore,
+      sourceMethod: "pdf_text",
+      extractionMethod: "native_pdf_text",
+      pageNumber: 2,
+      boundingBox: {
+        x: 10,
+        y: 20,
+        width: 162,
+        height: 12,
+        unit: "pt",
+        pageNumber: 2,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [0, 1, 2, 3],
+      coordinateExtractorVersion: PDFJS_COORDINATE_EXTRACTOR_VERSION,
+      pageDimensions: { width: 612, height: 792, unit: "pt" },
+    });
+    expect(entry).not.toHaveProperty("wordSpanIndexes");
+    expect(entry.matchedTextHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(entry.canonicalValueHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(entry.sourceTextHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(pipeline.finalOutput)).toBe(canonicalBefore);
+    expect(pipeline.replayHash).toBe(replayHashBefore);
+    expect(pipeline.finalOutput.fields["tradelines[0].creditorName"].evidence.evidenceId).toBe(evidenceIdBefore);
+  });
+
+  it("does not default native PDF coordinate matches with missing reliable pages to page 1", () => {
+    const rawText = [
+      "TransUnion Canada Credit Report",
+      "Report Date 2026-01-10",
+      "Personal Information",
+      "Date of Birth Apr 11, 1977",
+      "Account Information",
+      "Creditor Name SECOND PAGE BANK VISA",
+    ].join("\n");
+    const pipeline = build(rawText);
+    const dobEvidence = pipeline.finalOutput.fields["consumerInfo.dateOfBirth"].evidence;
+    const index = buildEvidenceLocationIndex(pipeline, {
+      nativePdfCoordinateIndex: pdfCoordinateIndex([
+        pdfItem("Date", 0, 10, 2, 30),
+        pdfItem("of", 1, 45, 2, 15),
+        pdfItem("Birth", 2, 65, 2, 35),
+        pdfItem("Apr", 3, 105, 2, 25),
+        pdfItem("11,", 4, 135, 2, 20),
+        pdfItem("1977", 5, 160, 2, 30),
+      ]),
+    });
+    const entry = index[dobEvidence.evidenceId!];
+
+    expect(entry).not.toHaveProperty("pageNumber");
+    expect(entry.boundingBox).toMatchObject({
+      pageNumber: 2,
+      coordinateSource: "pdfjs_text_item",
+      unit: "pt",
+    });
+  });
+
+  it("does not alter OCR boundingBox entries when a native PDF sidecar is also supplied", () => {
+    const rawText = [
+      "TransUnion Canada Credit Report",
+      "Report Date 2026-01-10",
+      "Personal Information",
+      "Date of Birth Apr 11, 1977",
+    ].join("\n");
+    const pipeline = build(rawText, {}, {
+      sourceMethod: "ocr_text",
+      ocrProvenance: {
+        sourceMethod: "ocr_text",
+        engine: "tesseract-cli",
+        renderer: "pdftoppm",
+        engineVersion: "tesseract 5.3.0",
+        rendererVersion: "pdftoppm 23.11.0",
+        pageCount: 1,
+        overallConfidence: 0.94,
+        pages: [
+          {
+            pageNumber: 1,
+            sourceMethod: "ocr_text",
+            engine: "tesseract-cli",
+            renderer: "pdftoppm",
+            confidence: 0.94,
+            charCount: rawText.length,
+            wordCount: rawText.split(/\s+/).length,
+            textSnippet: "TransUnion Canada Credit Report",
+          },
+        ],
+        quality: {
+          isValid: true,
+          printableRatio: 0.99,
+          keywordCount: 6,
+          avgWordLength: 5,
+          totalChars: rawText.length,
+        },
+        validation: {
+          deterministic: true,
+          qualityAccepted: true,
+          minimumRules: ["OCR text passed deterministic credit-report text quality checks"],
+        },
+      },
+    });
+    const dobEvidence = pipeline.finalOutput.fields["consumerInfo.dateOfBirth"].evidence;
+    const index = buildEvidenceLocationIndex(pipeline, {
+      ocrCoordinateIndex: ocrCoordinateIndex([
+        boxWord("Date", 0, 10),
+        boxWord("of", 1, 35),
+        boxWord("Birth", 2, 50),
+        boxWord("Apr", 3, 85),
+        boxWord("11,", 4, 110),
+        boxWord("1977", 5, 130),
+      ]),
+      nativePdfCoordinateIndex: pdfCoordinateIndex([
+        pdfItem("Date", 0, 10, 1),
+        pdfItem("of", 1, 35, 1),
+        pdfItem("Birth", 2, 50, 1),
+      ], 1),
+    });
+
+    expect(index[dobEvidence.evidenceId!]).toMatchObject({
+      sourceMethod: "ocr_text",
+      extractionMethod: "ocr_text",
+      boundingBox: {
+        unit: "px",
+        coordinateSource: "tesseract_tsv_word",
+        coordinateValidated: true,
+      },
+      wordSpanIndexes: [0, 1, 2, 3, 4, 5],
+    });
+    expect(index[dobEvidence.evidenceId!]).not.toHaveProperty("itemSpanIndexes");
+  });
+
   it("stores the sidecar under reportArtifact.data during ingestion", () => {
     const ingestCore = source("helpers/ingestCorePipeline.tsx");
 
@@ -578,5 +787,66 @@ describe("evidence location index sidecar", () => {
     expect(resolved?.matchedTextHash).toBe("a".repeat(64));
     expect(resolved?.canonicalValueHash).toBe("b".repeat(64));
     expect(resolved?.sourceTextHash).toBe("c".repeat(64));
+  });
+
+  it("resolves stored native PDF boundingBox metadata without raw PDF text expansion", () => {
+    const reportArtifactData = {
+      evidenceLocationIndex: {
+        "evidence-status": {
+          evidenceId: "evidence-status",
+          fieldKey: "tradelines[0].status",
+          sourceMethod: "pdf_text",
+          extractionMethod: "native_pdf_text",
+          textSnippet: "STATUS OPEN",
+          boundingBox: {
+            x: 10,
+            y: 20,
+            width: 90,
+            height: 12,
+            unit: "pt",
+            pageNumber: 2,
+            coordinateSource: "pdfjs_text_item",
+            coordinateValidated: true,
+          },
+          itemSpanIndexes: [4, 5],
+          matchedTextHash: "d".repeat(64),
+          canonicalValueHash: "e".repeat(64),
+          sourceTextHash: "f".repeat(64),
+          coordinateExtractorVersion: PDFJS_COORDINATE_EXTRACTOR_VERSION,
+          pageDimensions: { width: 612, height: 792, unit: "pt" },
+          provenance: {
+            deterministicPipelineVersion: "test-v1",
+            documentBinarySha256: "document-sha",
+            rawTextSha256: "raw-sha",
+            canonicalResultSha256: "canonical-sha",
+            replayHash: "replay-sha",
+          },
+        },
+      },
+    };
+
+    const resolved = resolveEvidenceLocation({ reportArtifactData }, { evidenceId: "evidence-status" });
+
+    expect(resolved).toMatchObject({
+      evidenceId: "evidence-status",
+      extractionMethod: "native_pdf_text",
+      boundingBox: {
+        x: 10,
+        y: 20,
+        width: 90,
+        height: 12,
+        unit: "pt",
+        pageNumber: 2,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [4, 5],
+      coordinateExtractorVersion: PDFJS_COORDINATE_EXTRACTOR_VERSION,
+      pageDimensions: { width: 612, height: 792, unit: "pt" },
+    });
+    expect(resolved).not.toHaveProperty("wordSpanIndexes");
+    expect(resolved?.matchedTextHash).toBe("d".repeat(64));
+    expect(resolved?.canonicalValueHash).toBe("e".repeat(64));
+    expect(resolved?.sourceTextHash).toBe("f".repeat(64));
   });
 });
