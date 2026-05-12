@@ -83,6 +83,65 @@ describe("violation evidence location enrichment", () => {
     expect(enriched.technicalDetails.evidenceLink.evidenceLocation).not.toHaveProperty("boundingBox");
   });
 
+  it("keeps evidenceLocation additive when resolved metadata includes a boundingBox", () => {
+    const enriched = enrichDetectedViolationRuleEvidence(violation(), {
+      reportArtifactDataById: {
+        77: {
+          evidenceLocationIndex: {
+            "evidence-balance": {
+              evidenceId: "evidence-balance",
+              fieldKey: "tradelines[0].balance",
+              sourceField: "pdf_text.parseResult.tradelines[0].balance",
+              sourceMethod: "pdf_text",
+              extractionMethod: "native_pdf_text",
+              pageNumber: 2,
+              textSnippet: "Balance $1,250. High credit $900.",
+              boundingBox: {
+                x: 100,
+                y: 200,
+                width: 90,
+                height: 12,
+                unit: "pt",
+                pageNumber: 2,
+                coordinateSource: "pdfjs_text_item",
+                coordinateValidated: true,
+              },
+              itemSpanIndexes: [3, 4],
+              matchedTextHash: "a".repeat(64),
+              coordinateExtractorVersion: "pdfjs-coordinate-extractor-v1",
+              provenance,
+            },
+          },
+        },
+      },
+    });
+
+    expect(enriched.technicalDetails.evidenceLink).toEqual(
+      expect.objectContaining({
+        reportArtifactId: 77,
+        field: "balance",
+        fieldName: "balance",
+        evidenceId: "evidence-balance",
+        textSnippet: "Balance $1,250. High credit $900.",
+      }),
+    );
+    expect(enriched.technicalDetails.evidenceLink.evidenceLocation).toMatchObject({
+      evidenceId: "evidence-balance",
+      fieldKey: "tradelines[0].balance",
+      boundingBox: {
+        x: 100,
+        y: 200,
+        width: 90,
+        height: 12,
+        unit: "pt",
+        pageNumber: 2,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [3, 4],
+    });
+  });
+
   it("omits evidenceLocation when no sidecar exists", () => {
     const enriched = enrichDetectedViolationRuleEvidence(violation());
 

@@ -149,6 +149,93 @@ describe("pdfjs native PDF evidence coordinates", () => {
     expect(result?.sourceTextHash).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("matches only unambiguous spans in a synthetic multi-column pdfjs item layout", () => {
+    const index = coordinateIndex([
+      {
+        pageNumber: 1,
+        items: [
+          pdfItem("LEFT", 0, 10, 1, 30),
+          pdfItem("STATUS", 1, 45, 1, 45),
+          pdfItem("OPEN", 2, 95, 1, 35),
+          pdfItem("RIGHT", 3, 320, 1, 40),
+          pdfItem("STATUS", 4, 365, 1, 45),
+          pdfItem("CLOSED", 5, 415, 1, 50),
+        ],
+      },
+    ]);
+
+    const unambiguous = matchPdfjsEvidenceCoordinates({
+      coordinateIndex: index,
+      pageNumber: 1,
+      fieldKey: "tradelines[1].status",
+      textSnippet: "RIGHT STATUS CLOSED",
+    });
+    const ambiguous = matchPdfjsEvidenceCoordinates({
+      coordinateIndex: coordinateIndex([
+        {
+          pageNumber: 1,
+          items: [
+            pdfItem("LEFT", 0, 10, 1, 30),
+            pdfItem("STATUS", 1, 45, 1, 45),
+            pdfItem("OPEN", 2, 95, 1, 35),
+            pdfItem("RIGHT", 3, 320, 1, 40),
+            pdfItem("STATUS", 4, 365, 1, 45),
+            pdfItem("OPEN", 5, 415, 1, 35),
+          ],
+        },
+      ]),
+      pageNumber: 1,
+      fieldKey: "tradelines[0].status",
+      textSnippet: "STATUS OPEN",
+    });
+
+    expect(unambiguous).toMatchObject({
+      boundingBox: {
+        x: 320,
+        y: 20,
+        width: 145,
+        height: 12,
+        unit: "pt",
+        pageNumber: 1,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [3, 4, 5],
+    });
+    expect(ambiguous).toBeNull();
+  });
+
+  it("unions pre-normalized rotated or scaled pdfjs item boxes deterministically", () => {
+    const result = matchPdfjsEvidenceCoordinates({
+      coordinateIndex: coordinateIndex([
+        {
+          pageNumber: 1,
+          items: [
+            { ...pdfItem("ROTATED", 0, 200, 1, 30), y: 120, height: 18 },
+            { ...pdfItem("SCALED", 1, 210.25, 1, 25.5), y: 148.5, height: 18.25 },
+          ],
+        },
+      ]),
+      pageNumber: 1,
+      fieldKey: "tradelines[0].creditorName",
+      textSnippet: "ROTATED SCALED",
+    });
+
+    expect(result).toMatchObject({
+      boundingBox: {
+        x: 200,
+        y: 120,
+        width: 35.75,
+        height: 46.75,
+        unit: "pt",
+        pageNumber: 1,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [0, 1],
+    });
+  });
+
   it("omits native PDF coordinates when repeated values make the match ambiguous", () => {
     const result = matchPdfjsEvidenceCoordinates({
       coordinateIndex: coordinateIndex([
@@ -198,6 +285,23 @@ describe("pdfjs native PDF evidence coordinates", () => {
       fieldKey: "tradelines[0].accountNumber",
       textSnippet: "123456789",
       canonicalValue: "123456789",
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("omits native PDF coordinates for full SIN-like overexposure", () => {
+    const result = matchPdfjsEvidenceCoordinates({
+      coordinateIndex: coordinateIndex([
+        {
+          pageNumber: 1,
+          items: [pdfItem("123-456-789", 0, 10, 1, 90)],
+        },
+      ]),
+      pageNumber: 1,
+      fieldKey: "consumerInfo.sin",
+      textSnippet: "123-456-789",
+      canonicalValue: "123-456-789",
     });
 
     expect(result).toBeNull();

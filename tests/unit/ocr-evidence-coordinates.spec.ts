@@ -33,14 +33,14 @@ function word(
   };
 }
 
-function coordinateIndex(words: TesseractTsvWordBox[]): DeterministicOcrCoordinateIndex {
+function coordinateIndex(words: TesseractTsvWordBox[], pageNumber = 2): DeterministicOcrCoordinateIndex {
   return {
     sourceMethod: "ocr_text",
     coordinateSource: "tesseract_tsv_word",
     coordinateExtractorVersion: OCR_COORDINATE_EXTRACTOR_VERSION,
     pages: [
       {
-        pageNumber: 2,
+        pageNumber,
         pageDimensions: { width: 800, height: 1000, unit: "px" },
         words,
       },
@@ -134,6 +134,35 @@ describe("Tesseract TSV OCR coordinates", () => {
     expect(result?.sourceTextHash).toMatch(/^[a-f0-9]{64}$/);
   });
 
+  it("unions a harmless multi-word OCR phrase with varied word boxes", () => {
+    const result = matchOcrEvidenceCoordinates({
+      coordinateIndex: coordinateIndex([
+        { ...word("PAYMENT", 0, 10), top: 18, width: 50, height: 11 },
+        { ...word("STATUS", 1, 70), top: 24, width: 45, height: 13 },
+        { ...word("CURRENT", 2, 125), top: 20, width: 55, height: 15 },
+      ]),
+      pageNumber: 2,
+      fieldKey: "tradelines[0].status",
+      textSnippet: "PAYMENT STATUS CURRENT",
+      canonicalValue: "Current",
+    });
+
+    expect(result).toMatchObject({
+      boundingBox: {
+        x: 10,
+        y: 18,
+        width: 170,
+        height: 19,
+        unit: "px",
+        pageNumber: 2,
+        coordinateSource: "tesseract_tsv_word",
+        coordinateValidated: true,
+      },
+      wordSpanIndexes: [0, 1, 2],
+      coordinateConfidence: 0.95,
+    });
+  });
+
   it("omits coordinates when the OCR word span is ambiguous", () => {
     const result = matchOcrEvidenceCoordinates({
       coordinateIndex: coordinateIndex([
@@ -161,6 +190,16 @@ describe("Tesseract TSV OCR coordinates", () => {
     expect(result).toBeNull();
   });
 
+  it("omits coordinates when evidence page number is missing instead of defaulting to page 1", () => {
+    const result = matchOcrEvidenceCoordinates({
+      coordinateIndex: coordinateIndex([word("STATUS", 0, 10, 0.95, 1), word("OPEN", 1, 35, 0.95, 1)], 1),
+      fieldKey: "tradelines[0].status",
+      textSnippet: "STATUS OPEN",
+    });
+
+    expect(result).toBeNull();
+  });
+
   it("omits coordinates when matched OCR confidence is below the safe threshold", () => {
     const result = matchOcrEvidenceCoordinates({
       coordinateIndex: coordinateIndex([word("SCAN", 0, 10, 0.72), word("BANK", 1, 35, 0.74)]),
@@ -179,6 +218,18 @@ describe("Tesseract TSV OCR coordinates", () => {
       fieldKey: "tradelines[0].accountNumber",
       textSnippet: "123456789",
       canonicalValue: "123456789",
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("omits coordinates when a match would expose a full SIN-like identifier", () => {
+    const result = matchOcrEvidenceCoordinates({
+      coordinateIndex: coordinateIndex([word("123-456-789", 0, 10, 0.95, 2)]),
+      pageNumber: 2,
+      fieldKey: "consumerInfo.sin",
+      textSnippet: "123-456-789",
+      canonicalValue: "123-456-789",
     });
 
     expect(result).toBeNull();

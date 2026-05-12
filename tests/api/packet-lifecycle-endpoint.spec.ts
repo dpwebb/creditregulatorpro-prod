@@ -267,6 +267,18 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
             zoneName: "tradeline_accounts",
             textSnippet: balanceEvidenceSnippet,
             tokenIndexes: [12, 13, 14],
+            boundingBox: {
+              x: 100,
+              y: 200,
+              width: 90,
+              height: 12,
+              unit: "pt",
+              pageNumber: 2,
+              coordinateSource: "pdfjs_text_item",
+              coordinateValidated: true,
+            },
+            itemSpanIndexes: [12, 13],
+            coordinateExtractorVersion: "pdfjs-coordinate-extractor-v1",
             ruleId: "canonical-field-selected-v1",
             confidence: 1,
             provenance: {
@@ -499,6 +511,16 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
         pageNumber: 2,
         sourceMethod: "pdf_text",
         extractionMethod: "native_pdf_text",
+        boundingBox: {
+          x: 100,
+          y: 200,
+          width: 90,
+          height: 12,
+          unit: "pt",
+          pageNumber: 2,
+          coordinateSource: "pdfjs_text_item",
+          coordinateValidated: true,
+        },
       }),
     ]);
     expect(built.packet.disputedItems).toEqual(
@@ -529,6 +551,16 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
         evidenceId: fixture.balanceEvidenceId,
         fieldKey: "tradelines[0].balance",
         pageNumber: 2,
+        boundingBox: {
+          x: 100,
+          y: 200,
+          width: 90,
+          height: 12,
+          unit: "pt",
+          pageNumber: 2,
+          coordinateSource: "pdfjs_text_item",
+          coordinateValidated: true,
+        },
       }),
     ]);
     expect(persistedContent.disputedItems).toEqual(

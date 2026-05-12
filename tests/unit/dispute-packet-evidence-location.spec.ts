@@ -95,6 +95,96 @@ describe("packet evidence location metadata", () => {
     expect(enrichedPacket.evidenceLocations?.["10"][0]).not.toHaveProperty("boundingBox");
   });
 
+  it("keeps packet references and readiness unchanged when evidenceLocation includes a boundingBox", () => {
+    const basePacket = packet();
+    const evidenceLocations = buildPacketEvidenceLocationsForIssues([
+      {
+        issueId: 10,
+        reportArtifactId: 7,
+        technicalDetails: {
+          evidenceLink: {
+            reportArtifactId: 7,
+            evidenceId: "evidence-balance",
+            field: "balance",
+          },
+        },
+        reportArtifactData: {
+          evidenceLocationIndex: {
+            "evidence-balance": {
+              evidenceId: "evidence-balance",
+              fieldKey: "tradelines[0].balance",
+              sourceField: "pdf_text.parseResult.tradelines[0].balance",
+              sourceMethod: "pdf_text",
+              extractionMethod: "native_pdf_text",
+              pageNumber: 2,
+              textSnippet: "Balance $900 Expected $0",
+              boundingBox: {
+                x: 100,
+                y: 200,
+                width: 90,
+                height: 12,
+                unit: "pt",
+                pageNumber: 2,
+                coordinateSource: "pdfjs_text_item",
+                coordinateValidated: true,
+              },
+              itemSpanIndexes: [7, 8],
+              coordinateExtractorVersion: "pdfjs-coordinate-extractor-v1",
+              provenance,
+            },
+          },
+        },
+      },
+    ]);
+    const enrichedPacket = evidenceLocations ? { ...basePacket, evidenceLocations } : basePacket;
+    const readiness = evaluatePacketReadinessForIssues(
+      { id: 1, role: "user" },
+      { packetType: "credit_bureau", selectedIssueIds: [10] },
+      [
+        {
+          issueId: 10,
+          userId: 1,
+          tradelineId: 20,
+          bureauId: 30,
+          userStatus: "active",
+          validationStatus: "PENDING",
+          technicalDetails: {
+            extractionConfidenceGate: {
+              status: "confirmed",
+              packetReady: true,
+              confidenceScore: 95,
+              requiresManualReview: false,
+              reasonCodes: [],
+            },
+          },
+          evidenceReference: "Source report #7; field: balance; page 2",
+          packetTypes: ["credit_bureau"],
+        },
+      ],
+    );
+
+    expect(enrichedPacket.disputedItems[0].evidenceReference).toBe(
+      "Source report #7; field: balance; page 2",
+    );
+    expect(enrichedPacket.evidenceList).toEqual(["Source report #7; field: balance; page 2"]);
+    expect(enrichedPacket.evidenceLocations?.["10"][0]).toMatchObject({
+      evidenceId: "evidence-balance",
+      boundingBox: {
+        x: 100,
+        y: 200,
+        width: 90,
+        height: 12,
+        unit: "pt",
+        pageNumber: 2,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [7, 8],
+    });
+    expect(readiness.packetReady).toBe(true);
+    expect(readiness.reasonCodes).toEqual([]);
+  });
+
   it("allows packet creation inputs to remain ready when evidenceLocation is unavailable", () => {
     const evidenceLocations = buildPacketEvidenceLocationsForIssues([
       {
