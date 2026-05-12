@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DisputePacketCandidate } from "../../helpers/disputePacketService";
@@ -53,6 +54,28 @@ vi.mock("../../helpers/useAuth", () => ({
   useAuth: () => ({
     isAdmin: false,
   }),
+}));
+
+// Routing behavior does not exercise PDF rendering; keep CI out of pdfjs' CJS/TLA boundary.
+vi.mock("@react-pdf-viewer/core", () => ({
+  Worker: ({ children }: { children?: ReactNode }) => children ?? null,
+  Viewer: () => null,
+}));
+
+vi.mock("@react-pdf-viewer/default-layout", () => ({
+  defaultLayoutPlugin: () => ({}),
+}));
+
+vi.mock("@react-pdf-viewer/search", () => ({
+  searchPlugin: () => ({}),
+}));
+
+vi.mock("../../components/PacketViewer", () => ({
+  PacketViewer: () => null,
+}));
+
+vi.mock("../../components/SourceReportViewer", () => ({
+  SourceReportViewer: () => null,
 }));
 
 vi.mock("../../components/DeliveryWizard", () => ({
