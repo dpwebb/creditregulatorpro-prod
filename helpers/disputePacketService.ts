@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { db } from "./db";
 import { getBureauDisputeAddress } from "./bureauDisputeAddresses";
 import { BusinessRuleError } from "./endpointErrorHandler";
+import { ensureDisputePacketFindingsSchema } from "./disputePacketFindingsSchema";
 import type { User } from "./User";
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
 import {
@@ -172,6 +173,18 @@ type RecipientRecord = {
   addressLines: string[];
 };
 
+interface DisputePacketPreview {
+  packet: SimpleDisputePacketContent;
+  recipientRecord: RecipientRecord;
+  ownerUserId: number;
+  firstTradelineId: number;
+  bureauId: number | null;
+  selectedIssueIds: number[];
+  linkedFindingId: number | null;
+  issueRows: IssueRow[];
+  readiness: PacketReadinessResult;
+}
+
 function hashEvent(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
@@ -331,6 +344,140 @@ function attachEvidenceLocationsToPacket(
   );
 
   return evidenceLocations ? { ...packet, evidenceLocations } : packet;
+}
+
+function uniqueSortedIds(ids: number[]): number[] {
+  return Array.from(new Set(ids.filter((id) => Number.isFinite(id)))).sort((left, right) => left - right);
+}
+
+function hasSameIdSet(left: number[], right: number[]): boolean {
+  const normalizedLeft = uniqueSortedIds(left);
+  const normalizedRight = uniqueSortedIds(right);
+  return (
+    normalizedLeft.length === normalizedRight.length &&
+    normalizedLeft.every((id, index) => id === normalizedRight[index])
+  );
+}
+
+function reportArtifactIdForRow(row: IssueRow): number | null {
+  const details = parseDetails(row.issueTechnicalDetails);
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
+  const evidenceReportArtifactId = Number(evidence?.reportArtifactId ?? evidence?.sourceReportArtifactId);
+  if (Number.isInteger(evidenceReportArtifactId) && evidenceReportArtifactId > 0) return evidenceReportArtifactId;
+  return row.reportArtifactId;
+}
+
+function sanitizedEvidenceLocationSnapshot(packet: SimpleDisputePacketContent, issueId: number): Record<string, unknown>[] {
+  const locations = packet.evidenceLocations?.[String(issueId)] ?? [];
+  return locations.map((location) => {
+    const { textSnippet: _textSnippet, ...safeLocation } = location;
+    return safeLocation as Record<string, unknown>;
+  });
+}
+
+function evidenceIdsForIssue(row: IssueRow, evidenceLocations: Record<string, unknown>[]): string[] {
+  const ids = evidenceLocations
+    .map((location) => location.evidenceId)
+    .filter((evidenceId): evidenceId is string => typeof evidenceId === "string" && evidenceId.trim().length > 0);
+
+  const details = parseDetails(row.issueTechnicalDetails);
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
+  const detailEvidenceId = firstText(details, ["evidenceId", "canonicalEvidenceId"]);
+  const linkedEvidenceId = evidence ? firstText(evidence, ["evidenceId", "canonicalEvidenceId"]) : null;
+
+  return Array.from(new Set([...ids, detailEvidenceId, linkedEvidenceId].filter((id): id is string => Boolean(id))));
+}
+
+function readinessSnapshotForIssue(readiness: PacketReadinessResult, issueId: number): Record<string, unknown> {
+  return {
+    packetReady: readiness.packetReady,
+    findingEligible: readiness.eligibleFindingIds.includes(issueId),
+    reasonCodes: readiness.reasonCodes,
+    blockerCodes: readiness.blockers
+      .filter((blocker) => blocker.findingId === undefined || blocker.findingId === issueId)
+      .map((blocker) => blocker.code),
+    warningCodes: readiness.warnings
+      .filter((warning) => warning.findingId === undefined || warning.findingId === issueId)
+      .map((warning) => warning.code),
+  };
+}
+
+function packetItemSnapshotForIssue(packet: SimpleDisputePacketContent, row: IssueRow): Record<string, unknown> {
+  const item = packet.disputedItems.find((candidate) => candidate.issueId === row.issueId);
+  return {
+    issueId: row.issueId,
+    tradelineId: row.tradelineId,
+    disputedField: item?.disputedField ?? null,
+    issueType: item?.issueType ?? null,
+    requestedAction: item?.requestedAction ?? null,
+    needsManualReview: item?.needsManualReview ?? null,
+    maskedAccountNumber: item?.maskedAccountNumber ?? null,
+    evidenceReferenceHash: item?.evidenceReference ? hashEvent({ evidenceReference: item.evidenceReference }) : null,
+  };
+}
+
+function assertPacketFindingRowsCanBeWritten(
+  user: Pick<User, "id" | "role">,
+  preview: DisputePacketPreview,
+): void {
+  const selectedIds = preview.selectedIssueIds;
+  const metadataIds = preview.packet.metadata.selectedIssueIds;
+  const itemIds = preview.packet.disputedItems
+    .map((item) => item.issueId)
+    .filter((id): id is number => typeof id === "number" && Number.isFinite(id));
+  const rowIds = preview.issueRows.map((row) => row.issueId);
+
+  if (
+    !hasSameIdSet(selectedIds, metadataIds) ||
+    !hasSameIdSet(selectedIds, itemIds) ||
+    !hasSameIdSet(selectedIds, rowIds) ||
+    !hasSameIdSet(selectedIds, preview.readiness.eligibleFindingIds)
+  ) {
+    throw new BusinessRuleError("Selected packet findings could not be resolved safely.");
+  }
+
+  if (user.role !== "admin" && preview.ownerUserId !== user.id) {
+    throw new BusinessRuleError("Unauthorized access to disputed items.", 403);
+  }
+
+  if (preview.issueRows.some((row) => row.userId !== preview.ownerUserId)) {
+    throw new BusinessRuleError("Selected packet findings do not share one owner.");
+  }
+
+  if (preview.issueRows.some((row) => row.tradelineId !== preview.firstTradelineId)) {
+    throw new BusinessRuleError("Selected packet findings do not share one account.");
+  }
+}
+
+function buildDisputePacketFindingRows(
+  preview: DisputePacketPreview,
+  packetId: number,
+  statusAtCreation: string | null,
+  actorUserId: number,
+  now: Date,
+) {
+  return preview.issueRows.map((row) => {
+    const evidenceLocationSnapshot = sanitizedEvidenceLocationSnapshot(preview.packet, row.issueId);
+    return {
+      disputePacketId: packetId,
+      creditorObligationTestId: row.issueId,
+      reportArtifactId: reportArtifactIdForRow(row),
+      tradelineId: row.tradelineId,
+      userId: Number(row.userId),
+      bureauId: row.bureauId,
+      packetType: preview.packet.packetType,
+      evidenceIds: evidenceIdsForIssue(row, evidenceLocationSnapshot) as any,
+      evidenceLocationSnapshot: evidenceLocationSnapshot as any,
+      readinessSnapshot: readinessSnapshotForIssue(preview.readiness, row.issueId) as any,
+      packetItemSnapshot: packetItemSnapshotForIssue(preview.packet, row) as any,
+      statusAtCreation,
+      selectedAt: now,
+      createdAt: now,
+      createdBy: actorUserId,
+      sourceVersion: preview.packet.version,
+      backfilled: false,
+    };
+  });
 }
 
 function rowHasCollectionRecipient(row: IssueRow): boolean {
@@ -963,15 +1110,7 @@ export async function validateDisputePacketReadiness(
 export async function buildDisputePacketPreview(
   user: User,
   input: DisputePacketBuildInput,
-): Promise<{
-  packet: SimpleDisputePacketContent;
-  recipientRecord: RecipientRecord;
-  ownerUserId: number;
-  firstTradelineId: number;
-  bureauId: number | null;
-  selectedIssueIds: number[];
-  linkedFindingId: number | null;
-}> {
+): Promise<DisputePacketPreview> {
   const uniqueIssueIds = dedupeIssueIds(input.selectedIssueIds);
   const rows = await getIssueRows(uniqueIssueIds);
   assertRowsCanBuild(user, rows, { ...input, selectedIssueIds: uniqueIssueIds });
@@ -1017,6 +1156,8 @@ export async function buildDisputePacketPreview(
     bureauId: input.packetType === "credit_bureau" ? (input.recipientBureauId ?? firstRow.bureauId) : null,
     selectedIssueIds: uniqueIssueIds,
     linkedFindingId: resolvePacketCreditorObligationTestId(uniqueIssueIds),
+    issueRows: rows,
+    readiness,
   };
 }
 
@@ -1027,6 +1168,8 @@ export async function createDisputePacketRecord(
   const preview = await buildDisputePacketPreview(user, input);
   const now = new Date();
   const packetType = input.packetType === "collection_agency" ? "collection_agency_dispute" : "credit_bureau_dispute";
+  assertPacketFindingRowsCanBeWritten(user, preview);
+  await ensureDisputePacketFindingsSchema();
 
   const inserted = await db.transaction().execute(async (trx) => {
     const packet = await trx
@@ -1052,6 +1195,11 @@ export async function createDisputePacketRecord(
       })
       .returning(["id", "status"])
       .executeTakeFirstOrThrow();
+
+    await trx
+      .insertInto("disputePacketFindings")
+      .values(buildDisputePacketFindingRows(preview, packet.id, packet.status ?? "generated", user.id, now))
+      .execute();
 
     const eventData = {
       packetId: packet.id,

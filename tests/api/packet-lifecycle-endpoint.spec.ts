@@ -1,10 +1,11 @@
 import "../../loadEnv.js";
 
-import type { Kysely } from "kysely";
+import { sql, type Kysely } from "kysely";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { DB } from "../../helpers/schema";
 import type { User } from "../../helpers/User";
+import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 import { assertSafeLocalDatabaseUrl } from "../utils/localDbHarness";
 
 type EndpointHandle = (request: Request) => Promise<Response>;
@@ -41,6 +42,8 @@ let validateReadiness: EndpointHandle;
 let buildPacket: EndpointHandle;
 let createPacket: EndpointHandle;
 let getPacketPdf: EndpointHandle;
+let getPacket: EndpointHandle;
+let listPackets: EndpointHandle;
 
 const created = {
   userIds: [] as number[],
@@ -108,6 +111,27 @@ function pdfRequest(packetId: number): Request {
   });
 }
 
+function getRequest(path: string): Request {
+  return new Request(`http://localhost${path}`, {
+    method: "GET",
+    headers: {
+      Origin: requestOrigin,
+    },
+  });
+}
+
+function jsonValue<T>(value: unknown): T {
+  return (typeof value === "string" ? JSON.parse(value) : value) as T;
+}
+
+function idText(value: unknown): string {
+  return String(value);
+}
+
+function sortedIdTexts(values: unknown[]): string[] {
+  return values.map(idText).sort();
+}
+
 async function cleanupCreatedRows(): Promise<void> {
   if (!db) return;
 
@@ -121,6 +145,7 @@ async function cleanupCreatedRows(): Promise<void> {
   const userAccountIds = Array.from(new Set(created.userAccountIds));
 
   if (packetIds.length > 0) {
+    await db.deleteFrom("disputePacketFindings").where("disputePacketId", "in", packetIds).execute();
     await db.deleteFrom("packetComplianceAudit").where("packetId", "in", packetIds).execute();
     await db.deleteFrom("evidenceEvent").where("packetId", "in", packetIds).execute();
     await db.deleteFrom("auditLog").where("entityType", "=", "PACKET").where("entityId", "in", packetIds).execute();
@@ -128,6 +153,7 @@ async function cleanupCreatedRows(): Promise<void> {
   }
 
   if (issueIds.length > 0) {
+    await db.deleteFrom("disputePacketFindings").where("creditorObligationTestId", "in", issueIds).execute();
     await db.deleteFrom("packet").where("creditorObligationTestId", "in", issueIds).execute();
     await db.deleteFrom("creditorObligationTest").where("id", "in", issueIds).execute();
   }
@@ -214,8 +240,11 @@ async function createFixtureUser(marker: string, label: string): Promise<AuthUse
 
 async function createPacketSourceFixture(owner: AuthUser, marker: string) {
   const balanceEvidenceId = `evidence-${marker}-balance`;
+  const statusEvidenceId = `evidence-${marker}-status`;
   const balanceEvidenceSnippet =
     "Synthetic source report line: balance field reports 200 while expected balance is 100.";
+  const statusEvidenceSnippet =
+    "Synthetic source report line: account status field reports Open while expected status is Closed.";
   const bureau = await db
     .insertInto("bureau")
     .values({
@@ -278,6 +307,39 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
               coordinateValidated: true,
             },
             itemSpanIndexes: [12, 13],
+            coordinateExtractorVersion: "pdfjs-coordinate-extractor-v1",
+            ruleId: "canonical-field-selected-v1",
+            confidence: 1,
+            provenance: {
+              deterministicPipelineVersion: "test-v1",
+              documentBinarySha256: "synthetic-document-sha",
+              rawTextSha256: "synthetic-raw-text-sha",
+              canonicalResultSha256: "synthetic-canonical-sha",
+              replayHash: "synthetic-replay-hash",
+            },
+          },
+          [statusEvidenceId]: {
+            evidenceId: statusEvidenceId,
+            fieldKey: "tradelines[0].status",
+            sourceField: "pdf_text.parseResult.tradelines[0].status",
+            sourceMethod: "pdf_text",
+            extractionMethod: "native_pdf_text",
+            pageNumber: 2,
+            sectionName: "tradeline_accounts",
+            zoneName: "tradeline_accounts",
+            textSnippet: statusEvidenceSnippet,
+            tokenIndexes: [20, 21],
+            boundingBox: {
+              x: 100,
+              y: 226,
+              width: 68,
+              height: 12,
+              unit: "pt",
+              pageNumber: 2,
+              coordinateSource: "pdfjs_text_item",
+              coordinateValidated: true,
+            },
+            itemSpanIndexes: [20],
             coordinateExtractorVersion: "pdfjs-coordinate-extractor-v1",
             ruleId: "canonical-field-selected-v1",
             confidence: 1,
@@ -377,6 +439,30 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
     },
   });
 
+  const secondaryReadyIssue = await insertFinding({
+    tradelineId: readyTradeline.id,
+    creditorId: creditor.id,
+    technicalDetails: {
+      fieldName: "status",
+      reportedValue: "Open",
+      expectedValue: "Closed",
+      evidenceLink: {
+        reportArtifactId: reportArtifact.id,
+        evidenceId: statusEvidenceId,
+        field: "status",
+        pageNumber: 2,
+        textSnippet: statusEvidenceSnippet,
+      },
+      extractionConfidenceGate: {
+        status: "confirmed",
+        packetReady: true,
+        confidenceScore: 95,
+        requiresManualReview: false,
+        reasonCodes: [],
+      },
+    },
+  });
+
   const blockedIssue = await insertFinding({
     tradelineId: blockedTradeline.id,
     creditorId: creditor.id,
@@ -421,9 +507,11 @@ async function createPacketSourceFixture(owner: AuthUser, marker: string) {
   return {
     bureauId: bureau.id,
     readyIssueId: readyIssue,
+    secondaryReadyIssueId: secondaryReadyIssue,
     blockedIssueId: blockedIssue,
     dismissedIssueId: dismissedIssue,
     balanceEvidenceId,
+    statusEvidenceId,
   };
 }
 
@@ -461,10 +549,13 @@ async function insertFinding(input: {
 describeIfLocalDb("packet lifecycle endpoints", () => {
   beforeAll(async () => {
     db = (await import("../../helpers/db")).db;
+    await (await import("../../helpers/disputePacketFindingsSchema")).ensureDisputePacketFindingsSchema();
     validateReadiness = (await import("../../endpoints/packet/validate-readiness_POST")).handle;
     buildPacket = (await import("../../endpoints/packet/build_POST")).handle;
     createPacket = (await import("../../endpoints/packet/create_POST")).handle;
     getPacketPdf = (await import("../../endpoints/packet/pdf_GET")).handle;
+    getPacket = (await import("../../endpoints/packet/get_GET")).handle;
+    listPackets = (await import("../../endpoints/packet/list_GET")).handle;
   });
 
   afterEach(async () => {
@@ -474,6 +565,45 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
 
   afterAll(async () => {
     await db?.destroy();
+  });
+
+  it("has the additive dispute_packet_findings table, constraints, and indexes", async () => {
+    const table = await sql<{ tableName: string | null }>`
+      select to_regclass('public.dispute_packet_findings')::text as "tableName"
+    `.execute(db);
+    expect(table.rows[0]?.tableName).toBe("dispute_packet_findings");
+
+    const constraints = await sql<{ conname: string; contype: string }>`
+      select conname, contype
+      from pg_constraint
+      where conrelid = 'public.dispute_packet_findings'::regclass
+    `.execute(db);
+    const constraintNames = constraints.rows.map((row) => row.conname);
+    expect(constraintNames).toEqual(
+      expect.arrayContaining([
+        "dispute_packet_findings_packet_finding_unique",
+        "dispute_packet_findings_packet_id_fkey",
+        "dispute_packet_findings_creditor_obligation_test_id_fkey",
+      ]),
+    );
+    expect(constraints.rows.filter((row) => row.contype === "f").length).toBeGreaterThanOrEqual(6);
+
+    const indexes = await sql<{ indexname: string }>`
+      select indexname
+      from pg_indexes
+      where schemaname = 'public'
+        and tablename = 'dispute_packet_findings'
+    `.execute(db);
+    expect(indexes.rows.map((row) => row.indexname)).toEqual(
+      expect.arrayContaining([
+        "idx_dispute_packet_findings_creditor_obligation_test_id",
+        "idx_dispute_packet_findings_dispute_packet_id",
+        "idx_dispute_packet_findings_user_created_at",
+        "idx_dispute_packet_findings_tradeline_created_at",
+        "idx_dispute_packet_findings_report_artifact_id",
+        "idx_dispute_packet_findings_bureau_id",
+      ]),
+    );
   });
 
   it("runs readiness, build, create, PDF download, and non-owner denial through endpoint handlers", async () => {
@@ -567,6 +697,81 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
       expect.arrayContaining([expect.objectContaining({ issueId: fixture.readyIssueId })]),
     );
 
+    const linkedRows = await db
+      .selectFrom("disputePacketFindings")
+      .selectAll()
+      .where("disputePacketId", "=", createdPacket.packetId)
+      .execute();
+    expect(linkedRows).toHaveLength(1);
+    const linkedRow = linkedRows[0];
+    expect(idText(linkedRow.creditorObligationTestId)).toBe(idText(fixture.readyIssueId));
+    expect(idText(linkedRow.userId)).toBe(idText(owner.id));
+    expect(idText(linkedRow.tradelineId)).toBe(idText(persisted.tradelineId));
+    expect(idText(linkedRow.reportArtifactId)).toMatch(/^\d+$/);
+    expect(idText(linkedRow.bureauId)).toBe(idText(fixture.bureauId));
+    expect(linkedRow.packetType).toBe("credit_bureau");
+    expect(linkedRow.statusAtCreation).toBe("generated");
+    expect(linkedRow.sourceVersion).toBe("simple-dispute-packet-v1");
+    expect(linkedRow.backfilled).toBe(false);
+    expect(jsonValue<string[]>(linkedRow.evidenceIds)).toEqual([fixture.balanceEvidenceId]);
+    expect(jsonValue<Record<string, unknown>[]>(linkedRow.evidenceLocationSnapshot)).toEqual([
+      expect.objectContaining({
+        evidenceId: fixture.balanceEvidenceId,
+        fieldKey: "tradelines[0].balance",
+        pageNumber: 2,
+        boundingBox: {
+          x: 100,
+          y: 200,
+          width: 90,
+          height: 12,
+          unit: "pt",
+          pageNumber: 2,
+          coordinateSource: "pdfjs_text_item",
+          coordinateValidated: true,
+        },
+      }),
+    ]);
+    expect(jsonValue<Record<string, unknown>[]>(linkedRow.evidenceLocationSnapshot)[0]).not.toHaveProperty("textSnippet");
+    expect(jsonValue<Record<string, unknown>>(linkedRow.readinessSnapshot)).toMatchObject({
+      packetReady: true,
+      findingEligible: true,
+      reasonCodes: [],
+    });
+    const itemSnapshot = jsonValue<Record<string, unknown>>(linkedRow.packetItemSnapshot);
+    expect(itemSnapshot).toMatchObject({
+      issueId: fixture.readyIssueId,
+      tradelineId: persisted.tradelineId,
+      maskedAccountNumber: expect.stringMatching(/^Account ending /),
+      evidenceReferenceHash: expect.any(String),
+    });
+    expect(JSON.stringify(itemSnapshot)).not.toContain(`ACCT-${marker}-READY`);
+    expect(JSON.stringify(itemSnapshot)).not.toMatch(/\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/);
+
+    await expect(
+      db
+        .insertInto("disputePacketFindings")
+        .values({
+          disputePacketId: createdPacket.packetId,
+          creditorObligationTestId: fixture.readyIssueId,
+          reportArtifactId: linkedRow.reportArtifactId,
+          tradelineId: linkedRow.tradelineId,
+          userId: linkedRow.userId,
+          bureauId: linkedRow.bureauId,
+          packetType: "credit_bureau",
+          evidenceIds: [] as any,
+          evidenceLocationSnapshot: [] as any,
+          readinessSnapshot: {} as any,
+          packetItemSnapshot: {} as any,
+          statusAtCreation: "generated",
+          selectedAt: reportDate,
+          createdAt: reportDate,
+          createdBy: owner.id,
+          sourceVersion: "simple-dispute-packet-v1",
+          backfilled: false,
+        })
+        .execute(),
+    ).rejects.toThrow();
+
     const pdfResponse = await getPacketPdf(pdfRequest(createdPacket.packetId));
     expect(pdfResponse.status).toBe(200);
     expect(pdfResponse.headers.get("Content-Type")).toContain("application/pdf");
@@ -576,6 +781,167 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
     const deniedPdfResponse = await getPacketPdf(pdfRequest(createdPacket.packetId));
     expect(deniedPdfResponse.status).toBe(403);
     expect(await deniedPdfResponse.json()).toEqual({ error: "Unauthorized access to packet" });
+  });
+
+  it("creates one additive finding row per ready multi-issue packet item without setting the legacy single-issue link", async () => {
+    const marker = syntheticMarker();
+    const owner = await createFixtureUser(marker, "owner");
+    const fixture = await createPacketSourceFixture(owner, marker);
+    const selectedIssueIds = [fixture.readyIssueId, fixture.secondaryReadyIssueId];
+    const requestBody = {
+      packetType: "credit_bureau",
+      selectedIssueIds,
+      recipientBureauId: fixture.bureauId,
+    };
+
+    auth.user = owner;
+    const createResponse = await createPacket(postRequest("/_api/packet/create", requestBody));
+    expect(createResponse.status).toBe(200);
+    const createdPacket = await createResponse.json();
+    track(created.packetIds, createdPacket.packetId);
+
+    const persisted = await db
+      .selectFrom("packet")
+      .select(["id", "creditorObligationTestId", "content"])
+      .where("id", "=", createdPacket.packetId)
+      .executeTakeFirstOrThrow();
+    expect(persisted.creditorObligationTestId).toBeNull();
+
+    const persistedContent = JSON.parse(persisted.content ?? "{}");
+    expect(persistedContent.metadata.selectedIssueIds.sort((left: number, right: number) => left - right)).toEqual(
+      selectedIssueIds.slice().sort((left, right) => left - right),
+    );
+    expect(persistedContent.disputedItems.map((item: { issueId: number }) => item.issueId).sort()).toEqual(
+      selectedIssueIds.slice().sort((left, right) => left - right),
+    );
+    expect(persistedContent.evidenceLocations?.[String(fixture.readyIssueId)]).toHaveLength(1);
+    expect(persistedContent.evidenceLocations?.[String(fixture.secondaryReadyIssueId)]).toHaveLength(1);
+
+    const linkedRows = await db
+      .selectFrom("disputePacketFindings")
+      .selectAll()
+      .where("disputePacketId", "=", createdPacket.packetId)
+      .orderBy("creditorObligationTestId", "asc")
+      .execute();
+    expect(linkedRows).toHaveLength(2);
+    expect(sortedIdTexts(linkedRows.map((row) => row.creditorObligationTestId))).toEqual(sortedIdTexts(selectedIssueIds));
+    expect(linkedRows.every((row) => row.packetType === "credit_bureau")).toBe(true);
+    expect(linkedRows.every((row) => row.backfilled === false)).toBe(true);
+    expect(linkedRows.map((row) => jsonValue<string[]>(row.evidenceIds)[0]).sort()).toEqual(
+      [fixture.balanceEvidenceId, fixture.statusEvidenceId].sort(),
+    );
+
+    for (const row of linkedRows) {
+      const locations = jsonValue<Record<string, unknown>[]>(row.evidenceLocationSnapshot);
+      expect(locations).toHaveLength(1);
+      expect(locations[0]).toMatchObject({
+        pageNumber: 2,
+        boundingBox: expect.objectContaining({
+          unit: "pt",
+          pageNumber: 2,
+          coordinateSource: "pdfjs_text_item",
+          coordinateValidated: true,
+        }),
+      });
+      expect(locations[0]).not.toHaveProperty("textSnippet");
+      const itemSnapshot = jsonValue<Record<string, unknown>>(row.packetItemSnapshot);
+      expect(idText(itemSnapshot.issueId)).toBe(idText(row.creditorObligationTestId));
+      expect(itemSnapshot).toMatchObject({
+        maskedAccountNumber: expect.stringMatching(/^Account ending /),
+      });
+    }
+  });
+
+  it("keeps old packets without finding rows readable through list, get, and PDF endpoints", async () => {
+    const marker = syntheticMarker();
+    const owner = await createFixtureUser(marker, "owner");
+    const fixture = await createPacketSourceFixture(owner, marker);
+
+    const source = await db
+      .selectFrom("creditorObligationTest as issue")
+      .innerJoin("tradeline as tradeline", "tradeline.id", "issue.tradelineId")
+      .select(["tradeline.id as tradelineId", "tradeline.accountNumber"])
+      .where("issue.id", "=", fixture.readyIssueId)
+      .executeTakeFirstOrThrow();
+    const legacyContent = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "Synthetic legacy credit report",
+      reportDate,
+      recipient: {
+        type: "credit_bureau",
+        name: "Synthetic Bureau",
+        address: ["200 Bureau Test Street", "Toronto, ON M5J 2N8"],
+      },
+      consumer: {
+        name: owner.displayName,
+        address: ["100 Synthetic Test Avenue", "Halifax, NS B3J 0A1"],
+      },
+      disputedItems: [
+        {
+          issueId: fixture.readyIssueId,
+          tradelineId: source.tradelineId,
+          creditorCollectorName: "Synthetic Creditor",
+          accountNumber: source.accountNumber,
+          disputedField: "Balance",
+          reportedValue: "$200",
+          expectedValue: "$100",
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          evidenceReference: "Source report #1; field: balance; page 2",
+          requestedAction: "correct balance",
+        },
+      ],
+      reportArtifactIds: [],
+      generatedByUserId: owner.id,
+    });
+
+    const legacyPacket = await db
+      .insertInto("packet")
+      .values({
+        userId: owner.id,
+        tradelineId: source.tradelineId,
+        bureauId: fixture.bureauId,
+        creditorObligationTestId: fixture.readyIssueId,
+        type: "credit_bureau_dispute",
+        status: "generated",
+        processingStatus: "completed",
+        content: JSON.stringify(legacyContent),
+        terminalLabel: null,
+        letterDate: reportDate,
+        recipientName: "Synthetic Bureau",
+        recipientAddressLine1: "200 Bureau Test Street",
+        recipientAddressLine2: null,
+        recipientCity: "Toronto",
+        recipientProvince: "ON",
+        recipientPostalCode: "M5J 2N8",
+        region: "CA",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    track(created.packetIds, legacyPacket.id);
+
+    expect(
+      await db
+        .selectFrom("disputePacketFindings")
+        .select("id")
+        .where("disputePacketId", "=", legacyPacket.id)
+        .execute(),
+    ).toHaveLength(0);
+
+    auth.user = owner;
+    const listResponse = await listPackets(getRequest("/_api/packet/list"));
+    expect(listResponse.status).toBe(200);
+    const listed = await listResponse.json();
+    expect(listed.packets.some((packet: { id: number }) => packet.id === legacyPacket.id)).toBe(true);
+
+    const getResponse = await getPacket(getRequest(`/_api/packet/get?packetId=${legacyPacket.id}`));
+    expect(getResponse.status).toBe(200);
+    const details = await getResponse.json();
+    expect(details.packet.id).toBe(legacyPacket.id);
+
+    const pdfResponse = await getPacketPdf(pdfRequest(legacyPacket.id));
+    expect(pdfResponse.status).toBe(200);
+    expect(pdfResponse.headers.get("Content-Type")).toContain("application/pdf");
+    expect((await pdfResponse.arrayBuffer()).byteLength).toBeGreaterThan(100);
   });
 
   it("rejects missing-evidence findings and does not persist a packet", async () => {

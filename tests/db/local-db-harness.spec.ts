@@ -56,6 +56,7 @@ describe("local bootstrap table coverage", () => {
       "violationRegulationReference",
       "violationTrainingExample",
       "packet",
+      "disputePacketFindings",
     ];
 
     for (const table of criticalTables) {

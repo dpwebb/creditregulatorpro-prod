@@ -161,7 +161,7 @@ describe("packet readiness evaluation", () => {
     expect(adminReadiness.packetReady).toBe(true);
   });
 
-  it("links single-issue packets and leaves multi-issue packets linked through metadata only", () => {
+  it("keeps the legacy packet finding id single-issue only", () => {
     expect(resolvePacketCreditorObligationTestId([10])).toBe(10);
     expect(resolvePacketCreditorObligationTestId([10, 11])).toBeNull();
   });

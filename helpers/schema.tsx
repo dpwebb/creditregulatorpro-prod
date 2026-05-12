@@ -433,6 +433,27 @@ export interface DiscriminationClaim {
   tradelineId: number;
 }
 
+export interface DisputePacketFindings {
+  backfilled: Generated<boolean>;
+  bureauId: number | null;
+  createdAt: Generated<Timestamp>;
+  createdBy: number | null;
+  creditorObligationTestId: number;
+  disputePacketId: number;
+  evidenceIds: Generated<Json>;
+  evidenceLocationSnapshot: Generated<Json>;
+  id: Generated<number>;
+  packetItemSnapshot: Generated<Json>;
+  packetType: string;
+  readinessSnapshot: Generated<Json>;
+  reportArtifactId: number | null;
+  selectedAt: Generated<Timestamp>;
+  sourceVersion: Generated<string>;
+  statusAtCreation: string | null;
+  tradelineId: number;
+  userId: number;
+}
+
 export interface DynamicScanningRule {
   approvedAt: Timestamp | null;
   approvedBy: number | null;
@@ -1615,6 +1636,7 @@ export interface DB {
   deadlineEvent: DeadlineEvent;
   disclosureRequirement: DisclosureRequirement;
   discriminationClaim: DiscriminationClaim;
+  disputePacketFindings: DisputePacketFindings;
   dynamicScanningRule: DynamicScanningRule;
   emailVerificationTokens: EmailVerificationTokens;
   enforcementMechanism: EnforcementMechanism;
