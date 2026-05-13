@@ -32,7 +32,7 @@ All future work must protect this promise before adding breadth, convenience, or
 
 ## Current Implementation Status
 
-Updated May 12, 2026.
+Updated May 13, 2026.
 
 ### Implemented
 
@@ -60,6 +60,7 @@ Updated May 12, 2026.
 22. Synthetic Phase 3 coordinate sidecar edge-case coverage has been expanded for OCR TSV and native PDF/pdfjs fixtures, including repeated values, ambiguity omission, sensitive-overexposure omission, OCR low-confidence omission, no-match omission, and page ambiguity coverage.
 23. The minimal packet-to-finding relational model is implemented through `dispute_packet_findings`: packet rows link to included findings, single-issue packets still set `creditorObligationTestId`, multi-issue packets create one row per selected finding, `selectedIssueIds` remain preserved in packet content/metadata, old packets without join rows remain readable, evidence snapshots are compact and privacy-safe, no backfill was performed, and no admin override was added.
 24. `dispute_packet_findings` has passed staging smoke testing through the existing lazy schema-helper path: staging created/used the table, packet create wrote join rows, `evidence_location_snapshot` hydrated from deterministic evidence metadata with page and bounding-box data, and old packets without join rows remained readable.
+25. The packet-finding and evidence-location bundle has been promoted to production at commit `1e78fb18a3aa9be58d8e0cd91cb19b471cfee554`; production `dispute_packet_findings` schema readiness was verified after invoking the lazy schema helper, with expected columns, indexes, constraints, foreign keys, and packet-scoped uniqueness, without creating production packet, user, finding, report, tradeline, evidence-event, or audit test records.
 
 ### Remaining High-Priority Work
 
@@ -361,10 +362,10 @@ Exit criteria:
 5. No backfill exists for older persisted violations or packets created before evidence-location metadata was linked.
 6. Ambiguous field-name matches intentionally omit evidence-location metadata.
 7. Golden Path protects the logical chain, and packet lifecycle endpoint coverage now protects one critical API path. Additional endpoint-backed tests may still be needed for other critical user flows.
-8. Packet-to-finding relational rows exist and staging smoke testing now verifies lazy schema use, packet create join-row writes, and deterministic evidence-location snapshot hydration, but broader outcome tracking and retention/delete behavior should still be monitored.
+8. Packet-to-finding relational rows exist, staging smoke testing verifies lazy schema use, packet create join-row writes, and deterministic evidence-location snapshot hydration, and production schema readiness has been verified; broader outcome tracking and retention/delete behavior should still be monitored.
 9. Old packets are not backfilled into `dispute_packet_findings` and must remain readable through legacy packet content.
 10. No admin override path exists. This should remain true until readiness gates and auditability are stronger.
-11. Production should be watched for the same first-use lazy DDL-helper permissions on `dispute_packet_findings` if production is not separately smoke-tested before first packet create/save.
+11. Production lazy DDL-helper permission for `dispute_packet_findings` has been verified for the current deployment, but schema-helper behavior should be rechecked after future helper or DB-role changes.
 12. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
 13. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
 14. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
@@ -381,7 +382,7 @@ Exit criteria:
 2. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening.
 3. Consider broader packet outcome tracking later, after the minimal packet-to-finding relational rows have proven stable.
 4. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
-5. Watch production first-use `dispute_packet_findings` lazy DDL behavior unless it is separately smoke-tested before production packet create/save.
+5. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
 6. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
 7. Only after the above, revisit regulation/reference update governance.
 8. Do not add admin override yet.
