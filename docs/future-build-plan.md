@@ -65,6 +65,7 @@ Updated May 13, 2026.
 27. Phase 4B Option A read-only regulation/reference reconciliation is implemented: a pure helper compares static runtime references with supplied DB governance snapshots and reports mismatches only, including missing records, citation mismatch, jurisdiction mismatch, missing source URL, missing effective date, missing approval status, unclear mapping, and consumer wording risk; the DB registry was not activated as runtime truth, no candidates are created, and runtime mappings are unchanged.
 28. Phase 4B/Phase 9 inert regulation reconciliation candidate storage is implemented: `regulation_reconciliation_candidate` exists through the lazy schema-helper path, reconciliation findings can be persisted as inert governance candidates, candidate creation is idempotent through `dedupeKey`, the lifecycle is review-only, candidates can be approved for mapping review or registry update review without activating runtime truth, rejection requires a reason, audit logging exists for create/reuse/status actions, sanitization strips consumer personal data, packet content, raw/extracted report text, full SIN-like values, and full unmasked account-like values, the DB registry remains non-runtime governance metadata, static runtime mappings remain active runtime truth, and no runtime bridge was added.
 29. A review-only admin Reconciliation Candidates tab is implemented inside Regulatory Updates: admins can list, filter, and inspect inert regulation reconciliation candidates and perform review-only status actions through the existing backend endpoints, no runtime activation controls exist, the DB registry remains non-runtime governance metadata, and static runtime mappings remain active runtime truth. A gated smoke harness exists at `scripts/staging-reconciliation-candidates-ui-smoke.ts`; it requires explicit `CRP_RECONCILIATION_CANDIDATE_UI_SMOKE=true`, refuses production hosts, supports staging or local admin credentials/session-cookie contexts, and authenticated staging UI smoke remains pending until a safe admin context is supplied.
+30. A read-only shadow DB regulation runtime bridge report exists: static runtime references remain active truth, approved/active DB alternatives can be computed for shadow comparison, invalid, unapproved, inactive, superseded, or unsafe DB records are ignored or flagged, DB alternatives do not change consumer output, the DB registry is not runtime truth, no runtime activation exists, and packet readiness and wording were not changed.
 
 ### Remaining High-Priority Work
 
@@ -311,7 +312,7 @@ Exit criteria:
 
 Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
 
-Status: Started. Read-only static-vs-DB reconciliation exists, reconciliation findings can be stored as inert admin-review candidates, a review-only admin UI exists, and a gated smoke harness exists. Authenticated staging UI smoke remains pending until a safe admin context is available. Runtime activation remains deferred.
+Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates exist, an admin review UI and gated smoke harness exist, and a shadow bridge report can compare approved DB alternatives without activating runtime truth. Runtime activation remains deferred.
 
 Work:
 
@@ -379,8 +380,8 @@ Exit criteria:
 18. Candidate-specific audit-history display may still require a future endpoint.
 19. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry is non-runtime governance metadata, not active runtime truth.
 20. Static runtime mappings remain active runtime truth.
-21. An inert candidate workflow exists for regulation/reference reconciliation findings, but no runtime bridge exists.
-22. No approved DB runtime bridge exists yet.
+21. A shadow bridge report exists for approved DB alternatives, but it is report-only and no runtime bridge activation exists.
+22. No approved DB runtime bridge activation exists yet.
 23. Formal runtime reference activation, rollback, and version approval remain future work.
 24. No admin override path exists for regulation/reference activation.
 25. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
@@ -396,8 +397,8 @@ Exit criteria:
 ## Next Recommended Work Order
 
 1. Run the gated authenticated Reconciliation Candidates UI smoke harness when a safe staging admin context is available.
-2. Then run a design-only DB runtime bridge activation rules pass.
-3. Keep the DB regulation registry non-runtime until bridge rules, tests, rollback, and approval are implemented.
+2. Then run a design-only limited-runtime bridge activation rules pass after enough shadow comparison data exists.
+3. Keep the DB regulation registry non-runtime until bridge activation rules, tests, rollback, and approval are implemented.
 4. Do not change packet wording or packet readiness as part of regulation/reference reconciliation.
 5. Do not add an admin override path.
 6. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
