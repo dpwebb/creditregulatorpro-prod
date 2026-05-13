@@ -62,13 +62,14 @@ Updated May 13, 2026.
 24. `dispute_packet_findings` has passed staging smoke testing through the existing lazy schema-helper path: staging created/used the table, packet create wrote join rows, `evidence_location_snapshot` hydrated from deterministic evidence metadata with page and bounding-box data, and old packets without join rows remained readable.
 25. The packet-finding and evidence-location bundle has been promoted to production at commit `1e78fb18a3aa9be58d8e0cd91cb19b471cfee554`; production `dispute_packet_findings` schema readiness was verified after invoking the lazy schema helper, with expected columns, indexes, constraints, foreign keys, and packet-scoped uniqueness, without creating production packet, user, finding, report, tradeline, evidence-event, or audit test records.
 26. Phase 4A metadata-only rule defensibility hardening is implemented: final violation `technicalDetails` now include additive `defensibility` metadata where available, stable `deterministicRuleId` values are normalized for static and dynamic rules, factual trigger, source fields, evidence link presence, neutral explanation, regulation reference mode, packet eligibility summary, parser uncertainty status, and admin review status are carried as metadata, `packetEligibility` is informational only, evidence-location metadata remains optional and additive, no schema change was made, violation firing behavior did not change, and packet readiness and packet wording did not change.
+27. Phase 4B Option A read-only regulation/reference reconciliation is implemented: a pure helper compares static runtime references with supplied DB governance snapshots and reports mismatches only, including missing records, citation mismatch, jurisdiction mismatch, missing source URL, missing effective date, missing approval status, unclear mapping, and consumer wording risk; the DB registry was not activated as runtime truth, no candidates are created, and runtime mappings are unchanged.
 
 ### Remaining High-Priority Work
 
 1. Continue Phase 3 evidence hardening by broadening page-aware field coverage and converting observed complex real-world coordinate layouts into anonymized fixtures.
 2. Add dedicated deterministic rule packs for creditor statements and collection letters.
 3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
-4. Continue Phase 4 rule defensibility and Phase 5 admin truth-loop hardening before adding broader packet outcome tracking.
+4. Continue Phase 4 rule defensibility, Phase 5 admin truth-loop hardening, and Phase 9 regulation/reference governance before adding broader packet outcome tracking.
 5. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path.
 
 ---
@@ -177,7 +178,7 @@ Exit criteria:
 
 Goal: improve issue quality without inventing legal conclusions.
 
-Status: Started. Metadata-only defensibility hardening exists for final violation outputs; rule IDs, factual triggers, source fields, evidence links, neutral explanations, and packet eligibility summaries are now more consistently represented.
+Status: Started. Metadata-only defensibility hardening exists for final violation outputs; rule IDs, factual triggers, source fields, evidence links, neutral explanations, and packet eligibility summaries are now more consistently represented. Reference defensibility now also has a read-only static-vs-DB reconciliation layer for drift detection.
 
 Work:
 
@@ -308,7 +309,7 @@ Exit criteria:
 
 Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
 
-Status: Future work.
+Status: Started. A read-only reconciliation layer can compare static runtime references with supplied DB governance snapshots and report drift; runtime activation remains deferred.
 
 Work:
 
@@ -371,25 +372,28 @@ Exit criteria:
 13. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
 14. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
 15. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
-16. Runtime static regulation/reference mappings and the DB governance registry remain split; the DB registry is not active runtime truth.
-17. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
-18. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
-19. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
-20. Creditor-validation status/delete audit gaps remain.
-21. Admin corrections need deeper controlled promotion into future deterministic rules.
-22. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-23. French OCR support is not installed unless added later as a specific requirement.
+16. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry is not active runtime truth.
+17. No candidate workflow exists yet for regulation/reference reconciliation findings.
+18. No approved DB runtime bridge exists yet.
+19. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
+20. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
+21. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
+22. Creditor-validation status/delete audit gaps remain.
+23. Admin corrections need deeper controlled promotion into future deterministic rules.
+24. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+25. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Run a design-only review of regulation/reference runtime mapping versus the DB governance registry, including how to preserve static runtime safety while preparing reviewed mappings.
-2. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
-3. Continue avoiding admin override paths; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
-4. Do not activate the DB regulation registry as runtime truth without a design pass, tests, approval semantics, and rollback/audit behavior.
-5. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
-6. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
-7. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
-8. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
-9. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+1. Run a design-only candidate creation layer review for regulation/reference reconciliation findings.
+2. Keep any future reconciliation candidates inert; do not activate the DB regulation registry as runtime truth.
+3. Do not change packet wording or packet readiness as part of regulation/reference reconciliation.
+4. Continue avoiding admin override paths; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
+5. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
+6. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
+7. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
+8. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
+9. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
+10. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
