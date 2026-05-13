@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DetectedViolation } from "../../helpers/complianceDetectorTypes";
 import {
+  correctionCanReplayIntoViolationTruth,
   getDeterministicAdminCorrectionMatch,
   type AdminCorrectionPatternForMatch,
   type TradelineForAdminCorrectionMatch,
@@ -50,6 +51,14 @@ function violation(overrides: Partial<DetectedViolation> = {}): DetectedViolatio
 }
 
 describe("deterministic admin correction truth matching", () => {
+  afterEach(() => {
+    vi.resetModules();
+    vi.doUnmock("../../helpers/getServerUserSession");
+    vi.doUnmock("../../helpers/violationCorrectionManager");
+    vi.doUnmock("../../helpers/violationCorrectionSchema");
+    vi.doUnmock("../../helpers/db");
+  });
+
   it("applies a finalized correction to the same tradeline only when the category is exact", () => {
     const match = getDeterministicAdminCorrectionMatch(
       correction({ tradelineId: 200, correctedViolationType: null, originalViolationCategory: "BALANCE_CALCULATION_VIOLATION" }),
@@ -113,5 +122,65 @@ describe("deterministic admin correction truth matching", () => {
 
     expect(match.applies).toBe(false);
     expect(match.reason).toBe("no_exact_admin_truth_scope");
+  });
+
+  it("excludes training-note and manual-only notes from replay into violation truth", () => {
+    expect(correctionCanReplayIntoViolationTruth({ trainingNoteOnly: true })).toBe(false);
+    expect(
+      correctionCanReplayIntoViolationTruth({
+        originalViolationId: null,
+        trainingNoteOnly: true,
+      }),
+    ).toBe(false);
+    expect(correctionCanReplayIntoViolationTruth({ trainingNoteOnly: false })).toBe(true);
+  });
+
+  it("requires the finalize endpoint before an update can create finalized training output", async () => {
+    const requireCorrection = vi.fn(async () => ({
+      id: 10,
+      status: "in_review",
+      originalViolationId: 20,
+      tradelineId: 100,
+      correctionAction: "corrected",
+      correctedViolationType: "BALANCE_CALCULATION_VIOLATION",
+      trainingLabel: null,
+      trainingNoteOnly: false,
+      useForTraining: true,
+    }));
+    const upsertTrainingExampleForCorrection = vi.fn();
+
+    vi.doMock("../../helpers/getServerUserSession", () => ({
+      getServerUserSession: vi.fn(async () => ({ user: { id: 99, role: "admin" } })),
+    }));
+    vi.doMock("../../helpers/violationCorrectionSchema", () => ({
+      ensureViolationCorrectionSchema: vi.fn(async () => undefined),
+    }));
+    vi.doMock("../../helpers/violationCorrectionManager", () => ({
+      getCorrectionDetail: vi.fn(),
+      normalizeCorrectionTextFields: vi.fn((input) => input),
+      requireCorrection,
+      requireViolationForTradeline: vi.fn(),
+      upsertTrainingExampleForCorrection,
+    }));
+    vi.doMock("../../helpers/db", () => ({
+      db: {
+        transaction: vi.fn(),
+      },
+    }));
+
+    const { handle } = await import("../../endpoints/admin/violation-correction/update_POST");
+    const response = await handle(
+      new Request("http://localhost/_api/admin/violation-correction/update", {
+        method: "POST",
+        body: JSON.stringify({ id: 10, status: "finalized" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "Use the final review endpoint to finalize a violation correction.",
+    });
+    expect(requireCorrection).toHaveBeenCalledWith(10);
+    expect(upsertTrainingExampleForCorrection).not.toHaveBeenCalled();
   });
 });

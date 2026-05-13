@@ -456,6 +456,7 @@ export async function listFinalizedCorrectionPatterns(input: {
       "bureau.name as patternBureauName",
     ])
     .where("violationCorrection.status", "=", "finalized")
+    .where("violationCorrection.trainingNoteOnly", "=", false)
     .where((eb) => {
       const clauses = [eb("violationCorrection.tradelineId", "=", input.tradeline.id)];
       if (input.tradeline.creditorId) {

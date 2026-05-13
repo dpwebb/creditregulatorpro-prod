@@ -13,6 +13,7 @@ import {
   type EvidenceLocationResolveContext,
   type EvidenceLocationSummary,
 } from "./evidenceLocationIndex";
+import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 
 export interface DeterministicViolationEvidenceLink {
   tradelineId?: number;
@@ -46,6 +47,29 @@ export interface DeterministicViolationRuleEnvelope {
   explanation: string;
 }
 
+export interface ViolationDefensibilityMetadata {
+  deterministicRuleId: string;
+  ruleVersion?: string;
+  issueType?: string;
+  factualTrigger: string;
+  sourceFields: string[];
+  evidenceIds?: string[];
+  hasEvidenceLink: boolean;
+  hasEvidenceLocation?: boolean;
+  regulationReferenceIds?: string[];
+  regulationReferenceMode?: "static_runtime" | "db_approved" | "none";
+  neutralExplanation?: string;
+  packetEligibility?: {
+    eligible: boolean;
+    reasonCodes: string[];
+  };
+  adminReviewStatus?: string;
+  parserUncertaintyStatus?: string;
+  sourceVersion?: string;
+}
+
+const DEFENSIBILITY_METADATA_SOURCE_VERSION = "defensibility-metadata-v1";
+
 function detailsOf(violation: DetectedViolation): Record<string, any> {
   return violation.technicalDetails && typeof violation.technicalDetails === "object"
     ? violation.technicalDetails
@@ -68,8 +92,33 @@ function firstDefined(details: Record<string, any>, keys: string[]): unknown {
   return null;
 }
 
+function stringValue(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
 function objectValue(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function maskLongNumber(value: string): string {
+  return value.replace(/\b\d{6,}\b/g, (match) => `...${match.slice(-4)}`);
+}
+
+function redactSensitiveText(value: string): string {
+  return maskLongNumber(
+    value
+      .replace(/\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/g, "[redacted SIN]")
+      .replace(/\b(?:SIN|social insurance number)\s*[:#-]?\s*[A-Z0-9 -]{6,}\b/gi, "[redacted SIN]"),
+  );
+}
+
+function maskSensitiveValue(value: string, fieldName?: string | null): string {
+  const field = fieldName?.toLowerCase() ?? "";
+  if (field.includes("sin") || field.includes("socialinsurance")) return "[redacted SIN]";
+  if (field.includes("account")) return maskLongNumber(value);
+  return redactSensitiveText(value);
 }
 
 const RULE_FIELD_MAP: Record<string, string> = {
@@ -184,11 +233,12 @@ function hasReportingStandardRequiredFieldAuthority(
   });
 }
 
-function formatTriggerValue(value: unknown): string | null {
+function formatTriggerValue(value: unknown, fieldName?: string | null): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   const text = typeof value === "object" ? JSON.stringify(value) : String(value);
-  return text && text !== "{}" ? text.slice(0, 160) : null;
+  const masked = maskSensitiveValue(text, fieldName);
+  return masked && masked !== "{}" ? masked.slice(0, 160) : null;
 }
 
 function compactWords(value: string, maxWords: number): string {
@@ -223,6 +273,7 @@ function factualTrigger(violation: DetectedViolation): string {
       "balance",
       "status",
     ]),
+    fieldName,
   );
 
   const parts = [
@@ -233,7 +284,7 @@ function factualTrigger(violation: DetectedViolation): string {
 
   return parts.length > 0
     ? parts.join("; ")
-    : compactWords(violation.userExplanation || violation.violationCategory, 30);
+    : compactWords(redactSensitiveText(violation.userExplanation || violation.violationCategory), 30);
 }
 
 function evidenceLink(
@@ -282,6 +333,151 @@ function evidenceLink(
     ...(evidenceLocation ? { evidenceLocation } : {}),
     source: "detector_technical_details",
   } as DeterministicViolationEvidenceLink;
+}
+
+function normalizedRuleId(details: Record<string, any>, category: ViolationCategory): string {
+  const explicit = firstString(details, ["deterministicRuleId", "detectorRuleId"]);
+  if (explicit) return explicit;
+
+  const dynamicRuleId = firstDefined(details, ["dynamicRuleId"]);
+  if (typeof dynamicRuleId === "number" && Number.isFinite(dynamicRuleId)) return `dynamic:${dynamicRuleId}`;
+  if (typeof dynamicRuleId === "string" && dynamicRuleId.trim()) return `dynamic:${dynamicRuleId.trim()}`;
+
+  const rawRuleId = details.ruleId;
+  if (typeof rawRuleId === "number" && Number.isFinite(rawRuleId)) return `dynamic:${rawRuleId}`;
+  if (typeof rawRuleId === "string" && rawRuleId.trim()) return rawRuleId.trim();
+
+  return `deterministic-violation-${category.toLowerCase().replace(/_/g, "-")}-v1`;
+}
+
+function normalizedRuleVersion(details: Record<string, any>): string {
+  const explicit = firstString(details, ["ruleVersion", "deterministicRuleVersion", "detectorRuleVersion"]);
+  if (explicit) return explicit;
+  const deterministicRule = objectValue(details.deterministicRule);
+  const envelopeVersion = stringValue(deterministicRule?.ruleVersion);
+  return envelopeVersion ?? "v1";
+}
+
+function meaningfulEvidenceLink(evidence: DeterministicViolationEvidenceLink | Record<string, unknown> | null): boolean {
+  if (!evidence) return false;
+  return Boolean(
+    stringValue(evidence.evidenceId) ||
+      stringValue(evidence.fieldName) ||
+      stringValue(evidence.textSnippet) ||
+      objectValue(evidence.evidenceLocation) ||
+      (typeof evidence.reportArtifactId === "number" && Number.isFinite(evidence.reportArtifactId)) ||
+      (typeof evidence.pageNumber === "number" && Number.isFinite(evidence.pageNumber)),
+  );
+}
+
+function evidenceHasLocation(evidence: DeterministicViolationEvidenceLink | Record<string, unknown> | null): boolean {
+  return Boolean(evidence && objectValue(evidence.evidenceLocation));
+}
+
+function evidenceIdsFrom(details: Record<string, any>, evidence: DeterministicViolationEvidenceLink): string[] {
+  const ids = [
+    ...(Array.isArray(details.evidenceIds) ? details.evidenceIds : []),
+    details.evidenceId,
+    details.canonicalEvidenceId,
+    evidence.evidenceId,
+  ]
+    .map((value) => stringValue(value))
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(ids)].sort();
+}
+
+function regulationReferenceIdsFrom(
+  deterministicRule: DeterministicViolationRuleEnvelope,
+  details: Record<string, any>,
+): string[] {
+  const ids = [
+    ...deterministicRule.regulationReferences.map((ref) => ref.id),
+    ...(Array.isArray(details.regulationReferences)
+      ? details.regulationReferences.flatMap((ref: any) => [
+          typeof ref === "string" ? ref : null,
+          ref?.id,
+          ref?.regulationId,
+        ])
+      : []),
+  ]
+    .map((value) => stringValue(value))
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(ids)].sort();
+}
+
+function extractionGatePacketReady(details: Record<string, any>): boolean {
+  const gate = objectValue(details.extractionConfidenceGate);
+  return !gate || gate.packetReady !== false;
+}
+
+function parserUncertaintyStatus(
+  details: Record<string, any>,
+  validationStatus?: string | null,
+): string {
+  const gate = evaluateViolationPacketConfidenceGate({
+    technicalDetails: details,
+    validationStatus,
+  });
+  return gate.status;
+}
+
+function adminReviewStatus(input: {
+  validationStatus?: string | null;
+  userStatus?: string | null;
+}): string {
+  const userStatus = input.userStatus?.toLowerCase();
+  if (userStatus === "dismissed" || userStatus === "verified") return userStatus;
+
+  const validationStatus = input.validationStatus?.toUpperCase();
+  if (validationStatus === "PARSER_UNCERTAIN" || validationStatus === "NEEDS_PARSER_REVIEW") return "parser_uncertain";
+  if (validationStatus === "NEEDS_USER_REVIEW") return "needs_user_review";
+
+  return userStatus || "active";
+}
+
+function packetEligibilitySummary(input: {
+  details: Record<string, any>;
+  hasEvidenceLink: boolean;
+  validationStatus?: string | null;
+  userStatus?: string | null;
+}): { eligible: boolean; reasonCodes: string[] } {
+  const gate = evaluateViolationPacketConfidenceGate({
+    technicalDetails: input.details,
+    validationStatus: input.validationStatus,
+    userStatus: input.userStatus,
+  });
+  const reasonCodes: string[] = [];
+
+  if (!input.hasEvidenceLink) {
+    reasonCodes.push("MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED");
+  }
+  if (!extractionGatePacketReady(input.details)) {
+    reasonCodes.push("EXTRACTION_CONFIDENCE_NOT_READY");
+  }
+  if (gate.blockerCode === "parser_uncertain") {
+    reasonCodes.push("PARSER_UNCERTAIN");
+  }
+  if (gate.blockerCode === "violation_needs_review") {
+    reasonCodes.push("NEEDS_USER_REVIEW");
+  }
+  if (input.userStatus?.toLowerCase() === "dismissed") {
+    reasonCodes.push("DISMISSED_FINDING");
+  }
+
+  const uniqueCodes = [...new Set(reasonCodes)];
+  return {
+    eligible: input.hasEvidenceLink && gate.packetReady && extractionGatePacketReady(input.details) && uniqueCodes.length === 0,
+    reasonCodes: uniqueCodes,
+  };
+}
+
+function neutralRuleExplanation(trigger: string): string {
+  const safeTrigger = redactSensitiveText(trigger);
+  return safeTrigger
+    ? `This item may require review because ${safeTrigger}.`
+    : "This item may require review because the available evidence indicates a possible reporting issue.";
 }
 
 function isFieldSpecificReferenceAllowed(
@@ -380,9 +576,7 @@ export function buildDeterministicViolationRuleEnvelope(
   if (!violation.violationCategory) return null;
   const details = detailsOf(violation);
   const category = violation.violationCategory;
-  const ruleId =
-    firstString(details, ["deterministicRuleId", "ruleId", "detectorRuleId"]) ??
-    `deterministic-violation-${category.toLowerCase().replace(/_/g, "-")}-v1`;
+  const ruleId = normalizedRuleId(details, category);
   const trigger = factualTrigger(violation);
   const refs = regulationReferences(category, details, violation);
   const fieldName = inferredFieldName(violation);
@@ -395,7 +589,50 @@ export function buildDeterministicViolationRuleEnvelope(
     sourceFields: sourceFields(details, fieldName),
     evidence: evidenceLink(violation, context),
     regulationReferences: refs,
-    explanation: `Rule ${ruleId} fired because ${trigger}.`,
+    explanation: neutralRuleExplanation(trigger),
+  };
+}
+
+export function buildViolationDefensibilityMetadata(
+  violation: DetectedViolation,
+  options: {
+    validationStatus?: string | null;
+    userStatus?: string | null;
+  } = {},
+): ViolationDefensibilityMetadata | null {
+  const deterministicRule = buildDeterministicViolationRuleEnvelope(violation);
+  if (!deterministicRule) return null;
+
+  const details = detailsOf(violation);
+  const evidence = deterministicRule.evidence;
+  const hasEvidenceLink = meaningfulEvidenceLink(evidence);
+  const evidenceIds = evidenceIdsFrom(details, evidence);
+  const regulationReferenceIds = regulationReferenceIdsFrom(deterministicRule, details);
+  const sourceFieldValues = deterministicRule.sourceFields.length > 0
+    ? deterministicRule.sourceFields
+    : ["tradeline"];
+
+  return {
+    deterministicRuleId: deterministicRule.ruleId,
+    ruleVersion: normalizedRuleVersion(details),
+    issueType: deterministicRule.violationType,
+    factualTrigger: deterministicRule.factualTrigger,
+    sourceFields: sourceFieldValues,
+    ...(evidenceIds.length > 0 ? { evidenceIds } : {}),
+    hasEvidenceLink,
+    ...(evidenceHasLocation(evidence) ? { hasEvidenceLocation: true } : { hasEvidenceLocation: false }),
+    ...(regulationReferenceIds.length > 0 ? { regulationReferenceIds } : {}),
+    regulationReferenceMode: regulationReferenceIds.length > 0 ? "static_runtime" : "none",
+    neutralExplanation: deterministicRule.explanation,
+    packetEligibility: packetEligibilitySummary({
+      details,
+      hasEvidenceLink,
+      validationStatus: options.validationStatus,
+      userStatus: options.userStatus,
+    }),
+    adminReviewStatus: adminReviewStatus(options),
+    parserUncertaintyStatus: parserUncertaintyStatus(details, options.validationStatus),
+    sourceVersion: DEFENSIBILITY_METADATA_SOURCE_VERSION,
   };
 }
 
@@ -406,18 +643,45 @@ export function enrichDetectedViolationRuleEvidence(
   const deterministicRule = buildDeterministicViolationRuleEnvelope(violation, context);
   if (!deterministicRule) return violation;
   const resolvedRegulationIds = deterministicRule.regulationReferences.map((ref) => ref.id);
+  const baseDetails = {
+    ...detailsOf(violation),
+    regulationIds: resolvedRegulationIds,
+    deterministicRule,
+    deterministicRuleId: deterministicRule.ruleId,
+    regulationReferences: deterministicRule.regulationReferences,
+    factualTrigger: deterministicRule.factualTrigger,
+    sourceFields: deterministicRule.sourceFields,
+    evidenceLink: deterministicRule.evidence,
+  };
+  const enrichedViolation = {
+    ...violation,
+    technicalDetails: baseDetails,
+  };
+
+  return {
+    ...enrichedViolation,
+    technicalDetails: {
+      ...baseDetails,
+      defensibility: buildViolationDefensibilityMetadata(enrichedViolation),
+    },
+  };
+}
+
+export function enrichDetectedViolationDefensibilityMetadata(
+  violation: DetectedViolation,
+  options: {
+    validationStatus?: string | null;
+    userStatus?: string | null;
+  } = {},
+): DetectedViolation {
+  const defensibility = buildViolationDefensibilityMetadata(violation, options);
+  if (!defensibility) return violation;
 
   return {
     ...violation,
     technicalDetails: {
       ...detailsOf(violation),
-      regulationIds: resolvedRegulationIds,
-      deterministicRule,
-      deterministicRuleId: deterministicRule.ruleId,
-      regulationReferences: deterministicRule.regulationReferences,
-      factualTrigger: deterministicRule.factualTrigger,
-      sourceFields: deterministicRule.sourceFields,
-      evidenceLink: deterministicRule.evidence,
+      defensibility,
     },
   };
 }
@@ -522,6 +786,16 @@ export function enrichDetectedViolationsRuleEvidence(
   context?: EvidenceLocationResolveContext,
 ): DetectedViolation[] {
   return violations.map((violation) => enrichDetectedViolationRuleEvidence(violation, context));
+}
+
+export function enrichDetectedViolationsDefensibilityMetadata(
+  violations: DetectedViolation[],
+  options: {
+    validationStatus?: string | null;
+    userStatus?: string | null;
+  } = {},
+): DetectedViolation[] {
+  return violations.map((violation) => enrichDetectedViolationDefensibilityMetadata(violation, options));
 }
 
 export function getDeterministicViolationStatutoryBasis(

@@ -58,6 +58,13 @@ const POSITIVE_ACTIONS = new Set<ViolationCorrectionAction>([
   "corrected",
 ]);
 
+export function correctionCanReplayIntoViolationTruth(correction: {
+  trainingNoteOnly?: boolean | null;
+  originalViolationId?: number | null;
+}): boolean {
+  return correction.trainingNoteOnly !== true;
+}
+
 function getTechnicalDetails(violation: DetectedViolation): Record<string, any> {
   return violation.technicalDetails && typeof violation.technicalDetails === "object"
     ? violation.technicalDetails
@@ -309,11 +316,11 @@ export async function applyViolationCorrectionTruthLayer(
 ): Promise<DetectedViolation[]> {
   try {
     const categories = violations.map((violation) => violation.violationCategory);
-    const corrections = await listFinalizedCorrectionPatterns({
+    const corrections = (await listFinalizedCorrectionPatterns({
       tradeline,
       violationCategories: categories,
       limit: 75,
-    });
+    })).filter(correctionCanReplayIntoViolationTruth);
 
     if (corrections.length === 0) return violations;
 

@@ -65,6 +65,8 @@ import { executeActiveRules } from "./dynamicRuleExecutor";
 import { normalizeDetectedViolations } from "./complianceFindingNormalizer";
 import { applyViolationCorrectionTruthLayer } from "./violationCorrectionRetrieval";
 import {
+  enrichDetectedViolationDefensibilityMetadata,
+  enrichDetectedViolationsDefensibilityMetadata,
   enrichDetectedViolationsRuleEvidence,
   filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
@@ -494,7 +496,11 @@ export async function scanForViolations(
         }))
       : authorityLinkedViolations;
 
-  return normalizeDetectedViolations(confidenceAnnotatedViolations);
+  return normalizeDetectedViolations(
+    enrichDetectedViolationsDefensibilityMetadata(confidenceAnnotatedViolations, {
+      userStatus: "active",
+    }),
+  );
 }
 
 /**
@@ -701,7 +707,7 @@ export async function persistViolations(
     }
 
         try {
-      const enrichedDetails = JSON.parse(JSON.stringify({
+      const baseDetails = JSON.parse(JSON.stringify({
         ...violation.technicalDetails,
         ...(options.sourceReportArtifactId && !violation.technicalDetails?.sourceReportArtifactId
           ? { sourceReportArtifactId: options.sourceReportArtifactId }
@@ -709,7 +715,7 @@ export async function persistViolations(
         responsibleEntity: violation.responsibleEntity || null,
       }));
       const packetConfidenceGate = evaluateViolationPacketConfidenceGate({
-        technicalDetails: enrichedDetails,
+        technicalDetails: baseDetails,
         userStatus: "active",
       });
       const validationStatus =
@@ -718,6 +724,19 @@ export async function persistViolations(
           : packetConfidenceGate.blockerCode === "violation_needs_review"
             ? "NEEDS_USER_REVIEW"
             : "PENDING";
+      const violationWithDefensibility = enrichDetectedViolationDefensibilityMetadata(
+        {
+          ...violation,
+          technicalDetails: baseDetails,
+        },
+        {
+          validationStatus,
+          userStatus: "active",
+        },
+      );
+      const enrichedDetails = JSON.parse(JSON.stringify(
+        violationWithDefensibility.technicalDetails ?? baseDetails,
+      ));
             
       const result = await db
         .insertInto("creditorObligationTest")

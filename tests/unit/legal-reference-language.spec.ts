@@ -15,6 +15,9 @@ describe("legal reference language", () => {
     expect(label).toBe("This item may require review under PIPEDA Schedule 1, Principle 4.6");
     expect(label).not.toMatch(/confirmed legal violation/i);
     expect(label).not.toMatch(/proves? (a )?violation/i);
+    expect(label).not.toMatch(/\billegal\b/i);
+    expect(label).not.toMatch(/\bviolation of law\b/i);
+    expect(label).not.toMatch(/\bentitled to damages\b/i);
   });
 
   it("uses neutral fallback text when only a mapped reference id is available", () => {

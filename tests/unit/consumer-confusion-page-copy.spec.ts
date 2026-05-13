@@ -57,8 +57,13 @@ const nextStepCues = [
 const unsafeLegalConclusionPatterns = [
   /\byou will win\b/i,
   /\bdefinitely illegal\b/i,
+  /\billegal\b/i,
+  /\bviolation of law\b/i,
   /\bproves?\s+(?:a\s+)?violation\b/i,
   /\bconfirmed legal violation basis\b/i,
+  /\bentitled to damages\b/i,
+  /\bwe will sue\b/i,
+  /\blegal threat\b/i,
 ];
 
 const wrapperPageSources: Record<string, string[]> = {

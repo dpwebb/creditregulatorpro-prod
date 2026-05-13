@@ -173,6 +173,9 @@ export async function executeActiveRules(
         recommendedAction: processTemplate(rule.recommendedActionTemplate, tradeline, primaryMatchedField, primaryMatchedValue),
         technicalDetails: {
           ruleId: rule.id,
+          dynamicRuleId: rule.id,
+          deterministicRuleId: `dynamic:${rule.id}`,
+          ruleVersion: "v1",
           ruleTitle: rule.title,
           fieldName: primaryMatchedField,
           matchedValue: primaryMatchedValue,

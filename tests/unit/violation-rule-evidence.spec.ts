@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { DetectedViolation } from "../../helpers/complianceDetectorTypes";
 import {
   buildDeterministicViolationRuleEnvelope,
+  buildViolationDefensibilityMetadata,
   enrichDetectedViolationRuleEvidence,
+  enrichDetectedViolationDefensibilityMetadata,
   filterViolationsWithLocalAuthorityLinks,
   getDeterministicViolationStatutoryBasis,
   hasBonaFideLocalAuthorityLink,
@@ -71,6 +73,25 @@ describe("deterministic violation rule evidence", () => {
         factualTrigger: expect.stringContaining("field=balance"),
         sourceFields: ["balance"],
         evidenceLink: expect.objectContaining({ tradelineId: 42 }),
+        defensibility: expect.objectContaining({
+          deterministicRuleId: "deterministic-violation-balance-calculation-violation-v1",
+          ruleVersion: "v1",
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          factualTrigger: expect.stringContaining("field=balance"),
+          sourceFields: ["balance"],
+          hasEvidenceLink: true,
+          hasEvidenceLocation: false,
+          regulationReferenceIds: ["PIPEDA_4_6"],
+          regulationReferenceMode: "static_runtime",
+          neutralExplanation: expect.stringMatching(/^This item may require review because /),
+          packetEligibility: {
+            eligible: true,
+            reasonCodes: [],
+          },
+          adminReviewStatus: "active",
+          parserUncertaintyStatus: "unknown",
+          sourceVersion: "defensibility-metadata-v1",
+        }),
         regulationReferences: expect.arrayContaining([
           expect.objectContaining({ id: "PIPEDA_4_6" }),
         ]),
@@ -98,6 +119,107 @@ describe("deterministic violation rule evidence", () => {
     );
 
     expect(getDeterministicViolationStatutoryBasis(enriched)).toBeNull();
+  });
+
+  it("normalizes numeric dynamic rule ids into stable deterministic rule ids without removing the raw id", () => {
+    const enriched = enrichDetectedViolationRuleEvidence(
+      violation({
+        technicalDetails: {
+          ruleId: 123,
+          dynamicRuleId: 123,
+          fieldName: "balance",
+          matchedValue: 1250,
+          reportArtifactId: 77,
+          regulationIds: ["PIPEDA_4_6"],
+        },
+      }),
+    );
+
+    expect(enriched.technicalDetails?.ruleId).toBe(123);
+    expect(enriched.technicalDetails?.dynamicRuleId).toBe(123);
+    expect(enriched.technicalDetails?.deterministicRuleId).toBe("dynamic:123");
+    expect(enriched.technicalDetails?.deterministicRule).toEqual(
+      expect.objectContaining({ ruleId: "dynamic:123" }),
+    );
+    expect(enriched.technicalDetails?.defensibility).toEqual(
+      expect.objectContaining({ deterministicRuleId: "dynamic:123" }),
+    );
+  });
+
+  it("keeps packet eligibility metadata conservative for findings without evidence", () => {
+    const metadata = buildViolationDefensibilityMetadata(
+      violation({
+        userExplanation: "This item needs manual review.",
+        technicalDetails: {
+          regulationIds: ["PIPEDA_4_6"],
+        },
+      }),
+      { validationStatus: "PENDING", userStatus: "active" },
+    );
+
+    expect(metadata).toEqual(
+      expect.objectContaining({
+        hasEvidenceLink: false,
+        packetEligibility: {
+          eligible: false,
+          reasonCodes: ["MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED"],
+        },
+      }),
+    );
+  });
+
+  it("adds review and parser blocker summaries without changing readiness rules", () => {
+    const enriched = enrichDetectedViolationDefensibilityMetadata(
+      enrichDetectedViolationRuleEvidence(
+        violation({
+          technicalDetails: {
+            fieldName: "balance",
+            reportArtifactId: 77,
+            regulationIds: ["PIPEDA_4_6"],
+            extractionConfidenceGate: {
+              status: "needs_user_review",
+              packetReady: false,
+              confidenceScore: 80,
+              requiresManualReview: false,
+              reasonCodes: ["PARSER_CONFIDENCE_NEEDS_USER_REVIEW"],
+            },
+          },
+        }),
+      ),
+      { validationStatus: "NEEDS_USER_REVIEW", userStatus: "active" },
+    );
+
+    expect(enriched.technicalDetails?.defensibility).toEqual(
+      expect.objectContaining({
+        adminReviewStatus: "needs_user_review",
+        parserUncertaintyStatus: "needs_user_review",
+        packetEligibility: {
+          eligible: false,
+          reasonCodes: ["EXTRACTION_CONFIDENCE_NOT_READY", "NEEDS_USER_REVIEW"],
+        },
+      }),
+    );
+  });
+
+  it("keeps defensibility explanations neutral and masks sensitive numeric identifiers", () => {
+    const metadata = buildViolationDefensibilityMetadata(
+      violation({
+        userExplanation: "Account 123456789 appears inconsistent.",
+        technicalDetails: {
+          fieldName: "accountNumber",
+          detectedValue: "123456789",
+          reportArtifactId: 77,
+          regulationIds: ["PIPEDA_4_6"],
+        },
+      }),
+    );
+
+    expect(metadata?.factualTrigger).toContain("...6789");
+    expect(metadata?.neutralExplanation).toContain("This item may require review because");
+    expect(metadata?.neutralExplanation).not.toMatch(/\billegal\b/i);
+    expect(metadata?.neutralExplanation).not.toMatch(/\bviolation of law\b/i);
+    expect(metadata?.neutralExplanation).not.toMatch(/\bentitled to damages\b/i);
+    expect(metadata?.neutralExplanation).not.toContain("123456789");
   });
 
   it("does not add broad category references when a detector supplied explicit regulation ids", () => {

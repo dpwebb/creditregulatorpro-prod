@@ -1,5 +1,5 @@
 import { db } from "../../../helpers/db";
-import { handleEndpointError } from "../../../helpers/endpointErrorHandler";
+import { BusinessRuleError, handleEndpointError } from "../../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../../helpers/getServerUserSession";
 import { Json } from "../../../helpers/schema";
 import { isAdmin } from "../../../helpers/userRoleUtils";
@@ -33,6 +33,12 @@ export async function handle(request: Request) {
 
     const input = schema.parse(JSON.parse(await request.text()));
     const current = await requireCorrection(input.id);
+    if (input.status === "finalized" && current.status !== "finalized") {
+      throw new BusinessRuleError(
+        "Use the final review endpoint to finalize a violation correction.",
+        400,
+      );
+    }
     const originalViolation = await requireViolationForTradeline(
       current.originalViolationId,
       current.tradelineId,
