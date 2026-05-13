@@ -109,6 +109,16 @@ export type RegulationChangeClassification = "ambiguous" | "modified" | "new" | 
 
 export type RegulationReviewStatus = "approved" | "draft" | "needs_manual_review" | "pending_review" | "rejected";
 
+export type RegulationReconciliationCandidateActiveStatus = "inert";
+
+export type RegulationReconciliationCandidateReviewStatus = "archived" | "approved_for_mapping_review" | "approved_for_registry_update" | "needs_admin_decision" | "needs_source" | "pending_review" | "rejected" | "superseded";
+
+export type RegulationReconciliationCandidateSeverity = "high" | "low" | "medium";
+
+export type RegulationReconciliationCandidateSourceFindingType = "approval_status_missing" | "category_mismatch" | "citation_mismatch" | "consumer_wording_risk" | "effective_date_missing" | "jurisdiction_mismatch" | "missing_db_registry_record" | "missing_static_reference" | "source_url_missing" | "title_mismatch" | "unclear_mapping";
+
+export type RegulationReconciliationCandidateType = "approval_status_missing_candidate" | "category_mismatch_candidate" | "citation_mismatch_candidate" | "consumer_wording_risk_candidate" | "effective_date_missing_candidate" | "jurisdiction_mismatch_candidate" | "mapping_review_candidate" | "missing_db_registry_record_candidate" | "missing_static_reference_candidate" | "source_url_missing_candidate" | "supersession_review_candidate" | "title_mismatch_candidate" | "unclear_mapping_candidate";
+
 export type RegulationUpdateCandidateStatus = "approved" | "pending_review" | "rejected";
 
 export type RegulationUpdateMode = "assisted" | "manual_only" | "scheduled";
@@ -1044,6 +1054,40 @@ export interface RegulatoryUpdateLog {
   title: string;
 }
 
+export interface RegulationReconciliationCandidate {
+  activeStatus: Generated<RegulationReconciliationCandidateActiveStatus>;
+  candidateType: RegulationReconciliationCandidateType;
+  category: string | null;
+  citation: string | null;
+  createdAt: Generated<Timestamp>;
+  createdBy: number | null;
+  dbMappingId: number | null;
+  dbRegulationId: string | null;
+  dbSnapshotHash: string | null;
+  dedupeKey: string;
+  deterministicRuleId: string | null;
+  effectiveDate: Timestamp | null;
+  id: Generated<number>;
+  jurisdiction: string | null;
+  mismatchHash: string;
+  mismatchSummary: string;
+  oldValue: Json | null;
+  proposedValue: Json | null;
+  reconciliationRunId: string | null;
+  rejectedReason: string | null;
+  reviewNotes: string | null;
+  reviewStatus: Generated<RegulationReconciliationCandidateReviewStatus>;
+  reviewedAt: Timestamp | null;
+  reviewedBy: number | null;
+  severity: RegulationReconciliationCandidateSeverity;
+  sourceFindingType: RegulationReconciliationCandidateSourceFindingType;
+  sourceUrl: string | null;
+  staticReferenceId: string | null;
+  staticSnapshotHash: string | null;
+  supersedesCandidateId: number | null;
+  updatedAt: Generated<Timestamp>;
+}
+
 export interface RegulationRegistry {
   activeStatus: Generated<RegulationActiveStatus>;
   approvalNotes: string | null;
@@ -1673,6 +1717,7 @@ export interface DB {
   passwordResetTokens: PasswordResetTokens;
   postalTransaction: PostalTransaction;
   rateLimitEntry: RateLimitEntry;
+  regulationReconciliationCandidate: RegulationReconciliationCandidate;
   regulationRegistry: RegulationRegistry;
   regulationSourceScan: RegulationSourceScan;
   regulationUpdateCandidate: RegulationUpdateCandidate;
@@ -1721,6 +1766,11 @@ export const RegulatoryChangeTypeArrayValues: [RegulatoryChangeType, ...Regulato
 export const RegulationCategoryArrayValues: [RegulationCategory, ...RegulationCategory[]] = ["collection_activity","consumer_access_rights","credit_reporting","debt_validation","disclosure_requirements","dispute_investigation","identity_verification","privacy","record_accuracy","stale_reporting"];
 export const RegulationActiveStatusArrayValues: [RegulationActiveStatus, ...RegulationActiveStatus[]] = ["active","inactive","superseded"];
 export const RegulationReviewStatusArrayValues: [RegulationReviewStatus, ...RegulationReviewStatus[]] = ["approved","draft","needs_manual_review","pending_review","rejected"];
+export const RegulationReconciliationCandidateActiveStatusArrayValues: [RegulationReconciliationCandidateActiveStatus, ...RegulationReconciliationCandidateActiveStatus[]] = ["inert"];
+export const RegulationReconciliationCandidateReviewStatusArrayValues: [RegulationReconciliationCandidateReviewStatus, ...RegulationReconciliationCandidateReviewStatus[]] = ["archived","approved_for_mapping_review","approved_for_registry_update","needs_admin_decision","needs_source","pending_review","rejected","superseded"];
+export const RegulationReconciliationCandidateSeverityArrayValues: [RegulationReconciliationCandidateSeverity, ...RegulationReconciliationCandidateSeverity[]] = ["high","low","medium"];
+export const RegulationReconciliationCandidateSourceFindingTypeArrayValues: [RegulationReconciliationCandidateSourceFindingType, ...RegulationReconciliationCandidateSourceFindingType[]] = ["approval_status_missing","category_mismatch","citation_mismatch","consumer_wording_risk","effective_date_missing","jurisdiction_mismatch","missing_db_registry_record","missing_static_reference","source_url_missing","title_mismatch","unclear_mapping"];
+export const RegulationReconciliationCandidateTypeArrayValues: [RegulationReconciliationCandidateType, ...RegulationReconciliationCandidateType[]] = ["approval_status_missing_candidate","category_mismatch_candidate","citation_mismatch_candidate","consumer_wording_risk_candidate","effective_date_missing_candidate","jurisdiction_mismatch_candidate","mapping_review_candidate","missing_db_registry_record_candidate","missing_static_reference_candidate","source_url_missing_candidate","supersession_review_candidate","title_mismatch_candidate","unclear_mapping_candidate"];
 export const RegulationChangeClassificationArrayValues: [RegulationChangeClassification, ...RegulationChangeClassification[]] = ["ambiguous","modified","new","possible_duplicate","repealed","unchanged"];
 export const RegulationUpdateCandidateStatusArrayValues: [RegulationUpdateCandidateStatus, ...RegulationUpdateCandidateStatus[]] = ["approved","pending_review","rejected"];
 export const RegulationUpdateModeArrayValues: [RegulationUpdateMode, ...RegulationUpdateMode[]] = ["assisted","manual_only","scheduled"];
