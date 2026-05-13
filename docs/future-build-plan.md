@@ -63,6 +63,7 @@ Updated May 13, 2026.
 25. The packet-finding and evidence-location bundle has been promoted to production at commit `1e78fb18a3aa9be58d8e0cd91cb19b471cfee554`; production `dispute_packet_findings` schema readiness was verified after invoking the lazy schema helper, with expected columns, indexes, constraints, foreign keys, and packet-scoped uniqueness, without creating production packet, user, finding, report, tradeline, evidence-event, or audit test records.
 26. Phase 4A metadata-only rule defensibility hardening is implemented: final violation `technicalDetails` now include additive `defensibility` metadata where available, stable `deterministicRuleId` values are normalized for static and dynamic rules, factual trigger, source fields, evidence link presence, neutral explanation, regulation reference mode, packet eligibility summary, parser uncertainty status, and admin review status are carried as metadata, `packetEligibility` is informational only, evidence-location metadata remains optional and additive, no schema change was made, violation firing behavior did not change, and packet readiness and packet wording did not change.
 27. Phase 4B Option A read-only regulation/reference reconciliation is implemented: a pure helper compares static runtime references with supplied DB governance snapshots and reports mismatches only, including missing records, citation mismatch, jurisdiction mismatch, missing source URL, missing effective date, missing approval status, unclear mapping, and consumer wording risk; the DB registry was not activated as runtime truth, no candidates are created, and runtime mappings are unchanged.
+28. Phase 4B/Phase 9 inert regulation reconciliation candidate storage is implemented: `regulation_reconciliation_candidate` exists through the lazy schema-helper path, reconciliation findings can be persisted as inert governance candidates, candidate creation is idempotent through `dedupeKey`, the lifecycle is review-only, candidates can be approved for mapping review or registry update review without activating runtime truth, rejection requires a reason, audit logging exists for create/reuse/status actions, sanitization strips consumer personal data, packet content, raw/extracted report text, full SIN-like values, and full unmasked account-like values, the DB registry remains non-runtime governance metadata, static runtime mappings remain active runtime truth, and no runtime bridge was added.
 
 ### Remaining High-Priority Work
 
@@ -309,7 +310,7 @@ Exit criteria:
 
 Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
 
-Status: Started. A read-only reconciliation layer can compare static runtime references with supplied DB governance snapshots and report drift; runtime activation remains deferred.
+Status: Started. Read-only static-vs-DB reconciliation exists, and reconciliation findings can now be stored as inert admin-review candidates. Runtime activation remains deferred.
 
 Work:
 
@@ -373,27 +374,32 @@ Exit criteria:
 14. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
 15. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
 16. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry is not active runtime truth.
-17. No candidate workflow exists yet for regulation/reference reconciliation findings.
+17. An inert candidate workflow exists for regulation/reference reconciliation findings, but no runtime bridge exists.
 18. No approved DB runtime bridge exists yet.
-19. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
-20. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
-21. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
-22. Creditor-validation status/delete audit gaps remain.
-23. Admin corrections need deeper controlled promotion into future deterministic rules.
-24. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-25. French OCR support is not installed unless added later as a specific requirement.
+19. Formal runtime reference activation, rollback, and version approval remain future work.
+20. UI for reconciliation candidate review is still future work.
+21. No admin override path exists for regulation/reference activation.
+22. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
+23. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
+24. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
+25. Creditor-validation status/delete audit gaps remain.
+26. Admin corrections need deeper controlled promotion into future deterministic rules.
+27. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+28. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Run a design-only candidate creation layer review for regulation/reference reconciliation findings.
-2. Keep any future reconciliation candidates inert; do not activate the DB regulation registry as runtime truth.
-3. Do not change packet wording or packet readiness as part of regulation/reference reconciliation.
-4. Continue avoiding admin override paths; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
-5. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
-6. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
-7. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
-8. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
-9. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
-10. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+1. Run a design-only admin UI pass for inert regulation reconciliation candidate review.
+2. Then run a design-only DB runtime bridge activation rules pass.
+3. Do not activate the DB regulation registry as runtime truth.
+4. Do not change packet wording or packet readiness as part of regulation/reference reconciliation.
+5. Do not add an admin override path.
+6. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
+7. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
+8. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
+9. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
+10. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
+11. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
+12. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
