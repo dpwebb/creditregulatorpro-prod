@@ -34,10 +34,19 @@ import {
   postRegulationMapping,
   type InputType as MappingInput,
 } from "../endpoints/regulation-registry/mapping_POST.schema";
+import {
+  getRegulationReconciliationCandidates,
+  type InputType as ReconciliationCandidateListInput,
+} from "../endpoints/regulation-registry/reconciliation-candidates/list_GET.schema";
+import {
+  postRegulationReconciliationCandidateStatus,
+  type InputType as ReconciliationCandidateStatusInput,
+} from "../endpoints/regulation-registry/reconciliation-candidates/update-status_POST.schema";
 
 export const REGULATION_REGISTRY_QUERY_KEY = ["regulationRegistry"] as const;
 export const REGULATION_CANDIDATES_QUERY_KEY = ["regulationCandidates"] as const;
 export const REGULATION_MAPPINGS_QUERY_KEY = ["regulationMappings"] as const;
+export const REGULATION_RECONCILIATION_CANDIDATES_QUERY_KEY = ["regulationReconciliationCandidates"] as const;
 
 export function useRegulationRegistry(filters?: RegistryListInput) {
   return useQuery({
@@ -59,6 +68,18 @@ export function useRegulationMappings() {
   return useQuery({
     queryKey: REGULATION_MAPPINGS_QUERY_KEY,
     queryFn: () => getRegulationMappings(),
+  });
+}
+
+export function useRegulationReconciliationCandidates(
+  filters?: ReconciliationCandidateListInput,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: [...REGULATION_RECONCILIATION_CANDIDATES_QUERY_KEY, filters],
+    queryFn: () => getRegulationReconciliationCandidates(filters),
+    placeholderData: (previousData) => previousData,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -145,5 +166,17 @@ export function useSaveRegulationMapping() {
       toast.success("Regulation mapping saved.");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to save regulation mapping."),
+  });
+}
+
+export function useUpdateRegulationReconciliationCandidateStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ReconciliationCandidateStatusInput) => postRegulationReconciliationCandidateStatus(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: REGULATION_RECONCILIATION_CANDIDATES_QUERY_KEY });
+      toast.success("Reconciliation candidate review status updated.");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to update reconciliation candidate."),
   });
 }

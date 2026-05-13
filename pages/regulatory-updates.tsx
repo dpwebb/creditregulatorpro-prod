@@ -40,6 +40,7 @@ import {
 } from "../helpers/useRegulationRegistry";
 import type { RegulationRegistryRow } from "../endpoints/regulation-registry/list_GET.schema";
 import type { RegulationCandidateRow } from "../endpoints/regulation-registry/candidates_GET.schema";
+import { RegulationReconciliationCandidatesTab } from "../components/RegulationReconciliationCandidatesTab";
 import styles from "./regulatory-updates.module.css";
 
 type DraftForm = {
@@ -263,6 +264,7 @@ export default function RegulatoryUpdatesPage() {
           <TabsTrigger value="pending">Pending Updates</TabsTrigger>
           <TabsTrigger value="manual">Manual Add</TabsTrigger>
           <TabsTrigger value="mappings">Mappings</TabsTrigger>
+          <TabsTrigger value="reconciliation-candidates">Reconciliation Candidates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="registry">
@@ -480,6 +482,10 @@ export default function RegulatoryUpdatesPage() {
               </article>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="reconciliation-candidates">
+          <RegulationReconciliationCandidatesTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -302,6 +302,109 @@
   text-align: center;
 }
 
+.reconciliationLayout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.reviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(min(100%, 22rem), 0.6fr);
+  align-items: start;
+  gap: var(--spacing-4);
+}
+
+.detailPanel {
+  position: sticky;
+  top: var(--spacing-4);
+  max-height: calc(100vh - var(--spacing-8));
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--spacing-4);
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+
+.detailSection {
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-4);
+  margin-top: var(--spacing-4);
+}
+
+.detailSection h3 {
+  color: var(--foreground);
+  font-size: 0.95rem;
+  margin: 0 0 var(--spacing-3);
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.45fr) minmax(0, 1fr);
+  gap: var(--spacing-2) var(--spacing-3);
+  align-items: start;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.detailGrid strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.snapshotBlock {
+  margin-top: var(--spacing-3);
+}
+
+.snapshotBlock strong {
+  display: block;
+  margin-bottom: var(--spacing-2);
+}
+
+.jsonBlock {
+  max-height: 16rem;
+  overflow: auto;
+  margin: 0;
+  padding: var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-family-monospace);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.warningPanel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warning) 10%, var(--card));
+  color: var(--foreground);
+}
+
+.reviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+}
+
 @media (max-width: 768px) {
   .container {
     padding: var(--spacing-4);
@@ -317,5 +420,14 @@
 
   .cardBottomRow {
     flex-direction: column;
+  }
+
+  .reviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detailPanel {
+    position: static;
+    max-height: none;
   }
 }
