@@ -2227,6 +2227,20 @@ app.get('_api/regulation-registry/reconciliation-candidates/list',async c => {
     return c.text("Error loading endpoint code " + e.message,  500)
   }
 })
+app.get('_api/regulation-registry/shadow-bridge/report',async c => {
+  try {
+    const { handle } = await import("./endpoints/regulation-registry/shadow-bridge/report_GET.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
 app.get('_api/regulation-registry/mapping',async c => {
   try {
     const { handle } = await import("./endpoints/regulation-registry/mapping_GET.js");
