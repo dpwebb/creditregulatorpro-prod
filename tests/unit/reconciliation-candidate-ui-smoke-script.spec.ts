@@ -115,6 +115,19 @@ describe("reconciliation candidate UI smoke harness gating", () => {
     expect(source).toContain("FORBIDDEN_MUTATION_ENDPOINTS");
   });
 
+  it("scopes candidate card and detail assertions to avoid ambiguous UI text", () => {
+    const source = readFileSync(
+      join(process.cwd(), "scripts", "staging-reconciliation-candidates-ui-smoke.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("const candidateCard = page.getByRole(\"article\").filter");
+    expect(source).toContain("const detailPanel = page.getByLabel(\"Reconciliation candidate detail\")");
+    expect(source).toContain("await candidateCard.getByRole(\"button\", { name: /View Details/i }).click()");
+    expect(source).toContain("detailPanel.getByText(\"source url missing candidate\", { exact: true })");
+    expect(source).not.toContain("page.getByText(\"source url missing candidate\")");
+  });
+
   it("uses synthetic-only reconciliation candidate values", () => {
     expect(SYNTHETIC_RECONCILIATION_CANDIDATE).toEqual(
       expect.objectContaining({

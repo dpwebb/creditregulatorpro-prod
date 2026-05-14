@@ -487,18 +487,23 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
     await page.getByLabel("DB regulation ID filter").fill(SYNTHETIC_RECONCILIATION_CANDIDATE.dbRegulationId);
     await page.getByLabel("Deterministic rule ID filter").fill(SYNTHETIC_RECONCILIATION_CANDIDATE.deterministicRuleId);
     await page.getByLabel("Reconciliation run ID filter").fill(config.runId);
-    await expect(page.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.message).first()).toBeVisible({ timeout: 15000 });
+    const candidateCard = page.getByRole("article").filter({
+      hasText: SYNTHETIC_RECONCILIATION_CANDIDATE.message,
+    });
+    await expect(candidateCard).toBeVisible({ timeout: 15000 });
 
-    await page.getByRole("button", { name: /View Details/i }).first().click();
-    await expect(page.getByText(`Candidate #${candidateId}`)).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("source url missing candidate")).toBeVisible();
-    await expect(page.getByText("low").first()).toBeVisible();
-    await expect(page.getByText("inert").first()).toBeVisible();
-    await expect(page.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.staticReferenceId).first()).toBeVisible();
-    await expect(page.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.dbRegulationId).first()).toBeVisible();
-    await expect(page.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.deterministicRuleId).first()).toBeVisible();
-    await expect(page.getByText("Synthetic static reference for UI smoke")).toBeVisible();
-    await expect(page.getByText("Synthetic DB governance reference for UI smoke")).toBeVisible();
+    await candidateCard.getByRole("button", { name: /View Details/i }).click();
+    const detailPanel = page.getByLabel("Reconciliation candidate detail");
+    await expect(detailPanel.getByText(`Candidate #${candidateId}`)).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.message)).toBeVisible();
+    await expect(detailPanel.getByText("source url missing candidate", { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText("low", { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText("inert", { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.staticReferenceId, { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.dbRegulationId, { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.deterministicRuleId, { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText("Synthetic static reference for UI smoke")).toBeVisible();
+    await expect(detailPanel.getByText("Synthetic DB governance reference for UI smoke")).toBeVisible();
 
     await assertValidationFailures(page, candidateId);
 
