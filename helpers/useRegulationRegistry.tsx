@@ -42,11 +42,20 @@ import {
   postRegulationReconciliationCandidateStatus,
   type InputType as ReconciliationCandidateStatusInput,
 } from "../endpoints/regulation-registry/reconciliation-candidates/update-status_POST.schema";
+import {
+  getRuntimeBridgeMappings,
+  type InputType as RuntimeBridgeMappingListInput,
+} from "../endpoints/regulation-registry/runtime-bridge/list_GET.schema";
+import {
+  postRuntimeBridgeMappingStatus,
+  type InputType as RuntimeBridgeMappingStatusInput,
+} from "../endpoints/regulation-registry/runtime-bridge/update-status_POST.schema";
 
 export const REGULATION_REGISTRY_QUERY_KEY = ["regulationRegistry"] as const;
 export const REGULATION_CANDIDATES_QUERY_KEY = ["regulationCandidates"] as const;
 export const REGULATION_MAPPINGS_QUERY_KEY = ["regulationMappings"] as const;
 export const REGULATION_RECONCILIATION_CANDIDATES_QUERY_KEY = ["regulationReconciliationCandidates"] as const;
+export const REGULATION_RUNTIME_BRIDGE_MAPPINGS_QUERY_KEY = ["regulationRuntimeBridgeMappings"] as const;
 
 export function useRegulationRegistry(filters?: RegistryListInput) {
   return useQuery({
@@ -78,6 +87,18 @@ export function useRegulationReconciliationCandidates(
   return useQuery({
     queryKey: [...REGULATION_RECONCILIATION_CANDIDATES_QUERY_KEY, filters],
     queryFn: () => getRegulationReconciliationCandidates(filters),
+    placeholderData: (previousData) => previousData,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useRuntimeBridgeMappings(
+  filters?: Partial<RuntimeBridgeMappingListInput>,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: [...REGULATION_RUNTIME_BRIDGE_MAPPINGS_QUERY_KEY, filters],
+    queryFn: () => getRuntimeBridgeMappings(filters),
     placeholderData: (previousData) => previousData,
     enabled: options?.enabled ?? true,
   });
@@ -178,5 +199,17 @@ export function useUpdateRegulationReconciliationCandidateStatus() {
       toast.success("Reconciliation candidate review status updated.");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to update reconciliation candidate."),
+  });
+}
+
+export function useUpdateRuntimeBridgeMappingStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: RuntimeBridgeMappingStatusInput) => postRuntimeBridgeMappingStatus(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: REGULATION_RUNTIME_BRIDGE_MAPPINGS_QUERY_KEY });
+      toast.success("Runtime bridge mapping review status updated.");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Failed to update runtime bridge mapping."),
   });
 }

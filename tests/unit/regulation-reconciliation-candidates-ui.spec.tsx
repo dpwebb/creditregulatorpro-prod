@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   useSaveRegulationMapping: vi.fn(),
   useRegulationReconciliationCandidates: vi.fn(),
   useUpdateRegulationReconciliationCandidateStatus: vi.fn(),
+  useRuntimeBridgeMappings: vi.fn(),
+  useUpdateRuntimeBridgeMappingStatus: vi.fn(),
   updateStatus: vi.fn(),
   listCandidates: [] as unknown[],
   detailCandidates: [] as unknown[],
@@ -34,6 +36,8 @@ vi.mock("../../helpers/useRegulationRegistry", () => ({
   useSaveRegulationMapping: mocks.useSaveRegulationMapping,
   useRegulationReconciliationCandidates: mocks.useRegulationReconciliationCandidates,
   useUpdateRegulationReconciliationCandidateStatus: mocks.useUpdateRegulationReconciliationCandidateStatus,
+  useRuntimeBridgeMappings: mocks.useRuntimeBridgeMappings,
+  useUpdateRuntimeBridgeMappingStatus: mocks.useUpdateRuntimeBridgeMappingStatus,
 }));
 
 import RegulatoryUpdatesPage from "../../pages/regulatory-updates";
@@ -101,6 +105,8 @@ function resetHookMocks() {
     mutateAsync: mocks.updateStatus,
     isPending: false,
   });
+  mocks.useRuntimeBridgeMappings.mockReturnValue({ data: { mappings: [] }, isLoading: false, error: null });
+  mocks.useUpdateRuntimeBridgeMappingStatus.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
 }
 
 beforeEach(() => {
