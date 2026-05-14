@@ -94,6 +94,26 @@ function normalizeUrl(value: string | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function smokeRunIdentifier(runId: string): string {
+  const safe = runId
+    .trim()
+    .replace(/[^A-Za-z0-9_-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return safe || "run";
+}
+
+export function buildSyntheticCandidateForRun(runId: string) {
+  const suffix = smokeRunIdentifier(runId);
+  return {
+    ...SYNTHETIC_RECONCILIATION_CANDIDATE,
+    staticReferenceId: `${SYNTHETIC_RECONCILIATION_CANDIDATE.staticReferenceId}_${suffix}`,
+    dbRegulationId: `${SYNTHETIC_RECONCILIATION_CANDIDATE.dbRegulationId}_${suffix}`,
+    deterministicRuleId: `${SYNTHETIC_RECONCILIATION_CANDIDATE.deterministicRuleId}_${suffix}`,
+    message: `${SYNTHETIC_RECONCILIATION_CANDIDATE.message} ${runId}`,
+  };
+}
+
 function hostOf(value: string): string | null {
   try {
     return new URL(value).hostname.toLowerCase();
@@ -306,12 +326,13 @@ async function jsonRequest(
   return { response, body };
 }
 
-function buildSyntheticPayload(runId: string) {
+export function buildSyntheticPayload(runId: string) {
+  const syntheticCandidate = buildSyntheticCandidateForRun(runId);
   return {
     reconciliationRunId: runId,
     findings: [
       {
-        ...SYNTHETIC_RECONCILIATION_CANDIDATE,
+        ...syntheticCandidate,
         staticSnapshotHash: `static-${runId}`,
         dbSnapshotHash: `db-${runId}`,
         reconciliationRunId: runId,
@@ -329,7 +350,14 @@ async function findSyntheticCandidate(page: Page, runId: string): Promise<Candid
   if (!result.response.ok()) {
     throw new Error(`Synthetic candidate lookup returned HTTP ${result.response.status()}.`);
   }
-  return (result.body?.candidates ?? []).find((candidate: CandidateRow) => candidate.reconciliationRunId === runId) ?? null;
+  return (
+    (result.body?.candidates ?? []).find(
+      (candidate: CandidateRow) =>
+        candidate.reconciliationRunId === runId &&
+        candidate.activeStatus === "inert" &&
+        candidate.reviewStatus !== "archived",
+    ) ?? null
+  );
 }
 
 async function ensureSyntheticCandidate(page: Page, runId: string): Promise<{ candidate: CandidateRow; created: boolean }> {
@@ -348,6 +376,9 @@ async function ensureSyntheticCandidate(page: Page, runId: string): Promise<{ ca
   const candidate = created.body?.createdCandidates?.[0] ?? created.body?.existingCandidates?.[0];
   if (!candidate?.id) {
     throw new Error("Synthetic candidate create did not return a candidate ID.");
+  }
+  if (candidate.reviewStatus === "archived") {
+    throw new Error("Synthetic candidate create/reuse returned an archived candidate. Use a unique smoke run ID.");
   }
   return { candidate, created: true };
 }
@@ -480,28 +511,38 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
       }
     }
 
-    await page.getByLabel("Candidate type filter").selectOption(SYNTHETIC_RECONCILIATION_CANDIDATE.candidateType);
-    await page.getByLabel("Severity filter").selectOption(SYNTHETIC_RECONCILIATION_CANDIDATE.severity);
+    const syntheticCandidate = buildSyntheticCandidateForRun(config.runId);
+    await page.getByLabel("Candidate type filter").selectOption(syntheticCandidate.candidateType);
+    await page.getByLabel("Severity filter").selectOption(syntheticCandidate.severity);
     await page.getByLabel("Review status filter").selectOption("pending_review");
-    await page.getByLabel("Static reference ID filter").fill(SYNTHETIC_RECONCILIATION_CANDIDATE.staticReferenceId);
-    await page.getByLabel("DB regulation ID filter").fill(SYNTHETIC_RECONCILIATION_CANDIDATE.dbRegulationId);
-    await page.getByLabel("Deterministic rule ID filter").fill(SYNTHETIC_RECONCILIATION_CANDIDATE.deterministicRuleId);
+    await page.getByLabel("Static reference ID filter").fill(syntheticCandidate.staticReferenceId);
+    await page.getByLabel("DB regulation ID filter").fill(syntheticCandidate.dbRegulationId);
+    await page.getByLabel("Deterministic rule ID filter").fill(syntheticCandidate.deterministicRuleId);
     await page.getByLabel("Reconciliation run ID filter").fill(config.runId);
     const candidateCard = page.getByRole("article").filter({
-      hasText: SYNTHETIC_RECONCILIATION_CANDIDATE.message,
+      hasText: syntheticCandidate.message,
+    }).filter({
+      hasText: syntheticCandidate.staticReferenceId,
+    }).filter({
+      hasText: syntheticCandidate.dbRegulationId,
+    }).filter({
+      hasText: syntheticCandidate.deterministicRuleId,
+    }).filter({
+      hasText: "pending review",
     });
-    await expect(candidateCard).toBeVisible({ timeout: 15000 });
+    await expect(candidateCard).toHaveCount(1, { timeout: 15000 });
+    await expect(candidateCard).toBeVisible();
 
     await candidateCard.getByRole("button", { name: /View Details/i }).click();
     const detailPanel = page.getByLabel("Reconciliation candidate detail");
     await expect(detailPanel.getByText(`Candidate #${candidateId}`)).toBeVisible({ timeout: 15000 });
-    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.message)).toBeVisible();
+    await expect(detailPanel.getByText(syntheticCandidate.message)).toBeVisible();
     await expect(detailPanel.getByText("source url missing candidate", { exact: true })).toBeVisible();
     await expect(detailPanel.getByText("low", { exact: true })).toBeVisible();
     await expect(detailPanel.getByText("inert", { exact: true })).toBeVisible();
-    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.staticReferenceId, { exact: true })).toBeVisible();
-    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.dbRegulationId, { exact: true })).toBeVisible();
-    await expect(detailPanel.getByText(SYNTHETIC_RECONCILIATION_CANDIDATE.deterministicRuleId, { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText(syntheticCandidate.staticReferenceId, { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText(syntheticCandidate.dbRegulationId, { exact: true })).toBeVisible();
+    await expect(detailPanel.getByText(syntheticCandidate.deterministicRuleId, { exact: true })).toBeVisible();
     await expect(detailPanel.getByText("Synthetic static reference for UI smoke")).toBeVisible();
     await expect(detailPanel.getByText("Synthetic DB governance reference for UI smoke")).toBeVisible();
 

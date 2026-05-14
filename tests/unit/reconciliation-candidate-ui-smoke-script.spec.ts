@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  buildSyntheticCandidateForRun,
+  buildSyntheticPayload,
   buildSmokeConfig,
   FORBIDDEN_ACTIVATION_TERMS,
   redactSecretText,
@@ -125,7 +127,44 @@ describe("reconciliation candidate UI smoke harness gating", () => {
     expect(source).toContain("const detailPanel = page.getByLabel(\"Reconciliation candidate detail\")");
     expect(source).toContain("await candidateCard.getByRole(\"button\", { name: /View Details/i }).click()");
     expect(source).toContain("detailPanel.getByText(\"source url missing candidate\", { exact: true })");
+    expect(source).toContain("hasText: syntheticCandidate.staticReferenceId");
+    expect(source).toContain("hasText: syntheticCandidate.dbRegulationId");
+    expect(source).toContain("hasText: syntheticCandidate.deterministicRuleId");
     expect(source).not.toContain("page.getByText(\"source url missing candidate\")");
+    expect(source).not.toContain("hasText: SYNTHETIC_RECONCILIATION_CANDIDATE.message");
+  });
+
+  it("builds current-run unique synthetic candidate identifiers", () => {
+    const runId = "ui-smoke-unit-run";
+    const candidate = buildSyntheticCandidateForRun(runId);
+    const payload = buildSyntheticPayload(runId);
+    const finding = payload.findings[0];
+
+    expect(candidate.message).toBe("Synthetic UI smoke candidate only ui-smoke-unit-run");
+    expect(candidate.staticReferenceId).toBe("UI_SMOKE_STATIC_REF_ui-smoke-unit-run");
+    expect(candidate.dbRegulationId).toBe("UI_SMOKE_DB_REF_ui-smoke-unit-run");
+    expect(candidate.deterministicRuleId).toBe("UI_SMOKE_RULE_ui-smoke-unit-run");
+    expect(finding).toEqual(
+      expect.objectContaining({
+        reconciliationRunId: runId,
+        message: candidate.message,
+        staticReferenceId: candidate.staticReferenceId,
+        dbRegulationId: candidate.dbRegulationId,
+        deterministicRuleId: candidate.deterministicRuleId,
+      }),
+    );
+  });
+
+  it("filters current-run candidate cards to pending review and excludes archived reuse", () => {
+    const source = readFileSync(
+      join(process.cwd(), "scripts", "staging-reconciliation-candidates-ui-smoke.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("hasText: \"pending review\"");
+    expect(source).toContain("await expect(candidateCard).toHaveCount(1");
+    expect(source).toContain("candidate.reviewStatus !== \"archived\"");
+    expect(source).toContain("Synthetic candidate create/reuse returned an archived candidate");
   });
 
   it("uses synthetic-only reconciliation candidate values", () => {
