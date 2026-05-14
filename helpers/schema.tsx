@@ -109,6 +109,14 @@ export type RegulationChangeClassification = "ambiguous" | "modified" | "new" | 
 
 export type RegulationReviewStatus = "approved" | "draft" | "needs_manual_review" | "pending_review" | "rejected";
 
+export type RegulationRuntimeBridgeActivationStatus = "active_limited_runtime" | "approved_for_advisory" | "approved_for_limited_runtime" | "approved_for_shadow" | "archived" | "draft" | "paused" | "rejected" | "rolled_back";
+
+export type RegulationRuntimeBridgeConsumerWordingMode = "internal_only" | "private_standard_reference" | "procedural_reference" | "review_reference";
+
+export type RegulationRuntimeBridgeMode = "advisory" | "limited_runtime" | "shadow";
+
+export type RegulationRuntimeBridgeReferenceClass = "internal_only" | "local_procedural" | "official_law" | "private_standard" | "regulator_guidance";
+
 export type RegulationReconciliationCandidateActiveStatus = "inert";
 
 export type RegulationReconciliationCandidateReviewStatus = "archived" | "approved_for_mapping_review" | "approved_for_registry_update" | "needs_admin_decision" | "needs_source" | "pending_review" | "rejected" | "superseded";
@@ -1088,6 +1096,35 @@ export interface RegulationReconciliationCandidate {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface RegulationRuntimeBridgeMapping {
+  activatedAt: Timestamp | null;
+  activatedBy: number | null;
+  activationReason: string | null;
+  activationStatus: Generated<RegulationRuntimeBridgeActivationStatus>;
+  approvedAt: Timestamp | null;
+  approvedBy: number | null;
+  bridgeMode: RegulationRuntimeBridgeMode;
+  consumerWordingMode: RegulationRuntimeBridgeConsumerWordingMode;
+  createdAt: Generated<Timestamp>;
+  dbMappingId: number | null;
+  dbRegulationId: string;
+  dbSnapshotHash: string | null;
+  deactivatedAt: Timestamp | null;
+  deactivatedBy: number | null;
+  deterministicRuleId: string | null;
+  id: Generated<number>;
+  referenceClass: RegulationRuntimeBridgeReferenceClass;
+  rollbackAt: Timestamp | null;
+  rollbackBy: number | null;
+  rollbackStaticReferenceId: string | null;
+  sourceVersion: string | null;
+  staticReferenceId: string | null;
+  staticSnapshotHash: string | null;
+  testManifest: Json | null;
+  updatedAt: Generated<Timestamp>;
+  violationCategory: string | null;
+}
+
 export interface RegulationRegistry {
   activeStatus: Generated<RegulationActiveStatus>;
   approvalNotes: string | null;
@@ -1719,6 +1756,7 @@ export interface DB {
   rateLimitEntry: RateLimitEntry;
   regulationReconciliationCandidate: RegulationReconciliationCandidate;
   regulationRegistry: RegulationRegistry;
+  regulationRuntimeBridgeMapping: RegulationRuntimeBridgeMapping;
   regulationSourceScan: RegulationSourceScan;
   regulationUpdateCandidate: RegulationUpdateCandidate;
   regulationUpdateSource: RegulationUpdateSource;
@@ -1771,6 +1809,10 @@ export const RegulationReconciliationCandidateReviewStatusArrayValues: [Regulati
 export const RegulationReconciliationCandidateSeverityArrayValues: [RegulationReconciliationCandidateSeverity, ...RegulationReconciliationCandidateSeverity[]] = ["high","low","medium"];
 export const RegulationReconciliationCandidateSourceFindingTypeArrayValues: [RegulationReconciliationCandidateSourceFindingType, ...RegulationReconciliationCandidateSourceFindingType[]] = ["approval_status_missing","category_mismatch","citation_mismatch","consumer_wording_risk","effective_date_missing","jurisdiction_mismatch","missing_db_registry_record","missing_static_reference","source_url_missing","title_mismatch","unclear_mapping"];
 export const RegulationReconciliationCandidateTypeArrayValues: [RegulationReconciliationCandidateType, ...RegulationReconciliationCandidateType[]] = ["approval_status_missing_candidate","category_mismatch_candidate","citation_mismatch_candidate","consumer_wording_risk_candidate","effective_date_missing_candidate","jurisdiction_mismatch_candidate","mapping_review_candidate","missing_db_registry_record_candidate","missing_static_reference_candidate","source_url_missing_candidate","supersession_review_candidate","title_mismatch_candidate","unclear_mapping_candidate"];
+export const RegulationRuntimeBridgeActivationStatusArrayValues: [RegulationRuntimeBridgeActivationStatus, ...RegulationRuntimeBridgeActivationStatus[]] = ["active_limited_runtime","approved_for_advisory","approved_for_limited_runtime","approved_for_shadow","archived","draft","paused","rejected","rolled_back"];
+export const RegulationRuntimeBridgeConsumerWordingModeArrayValues: [RegulationRuntimeBridgeConsumerWordingMode, ...RegulationRuntimeBridgeConsumerWordingMode[]] = ["internal_only","private_standard_reference","procedural_reference","review_reference"];
+export const RegulationRuntimeBridgeModeArrayValues: [RegulationRuntimeBridgeMode, ...RegulationRuntimeBridgeMode[]] = ["advisory","limited_runtime","shadow"];
+export const RegulationRuntimeBridgeReferenceClassArrayValues: [RegulationRuntimeBridgeReferenceClass, ...RegulationRuntimeBridgeReferenceClass[]] = ["internal_only","local_procedural","official_law","private_standard","regulator_guidance"];
 export const RegulationChangeClassificationArrayValues: [RegulationChangeClassification, ...RegulationChangeClassification[]] = ["ambiguous","modified","new","possible_duplicate","repealed","unchanged"];
 export const RegulationUpdateCandidateStatusArrayValues: [RegulationUpdateCandidateStatus, ...RegulationUpdateCandidateStatus[]] = ["approved","pending_review","rejected"];
 export const RegulationUpdateModeArrayValues: [RegulationUpdateMode, ...RegulationUpdateMode[]] = ["assisted","manual_only","scheduled"];
