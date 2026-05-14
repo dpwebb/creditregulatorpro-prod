@@ -130,6 +130,8 @@ describe("reconciliation candidate UI smoke harness gating", () => {
     expect(source).toContain("hasText: syntheticCandidate.staticReferenceId");
     expect(source).toContain("hasText: syntheticCandidate.dbRegulationId");
     expect(source).toContain("hasText: syntheticCandidate.deterministicRuleId");
+    expect(source).toContain("candidateCard.getByText(`Rule ${syntheticCandidate.deterministicRuleId}`)");
+    expect(source).not.toContain("detailPanel.getByText(syntheticCandidate.deterministicRuleId");
     expect(source).not.toContain("page.getByText(\"source url missing candidate\")");
     expect(source).not.toContain("hasText: SYNTHETIC_RECONCILIATION_CANDIDATE.message");
   });

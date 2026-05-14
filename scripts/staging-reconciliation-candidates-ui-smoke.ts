@@ -532,6 +532,7 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
     });
     await expect(candidateCard).toHaveCount(1, { timeout: 15000 });
     await expect(candidateCard).toBeVisible();
+    await expect(candidateCard.getByText(`Rule ${syntheticCandidate.deterministicRuleId}`)).toBeVisible();
 
     await candidateCard.getByRole("button", { name: /View Details/i }).click();
     const detailPanel = page.getByLabel("Reconciliation candidate detail");
@@ -542,7 +543,6 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
     await expect(detailPanel.getByText("inert", { exact: true })).toBeVisible();
     await expect(detailPanel.getByText(syntheticCandidate.staticReferenceId, { exact: true })).toBeVisible();
     await expect(detailPanel.getByText(syntheticCandidate.dbRegulationId, { exact: true })).toBeVisible();
-    await expect(detailPanel.getByText(syntheticCandidate.deterministicRuleId, { exact: true })).toBeVisible();
     await expect(detailPanel.getByText("Synthetic static reference for UI smoke")).toBeVisible();
     await expect(detailPanel.getByText("Synthetic DB governance reference for UI smoke")).toBeVisible();
 
