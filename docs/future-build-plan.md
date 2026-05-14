@@ -67,6 +67,7 @@ Updated May 14, 2026.
 29. A review-only admin Reconciliation Candidates tab is implemented inside Regulatory Updates: admins can list, filter, and inspect inert regulation reconciliation candidates and perform review-only status actions through the existing backend endpoints, no runtime activation controls exist, the DB registry remains non-runtime governance metadata, and static runtime mappings remain active runtime truth. A gated smoke harness exists at `scripts/staging-reconciliation-candidates-ui-smoke.ts`; it requires explicit `CRP_RECONCILIATION_CANDIDATE_UI_SMOKE=true`, refuses production hosts, and supports staging or local admin credentials/session-cookie contexts. Authenticated staging smoke has passed using a staging session-cookie method without recording secrets: admin access was verified, the Reconciliation Candidates tab was reachable, list/filter/detail flow passed, inert safety messaging passed, review-only status flow passed, the synthetic inert candidate was archived after the run, forbidden activation endpoint calls were zero, registry and mapping responses remained unchanged, the candidate remained inert, and the non-admin check was skipped because no safe non-admin context was configured.
 30. A read-only shadow DB regulation runtime bridge report exists: static runtime references remain active truth, approved/active DB alternatives can be computed for shadow comparison, invalid, unapproved, inactive, superseded, or unsafe DB records are ignored or flagged, DB alternatives do not change consumer output, the DB registry is not runtime truth, no runtime activation exists, and packet readiness and wording were not changed.
 31. An admin-only read-only shadow bridge diagnostic API endpoint exists at `GET /_api/regulation-registry/shadow-bridge/report`: it returns shadow diagnostics while static runtime references remain active, does not activate the DB registry, does not create reconciliation candidates, does not mutate registry or mapping rows, and does not change packet readiness or packet wording.
+32. `regulation_runtime_bridge_mapping` governance storage and admin-only backend endpoints exist for future runtime bridge mapping review: bridge mappings can be drafted, listed, and status-updated as governance records; service/API paths reject `active_limited_runtime`; no runtime selector exists; the DB registry remains non-runtime governance metadata; static runtime mappings remain active runtime truth; and violation firing, packet readiness, packet wording, parser, canonical, and OCR logic were not changed.
 
 ### Remaining High-Priority Work
 
@@ -313,7 +314,7 @@ Exit criteria:
 
 Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
 
-Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates can be persisted, a review-only admin UI exists, authenticated staging smoke has passed, a gated smoke harness exists, and a shadow bridge diagnostic endpoint exists. Runtime activation remains deferred.
+Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates exist, review-only candidate UI and smoke harness exist, a shadow diagnostics endpoint exists, and governance storage for future runtime bridge mappings exists. Runtime activation remains deferred.
 
 Work:
 
@@ -381,31 +382,34 @@ Exit criteria:
 18. Non-admin Reconciliation Candidates UI smoke remains limited/skipped unless a safe non-admin context is configured.
 19. Candidate-specific audit-history display may still require a future endpoint.
 20. A shadow bridge diagnostics endpoint exists for approved DB alternatives, but it is report-only and no runtime bridge activation exists.
-21. No limited-runtime bridge activation exists yet.
-22. No approved DB runtime bridge activation exists yet.
-23. Formal runtime reference activation, rollback, and version approval remain future work.
-24. No admin override path exists for regulation/reference activation.
-25. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
-26. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
-27. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
-28. Creditor-validation status/delete audit gaps remain.
-29. Admin corrections need deeper controlled promotion into future deterministic rules.
-30. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-31. French OCR support is not installed unless added later as a specific requirement.
+21. `regulation_runtime_bridge_mapping` exists as governance storage for future bridge mappings, but no runtime selector exists and bridge mappings do not activate anything.
+22. Service/API paths reject `active_limited_runtime`; direct SQL must remain controlled through DB access practices because the table reserves that status only for a future approved implementation.
+23. No limited-runtime bridge activation exists yet.
+24. No approved DB runtime bridge activation exists yet.
+25. No formal runtime reference activation, rollback, version approval, or runtime bridge approval workflow exists yet.
+26. No admin override path exists for regulation/reference activation.
+27. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
+28. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
+29. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
+30. Creditor-validation status/delete audit gaps remain.
+31. Admin corrections need deeper controlled promotion into future deterministic rules.
+32. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+33. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Run a design-only limited-runtime bridge activation rules pass only after shadow diagnostics and governance controls remain stable.
-2. Keep the DB regulation registry non-runtime until bridge activation rules, tests, rollback, and approval are implemented.
-3. Keep packet wording and packet readiness unchanged as part of regulation/reference reconciliation.
-4. Do not add an admin override path.
-5. Continue broader Phase 4/5 hardening only through bounded, reviewed tasks.
-6. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
-7. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
-8. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
-9. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
-10. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
-11. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
-12. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+1. Run a design-only admin UI pass for regulation runtime bridge mapping governance.
+2. Consider design-only advisory selector rules only after bridge mapping storage remains stable.
+3. Do not activate the DB regulation registry as runtime truth.
+4. Keep packet wording and packet readiness unchanged as part of regulation/reference reconciliation.
+5. Do not add an admin override path.
+6. Continue broader Phase 4/5 hardening only through bounded, reviewed tasks.
+7. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
+8. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
+9. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
+10. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
+11. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
+12. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
+13. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
