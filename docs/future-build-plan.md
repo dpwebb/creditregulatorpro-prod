@@ -64,7 +64,7 @@ Updated May 14, 2026.
 26. Phase 4A metadata-only rule defensibility hardening is implemented: final violation `technicalDetails` now include additive `defensibility` metadata where available, stable `deterministicRuleId` values are normalized for static and dynamic rules, factual trigger, source fields, evidence link presence, neutral explanation, regulation reference mode, packet eligibility summary, parser uncertainty status, and admin review status are carried as metadata, `packetEligibility` is informational only, evidence-location metadata remains optional and additive, no schema change was made, violation firing behavior did not change, and packet readiness and packet wording did not change.
 27. Phase 4B Option A read-only regulation/reference reconciliation is implemented: a pure helper compares static runtime references with supplied DB governance snapshots and reports mismatches only, including missing records, citation mismatch, jurisdiction mismatch, missing source URL, missing effective date, missing approval status, unclear mapping, and consumer wording risk; the DB registry was not activated as runtime truth, no candidates are created, and runtime mappings are unchanged.
 28. Phase 4B/Phase 9 inert regulation reconciliation candidate storage is implemented: `regulation_reconciliation_candidate` exists through the lazy schema-helper path, reconciliation findings can be persisted as inert governance candidates, candidate creation is idempotent through `dedupeKey`, the lifecycle is review-only, candidates can be approved for mapping review or registry update review without activating runtime truth, rejection requires a reason, audit logging exists for create/reuse/status actions, sanitization strips consumer personal data, packet content, raw/extracted report text, full SIN-like values, and full unmasked account-like values, the DB registry remains non-runtime governance metadata, static runtime mappings remain active runtime truth, and no runtime bridge was added.
-29. A review-only admin Reconciliation Candidates tab is implemented inside Regulatory Updates: admins can list, filter, and inspect inert regulation reconciliation candidates and perform review-only status actions through the existing backend endpoints, no runtime activation controls exist, the DB registry remains non-runtime governance metadata, and static runtime mappings remain active runtime truth. A gated smoke harness exists at `scripts/staging-reconciliation-candidates-ui-smoke.ts`; it requires explicit `CRP_RECONCILIATION_CANDIDATE_UI_SMOKE=true`, refuses production hosts, supports staging or local admin credentials/session-cookie contexts, and authenticated staging UI smoke remains pending until a safe admin context is supplied.
+29. A review-only admin Reconciliation Candidates tab is implemented inside Regulatory Updates: admins can list, filter, and inspect inert regulation reconciliation candidates and perform review-only status actions through the existing backend endpoints, no runtime activation controls exist, the DB registry remains non-runtime governance metadata, and static runtime mappings remain active runtime truth. A gated smoke harness exists at `scripts/staging-reconciliation-candidates-ui-smoke.ts`; it requires explicit `CRP_RECONCILIATION_CANDIDATE_UI_SMOKE=true`, refuses production hosts, and supports staging or local admin credentials/session-cookie contexts. Authenticated staging smoke has passed using a staging session-cookie method without recording secrets: admin access was verified, the Reconciliation Candidates tab was reachable, list/filter/detail flow passed, inert safety messaging passed, review-only status flow passed, the synthetic inert candidate was archived after the run, forbidden activation endpoint calls were zero, registry and mapping responses remained unchanged, the candidate remained inert, and the non-admin check was skipped because no safe non-admin context was configured.
 30. A read-only shadow DB regulation runtime bridge report exists: static runtime references remain active truth, approved/active DB alternatives can be computed for shadow comparison, invalid, unapproved, inactive, superseded, or unsafe DB records are ignored or flagged, DB alternatives do not change consumer output, the DB registry is not runtime truth, no runtime activation exists, and packet readiness and wording were not changed.
 31. An admin-only read-only shadow bridge diagnostic API endpoint exists at `GET /_api/regulation-registry/shadow-bridge/report`: it returns shadow diagnostics while static runtime references remain active, does not activate the DB registry, does not create reconciliation candidates, does not mutate registry or mapping rows, and does not change packet readiness or packet wording.
 
@@ -313,7 +313,7 @@ Exit criteria:
 
 Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
 
-Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates exist, a review-only admin UI and gated smoke harness exist, a shadow bridge helper exists, and an admin-only read-only shadow diagnostics endpoint exists. Runtime activation remains deferred.
+Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates can be persisted, a review-only admin UI exists, authenticated staging smoke has passed, a gated smoke harness exists, and a shadow bridge diagnostic endpoint exists. Runtime activation remains deferred.
 
 Work:
 
@@ -376,33 +376,32 @@ Exit criteria:
 13. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
 14. `static/__dev/system-prompt.md` may be publicly accessible depending on hosting behavior.
 15. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
-16. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry is not active runtime truth.
-17. Authenticated staging UI smoke for Reconciliation Candidates remains pending until safe staging admin credentials or a safe admin session are available to run the gated harness.
-18. Candidate-specific audit-history display may still require a future endpoint.
-19. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry is non-runtime governance metadata, not active runtime truth.
-20. Static runtime mappings remain active runtime truth.
-21. A shadow bridge diagnostics endpoint exists for approved DB alternatives, but it is report-only and no runtime bridge activation exists.
-22. No limited-runtime bridge activation exists yet.
-23. No approved DB runtime bridge activation exists yet.
-24. Formal runtime reference activation, rollback, and version approval remain future work.
-25. No admin override path exists for regulation/reference activation.
-26. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
-27. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
-28. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
-29. Creditor-validation status/delete audit gaps remain.
-30. Admin corrections need deeper controlled promotion into future deterministic rules.
-31. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-32. French OCR support is not installed unless added later as a specific requirement.
+16. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry remains non-runtime governance metadata, not active runtime truth.
+17. Static runtime mappings remain active runtime truth.
+18. Non-admin Reconciliation Candidates UI smoke remains limited/skipped unless a safe non-admin context is configured.
+19. Candidate-specific audit-history display may still require a future endpoint.
+20. A shadow bridge diagnostics endpoint exists for approved DB alternatives, but it is report-only and no runtime bridge activation exists.
+21. No limited-runtime bridge activation exists yet.
+22. No approved DB runtime bridge activation exists yet.
+23. Formal runtime reference activation, rollback, and version approval remain future work.
+24. No admin override path exists for regulation/reference activation.
+25. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
+26. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
+27. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
+28. Creditor-validation status/delete audit gaps remain.
+29. Admin corrections need deeper controlled promotion into future deterministic rules.
+30. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+31. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Run the gated authenticated Reconciliation Candidates UI smoke harness when a safe staging admin context is available.
-2. Then run a design-only limited-runtime bridge activation rules pass after enough shadow comparison data exists.
-3. Keep the DB regulation registry non-runtime until bridge activation rules, tests, rollback, and approval are implemented.
-4. Do not change packet wording or packet readiness as part of regulation/reference reconciliation.
-5. Do not add an admin override path.
+1. Run a design-only limited-runtime bridge activation rules pass only after shadow diagnostics and governance controls remain stable.
+2. Keep the DB regulation registry non-runtime until bridge activation rules, tests, rollback, and approval are implemented.
+3. Keep packet wording and packet readiness unchanged as part of regulation/reference reconciliation.
+4. Do not add an admin override path.
+5. Continue broader Phase 4/5 hardening only through bounded, reviewed tasks.
 6. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
 7. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
 8. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
