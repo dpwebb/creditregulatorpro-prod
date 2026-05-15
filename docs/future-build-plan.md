@@ -32,7 +32,7 @@ All future work must protect this promise before adding breadth, convenience, or
 
 ## Current Implementation Status
 
-Updated May 14, 2026.
+Updated May 15, 2026.
 
 ### Implemented
 
@@ -71,6 +71,7 @@ Updated May 14, 2026.
 33. A review-only Runtime Bridge Mappings admin UI exists inside Regulatory Updates: admins can list, filter, inspect, and perform review-only status actions for existing `regulation_runtime_bridge_mapping` governance records; no create UI exists; no runtime activation controls exist; the DB registry remains non-runtime governance metadata; static runtime mappings remain active runtime truth; no runtime selector exists; and packet readiness, packet wording, violation firing, parser, canonical, and OCR logic were not changed.
 34. A gated Runtime Bridge Mappings UI smoke harness exists at `scripts/staging-runtime-bridge-mapping-ui-smoke.ts` and can be run with `pnpm run smoke:runtime-bridge-mapping-ui`; it requires `CRP_RUNTIME_BRIDGE_MAPPING_UI_SMOKE=true`, refuses production hosts, supports staging or local admin credentials/session-cookie contexts, creates only synthetic governance bridge mapping records, archives the synthetic mapping after review, checks that forbidden runtime activation controls and endpoint calls are absent, and does not activate the DB registry, static mappings, runtime selector, limited-runtime bridge, or admin override path. Authenticated staging smoke has passed using a staging session-cookie method without recording secrets: authenticated admin access was verified, the Runtime Bridge Mappings tab was verified on staging, list/filter/detail flow passed, governance-only safety messaging passed, review-only status flow passed, the synthetic governance mapping was archived after the run, no runtime selector endpoint was called, the DB registry remained non-runtime governance metadata, static runtime truth remained unchanged, registry, mapping, and reconciliation-candidate responses remained unchanged, packet readiness, packet wording, and violation firing endpoint calls were zero, and the non-admin check was skipped because no safe non-admin context was configured.
 35. An advisory regulation bridge helper exists as a pure/internal computation layer: it has no endpoint, no UI, no schema change, and no runtime selector; static runtime references remain consumer-facing truth; `approved_for_advisory` mappings with advisory bridge mode can produce admin/internal advisory metadata only; invalid, ambiguous, unsafe, or incomplete DB records fail closed to the static fallback; private standards are not presented as law; internal-only references are not consumer-facing; and packet readiness, packet wording, and violation firing were not changed.
+36. An admin-only read-only advisory bridge diagnostic endpoint exists at `GET /_api/regulation-registry/advisory-bridge/report`: it returns advisory diagnostics while static runtime references remain consumer-facing truth, does not activate the DB registry, does not mutate static mappings, does not mutate registry, mapping, or bridge rows, does not create reconciliation candidates, does not change packet readiness, packet wording, or violation firing, and adds no schema, UI, or runtime selector. Authenticated advisory endpoint smoke remains pending because no safe staging admin context was available.
 
 ### Remaining High-Priority Work
 
@@ -317,7 +318,7 @@ Exit criteria:
 
 Goal: keep legal/regulatory references controlled, current, and non-hallucinated.
 
-Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates can be persisted, a review-only Reconciliation Candidates UI exists and has passed authenticated staging smoke, a shadow bridge diagnostic endpoint exists, regulation runtime bridge mapping governance storage/endpoints exist and have passed authenticated staging smoke, a review-only Runtime Bridge Mappings UI exists and has passed authenticated staging smoke, and an advisory helper exists as a pure/internal computation layer. Advisory output is not consumer-facing, and runtime activation remains deferred.
+Status: Started. Read-only static-vs-DB reconciliation exists, inert reconciliation candidates can be persisted, a review-only Reconciliation Candidates UI exists and has passed authenticated staging smoke, a shadow bridge diagnostic endpoint exists, regulation runtime bridge mapping governance storage/endpoints exist and have passed authenticated staging smoke, a review-only Runtime Bridge Mappings UI exists and has passed authenticated staging smoke, an advisory helper exists as a pure/internal computation layer, and an admin-only read-only advisory diagnostic endpoint exists. Advisory output is admin/internal only, and runtime activation remains deferred.
 
 Work:
 
@@ -388,25 +389,26 @@ Exit criteria:
 21. Candidate-specific audit-history display may still require a future endpoint.
 22. A shadow bridge diagnostics endpoint exists for approved DB alternatives, but it is report-only and no runtime bridge activation exists.
 23. `regulation_runtime_bridge_mapping` exists as governance storage for future bridge mappings, but no runtime selector exists and bridge mappings do not activate anything.
-24. Advisory bridge metadata exists as pure/internal helper output only and must not be confused with runtime truth or consumer-facing reference wording.
-25. Service/API paths reject `active_limited_runtime`; direct SQL access must remain controlled because future statuses are reserved at the table level while service/API paths reject runtime activation.
-26. No limited-runtime bridge activation exists yet.
-27. No approved DB runtime bridge activation exists yet.
-28. No formal runtime reference activation, rollback, version approval, or runtime bridge approval workflow exists yet.
-29. No admin override path exists for regulation/reference activation.
-30. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
-31. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
-32. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
-33. Creditor-validation status/delete audit gaps remain.
-34. Admin corrections need deeper controlled promotion into future deterministic rules.
-35. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
-36. French OCR support is not installed unless added later as a specific requirement.
+24. Advisory bridge metadata exists through pure/internal helper output and an admin-only read-only diagnostic endpoint, and must not be confused with runtime truth or consumer-facing reference wording.
+25. Authenticated advisory diagnostic endpoint smoke remains pending until a safe staging admin context is available.
+26. Service/API paths reject `active_limited_runtime`; direct SQL access must remain controlled because future statuses are reserved at the table level while service/API paths reject runtime activation.
+27. No limited-runtime bridge activation exists yet.
+28. No approved DB runtime bridge activation exists yet.
+29. No formal runtime reference activation, rollback, version approval, or runtime bridge approval workflow exists yet.
+30. No admin override path exists for regulation/reference activation.
+31. No formal rule registry, rule-version approval workflow, or rollback workflow exists yet.
+32. Manual-only correction classification still needs a real candidate model before broader truth-loop promotion.
+33. Evidence IDs are not universal across all detector paths, even though evidence links and evidence-location metadata are improving.
+34. Creditor-validation status/delete audit gaps remain.
+35. Admin corrections need deeper controlled promotion into future deterministic rules.
+36. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
+37. French OCR support is not installed unless added later as a specific requirement.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Design an admin-only advisory diagnostics endpoint or UI exposure only after the pure advisory helper behavior remains stable.
+1. Add a gated staging smoke harness for the advisory bridge diagnostic endpoint while authenticated advisory endpoint smoke remains pending; after authenticated endpoint smoke passes, consider design-only admin UI advisory diagnostics only if operationally useful.
 2. Do not add a runtime selector yet.
 3. Keep the DB regulation registry non-runtime until advisory or limited-runtime bridge rules, tests, rollback, and approval are implemented.
 4. Keep packet wording and packet readiness unchanged as part of regulation/reference reconciliation.
