@@ -73,6 +73,7 @@ Updated May 16, 2026.
 35. An advisory regulation bridge helper exists as a pure/internal computation layer: it has no endpoint, no UI, no schema change, and no runtime selector; static runtime references remain consumer-facing truth; `approved_for_advisory` mappings with advisory bridge mode can produce admin/internal advisory metadata only; invalid, ambiguous, unsafe, or incomplete DB records fail closed to the static fallback; private standards are not presented as law; internal-only references are not consumer-facing; and packet readiness, packet wording, and violation firing were not changed.
 36. An admin-only read-only advisory bridge diagnostic endpoint exists at `GET /_api/regulation-registry/advisory-bridge/report`: it returns advisory diagnostics while static runtime references remain consumer-facing truth, does not activate the DB registry, does not mutate static mappings, does not mutate registry, mapping, or bridge rows, does not create reconciliation candidates, does not change packet readiness, packet wording, or violation firing, and adds no schema, UI, or runtime selector.
 37. A gated advisory bridge diagnostic endpoint smoke harness exists at `scripts/staging-advisory-bridge-report-smoke.ts` and can be run with `pnpm run smoke:advisory-bridge-report`; it requires `CRP_ADVISORY_BRIDGE_REPORT_SMOKE=true`, refuses production hosts, supports staging or local admin credentials/session-cookie contexts, calls only the admin-only read-only advisory report endpoint and safe snapshot endpoints, compares before/after registry, mapping, bridge-mapping, and reconciliation-candidate responses when available, verifies advisory safety messages, and checks that runtime selector, mutation, packet, violation, parser, and OCR endpoints are not called. Authenticated staging smoke has passed using a temporary staging admin session-cookie method without recording secrets; the temporary admin session and user were cleaned up after the run, the advisory report returned `mode: advisory` and `runtimeSourceUsed: static_runtime`, the no-match report returned no advisory metadata, registry, mapping, bridge-mapping, and reconciliation-candidate responses remained unchanged, packet readiness, packet wording, and violation firing endpoint calls were zero, advisory diagnostics remained admin/internal only, and the non-admin check was skipped because no safe non-admin context was configured.
+38. A production readiness gate exists at `scripts/production-readiness-gate.mjs` and can be run with `pnpm run readiness:production`; it verifies GitHub source-of-truth alignment, typecheck, Golden Path, contract/API suites, deterministic ingestion, credit parser regression, tradeline internal regression, violation correction regression, the staging validation gate, latest successful staging deploy SHA, staging app/login reachability, and unauthenticated protection for core admin/regulation endpoints. The gate passed against staging commit `bf0b0efad3a2ed3a6ba36154228c04f85cf6ae53`.
 
 ### Remaining High-Priority Work
 
@@ -294,7 +295,7 @@ Exit criteria:
 
 Goal: make stability visible before deployment.
 
-Status: Golden Path exists and packet lifecycle endpoint coverage has been added. Broader endpoint-level release confidence and operator-readable dashboarding remain ongoing.
+Status: Golden Path exists, packet lifecycle endpoint coverage has been added, and `pnpm run readiness:production` now provides a production-readiness gate over source-of-truth, local regressions, latest staging deploy status, staging health, and protected unauthenticated endpoint boundaries. Broader scale, observability, backup/restore, and authenticated workflow coverage remain ongoing.
 
 Work:
 
@@ -404,21 +405,25 @@ Exit criteria:
 35. Admin corrections need deeper controlled promotion into future deterministic rules.
 36. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
 37. French OCR support is not installed unless added later as a specific requirement.
+38. The production readiness gate verifies regression, staging deploy, and key unauthenticated boundary checks, but it is not a substitute for load testing, observability/alerting validation, backup/restore drills, or authenticated end-to-end user workflow smoke coverage at production scale.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Consider design-only admin UI advisory diagnostics only if operationally useful after the authenticated advisory diagnostic endpoint smoke pass.
-2. Do not add a runtime selector yet.
-3. Keep the DB regulation registry non-runtime until advisory or limited-runtime bridge rules, tests, rollback, and approval are implemented.
-4. Keep packet wording and packet readiness unchanged as part of regulation/reference reconciliation.
-5. Do not add an admin override path.
-6. Continue broader Phase 4/5 hardening only through bounded, reviewed tasks.
-7. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
-8. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
-9. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
-10. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
-11. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
-12. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
-13. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
+1. Add a bounded staging scale-baseline harness for public shell, login, auth/session denial, upload contract, and selected read-only/admin-denied endpoints; keep it synthetic, rate-limited, and production-host refused.
+2. Add an operational backup/restore verification checklist or script for staging before any broad production-scale launch.
+3. Add observability and alerting validation for container health, HTTP 5xx rate, parser/OCR failures, packet generation failures, and background job/log error spikes.
+4. Consider design-only admin UI advisory diagnostics only if operationally useful after the authenticated advisory diagnostic endpoint smoke pass.
+5. Do not add a runtime selector yet.
+6. Keep the DB regulation registry non-runtime until advisory or limited-runtime bridge rules, tests, rollback, and approval are implemented.
+7. Keep packet wording and packet readiness unchanged as part of regulation/reference reconciliation.
+8. Do not add an admin override path.
+9. Continue broader Phase 4/5 hardening only through bounded, reviewed tasks.
+10. Continue avoiding admin override paths in other areas; no admin path should bypass evidence, ownership, sensitivity, or packet-type restrictions.
+11. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
+12. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
+13. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
+14. Review whether `static/__dev/system-prompt.md` belongs under a publicly served static path if unresolved.
+15. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
+16. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
