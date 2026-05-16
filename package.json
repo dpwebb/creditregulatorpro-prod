@@ -21,6 +21,7 @@
     "test:e2e": "playwright test",
     "test:mock-lifecycle": "tsx scripts/mock-user-lifecycle-e2e.ts",
     "smoke:reconciliation-candidates-ui": "tsx scripts/staging-reconciliation-candidates-ui-smoke.ts",
+    "smoke:advisory-bridge-report": "tsx scripts/staging-advisory-bridge-report-smoke.ts",
     "smoke:runtime-bridge-mapping": "tsx scripts/staging-runtime-bridge-mapping-smoke.ts",
     "smoke:runtime-bridge-mapping-ui": "tsx scripts/staging-runtime-bridge-mapping-ui-smoke.ts",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
