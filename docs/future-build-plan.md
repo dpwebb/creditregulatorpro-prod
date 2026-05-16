@@ -74,6 +74,7 @@ Updated May 16, 2026.
 36. An admin-only read-only advisory bridge diagnostic endpoint exists at `GET /_api/regulation-registry/advisory-bridge/report`: it returns advisory diagnostics while static runtime references remain consumer-facing truth, does not activate the DB registry, does not mutate static mappings, does not mutate registry, mapping, or bridge rows, does not create reconciliation candidates, does not change packet readiness, packet wording, or violation firing, and adds no schema, UI, or runtime selector.
 37. A gated advisory bridge diagnostic endpoint smoke harness exists at `scripts/staging-advisory-bridge-report-smoke.ts` and can be run with `pnpm run smoke:advisory-bridge-report`; it requires `CRP_ADVISORY_BRIDGE_REPORT_SMOKE=true`, refuses production hosts, supports staging or local admin credentials/session-cookie contexts, calls only the admin-only read-only advisory report endpoint and safe snapshot endpoints, compares before/after registry, mapping, bridge-mapping, and reconciliation-candidate responses when available, verifies advisory safety messages, and checks that runtime selector, mutation, packet, violation, parser, and OCR endpoints are not called. Authenticated staging smoke has passed using a temporary staging admin session-cookie method without recording secrets; the temporary admin session and user were cleaned up after the run, the advisory report returned `mode: advisory` and `runtimeSourceUsed: static_runtime`, the no-match report returned no advisory metadata, registry, mapping, bridge-mapping, and reconciliation-candidate responses remained unchanged, packet readiness, packet wording, and violation firing endpoint calls were zero, advisory diagnostics remained admin/internal only, and the non-admin check was skipped because no safe non-admin context was configured.
 38. A production readiness gate exists at `scripts/production-readiness-gate.mjs` and can be run with `pnpm run readiness:production`; it verifies GitHub source-of-truth alignment, typecheck, Golden Path, contract/API suites, deterministic ingestion, credit parser regression, tradeline internal regression, violation correction regression, the staging validation gate, latest successful staging deploy SHA, staging app/login reachability, and unauthenticated protection for core admin/regulation endpoints. The gate passed against staging commit `bf0b0efad3a2ed3a6ba36154228c04f85cf6ae53`.
+39. A bounded staging scale-baseline harness exists at `scripts/staging-scale-baseline.mjs` and can be run with `pnpm run baseline:staging-scale`; it requires `CRP_STAGING_SCALE_BASELINE=true`, refuses production hosts, allows staging by default and local only with an explicit flag, bounds iterations/concurrency/delay, and checks public shell, login, auth/session denial, invalid upload-contract rejection, and selected admin/regulation denial endpoints without authenticated requests, consumer data, runtime mutation, packet calls, violation calls, parser/OCR calls, or regulation activation. The harness passed against staging commit `bf5354caae7b3d1b3ef9e4d4315f141d64562883` with 28 bounded synthetic/unauthenticated requests and zero failures.
 
 ### Remaining High-Priority Work
 
@@ -295,7 +296,7 @@ Exit criteria:
 
 Goal: make stability visible before deployment.
 
-Status: Golden Path exists, packet lifecycle endpoint coverage has been added, and `pnpm run readiness:production` now provides a production-readiness gate over source-of-truth, local regressions, latest staging deploy status, staging health, and protected unauthenticated endpoint boundaries. Broader scale, observability, backup/restore, and authenticated workflow coverage remain ongoing.
+Status: Golden Path exists, packet lifecycle endpoint coverage has been added, `pnpm run readiness:production` now provides a production-readiness gate over source-of-truth, local regressions, latest staging deploy status, staging health, and protected unauthenticated endpoint boundaries, and `pnpm run baseline:staging-scale` now provides a bounded staging scale-baseline harness for public shell, login, auth/session denial, invalid upload-contract rejection, and selected admin/regulation denial endpoints. Broader load testing, observability, backup/restore, and authenticated workflow coverage remain ongoing.
 
 Work:
 
@@ -405,15 +406,15 @@ Exit criteria:
 35. Admin corrections need deeper controlled promotion into future deterministic rules.
 36. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
 37. French OCR support is not installed unless added later as a specific requirement.
-38. The production readiness gate verifies regression, staging deploy, and key unauthenticated boundary checks, but it is not a substitute for load testing, observability/alerting validation, backup/restore drills, or authenticated end-to-end user workflow smoke coverage at production scale.
+38. The production readiness gate verifies regression, staging deploy, and key unauthenticated boundary checks, and the staging scale-baseline harness verifies a small bounded synthetic request baseline, but neither is a substitute for sustained load testing, observability/alerting validation, backup/restore drills, or authenticated end-to-end user workflow smoke coverage at production scale.
 
 ---
 
 ## Next Recommended Work Order
 
-1. Add a bounded staging scale-baseline harness for public shell, login, auth/session denial, upload contract, and selected read-only/admin-denied endpoints; keep it synthetic, rate-limited, and production-host refused.
-2. Add an operational backup/restore verification checklist or script for staging before any broad production-scale launch.
-3. Add observability and alerting validation for container health, HTTP 5xx rate, parser/OCR failures, packet generation failures, and background job/log error spikes.
+1. Add an operational backup/restore verification checklist or script for staging before any broad production-scale launch.
+2. Add observability and alerting validation for container health, HTTP 5xx rate, parser/OCR failures, packet generation failures, and background job/log error spikes.
+3. Add authenticated end-to-end workflow smoke coverage for login, upload, parser result review, finding review, packet readiness, packet build, and PDF download using synthetic data and temporary staging users.
 4. Consider design-only admin UI advisory diagnostics only if operationally useful after the authenticated advisory diagnostic endpoint smoke pass.
 5. Do not add a runtime selector yet.
 6. Keep the DB regulation registry non-runtime until advisory or limited-runtime bridge rules, tests, rollback, and approval are implemented.
