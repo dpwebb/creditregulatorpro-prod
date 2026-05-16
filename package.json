@@ -37,6 +37,7 @@
     "core-config:verify": "node scripts/core-config.mjs verify",
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
     "check:staging-gate": "node scripts/check-staging-gate.mjs",
+    "readiness:production": "node scripts/production-readiness-gate.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",
     "promote:production": "node scripts/promote-production.mjs"
   },
