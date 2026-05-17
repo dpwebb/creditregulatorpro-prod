@@ -42,6 +42,7 @@ Before promoting staging to production, confirm:
 - No internal docs are under `static`, `public`, or other publicly served paths.
 - No confidential/internal PDF remains under `output/pdf`.
 - Public-static guard passes: `pnpm exec vitest run tests/unit/public-static-dev-assets.spec.ts`.
+- Auth/session/logout lifecycle endpoint coverage passes: `pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts`.
 - Golden Path passes: `pnpm run test:golden-path`.
 - Packet lifecycle endpoint coverage passes: `pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts`.
 - Violation search/status endpoint coverage passes: `pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts`.
@@ -121,7 +122,7 @@ Run the operator dashboard before promotion review or during release health revi
 - `pnpm run operator:dashboard -- --list-checks`
 - `pnpm run operator:dashboard -- --run-checks`
 
-The dashboard summarizes repository/release state, core logical regressions, packet reliability, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
+The dashboard summarizes repository/release state, core logical regressions, auth/session/logout lifecycle endpoint coverage, packet reliability, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
 
 The dashboard distinguishes local checks from manual or gated smoke checks:
 
@@ -144,7 +145,6 @@ The dashboard does not replace final human release review. Operators must still 
 
 The following gaps remain before claiming scale production readiness:
 
-- Auth/session/logout lifecycle endpoint coverage.
 - Admin audit-log filtering and sanitization coverage.
 - Packet delivery/status/send endpoint coverage.
 - Outcome tracking.

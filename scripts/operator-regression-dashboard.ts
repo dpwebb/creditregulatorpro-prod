@@ -43,6 +43,7 @@ export const DASHBOARD_SAFETY_BOUNDARIES = {
 
 export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/unit/public-static-dev-assets.spec.ts",
+  "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
@@ -84,7 +85,6 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Auth/session/logout lifecycle endpoint coverage still needs expansion.",
   "Admin audit-log filtering and sanitization coverage still needs expansion.",
   "Packet delivery/status/send endpoint coverage still needs expansion.",
   "Outcome tracking is not implemented.",
@@ -205,6 +205,21 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           command: "pnpm run test:api",
           runByDefault: true,
         }),
+      ],
+    },
+    {
+      name: "Auth / Session Lifecycle",
+      checks: [
+        check(
+          "Auth session lifecycle endpoint",
+          "SKIP",
+          "Endpoint-backed login/session/logout behavior, malformed and invalid session handling, role boundaries, admin guard samples, no client-side role escalation, and secret/no-overexposure expectations.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
       ],
     },
     {

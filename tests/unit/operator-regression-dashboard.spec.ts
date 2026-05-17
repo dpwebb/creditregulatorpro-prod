@@ -31,6 +31,7 @@ describe("operator regression dashboard", () => {
 
     expect(output).toContain("Repository / Release State");
     expect(output).toContain("Core Logical Regression");
+    expect(output).toContain("Auth / Session Lifecycle");
     expect(output).toContain("Packet Reliability");
     expect(output).toContain("Report Ingest / Retrieval");
     expect(output).toContain("Violation Search / Status");
@@ -70,6 +71,12 @@ describe("operator regression dashboard", () => {
           category: "Manual / Gated Smoke",
           name: "Runtime Bridge Mapping smoke",
           requiresCredentials: true,
+        }),
+        expect.objectContaining({
+          category: "Auth / Session Lifecycle",
+          name: "Auth session lifecycle endpoint",
+          command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
+          runByDefault: true,
         }),
         expect.objectContaining({
           category: "Violation Search / Status",
