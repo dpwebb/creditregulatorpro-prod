@@ -109,12 +109,40 @@ Controlled production remains green and broader endpoint-backed user flows, admi
 
 General production remains green and sustained operational monitoring, alert delivery, restore drills, broader anonymized fixture coverage, outcome tracking, and production-scale workflow coverage are proven.
 
+## Operator Regression Dashboard
+
+Run the operator dashboard before promotion review or during release health review:
+
+- `pnpm run operator:dashboard`
+- `pnpm run operator:dashboard -- --json`
+- `pnpm run operator:dashboard -- --list-checks`
+- `pnpm run operator:dashboard -- --run-checks`
+
+The dashboard summarizes repository/release state, core logical regressions, packet reliability, evidence and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
+
+The dashboard distinguishes local checks from manual or gated smoke checks:
+
+- Local checks are safe bounded commands that run against local code and synthetic/unit/API fixtures.
+- Manual/gated smoke checks require explicit staging flags and safe credentials or session context. The dashboard lists these but does not run them automatically.
+- Operational/manual checks still require human review of deployment SHA, logs, rollback target, production health, and the promotion diff.
+
+Status meanings:
+
+- `PASS`: the check passed in this dashboard invocation or the release state is present.
+- `FAIL`: the check failed or a required release state is unsafe.
+- `SKIP`: the check is available but was not run in this dashboard invocation.
+- `MANUAL`: the check is gated and requires explicit operator context.
+- `OPEN`: a known scale-readiness gap remains.
+- `INFO`: release context or a non-runtime governance warning.
+
+The dashboard does not replace final human release review. Operators must still review the promotion diff, sensitive-file exposure, rollback SHA, staging deployment state, production health, and any caveats from the readiness audit.
+
 ## Current Remaining Scale Gaps
 
 The following gaps remain before claiming scale production readiness:
 
 - Endpoint coverage beyond packet lifecycle.
-- Operator regression dashboard beyond the current local report and Golden Path output.
+- Operator regression dashboard depth beyond the current local report and listed smoke coverage.
 - Outcome tracking.
 - Admin correction candidate classification.
 - Formal rule/version approval.
