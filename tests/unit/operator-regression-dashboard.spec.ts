@@ -74,6 +74,12 @@ describe("operator regression dashboard", () => {
           requiresCredentials: true,
         }),
         expect.objectContaining({
+          category: "Packet Reliability",
+          name: "Packet delivery/status endpoint",
+          command: "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
           category: "Auth / Session Lifecycle",
           name: "Auth session lifecycle endpoint",
           command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",

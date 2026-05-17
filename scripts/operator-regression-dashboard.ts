@@ -46,6 +46,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/admin-audit-log-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
@@ -86,8 +87,8 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Packet delivery/status/send endpoint coverage still needs expansion.",
   "Outcome tracking is not implemented.",
+  "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
   "Backup/restore verification remains future work.",
@@ -245,6 +246,16 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           command: "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
           runByDefault: true,
         }),
+        check(
+          "Packet delivery/status endpoint",
+          "SKIP",
+          "Endpoint-backed ownership, status updates, send/delivery behavior, provider-call mocking, audit/evidence expectations, duplicate/retry blocking, stale attachment safety, no-overexposure, and runtime-safety boundaries.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
         check("Packet readiness", "SKIP", "Helper and endpoint readiness fail-closed coverage.", {
           command: "pnpm exec vitest run tests/unit/packet-readiness.spec.ts",
         }),
