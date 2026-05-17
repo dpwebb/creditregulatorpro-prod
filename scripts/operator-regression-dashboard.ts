@@ -45,6 +45,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/unit/public-static-dev-assets.spec.ts",
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/evidence-location-index.spec.ts",
   "pnpm exec vitest run tests/unit/legal-reference-language.spec.ts",
   "pnpm run test:golden-path",
@@ -82,7 +83,6 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Report ingest/process/list/detail endpoint coverage still needs expansion.",
   "Evidence endpoint privacy coverage still needs expansion.",
   "Auth/session/logout lifecycle endpoint coverage still needs expansion.",
   "Admin audit-log filtering and sanitization coverage still needs expansion.",
@@ -220,6 +220,31 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         }),
         check("Packet PDF", "SKIP", "Packet PDF rendering tests are available but not in the default bounded run.", {
           command: "pnpm exec vitest run tests/unit/dispute-packet-pdf.spec.ts",
+        }),
+      ],
+    },
+    {
+      name: "Report Ingest / Retrieval",
+      checks: [
+        check(
+          "Report ingest lifecycle endpoint",
+          "SKIP",
+          "Endpoint-backed auth, ownership, upload contract, process/failure behavior, report list/detail, Stage Lab separation, and privacy expectations.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check("Parser Lab run endpoint", "SKIP", "Stage Lab controlled scanned-PDF 400 behavior and sideEffects:none coverage.", {
+          kind: "endpoint-test",
+          command: "pnpm exec vitest run tests/unit/parser-lab-run-endpoint.spec.ts",
+        }),
+        check("Credit-report PDF eligibility", "SKIP", "Upload PDF eligibility and scanned/image-only fail-closed coverage.", {
+          command: "pnpm exec vitest run tests/unit/credit-report-pdf-eligibility.spec.ts",
+        }),
+        check("Deterministic OCR readiness", "SKIP", "OCR readiness and provenance fail-closed coverage.", {
+          command: "pnpm exec vitest run tests/unit/deterministic-ocr-readiness.spec.ts",
         }),
       ],
     },
