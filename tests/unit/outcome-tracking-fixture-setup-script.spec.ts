@@ -167,6 +167,26 @@ describe("outcome tracking fixture setup harness", () => {
     expect(redacted).toContain("[REDACTED]");
   });
 
+  it("allows null storage URL fields from existing report artifact API responses", () => {
+    expect(() =>
+      assertSyntheticPayloadSafe({
+        artifact: {
+          id: 101,
+          storageUrl: null,
+          data: buildSyntheticReportData("OUTCOME_SMOKE_UNIT_20260517", "OUTCOME_SMOKE_BUREAU", "previous"),
+        },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertSyntheticPayloadSafe({
+        artifact: {
+          id: 101,
+          storageUrl: "s3://private-bucket/path.pdf",
+        },
+      }),
+    ).toThrow(/safety check/);
+  });
+
   it("requires OUTCOME_SMOKE synthetic markers", () => {
     expect(markerIsSynthetic("OUTCOME_SMOKE_UNIT_20260517")).toBe(true);
     expect(markerIsSynthetic("REAL_CONSUMER_FIXTURE")).toBe(false);

@@ -390,7 +390,7 @@ export function assertSyntheticPayloadSafe(value: unknown): void {
     /\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/,
     /\b(?:\d[ -]?){12,19}\b/,
     /rawReportText|rawExtractedText|raw pdf text|sourceText":/i,
-    /bucket:\/\/|s3:\/\/|gs:\/\/|x-goog-signature|storageUrl/i,
+    /bucket:\/\/|s3:\/\/|gs:\/\/|x-goog-signature|"storageUrl"\s*:\s*"(?!")/i,
     /floot_built_app_session|cookie=|session=/i,
     /sk-[a-z0-9_-]+|api[_-]?key|private key|-----BEGIN/i,
     /postgres:\/\/|database_url/i,
