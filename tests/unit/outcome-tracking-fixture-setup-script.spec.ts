@@ -7,6 +7,7 @@ import {
   buildSyntheticTradelineValues,
   FIXTURE_CLEANUP_POSTURE,
   FIXTURE_SETUP_CREATES_PACKET_FIXTURES,
+  FIXTURE_SETUP_SOURCE_ENV,
   FORBIDDEN_FIXTURE_SETUP_ENDPOINTS,
   markerIsSynthetic,
   outputForRows,
@@ -14,6 +15,7 @@ import {
   validateDatabaseUrlForTarget,
   validateFixtureHost,
 } from "../../scripts/staging-outcome-tracking-fixture-setup";
+import { schema as reportArtifactCreateSchema } from "../../endpoints/report-artifact/create_POST.schema";
 
 function stagingEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return {
@@ -97,6 +99,41 @@ describe("outcome tracking fixture setup harness", () => {
         }),
       ),
     ).toEqual(expect.objectContaining({ status: "error", reason: expect.stringContaining("staging database") }));
+  });
+
+  it("allows API fixture setup without direct DB access when authenticated context is configured", () => {
+    expect(
+      buildFixtureSetupConfig(
+        stagingEnv({
+          [FIXTURE_SETUP_SOURCE_ENV]: "api",
+          STAGING_DATABASE_URL: "",
+          STAGING_ADMIN_SESSION_COOKIE: "floot_built_app_session=fixture-secret-cookie; Path=/",
+        }),
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        status: "ready",
+        source: "api",
+        target: "staging",
+        authMode: "session_cookie",
+        authRole: "admin",
+        outputPrefix: "STAGING",
+      }),
+    );
+
+    expect(
+      buildFixtureSetupConfig(
+        stagingEnv({
+          [FIXTURE_SETUP_SOURCE_ENV]: "api",
+          STAGING_DATABASE_URL: "",
+          STAGING_ADMIN_SESSION_COOKIE: "",
+          STAGING_ADMIN_EMAIL: "",
+          STAGING_ADMIN_PASSWORD: "",
+          STAGING_USER_EMAIL: "",
+          STAGING_USER_PASSWORD: "",
+        }),
+      ),
+    ).toEqual(expect.objectContaining({ status: "skipped", reason: expect.stringContaining("API fixture setup requires") }));
   });
 
   it("allows localhost with local-safe DB env", () => {
@@ -186,6 +223,52 @@ describe("outcome tracking fixture setup harness", () => {
       },
     });
     expect(() => assertSyntheticPayloadSafe(output)).not.toThrow();
+  });
+
+  it("outputs response-only smoke env names for API-created artifact fixtures", () => {
+    const config = buildFixtureSetupConfig(
+      stagingEnv({
+        [FIXTURE_SETUP_SOURCE_ENV]: "api",
+        STAGING_DATABASE_URL: "",
+        STAGING_USER_SESSION_COOKIE: "floot_built_app_session=fixture-user-cookie; Path=/",
+      }),
+    );
+    if (config.status !== "ready") throw new Error("Expected ready staging API fixture setup config.");
+
+    const output = outputForRows(config, {
+      marker: config.marker,
+      userId: null,
+      bureauId: null,
+      creditorId: null,
+      previousReportArtifactId: 301,
+      laterReportArtifactId: 302,
+      previousTradelineId: null,
+      laterTradelineId: null,
+      expectedOutcomeTypes: ["response_received"],
+    });
+
+    expect(output.suggestedEnv).toMatchObject({
+      STAGING_OUTCOME_PREVIOUS_REPORT_ARTIFACT_ID: "301",
+      STAGING_OUTCOME_LATER_REPORT_ARTIFACT_ID: "302",
+      STAGING_OUTCOME_SYNTHETIC_MARKER: "OUTCOME_SMOKE_UNIT_20260517",
+      STAGING_OUTCOME_EXPECTED_OUTCOME_TYPES: "response_received",
+      STAGING_OUTCOME_RUN_RESPONSE_ONLY: "true",
+    });
+    expect(output.packetFindingFixtures).toBe("deferred");
+  });
+
+  it("keeps report artifact create compatible with JSON date payloads for API fixture setup", () => {
+    expect(() =>
+      reportArtifactCreateSchema.parse({
+        tradelineId: null,
+        reportDate: "2026-01-01T00:00:00.000Z",
+        artifactType: "credit_report",
+        data: buildSyntheticReportData("OUTCOME_SMOKE_UNIT_20260517", "OUTCOME_SMOKE_BUREAU", "previous"),
+        storageUrl: null,
+        sha256: "synthetic-sha",
+        expiresAt: null,
+      }),
+    ).not.toThrow();
   });
 
   it("does not create packet/finding fixtures unless explicitly required", () => {

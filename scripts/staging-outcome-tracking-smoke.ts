@@ -534,13 +534,24 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
       "later report fixture",
     );
 
-    const compareBody: Record<string, unknown> = {
-      previousReportArtifactId: fixture.previousReportArtifactId,
-      laterReportArtifactId: fixture.laterReportArtifactId,
-      comparisonScope: fixture.packetId ? "packet_findings" : "report_to_report",
-      ...(fixture.packetId ? { packetId: fixture.packetId } : {}),
-      ...(fixture.disputePacketFindingId ? { disputePacketFindingIds: [fixture.disputePacketFindingId] } : {}),
-    };
+    const responseOnlyWithoutPacket = fixture.runResponseOnly && !fixture.packetId;
+    const compareBody: Record<string, unknown> = responseOnlyWithoutPacket
+      ? {
+          previousReportArtifactId: fixture.previousReportArtifactId,
+          comparisonScope: "response_only",
+          response: {
+            responseReceivedAt: "2026-05-17T00:00:00.000Z",
+            responseType: "bureau_response",
+            source: "manual_record",
+          },
+        }
+      : {
+          previousReportArtifactId: fixture.previousReportArtifactId,
+          laterReportArtifactId: fixture.laterReportArtifactId,
+          comparisonScope: fixture.packetId ? "packet_findings" : "report_to_report",
+          ...(fixture.packetId ? { packetId: fixture.packetId } : {}),
+          ...(fixture.disputePacketFindingId ? { disputePacketFindingIds: [fixture.disputePacketFindingId] } : {}),
+        };
     const compared = await client.json("POST", OUTCOME_ENDPOINTS.compare, compareBody);
     if (!compared.response.ok) {
       throw new Error(`Outcome compare returned HTTP ${compared.status}.`);
@@ -576,7 +587,7 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
       throw new Error("Outcome get returned a different comparison run.");
     }
 
-    let responseOnlyRunId: number | null = null;
+    let responseOnlyRunId: number | null = responseOnlyWithoutPacket ? comparisonRunId : null;
     if (fixture.runResponseOnly && fixture.packetId) {
       const responseOnly = await client.json("POST", OUTCOME_ENDPOINTS.compare, {
         previousReportArtifactId: fixture.previousReportArtifactId,

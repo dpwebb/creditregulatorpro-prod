@@ -109,6 +109,25 @@ describe("outcome tracking staging smoke harness", () => {
     );
   });
 
+  it("supports response-only fixture mode without a packet ID for API-created artifacts", () => {
+    expect(
+      buildSyntheticOutcomeFixture(
+        readyEnv({
+          STAGING_OUTCOME_EXPECTED_OUTCOME_TYPES: "response_received",
+          STAGING_OUTCOME_RUN_RESPONSE_ONLY: "true",
+          STAGING_OUTCOME_PACKET_ID: "",
+        }),
+        "STAGING",
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        packetId: undefined,
+        runResponseOnly: true,
+        expectedOutcomeTypes: ["response_received"],
+      }),
+    );
+  });
+
   it("verifies outcome compare/list/get checks are present", () => {
     expect(OUTCOME_ENDPOINTS).toEqual({
       compare: "/_api/outcomes/compare",

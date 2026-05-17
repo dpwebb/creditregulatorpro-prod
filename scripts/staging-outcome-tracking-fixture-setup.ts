@@ -6,6 +6,7 @@ import type { Kysely } from "kysely";
 import type { DB, Json } from "../helpers/schema";
 
 export const FIXTURE_SETUP_GATE_ENV = "CRP_OUTCOME_TRACKING_FIXTURE_SETUP";
+export const FIXTURE_SETUP_SOURCE_ENV = "CRP_OUTCOME_TRACKING_FIXTURE_SOURCE";
 export const SKIPPED_EXIT_CODE = 2;
 export const FIXTURE_SETUP_CREATES_PACKET_FIXTURES = false;
 
@@ -34,19 +35,35 @@ export const FIXTURE_CLEANUP_POSTURE =
 
 type Target = (typeof ALLOWED_TARGETS)[number];
 type Scenario = "corrected" | "unchanged";
+type FixtureSource = "db" | "api";
+type AuthMode = "credentials" | "session_cookie";
+type AuthRole = "admin" | "user";
+
+type ReadyFixtureSetupConfigBase = {
+  status: "ready";
+  source: FixtureSource;
+  target: Target;
+  baseUrl: string;
+  host: string;
+  outputPrefix: "STAGING" | "LOCAL_SMOKE";
+  marker: string;
+  scenario: Scenario;
+};
 
 export type FixtureSetupConfig =
-  | {
-      status: "ready";
-      target: Target;
-      baseUrl: string;
-      host: string;
+  | (ReadyFixtureSetupConfigBase & {
+      source: "db";
       databaseUrl: string;
       databaseUrlSource: string;
-      outputPrefix: "STAGING" | "LOCAL_SMOKE";
-      marker: string;
-      scenario: Scenario;
-    }
+    })
+  | (ReadyFixtureSetupConfigBase & {
+      source: "api";
+      authMode: AuthMode;
+      authRole: AuthRole;
+      sessionCookie?: string;
+      email?: string;
+      password?: string;
+    })
   | {
       status: "skipped";
       reason: string;
@@ -58,13 +75,13 @@ export type FixtureSetupConfig =
 
 export type SyntheticOutcomeFixtureRows = {
   marker: string;
-  userId: number;
-  bureauId: number;
-  creditorId: number;
+  userId: number | null;
+  bureauId: number | null;
+  creditorId: number | null;
   previousReportArtifactId: number;
   laterReportArtifactId: number;
-  previousTradelineId: number;
-  laterTradelineId: number;
+  previousTradelineId: number | null;
+  laterTradelineId: number | null;
   expectedOutcomeTypes: string[];
 };
 
@@ -116,6 +133,54 @@ export function markerIsSynthetic(value: string | null): value is string {
 
 function scenarioFromEnv(value: string | undefined): Scenario {
   return String(value ?? "").trim().toLowerCase() === "unchanged" ? "unchanged" : "corrected";
+}
+
+function sourceFromEnv(value: string | undefined): FixtureSource {
+  return String(value ?? "").trim().toLowerCase() === "api" ? "api" : "db";
+}
+
+function prefixedEnv(env: NodeJS.ProcessEnv, prefix: "STAGING" | "LOCAL_SMOKE", key: string): string | undefined {
+  return env[`${prefix}_${key}`];
+}
+
+function resolveAuthConfig(
+  env: NodeJS.ProcessEnv,
+  prefix: "STAGING" | "LOCAL_SMOKE",
+): Pick<Extract<FixtureSetupConfig, { status: "ready"; source: "api" }>, "authMode" | "authRole" | "sessionCookie" | "email" | "password"> | null {
+  const adminSessionCookie = normalizeEnv(prefixedEnv(env, prefix, "ADMIN_SESSION_COOKIE"));
+  const userSessionCookie = normalizeEnv(prefixedEnv(env, prefix, "USER_SESSION_COOKIE"));
+  const adminEmail = normalizeEnv(prefixedEnv(env, prefix, "ADMIN_EMAIL"));
+  const adminPassword = normalizeEnv(prefixedEnv(env, prefix, "ADMIN_PASSWORD"));
+  const userEmail = normalizeEnv(prefixedEnv(env, prefix, "USER_EMAIL"));
+  const userPassword = normalizeEnv(prefixedEnv(env, prefix, "USER_PASSWORD"));
+
+  if (adminSessionCookie || userSessionCookie) {
+    return {
+      authMode: "session_cookie",
+      authRole: adminSessionCookie ? "admin" : "user",
+      sessionCookie: adminSessionCookie ?? userSessionCookie ?? undefined,
+    };
+  }
+
+  if (adminEmail && adminPassword) {
+    return {
+      authMode: "credentials",
+      authRole: "admin",
+      email: adminEmail,
+      password: adminPassword,
+    };
+  }
+
+  if (userEmail && userPassword) {
+    return {
+      authMode: "credentials",
+      authRole: "user",
+      email: userEmail,
+      password: userPassword,
+    };
+  }
+
+  return null;
 }
 
 export function validateFixtureHost(
@@ -228,23 +293,51 @@ export function buildFixtureSetupConfig(env: NodeJS.ProcessEnv): FixtureSetupCon
   const hostCheck = validateFixtureHost(baseUrl, target);
   if (hostCheck.ok === false) return { status: "error", reason: hostCheck.reason };
 
-  const { sourceName, rawUrl } = resolveDatabaseUrl(target, env);
-  const dbCheck = validateDatabaseUrlForTarget(rawUrl, target, sourceName, env);
-  if (dbCheck.ok === false) return { status: "error", reason: dbCheck.reason };
-
+  const outputPrefix = target === "staging" ? "STAGING" : "LOCAL_SMOKE";
   const marker = safeMarker(normalizeEnv(env.CRP_OUTCOME_TRACKING_FIXTURE_MARKER) ?? defaultMarker());
   if (!markerIsSynthetic(marker)) {
     return { status: "error", reason: "Synthetic fixture marker must start with OUTCOME_SMOKE_." };
   }
 
+  const source = sourceFromEnv(env[FIXTURE_SETUP_SOURCE_ENV]);
+  if (source === "api") {
+    const auth = resolveAuthConfig(env, outputPrefix);
+    if (!auth) {
+      return {
+        status: "skipped",
+        reason:
+          outputPrefix === "STAGING"
+            ? "SKIPPED: API fixture setup requires STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD, STAGING_USER_EMAIL/STAGING_USER_PASSWORD, STAGING_ADMIN_SESSION_COOKIE, or STAGING_USER_SESSION_COOKIE."
+            : "SKIPPED: API fixture setup requires LOCAL_SMOKE_ADMIN_EMAIL/LOCAL_SMOKE_ADMIN_PASSWORD, LOCAL_SMOKE_USER_EMAIL/LOCAL_SMOKE_USER_PASSWORD, LOCAL_SMOKE_ADMIN_SESSION_COOKIE, or LOCAL_SMOKE_USER_SESSION_COOKIE.",
+      };
+    }
+
+    return {
+      status: "ready",
+      source: "api",
+      target,
+      baseUrl,
+      host: hostCheck.host,
+      outputPrefix,
+      marker,
+      scenario: scenarioFromEnv(env.CRP_OUTCOME_TRACKING_FIXTURE_SCENARIO),
+      ...auth,
+    };
+  }
+
+  const { sourceName, rawUrl } = resolveDatabaseUrl(target, env);
+  const dbCheck = validateDatabaseUrlForTarget(rawUrl, target, sourceName, env);
+  if (dbCheck.ok === false) return { status: "error", reason: dbCheck.reason };
+
   return {
     status: "ready",
+    source: "db",
     target,
     baseUrl,
     host: hostCheck.host,
     databaseUrl: dbCheck.databaseUrl,
     databaseUrlSource: sourceName,
-    outputPrefix: target === "staging" ? "STAGING" : "LOCAL_SMOKE",
+    outputPrefix,
     marker,
     scenario: scenarioFromEnv(env.CRP_OUTCOME_TRACKING_FIXTURE_SCENARIO),
   };
@@ -322,6 +415,9 @@ export function outputForRows(
       [`${prefix}_OUTCOME_LATER_REPORT_ARTIFACT_ID`]: String(rows.laterReportArtifactId),
       [`${prefix}_OUTCOME_SYNTHETIC_MARKER`]: rows.marker,
       [`${prefix}_OUTCOME_EXPECTED_OUTCOME_TYPES`]: rows.expectedOutcomeTypes.join(","),
+      ...(rows.expectedOutcomeTypes.includes("response_received")
+        ? { [`${prefix}_OUTCOME_RUN_RESPONSE_ONLY`]: "true" }
+        : {}),
     },
     createdIds: {
       userId: rows.userId,
@@ -483,6 +579,10 @@ async function insertSyntheticFixtureRows(
 }
 
 export async function runFixtureSetup(config: Extract<FixtureSetupConfig, { status: "ready" }>) {
+  if (config.source === "api") {
+    return runApiFixtureSetup(config);
+  }
+
   process.env.FLOOT_DATABASE_URL = config.databaseUrl;
   const { db } = await import("../helpers/db");
   try {
@@ -495,12 +595,130 @@ export async function runFixtureSetup(config: Extract<FixtureSetupConfig, { stat
   }
 }
 
+function toAbsoluteUrl(baseUrl: string, path: string): string {
+  return new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
+}
+
+function cookieHeaderFromSetCookie(setCookie: string): string {
+  const normalized = setCookie.replace(/^cookie:\s*/i, "").trim();
+  const match = normalized.match(/floot_built_app_session=[^;,\s]+/);
+  return match?.[0] ?? "";
+}
+
+async function loginWithCredentials(baseUrl: string, email: string, password: string): Promise<string> {
+  const response = await fetch(toAbsoluteUrl(baseUrl, "/_api/auth/login_with_password"), {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Origin: baseUrl,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Configured fixture setup credentials did not authenticate: HTTP ${response.status}.`);
+  }
+
+  const sessionCookie = cookieHeaderFromSetCookie(response.headers.get("set-cookie") ?? "");
+  if (!sessionCookie) {
+    throw new Error("Configured fixture setup credentials authenticated without returning a session cookie.");
+  }
+  return sessionCookie;
+}
+
+async function cookieForApiConfig(config: Extract<FixtureSetupConfig, { status: "ready"; source: "api" }>): Promise<string> {
+  if (config.authMode === "session_cookie") {
+    const sessionCookie = cookieHeaderFromSetCookie(config.sessionCookie!);
+    if (!sessionCookie) {
+      throw new Error("Configured fixture setup session cookie did not include floot_built_app_session.");
+    }
+    return sessionCookie;
+  }
+
+  return loginWithCredentials(config.baseUrl, config.email!, config.password!);
+}
+
+async function postJson(baseUrl: string, path: string, cookieHeader: string, body: unknown): Promise<any> {
+  const response = await fetch(toAbsoluteUrl(baseUrl, path), {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Cookie: cookieHeader,
+      Origin: baseUrl,
+    },
+  });
+  const text = await response.text();
+  let parsed: any = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = { raw: text };
+  }
+  if (!response.ok) {
+    throw new Error(`API fixture setup ${path} returned HTTP ${response.status}: ${JSON.stringify(parsed)}`);
+  }
+  assertSyntheticPayloadSafe(parsed);
+  return parsed;
+}
+
+async function createSyntheticReportArtifactViaApi(
+  config: Extract<FixtureSetupConfig, { status: "ready"; source: "api" }>,
+  cookieHeader: string,
+  role: "previous" | "later",
+): Promise<number> {
+  const bureauName = `OUTCOME_SMOKE_BUREAU_${config.marker}`;
+  const result = await postJson(config.baseUrl, "/_api/report-artifact/create", cookieHeader, {
+    tradelineId: null,
+    reportDate: role === "previous" ? "2026-01-01T00:00:00.000Z" : "2026-02-01T00:00:00.000Z",
+    artifactType: "credit_report",
+    data: buildSyntheticReportData(config.marker, bureauName, role),
+    storageUrl: null,
+    sha256: hashMarker(config.marker, `${role}-api-report`),
+    expiresAt: null,
+  });
+
+  const id = Number(result?.artifact?.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error(`API fixture setup did not receive a valid ${role} report artifact ID.`);
+  }
+  return id;
+}
+
+async function runApiFixtureSetup(config: Extract<FixtureSetupConfig, { status: "ready"; source: "api" }>) {
+  const cookieHeader = await cookieForApiConfig(config);
+  const previousReportArtifactId = await createSyntheticReportArtifactViaApi(config, cookieHeader, "previous");
+  const laterReportArtifactId = await createSyntheticReportArtifactViaApi(config, cookieHeader, "later");
+  const output = outputForRows(config, {
+    marker: config.marker,
+    userId: null,
+    bureauId: null,
+    creditorId: null,
+    previousReportArtifactId,
+    laterReportArtifactId,
+    previousTradelineId: null,
+    laterTradelineId: null,
+    expectedOutcomeTypes: ["response_received"],
+  });
+  assertSyntheticPayloadSafe(output);
+  return output;
+}
+
 export function redactSecretText(value: string, env: NodeJS.ProcessEnv): string {
   const secretValues = [
     env.STAGING_DATABASE_URL,
     env.CRP_STAGING_DATABASE_URL,
     env.STAGING_FLOOT_DATABASE_URL,
+    env.STAGING_ADMIN_PASSWORD,
+    env.STAGING_ADMIN_SESSION_COOKIE,
+    env.STAGING_USER_PASSWORD,
+    env.STAGING_USER_SESSION_COOKIE,
     env.LOCAL_DATABASE_URL,
+    env.LOCAL_SMOKE_ADMIN_PASSWORD,
+    env.LOCAL_SMOKE_ADMIN_SESSION_COOKIE,
+    env.LOCAL_SMOKE_USER_PASSWORD,
+    env.LOCAL_SMOKE_USER_SESSION_COOKIE,
     env.FLOOT_DATABASE_URL,
     env.DATABASE_URL,
   ]

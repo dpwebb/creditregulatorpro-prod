@@ -8,7 +8,7 @@ const jsonSchema = z.record(z.any()).nullable().optional();
 
 export const schema = z.object({
   tradelineId: z.number().nullable().optional().transform((val) => val && val > 0 ? val : null),
-  reportDate: z.date({ required_error: "Report date is required" }),
+  reportDate: z.coerce.date({ required_error: "Report date is required" }),
   artifactType: z.string().min(1, "Artifact type is required"),
   data: jsonSchema,
   storageUrl: z.string().optional().nullable(),
