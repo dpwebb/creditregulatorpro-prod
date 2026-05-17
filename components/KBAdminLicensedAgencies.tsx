@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import {
   Accordion,
   AccordionContent,
@@ -6,7 +5,6 @@ import {
   AccordionTrigger,
 } from "./Accordion";
 import { Badge } from "./Badge";
-import { Button } from "./Button";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 import { Building2, Search, ShieldCheck } from "lucide-react";
 import styles from "./KBAdminLicensedAgencies.module.css";
@@ -27,9 +25,10 @@ export const KBAdminLicensedAgencies = () => {
           <li><strong>Search:</strong> Type an agency name in the search bar. The list will update as you type.</li>
           <li><strong>Filter by Province:</strong> Use the dropdown menu to show agencies from a specific province.</li>
         </ul>
-        <Button asChild variant="outline" size="sm" className={styles.actionButton}>
-          <Link to="/admin-licensed-agencies">Go to Licensed Agencies</Link>
-        </Button>
+        <p>
+          Licensed agency data is available through the registry and API-backed collector review
+          workflows. A dedicated admin route is not registered in this build.
+        </p>
       </KnowledgeBaseSection>
 
       <KnowledgeBaseSection

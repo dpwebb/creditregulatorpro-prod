@@ -12,6 +12,7 @@ import { KBAdminVersions } from "../components/KBAdminVersions";
 import { KBAdminParserTesting } from "../components/KBAdminParserTesting";
 import { KBAdminOperations } from "../components/KBAdminOperations";
 import { KBAdminLicensedAgencies } from "../components/KBAdminLicensedAgencies";
+import { KBAdminFeatureIndex } from "../components/KBAdminFeatureIndex";
 
 import styles from "./admin-knowledge-base.module.css";
 
@@ -34,7 +35,7 @@ export default function AdminKnowledgeBasePage() {
     <div className={styles.container}>
       <PageHeader
         title="Admin Guide"
-        subtitle="Reference documentation for platform administration."
+        subtitle="Reference documentation for platform administration, admin features, and platform functions."
       >
         <div className={styles.headerActions}>
           <Button
@@ -58,6 +59,7 @@ export default function AdminKnowledgeBasePage() {
             <TabsTrigger value="parser">Parser Testing</TabsTrigger>
             <TabsTrigger value="operations">Operations</TabsTrigger>
             <TabsTrigger value="agencies">Licensed Agencies</TabsTrigger>
+            <TabsTrigger value="feature-index">Feature Index</TabsTrigger>
           </TabsList>
         </div>
 
@@ -88,6 +90,10 @@ export default function AdminKnowledgeBasePage() {
 
           <TabsContent value="agencies">
             <KBAdminLicensedAgencies />
+          </TabsContent>
+
+          <TabsContent value="feature-index">
+            <KBAdminFeatureIndex />
           </TabsContent>
         </div>
       </Tabs>

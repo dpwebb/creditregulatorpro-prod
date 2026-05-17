@@ -18,7 +18,7 @@ export async function handle(request: Request) {
 
     const content: Content[] = [
       {
-        text: "Credit Regulator Pro — Admin Guide",
+        text: "Credit Regulator Pro - Admin Guide",
         fontSize: 36,
         bold: true,
         color: "#1a365d",
@@ -40,7 +40,7 @@ export async function handle(request: Request) {
         margin: [0, 0, 0, 10],
       },
       {
-        text: "CONFIDENTIAL — INTERNAL USE ONLY",
+        text: "CONFIDENTIAL - INTERNAL USE ONLY",
         alignment: "center",
         color: "#d32f2f",
         bold: true,
@@ -58,6 +58,8 @@ export async function handle(request: Request) {
       ...sections.section5(),
       ...sections.section6(),
       ...sections.section7(),
+      ...sections.section8(),
+      ...sections.section9(),
     ];
 
     const styles: StyleDictionary = {
@@ -85,7 +87,7 @@ export async function handle(request: Request) {
       header: (currentPage: number) => {
         if (currentPage === 1) return null;
         return {
-          text: "Credit Regulator Pro — Admin Guide",
+          text: "Credit Regulator Pro - Admin Guide",
           margin: [40, 20, 40, 0],
           fontSize: 10,
           color: "#666666",
@@ -96,7 +98,7 @@ export async function handle(request: Request) {
         return {
           columns: [
             {
-              text: "CONFIDENTIAL — INTERNAL USE ONLY",
+              text: "CONFIDENTIAL - INTERNAL USE ONLY",
               alignment: "left",
               fontSize: 10,
               color: "#d32f2f",

@@ -1,0 +1,89 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.featureList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  margin-top: var(--spacing-4);
+}
+
+.featureItem {
+  border-left: 3px solid var(--primary);
+  padding-left: var(--spacing-4);
+}
+
+.featureHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.featureTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.featureTitle {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.categoryBadge {
+  flex-shrink: 0;
+}
+
+.routeButton {
+  flex-shrink: 0;
+}
+
+.routeButton :global(svg) {
+  margin-right: var(--spacing-1);
+}
+
+.featureSummary,
+.platformIntro {
+  margin-top: var(--spacing-2);
+  color: var(--muted-foreground);
+}
+
+.functionList {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: var(--spacing-4);
+  color: var(--muted-foreground);
+}
+
+.functionList li {
+  margin-bottom: var(--spacing-2);
+}
+
+.accordion {
+  margin-top: var(--spacing-4);
+}
+
+.platformTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .featureHeader {
+    align-items: stretch;
+  }
+
+  .routeButton {
+    width: 100%;
+  }
+}
