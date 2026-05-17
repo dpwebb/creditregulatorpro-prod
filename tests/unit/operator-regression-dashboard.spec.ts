@@ -32,6 +32,7 @@ describe("operator regression dashboard", () => {
     expect(output).toContain("Repository / Release State");
     expect(output).toContain("Core Logical Regression");
     expect(output).toContain("Auth / Session Lifecycle");
+    expect(output).toContain("Admin Audit / Activity Logs");
     expect(output).toContain("Packet Reliability");
     expect(output).toContain("Report Ingest / Retrieval");
     expect(output).toContain("Violation Search / Status");
@@ -76,6 +77,12 @@ describe("operator regression dashboard", () => {
           category: "Auth / Session Lifecycle",
           name: "Auth session lifecycle endpoint",
           command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
+          category: "Admin Audit / Activity Logs",
+          name: "Admin audit log endpoint",
+          command: "pnpm exec vitest run tests/api/admin-audit-log-endpoint.spec.ts",
           runByDefault: true,
         }),
         expect.objectContaining({

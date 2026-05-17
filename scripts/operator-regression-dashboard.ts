@@ -44,6 +44,7 @@ export const DASHBOARD_SAFETY_BOUNDARIES = {
 export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/unit/public-static-dev-assets.spec.ts",
   "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/admin-audit-log-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
@@ -85,7 +86,6 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Admin audit-log filtering and sanitization coverage still needs expansion.",
   "Packet delivery/status/send endpoint coverage still needs expansion.",
   "Outcome tracking is not implemented.",
   "Admin correction candidate classification remains future work.",
@@ -217,6 +217,21 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+      ],
+    },
+    {
+      name: "Admin Audit / Activity Logs",
+      checks: [
+        check(
+          "Admin audit log endpoint",
+          "SKIP",
+          "Endpoint-backed admin-only access, support/non-admin denial, supported filters and pagination, safe audit summaries, no secret/full SIN/full account/raw-text leakage, regulation/packet/evidence/correction row safety, and runtime-safety boundaries.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/admin-audit-log-endpoint.spec.ts",
             runByDefault: true,
           },
         ),
