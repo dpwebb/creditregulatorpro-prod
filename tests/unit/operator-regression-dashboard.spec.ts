@@ -34,6 +34,7 @@ describe("operator regression dashboard", () => {
     expect(output).toContain("Auth / Session Lifecycle");
     expect(output).toContain("Admin Audit / Activity Logs");
     expect(output).toContain("Packet Reliability");
+    expect(output).toContain("Outcome Tracking");
     expect(output).toContain("Report Ingest / Retrieval");
     expect(output).toContain("Violation Search / Status");
     expect(output).toContain("Evidence / Coordinate Coverage");
@@ -77,6 +78,12 @@ describe("operator regression dashboard", () => {
           category: "Packet Reliability",
           name: "Packet delivery/status endpoint",
           command: "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Outcome comparison helper",
+          command: "pnpm exec vitest run tests/unit/outcome-comparison.spec.ts",
           runByDefault: true,
         }),
         expect.objectContaining({
@@ -153,7 +160,7 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Outcome tracking is not implemented.",
+        "Persisted outcome tracking, outcome endpoints, and outcome admin review UI remain future work; current coverage is no-schema helper only.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",
         "No admin override exists and it should remain absent.",
