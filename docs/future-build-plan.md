@@ -84,6 +84,7 @@ Updated May 17, 2026.
 46. Phase 3 evidence hardening fixture coverage now includes a page-aware sidecar guard across consumer identity and tradeline field families, plus anonymized complex coordinate layouts for creditor-statement native PDF text items and collection-letter OCR TSV words. The new fixtures verify contextual spans can receive optional coordinates while repeated amount-only text fails closed, without changing canonical truth, evidence IDs, replay hashes, violation firing, packet readiness, packet wording, schema, or regulation mappings.
 47. Initial dedicated deterministic document rule-pack scaffolding exists at `helpers/documentRulePacks.ts` for creditor statements and collection letters. The rule packs emit isolated, non-canonical facts with deterministic rule IDs and masked evidence snippets, fail closed on insufficient document-type indicators, refuse bureau credit-report text, and do not route statement or letter facts into credit-report canonical fields, violations, packets, schema, or regulation mappings.
 48. Internal-document exposure guardrails now keep internal text docs out of publicly served static roots and keep internal/confidential PDFs out of generated output artifacts; the admin new-hire manual is preserved as reviewable Markdown under `docs/internal`, and the generated onboarding PDF is not committed under `output/pdf`.
+49. A production readiness checklist now exists at `docs/production-readiness-checklist.md`, and `pnpm run production:readiness` provides an operator-readable local release report over branch/status/commit, required readiness files, required local checks, readiness levels, and rollback reminders. The report is governance-only: it does not query production DBs, create data, call production endpoints, promote production, activate bridge mappings, create packets, or use real consumer data.
 
 ### Remaining High-Priority Work
 
@@ -99,7 +100,7 @@ Updated May 17, 2026.
 
 Goal: keep Codex and human changes bounded, reviewable, and regression-safe.
 
-Status: Mostly complete.
+Status: Mostly complete. The production readiness checklist and operator-readable local release report add Phase 0 governance progress, but selective publish discipline, rollback rehearsal, and release evidence review remain active operator responsibilities.
 
 Work:
 
@@ -305,7 +306,7 @@ Exit criteria:
 
 Goal: make stability visible before deployment.
 
-Status: Golden Path exists, packet lifecycle endpoint coverage has been added, `pnpm run readiness:production` now provides a production-readiness gate over source-of-truth, local regressions, latest staging deploy status, staging health, and protected unauthenticated endpoint boundaries, `pnpm run baseline:staging-scale` now provides a bounded staging scale-baseline harness for public shell, login, auth/session denial, invalid upload-contract rejection, and selected admin/regulation denial endpoints, `pnpm run check:staging-backup-restore` now verifies the non-destructive staging backup/restore drill checklist and local-only restore guardrails, `pnpm run check:staging-observability` now validates container health plus bounded log alert categories, and `pnpm run smoke:auth-workflow` now provides a gated authenticated synthetic user workflow smoke from login through upload, finding review, packet readiness/build/create, PDF download, and account cleanup. Broader load testing, external alert delivery, and repeated authenticated staging runs remain ongoing.
+Status: Golden Path exists, packet lifecycle endpoint coverage has been added, `pnpm run readiness:production` now provides a production-readiness gate over source-of-truth, local regressions, latest staging deploy status, staging health, and protected unauthenticated endpoint boundaries, `pnpm run production:readiness` now provides an operator-readable local release report and points operators to the formal checklist at `docs/production-readiness-checklist.md`, `pnpm run baseline:staging-scale` now provides a bounded staging scale-baseline harness for public shell, login, auth/session denial, invalid upload-contract rejection, and selected admin/regulation denial endpoints, `pnpm run check:staging-backup-restore` now verifies the non-destructive staging backup/restore drill checklist and local-only restore guardrails, `pnpm run check:staging-observability` now validates container health plus bounded log alert categories, and `pnpm run smoke:auth-workflow` now provides a gated authenticated synthetic user workflow smoke from login through upload, finding review, packet readiness/build/create, PDF download, and account cleanup. Broader endpoint-backed tests, outcome tracking, backup/restore verification, monitoring/alerts, external alert delivery, and repeated authenticated staging runs remain ongoing.
 
 Work:
 
@@ -415,7 +416,7 @@ Exit criteria:
 35. Admin corrections need deeper controlled promotion into future deterministic rules.
 36. Additional unseen older/regional bureau layouts should still be converted into anonymized fixtures when observed.
 37. French OCR support is not installed unless added later as a specific requirement.
-38. The production readiness gate verifies regression, staging deploy, and key unauthenticated boundary checks; the staging scale-baseline harness verifies a small bounded synthetic request baseline; the backup/restore checklist gate verifies drill guardrails; the observability gate validates container health and bounded log alert categories; and the authenticated workflow smoke exercises one synthetic user path when explicitly gated. These are not substitutes for sustained load testing, external alert delivery checks, a human-observed restore drill, repeated authenticated staging runs, or production-scale workflow coverage.
+38. The production readiness gate verifies regression, staging deploy, and key unauthenticated boundary checks; the operator readiness report summarizes local release state and required checks; the staging scale-baseline harness verifies a small bounded synthetic request baseline; the backup/restore checklist gate verifies drill guardrails; the observability gate validates container health and bounded log alert categories; and the authenticated workflow smoke exercises one synthetic user path when explicitly gated. These are not substitutes for broader endpoint-backed tests, sustained load testing, external alert delivery checks, a human-observed restore drill, repeated authenticated staging runs, full outcome tracking, or production-scale workflow coverage. No admin override exists, the DB registry remains non-runtime governance metadata, and static runtime mappings remain active runtime truth.
 
 ---
 

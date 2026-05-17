@@ -39,6 +39,7 @@
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
     "check:staging-gate": "node scripts/check-staging-gate.mjs",
     "readiness:production": "node scripts/production-readiness-gate.mjs",
+    "production:readiness": "tsx scripts/production-readiness-report.ts",
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
     "check:staging-observability": "node scripts/staging-observability-check.mjs",
