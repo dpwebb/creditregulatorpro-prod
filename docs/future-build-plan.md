@@ -32,7 +32,7 @@ All future work must protect this promise before adding breadth, convenience, or
 
 ## Current Implementation Status
 
-Updated May 16, 2026.
+Updated May 17, 2026.
 
 ### Implemented
 
@@ -78,8 +78,9 @@ Updated May 16, 2026.
 40. A staging backup/restore checklist gate exists at `scripts/staging-backup-restore-checklist.mjs` and can be run with `pnpm run check:staging-backup-restore`; it requires `CRP_STAGING_BACKUP_RESTORE_CHECK=true`, verifies that the existing staging-to-local refresh path retains local-only restore guards, dry-run support, custom-format dump support, volatile session/token cleanup, and ignored dump-artifact storage, and prints operator drill steps without reading secrets, printing secrets, dumping data, restoring data, modifying staging, or touching production. The checklist gate passed at staging commit `8cf9b473d95c5fbf1b21e16e67d1ba547bfba723`.
 41. A read-only staging observability validation gate exists at `scripts/staging-observability-check.mjs` and can be run with `pnpm run check:staging-observability`; it requires `CRP_STAGING_OBSERVABILITY_CHECK=true`, refuses production and unapproved hosts, checks staging app/login/auth-session health, verifies the staging container is running, and parses a bounded container-log window for HTTP 5xx, parser/OCR failures, packet-generation failures, and background/unhandled error spikes without printing raw logs or secrets. It treats expected runtime-activation rejection messages as controlled non-alerts and does not modify app code, schema, runtime truth, or packet behavior. The gate passed against staging commit `c7137917eac93a84eaef8329d8c4978bcd60f5a4`.
 42. A gated authenticated workflow smoke harness exists at `scripts/staging-auth-workflow-smoke.ts` and can be run with `pnpm run smoke:auth-workflow`; it requires `CRP_AUTH_WORKFLOW_SMOKE=true`, refuses production hosts, self-registers a temporary synthetic consumer, verifies logout/login/session behavior, updates the synthetic profile, generates and uploads an anonymized text-based synthetic credit-report PDF, reviews upload/parser results, finds a packet-ready credit-bureau finding through existing recommendations, validates packet readiness, builds and creates the packet, downloads the packet PDF, and then deletes the temporary consumer account through self-service account deletion. It does not use admin override, direct furnisher packets, runtime regulation activation, production hosts, private PDFs, or committed personal data. Staging execution remains pending.
-43. `static/__dev/system-prompt.md` has been removed from the publicly served static tree and preserved as `docs/internal/system-prompt.md`; a unit guard now verifies the system prompt does not drift back under `static/__dev`.
+43. `static/__dev/system-prompt.md` has been removed from the publicly served static tree and preserved as `docs/internal/system-prompt.md`; a unit guard now verifies the system prompt does not drift back under public static assets.
 44. A design-only protected build slice plan exists at `docs/protected-build-slice-plan-2026-05-16.md` for Phase 3 evidence hardening, dedicated document-type rule packs, admin correction classification, and Phase 4/5/9 governance hardening. It defines upstream callers, downstream consumers, impact boundaries, tests, and stop conditions before protected runtime code is changed.
+45. Remaining internal dev plans, notes, and scheduled-job drafts have been moved from publicly served `static/__dev` into `docs/internal/dev`; the public-static unit guard now verifies the internal dev archive stays outside `static`.
 
 ### Remaining High-Priority Work
 
@@ -87,7 +88,7 @@ Updated May 16, 2026.
 2. Add dedicated deterministic rule packs for creditor statements and collection letters.
 3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
 4. Continue Phase 4 rule defensibility, Phase 5 admin truth-loop hardening, and Phase 9 regulation/reference governance before adding broader packet outcome tracking.
-5. Review whether remaining `static/__dev` plans and notes belong under a publicly served static path.
+5. Keep internal dev plans and notes outside publicly served static assets.
 
 ---
 
@@ -387,7 +388,7 @@ Exit criteria:
 11. Production lazy DDL-helper permission for `dispute_packet_findings` has been verified for the current deployment, but schema-helper behavior should be rechecked after future helper or DB-role changes.
 12. Scanned PDFs can still fail if OCR output or parser quality is low. That is correct fail-closed behavior, but the user-facing diagnostic must remain clear.
 13. Localhost, staging, and production should still be rechecked after future deployments because host-level OCR tools are not enough when the app runs in Docker.
-14. Remaining `static/__dev` plans and notes are still under a publicly served static path and should be reviewed separately from the relocated system prompt.
+14. Internal dev plans and notes have been moved out of the publicly served static tree; archived historical notes may still mention old `static/__dev` paths and should be treated as historical references, not active runtime paths.
 15. Dedicated creditor-statement and collection-letter parsers are not yet ready for broad use.
 16. Runtime static regulation/reference mappings and the DB governance registry remain split by design; the DB registry remains non-runtime governance metadata, not active runtime truth.
 17. Static runtime mappings remain active runtime truth.
@@ -430,6 +431,6 @@ Exit criteria:
 11. Design a controlled admin correction candidate classification model for parser-rule, alias/synonym, validation-rule, violation-rule, regulation/reference mapping, exception-rule, packet-template, evidence-correction, rejected, and manual-note outcomes.
 12. Convert observed complex coordinate sidecar layouts into anonymized fixtures, especially unusual native PDF text ordering and scanned-PDF OCR cases that synthetic fixtures cannot fully represent.
 13. Consider broader packet outcome tracking later, after rule defensibility and admin truth-loop hardening have stabilized.
-14. Review whether remaining `static/__dev` plans and notes belong under a publicly served static path.
+14. Keep future internal dev plans and notes out of publicly served static assets.
 15. Recheck production `dispute_packet_findings` schema-helper behavior after future helper or production DB-role changes.
 16. Add or extend Stage Lab scanned-PDF controlled-error regression coverage only if future OCR-path changes reveal coverage gaps.
