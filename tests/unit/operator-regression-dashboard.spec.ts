@@ -83,6 +83,12 @@ describe("operator regression dashboard", () => {
           command: "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
           runByDefault: true,
         }),
+        expect.objectContaining({
+          category: "Evidence / Coordinate Coverage",
+          name: "Evidence privacy endpoint",
+          command: "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
+          runByDefault: true,
+        }),
       ]),
     );
   });
@@ -127,7 +133,6 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Evidence endpoint privacy coverage still needs expansion.",
         "Outcome tracking is not implemented.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",

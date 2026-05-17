@@ -46,6 +46,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/evidence-location-index.spec.ts",
   "pnpm exec vitest run tests/unit/legal-reference-language.spec.ts",
   "pnpm run test:golden-path",
@@ -83,7 +84,6 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Evidence endpoint privacy coverage still needs expansion.",
   "Auth/session/logout lifecycle endpoint coverage still needs expansion.",
   "Admin audit-log filtering and sanitization coverage still needs expansion.",
   "Packet delivery/status/send endpoint coverage still needs expansion.",
@@ -273,6 +273,16 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
     {
       name: "Evidence / Coordinate Coverage",
       checks: [
+        check(
+          "Evidence privacy endpoint",
+          "SKIP",
+          "Endpoint-backed auth/ownership, attachment behavior, compact evidence metadata, no raw text/full SIN/full account/storage-secret leakage, audit expectations, and runtime-safety boundaries.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
         check("Evidence location index", "SKIP", "Evidence sidecar, page, OCR/native coordinates, and safe omission behavior.", {
           command: "pnpm exec vitest run tests/unit/evidence-location-index.spec.ts",
           runByDefault: true,

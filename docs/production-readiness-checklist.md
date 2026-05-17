@@ -46,6 +46,7 @@ Before promoting staging to production, confirm:
 - Packet lifecycle endpoint coverage passes: `pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts`.
 - Violation search/status endpoint coverage passes: `pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts`.
 - Report ingest lifecycle endpoint coverage passes: `pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts`.
+- Evidence privacy endpoint coverage passes: `pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts`.
 - Contracts pass: `pnpm run test:contracts`.
 - API tests pass: `pnpm run test:api`.
 - Typecheck passes: `pnpm run typecheck`.
@@ -120,7 +121,7 @@ Run the operator dashboard before promotion review or during release health revi
 - `pnpm run operator:dashboard -- --list-checks`
 - `pnpm run operator:dashboard -- --run-checks`
 
-The dashboard summarizes repository/release state, core logical regressions, packet reliability, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
+The dashboard summarizes repository/release state, core logical regressions, packet reliability, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
 
 The dashboard distinguishes local checks from manual or gated smoke checks:
 
@@ -143,7 +144,6 @@ The dashboard does not replace final human release review. Operators must still 
 
 The following gaps remain before claiming scale production readiness:
 
-- Evidence endpoint privacy coverage.
 - Auth/session/logout lifecycle endpoint coverage.
 - Admin audit-log filtering and sanitization coverage.
 - Packet delivery/status/send endpoint coverage.
