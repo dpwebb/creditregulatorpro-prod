@@ -25,6 +25,7 @@
     "smoke:runtime-bridge-mapping": "tsx scripts/staging-runtime-bridge-mapping-smoke.ts",
     "smoke:runtime-bridge-mapping-ui": "tsx scripts/staging-runtime-bridge-mapping-ui-smoke.ts",
     "smoke:auth-workflow": "tsx scripts/staging-auth-workflow-smoke.ts",
+    "smoke:outcome-tracking": "tsx scripts/staging-outcome-tracking-smoke.ts",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",
     "test:violation-corrections:db": "tsx scripts/violation-correction-integration.ts",
