@@ -98,6 +98,8 @@ pnpm start
 For local-only development with shared global secrets and a local Postgres
 database clone, see `docs/local-development.md`.
 
+For the admin feature and function inventory, use `docs/admin-kb.md` and the in-app `/admin-knowledge-base` page.
+
 ## Staging service prerequisites check
 
 When diagnosing staging on a VPS, run:
