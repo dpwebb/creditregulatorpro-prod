@@ -198,7 +198,11 @@ async function cleanupCreatedRows(): Promise<void> {
   created.packetIds = [];
 }
 
-async function createFixtureUser(marker: string, label: string): Promise<AuthUser> {
+async function createFixtureUser(
+  marker: string,
+  label: string,
+  role: "admin" | "support" | "user" = "user",
+): Promise<AuthUser> {
   const row = await db
     .insertInto("users")
     .values({
@@ -206,7 +210,7 @@ async function createFixtureUser(marker: string, label: string): Promise<AuthUse
       displayName: `Packet Lifecycle ${label}`,
       avatarUrl: null,
       organizationId: null,
-      role: "user",
+      role,
       emailVerified: true,
     })
     .returning(["id", "email", "displayName", "avatarUrl", "organizationId", "emailVerified", "role"])
@@ -225,7 +229,7 @@ async function createFixtureUser(marker: string, label: string): Promise<AuthUse
       province: "NS",
       postalCode: "B3J 0A1",
       phone: "555-0100",
-      role: "user",
+      role,
       dateOfBirth: null,
       legalNameSignature: null,
       termsAcceptedAt: reportDate,
@@ -965,6 +969,90 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
     expect(pdfResponse.status).toBe(200);
     expect(pdfResponse.headers.get("Content-Type")).toContain("application/pdf");
     expect((await pdfResponse.arrayBuffer()).byteLength).toBeGreaterThan(100);
+  });
+
+  it("lets admins download a formal packet when a saved consumer ID attachment is missing from storage", async () => {
+    const marker = syntheticMarker();
+    const owner = await createFixtureUser(marker, "owner");
+    const admin = await createFixtureUser(marker, "admin", "admin");
+    const fixture = await createPacketSourceFixture(owner, marker);
+
+    const source = await db
+      .selectFrom("creditorObligationTest as issue")
+      .innerJoin("tradeline as tradeline", "tradeline.id", "issue.tradelineId")
+      .select("tradeline.id as tradelineId")
+      .where("issue.id", "=", fixture.readyIssueId)
+      .executeTakeFirstOrThrow();
+
+    const formalPacketContent = {
+      consumerName: owner.displayName,
+      consumerAddress: ["100 Synthetic Test Avenue", "Halifax, NS B3J 0A1"],
+      letterDate: "2026-05-11",
+      recipientName: "Synthetic Bureau",
+      recipientAddress: ["200 Bureau Test Street", "Toronto, ON M5J 2N8"],
+      subject: "Synthetic packet review request",
+      introduction: "Please review the disputed item listed below.",
+      disputedItems: "Balance reports $200 while the expected balance is $100.",
+      statutoryGrounds: "This item may require review under applicable credit reporting obligations.",
+      supportingDocumentation: "Source report evidence is referenced in the packet record.",
+      requestedAction: "Please investigate and correct the balance if verified.",
+      certification: "I certify this request is accurate to the best of my knowledge.",
+      closing: "Sincerely,",
+    };
+
+    const packet = await db
+      .insertInto("packet")
+      .values({
+        userId: owner.id,
+        tradelineId: source.tradelineId,
+        bureauId: fixture.bureauId,
+        creditorObligationTestId: fixture.readyIssueId,
+        type: "credit_bureau_dispute",
+        status: "generated",
+        processingStatus: "completed",
+        content: JSON.stringify(formalPacketContent),
+        terminalLabel: null,
+        letterDate: reportDate,
+        recipientName: "Synthetic Bureau",
+        recipientAddressLine1: "200 Bureau Test Street",
+        recipientAddressLine2: null,
+        recipientCity: "Toronto",
+        recipientProvince: "ON",
+        recipientPostalCode: "M5J 2N8",
+        region: "CA",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    track(created.packetIds, packet.id);
+
+    await ensureConsumerIdentificationSchema();
+    await db
+      .insertInto("consumerIdentificationDocument")
+      .values({
+        userId: owner.id,
+        fileName: "missing-id.jpeg",
+        fileType: "image/jpeg",
+        fileSizeBytes: 123,
+        storageUrl: `local:identification/${owner.id}/missing-admin-download-id.jpeg`,
+        sha256: "missing-identification-file-admin-download",
+        uploadedAt: reportDate,
+        updatedAt: reportDate,
+        region: "CA",
+      })
+      .execute();
+
+    auth.user = owner;
+    const ownerPdfResponse = await getPacketPdf(pdfRequest(packet.id));
+    expect(ownerPdfResponse.status).toBe(400);
+    expect(await ownerPdfResponse.json()).toEqual({
+      error: "Please upload your identification in profile settings before downloading this packet.",
+    });
+
+    auth.user = admin;
+    const adminPdfResponse = await getPacketPdf(pdfRequest(packet.id));
+    expect(adminPdfResponse.status).toBe(200);
+    expect(adminPdfResponse.headers.get("Content-Type")).toContain("application/pdf");
+    expect((await adminPdfResponse.arrayBuffer()).byteLength).toBeGreaterThan(100);
   });
 
   it("rejects missing-evidence findings and does not persist a packet", async () => {

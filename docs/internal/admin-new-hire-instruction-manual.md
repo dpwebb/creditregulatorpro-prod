@@ -1,15 +1,15 @@
 # CreditRegulatorPro Admin New-Hire Instruction Manual
 
-Generated for: newly hired internal admins  
-Application: CreditRegulatorPro staging  
-Last updated: 2026-05-17  
-Classification: Confidential - internal use only
+Generated for: newly hired platform administrators
+Application: CreditRegulatorPro staging
+Last updated: 2026-05-17
+Classification: Administrative operations reference - no secrets
 
 ## 1. Purpose Of This Manual
 
 This manual is the practical starting guide for a newly hired CreditRegulatorPro admin. It explains what the application does, what an admin is responsible for, where each admin function lives, and how to perform common admin workflows safely.
 
-Use this manual with the in-app Admin Guide at `/admin-knowledge-base`. The in-app guide is the admin-facing knowledge base. This PDF is the onboarding and operating manual for a new internal administrator.
+Use this manual with the in-app Admin Guide at `/admin-knowledge-base`. The in-app guide is the admin-facing knowledge base. This document is the onboarding and operating manual for a new administrator.
 
 ## 2. What CreditRegulatorPro Does
 
