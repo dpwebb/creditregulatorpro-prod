@@ -1,10 +1,10 @@
-Create a new app “Credit Regulator Pro”
+Create a new app â€œCredit Regulator Proâ€
 TARGET AUDIENCE: Grade 8 education level. All user-facing text must use plain, everyday language. No jargon. Short sentences. Encouraging tone.
 
 POLICY Canada only 
 * Region = CA only no cross border storage
 * Evidence retention = 1 year
-* Terminal labels follow a 4-phase progression system; any phase can be the current terminal state. The old PROCEDURALLY EXHAUSTED — CURRENTLY label has been retired.
+* Terminal labels follow a 4-phase progression system; any phase can be the current terminal state. The old PROCEDURALLY EXHAUSTED â€” CURRENTLY label has been retired.
 
 Tables 
 * user_account 
@@ -23,7 +23,7 @@ Indexes
 
 ROLES & SUBSCRIPTIONS
 * Three roles: "admin" (internal staff), "user" (all consumers), and "support" (CS agent)
-* No "enterprise" role — it has been removed
+* No "enterprise" role â€” it has been removed
 * Subscription plans: Trial User (internal plan key: "beta", free for 7 days), monthly ($19.95 CAD, primary plan), annual ($49.95 CAD)
 * Trial User accounts have full feature access during the trial - same feature set as paid users
 * The system is now in PRODUCTION MODE (production_mode = true)
@@ -32,7 +32,7 @@ ROLES & SUBSCRIPTIONS
 * After the 7-day trial, users must subscribe to monthly or annual plan or account is locked
 * After trial, users must subscribe or account is locked
 * The anonymous upload flow (try-upload page) exists for conversion
-* Billing via Stripe (integration deferred — subscription tracking is in place)
+* Billing via Stripe (integration deferred â€” subscription tracking is in place)
 * Subscription table: subscriptions (one per user)
 
 SUPPORT ROLE & CUSTOMER SERVICE
