@@ -82,11 +82,12 @@ Updated May 17, 2026.
 44. A design-only protected build slice plan exists at `docs/protected-build-slice-plan-2026-05-16.md` for Phase 3 evidence hardening, dedicated document-type rule packs, admin correction classification, and Phase 4/5/9 governance hardening. It defines upstream callers, downstream consumers, impact boundaries, tests, and stop conditions before protected runtime code is changed.
 45. Remaining internal dev plans, notes, and scheduled-job drafts have been moved from publicly served `static/__dev` into `docs/internal/dev`; the public-static unit guard now verifies the internal dev archive stays outside `static`.
 46. Phase 3 evidence hardening fixture coverage now includes a page-aware sidecar guard across consumer identity and tradeline field families, plus anonymized complex coordinate layouts for creditor-statement native PDF text items and collection-letter OCR TSV words. The new fixtures verify contextual spans can receive optional coordinates while repeated amount-only text fails closed, without changing canonical truth, evidence IDs, replay hashes, violation firing, packet readiness, packet wording, schema, or regulation mappings.
+47. Initial dedicated deterministic document rule-pack scaffolding exists at `helpers/documentRulePacks.ts` for creditor statements and collection letters. The rule packs emit isolated, non-canonical facts with deterministic rule IDs and masked evidence snippets, fail closed on insufficient document-type indicators, refuse bureau credit-report text, and do not route statement or letter facts into credit-report canonical fields, violations, packets, schema, or regulation mappings.
 
 ### Remaining High-Priority Work
 
 1. Continue Phase 3 evidence hardening by adding more anonymized fixtures from newly observed complex page/coordinate layouts that are not already represented by the current OCR and native-PDF sidecar tests.
-2. Add dedicated deterministic rule packs for creditor statements and collection letters.
+2. Continue dedicated creditor-statement and collection-letter rule packs by adding parser-test/admin review integration, comparison rules, and fixtures before any canonical or packet consumer uses those facts.
 3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
 4. Continue Phase 4 rule defensibility, Phase 5 admin truth-loop hardening, and Phase 9 regulation/reference governance before adding broader packet outcome tracking.
 5. Keep internal dev plans and notes outside publicly served static assets.
