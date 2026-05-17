@@ -48,6 +48,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/outcome-comparison.spec.ts",
+  "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
@@ -88,7 +89,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking, outcome endpoints, and outcome admin review UI remain future work; current coverage is no-schema helper only.",
+  "Outcome tracking remains backend-only; outcome UI, admin-review endpoint, response-document workflow, historical backfill, production-scale smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -271,9 +272,19 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Outcome comparison helper",
           "SKIP",
-          "No-schema deterministic helper coverage for unchanged, removed, corrected, partially_corrected, reinserted, new_issue, unresolved, needs_review, not_comparable, and response_received classifications. Outcome persistence, endpoints, and UI remain future work.",
+          "No-schema deterministic helper coverage for unchanged, removed, corrected, partially_corrected, reinserted, new_issue, unresolved, needs_review, not_comparable, and response_received classifications.",
           {
             command: "pnpm exec vitest run tests/unit/outcome-comparison.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Persisted outcome tracking endpoint",
+          "SKIP",
+          "Endpoint-backed persisted backend coverage for outcome_comparison_run and finding_outcome compare/list/get flows. Backend-only: no UI, no admin-review endpoint, and response documents remain evidence only rather than canonical credit-report facts.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
             runByDefault: true,
           },
         ),

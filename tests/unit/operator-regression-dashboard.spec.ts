@@ -87,6 +87,12 @@ describe("operator regression dashboard", () => {
           runByDefault: true,
         }),
         expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Persisted outcome tracking endpoint",
+          command: "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
           category: "Auth / Session Lifecycle",
           name: "Auth session lifecycle endpoint",
           command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
@@ -160,7 +166,7 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Persisted outcome tracking, outcome endpoints, and outcome admin review UI remain future work; current coverage is no-schema helper only.",
+        "Outcome tracking remains backend-only; outcome UI, admin-review endpoint, response-document workflow, historical backfill, production-scale smoke, and monitoring remain future work.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",
         "No admin override exists and it should remain absent.",
