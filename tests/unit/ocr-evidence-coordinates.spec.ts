@@ -163,6 +163,49 @@ describe("Tesseract TSV OCR coordinates", () => {
     });
   });
 
+  it("matches an anonymized wrapped collection-letter OCR span without trusting repeated amount-only text", () => {
+    const index = coordinateIndex([
+      { ...word("AMOUNT", 0, 12), top: 140, width: 46 },
+      { ...word("NOW", 1, 64), top: 140, width: 28 },
+      { ...word("DUE", 2, 96), top: 158, width: 26 },
+      { ...word("$142.30", 3, 128), top: 158, width: 56 },
+      { ...word("ACCOUNT", 4, 12), top: 900, width: 54 },
+      { ...word("BALANCE", 5, 72), top: 900, width: 54 },
+      { ...word("$142.30", 6, 132), top: 900, width: 56 },
+    ]);
+
+    const contextual = matchOcrEvidenceCoordinates({
+      coordinateIndex: index,
+      pageNumber: 2,
+      fieldKey: "collectionLetters[0].amountDue",
+      textSnippet: "AMOUNT NOW DUE $142.30",
+      canonicalValue: 142.3,
+    });
+    const amountOnly = matchOcrEvidenceCoordinates({
+      coordinateIndex: index,
+      pageNumber: 2,
+      fieldKey: "collectionLetters[0].amountDue",
+      textSnippet: "$142.30",
+      canonicalValue: 142.3,
+    });
+
+    expect(contextual).toMatchObject({
+      boundingBox: {
+        x: 12,
+        y: 140,
+        width: 172,
+        height: 28,
+        unit: "px",
+        pageNumber: 2,
+        coordinateSource: "tesseract_tsv_word",
+        coordinateValidated: true,
+      },
+      wordSpanIndexes: [0, 1, 2, 3],
+      coordinateConfidence: 0.95,
+    });
+    expect(amountOnly).toBeNull();
+  });
+
   it("omits coordinates when the OCR word span is ambiguous", () => {
     const result = matchOcrEvidenceCoordinates({
       coordinateIndex: coordinateIndex([

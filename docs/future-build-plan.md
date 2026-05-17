@@ -81,10 +81,11 @@ Updated May 17, 2026.
 43. `static/__dev/system-prompt.md` has been removed from the publicly served static tree and preserved as `docs/internal/system-prompt.md`; a unit guard now verifies the system prompt does not drift back under public static assets.
 44. A design-only protected build slice plan exists at `docs/protected-build-slice-plan-2026-05-16.md` for Phase 3 evidence hardening, dedicated document-type rule packs, admin correction classification, and Phase 4/5/9 governance hardening. It defines upstream callers, downstream consumers, impact boundaries, tests, and stop conditions before protected runtime code is changed.
 45. Remaining internal dev plans, notes, and scheduled-job drafts have been moved from publicly served `static/__dev` into `docs/internal/dev`; the public-static unit guard now verifies the internal dev archive stays outside `static`.
+46. Phase 3 evidence hardening fixture coverage now includes a page-aware sidecar guard across consumer identity and tradeline field families, plus anonymized complex coordinate layouts for creditor-statement native PDF text items and collection-letter OCR TSV words. The new fixtures verify contextual spans can receive optional coordinates while repeated amount-only text fails closed, without changing canonical truth, evidence IDs, replay hashes, violation firing, packet readiness, packet wording, schema, or regulation mappings.
 
 ### Remaining High-Priority Work
 
-1. Continue Phase 3 evidence hardening by broadening page-aware field coverage and converting observed complex real-world coordinate layouts into anonymized fixtures.
+1. Continue Phase 3 evidence hardening by adding more anonymized fixtures from newly observed complex page/coordinate layouts that are not already represented by the current OCR and native-PDF sidecar tests.
 2. Add dedicated deterministic rule packs for creditor statements and collection letters.
 3. Deepen admin-correction promotion into future parser, validation, violation, exception, and regression rules.
 4. Continue Phase 4 rule defensibility, Phase 5 admin truth-loop hardening, and Phase 9 regulation/reference governance before adding broader packet outcome tracking.

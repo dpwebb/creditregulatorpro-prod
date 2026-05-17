@@ -205,6 +205,53 @@ describe("pdfjs native PDF evidence coordinates", () => {
     expect(ambiguous).toBeNull();
   });
 
+  it("matches an anonymized wrapped creditor-statement coordinate span without trusting repeated amount-only text", () => {
+    const index = coordinateIndex([
+      {
+        pageNumber: 1,
+        items: [
+          { ...pdfItem("MINIMUM", 0, 20, 1, 55), y: 20 },
+          { ...pdfItem("PAYMENT", 1, 80, 1, 52), y: 38 },
+          { ...pdfItem("DUE", 2, 140, 1, 25), y: 38 },
+          { ...pdfItem("$87.65", 3, 172, 1, 40), y: 38 },
+          { ...pdfItem("PREVIOUS", 4, 320, 1, 58), y: 610 },
+          { ...pdfItem("BALANCE", 5, 384, 1, 54), y: 610 },
+          { ...pdfItem("$87.65", 6, 444, 1, 40), y: 610 },
+        ],
+      },
+    ]);
+
+    const contextual = matchPdfjsEvidenceCoordinates({
+      coordinateIndex: index,
+      pageNumber: 1,
+      fieldKey: "creditorStatements[0].minimumPaymentDue",
+      textSnippet: "MINIMUM PAYMENT DUE $87.65",
+      canonicalValue: 87.65,
+    });
+    const amountOnly = matchPdfjsEvidenceCoordinates({
+      coordinateIndex: index,
+      pageNumber: 1,
+      fieldKey: "creditorStatements[0].minimumPaymentDue",
+      textSnippet: "$87.65",
+      canonicalValue: 87.65,
+    });
+
+    expect(contextual).toMatchObject({
+      boundingBox: {
+        x: 20,
+        y: 20,
+        width: 192,
+        height: 30,
+        unit: "pt",
+        pageNumber: 1,
+        coordinateSource: "pdfjs_text_item",
+        coordinateValidated: true,
+      },
+      itemSpanIndexes: [0, 1, 2, 3],
+    });
+    expect(amountOnly).toBeNull();
+  });
+
   it("unions pre-normalized rotated or scaled pdfjs item boxes deterministically", () => {
     const result = matchPdfjsEvidenceCoordinates({
       coordinateIndex: coordinateIndex([

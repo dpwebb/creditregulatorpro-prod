@@ -333,6 +333,104 @@ describe("evidence location index sidecar", () => {
     expect(dobEntry).not.toHaveProperty("boundingBox");
   });
 
+  it("preserves page-aware sidecar coverage across consumer identity and tradeline field families", () => {
+    const rawText = [
+      "TransUnion Canada Credit Report",
+      "Report Date 2026-01-10",
+      "Personal Information",
+      "Name TEST CONSUMER",
+      "Address 26 MAIN ST E",
+      "STEWIACKE NS B0N 2J0",
+      "Date of Birth Apr 11, 1977",
+      "\f",
+      "Account Information",
+      "Creditor Name SECOND PAGE BANK VISA",
+      "Account Number ********1111",
+      "Status Open",
+      "Reported Date 2026-01-10",
+    ].join("\n");
+    const pipeline = build(rawText, {
+      tradelines: [
+        tradeline({
+          sourceText:
+            "Creditor Name SECOND PAGE BANK VISA Account Number ********1111 Status Open Reported Date 2026-01-10",
+        }),
+      ],
+    });
+    const canonicalBefore = JSON.stringify(pipeline.finalOutput);
+    const replayHashBefore = pipeline.replayHash;
+    const index = buildEvidenceLocationIndex(pipeline);
+    const expectedCoverage = [
+      {
+        fieldKey: "consumerInfo.fullName",
+        pageNumber: 1,
+        sectionName: "consumer_identity",
+        snippet: "Name TEST CONSUMER",
+      },
+      {
+        fieldKey: "consumerInfo.addressLine1",
+        pageNumber: 1,
+        sectionName: "consumer_identity",
+        snippet: "Address 26 MAIN ST E",
+      },
+      {
+        fieldKey: "consumerInfo.city",
+        pageNumber: 1,
+        sectionName: "consumer_identity",
+        snippet: "STEWIACKE NS B0N 2J0",
+      },
+      {
+        fieldKey: "consumerInfo.postalCode",
+        pageNumber: 1,
+        sectionName: "consumer_identity",
+        snippet: "STEWIACKE NS B0N 2J0",
+      },
+      {
+        fieldKey: "consumerInfo.dateOfBirth",
+        pageNumber: 1,
+        sectionName: "consumer_identity",
+        snippet: "Date of Birth Apr 11, 1977",
+      },
+      {
+        fieldKey: "tradelines[0].creditorName",
+        pageNumber: 2,
+        sectionName: "tradeline_accounts",
+        snippet: "Creditor Name SECOND PAGE BANK VISA",
+      },
+      {
+        fieldKey: "tradelines[0].status",
+        pageNumber: 2,
+        sectionName: "tradeline_accounts",
+        snippet: "Status Open",
+      },
+      {
+        fieldKey: "tradelines[0].dates.reported",
+        pageNumber: 2,
+        sectionName: "tradeline_accounts",
+        snippet: "Reported Date 2026-01-10",
+      },
+    ];
+
+    for (const expected of expectedCoverage) {
+      const evidence = pipeline.finalOutput.fields[expected.fieldKey].evidence;
+      const entry = index[evidence.evidenceId!];
+
+      expect(entry, expected.fieldKey).toEqual(
+        expect.objectContaining({
+          evidenceId: evidence.evidenceId,
+          fieldKey: expected.fieldKey,
+          pageNumber: expected.pageNumber,
+          sectionName: expected.sectionName,
+          zoneName: expected.sectionName,
+        }),
+      );
+      expect(entry.textSnippet, expected.fieldKey).toContain(expected.snippet);
+      expect(entry, expected.fieldKey).not.toHaveProperty("boundingBox");
+    }
+    expect(JSON.stringify(pipeline.finalOutput)).toBe(canonicalBefore);
+    expect(pipeline.replayHash).toBe(replayHashBefore);
+  });
+
   it("keeps OCR page evidence when deterministic OCR provenance is present", () => {
     const rawText = [
       "TransUnion Canada Credit Report",
