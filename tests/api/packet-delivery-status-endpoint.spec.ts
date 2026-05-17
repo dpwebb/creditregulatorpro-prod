@@ -502,6 +502,16 @@ describe("packet delivery, status, and send endpoint coverage", () => {
     expect(nonOwner.status).toBe(403);
     expect(setFor("packet")).toHaveLength(1);
 
+    mocks.getServerUserSession.mockResolvedValueOnce({ user: currentUser("support") });
+    queueResults({ first: { id: 604, userId: 99, tradelineUserId: null } });
+    const supportDenied = await updatePacketStatus(postRequest("/_api/packet/update-status", {
+      packetId: 604,
+      status: "support_attempted_update",
+    }));
+
+    expect(supportDenied.status).toBe(403);
+    expect(setFor("packet")).toHaveLength(1);
+
     mocks.getServerUserSession.mockResolvedValueOnce({ user: currentUser("admin") });
     queueResults({ first: { id: 603, userId: 99, tradelineUserId: null } });
     const adminResponse = await updatePacketStatus(postRequest("/_api/packet/update-status", {
