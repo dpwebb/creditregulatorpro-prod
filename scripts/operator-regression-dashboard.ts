@@ -44,6 +44,7 @@ export const DASHBOARD_SAFETY_BOUNDARIES = {
 export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/unit/public-static-dev-assets.spec.ts",
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/evidence-location-index.spec.ts",
   "pnpm exec vitest run tests/unit/legal-reference-language.spec.ts",
   "pnpm run test:golden-path",
@@ -81,7 +82,11 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Broader endpoint-backed tests beyond packet lifecycle still need expansion.",
+  "Report ingest/process/list/detail endpoint coverage still needs expansion.",
+  "Evidence endpoint privacy coverage still needs expansion.",
+  "Auth/session/logout lifecycle endpoint coverage still needs expansion.",
+  "Admin audit-log filtering and sanitization coverage still needs expansion.",
+  "Packet delivery/status/send endpoint coverage still needs expansion.",
   "Outcome tracking is not implemented.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -215,6 +220,28 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         }),
         check("Packet PDF", "SKIP", "Packet PDF rendering tests are available but not in the default bounded run.", {
           command: "pnpm exec vitest run tests/unit/dispute-packet-pdf.spec.ts",
+        }),
+      ],
+    },
+    {
+      name: "Violation Search / Status",
+      checks: [
+        check(
+          "Violation search/status endpoint",
+          "SKIP",
+          "Endpoint-backed ownership, supported filters/status, dismiss/delete contract, packet-readiness consistency, privacy/audit expectations, and non-owner denial.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check("Violation search preservation", "SKIP", "Helper-level compatibility coverage for issue search fields and stable violation indexing.", {
+          command: "pnpm exec vitest run tests/unit/violation-search-preservation.spec.ts",
+        }),
+        check("Creditor-validation auth", "SKIP", "Additional endpoint auth boundary coverage for creditor-validation paths.", {
+          kind: "endpoint-test",
+          command: "pnpm exec vitest run tests/api/creditor-validation-auth.spec.ts",
         }),
       ],
     },

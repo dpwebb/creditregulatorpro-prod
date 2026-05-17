@@ -32,6 +32,7 @@ describe("operator regression dashboard", () => {
     expect(output).toContain("Repository / Release State");
     expect(output).toContain("Core Logical Regression");
     expect(output).toContain("Packet Reliability");
+    expect(output).toContain("Violation Search / Status");
     expect(output).toContain("Evidence / Coordinate Coverage");
     expect(output).toContain("Regulation / Governance");
     expect(output).toContain("Public / Internal Exposure");
@@ -68,6 +69,12 @@ describe("operator regression dashboard", () => {
           category: "Manual / Gated Smoke",
           name: "Runtime Bridge Mapping smoke",
           requiresCredentials: true,
+        }),
+        expect.objectContaining({
+          category: "Violation Search / Status",
+          name: "Violation search/status endpoint",
+          command: "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
+          runByDefault: true,
         }),
       ]),
     );
@@ -113,6 +120,8 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
+        "Report ingest/process/list/detail endpoint coverage still needs expansion.",
+        "Evidence endpoint privacy coverage still needs expansion.",
         "Outcome tracking is not implemented.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",

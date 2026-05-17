@@ -44,6 +44,7 @@ Before promoting staging to production, confirm:
 - Public-static guard passes: `pnpm exec vitest run tests/unit/public-static-dev-assets.spec.ts`.
 - Golden Path passes: `pnpm run test:golden-path`.
 - Packet lifecycle endpoint coverage passes: `pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts`.
+- Violation search/status endpoint coverage passes: `pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts`.
 - Contracts pass: `pnpm run test:contracts`.
 - API tests pass: `pnpm run test:api`.
 - Typecheck passes: `pnpm run typecheck`.
@@ -118,7 +119,7 @@ Run the operator dashboard before promotion review or during release health revi
 - `pnpm run operator:dashboard -- --list-checks`
 - `pnpm run operator:dashboard -- --run-checks`
 
-The dashboard summarizes repository/release state, core logical regressions, packet reliability, evidence and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
+The dashboard summarizes repository/release state, core logical regressions, packet reliability, violation search/status endpoint coverage, evidence and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
 
 The dashboard distinguishes local checks from manual or gated smoke checks:
 
@@ -141,11 +142,17 @@ The dashboard does not replace final human release review. Operators must still 
 
 The following gaps remain before claiming scale production readiness:
 
-- Endpoint coverage beyond packet lifecycle.
-- Operator regression dashboard depth beyond the current local report and listed smoke coverage.
+- Report ingest/process/list/detail endpoint coverage.
+- Evidence endpoint privacy coverage.
+- Auth/session/logout lifecycle endpoint coverage.
+- Admin audit-log filtering and sanitization coverage.
+- Packet delivery/status/send endpoint coverage.
 - Outcome tracking.
 - Admin correction candidate classification.
 - Formal rule/version approval.
 - Backup/restore verification.
 - Monitoring and alert delivery.
 - Broader real-world anonymized fixtures.
+- No admin override exists and should remain absent.
+- DB registry remains non-runtime governance metadata.
+- Static runtime mappings remain active runtime truth.
