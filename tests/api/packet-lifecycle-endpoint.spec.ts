@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 
 import type { DB } from "../../helpers/schema";
 import type { User } from "../../helpers/User";
+import { ensureConsumerIdentificationSchema } from "../../helpers/consumerIdentification";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 import { assertSafeLocalDatabaseUrl } from "../utils/localDbHarness";
 
@@ -943,6 +944,22 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
     expect(getResponse.status).toBe(200);
     const details = await getResponse.json();
     expect(details.packet.id).toBe(legacyPacket.id);
+
+    await ensureConsumerIdentificationSchema();
+    await db
+      .insertInto("consumerIdentificationDocument")
+      .values({
+        userId: owner.id,
+        fileName: "missing-id.jpeg",
+        fileType: "image/jpeg",
+        fileSizeBytes: 123,
+        storageUrl: `local:identification/${owner.id}/missing-id.jpeg`,
+        sha256: "missing-identification-file",
+        uploadedAt: reportDate,
+        updatedAt: reportDate,
+        region: "CA",
+      })
+      .execute();
 
     const pdfResponse = await getPacketPdf(pdfRequest(legacyPacket.id));
     expect(pdfResponse.status).toBe(200);

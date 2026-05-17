@@ -16,6 +16,8 @@ import {
 } from "../../helpers/packetPdfContent";
 import { isSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
+type IdentificationPdfAttachment = Awaited<ReturnType<typeof getConsumerIdentificationPdfAttachment>>;
+
 async function recordPacketDownload(packetId: number, actorUserId: number, currentStatus: string | null) {
   const now = new Date();
   await db.transaction().execute(async (trx) => {
@@ -41,6 +43,21 @@ async function recordPacketDownload(packetId: number, actorUserId: number, curre
       })
       .execute();
   });
+}
+
+async function getOptionalIdentificationPdfAttachment(userId: number): Promise<IdentificationPdfAttachment> {
+  try {
+    return await getConsumerIdentificationPdfAttachment(userId);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      console.warn(
+        `[packet-pdf] Saved consumer identification file is missing for user ${userId}; rendering packet without the ID attachment.`,
+      );
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export async function handle(request: Request) {
@@ -104,16 +121,17 @@ export async function handle(request: Request) {
     if (packet.content) {
       try {
         const packetContent = parseStoredPacketContent(packet.content);
+        const isSimplePacket = isSimpleDisputePacketContent(packetContent);
         const identificationAttachment = packet.userId
-          ? await getConsumerIdentificationPdfAttachment(packet.userId)
+          ? await getOptionalIdentificationPdfAttachment(packet.userId)
           : null;
 
-        if (!identificationAttachment && packet.userId === user.id && !isSimpleDisputePacketContent(packetContent)) {
+        if (!identificationAttachment && packet.userId === user.id && !isSimplePacket) {
           return new Response(JSON.stringify({ error: "Please upload your identification in profile settings before downloading this packet." }), { status: 400, headers: { "Content-Type": "application/json" } });
         }
 
         if (identificationAttachment) {
-          if (isSimpleDisputePacketContent(packetContent)) {
+          if (isSimplePacket) {
             attachIdentificationToPacketContent(packetContent, identificationAttachment);
           } else {
             attachConsumerIdentificationToLetterContent(packetContent, identificationAttachment);
