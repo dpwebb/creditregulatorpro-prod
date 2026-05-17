@@ -57,6 +57,12 @@ export type FreezeStatus = "active" | "cancelled" | "expired" | "requested" | "t
 
 export type FreezeType = "extended_fraud_alert" | "fraud_alert" | "security_freeze";
 
+export type FindingOutcomeConfidenceLevel = "high" | "medium" | "low" | "none";
+
+export type FindingOutcomeMatchingMethod = "ambiguous" | "exact_account_creditor_date" | "none" | "not_comparable" | "packet_finding_tradeline" | "response_only" | "stable_secondary_keys";
+
+export type FindingOutcomeType = "corrected" | "needs_review" | "new_issue" | "not_comparable" | "partially_corrected" | "reinserted" | "removed" | "response_received" | "unchanged" | "unresolved";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -88,6 +94,10 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 export type ObligationSection = "BILL_COLLECTOR" | "CREDIT_BUREAU" | "CREDITOR";
 
 export type ObligationState = "ADDRESSED_VIA_LINKED_DISPUTE" | "CHALLENGED" | "INSUFFICIENT_RESPONSE" | "NO_RESPONSE" | "OBLIGATION_PENDING" | "PROCEDURALLY_EXHAUSTED";
+
+export type OutcomeComparisonScope = "packet_findings" | "report_to_report" | "response_only";
+
+export type OutcomeComparisonStatus = "archived" | "completed" | "failed" | "needs_review" | "pending";
 
 export type PacketProcessingStatus = "completed" | "failed" | "generating" | "pending" | "uploading";
 
@@ -556,6 +566,29 @@ export interface FeatureFlag {
   updatedAt: Generated<Timestamp>;
 }
 
+export interface FindingOutcome {
+  comparisonRunId: number;
+  confidenceLevel: FindingOutcomeConfidenceLevel;
+  createdAt: Generated<Timestamp>;
+  creditorObligationTestId: number | null;
+  disputePacketFindingId: number | null;
+  disputePacketId: number | null;
+  evidenceIds: Generated<Json>;
+  evidenceLocationSnapshot: Generated<Json>;
+  id: Generated<number>;
+  laterSnapshot: Json | null;
+  laterTradelineId: number | null;
+  matchingMethod: FindingOutcomeMatchingMethod;
+  outcomeReasonCodes: Generated<Json>;
+  outcomeType: FindingOutcomeType;
+  previousSnapshot: Json | null;
+  previousTradelineId: number | null;
+  responseDeadlineAt: Timestamp | null;
+  responseReceivedAt: Timestamp | null;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
+}
+
 export interface FederalGuidance {
   createdAt: Generated<Timestamp>;
   description: string | null;
@@ -767,6 +800,24 @@ export interface Organizations {
   id: Generated<number>;
   name: string;
   region: Generated<string>;
+}
+
+export interface OutcomeComparisonRun {
+  bureauId: number | null;
+  comparisonScope: OutcomeComparisonScope;
+  completedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+  createdBy: number | null;
+  id: Generated<number>;
+  laterReportArtifactId: number | null;
+  packetId: number | null;
+  previousReportArtifactId: number;
+  sourceVersion: Generated<string>;
+  startedAt: Generated<Timestamp>;
+  status: Generated<OutcomeComparisonStatus>;
+  updatedAt: Generated<Timestamp>;
+  userId: number;
+  warnings: Generated<Json>;
 }
 
 export interface Packet {
@@ -1724,6 +1775,7 @@ export interface DB {
   evidenceAttachment: EvidenceAttachment;
   evidenceEvent: EvidenceEvent;
   featureFlag: FeatureFlag;
+  findingOutcome: FindingOutcome;
   federalGuidance: FederalGuidance;
   identityTheftFreeze: IdentityTheftFreeze;
   industryStandard: IndustryStandard;
@@ -1738,6 +1790,7 @@ export interface DB {
   obligationChallengeLog: ObligationChallengeLog;
   obligationInstance: ObligationInstance;
   organizations: Organizations;
+  outcomeComparisonRun: OutcomeComparisonRun;
   packet: Packet;
   packetComplianceAudit: PacketComplianceAudit;
   packetImpactAssessment: PacketImpactAssessment;
@@ -1823,11 +1876,16 @@ export const AuditActionTypeArrayValues: [AuditActionType, ...AuditActionType[]]
 export const AuditEntityTypeArrayValues: [AuditEntityType, ...AuditEntityType[]] = ["BUREAU","ENFORCEMENT_MECHANISM","EVIDENCE_EVENT","FURNISHER","FURNISHER_OBLIGATION","FURNISHER_VALIDATION","METRO2_VALIDATION_LOG","OBLIGATION","OBLIGATION_INSTANCE","PACKET","REGULATORY_UPDATE","REPORT_ARTIFACT","STATUTE","SYSTEM","TRADELINE","USER_ACCOUNT"];
 export const AuditStatusArrayValues: [AuditStatus, ...AuditStatus[]] = ["FAILURE","SUCCESS"];
 export const ObligationSectionArrayValues: [ObligationSection, ...ObligationSection[]] = ["BILL_COLLECTOR","CREDIT_BUREAU","CREDITOR"];
+export const OutcomeComparisonScopeArrayValues: [OutcomeComparisonScope, ...OutcomeComparisonScope[]] = ["packet_findings","report_to_report","response_only"];
+export const OutcomeComparisonStatusArrayValues: [OutcomeComparisonStatus, ...OutcomeComparisonStatus[]] = ["archived","completed","failed","needs_review","pending"];
 export const BankruptcyTypeArrayValues: [BankruptcyType, ...BankruptcyType[]] = ["BANKRUPTCY_DISCHARGED","BANKRUPTCY_NOT_DISCHARGED","CONSUMER_PROPOSAL","DIVISION_I_PROPOSAL","PERSONAL_BANKRUPTCY"];
 export const CanadianProvinceArrayValues: [CanadianProvince, ...CanadianProvince[]] = ["AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT"];
 export const BankruptcyStatusArrayValues: [BankruptcyStatus, ...BankruptcyStatus[]] = ["ACTIVE","COMPLETED","DISCHARGED","PENDING_REMOVAL","REMOVED"];
 export const FreezeTypeArrayValues: [FreezeType, ...FreezeType[]] = ["extended_fraud_alert","fraud_alert","security_freeze"];
 export const FreezeStatusArrayValues: [FreezeStatus, ...FreezeStatus[]] = ["active","cancelled","expired","requested","thawed"];
+export const FindingOutcomeConfidenceLevelArrayValues: [FindingOutcomeConfidenceLevel, ...FindingOutcomeConfidenceLevel[]] = ["high","medium","low","none"];
+export const FindingOutcomeMatchingMethodArrayValues: [FindingOutcomeMatchingMethod, ...FindingOutcomeMatchingMethod[]] = ["ambiguous","exact_account_creditor_date","none","not_comparable","packet_finding_tradeline","response_only","stable_secondary_keys"];
+export const FindingOutcomeTypeArrayValues: [FindingOutcomeType, ...FindingOutcomeType[]] = ["corrected","needs_review","new_issue","not_comparable","partially_corrected","reinserted","removed","response_received","unchanged","unresolved"];
 export const SignatureTypeArrayValues: [SignatureType, ...SignatureType[]] = ["document_signing","freeze_authorization","identity_verification","thaw_authorization"];
 export const ViolationCategoryArrayValues: [ViolationCategory, ...ViolationCategory[]] = ["ACCOUNT_STATUS_INCONSISTENCY","BALANCE_CALCULATION_VIOLATION","BANKRUPTCY_DISCHARGE_VIOLATION","BUREAU_ACCESS_VIOLATION","BUREAU_DISPUTE_MARKING_FAILURE","BUREAU_INVESTIGATION_FAILURE","BUREAU_NOTIFICATION_FAILURE","BUREAU_REINSERTION_VIOLATION","CLOSED_ACCOUNT_BALANCE_INFLATION","COLLECTION_LIMITATION_EXCEEDED","COLLECTOR_DUPLICATE_REPORTING","COLLECTOR_LICENSE_FAILURE","COLLECTOR_PAYMENT_ACKNOWLEDGMENT_VIOLATION","COLLECTOR_STATUTE_REVIVAL_ATTEMPT","COLLECTOR_UNAUTHORIZED_FEES","CONSENT_WITHDRAWAL_NOT_HONORED","CONSUMER_STATEMENT_SUPPRESSION","CREDIT_LIMIT_MANIPULATION","CREDITOR_RESPONSE_QUALITY","CROSS_BUREAU_INCONSISTENCY","CROSS_ENTITY_DISCREPANCY","DATE_LOGIC_IMPOSSIBLE","DISCLOSURE_DEFICIENCY","DOCUMENTATION_CHAIN_FAILURE","FREEZE_PERIOD_VIOLATION","FURNISHER_AUTHORIZED_USER_MISREPRESENTATION","FURNISHER_JOINT_ACCOUNT_VIOLATION","FURNISHER_POST_DISPUTE_RETALIATION","FURNISHER_REAGING_VIOLATION","FURNISHER_RESPONSE_QUALITY","FURNISHER_STATUS_CODE_MISMATCH","IDENTITY_THEFT_VIOLATION","INVESTIGATION_RUBBER_STAMP","LAST_ACTIVITY_DATE_MANIPULATION","MIXED_FILE_PERSONAL_INFO_MISMATCH","MULTIPLE_COLLECTOR_VIOLATION","PAYMENT_HISTORY_MANIPULATION","PHANTOM_DEBT_UNVERIFIABLE","PROCEDURAL_TIMING_VIOLATION","RESPONSE_ADDRESS_MISMATCH","RESPONSE_INCOMPLETE","RESPONSE_MOV_MISSING","RESPONSE_NO_DOCUMENTATION","RESPONSE_UNAUTHORIZED","RETROACTIVE_HISTORY_MANIPULATION","STALE_REPORTING_FAILURE","STATUTE_APPROACHING","STATUTE_OF_LIMITATIONS","TEMPORAL_MANIPULATION","ZOMBIE_DEBT_RESURRECTION"];
 export const KnownEntityTypeArrayValues: [KnownEntityType, ...KnownEntityType[]] = ["account_type","creditor_name","province","remark_code","status_code"];
