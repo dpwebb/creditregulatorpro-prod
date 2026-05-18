@@ -58,6 +58,29 @@ export type ResponseDocumentFilters = {
   offset?: number;
 };
 
+export type ResponseDocumentAdminReviewAction =
+  | "mark_needs_review"
+  | "mark_related"
+  | "mark_unrelated"
+  | "archive_response"
+  | "link_to_packet"
+  | "link_to_outcome"
+  | "add_review_note";
+
+export type UpdateResponseDocumentAdminReviewInput = {
+  responseId: number;
+  reviewAction: ResponseDocumentAdminReviewAction | string;
+  reviewNotes?: string | null;
+  packetId?: number | null;
+  disputePacketFindingId?: number | null;
+  comparisonRunId?: number | null;
+  findingOutcomeId?: number | null;
+  confirmEvidenceOnly?: boolean;
+  confirmNoCanonicalChange?: boolean;
+  confirmNoOutcomeClassification?: boolean;
+  explicitConfirmation?: boolean;
+};
+
 export type ResponseDocumentRecord = {
   id: number;
   userId: number;
@@ -104,7 +127,18 @@ const SECRET_PATTERN =
   /(session=|cookie=|token=|bearer\s+[a-z0-9._-]+|api[_-]?key|private key|database_url|postgres:\/\/|mysql:\/\/|mongodb:\/\/|mailbox password|imap password|smtp password|email auth token|oauth refresh token)/i;
 const LEGAL_CONCLUSION_PATTERN =
   /\b(equifax admitted fault|the bureau corrected the item|the bureau violated the law|you won|entitled to damages|this proves correction|this is legal proof|the agency must pay|confirmed legal violation|legal violation|demand|enforce)\b/i;
+const REVIEW_NOTE_FORBIDDEN_PATTERN = /\b(mark corrected|mark removed|mark unchanged)\b/i;
 const HASH_PATTERN = /^[a-f0-9]{32,128}$/i;
+
+const RESPONSE_ADMIN_REVIEW_ACTIONS: ResponseDocumentAdminReviewAction[] = [
+  "mark_needs_review",
+  "mark_related",
+  "mark_unrelated",
+  "archive_response",
+  "link_to_packet",
+  "link_to_outcome",
+  "add_review_note",
+];
 
 function isAdmin(user: ResponseDocumentUser): boolean {
   return user.role === "admin";
@@ -173,6 +207,22 @@ function sanitizeHash(value: string | null | undefined): string | null {
     throw new BusinessRuleError("normalizedResponseHash must be a safe hash value.", 400);
   }
   return trimmed.toLowerCase();
+}
+
+function sanitizeReviewNotes(value: string | null | undefined, required: boolean): string | null {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) {
+    if (required) throw new BusinessRuleError("Review notes are required for this action.", 400);
+    return null;
+  }
+  if (trimmed.length > 1000) {
+    throw new BusinessRuleError("Review notes must be 1000 characters or fewer.", 400);
+  }
+  const safe = assertSafeText(trimmed, "reviewNotes");
+  if (REVIEW_NOTE_FORBIDDEN_PATTERN.test(safe)) {
+    throw new BusinessRuleError("Review notes include sensitive or forbidden content.", 400);
+  }
+  return safe;
 }
 
 function computedHash(parts: Array<string | null>): string {
@@ -414,6 +464,97 @@ async function validateRelationships(
   };
 }
 
+function assertSupportedAdminReviewAction(action: string): ResponseDocumentAdminReviewAction {
+  if (!RESPONSE_ADMIN_REVIEW_ACTIONS.includes(action as ResponseDocumentAdminReviewAction)) {
+    throw new BusinessRuleError("Unsupported response review action.", 400);
+  }
+  return action as ResponseDocumentAdminReviewAction;
+}
+
+function adminReviewNotesRequired(input: UpdateResponseDocumentAdminReviewInput): boolean {
+  if (input.reviewAction === "archive_response" && input.explicitConfirmation === true) return false;
+  return true;
+}
+
+function validateAdminReviewConfirmations(input: UpdateResponseDocumentAdminReviewInput): void {
+  if (input.confirmEvidenceOnly !== true) {
+    throw new BusinessRuleError("Confirm response documents remain evidence and metadata only.", 400);
+  }
+  if (input.confirmNoCanonicalChange !== true) {
+    throw new BusinessRuleError("Confirm no canonical source facts will be changed.", 400);
+  }
+  if (input.confirmNoOutcomeClassification !== true) {
+    throw new BusinessRuleError("Confirm no corrected, removed, or unchanged outcome classification will be created.", 400);
+  }
+  if (
+    input.reviewAction === "archive_response" &&
+    input.explicitConfirmation !== true &&
+    !String(input.reviewNotes ?? "").trim()
+  ) {
+    throw new BusinessRuleError("Archive response requires notes or explicit confirmation.", 400);
+  }
+}
+
+function effectiveLinks(
+  response: ResponseDocumentRecord,
+  input: UpdateResponseDocumentAdminReviewInput,
+) {
+  return {
+    packetId: input.packetId ?? response.packetId,
+    disputePacketFindingId: input.disputePacketFindingId ?? response.disputePacketFindingId,
+    comparisonRunId: input.comparisonRunId ?? response.comparisonRunId,
+    findingOutcomeId: input.findingOutcomeId ?? response.findingOutcomeId,
+  };
+}
+
+function hasPacketLink(links: ReturnType<typeof effectiveLinks>): boolean {
+  return links.packetId !== null || links.disputePacketFindingId !== null;
+}
+
+function hasOutcomeLink(links: ReturnType<typeof effectiveLinks>): boolean {
+  return links.comparisonRunId !== null || links.findingOutcomeId !== null;
+}
+
+function responseStatusForAdminReviewAction(
+  action: ResponseDocumentAdminReviewAction,
+  currentStatus: BureauResponseStatus,
+  links: ReturnType<typeof effectiveLinks>,
+  input: UpdateResponseDocumentAdminReviewInput,
+): BureauResponseStatus {
+  if (action === "mark_needs_review") return "needs_review";
+  if (action === "mark_unrelated") return "rejected_as_unrelated";
+  if (action === "archive_response") return "archived";
+  if (action === "link_to_packet") return "linked_to_packet";
+  if (action === "link_to_outcome") return "linked_to_outcome";
+  if (action === "mark_related") {
+    if (input.packetId !== null && input.packetId !== undefined) return "linked_to_packet";
+    if (input.disputePacketFindingId !== null && input.disputePacketFindingId !== undefined) return "linked_to_packet";
+    if (input.comparisonRunId !== null && input.comparisonRunId !== undefined) return "linked_to_outcome";
+    if (input.findingOutcomeId !== null && input.findingOutcomeId !== undefined) return "linked_to_outcome";
+    return hasOutcomeLink(links) ? "linked_to_outcome" : "linked_to_packet";
+  }
+  return currentStatus;
+}
+
+function shouldUpdateLinks(action: ResponseDocumentAdminReviewAction): boolean {
+  return action === "mark_related" || action === "link_to_packet" || action === "link_to_outcome";
+}
+
+function validateAdminReviewActionLinks(
+  action: ResponseDocumentAdminReviewAction,
+  links: ReturnType<typeof effectiveLinks>,
+): void {
+  if (action === "mark_related" && !hasPacketLink(links) && !hasOutcomeLink(links)) {
+    throw new BusinessRuleError("mark_related requires at least one valid response link.", 400);
+  }
+  if (action === "link_to_packet" && !hasPacketLink(links)) {
+    throw new BusinessRuleError("link_to_packet requires packetId or disputePacketFindingId.", 400);
+  }
+  if (action === "link_to_outcome" && !hasOutcomeLink(links)) {
+    throw new BusinessRuleError("link_to_outcome requires comparisonRunId or findingOutcomeId.", 400);
+  }
+}
+
 export async function captureResponseDocument(
   input: CaptureResponseDocumentInput,
   user: ResponseDocumentUser,
@@ -548,4 +689,127 @@ export async function getResponseDocument(
   const row = await query.executeTakeFirst();
   if (!row) throw new BusinessRuleError("Response document not found.", 404);
   return mapResponseDocument(row as Selectable<BureauResponseEvent>);
+}
+
+export async function updateResponseDocumentAdminReview(
+  input: UpdateResponseDocumentAdminReviewInput,
+  user: ResponseDocumentUser,
+  request?: Request,
+): Promise<ResponseDocumentRecord> {
+  await ensureResponseDocumentSchema();
+  if (!isAdmin(user)) {
+    throw new BusinessRuleError("Admin privileges required", 403);
+  }
+
+  const reviewAction = assertSupportedAdminReviewAction(input.reviewAction);
+  validateAdminReviewConfirmations(input);
+  const notes = sanitizeReviewNotes(input.reviewNotes, adminReviewNotesRequired(input));
+  const now = new Date();
+
+  const result = await db.transaction().execute(async (trx) => {
+    const row = await trx
+      .selectFrom("bureauResponseEvent")
+      .selectAll()
+      .where("id", "=", input.responseId)
+      .executeTakeFirst();
+    if (!row) throw new BusinessRuleError("Response document not found.", 404);
+
+    const response = mapResponseDocument(row as Selectable<BureauResponseEvent>);
+    const links = effectiveLinks(response, input);
+
+    if (
+      input.packetId !== undefined ||
+      input.disputePacketFindingId !== undefined ||
+      input.comparisonRunId !== undefined ||
+      input.findingOutcomeId !== undefined ||
+      reviewAction === "mark_related" ||
+      reviewAction === "link_to_packet" ||
+      reviewAction === "link_to_outcome"
+    ) {
+      await validateRelationships(
+        {
+          userId: response.userId,
+          packetId: links.packetId,
+          disputePacketFindingId: links.disputePacketFindingId,
+          comparisonRunId: links.comparisonRunId,
+          findingOutcomeId: links.findingOutcomeId,
+          bureauId: response.bureauId,
+          agencyId: response.agencyId,
+          responseChannel: response.responseChannel,
+          responseDocumentType: response.responseDocumentType,
+          responseReceivedAt: response.responseReceivedAt,
+        },
+        user,
+      );
+    }
+
+    validateAdminReviewActionLinks(reviewAction, links);
+
+    const nextStatus = responseStatusForAdminReviewAction(reviewAction, response.responseStatus, links, input);
+    const linkPatch = shouldUpdateLinks(reviewAction)
+      ? {
+          packetId: links.packetId,
+          disputePacketFindingId: links.disputePacketFindingId,
+          comparisonRunId: links.comparisonRunId,
+          findingOutcomeId: links.findingOutcomeId,
+        }
+      : {};
+
+    const updated = await trx
+      .updateTable("bureauResponseEvent")
+      .set({
+        ...linkPatch,
+        responseStatus: nextStatus,
+        reviewedBy: user.id,
+        reviewedAt: now,
+        reviewNotes: notes ?? response.reviewNotes,
+        updatedAt: now,
+      } as any)
+      .where("id", "=", input.responseId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      previous: response,
+      updated: mapResponseDocument(updated as Selectable<BureauResponseEvent>),
+      nextStatus,
+    };
+  });
+
+  await logAudit({
+    action: "UPDATE",
+    entityType: "SYSTEM",
+    entityId: input.responseId,
+    userId: user.id,
+    details: {
+      component: "bureau_response_event",
+      action: "response_admin_review",
+      reviewAction,
+      responseId: result.updated.id,
+      previousResponseStatus: result.previous.responseStatus,
+      newResponseStatus: result.nextStatus,
+      packetId: result.updated.packetId,
+      disputePacketFindingId: result.updated.disputePacketFindingId,
+      comparisonRunId: result.updated.comparisonRunId,
+      findingOutcomeId: result.updated.findingOutcomeId,
+      responseChannel: result.updated.responseChannel,
+      responseDocumentType: result.updated.responseDocumentType,
+      actorAdminId: user.id,
+      reviewedAt: now.toISOString(),
+      reviewNotesSummary: notes,
+      responseDocumentsRemainEvidenceMetadataOnly: true,
+      laterReportComparisonRequired: true,
+      canonicalFactsMutated: false,
+      outcomeClassificationCreated: false,
+      packetReadyStateChanged: false,
+      packetTextChanged: false,
+      runtimeActivation: false,
+      overridePathCreated: false,
+      furnisherFlowCreated: false,
+    },
+    status: "SUCCESS",
+    request,
+  });
+
+  return result.updated;
 }

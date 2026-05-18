@@ -211,6 +211,20 @@ app.post('_api/responses/capture',async c => {
     return c.text("Error loading endpoint code " + e.message,  500)
   }
 })
+app.post('_api/responses/admin-review',async c => {
+  try {
+    const { handle } = await import("./endpoints/responses/admin-review_POST.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.json(response);
+    }
+    return response;
+  } catch (error) {
+    console.error(error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+})
 app.get('_api/responses/list',async c => {
   try {
     const { handle } = await import("./endpoints/responses/list_GET.js");
