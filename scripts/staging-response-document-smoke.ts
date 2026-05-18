@@ -119,6 +119,14 @@ export type ResponseDocumentSmokeConfig =
       reason: string;
     };
 
+export type ResponseDocumentPrivacyContext = {
+  syntheticMarker?: string | null;
+  runId?: string | null;
+  responseReferenceId?: string | null;
+  responseSubject?: string | null;
+  normalizedResponseHash?: string | null;
+};
+
 type JsonResponse = {
   response: Response;
   status: number;
@@ -188,6 +196,10 @@ function smokeRunIdentifier(runId: string): string {
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
   return safe || "response-document-smoke";
+}
+
+function defaultSmokeRunId(): string {
+  return `response-document-smoke-r${Date.now().toString(36)}`;
 }
 
 function toAbsoluteUrl(baseUrl: string, path: string): string {
@@ -301,7 +313,7 @@ export function buildSmokeConfig(env: NodeJS.ProcessEnv): ResponseDocumentSmokeC
     };
   }
 
-  const runId = normalizeEnv(env.CRP_RESPONSE_DOCUMENT_SMOKE_RUN_ID) ?? `response-document-smoke-${Date.now()}`;
+  const runId = normalizeEnv(env.CRP_RESPONSE_DOCUMENT_SMOKE_RUN_ID) ?? defaultSmokeRunId();
   if (adminSessionCookie || userSessionCookie) {
     return {
       status: "ready",
@@ -375,6 +387,32 @@ const RESPONSE_ADDITIONAL_PRIVACY_PATTERNS = [
   /mailbox password|imap password|smtp password|email auth token|oauth refresh token/i,
 ] as const;
 
+const NUMERIC_DATABASE_ID_KEYS = new Set([
+  "id",
+  "userId",
+  "packetId",
+  "disputePacketFindingId",
+  "findingOutcomeId",
+  "comparisonRunId",
+  "bureauId",
+  "agencyId",
+  "attachmentEvidenceId",
+  "evidenceAttachmentId",
+  "responseId",
+  "createdBy",
+  "reviewedBy",
+  "createdResponseIds",
+]);
+
+const HASH_FIELD_KEYS = new Set([
+  "normalizedResponseHash",
+  "previousReportHash",
+  "laterReportHash",
+  "baselineDeterministicHash",
+  "baselinePacketHash",
+  "sourceResponseHash",
+]);
+
 function collectDisplayTextValues(value: unknown, includeText = false): string[] {
   if (typeof value === "string") return includeText ? [value] : [];
   if (Array.isArray(value)) return value.flatMap((item) => collectDisplayTextValues(item, includeText));
@@ -396,8 +434,65 @@ function assertResponseLegalLanguageSafe(payload: unknown): void {
   }
 }
 
-export function assertResponseDocumentPrivacySafe(payload: unknown): void {
-  assertOutcomePrivacySafe(payload);
+function contextValues(context?: ResponseDocumentPrivacyContext): string[] {
+  return [
+    context?.syntheticMarker,
+    context?.runId,
+    context?.responseReferenceId,
+    context?.responseSubject,
+    context?.normalizedResponseHash,
+  ]
+    .map((value) => String(value ?? "").trim())
+    .filter((value) => value.length >= 4);
+}
+
+function isIntegerish(value: string): boolean {
+  return /^\d+$/.test(value);
+}
+
+function isHashValue(value: string): boolean {
+  return /^[a-f0-9]{32,128}$/i.test(value);
+}
+
+function redactExactValues(value: string, allowedValues: string[]): string {
+  return allowedValues.reduce((output, allowedValue) => output.split(allowedValue).join("[REDACTED_SMOKE_VALUE]"), value);
+}
+
+export function redactKnownResponseSmokePrivacyValues(
+  payload: unknown,
+  context?: ResponseDocumentPrivacyContext,
+): unknown {
+  const allowedValues = contextValues(context);
+
+  function visit(value: unknown, key: string | null): unknown {
+    if (typeof value === "string") {
+      if (key && HASH_FIELD_KEYS.has(key) && isHashValue(value)) return "[REDACTED_HASH]";
+      if (key && NUMERIC_DATABASE_ID_KEYS.has(key) && isIntegerish(value)) return "[REDACTED_ID]";
+      return redactExactValues(value, allowedValues);
+    }
+    if (typeof value === "number") {
+      if (key && NUMERIC_DATABASE_ID_KEYS.has(key) && Number.isInteger(value)) return 0;
+      return value;
+    }
+    if (Array.isArray(value)) return value.map((item) => visit(item, key));
+    if (!value || typeof value !== "object") return value;
+
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([nestedKey, nestedValue]) => [
+        nestedKey,
+        visit(nestedValue, nestedKey),
+      ]),
+    );
+  }
+
+  return visit(payload, null);
+}
+
+export function assertResponseDocumentPrivacySafe(
+  payload: unknown,
+  context?: ResponseDocumentPrivacyContext,
+): void {
+  assertOutcomePrivacySafe(redactKnownResponseSmokePrivacyValues(payload, context));
   const serialized = JSON.stringify(payload);
   const match = RESPONSE_ADDITIONAL_PRIVACY_PATTERNS.find((pattern) => pattern.test(serialized));
   if (match) {
@@ -577,17 +672,21 @@ async function validateSyntheticReportMarker(
   if (!result.response.ok) {
     throw new Error(`${label} synthetic report verification returned HTTP ${result.status}.`);
   }
-  assertResponseDocumentPrivacySafe(result.body);
+  assertResponseDocumentPrivacySafe(result.body, { syntheticMarker: marker });
   assertSyntheticMarkerPresent(result.body, marker, label);
   return hashJson(result.body);
 }
 
-async function getOutcomeRun(client: SmokeHttpClient, comparisonRunId: number): Promise<any> {
+async function getOutcomeRun(
+  client: SmokeHttpClient,
+  comparisonRunId: number,
+  privacyContext?: ResponseDocumentPrivacyContext,
+): Promise<any> {
   const result = await client.json("GET", `${SUPPORTING_READ_ONLY_ENDPOINTS.outcomeGet}?comparisonRunId=${comparisonRunId}`);
   if (!result.response.ok) {
     throw new Error(`Outcome get returned HTTP ${result.status}.`);
   }
-  assertResponseDocumentPrivacySafe(result.body);
+  assertResponseDocumentPrivacySafe(result.body, privacyContext);
   assertResponseDocumentEvidenceOnly(result.body);
   return comparisonRunFromBody(result.body);
 }
@@ -596,7 +695,7 @@ async function verifyExistingOutcomeSource(
   client: SmokeHttpClient,
   source: ExistingOutcomeResponseSource,
 ): Promise<VerifiedSource> {
-  const run = await getOutcomeRun(client, source.comparisonRunId);
+  const run = await getOutcomeRun(client, source.comparisonRunId, { syntheticMarker: source.syntheticMarker });
   const previousReportArtifactId = Number(run.previousReportArtifactId);
   const laterReportArtifactId = run.laterReportArtifactId === null ? null : Number(run.laterReportArtifactId);
   if (!Number.isInteger(previousReportArtifactId) || previousReportArtifactId <= 0) {
@@ -625,12 +724,16 @@ async function verifyExistingOutcomeSource(
   };
 }
 
-async function getPacket(client: SmokeHttpClient, packetId: number): Promise<any> {
+async function getPacket(
+  client: SmokeHttpClient,
+  packetId: number,
+  privacyContext?: ResponseDocumentPrivacyContext,
+): Promise<any> {
   const result = await client.json("GET", `${SUPPORTING_READ_ONLY_ENDPOINTS.packetGet}?packetId=${packetId}`);
   if (!result.response.ok) {
     throw new Error(`Packet get returned HTTP ${result.status}.`);
   }
-  assertResponseDocumentPrivacySafe(result.body);
+  assertResponseDocumentPrivacySafe(result.body, privacyContext);
   return result.body?.packet;
 }
 
@@ -638,7 +741,7 @@ async function verifyPacketLinkedSource(
   client: SmokeHttpClient,
   source: PacketLinkedResponseSource,
 ): Promise<VerifiedSource> {
-  const packet = await getPacket(client, source.packetId);
+  const packet = await getPacket(client, source.packetId, { syntheticMarker: source.syntheticMarker });
   if (!packet) throw new Error("Packet get did not return a packet.");
   if (!JSON.stringify(packet).includes(source.syntheticMarker)) {
     throw new RuntimeSmokeSkipError(
@@ -725,7 +828,7 @@ async function assertOutcomeUnchangedAfterCapture(
   source: VerifiedSource,
 ): Promise<boolean> {
   if (!source.comparisonRunId || !source.baselineDeterministicHash) return true;
-  const run = await getOutcomeRun(client, source.comparisonRunId);
+  const run = await getOutcomeRun(client, source.comparisonRunId, { syntheticMarker: source.syntheticMarker });
   const finding = findingFromRun(run, source.findingOutcomeId ?? undefined);
   if (hashJson(deterministicFindingSnapshot(finding)) !== source.baselineDeterministicHash) {
     throw new Error("Response capture smoke detected deterministic outcome mutation.");
@@ -738,7 +841,7 @@ async function assertPacketUnchangedAfterCapture(
   source: VerifiedSource,
 ): Promise<boolean> {
   if (!source.packetId || !source.baselinePacketHash) return true;
-  const packet = await getPacket(client, source.packetId);
+  const packet = await getPacket(client, source.packetId, { syntheticMarker: source.syntheticMarker });
   if (hashJson(packet) !== source.baselinePacketHash) {
     throw new Error("Response capture smoke detected packet detail mutation.");
   }
@@ -756,15 +859,25 @@ export async function runSmoke(config: Extract<ResponseDocumentSmokeConfig, { st
     const session = await assertAuthenticatedResponseSession(client);
     const verifiedSource = await verifySource(client, config.source);
     const captureBody = buildCaptureBody(verifiedSource, session, config.runId);
+    const capturePrivacyContext: ResponseDocumentPrivacyContext = {
+      syntheticMarker: verifiedSource.syntheticMarker,
+      runId: config.runId,
+      responseReferenceId: captureBody.responseReferenceId,
+      responseSubject: captureBody.responseSubject,
+    };
 
-    assertResponseDocumentPrivacySafe(captureBody);
+    assertResponseDocumentPrivacySafe(captureBody, capturePrivacyContext);
     assertResponseDocumentEvidenceOnly(captureBody);
 
     const captured = await client.json("POST", RESPONSE_DOCUMENT_ENDPOINTS.capture, captureBody);
     if (!captured.response.ok) {
       throw new Error(`Response document capture returned HTTP ${captured.status}.`);
     }
-    assertResponseDocumentPrivacySafe(captured.body);
+    const capturedPrivacyContext = {
+      ...capturePrivacyContext,
+      normalizedResponseHash: captured.body?.response?.normalizedResponseHash ?? null,
+    };
+    assertResponseDocumentPrivacySafe(captured.body, capturedPrivacyContext);
     assertResponseDocumentEvidenceOnly(captured.body);
     const responseId = responseIdFrom(captured.body);
     createdResponseIds.push(responseId);
@@ -780,7 +893,7 @@ export async function runSmoke(config: Extract<ResponseDocumentSmokeConfig, { st
     if (!listed.response.ok) {
       throw new Error(`Response document list returned HTTP ${listed.status}.`);
     }
-    assertResponseDocumentPrivacySafe(listed.body);
+    assertResponseDocumentPrivacySafe(listed.body, capturedPrivacyContext);
     assertResponseDocumentEvidenceOnly(listed.body);
     if (!hasResponse(listed.body, responseId)) {
       throw new Error("Response document list did not include the captured synthetic response.");
@@ -790,7 +903,7 @@ export async function runSmoke(config: Extract<ResponseDocumentSmokeConfig, { st
     if (!fetched.response.ok) {
       throw new Error(`Response document get returned HTTP ${fetched.status}.`);
     }
-    assertResponseDocumentPrivacySafe(fetched.body);
+    assertResponseDocumentPrivacySafe(fetched.body, capturedPrivacyContext);
     assertResponseDocumentEvidenceOnly(fetched.body);
     assertResponseFields(fetched.body.response, captureBody, responseId);
 

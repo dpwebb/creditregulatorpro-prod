@@ -11,6 +11,7 @@ import {
   buildSmokeConfig,
   FORBIDDEN_RESPONSE_DOCUMENT_SMOKE_ENDPOINTS,
   redactSecretText,
+  redactKnownResponseSmokePrivacyValues,
   RESPONSE_DOCUMENT_CLEANUP_POLICY,
   RESPONSE_DOCUMENT_ENDPOINTS,
   runCli,
@@ -324,6 +325,78 @@ describe("response document staging smoke harness", () => {
     expect(() => assertResponseDocumentPrivacySafe({ responseSummary: "mailbox password secret" })).toThrow(
       /privacy check/,
     );
+  });
+
+  it("keeps full-account detection while allowing exact harness-generated synthetic identifiers", () => {
+    const syntheticMarker = "OUTCOME-SMOKE-20260517234714";
+    const runId = "response-document-smoke-1779067461438";
+    const responseReferenceId = `${syntheticMarker}-${runId}`;
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe({
+        responseSummary: "Account number 4111111111111111",
+      }),
+    ).toThrow(/privacy check/);
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe(
+        {
+          responseSubject: syntheticMarker,
+        },
+        { syntheticMarker },
+      ),
+    ).not.toThrow();
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe(
+        {
+          responseReferenceId,
+        },
+        { syntheticMarker, runId, responseReferenceId },
+      ),
+    ).not.toThrow();
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe({
+        id: 1779067461438,
+        userId: 1779067461439,
+        responseId: 1779067461440,
+        comparisonRunId: "1779067461441",
+        createdResponseIds: [1779067461442],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe({
+        normalizedResponseHash: "12345678901234567890123456789012",
+      }),
+    ).not.toThrow();
+  });
+
+  it("requires exact synthetic identifier allowlisting and still scans free text", () => {
+    const syntheticMarker = "OUTCOME-SMOKE-20260517234714";
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe(
+        {
+          responseSubject: "OUTCOME-SMOKE-20260517234715",
+        },
+        { syntheticMarker },
+      ),
+    ).toThrow(/privacy check/);
+
+    expect(() =>
+      assertResponseDocumentPrivacySafe(
+        {
+          responseSummary: "Synthetic note 20260517234715",
+        },
+        { syntheticMarker },
+      ),
+    ).toThrow(/privacy check/);
+
+    expect(redactKnownResponseSmokePrivacyValues({ responseSubject: syntheticMarker }, { syntheticMarker })).toEqual({
+      responseSubject: "[REDACTED_SMOKE_VALUE]",
+    });
   });
 
   it("verifies forbidden legal-conclusion phrases are checked", () => {
