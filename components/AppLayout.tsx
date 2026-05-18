@@ -70,6 +70,7 @@ const adminSidebarIcons: Record<AdminSidebarPath, LucideIcon> = {
   "/admin-risk-triage": AlertTriangle,
   "/admin-compliance-config": ShieldCheck,
   "/admin-activity-logs": History,
+  "/admin-outcome-reviews": GitCompare,
   "/admin-error-logs": Bug,
   "/admin-security": Shield,
   "/support-tickets": MessageSquare,

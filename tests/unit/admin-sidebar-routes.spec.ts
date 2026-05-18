@@ -11,6 +11,7 @@ describe("admin sidebar route registry", () => {
       "/admin-risk-triage",
       "/admin-compliance-config",
       "/admin-activity-logs",
+      "/admin-outcome-reviews",
       "/admin-error-logs",
       "/admin-security",
       "/support-tickets",

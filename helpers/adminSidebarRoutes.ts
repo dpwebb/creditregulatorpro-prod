@@ -19,6 +19,7 @@ export const ADMIN_SIDEBAR_ROUTE_GROUPS = [
       { path: "/admin-risk-triage", label: "Risk Triage" },
       { path: "/admin-compliance-config", label: "Rule Check Settings" },
       { path: "/admin-activity-logs", label: "Activity Logs" },
+      { path: "/admin-outcome-reviews", label: "Outcome Reviews" },
       { path: "/admin-error-logs", label: "Error Logs" },
       { path: "/admin-security", label: "Security & Compliance" },
       { path: "/support-tickets", label: "Support Tickets" },
