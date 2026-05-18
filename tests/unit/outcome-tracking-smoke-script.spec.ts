@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertFixturePreflightVerified,
   assertNoForbiddenEndpointCalls,
+  assertOutcomeCompareResponseContract,
   assertPrivacySafe,
   buildSmokeConfig,
   buildSyntheticOutcomeFixture,
@@ -23,6 +25,14 @@ function readyEnv(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
     ...overrides,
   };
 }
+
+const verifiedPreflight = {
+  previousReportArtifactId: 101,
+  laterReportArtifactId: 102,
+  syntheticMarker: "OUTCOME_SMOKE_CREDITOR",
+  previousReportHash: "a".repeat(64),
+  laterReportHash: "b".repeat(64),
+};
 
 describe("outcome tracking staging smoke harness", () => {
   it("refuses to run without CRP_OUTCOME_TRACKING_SMOKE=true", () => {
@@ -126,6 +136,115 @@ describe("outcome tracking staging smoke harness", () => {
         expectedOutcomeTypes: ["response_received"],
       }),
     );
+  });
+
+  it("verifies marker through preflight fixture verification before compare", () => {
+    expect(() => assertFixturePreflightVerified(verifiedPreflight)).not.toThrow();
+    expect(() =>
+      assertOutcomeCompareResponseContract(
+        {
+          comparisonRun: {
+            id: 9001,
+            findingOutcomes: [{ outcomeType: "response_received" }],
+          },
+        },
+        {
+          previousReportArtifactId: 101,
+          laterReportArtifactId: 102,
+          expectedOutcomeTypes: ["response_received"],
+          syntheticMarker: "OUTCOME_SMOKE_CREDITOR",
+          runResponseOnly: true,
+        },
+        verifiedPreflight,
+      ),
+    ).not.toThrow();
+  });
+
+  it("does not require the outcome compare response to echo the marker when preflight passed", () => {
+    const fixture = buildSyntheticOutcomeFixture(
+      readyEnv({
+        STAGING_OUTCOME_EXPECTED_OUTCOME_TYPES: "response_received",
+        STAGING_OUTCOME_RUN_RESPONSE_ONLY: "true",
+      }),
+      "STAGING",
+    );
+    if (!fixture) throw new Error("Expected fixture.");
+    const body = {
+      comparisonRun: {
+        id: 9002,
+        findingOutcomes: [{ outcomeType: "response_received" }],
+      },
+    };
+
+    const result = assertOutcomeCompareResponseContract(body, fixture, verifiedPreflight);
+
+    expect(JSON.stringify(body)).not.toContain(fixture.syntheticMarker);
+    expect(result).toEqual({
+      comparisonRunId: 9002,
+      outcomeTypes: ["response_received"],
+    });
+  });
+
+  it("accepts response-only response_received outcomes without marker echo in compare body", () => {
+    const fixture = buildSyntheticOutcomeFixture(
+      readyEnv({
+        STAGING_OUTCOME_EXPECTED_OUTCOME_TYPES: "response_received",
+        STAGING_OUTCOME_RUN_RESPONSE_ONLY: "true",
+        STAGING_OUTCOME_PACKET_ID: "",
+      }),
+      "STAGING",
+    );
+    if (!fixture) throw new Error("Expected response-only fixture.");
+
+    expect(() =>
+      assertOutcomeCompareResponseContract(
+        {
+          comparisonRun: {
+            id: 9003,
+            summary: { responseReceived: 1 },
+            findingOutcomes: [{ outcomeType: "response_received", matchingMethod: "response_only" }],
+          },
+        },
+        fixture,
+        verifiedPreflight,
+      ),
+    ).not.toThrow();
+  });
+
+  it("fails before compare when marker cannot be verified through a safe surface", () => {
+    expect(() =>
+      assertFixturePreflightVerified({
+        previousReportArtifactId: 101,
+        laterReportArtifactId: 102,
+        syntheticMarker: "OUTCOME_SMOKE_CREDITOR",
+        previousReportHash: "a".repeat(64),
+      }),
+    ).toThrow(/Fixture marker is not visible through a safe verification surface/);
+  });
+
+  it("does not fake success based only on the env marker", () => {
+    const fixture = buildSyntheticOutcomeFixture(
+      readyEnv({
+        STAGING_OUTCOME_EXPECTED_OUTCOME_TYPES: "response_received",
+        STAGING_OUTCOME_RUN_RESPONSE_ONLY: "true",
+      }),
+      "STAGING",
+    );
+    if (!fixture) throw new Error("Expected fixture.");
+
+    expect(() =>
+      assertOutcomeCompareResponseContract(
+        {
+          comparisonRun: {
+            id: 9004,
+            markerEcho: fixture.syntheticMarker,
+            findingOutcomes: [{ outcomeType: "response_received" }],
+          },
+        },
+        fixture,
+        null,
+      ),
+    ).toThrow(/Fixture marker is not visible through a safe verification surface/);
   });
 
   it("verifies outcome compare/list/get checks are present", () => {

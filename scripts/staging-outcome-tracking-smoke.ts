@@ -79,6 +79,14 @@ export type SyntheticOutcomeFixture = {
   runResponseOnly: boolean;
 };
 
+export type FixturePreflightVerification = {
+  previousReportArtifactId: number;
+  laterReportArtifactId: number;
+  syntheticMarker: string;
+  previousReportHash: string;
+  laterReportHash: string;
+};
+
 type JsonResponse = {
   response: Response;
   status: number;
@@ -393,6 +401,24 @@ export function assertSyntheticMarkerPresent(payload: unknown, marker: string, l
   }
 }
 
+export function assertFixturePreflightVerified(
+  verification: Partial<FixturePreflightVerification> | null | undefined,
+): asserts verification is FixturePreflightVerification {
+  const hashPattern = /^[a-f0-9]{64}$/i;
+  if (
+    !verification ||
+    !markerIsSynthetic(verification.syntheticMarker ?? null) ||
+    !Number.isInteger(verification.previousReportArtifactId) ||
+    !Number.isInteger(verification.laterReportArtifactId) ||
+    !hashPattern.test(String(verification.previousReportHash ?? "")) ||
+    !hashPattern.test(String(verification.laterReportHash ?? ""))
+  ) {
+    throw new Error(
+      "Fixture marker is not visible through a safe verification surface; rerun fixture setup after fixture contract update.",
+    );
+  }
+}
+
 export function assertNoForbiddenEndpointCalls(observedRequests: string[]): void {
   const forbidden = observedRequests.filter((request) =>
     FORBIDDEN_OUTCOME_SMOKE_ENDPOINTS.some((endpoint) => request === `${endpoint.method} ${endpoint.path}`),
@@ -422,6 +448,23 @@ function hasRun(body: any, runId: number): boolean {
 
 function findingCount(body: any): number {
   return Array.isArray(body?.comparisonRun?.findingOutcomes) ? body.comparisonRun.findingOutcomes.length : 0;
+}
+
+export function assertOutcomeCompareResponseContract(
+  body: any,
+  fixture: SyntheticOutcomeFixture,
+  fixturePreflight: Partial<FixturePreflightVerification> | null | undefined,
+): { comparisonRunId: number; outcomeTypes: string[] } {
+  assertFixturePreflightVerified(fixturePreflight);
+  assertPrivacySafe(body);
+
+  const comparisonRunId = comparisonRunIdFrom(body);
+  const outcomeTypes = collectOutcomeTypes(body);
+  if (outcomeTypes.length === 0 || !outcomeTypes.some((type) => fixture.expectedOutcomeTypes.includes(type))) {
+    throw new Error(`Outcome compare returned unexpected outcome types: ${outcomeTypes.join(", ") || "none"}.`);
+  }
+
+  return { comparisonRunId, outcomeTypes };
 }
 
 class SmokeHttpClient {
@@ -475,7 +518,13 @@ async function validateSyntheticReportMarker(
     throw new Error(`${label} synthetic report verification returned HTTP ${result.status}.`);
   }
   assertPrivacySafe(result.body);
-  assertSyntheticMarkerPresent(result.body, marker, label);
+  try {
+    assertSyntheticMarkerPresent(result.body, marker, label);
+  } catch {
+    throw new Error(
+      `Fixture marker is not visible through a safe verification surface; rerun fixture setup after fixture contract update. ${label} did not include required synthetic marker ${marker}.`,
+    );
+  }
   return hashJson(result.body);
 }
 
@@ -533,6 +582,14 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
       fixture.syntheticMarker,
       "later report fixture",
     );
+    const fixturePreflight: FixturePreflightVerification = {
+      previousReportArtifactId: fixture.previousReportArtifactId,
+      laterReportArtifactId: fixture.laterReportArtifactId,
+      syntheticMarker: fixture.syntheticMarker,
+      previousReportHash,
+      laterReportHash,
+    };
+    assertFixturePreflightVerified(fixturePreflight);
 
     const responseOnlyWithoutPacket = fixture.runResponseOnly && !fixture.packetId;
     const compareBody: Record<string, unknown> = responseOnlyWithoutPacket
@@ -556,15 +613,13 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
     if (!compared.response.ok) {
       throw new Error(`Outcome compare returned HTTP ${compared.status}.`);
     }
-    assertPrivacySafe(compared.body);
-    assertSyntheticMarkerPresent(compared.body, fixture.syntheticMarker, "outcome compare response");
 
-    const comparisonRunId = comparisonRunIdFrom(compared.body);
+    const { comparisonRunId, outcomeTypes } = assertOutcomeCompareResponseContract(
+      compared.body,
+      fixture,
+      fixturePreflight,
+    );
     createdOutcomeRunIds.push(comparisonRunId);
-    const outcomeTypes = collectOutcomeTypes(compared.body);
-    if (outcomeTypes.length === 0 || !outcomeTypes.some((type) => fixture.expectedOutcomeTypes.includes(type))) {
-      throw new Error(`Outcome compare returned unexpected outcome types: ${outcomeTypes.join(", ") || "none"}.`);
-    }
 
     const listed = await client.json(
       "GET",
