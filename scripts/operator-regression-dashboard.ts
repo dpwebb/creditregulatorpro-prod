@@ -127,6 +127,12 @@ export const GATED_SMOKE_CHECKS = [
     notes:
       "Manual/gated response-document admin-review smoke. Requires CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and verified synthetic response data. Authenticated staging smoke has passed for admin-only metadata review, required-note validation, unsupported corrected/removed/unchanged and legal/override rejection, source preservation, runtime-safety, and privacy/no-overexposure.",
   },
+  {
+    name: "Response Document Admin Review UI smoke",
+    command: "pnpm run smoke:response-document-admin-review-ui",
+    notes:
+      "Manual/gated response-document admin-review UI smoke. Requires CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_SMOKE=true, safe staging admin context via session cookie, credentials, or storage state, and verified synthetic response data. It exercises one neutral Add Review Note action through the admin UI and keeps response documents evidence/metadata only; authenticated staging run remains pending.",
+  },
 ];
 
 export const KNOWN_SCALE_GAPS = [

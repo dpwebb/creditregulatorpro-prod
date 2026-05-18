@@ -190,6 +190,7 @@ describe("operator regression dashboard", () => {
         "pnpm run smoke:response-document",
         "pnpm run smoke:response-document-ui",
         "pnpm run smoke:response-document-admin-review",
+        "pnpm run smoke:response-document-admin-review-ui",
       ]),
     );
     expect(smoke?.checks.every((check) => check.status === "MANUAL")).toBe(true);
