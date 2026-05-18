@@ -49,6 +49,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/outcome-comparison.spec.ts",
   "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
@@ -95,7 +96,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path; outcome UI, admin-review endpoint, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, and admin-review endpoint coverage now exists; outcome UI, response-document workflow, historical backfill, non-owner smoke, authenticated admin-review smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -287,10 +288,20 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Persisted outcome tracking endpoint",
           "SKIP",
-          "Endpoint-backed persisted backend coverage for outcome_comparison_run and finding_outcome compare/list/get flows. Backend-only: no UI, no admin-review endpoint, and response documents remain evidence only rather than canonical credit-report facts.",
+          "Endpoint-backed persisted backend coverage for outcome_comparison_run and finding_outcome compare/list/get flows. Backend-only: no UI, and response documents remain evidence only rather than canonical credit-report facts.",
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Outcome admin-review endpoint",
+          "SKIP",
+          "Endpoint-backed admin-only metadata review coverage for finding/run review statuses, required notes/confirmations, sanitized audit, deterministic outcome preservation, source-record immutability, and no runtime truth, packet, parser, violation, override, or furnisher path activation.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
             runByDefault: true,
           },
         ),

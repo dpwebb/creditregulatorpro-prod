@@ -93,6 +93,12 @@ describe("operator regression dashboard", () => {
           runByDefault: true,
         }),
         expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Outcome admin-review endpoint",
+          command: "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
           category: "Auth / Session Lifecycle",
           name: "Auth session lifecycle endpoint",
           command: "pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts",
@@ -167,7 +173,7 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path; outcome UI, admin-review endpoint, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, and admin-review endpoint coverage now exists; outcome UI, response-document workflow, historical backfill, non-owner smoke, authenticated admin-review smoke, production-scale repeated smoke, and monitoring remain future work.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",
         "No admin override exists and it should remain absent.",
