@@ -117,7 +117,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, and the admin-only read-only Response Documents UI now has local unit coverage and a successful staging deploy; authenticated Response Documents UI smoke, response capture UI, response parser/inbox integration, response admin-review workflow, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, and authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path; response capture UI, response parser/inbox integration, response admin-review workflow, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -348,7 +348,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Response document admin UI",
           "SKIP",
-          "Admin-only read-only Response Documents UI coverage for list/detail, supported filters, safe metadata rendering, evidence-only and later-report-comparison notices, absence of capture/review/corrected/removed/parser/inbox controls, and source guards limiting calls to existing response list/get endpoints. Staging deploy has passed; authenticated UI smoke remains pending until a safe admin context is configured.",
+          "Admin-only read-only Response Documents UI coverage for list/detail, supported filters, safe metadata rendering, evidence-only and later-report-comparison notices, absence of capture/review/corrected/removed/parser/inbox controls, and source guards limiting calls to existing response list/get endpoints. Authenticated staging UI smoke has passed for an existing synthetic response with route/list/detail, read-only control absence, runtime-safety, and privacy/no-overexposure checks.",
           {
             command: "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
             runByDefault: true,
