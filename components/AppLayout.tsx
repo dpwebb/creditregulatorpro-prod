@@ -71,6 +71,7 @@ const adminSidebarIcons: Record<AdminSidebarPath, LucideIcon> = {
   "/admin-compliance-config": ShieldCheck,
   "/admin-activity-logs": History,
   "/admin-outcome-reviews": GitCompare,
+  "/admin-response-documents": FileText,
   "/admin-error-logs": Bug,
   "/admin-security": Shield,
   "/support-tickets": MessageSquare,

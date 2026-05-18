@@ -20,6 +20,7 @@ export const ADMIN_SIDEBAR_ROUTE_GROUPS = [
       { path: "/admin-compliance-config", label: "Rule Check Settings" },
       { path: "/admin-activity-logs", label: "Activity Logs" },
       { path: "/admin-outcome-reviews", label: "Outcome Reviews" },
+      { path: "/admin-response-documents", label: "Response Documents" },
       { path: "/admin-error-logs", label: "Error Logs" },
       { path: "/admin-security", label: "Security & Compliance" },
       { path: "/support-tickets", label: "Support Tickets" },
