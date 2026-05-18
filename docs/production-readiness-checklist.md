@@ -27,7 +27,7 @@ The current controlled production scope does not include:
 - Legal advice or legal determinations.
 - Automatic DB regulation registry runtime truth.
 - Admin override paths.
-- Full outcome tracking UI, response-document workflow, historical backfill, or packet outcome automation.
+- Consumer-facing outcome UI, response-document workflow, historical backfill, or packet outcome automation.
 
 ## Required Pre-Promotion Checks
 
@@ -50,6 +50,7 @@ Before promoting staging to production, confirm:
 - Outcome comparison helper coverage passes: `pnpm exec vitest run tests/unit/outcome-comparison.spec.ts`.
 - Persisted outcome tracking endpoint coverage passes: `pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts`.
 - Outcome admin-review endpoint coverage passes: `pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts`.
+- Outcome admin-review UI coverage passes: `pnpm exec vitest run tests/unit/outcome-admin-review-ui.spec.tsx`.
 - Authenticated persisted outcome tracking staging smoke has passed for synthetic fixture compare/list/get behavior, or a newer equivalent gated smoke result is recorded before relying on outcome backend changes for release.
 - Authenticated outcome admin-review staging smoke has passed for a synthetic existing outcome run, or a newer equivalent gated smoke result is recorded before relying on outcome admin-review backend changes for release.
 - Violation search/status endpoint coverage passes: `pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts`.
@@ -129,7 +130,7 @@ Run the operator dashboard before promotion review or during release health revi
 - `pnpm run operator:dashboard -- --list-checks`
 - `pnpm run operator:dashboard -- --run-checks`
 
-The dashboard summarizes repository/release state, core logical regressions, auth/session/logout lifecycle endpoint coverage, admin audit-log filtering/sanitization coverage, packet lifecycle and delivery/status endpoint coverage, no-schema outcome comparison helper coverage, persisted backend outcome compare/list/get endpoint coverage, outcome admin-review endpoint coverage and authenticated smoke visibility, authenticated outcome tracking smoke visibility, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
+The dashboard summarizes repository/release state, core logical regressions, auth/session/logout lifecycle endpoint coverage, admin audit-log filtering/sanitization coverage, packet lifecycle and delivery/status endpoint coverage, no-schema outcome comparison helper coverage, persisted backend outcome compare/list/get endpoint coverage, outcome admin-review endpoint coverage and authenticated smoke visibility, admin-only outcome review UI unit coverage, authenticated outcome tracking smoke visibility, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
 
 The dashboard distinguishes local checks from manual or gated smoke checks:
 
@@ -152,7 +153,7 @@ The dashboard does not replace final human release review. Operators must still 
 
 The following gaps remain before claiming scale production readiness:
 
-- Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only `response_received` path with append-only outcome rows, privacy checks, and no source-record mutation; authenticated outcome admin-review smoke has passed for a synthetic existing outcome run, verifying admin-only metadata review, deterministic outcome/source preservation, unsupported override-action rejection, privacy/no-overexposure, and append-only review metadata/audit behavior. Outcome tracking remains backend-only, and non-owner smoke, outcome UI, response-document workflow, historical backfill, production-scale repeated smoke, and monitoring remain future work.
+- Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only `response_received` path with append-only outcome rows, privacy checks, and no source-record mutation; authenticated outcome admin-review smoke has passed for a synthetic existing outcome run, verifying admin-only metadata review, deterministic outcome/source preservation, unsupported override-action rejection, privacy/no-overexposure, and append-only review metadata/audit behavior. An admin-only outcome review UI now exists, uses the existing outcome list/get/admin-review endpoints, preserves deterministic outcome fields, and deployed bundle verification found the page and safety text. Authenticated UI smoke, consumer-facing outcome UI, response-document workflow, historical backfill, production-scale repeated smoke, and monitoring remain future work.
 - Broader production-scale workflow coverage.
 - Admin correction candidate classification.
 - Formal rule/version approval.
