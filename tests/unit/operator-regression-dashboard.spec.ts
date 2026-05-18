@@ -112,6 +112,12 @@ describe("operator regression dashboard", () => {
         }),
         expect.objectContaining({
           category: "Outcome Tracking",
+          name: "Response document admin-review endpoint",
+          command: "pnpm exec vitest run tests/api/response-document-admin-review-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
           name: "Response document admin UI",
           command: "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
           runByDefault: true,
@@ -194,7 +200,7 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, and authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path; response capture UI, response parser/inbox integration, response admin-review workflow, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path, and response-document admin-review backend coverage plus staging unauthenticated denial now exist for metadata-only review actions; authenticated response admin-review smoke, response admin-review UI, response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",
         "No admin override exists and it should remain absent.",

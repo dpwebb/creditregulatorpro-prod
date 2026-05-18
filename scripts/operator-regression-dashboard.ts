@@ -52,6 +52,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/outcome-admin-review-ui.spec.tsx",
   "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/response-document-admin-review-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
@@ -117,7 +118,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, and authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path; response capture UI, response parser/inbox integration, response admin-review workflow, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path, and response-document admin-review backend coverage plus staging unauthenticated denial now exist for metadata-only review actions; authenticated response admin-review smoke, response admin-review UI, response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -342,6 +343,16 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Response document admin-review endpoint",
+          "SKIP",
+          "Endpoint-backed admin-only metadata review coverage for bureau_response_event review status, related/unrelated/archive/note/link actions, same-user packet/outcome/finding validation, required evidence-only/no-canonical-change/no-outcome-classification confirmations, sanitized audit, privacy/no-overexposure, unsupported corrected/removed/legal override-action rejection, source preservation, and source guards preventing parser, OCR, packet, violation, runtime truth, admin override, direct furnisher, or mailbox paths. Staging deploy and unauthenticated denial have passed; authenticated admin-review smoke remains pending.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/response-document-admin-review-endpoint.spec.ts",
             runByDefault: true,
           },
         ),
