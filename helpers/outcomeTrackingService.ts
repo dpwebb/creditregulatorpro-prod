@@ -18,11 +18,14 @@ import { BusinessRuleError } from "./endpointErrorHandler";
 import { logAudit } from "./auditLogger";
 import type {
   FindingOutcome,
+  FindingOutcomeAdminReviewStatus,
   FindingOutcomeConfidenceLevel,
   FindingOutcomeMatchingMethod,
   FindingOutcomeType,
   Json,
+  OutcomeAdminReviewAction,
   OutcomeComparisonRun,
+  OutcomeComparisonRunAdminReviewStatus,
   OutcomeComparisonScope,
   OutcomeComparisonStatus,
   UserRole,
@@ -60,6 +63,18 @@ export type OutcomeListFilters = {
   offset?: number;
 };
 
+export type UpdateOutcomeAdminReviewInput = {
+  comparisonRunId: number;
+  findingOutcomeId?: number | null;
+  reviewAction: OutcomeAdminReviewAction;
+  reviewNotes?: string | null;
+  evidenceIds?: string[];
+  confirmNoCanonicalChange?: boolean;
+  confirmNoRuntimeActivation?: boolean;
+  confirmNoPacketMutation?: boolean;
+  explicitConfirmation?: boolean;
+};
+
 export type PersistedFindingOutcome = {
   id: number;
   comparisonRunId: number;
@@ -81,6 +96,14 @@ export type PersistedFindingOutcome = {
   responseReceivedAt: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  adminReviewStatus: FindingOutcomeAdminReviewStatus;
+  adminReviewNotes: string | null;
+  reviewedBy: number | null;
+  reviewedAt: Date | string | null;
+  reviewEvidenceIds: Json;
+  reviewSourceVersion: string | null;
+  reviewAction: OutcomeAdminReviewAction | null;
+  reviewUpdatedAt: Date | string | null;
 };
 
 export type OutcomeRunSummary = {
@@ -99,6 +122,11 @@ export type OutcomeRunSummary = {
   completedAt: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  adminReviewStatus: OutcomeComparisonRunAdminReviewStatus;
+  adminReviewNotes: string | null;
+  reviewedBy: number | null;
+  reviewedAt: Date | string | null;
+  reviewUpdatedAt: Date | string | null;
   summary: OutcomeComparisonSummary;
 };
 
@@ -107,11 +135,14 @@ export type OutcomeComparisonRunDetail = OutcomeRunSummary & {
 };
 
 const SOURCE_VERSION = "outcome-comparison-v1";
+const REVIEW_SOURCE_VERSION = "outcome-admin-review-v1";
 
 const SENSITIVE_KEY_PATTERN =
   /(raw|snippet|text|pdf|packet.*body|content|storage|bucket|path|url|token|cookie|secret|api.?key|private.?key|database|authorization|accountNumber|sin|socialInsurance)/i;
 const SENSITIVE_VALUE_PATTERN =
-  /(\b\d{3}[- ]?\d{3}[- ]?\d{3}\b|sk-[a-z0-9_-]+|x-goog-signature|signature=|token=|session=|cookie=|postgres:\/\/|database_url|private key|api[_-]?key|raw report text|raw pdf text|storage bucket|bucket:\/\/)/i;
+  /(\b\d{3}[- ]?\d{3}[- ]?\d{3}\b|\b\d{12,19}\b|sk-[a-z0-9_-]+|x-goog-signature|signature=|token=|session=|cookie=|postgres:\/\/|database_url|private key|api[_-]?key|raw report text|raw pdf text|storage bucket|bucket:\/\/)/i;
+const REVIEW_FORBIDDEN_LANGUAGE_PATTERN =
+  /\b(you won|violated the law|admitted fault|entitled to damages|must pay|confirmed legal violation|force outcome|override to corrected|override to removed|make final truth|legal_violation|activate runtime|admin override)\b/i;
 
 function isAdmin(user: OutcomeTrackingUser): boolean {
   return user.role === "admin";
@@ -183,6 +214,30 @@ export function sanitizeOutcomeSnapshot(value: unknown): Json | null {
     if (sanitized !== null && sanitized !== undefined) output[key] = sanitized;
   }
   return output as Json;
+}
+
+function sanitizeReviewNotes(value: string | null | undefined, required: boolean): string | null {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) {
+    if (required) throw new BusinessRuleError("Review notes are required for this action.", 400);
+    return null;
+  }
+  if (trimmed.length > 1000) {
+    throw new BusinessRuleError("Review notes must be 1000 characters or fewer.", 400);
+  }
+  if (SENSITIVE_VALUE_PATTERN.test(trimmed) || REVIEW_FORBIDDEN_LANGUAGE_PATTERN.test(trimmed)) {
+    throw new BusinessRuleError("Review notes include sensitive or forbidden content.", 400);
+  }
+  return trimmed;
+}
+
+function safeReviewEvidenceIds(value: string[] | undefined): string[] {
+  if (!value || value.length === 0) return [];
+  const ids = Array.from(new Set(value.map((item) => String(item).trim()).filter(Boolean)));
+  if (ids.some((item) => SENSITIVE_VALUE_PATTERN.test(item) || REVIEW_FORBIDDEN_LANGUAGE_PATTERN.test(item))) {
+    throw new BusinessRuleError("Review evidence IDs include sensitive content.", 400);
+  }
+  return ids.slice(0, 50);
 }
 
 function normalizeParserQuality(data: unknown, processingStatus: string | null): ReportComparisonSnapshot["parserQuality"] {
@@ -537,6 +592,11 @@ function runSummary(run: Selectable<OutcomeComparisonRun>, outcomes: Array<{ out
     completedAt: run.completedAt,
     createdAt: run.createdAt,
     updatedAt: run.updatedAt,
+    adminReviewStatus: run.adminReviewStatus,
+    adminReviewNotes: run.adminReviewNotes,
+    reviewedBy: toNumber(run.reviewedBy),
+    reviewedAt: run.reviewedAt,
+    reviewUpdatedAt: run.reviewUpdatedAt,
     summary: summarizeOutcomes(outcomes),
   };
 }
@@ -563,6 +623,14 @@ function mapFindingOutcome(row: Selectable<FindingOutcome>): PersistedFindingOut
     responseReceivedAt: row.responseReceivedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    adminReviewStatus: row.adminReviewStatus,
+    adminReviewNotes: row.adminReviewNotes,
+    reviewedBy: toNumber(row.reviewedBy),
+    reviewedAt: row.reviewedAt,
+    reviewEvidenceIds: row.reviewEvidenceIds,
+    reviewSourceVersion: row.reviewSourceVersion,
+    reviewAction: row.reviewAction,
+    reviewUpdatedAt: row.reviewUpdatedAt,
   };
 }
 
@@ -796,6 +864,210 @@ export async function getOutcomeComparisonRun(
     ...runSummary(run as Selectable<OutcomeComparisonRun>, findings),
     findingOutcomes: findings.map((row) => mapFindingOutcome(row as Selectable<FindingOutcome>)),
   };
+}
+
+function reviewStatusForAction(action: OutcomeAdminReviewAction): FindingOutcomeAdminReviewStatus {
+  if (action === "review_outcome") return "reviewed";
+  if (action === "mark_needs_review") return "needs_review";
+  if (action === "confirm_outcome") return "confirmed";
+  if (action === "reject_match") return "rejected_match";
+  if (action === "reject_classification") return "rejected_classification";
+  if (action === "archive_review") return "archived";
+  throw new BusinessRuleError("Unsupported outcome review action.", 400);
+}
+
+function reviewActionRequiresNotes(action: OutcomeAdminReviewAction): boolean {
+  return action !== "review_outcome";
+}
+
+function validateReviewConfirmations(input: UpdateOutcomeAdminReviewInput): void {
+  if (["confirm_outcome", "reject_match", "reject_classification"].includes(input.reviewAction)) {
+    if (input.confirmNoCanonicalChange !== true) {
+      throw new BusinessRuleError("Confirm no canonical source facts will be changed.", 400);
+    }
+    if (input.confirmNoRuntimeActivation !== true) {
+      throw new BusinessRuleError("Confirm no runtime regulation truth will be activated.", 400);
+    }
+  }
+  if (input.reviewAction === "archive_review" && input.explicitConfirmation !== true && !String(input.reviewNotes ?? "").trim()) {
+    throw new BusinessRuleError("Archive review requires notes or explicit confirmation.", 400);
+  }
+}
+
+function deriveRunAdminReviewStatus(
+  findings: Array<Pick<Selectable<FindingOutcome>, "adminReviewStatus">>,
+): OutcomeComparisonRunAdminReviewStatus {
+  if (findings.length === 0) return "unreviewed";
+  const statuses = findings.map((finding) => finding.adminReviewStatus);
+  if (statuses.every((status) => status === "archived")) return "archived";
+  if (statuses.some((status) => ["needs_review", "rejected_match", "rejected_classification"].includes(status))) {
+    return "needs_review";
+  }
+  if (statuses.every((status) => status !== "unreviewed")) return "reviewed";
+  if (statuses.some((status) => status !== "unreviewed")) return "partially_reviewed";
+  return "unreviewed";
+}
+
+export async function updateOutcomeAdminReview(
+  input: UpdateOutcomeAdminReviewInput,
+  user: OutcomeTrackingUser,
+  request?: Request,
+): Promise<OutcomeComparisonRunDetail> {
+  await ensureOutcomeTrackingSchema();
+  if (!isAdmin(user)) {
+    throw new BusinessRuleError("Admin privileges required", 403);
+  }
+
+  validateReviewConfirmations(input);
+  const nextFindingStatus = reviewStatusForAction(input.reviewAction);
+  const notesRequired =
+    reviewActionRequiresNotes(input.reviewAction) &&
+    !(input.reviewAction === "archive_review" && input.explicitConfirmation === true);
+  const notes = sanitizeReviewNotes(input.reviewNotes, notesRequired);
+  const evidenceIds = safeReviewEvidenceIds(input.evidenceIds);
+  const now = new Date();
+
+  const result = await db.transaction().execute(async (trx) => {
+    const run = await trx
+      .selectFrom("outcomeComparisonRun")
+      .selectAll()
+      .where("id", "=", input.comparisonRunId)
+      .executeTakeFirst();
+    if (!run) throw new BusinessRuleError("Outcome comparison run not found", 404);
+
+    let reviewedFinding: Selectable<FindingOutcome> | null = null;
+    const previousRunReviewStatus = run.adminReviewStatus;
+    let previousFindingReviewStatus: FindingOutcomeAdminReviewStatus | null = null;
+
+    if (input.findingOutcomeId) {
+      const finding = await trx
+        .selectFrom("findingOutcome")
+        .selectAll()
+        .where("id", "=", input.findingOutcomeId)
+        .executeTakeFirst();
+
+      if (!finding) throw new BusinessRuleError("Finding outcome not found", 404);
+      if (Number(finding.comparisonRunId) !== Number(input.comparisonRunId)) {
+        throw new BusinessRuleError("Finding outcome does not belong to this comparison run.", 400);
+      }
+
+      previousFindingReviewStatus = finding.adminReviewStatus;
+      reviewedFinding = await trx
+        .updateTable("findingOutcome")
+        .set({
+          adminReviewStatus: nextFindingStatus,
+          adminReviewNotes: notes,
+          reviewedBy: user.id,
+          reviewedAt: now,
+          reviewEvidenceIds: asJson(evidenceIds),
+          reviewSourceVersion: REVIEW_SOURCE_VERSION,
+          reviewAction: input.reviewAction,
+          reviewUpdatedAt: now,
+          updatedAt: now,
+        } as any)
+        .where("id", "=", input.findingOutcomeId)
+        .returningAll()
+        .executeTakeFirstOrThrow() as Selectable<FindingOutcome>;
+
+      const allFindings = await trx
+        .selectFrom("findingOutcome")
+        .selectAll()
+        .where("comparisonRunId", "=", input.comparisonRunId)
+        .orderBy("id", "asc")
+        .execute();
+      const runAdminReviewStatus = deriveRunAdminReviewStatus(allFindings as Selectable<FindingOutcome>[]);
+
+      await trx
+        .updateTable("outcomeComparisonRun")
+        .set({
+          adminReviewStatus: runAdminReviewStatus,
+          adminReviewNotes: notes,
+          reviewedBy: user.id,
+          reviewedAt: now,
+          reviewUpdatedAt: now,
+          updatedAt: now,
+        } as any)
+        .where("id", "=", input.comparisonRunId)
+        .execute();
+    } else {
+      if (input.reviewAction !== "archive_review") {
+        throw new BusinessRuleError("findingOutcomeId is required for this review action.", 400);
+      }
+      await trx
+        .updateTable("outcomeComparisonRun")
+        .set({
+          adminReviewStatus: "archived",
+          adminReviewNotes: notes,
+          reviewedBy: user.id,
+          reviewedAt: now,
+          reviewUpdatedAt: now,
+          updatedAt: now,
+        } as any)
+        .where("id", "=", input.comparisonRunId)
+        .execute();
+    }
+
+    const updatedRun = await trx
+      .selectFrom("outcomeComparisonRun")
+      .selectAll()
+      .where("id", "=", input.comparisonRunId)
+      .executeTakeFirstOrThrow();
+    const updatedFindings = await trx
+      .selectFrom("findingOutcome")
+      .selectAll()
+      .where("comparisonRunId", "=", input.comparisonRunId)
+      .orderBy("id", "asc")
+      .execute();
+
+    return {
+      detail: {
+        ...runSummary(updatedRun as Selectable<OutcomeComparisonRun>, updatedFindings),
+        findingOutcomes: updatedFindings.map((row) => mapFindingOutcome(row as Selectable<FindingOutcome>)),
+      },
+      audit: {
+        previousRunReviewStatus,
+        newRunReviewStatus: (updatedRun as Selectable<OutcomeComparisonRun>).adminReviewStatus,
+        previousFindingReviewStatus,
+        newFindingReviewStatus: reviewedFinding?.adminReviewStatus ?? null,
+        findingOutcome: reviewedFinding,
+        reportArtifactId: (updatedRun as Selectable<OutcomeComparisonRun>).previousReportArtifactId,
+      },
+    };
+  });
+
+  await logAudit({
+    action: "UPDATE",
+    entityType: "SYSTEM",
+    entityId: input.comparisonRunId,
+    userId: user.id,
+    details: {
+      component: "outcome_tracking",
+      action: input.reviewAction,
+      comparisonRunId: input.comparisonRunId,
+      findingOutcomeId: input.findingOutcomeId ?? null,
+      previousReviewStatus: result.audit.previousFindingReviewStatus ?? result.audit.previousRunReviewStatus,
+      newReviewStatus: result.audit.newFindingReviewStatus ?? result.audit.newRunReviewStatus,
+      previousRunReviewStatus: result.audit.previousRunReviewStatus,
+      newRunReviewStatus: result.audit.newRunReviewStatus,
+      outcomeType: result.audit.findingOutcome?.outcomeType ?? null,
+      matchingMethod: result.audit.findingOutcome?.matchingMethod ?? null,
+      confidenceLevel: result.audit.findingOutcome?.confidenceLevel ?? null,
+      actorAdminId: user.id,
+      reviewedAt: now.toISOString(),
+      reviewNotesSummary: notes,
+      evidenceIds,
+      sourceVersion: REVIEW_SOURCE_VERSION,
+      deterministicResultPreserved: true,
+      sourceRecordsMutated: false,
+      runtimeActivation: false,
+      overridePathCreated: false,
+      furnisherFlowCreated: false,
+    },
+    status: "SUCCESS",
+    request,
+  });
+
+  return result.detail;
 }
 
 export async function outcomeTrackingTableNames(): Promise<string[]> {

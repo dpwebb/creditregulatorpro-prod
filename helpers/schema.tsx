@@ -63,6 +63,12 @@ export type FindingOutcomeMatchingMethod = "ambiguous" | "exact_account_creditor
 
 export type FindingOutcomeType = "corrected" | "needs_review" | "new_issue" | "not_comparable" | "partially_corrected" | "reinserted" | "removed" | "response_received" | "unchanged" | "unresolved";
 
+export type FindingOutcomeAdminReviewStatus = "archived" | "confirmed" | "needs_review" | "rejected_classification" | "rejected_match" | "reviewed" | "unreviewed";
+
+export type OutcomeAdminReviewAction = "archive_review" | "confirm_outcome" | "mark_needs_review" | "reject_classification" | "reject_match" | "review_outcome";
+
+export type OutcomeComparisonRunAdminReviewStatus = "archived" | "needs_review" | "partially_reviewed" | "reviewed" | "unreviewed";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -567,6 +573,8 @@ export interface FeatureFlag {
 }
 
 export interface FindingOutcome {
+  adminReviewNotes: string | null;
+  adminReviewStatus: Generated<FindingOutcomeAdminReviewStatus>;
   comparisonRunId: number;
   confidenceLevel: FindingOutcomeConfidenceLevel;
   createdAt: Generated<Timestamp>;
@@ -585,6 +593,12 @@ export interface FindingOutcome {
   previousTradelineId: number | null;
   responseDeadlineAt: Timestamp | null;
   responseReceivedAt: Timestamp | null;
+  reviewAction: OutcomeAdminReviewAction | null;
+  reviewEvidenceIds: Generated<Json>;
+  reviewedAt: Timestamp | null;
+  reviewedBy: number | null;
+  reviewSourceVersion: string | null;
+  reviewUpdatedAt: Timestamp | null;
   updatedAt: Generated<Timestamp>;
   userId: number;
 }
@@ -803,6 +817,8 @@ export interface Organizations {
 }
 
 export interface OutcomeComparisonRun {
+  adminReviewNotes: string | null;
+  adminReviewStatus: Generated<OutcomeComparisonRunAdminReviewStatus>;
   bureauId: number | null;
   comparisonScope: OutcomeComparisonScope;
   completedAt: Timestamp | null;
@@ -815,6 +831,9 @@ export interface OutcomeComparisonRun {
   sourceVersion: Generated<string>;
   startedAt: Generated<Timestamp>;
   status: Generated<OutcomeComparisonStatus>;
+  reviewedAt: Timestamp | null;
+  reviewedBy: number | null;
+  reviewUpdatedAt: Timestamp | null;
   updatedAt: Generated<Timestamp>;
   userId: number;
   warnings: Generated<Json>;
@@ -1886,6 +1905,9 @@ export const FreezeStatusArrayValues: [FreezeStatus, ...FreezeStatus[]] = ["acti
 export const FindingOutcomeConfidenceLevelArrayValues: [FindingOutcomeConfidenceLevel, ...FindingOutcomeConfidenceLevel[]] = ["high","medium","low","none"];
 export const FindingOutcomeMatchingMethodArrayValues: [FindingOutcomeMatchingMethod, ...FindingOutcomeMatchingMethod[]] = ["ambiguous","exact_account_creditor_date","none","not_comparable","packet_finding_tradeline","response_only","stable_secondary_keys"];
 export const FindingOutcomeTypeArrayValues: [FindingOutcomeType, ...FindingOutcomeType[]] = ["corrected","needs_review","new_issue","not_comparable","partially_corrected","reinserted","removed","response_received","unchanged","unresolved"];
+export const FindingOutcomeAdminReviewStatusArrayValues: [FindingOutcomeAdminReviewStatus, ...FindingOutcomeAdminReviewStatus[]] = ["archived","confirmed","needs_review","rejected_classification","rejected_match","reviewed","unreviewed"];
+export const OutcomeAdminReviewActionArrayValues: [OutcomeAdminReviewAction, ...OutcomeAdminReviewAction[]] = ["archive_review","confirm_outcome","mark_needs_review","reject_classification","reject_match","review_outcome"];
+export const OutcomeComparisonRunAdminReviewStatusArrayValues: [OutcomeComparisonRunAdminReviewStatus, ...OutcomeComparisonRunAdminReviewStatus[]] = ["archived","needs_review","partially_reviewed","reviewed","unreviewed"];
 export const SignatureTypeArrayValues: [SignatureType, ...SignatureType[]] = ["document_signing","freeze_authorization","identity_verification","thaw_authorization"];
 export const ViolationCategoryArrayValues: [ViolationCategory, ...ViolationCategory[]] = ["ACCOUNT_STATUS_INCONSISTENCY","BALANCE_CALCULATION_VIOLATION","BANKRUPTCY_DISCHARGE_VIOLATION","BUREAU_ACCESS_VIOLATION","BUREAU_DISPUTE_MARKING_FAILURE","BUREAU_INVESTIGATION_FAILURE","BUREAU_NOTIFICATION_FAILURE","BUREAU_REINSERTION_VIOLATION","CLOSED_ACCOUNT_BALANCE_INFLATION","COLLECTION_LIMITATION_EXCEEDED","COLLECTOR_DUPLICATE_REPORTING","COLLECTOR_LICENSE_FAILURE","COLLECTOR_PAYMENT_ACKNOWLEDGMENT_VIOLATION","COLLECTOR_STATUTE_REVIVAL_ATTEMPT","COLLECTOR_UNAUTHORIZED_FEES","CONSENT_WITHDRAWAL_NOT_HONORED","CONSUMER_STATEMENT_SUPPRESSION","CREDIT_LIMIT_MANIPULATION","CREDITOR_RESPONSE_QUALITY","CROSS_BUREAU_INCONSISTENCY","CROSS_ENTITY_DISCREPANCY","DATE_LOGIC_IMPOSSIBLE","DISCLOSURE_DEFICIENCY","DOCUMENTATION_CHAIN_FAILURE","FREEZE_PERIOD_VIOLATION","FURNISHER_AUTHORIZED_USER_MISREPRESENTATION","FURNISHER_JOINT_ACCOUNT_VIOLATION","FURNISHER_POST_DISPUTE_RETALIATION","FURNISHER_REAGING_VIOLATION","FURNISHER_RESPONSE_QUALITY","FURNISHER_STATUS_CODE_MISMATCH","IDENTITY_THEFT_VIOLATION","INVESTIGATION_RUBBER_STAMP","LAST_ACTIVITY_DATE_MANIPULATION","MIXED_FILE_PERSONAL_INFO_MISMATCH","MULTIPLE_COLLECTOR_VIOLATION","PAYMENT_HISTORY_MANIPULATION","PHANTOM_DEBT_UNVERIFIABLE","PROCEDURAL_TIMING_VIOLATION","RESPONSE_ADDRESS_MISMATCH","RESPONSE_INCOMPLETE","RESPONSE_MOV_MISSING","RESPONSE_NO_DOCUMENTATION","RESPONSE_UNAUTHORIZED","RETROACTIVE_HISTORY_MANIPULATION","STALE_REPORTING_FAILURE","STATUTE_APPROACHING","STATUTE_OF_LIMITATIONS","TEMPORAL_MANIPULATION","ZOMBIE_DEBT_RESURRECTION"];
 export const KnownEntityTypeArrayValues: [KnownEntityType, ...KnownEntityType[]] = ["account_type","creditor_name","province","remark_code","status_code"];
