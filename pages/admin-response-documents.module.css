@@ -39,7 +39,8 @@
 .toolbar,
 .listPanel,
 .detailPanel,
-.responseCard {
+.responseCard,
+.reviewPanel {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -51,19 +52,22 @@
 }
 
 .toolbarHeader,
-.sectionHeader {
+.sectionHeader,
+.reviewHeader {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   margin-bottom: var(--spacing-3);
 }
 
-.sectionHeader h2 {
+.sectionHeader h2,
+.reviewHeader h3 {
   margin: 0;
   font-size: 1rem;
 }
 
-.sectionHeader p {
+.sectionHeader p,
+.reviewHeader p {
   margin: var(--spacing-1) 0 0;
   color: var(--muted-foreground);
   font-size: 0.86rem;
@@ -86,7 +90,10 @@
 }
 
 .filterField input,
-.filterField select {
+.filterField select,
+.reviewField input,
+.reviewField select,
+.reviewField textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -94,6 +101,12 @@
   color: var(--foreground);
   font: inherit;
   padding: var(--spacing-2) var(--spacing-3);
+}
+
+.reviewField textarea {
+  min-height: 6rem;
+  resize: vertical;
+  line-height: 1.45;
 }
 
 .filterActions {
@@ -262,6 +275,90 @@
 .warningBox {
   border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
   background: color-mix(in srgb, var(--warning) 8%, var(--card));
+}
+
+.reviewPanel {
+  padding: var(--spacing-4);
+}
+
+.reviewNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--primary) 6%, var(--card));
+  padding: var(--spacing-3);
+  margin-bottom: var(--spacing-4);
+}
+
+.reviewNotice span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.reviewForm,
+.confirmationStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.reviewField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.reviewLinkGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: var(--spacing-3);
+}
+
+.confirmationRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  color: var(--foreground);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.confirmationRow input {
+  margin-top: 0.15rem;
+}
+
+.reviewError,
+.reviewSuccess {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-2) var(--spacing-3);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.reviewError {
+  border: 1px solid color-mix(in srgb, var(--error) 40%, var(--border));
+  background: color-mix(in srgb, var(--error) 8%, var(--card));
+}
+
+.reviewSuccess {
+  border: 1px solid color-mix(in srgb, var(--success) 40%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--card));
+}
+
+.reviewActions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 @media (max-width: 980px) {

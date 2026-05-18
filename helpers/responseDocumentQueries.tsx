@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   getResponseList,
@@ -8,9 +8,15 @@ import {
   getResponseDocument,
   type InputType as ResponseDocumentGetInput,
 } from "../endpoints/responses/get_GET.schema";
+import {
+  postResponseAdminReview,
+  type InputType as ResponseAdminReviewInput,
+  type OutputType as ResponseAdminReviewOutput,
+} from "../endpoints/responses/admin-review_POST.schema";
 
 export const RESPONSE_DOCUMENTS_QUERY_KEY = ["responses", "documents"] as const;
 export const RESPONSE_DOCUMENT_QUERY_KEY = ["responses", "document"] as const;
+export const RESPONSE_DOCUMENT_ADMIN_REVIEW_MUTATION_KEY = ["responses", "admin-review"] as const;
 
 export function useResponseDocuments(filters?: ResponseDocumentListInput) {
   return useQuery({
@@ -28,7 +34,22 @@ export function useResponseDocument(responseId?: ResponseDocumentGetInput["respo
   });
 }
 
+export function useResponseDocumentAdminReviewMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: RESPONSE_DOCUMENT_ADMIN_REVIEW_MUTATION_KEY,
+    mutationFn: (input: ResponseAdminReviewInput) => postResponseAdminReview(input),
+    onSuccess: (_data, variables) => {
+      void queryClient.invalidateQueries({ queryKey: RESPONSE_DOCUMENTS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: [...RESPONSE_DOCUMENT_QUERY_KEY, variables.responseId] });
+    },
+  });
+}
+
 export type {
   ResponseDocumentListInput,
   ResponseDocumentGetInput,
+  ResponseAdminReviewInput,
+  ResponseAdminReviewOutput,
 };

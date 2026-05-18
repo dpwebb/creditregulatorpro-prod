@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   useResponseDocuments: vi.fn(),
   useResponseDocument: vi.fn(),
+  useResponseDocumentAdminReviewMutation: vi.fn(),
+  adminReviewMutateAsync: vi.fn(),
   refetchResponses: vi.fn(),
   listResponse: null as any,
   detailResponse: null as any,
@@ -14,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../helpers/responseDocumentQueries", () => ({
   useResponseDocuments: mocks.useResponseDocuments,
   useResponseDocument: mocks.useResponseDocument,
+  useResponseDocumentAdminReviewMutation: mocks.useResponseDocumentAdminReviewMutation,
 }));
 
 import { AdminRoute } from "../../components/ProtectedRoute";
@@ -77,12 +80,30 @@ function resetHookMocks() {
     isError: false,
     error: null,
   }));
+  mocks.adminReviewMutateAsync.mockResolvedValue({ response: mocks.detailResponse });
+  mocks.useResponseDocumentAdminReviewMutation.mockReturnValue({
+    mutateAsync: mocks.adminReviewMutateAsync,
+    isPending: false,
+    error: null,
+  });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   resetHookMocks();
 });
+
+async function openResponseDetail() {
+  render(<AdminResponseDocumentsPage />);
+  fireEvent.click(screen.getByRole("button", { name: /view details/i }));
+  await screen.findByText(/Admin Metadata Review/i);
+}
+
+function checkRequiredConfirmations() {
+  fireEvent.click(screen.getByLabelText(/response remains evidence\/metadata only/i));
+  fireEvent.click(screen.getByLabelText(/does not change canonical report facts/i));
+  fireEvent.click(screen.getByLabelText(/does not classify corrected, removed, or unchanged outcomes/i));
+}
 
 describe("admin response document UI", () => {
   it("uses the admin route layout and renders the Response Documents page", () => {
@@ -206,16 +227,188 @@ describe("admin response document UI", () => {
     expect(document.body).not.toHaveTextContent("this proves correction");
   });
 
-  it("is read-only and does not render unsupported response, legal, parser, or inbox controls", () => {
-    render(<AdminResponseDocumentsPage />);
+  it("renders admin-review controls with evidence-only and later-comparison notices", async () => {
+    await openResponseDetail();
+
+    expect(screen.getByText(/Admin review updates response metadata only/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Response documents remain evidence and metadata only/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/later credit-report comparison is still required/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/This does not change canonical report facts/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/This does not change packet readiness or wording/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/This does not create an admin override/i)).toBeInTheDocument();
+    expect(screen.getByText("Mark Needs Review")).toBeInTheDocument();
+    expect(screen.getByText("Mark Related")).toBeInTheDocument();
+    expect(screen.getByText("Mark Unrelated")).toBeInTheDocument();
+    expect(screen.getByText("Archive Response")).toBeInTheDocument();
+    expect(screen.getByText("Link To Outcome")).toBeInTheDocument();
+    expect(screen.getByText("Add Review Note")).toBeInTheDocument();
+  });
+
+  it("requires notes for supported admin-review actions that need them", async () => {
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review action"), { target: { value: "mark_needs_review" } });
+    checkRequiredConfirmations();
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Mark Needs Review requires review notes");
+    expect(mocks.adminReviewMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("requires confirmations before submitting admin-review mutations", async () => {
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review notes"), {
+      target: { value: "response reviewed. later report comparison required." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("confirmations are required");
+    expect(mocks.adminReviewMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("submits add-review-note with confirmation flags through the admin-review endpoint helper", async () => {
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review action"), { target: { value: "add_review_note" } });
+    fireEvent.change(screen.getByLabelText("Review notes"), {
+      target: { value: "response reviewed. later report comparison required." },
+    });
+    checkRequiredConfirmations();
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    await waitFor(() => {
+      expect(mocks.adminReviewMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseId: 901,
+          reviewAction: "add_review_note",
+          reviewNotes: "response reviewed. later report comparison required.",
+          confirmEvidenceOnly: true,
+          confirmNoCanonicalChange: true,
+          confirmNoOutcomeClassification: true,
+        }),
+      );
+    });
+  });
+
+  it("requires mark related to have notes and an existing or supplied safe link", async () => {
+    mocks.detailResponse = {
+      ...responseRecord,
+      packetId: null,
+      disputePacketFindingId: null,
+      comparisonRunId: null,
+      findingOutcomeId: null,
+    };
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review action"), { target: { value: "mark_related" } });
+    fireEvent.change(screen.getByLabelText("Review notes"), { target: { value: "related to outcome. later report comparison required." } });
+    checkRequiredConfirmations();
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Mark Related requires an existing or supplied packet, outcome, or finding link");
+    expect(mocks.adminReviewMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Review comparison run ID"), { target: { value: "24" } });
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    await waitFor(() => {
+      expect(mocks.adminReviewMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseId: 901,
+          reviewAction: "mark_related",
+          comparisonRunId: 24,
+          confirmEvidenceOnly: true,
+          confirmNoCanonicalChange: true,
+          confirmNoOutcomeClassification: true,
+        }),
+      );
+    });
+  });
+
+  it("requires link to outcome to have notes and an outcome link", async () => {
+    mocks.detailResponse = {
+      ...responseRecord,
+      comparisonRunId: null,
+      findingOutcomeId: null,
+    };
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review action"), { target: { value: "link_to_outcome" } });
+    fireEvent.change(screen.getByLabelText("Review notes"), { target: { value: "related to outcome. later report comparison required." } });
+    checkRequiredConfirmations();
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Link To Outcome requires a comparison run ID or finding outcome ID");
+    expect(mocks.adminReviewMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Review finding outcome ID"), { target: { value: "23" } });
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    await waitFor(() => {
+      expect(mocks.adminReviewMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseId: 901,
+          reviewAction: "link_to_outcome",
+          findingOutcomeId: 23,
+          confirmEvidenceOnly: true,
+          confirmNoCanonicalChange: true,
+          confirmNoOutcomeClassification: true,
+        }),
+      );
+    });
+  });
+
+  it("allows archive response only with notes or explicit confirmation", async () => {
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review action"), { target: { value: "archive_response" } });
+    checkRequiredConfirmations();
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Archive Response requires review notes or explicit archive confirmation");
+    expect(mocks.adminReviewMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText(/explicitly confirm archiving this response metadata/i));
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    await waitFor(() => {
+      expect(mocks.adminReviewMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          responseId: 901,
+          reviewAction: "archive_response",
+          explicitConfirmation: true,
+          confirmEvidenceOnly: true,
+          confirmNoCanonicalChange: true,
+          confirmNoOutcomeClassification: true,
+        }),
+      );
+    });
+  });
+
+  it("rejects unsafe review notes before submitting", async () => {
+    await openResponseDetail();
+
+    fireEvent.change(screen.getByLabelText("Review notes"), {
+      target: { value: "SIN 123-456-789 and account number 1234567890123456 raw report text" },
+    });
+    checkRequiredConfirmations();
+    fireEvent.click(screen.getByRole("button", { name: /save metadata review/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("full SIN-like values");
+    expect(mocks.adminReviewMutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("does not render unsupported response, legal, parser, inbox, or override controls", async () => {
+    await openResponseDetail();
 
     expect(screen.queryByRole("button", { name: /capture response/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /upload response/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /review response/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /mark related/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark corrected/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark removed/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark unchanged/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /override outcome/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /prove correction/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /legal violation/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^activate$/i })).not.toBeInTheDocument();
@@ -225,6 +418,8 @@ describe("admin response document UI", () => {
     expect(screen.queryByRole("button", { name: /connect gmail/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect imap/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /parse response/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /make final truth/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /force outcome/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/you won/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/entitled to damages/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/admitted fault/i)).not.toBeInTheDocument();
@@ -240,9 +435,10 @@ describe("admin response document UI", () => {
 
     expect(source).toContain("list_GET.schema");
     expect(source).toContain("get_GET.schema");
+    expect(source).toContain("admin-review_POST.schema");
+    expect(source).toContain("invalidateQueries");
     expect(source).not.toContain("capture_POST.schema");
-    expect(source).not.toContain("admin-review_POST.schema");
-    expect(source).not.toMatch(/\/_api\/responses\/capture|\/_api\/responses\/admin-review/i);
+    expect(source).not.toMatch(/\/_api\/responses\/capture/i);
     expect(source).not.toMatch(/useBureauCommunication|bureau-communication_POST|record-response_POST/i);
     expect(source).not.toMatch(/\/_api\/parser|\/_api\/ocr|\/_api\/ingest\/process/i);
     expect(source).not.toMatch(/\/_api\/packet\/(?:readiness|build|create|save|send|delivery|pdf)/i);

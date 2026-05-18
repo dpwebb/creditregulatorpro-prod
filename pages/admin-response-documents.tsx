@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import {
   AlertTriangle,
+  CheckCircle2,
   Eye,
   FileText,
   Filter,
+  MessageSquare,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -25,7 +27,9 @@ import {
 } from "../helpers/schema";
 import {
   useResponseDocument,
+  useResponseDocumentAdminReviewMutation,
   useResponseDocuments,
+  type ResponseAdminReviewInput,
   type ResponseDocumentListInput,
 } from "../helpers/responseDocumentQueries";
 import type { OutputType as ResponseGetOutput } from "../endpoints/responses/get_GET.schema";
@@ -34,6 +38,8 @@ import styles from "./admin-response-documents.module.css";
 
 type ResponseRecord = ResponseListOutput["responses"][number];
 type ResponseDetail = ResponseGetOutput["response"];
+type ResponseReviewAction = ResponseAdminReviewInput["reviewAction"];
+type ResponseReviewActionOption = Exclude<ResponseReviewAction, "link_to_packet">;
 
 type FilterState = {
   responseChannel: string;
@@ -75,9 +81,32 @@ const LONG_NUMBER_PATTERN = /\b\d{10,}\b/g;
 const RAW_OR_SECRET_PATTERN =
   /(raw report text|raw pdf text|full email body|email body dump|packet body|bucket:\/\/|s3:\/\/|storage\.googleapis\.com|x-goog-signature|x-amz-signature|signedurl|signed_url|storageurl|storage_url|session=|cookie=|api[_-]?key|private key|database_url|postgres:\/\/|mailbox password|imap password|smtp password|email auth token|oauth refresh token)/i;
 const LEGAL_CONCLUSION_PATTERN =
-  /\b(equifax admitted fault|the bureau corrected the item|the bureau violated the law|you won|you are entitled to damages|this proves correction|this is legal proof|the agency must pay|confirmed legal violation|legal violation|demand|enforce)\b/i;
+  /\b(equifax admitted fault|the bureau corrected the item|the bureau violated the law|you won|you are entitled to damages|this proves correction|this is legal proof|the agency must pay|confirmed legal violation|legal violation|admitted fault|mark corrected|mark removed|mark unchanged|demand|enforce)\b/i;
 const HASH_KEY_PATTERN = /hash/i;
 const HASH_VALUE_PATTERN = /^[a-f0-9]{32,128}$/i;
+const REVIEW_NOTE_SIN_PATTERN = /\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/i;
+const REVIEW_NOTE_ACCOUNT_PATTERN = /\b(?:account|acct|member)\s*(?:number|no\.?|#)?\s*[:#-]?\s*[A-Z0-9][A-Z0-9 -]{9,}\b/i;
+const REVIEW_NOTE_LONG_NUMBER_PATTERN = /\b(?:\d[ -]?){12,19}\b/i;
+const REVIEW_NOTE_RAW_SECRET_PATTERN =
+  /(raw report text|raw pdf text|full email body|email body dump|packet body|bucket:\/\/|s3:\/\/|storage\.googleapis\.com|x-goog-signature|x-amz-signature|signedurl|signed_url|storageurl|storage_url|session=|cookie=|api[_-]?key|private key|database_url|postgres:\/\/|mailbox password|imap password|smtp password|email auth token|oauth refresh token|bearer\s+[a-z0-9._-]+)/i;
+
+const REVIEW_ACTION_LABELS: Record<ResponseReviewActionOption, string> = {
+  mark_needs_review: "Mark Needs Review",
+  mark_related: "Mark Related",
+  mark_unrelated: "Mark Unrelated",
+  archive_response: "Archive Response",
+  link_to_outcome: "Link To Outcome",
+  add_review_note: "Add Review Note",
+};
+
+const REVIEW_ACTIONS: ResponseReviewActionOption[] = [
+  "mark_needs_review",
+  "mark_related",
+  "mark_unrelated",
+  "archive_response",
+  "link_to_outcome",
+  "add_review_note",
+];
 
 function formatEnum(value: string | null | undefined): string {
   if (!value) return "-";
@@ -216,6 +245,278 @@ function EvidenceNotice() {
   );
 }
 
+function defaultIdValue(value: number | null | undefined): string {
+  return value ? String(value) : "";
+}
+
+function validateReviewNotes(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (REVIEW_NOTE_SIN_PATTERN.test(trimmed)) return "Review notes cannot include full SIN-like values.";
+  if (REVIEW_NOTE_ACCOUNT_PATTERN.test(trimmed) || REVIEW_NOTE_LONG_NUMBER_PATTERN.test(trimmed)) {
+    return "Review notes cannot include full unmasked account-like values.";
+  }
+  if (REVIEW_NOTE_RAW_SECRET_PATTERN.test(trimmed)) {
+    return "Review notes cannot include raw text, storage paths, signed URLs, cookies, tokens, keys, database URLs, or mailbox credentials.";
+  }
+  if (LEGAL_CONCLUSION_PATTERN.test(trimmed)) return "Review notes cannot include legal-conclusion language.";
+  return null;
+}
+
+function hasAnyLink(values: Array<number | undefined>): boolean {
+  return values.some((value) => Number.isInteger(value) && Number(value) > 0);
+}
+
+function ResponseAdminReviewControls({ response }: { response: ResponseDetail }) {
+  const adminReviewMutation = useResponseDocumentAdminReviewMutation();
+  const [reviewAction, setReviewAction] = useState<ResponseReviewActionOption>("add_review_note");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [packetId, setPacketId] = useState(defaultIdValue(response.packetId));
+  const [disputePacketFindingId, setDisputePacketFindingId] = useState(defaultIdValue(response.disputePacketFindingId));
+  const [comparisonRunId, setComparisonRunId] = useState(defaultIdValue(response.comparisonRunId));
+  const [findingOutcomeId, setFindingOutcomeId] = useState(defaultIdValue(response.findingOutcomeId));
+  const [confirmEvidenceOnly, setConfirmEvidenceOnly] = useState(false);
+  const [confirmNoCanonicalChange, setConfirmNoCanonicalChange] = useState(false);
+  const [confirmNoOutcomeClassification, setConfirmNoOutcomeClassification] = useState(false);
+  const [explicitConfirmation, setExplicitConfirmation] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReviewAction("add_review_note");
+    setReviewNotes("");
+    setPacketId(defaultIdValue(response.packetId));
+    setDisputePacketFindingId(defaultIdValue(response.disputePacketFindingId));
+    setComparisonRunId(defaultIdValue(response.comparisonRunId));
+    setFindingOutcomeId(defaultIdValue(response.findingOutcomeId));
+    setConfirmEvidenceOnly(false);
+    setConfirmNoCanonicalChange(false);
+    setConfirmNoOutcomeClassification(false);
+    setExplicitConfirmation(false);
+    setFormError(null);
+    setSuccessMessage(null);
+  }, [
+    response.id,
+    response.packetId,
+    response.disputePacketFindingId,
+    response.comparisonRunId,
+    response.findingOutcomeId,
+  ]);
+
+  const submitReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFormError(null);
+    setSuccessMessage(null);
+
+    const notes = reviewNotes.trim();
+    const sanitizedNotesError = validateReviewNotes(notes);
+    const cleanPacketId = cleanInteger(packetId);
+    const cleanDisputePacketFindingId = cleanInteger(disputePacketFindingId);
+    const cleanComparisonRunId = cleanInteger(comparisonRunId);
+    const cleanFindingOutcomeId = cleanInteger(findingOutcomeId);
+
+    if (sanitizedNotesError) {
+      setFormError(sanitizedNotesError);
+      return;
+    }
+
+    if (reviewAction !== "archive_response" && !notes) {
+      setFormError(`${REVIEW_ACTION_LABELS[reviewAction]} requires review notes.`);
+      return;
+    }
+
+    if (reviewAction === "archive_response" && !notes && !explicitConfirmation) {
+      setFormError("Archive Response requires review notes or explicit archive confirmation.");
+      return;
+    }
+
+    if (!confirmEvidenceOnly || !confirmNoCanonicalChange || !confirmNoOutcomeClassification) {
+      setFormError("All evidence-only, canonical-fact, and outcome-classification confirmations are required.");
+      return;
+    }
+
+    if (reviewAction === "mark_related") {
+      const relatedLinkExists = hasAnyLink([
+        cleanPacketId,
+        cleanDisputePacketFindingId,
+        cleanComparisonRunId,
+        cleanFindingOutcomeId,
+        response.packetId ?? undefined,
+        response.disputePacketFindingId ?? undefined,
+        response.comparisonRunId ?? undefined,
+        response.findingOutcomeId ?? undefined,
+      ]);
+      if (!relatedLinkExists) {
+        setFormError("Mark Related requires an existing or supplied packet, outcome, or finding link.");
+        return;
+      }
+    }
+
+    if (reviewAction === "link_to_outcome" && !hasAnyLink([
+      cleanComparisonRunId,
+      cleanFindingOutcomeId,
+      response.comparisonRunId ?? undefined,
+      response.findingOutcomeId ?? undefined,
+    ])) {
+      setFormError("Link To Outcome requires a comparison run ID or finding outcome ID.");
+      return;
+    }
+
+    const payload: ResponseAdminReviewInput = {
+      responseId: response.id,
+      reviewAction,
+      reviewNotes: notes || undefined,
+      confirmEvidenceOnly,
+      confirmNoCanonicalChange,
+      confirmNoOutcomeClassification,
+      explicitConfirmation: reviewAction === "archive_response" ? explicitConfirmation : undefined,
+    };
+
+    if (reviewAction === "mark_related") {
+      payload.packetId = cleanPacketId;
+      payload.disputePacketFindingId = cleanDisputePacketFindingId;
+      payload.comparisonRunId = cleanComparisonRunId;
+      payload.findingOutcomeId = cleanFindingOutcomeId;
+    }
+
+    if (reviewAction === "link_to_outcome") {
+      payload.comparisonRunId = cleanComparisonRunId;
+      payload.findingOutcomeId = cleanFindingOutcomeId;
+    }
+
+    try {
+      await adminReviewMutation.mutateAsync(payload);
+      setSuccessMessage("Response review metadata saved.");
+      setReviewNotes("");
+      setExplicitConfirmation(false);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Unable to save response review metadata.");
+    }
+  };
+
+  return (
+    <section className={styles.reviewPanel} aria-label="Response admin review controls">
+      <div className={styles.reviewHeader}>
+        <MessageSquare size={18} />
+        <div>
+          <h3>Admin Metadata Review</h3>
+          <p>Admin review updates response metadata only.</p>
+        </div>
+      </div>
+
+      <div className={styles.reviewNotice}>
+        <ShieldCheck size={18} />
+        <div>
+          <span>Response documents remain evidence and metadata only.</span>
+          <span>A later credit-report comparison is still required to classify corrected, removed, or unchanged outcomes.</span>
+          <span>This does not change canonical report facts.</span>
+          <span>This does not change packet readiness or wording.</span>
+          <span>This does not create an admin override.</span>
+        </div>
+      </div>
+
+      <form className={styles.reviewForm} onSubmit={submitReview}>
+        <label className={styles.reviewField}>
+          <span>Review action</span>
+          <select value={reviewAction} onChange={(event) => setReviewAction(event.target.value as ResponseReviewActionOption)}>
+            {REVIEW_ACTIONS.map((action) => (
+              <option key={action} value={action}>{REVIEW_ACTION_LABELS[action]}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className={styles.reviewField}>
+          <span>Review notes</span>
+          <textarea
+            value={reviewNotes}
+            onChange={(event) => setReviewNotes(event.target.value)}
+            placeholder="Use neutral metadata-only notes. Later report comparison required."
+            rows={4}
+          />
+        </label>
+
+        <div className={styles.reviewLinkGrid} aria-label="Optional review links">
+          <label className={styles.reviewField}>
+            <span>Review packet ID</span>
+            <input value={packetId} onChange={(event) => setPacketId(event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Review packet finding ID</span>
+            <input value={disputePacketFindingId} onChange={(event) => setDisputePacketFindingId(event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Review comparison run ID</span>
+            <input value={comparisonRunId} onChange={(event) => setComparisonRunId(event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Review finding outcome ID</span>
+            <input value={findingOutcomeId} onChange={(event) => setFindingOutcomeId(event.target.value)} inputMode="numeric" />
+          </label>
+        </div>
+
+        {reviewAction === "archive_response" ? (
+          <label className={styles.confirmationRow}>
+            <input
+              type="checkbox"
+              checked={explicitConfirmation}
+              onChange={(event) => setExplicitConfirmation(event.target.checked)}
+            />
+            <span>I explicitly confirm archiving this response metadata if no notes are supplied.</span>
+          </label>
+        ) : null}
+
+        <div className={styles.confirmationStack}>
+          <label className={styles.confirmationRow}>
+            <input
+              type="checkbox"
+              checked={confirmEvidenceOnly}
+              onChange={(event) => setConfirmEvidenceOnly(event.target.checked)}
+            />
+            <span>I understand this response remains evidence/metadata only.</span>
+          </label>
+          <label className={styles.confirmationRow}>
+            <input
+              type="checkbox"
+              checked={confirmNoCanonicalChange}
+              onChange={(event) => setConfirmNoCanonicalChange(event.target.checked)}
+            />
+            <span>I understand this does not change canonical report facts.</span>
+          </label>
+          <label className={styles.confirmationRow}>
+            <input
+              type="checkbox"
+              checked={confirmNoOutcomeClassification}
+              onChange={(event) => setConfirmNoOutcomeClassification(event.target.checked)}
+            />
+            <span>I understand this does not classify corrected, removed, or unchanged outcomes.</span>
+          </label>
+        </div>
+
+        {formError ? (
+          <div className={styles.reviewError} role="alert">
+            <AlertTriangle size={16} />
+            <span>{formError}</span>
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div className={styles.reviewSuccess} role="status">
+            <CheckCircle2 size={16} />
+            <span>{successMessage}</span>
+          </div>
+        ) : null}
+
+        <div className={styles.reviewActions}>
+          <Button type="submit" disabled={adminReviewMutation.isPending}>
+            <CheckCircle2 size={16} />
+            Save Metadata Review
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 function ResponseCard({
   response,
   selected,
@@ -309,6 +610,7 @@ function ResponseDetailPanel({ response }: { response: ResponseDetail }) {
       </div>
 
       <EvidenceNotice />
+      <ResponseAdminReviewControls response={response} />
     </div>
   );
 }
@@ -475,7 +777,7 @@ export default function AdminResponseDocumentsPage() {
             <FileText size={18} />
             <div>
               <h2>Response Detail</h2>
-              <p>Read-only metadata view. No response parsing, review action, or source-truth change happens here.</p>
+              <p>Safe metadata view with admin-only review controls. No response parsing or source-truth change happens here.</p>
             </div>
           </div>
 
