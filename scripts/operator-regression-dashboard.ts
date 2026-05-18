@@ -51,6 +51,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/outcome-admin-review-ui.spec.tsx",
+  "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
@@ -98,7 +99,7 @@ export const GATED_SMOKE_CHECKS = [
     name: "Outcome Admin Review smoke",
     command: "pnpm run smoke:outcome-admin-review",
     notes:
-      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document workflow remains future work.",
+      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend now exists, while response UI/parser/inbox integration remain future work.",
   },
   {
     name: "Outcome Admin Review UI smoke",
@@ -109,7 +110,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, and authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path; consumer-facing outcome UI, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, and response-document capture backend coverage now exists for metadata/evidence-only response records; response UI/parser/inbox integration, authenticated response capture smoke, consumer-facing outcome UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -324,6 +325,16 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           "Admin-only review UI coverage for outcome run list/detail, safe snapshots, metadata-only review actions, unsupported override-control absence, and source guards limiting calls to existing outcome list/get/admin-review endpoints.",
           {
             command: "pnpm exec vitest run tests/unit/outcome-admin-review-ui.spec.tsx",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Response document capture endpoint",
+          "SKIP",
+          "Endpoint-backed metadata/evidence-only response capture coverage for bureau_response_event schema creation, owner/admin/support boundaries, packet/outcome/finding/evidence linkage, sanitized audit, privacy/no-overexposure, and source guards that prevent parser, OCR, packet, violation, runtime truth, admin override, direct furnisher, or corrected/removed classification paths.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
             runByDefault: true,
           },
         ),

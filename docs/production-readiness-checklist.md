@@ -27,7 +27,7 @@ The current controlled production scope does not include:
 - Legal advice or legal determinations.
 - Automatic DB regulation registry runtime truth.
 - Admin override paths.
-- Consumer-facing outcome UI, response-document workflow, historical backfill, or packet outcome automation.
+- Consumer-facing outcome UI, response-document UI/parser/inbox integration, authenticated response capture smoke, historical backfill, or packet outcome automation.
 
 ## Required Pre-Promotion Checks
 
@@ -131,7 +131,7 @@ Run the operator dashboard before promotion review or during release health revi
 - `pnpm run operator:dashboard -- --list-checks`
 - `pnpm run operator:dashboard -- --run-checks`
 
-The dashboard summarizes repository/release state, core logical regressions, auth/session/logout lifecycle endpoint coverage, admin audit-log filtering/sanitization coverage, packet lifecycle and delivery/status endpoint coverage, no-schema outcome comparison helper coverage, persisted backend outcome compare/list/get endpoint coverage, outcome admin-review endpoint coverage and authenticated smoke visibility, admin-only Outcome Reviews UI unit coverage and authenticated smoke visibility, authenticated outcome tracking smoke visibility, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
+The dashboard summarizes repository/release state, core logical regressions, auth/session/logout lifecycle endpoint coverage, admin audit-log filtering/sanitization coverage, packet lifecycle and delivery/status endpoint coverage, no-schema outcome comparison helper coverage, persisted backend outcome compare/list/get endpoint coverage, outcome admin-review endpoint coverage and authenticated smoke visibility, admin-only Outcome Reviews UI unit coverage and authenticated smoke visibility, response-document capture endpoint coverage, authenticated outcome tracking smoke visibility, report ingest/process/list/detail endpoint coverage, violation search/status endpoint coverage, evidence privacy/ownership and coordinate coverage, regulation governance, public/internal exposure safety, manual/gated smoke harnesses, and known scale-readiness gaps.
 
 The dashboard distinguishes local checks from manual or gated smoke checks:
 
@@ -154,7 +154,7 @@ The dashboard does not replace final human release review. Operators must still 
 
 The following gaps remain before claiming scale production readiness:
 
-- Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only `response_received` path with append-only outcome rows, privacy checks, and no source-record mutation; authenticated outcome admin-review smoke has passed for a synthetic existing outcome run, verifying admin-only metadata review, deterministic outcome/source preservation, unsupported override-action rejection, privacy/no-overexposure, and append-only review metadata/audit behavior. The admin-only Outcome Reviews UI now exists, uses the existing outcome list/get/admin-review endpoints, preserves deterministic outcome fields, and authenticated staging UI smoke has passed for route rendering, list/detail, safety messaging, validation checks, metadata-only review action, unsupported override-control absence, privacy/no-overexposure, and no source mutation. Consumer-facing outcome UI, response-document workflow, historical backfill, production-scale repeated smoke, and monitoring remain future work.
+- Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only `response_received` path with append-only outcome rows, privacy checks, and no source-record mutation; authenticated outcome admin-review smoke has passed for a synthetic existing outcome run, verifying admin-only metadata review, deterministic outcome/source preservation, unsupported override-action rejection, privacy/no-overexposure, and append-only review metadata/audit behavior. The admin-only Outcome Reviews UI now exists, uses the existing outcome list/get/admin-review endpoints, preserves deterministic outcome fields, and authenticated staging UI smoke has passed for route rendering, list/detail, safety messaging, validation checks, metadata-only review action, unsupported override-control absence, privacy/no-overexposure, and no source mutation. Response-document capture backend now exists for metadata/evidence-only bureau or collection-agency response records, with capture/list/get endpoint coverage for ownership, packet/outcome/finding/evidence attachment links, sanitized audit, no-overexposure, and runtime-safety guards. Response documents are not canonical credit-report facts, email responses may support `response_received` metadata only, and later report comparison remains required for corrected/removed/unchanged outcomes. Consumer-facing outcome UI, response-document UI/parser/inbox integration, admin response-review endpoint, authenticated response capture smoke, historical backfill, production-scale repeated smoke, and monitoring remain future work.
 - Broader production-scale workflow coverage.
 - Admin correction candidate classification.
 - Formal rule/version approval.
