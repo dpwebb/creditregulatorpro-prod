@@ -29,6 +29,7 @@
     "smoke:outcome-fixture-setup": "tsx scripts/staging-outcome-tracking-fixture-setup.ts",
     "smoke:outcome-admin-review": "tsx scripts/staging-outcome-admin-review-smoke.ts",
     "smoke:outcome-admin-review-ui": "tsx scripts/staging-outcome-admin-review-ui-smoke.ts",
+    "smoke:response-document": "tsx scripts/staging-response-document-smoke.ts",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",
     "test:violation-corrections:db": "tsx scripts/violation-correction-integration.ts",
