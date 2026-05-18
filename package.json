@@ -45,6 +45,7 @@
     "readiness:production": "node scripts/production-readiness-gate.mjs",
     "production:readiness": "tsx scripts/production-readiness-report.ts",
     "operator:dashboard": "tsx scripts/operator-regression-dashboard.ts",
+    "task:scope": "tsx scripts/task-scope-report.ts",
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
     "check:staging-observability": "node scripts/staging-observability-check.mjs",
