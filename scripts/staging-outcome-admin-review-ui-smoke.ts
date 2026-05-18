@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { chromium, expect, type APIResponse, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, type APIResponse, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
 import {
   assertAdminReviewFixturePreflightVerified,
@@ -539,33 +539,50 @@ async function assertUnsupportedControlsAbsent(page: Page): Promise<void> {
   }
 }
 
-async function assertReviewValidation(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Mark Needs Review" }).click();
-  await expect(page.getByText("This review action requires review notes.")).toBeVisible();
+async function assertReviewValidation(findingCard: Locator): Promise<void> {
+  await findingCard.getByRole("button", { name: "Mark Needs Review" }).click();
+  await expect(findingCard.getByText("This review action requires review notes.")).toBeVisible();
 
-  await page.getByLabel("Review notes").fill("Confirmed for admin review. Deterministic result preserved.");
-  await page.getByRole("button", { name: "Confirm for Admin Review" }).click();
-  await expect(page.getByText("Confirm that this action does not change canonical facts.")).toBeVisible();
+  await findingCard.getByLabel("Review notes").fill("Confirmed for admin review. Deterministic result preserved.");
+  await findingCard.getByRole("button", { name: "Confirm for Admin Review" }).click();
+  await expect(findingCard.getByText("Confirm that this action does not change canonical facts.")).toBeVisible();
 
-  await page.getByLabel("Review notes").fill("");
-  await page.getByRole("button", { name: "Reject Match for Review Purposes" }).click();
-  await expect(page.getByText("This review action requires review notes.")).toBeVisible();
+  await findingCard.getByLabel("Review notes").fill("");
+  await findingCard.getByRole("button", { name: "Reject Match for Review Purposes" }).click();
+  await expect(findingCard.getByText("This review action requires review notes.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Reject Classification for Review Purposes" }).click();
-  await expect(page.getByText("This review action requires review notes.")).toBeVisible();
+  await findingCard.getByRole("button", { name: "Reject Classification for Review Purposes" }).click();
+  await expect(findingCard.getByText("This review action requires review notes.")).toBeVisible();
 }
 
-async function assertOutcomeDetailVisible(page: Page, run: any, finding: any): Promise<void> {
-  await expect(page.getByText(`Finding outcome #${finding.id}`)).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText(`Comparison run #${run.id}`).first()).toBeVisible();
-  await expect(page.getByText("Reason codes")).toBeVisible();
-  await expect(page.getByText("Review notes")).toBeVisible();
-  await expect(page.getByText(OUTCOME_ADMIN_REVIEW_UI_PRESERVATION_TEXT[0]).first()).toBeVisible();
+function outcomeDetailPanel(page: Page): Locator {
+  return page.locator("section", { has: page.getByRole("heading", { name: "Run Detail" }) });
+}
+
+function findingCardFor(page: Page, findingOutcomeId: number): Locator {
+  const id = Number(findingOutcomeId);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("Selected finding outcome did not include a valid ID.");
+  }
+  return page.locator(`xpath=//span[normalize-space(.)="Finding outcome #${id}"]/ancestor::section[1]`);
+}
+
+async function assertOutcomeDetailVisible(page: Page, run: any, finding: any): Promise<Locator> {
+  const detailPanel = outcomeDetailPanel(page);
+  await expect(detailPanel).toHaveCount(1, { timeout: 15000 });
+  await expect(detailPanel.getByText(`Comparison run #${run.id}`, { exact: true })).toBeVisible();
+
+  const findingCard = findingCardFor(page, Number(finding.id));
+  await expect(findingCard).toHaveCount(1, { timeout: 15000 });
+  await expect(findingCard).toBeVisible();
+  await expect(findingCard.getByText("Reason codes", { exact: true })).toBeVisible();
+  await expect(findingCard.getByLabel("Review notes")).toBeVisible();
+  await expect(findingCard.getByText(OUTCOME_ADMIN_REVIEW_UI_PRESERVATION_TEXT[0], { exact: true })).toBeVisible();
 
   for (const value of [finding.outcomeType, finding.matchingMethod, finding.confidenceLevel]) {
     const formatted = formatEnumForUi(value);
     if (formatted) {
-      await expect(page.getByText(formatted, { exact: true }).first()).toBeVisible();
+      await expect(findingCard.getByText(formatted, { exact: true }).first()).toBeVisible();
     }
   }
 
@@ -573,12 +590,14 @@ async function assertOutcomeDetailVisible(page: Page, run: any, finding: any): P
   for (const reasonCode of reasonCodes) {
     const formatted = formatEnumForUi(reasonCode);
     if (formatted) {
-      await expect(page.getByText(formatted, { exact: true }).first()).toBeVisible();
+      await expect(findingCard.getByText(formatted, { exact: true }).first()).toBeVisible();
     }
   }
+
+  return findingCard;
 }
 
-async function openSyntheticRunDetail(page: Page, run: any, finding: any): Promise<void> {
+async function openSyntheticRunDetail(page: Page, run: any, finding: any): Promise<Locator> {
   await page.goto(OUTCOME_ADMIN_REVIEW_UI_PATH);
   await assertUiSafetyText(page);
   await assertUnsupportedControlsAbsent(page);
@@ -590,17 +609,17 @@ async function openSyntheticRunDetail(page: Page, run: any, finding: any): Promi
   await expect(runCard).toHaveCount(1, { timeout: 15000 });
   await expect(runCard).toBeVisible();
   await runCard.getByRole("button", { name: /View Details/i }).click();
-  await assertOutcomeDetailVisible(page, run, finding);
+  return assertOutcomeDetailVisible(page, run, finding);
 }
 
-async function applyMetadataOnlyReview(page: Page): Promise<number> {
+async function applyMetadataOnlyReview(page: Page, findingCard: Locator): Promise<number> {
   const reviewResponse = page.waitForResponse(
     (response) =>
       response.url().includes(OUTCOME_ADMIN_REVIEW_ENDPOINTS.adminReview) &&
       response.request().method().toUpperCase() === "POST",
     { timeout: 15000 },
   );
-  await page.getByRole("button", { name: "Review Outcome" }).click();
+  await findingCard.getByRole("button", { name: "Review Outcome" }).click();
   const response = await reviewResponse;
   if (!response.ok()) {
     throw new Error(`UI review_outcome returned HTTP ${response.status()}.`);
@@ -665,12 +684,12 @@ export async function runSmoke(config: Extract<OutcomeAdminReviewUiSmokeConfig, 
       throw new Error("Outcome list did not include the verified synthetic comparison run.");
     }
 
-    await openSyntheticRunDetail(page, run, finding);
+    const findingCard = await openSyntheticRunDetail(page, run, finding);
     const bodyTextBefore = await page.locator("body").innerText();
     assertOutcomeAdminReviewUiPrivacySafe({ displayText: bodyTextBefore });
 
-    await assertReviewValidation(page);
-    const reviewStatus = await applyMetadataOnlyReview(page);
+    await assertReviewValidation(findingCard);
+    const reviewStatus = await applyMetadataOnlyReview(page, findingCard);
 
     const updatedRun = await getRun(page, comparisonRunId);
     const updatedFinding = findingFromRun(updatedRun, findingOutcomeId);

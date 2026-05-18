@@ -175,6 +175,29 @@ describe("outcome admin-review UI staging smoke harness", () => {
     expect(source).toContain("snapshotsUnchanged");
   });
 
+  it("scopes Reason codes assertions to the selected finding detail card", () => {
+    const source = smokeSource();
+
+    expect(OUTCOME_ADMIN_REVIEW_UI_PRESERVATION_TEXT[0]).toContain("reason codes");
+    expect(source).toContain("function outcomeDetailPanel");
+    expect(source).toContain("function findingCardFor");
+    expect(source).toContain("findingCardFor(page, Number(finding.id))");
+    expect(source).toContain('findingCard.getByText("Reason codes", { exact: true })');
+    expect(source).toContain('findingCard.getByLabel("Review notes")');
+    expect(source).toContain('detailPanel.getByText(`Comparison run #${run.id}`, { exact: true })');
+    expect(source).not.toContain('page.getByText("Reason codes")');
+  });
+
+  it("ties detail assertions to the current comparisonRunId and findingOutcomeId", () => {
+    const source = smokeSource();
+
+    expect(source).toContain("Comparison run #${run.id}");
+    expect(source).toContain("Finding outcome #${id}");
+    expect(source).toContain("findingOutcomeId = Number(finding.id)");
+    expect(source).toContain("Comparison run ID: ${comparisonRunId");
+    expect(source).toContain("Finding outcome ID: ${findingOutcomeId");
+  });
+
   it("verifies review action validation checks are present", () => {
     expect(OUTCOME_ADMIN_REVIEW_UI_VALIDATION_CHECKS).toEqual([
       "Mark Needs Review requires notes",
@@ -185,11 +208,13 @@ describe("outcome admin-review UI staging smoke harness", () => {
 
     const source = smokeSource();
     expect(source).toContain("assertReviewValidation");
+    expect(source).toContain("assertReviewValidation(findingCard)");
     expect(source).toContain("Mark Needs Review");
     expect(source).toContain("Confirm for Admin Review");
     expect(source).toContain("Reject Match for Review Purposes");
     expect(source).toContain("Reject Classification for Review Purposes");
     expect(source).toContain("Review Outcome");
+    expect(source).toContain("applyMetadataOnlyReview(page, findingCard)");
   });
 
   it("verifies unsupported override controls are checked as absent", () => {
