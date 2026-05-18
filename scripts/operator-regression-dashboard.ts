@@ -107,10 +107,16 @@ export const GATED_SMOKE_CHECKS = [
     notes:
       "Manual/gated admin-only Outcome Reviews UI smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_UI_SMOKE=true, safe staging admin context, and a verified synthetic outcome run. Authenticated staging smoke has passed for route/list/detail, safety notices, metadata-only review action, deterministic preservation, unsupported override-control absence, and privacy/no-overexposure.",
   },
+  {
+    name: "Response Document smoke",
+    command: "pnpm run smoke:response-document",
+    notes:
+      "Manual/gated response-document capture smoke. Requires CRP_RESPONSE_DOCUMENT_SMOKE=true, safe staging user/admin context, and verified synthetic outcome or packet data. Authenticated staging smoke has passed in both admin and user-owned contexts for capture/list/get, email bureau_response metadata, outcome linkage, metadata-only behavior, later-report-comparison requirement, and privacy/no-overexposure.",
+  },
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, and response-document capture backend coverage now exists for metadata/evidence-only response records; response UI/parser/inbox integration, authenticated response capture smoke, consumer-facing outcome UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, and response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records; response UI/parser/inbox integration, response admin-review workflow, consumer-facing outcome UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -331,7 +337,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Response document capture endpoint",
           "SKIP",
-          "Endpoint-backed metadata/evidence-only response capture coverage for bureau_response_event schema creation, owner/admin/support boundaries, packet/outcome/finding/evidence linkage, sanitized audit, privacy/no-overexposure, and source guards that prevent parser, OCR, packet, violation, runtime truth, admin override, direct furnisher, or corrected/removed classification paths.",
+          "Endpoint-backed metadata/evidence-only response capture coverage for bureau_response_event schema creation, owner/admin/support boundaries, packet/outcome/finding/evidence linkage, sanitized audit, privacy/no-overexposure, and source guards that prevent parser, OCR, packet, violation, runtime truth, admin override, direct furnisher, or corrected/removed classification paths. Authenticated staging smoke has passed in admin and user-owned contexts for capture/list/get and outcome-linked email response metadata.",
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
