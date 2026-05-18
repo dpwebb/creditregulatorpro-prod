@@ -300,16 +300,88 @@ export function redactSecretText(value: string, env: NodeJS.ProcessEnv): string 
   return redactOutcomeSecretText(value, env);
 }
 
+const ADMIN_REVIEW_DISPLAY_TEXT_KEYS = new Set([
+  "adminFacingText",
+  "availableActions",
+  "description",
+  "displayLabel",
+  "displayText",
+  "label",
+  "message",
+  "outcomeText",
+  "reviewLabel",
+  "reviewNotes",
+  "adminReviewNotes",
+  "reviewNotesSummary",
+  "reviewSummary",
+  "summaryText",
+  "title",
+  "userFacingText",
+]);
+
+const ADMIN_REVIEW_FORBIDDEN_DISPLAY_PATTERNS = [
+  /you won/i,
+  /this is illegal/i,
+  /violat(?:e|es|ed|ing)\s+the\s+law/i,
+  /admitted fault/i,
+  /entitled to damages/i,
+  /must pay/i,
+  /confirmed legal violation/i,
+  /override[_ ]to[_ ]corrected/i,
+  /override[_ ]to[_ ]removed/i,
+  /force[_ ]outcome/i,
+  /make[_ ]final[_ ]truth/i,
+  /legal[_ ]violation/i,
+] as const;
+
+const ADMIN_REVIEW_UNSAFE_ACTIVATION_DISPLAY_PATTERNS = [
+  /activate\s+(?:db\s+)?(?:regulation\s+)?runtime\s+truth/i,
+  /activate\s+(?:db\s+)?registry\s+(?:as\s+)?runtime\s+truth/i,
+  /make\s+(?:db\s+)?(?:registry\s+)?active\s+truth/i,
+  /apply\s+(?:db\s+)?(?:registry\s+)?to\s+runtime/i,
+] as const;
+
+const ADMIN_REVIEW_SAFE_NEGATED_ACTIVATION_PATTERNS = [
+  /does\s+not\s+activate/i,
+  /do\s+not\s+activate/i,
+  /will\s+not\s+activate/i,
+  /without\s+activating/i,
+  /no\s+runtime\s+activation/i,
+  /not\s+runtime\s+truth/i,
+  /confirmNoRuntimeActivation/,
+] as const;
+
+function collectDisplayTextValues(value: unknown, includeText = false): string[] {
+  if (typeof value === "string") return includeText ? [value] : [];
+  if (Array.isArray(value)) return value.flatMap((item) => collectDisplayTextValues(item, includeText));
+  if (!value || typeof value !== "object") return [];
+
+  const result: string[] = [];
+  for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+    const nestedIsDisplayText = includeText || ADMIN_REVIEW_DISPLAY_TEXT_KEYS.has(key);
+    result.push(...collectDisplayTextValues(nestedValue, nestedIsDisplayText));
+  }
+  return result;
+}
+
+function assertAdminReviewDisplayTextSafe(payload: unknown): void {
+  for (const text of collectDisplayTextValues(payload)) {
+    const forbiddenPattern = ADMIN_REVIEW_FORBIDDEN_DISPLAY_PATTERNS.find((pattern) => pattern.test(text));
+    if (forbiddenPattern) {
+      throw new Error(`Outcome admin-review smoke response failed privacy/legal-language check: ${forbiddenPattern}.`);
+    }
+
+    const unsafeActivationPattern = ADMIN_REVIEW_UNSAFE_ACTIVATION_DISPLAY_PATTERNS.find((pattern) => pattern.test(text));
+    const safeNegatedActivation = ADMIN_REVIEW_SAFE_NEGATED_ACTIVATION_PATTERNS.some((pattern) => pattern.test(text));
+    if (unsafeActivationPattern && !safeNegatedActivation) {
+      throw new Error(`Outcome admin-review smoke response failed privacy/legal-language check: ${unsafeActivationPattern}.`);
+    }
+  }
+}
+
 export function assertAdminReviewPrivacySafe(payload: unknown): void {
   assertOutcomePrivacySafe(payload);
-  const serialized = JSON.stringify(payload);
-  const forbidden = [
-    /you won|violated the law|admitted fault|entitled to damages|must pay|confirmed legal violation/i,
-    /override_to_corrected|override_to_removed|force_outcome|make_final_truth|legal_violation|activate/i,
-  ].find((pattern) => pattern.test(serialized));
-  if (forbidden) {
-    throw new Error(`Outcome admin-review smoke response failed privacy/legal-language check: ${forbidden}.`);
-  }
+  assertAdminReviewDisplayTextSafe(payload);
 }
 
 export function assertAdminReviewFixturePreflightVerified(

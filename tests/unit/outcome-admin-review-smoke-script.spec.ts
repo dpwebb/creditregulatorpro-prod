@@ -186,6 +186,29 @@ describe("outcome admin-review staging smoke harness", () => {
     ]);
   });
 
+  it("allows rejected unsupported action names in machine-readable validation payloads", () => {
+    expect(() =>
+      assertAdminReviewPrivacySafe({
+        error: "Invalid enum value. Received override_to_corrected.",
+        received: "override_to_removed",
+        validation: {
+          rejectedAction: "force_outcome",
+          code: "invalid_enum_value",
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("allows internal runtime-activation guard fields and safe negated guardrail language", () => {
+    expect(() =>
+      assertAdminReviewPrivacySafe({
+        confirmNoRuntimeActivation: true,
+        regulationRuntimeActivationEndpointCalls: 0,
+        reviewNotes: "Confirmed for admin review. This does not activate runtime truth.",
+      }),
+    ).not.toThrow();
+  });
+
   it("verifies deterministic outcomeType preservation is checked", () => {
     const before = {
       outcomeType: "response_received",
@@ -230,7 +253,25 @@ describe("outcome admin-review staging smoke harness", () => {
       /privacy check/,
     );
     expect(() => assertAdminReviewPrivacySafe({ token: "sk-synthetic-secret" })).toThrow(/privacy check/);
-    expect(() => assertAdminReviewPrivacySafe({ text: "The bureau violated the law." })).toThrow(/legal-language check/);
+  });
+
+  it("blocks forbidden legal-conclusion phrases in review and display text", () => {
+    expect(() => assertAdminReviewPrivacySafe({ reviewNotes: "The bureau violated the law." })).toThrow(
+      /legal-language check/,
+    );
+    expect(() => assertAdminReviewPrivacySafe({ displayText: "You won." })).toThrow(/legal-language check/);
+    expect(() => assertAdminReviewPrivacySafe({ reviewSummary: "The creditor admitted fault." })).toThrow(
+      /legal-language check/,
+    );
+  });
+
+  it("blocks unsafe affirmative runtime-activation display labels", () => {
+    expect(() => assertAdminReviewPrivacySafe({ availableActions: ["Activate runtime truth"] })).toThrow(
+      /legal-language check/,
+    );
+    expect(() => assertAdminReviewPrivacySafe({ displayLabel: "Apply DB registry to runtime" })).toThrow(
+      /legal-language check/,
+    );
   });
 
   it("verifies no destructive cleanup is attempted", () => {
