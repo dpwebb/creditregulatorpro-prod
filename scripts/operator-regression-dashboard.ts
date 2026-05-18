@@ -52,6 +52,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/outcome-admin-review-ui.spec.tsx",
   "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
+  "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
@@ -99,7 +100,7 @@ export const GATED_SMOKE_CHECKS = [
     name: "Outcome Admin Review smoke",
     command: "pnpm run smoke:outcome-admin-review",
     notes:
-      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend now exists, while response UI/parser/inbox integration remain future work.",
+      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend and admin-only read-only response UI now exist, while response capture UI, response parser/inbox integration, and response admin-review workflow remain future work.",
   },
   {
     name: "Outcome Admin Review UI smoke",
@@ -116,7 +117,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, and response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records; response UI/parser/inbox integration, response admin-review workflow, consumer-facing outcome UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, and the admin-only read-only Response Documents UI now has local unit coverage and a successful staging deploy; authenticated Response Documents UI smoke, response capture UI, response parser/inbox integration, response admin-review workflow, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -341,6 +342,15 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Response document admin UI",
+          "SKIP",
+          "Admin-only read-only Response Documents UI coverage for list/detail, supported filters, safe metadata rendering, evidence-only and later-report-comparison notices, absence of capture/review/corrected/removed/parser/inbox controls, and source guards limiting calls to existing response list/get endpoints. Staging deploy has passed; authenticated UI smoke remains pending until a safe admin context is configured.",
+          {
+            command: "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
             runByDefault: true,
           },
         ),
