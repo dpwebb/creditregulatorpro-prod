@@ -93,10 +93,16 @@ export const GATED_SMOKE_CHECKS = [
     notes:
       "Manual/gated persisted outcome smoke. Requires CRP_OUTCOME_TRACKING_SMOKE=true, safe auth context, and synthetic fixture IDs from smoke:outcome-fixture-setup. Authenticated staging response-only smoke has passed; non-owner check remains skipped unless a safe non-owner context is configured.",
   },
+  {
+    name: "Outcome Admin Review smoke",
+    command: "pnpm run smoke:outcome-admin-review",
+    notes:
+      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; outcome UI and response-document workflow remain future work.",
+  },
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, and admin-review endpoint coverage now exists; outcome UI, response-document workflow, historical backfill, non-owner smoke, authenticated admin-review smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, and authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path; outcome UI, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
