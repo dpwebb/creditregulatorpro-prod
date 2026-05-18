@@ -154,6 +154,7 @@ describe("operator regression dashboard", () => {
         "pnpm run smoke:runtime-bridge-mapping-ui",
         "pnpm run smoke:advisory-bridge-report",
         "pnpm run smoke:auth-workflow",
+        "pnpm run smoke:outcome-tracking",
       ]),
     );
     expect(smoke?.checks.every((check) => check.status === "MANUAL")).toBe(true);
@@ -166,7 +167,7 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Outcome tracking remains backend-only; outcome UI, admin-review endpoint, response-document workflow, historical backfill, production-scale smoke, and monitoring remain future work.",
+        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path; outcome UI, admin-review endpoint, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",
         "No admin override exists and it should remain absent.",
