@@ -304,6 +304,7 @@ Work:
 4. Preserve silent-correction and stale-reporting guard behavior.
 5. Show users plain-language outcome summaries.
 6. Keep outcome summaries deterministic and evidence-linked.
+7. Account for Equifax generally responding to packets or bureau communications by email when designing response intake, evidence capture, and outcome tracking.
 
 Exit criteria:
 
