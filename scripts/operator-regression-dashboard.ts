@@ -101,7 +101,7 @@ export const GATED_SMOKE_CHECKS = [
     name: "Outcome Admin Review smoke",
     command: "pnpm run smoke:outcome-admin-review",
     notes:
-      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend and admin-only read-only response UI now exist, while response capture UI, response parser/inbox integration, and response admin-review workflow remain future work.",
+      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend, admin-only read-only response UI, and response-document admin-review backend now exist, while response admin-review UI, response capture UI, and response parser/inbox integration remain future work.",
   },
   {
     name: "Outcome Admin Review UI smoke",
@@ -115,10 +115,22 @@ export const GATED_SMOKE_CHECKS = [
     notes:
       "Manual/gated response-document capture smoke. Requires CRP_RESPONSE_DOCUMENT_SMOKE=true, safe staging user/admin context, and verified synthetic outcome or packet data. Authenticated staging smoke has passed in both admin and user-owned contexts for capture/list/get, email bureau_response metadata, outcome linkage, metadata-only behavior, later-report-comparison requirement, and privacy/no-overexposure.",
   },
+  {
+    name: "Response Document UI smoke",
+    command: "pnpm run smoke:response-document-ui",
+    notes:
+      "Manual/gated admin-only Response Documents UI smoke. Requires CRP_RESPONSE_DOCUMENT_UI_SMOKE=true, safe staging admin context, and verified synthetic response data. Authenticated staging smoke has passed for route/list/detail, evidence-only notices, read-only control absence, runtime-safety, and privacy/no-overexposure.",
+  },
+  {
+    name: "Response Document Admin Review smoke",
+    command: "pnpm run smoke:response-document-admin-review",
+    notes:
+      "Manual/gated response-document admin-review smoke. Requires CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and verified synthetic response data. Authenticated staging smoke has passed for admin-only metadata review, required-note validation, unsupported corrected/removed/unchanged and legal/override rejection, source preservation, runtime-safety, and privacy/no-overexposure.",
+  },
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path, and response-document admin-review backend coverage plus staging unauthenticated denial now exist for metadata-only review actions; authenticated response admin-review smoke, response admin-review UI, response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for a read-only list/detail visibility path, and response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions; response admin-review UI, response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -349,7 +361,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Response document admin-review endpoint",
           "SKIP",
-          "Endpoint-backed admin-only metadata review coverage for bureau_response_event review status, related/unrelated/archive/note/link actions, same-user packet/outcome/finding validation, required evidence-only/no-canonical-change/no-outcome-classification confirmations, sanitized audit, privacy/no-overexposure, unsupported corrected/removed/legal override-action rejection, source preservation, and source guards preventing parser, OCR, packet, violation, runtime truth, admin override, direct furnisher, or mailbox paths. Staging deploy and unauthenticated denial have passed; authenticated admin-review smoke remains pending.",
+          "Endpoint-backed admin-only metadata review coverage for bureau_response_event review status, related/unrelated/archive/note/link actions, same-user packet/outcome/finding validation, required evidence-only/no-canonical-change/no-outcome-classification confirmations, sanitized audit, privacy/no-overexposure, unsupported corrected/removed/legal override-action rejection, source preservation, and source guards preventing parser, OCR, packet, violation, runtime truth, admin override, direct furnisher, or mailbox paths. Authenticated staging smoke has passed for synthetic response 1 with required-note validation, unsupported action rejection, link_to_outcome, add_review_note, metadata-only review updates, deterministic source preservation, runtime-safety, and privacy/no-overexposure.",
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/response-document-admin-review-endpoint.spec.ts",
