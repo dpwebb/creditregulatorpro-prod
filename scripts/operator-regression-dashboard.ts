@@ -98,12 +98,18 @@ export const GATED_SMOKE_CHECKS = [
     name: "Outcome Admin Review smoke",
     command: "pnpm run smoke:outcome-admin-review",
     notes:
-      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; admin outcome review UI now exists, while authenticated UI smoke and response-document workflow remain future work.",
+      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document workflow remains future work.",
+  },
+  {
+    name: "Outcome Admin Review UI smoke",
+    command: "pnpm run smoke:outcome-admin-review-ui",
+    notes:
+      "Manual/gated admin-only Outcome Reviews UI smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_UI_SMOKE=true, safe staging admin context, and a verified synthetic outcome run. Authenticated staging smoke has passed for route/list/detail, safety notices, metadata-only review action, deterministic preservation, unsupported override-control absence, and privacy/no-overexposure.",
   },
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, and an admin-only outcome review UI now exists with local unit coverage and deployed bundle verification; consumer-facing outcome UI, authenticated outcome review UI smoke, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, and authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path; consumer-facing outcome UI, response-document workflow, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
