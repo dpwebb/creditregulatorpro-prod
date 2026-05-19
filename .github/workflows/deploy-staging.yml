@@ -425,6 +425,7 @@ jobs:
 
                   export CRP_OUTCOME_TRACKING_FIXTURE_SETUP=true
                   export CRP_OUTCOME_TRACKING_FIXTURE_TARGET=staging
+                  export CRP_OUTCOME_TRACKING_FIXTURE_SOURCE=api
                   export CRP_OUTCOME_TRACKING_FIXTURE_MARKER="$SMOKE_MARKER"
                   pnpm --silent run smoke:outcome-fixture-setup > /tmp/response-auth-outcome-fixture.json
 
