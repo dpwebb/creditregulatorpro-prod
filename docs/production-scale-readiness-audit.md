@@ -273,13 +273,13 @@ Positive evidence:
 - `endpoints/evidence/*` routes enforce owner/admin checks and tests verify non-owner denial.
 - `helpers/responseDocumentService.ts` blocks support role for response records, filters non-admins by `userId`, validates related packet/finding/outcome/tradeline ownership, and requires admin confirmations for admin review.
 - `endpoints/responses/queue_GET.ts` and `endpoints/responses/queue-remediation_POST.ts` are admin-only.
+- `tests/contracts/route-auth-classification.spec.ts` classifies all 281 endpoint handlers as public, session-authenticated, admin-only, cron-token authenticated, webhook-signature authenticated, or intentionally test/local-only, and asserts representative guard patterns.
 - Tests cover many boundaries: `tests/api/auth-session-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, `tests/api/packet-lifecycle-endpoint.spec.ts`, `tests/api/packet-delivery-status-endpoint.spec.ts`, `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/response-document-endpoint.spec.ts`, `tests/api/response-processing-queue-remediation-endpoint.spec.ts`.
 
 Risks:
 
 - Some operational endpoints use non-session cron tokens and accept query tokens: `endpoints/clock/scan_POST.ts` and `endpoints/retention/auto-purge_POST.ts`.
 - `endpoints/retention/auto-purge_POST.ts` still allows a legacy token derived from the first 32 characters of `JWT_SECRET`.
-- There is no route-wide generated assertion that every non-public endpoint uses either session auth, admin auth, webhook signature, or explicit cron-token auth.
 - `server.ts` generated endpoint wrappers often return `"Error loading endpoint code " + e.message`, which is acceptable for module load errors but should be reviewed for production sanitization consistency.
 
 ### 5. Observability and Operations
@@ -417,7 +417,7 @@ Use this before any staging-to-production promotion.
 2. Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test.
 3. [x] Add default/max pagination to packet and report-artifact list endpoints. Implemented in `endpoints/packet/list_GET.schema.ts`, `endpoints/packet/list_GET.ts`, `endpoints/report-artifact/list_GET.schema.ts`, and `endpoints/report-artifact/list_GET.ts` with default 50, max 100, and excessive limits rejected rather than capped. Covered by `tests/api/packet-delivery-status-endpoint.spec.ts` and `tests/api/report-ingest-lifecycle-endpoint.spec.ts`.
 4. [x] Add production workflow post-deploy root/login/auth-session health checks. Implemented in `.github/workflows/deploy-production.yml` with `pnpm run check` preflight, remote `pnpm run build` preservation, selected checkout SHA verification, and post-deploy checks for `/`, `/login`, and unauthenticated `/_api/auth/session` denial. Covered by `tests/unit/deploy-production-workflow.spec.ts`.
-5. Add route-wide auth classification test for public/session/admin/webhook/cron endpoints.
+5. [x] Add route-wide auth classification test for public/session/admin/webhook/cron endpoints. Implemented in `tests/contracts/route-auth-classification.spec.ts` with 281 endpoint handlers classified across public, session-authenticated, admin-only, cron-token authenticated, webhook-signature authenticated, and intentionally test/local-only categories. No endpoint guard fixes were required and no new blockers were flagged. Covered by `pnpm run test:contracts`.
 6. Add operator launch policy limiting beta concurrency, upload size, packet volume, and response-worker operations until ingest queue exists.
 
 ### Phase 2: Must fix before broader production
