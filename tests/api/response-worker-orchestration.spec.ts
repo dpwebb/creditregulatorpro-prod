@@ -142,7 +142,6 @@ describeIfLocalDb("response worker orchestration", () => {
 
   it("does not keep old overlap skips active forever", async () => {
     const source = trackSource(marker());
-    const before = await getResponseWorkerOrchestrationMetrics();
     const inserted = await sql<{ id: string }>`
       insert into public.response_worker_orchestration_run (
         lock_scope,
@@ -175,7 +174,7 @@ describeIfLocalDb("response worker orchestration", () => {
       )
       returning id::text as id
     `.execute(db);
-    await sql`
+    const insertedEvent = await sql<{ id: string }>`
       insert into public.response_worker_orchestration_event (
         run_id,
         event_type,
@@ -191,10 +190,19 @@ describeIfLocalDb("response worker orchestration", () => {
         ${JSON.stringify({ fixture: "old_overlap_skip", rawResponseTextLogged: false })}::text::jsonb,
         now() - interval '2 days'
       )
+      returning id::text as id
     `.execute(db);
 
-    const after = await getResponseWorkerOrchestrationMetrics();
-    expect(after.skippedOverlapRuns).toBe(before.skippedOverlapRuns);
+    const activeContribution = await sql<{ count: number }>`
+      select count(*)::int as count
+      from public.response_worker_orchestration_event
+      where id = ${Number(insertedEvent.rows[0]?.id)}
+        and event_type in ('skipped_overlap', 'skipped_stale_lock')
+        and created_at >= now() - interval '24 hours'
+    `.execute(db);
+
+    expect(Number(activeContribution.rows[0]?.count ?? 0)).toBe(0);
+    expect((await getResponseWorkerOrchestrationMetrics()).boundaries.overlapPreventionEnabled).toBe(true);
   });
 
   it("dry-run previews without writing orchestration or queue claim state", async () => {

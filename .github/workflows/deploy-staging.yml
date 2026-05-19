@@ -592,7 +592,7 @@ jobs:
                   pnpm run smoke:response-document
 
                   export CRP_RESPONSE_DOCUMENT_UI_SMOKE=true
-                  pnpm exec playwright install --with-deps chromium >/dev/null
+                  DEBIAN_FRONTEND=noninteractive pnpm exec playwright install --with-deps chromium >/dev/null
                   pnpm run smoke:response-document-ui
 
                   export CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_SMOKE=true
