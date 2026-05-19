@@ -426,6 +426,101 @@ export function ensureResponseDocumentSchema(): Promise<void> {
         create index if not exists idx_response_processing_job_event_type_created_at
           on public.response_processing_job_event(event_type, created_at desc)
         `.execute(db);
+
+        await sql`
+        create table if not exists public.response_worker_orchestration_run (
+          id bigserial primary key,
+          lock_scope text not null,
+          status text not null default 'running',
+          mode text not null default 'bounded_once',
+          worker_id text not null,
+          source text null,
+          max_jobs integer not null default 1,
+          dry_run boolean not null default false,
+          started_at timestamptz not null default now(),
+          finished_at timestamptz null,
+          locked_until timestamptz not null,
+          processed_count integer not null default 0,
+          failure_count integer not null default 0,
+          skipped_reason text null,
+          last_error_code text null,
+          last_error_reason text null,
+          result_summary jsonb not null default '{}'::jsonb,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now(),
+          constraint response_worker_orchestration_run_status_check
+            check (status in ('running', 'succeeded', 'failed', 'skipped')),
+          constraint response_worker_orchestration_run_mode_check
+            check (mode in ('dry_run', 'bounded_once', 'bounded_batch', 'scheduled_bounded')),
+          constraint response_worker_orchestration_run_bounds_check
+            check (max_jobs > 0 and max_jobs <= 100 and processed_count >= 0 and failure_count >= 0)
+        )
+        `.execute(db);
+        await sql`
+        create table if not exists public.response_worker_orchestration_event (
+          id bigserial primary key,
+          run_id bigint not null,
+          event_type text not null,
+          previous_status text null,
+          next_status text not null,
+          worker_id text null,
+          details jsonb not null default '{}'::jsonb,
+          error_code text null,
+          error_reason text null,
+          created_at timestamptz not null default now(),
+          constraint response_worker_orchestration_event_type_check
+            check (event_type in ('started', 'succeeded', 'failed', 'skipped_overlap', 'skipped_stale_lock')),
+          constraint response_worker_orchestration_event_next_status_check
+            check (next_status in ('running', 'succeeded', 'failed', 'skipped')),
+          constraint response_worker_orchestration_event_previous_status_check
+            check (previous_status is null or previous_status in ('running', 'succeeded', 'failed', 'skipped')),
+          constraint response_worker_orchestration_event_run_id_fkey
+            foreign key (run_id) references public.response_worker_orchestration_run(id) on delete restrict
+        )
+        `.execute(db);
+        await sql`
+        do $$
+        begin
+          if exists (
+            select 1
+            from pg_constraint
+            where conname = 'response_worker_orchestration_event_run_id_fkey'
+              and conrelid = 'public.response_worker_orchestration_event'::regclass
+              and confdeltype <> 'r'
+          ) then
+            alter table public.response_worker_orchestration_event
+              drop constraint response_worker_orchestration_event_run_id_fkey;
+            alter table public.response_worker_orchestration_event
+              add constraint response_worker_orchestration_event_run_id_fkey
+              foreign key (run_id) references public.response_worker_orchestration_run(id) on delete restrict;
+          end if;
+        end $$;
+        `.execute(db);
+        await sql`
+        create unique index if not exists idx_response_worker_orchestration_active_lock_unique
+          on public.response_worker_orchestration_run(lock_scope)
+          where status = 'running'
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_worker_orchestration_status_created_at
+          on public.response_worker_orchestration_run(status, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_worker_orchestration_lock_status
+          on public.response_worker_orchestration_run(lock_scope, status, locked_until)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_worker_orchestration_source
+          on public.response_worker_orchestration_run(source)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_worker_orchestration_event_run_created_at
+          on public.response_worker_orchestration_event(run_id, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_worker_orchestration_event_type_created_at
+          on public.response_worker_orchestration_event(event_type, created_at desc)
+        `.execute(db);
       } finally {
         await sql`select pg_advisory_unlock(hashtext('creditregulatorpro.response_document_schema'))`.execute(db);
       }

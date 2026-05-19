@@ -204,6 +204,8 @@ function resetHookMocks() {
           deadLetterAcknowledgedJobs: 0,
           staleRunningReviewedJobs: 0,
           replacementJobs: 0,
+          replayFailureJobs: 0,
+          remediationFailureJobs: 0,
           lastRemediationStatus: null,
           lastRemediationAt: null,
           recentWorkerRunStatus: null,
@@ -218,6 +220,31 @@ function resetHookMocks() {
             canonicalFactsMutated: false,
             violationTruthMutated: false,
             packetReadinessMutated: false,
+          },
+        },
+        workerOrchestration: {
+          generatedAt: "2026-05-18T12:03:00.000Z",
+          orchestrationVersion: "response-worker-orchestration-2026-05-19",
+          totalRuns: 0,
+          runningRuns: 0,
+          staleRunningRuns: 0,
+          succeededRuns: 0,
+          failedRuns: 0,
+          skippedRuns: 0,
+          skippedOverlapRuns: 0,
+          recentFailedRuns: 0,
+          lastRunStatus: null,
+          lastRunAt: null,
+          lastSuccessfulRunAt: null,
+          lastFailedRunAt: null,
+          activeLock: null,
+          boundaries: {
+            bounded: true,
+            noDaemon: true,
+            overlapPreventionEnabled: true,
+            noRawResponseText: true,
+            externalAlertDeliveryUsed: false,
+            liveMailboxIntegrationUsed: false,
           },
         },
         boundaries: {
@@ -553,6 +580,10 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Queue Failed")).toBeInTheDocument();
     expect(screen.getByText("Queue Dead")).toBeInTheDocument();
     expect(screen.getByText("Queue Stale")).toBeInTheDocument();
+    expect(screen.getByText("Retry Backlog")).toBeInTheDocument();
+    expect(screen.getByText("Worker Failures")).toBeInTheDocument();
+    expect(screen.getByText("Skipped Runs")).toBeInTheDocument();
+    expect(screen.getByText("Last Worker")).toBeInTheDocument();
     expect(screen.getByText("DL Reviewed")).toBeInTheDocument();
     expect(screen.getByText("Stale Reviewed")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Queue Remediation" })).toBeInTheDocument();
@@ -619,6 +650,61 @@ describe("admin response document UI", () => {
         confirmReview: true,
       });
     });
+  });
+
+  it("surfaces internal operator alerts without external delivery or unsafe payloads", () => {
+    const baseMetrics = mocks.useResponseProcessingMetrics().data.metrics;
+    mocks.useResponseProcessingMetrics.mockReturnValue({
+      data: {
+        metrics: {
+          ...baseMetrics,
+          alerts: [
+            {
+              key: "queue_dead_letter_backlog",
+              severity: "critical",
+              active: true,
+              count: 2,
+              threshold: 1,
+              message: "Response-processing queue has dead-lettered jobs requiring operator remediation.",
+              remediationTarget: "queue_remediation",
+            },
+            {
+              key: "repeated_worker_failures",
+              severity: "critical",
+              active: true,
+              count: 2,
+              threshold: 2,
+              message: "Bounded response worker orchestration failed repeatedly in the last 24 hours.",
+              remediationTarget: "worker_orchestration",
+            },
+          ],
+          queueHealth: {
+            ...baseMetrics.queueHealth,
+            deadLetteredJobs: 2,
+          },
+          workerOrchestration: {
+            ...baseMetrics.workerOrchestration,
+            recentFailedRuns: 2,
+            lastRunStatus: "failed",
+          },
+        },
+      },
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: null,
+    });
+
+    render(<AdminResponseDocumentsPage />);
+
+    expect(screen.getByRole("heading", { name: "Internal Operator Alerts" })).toBeInTheDocument();
+    expect(screen.getByText("queue dead letter backlog")).toBeInTheDocument();
+    expect(screen.getByText("repeated worker failures")).toBeInTheDocument();
+    expect(screen.getByText(/No email, Slack, webhook, mailbox, or external delivery is active/i)).toBeInTheDocument();
+    expect(screen.getByText(/Alerts are deterministic and do not trigger auto-remediation/i)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("raw response text");
+    expect(document.body).not.toHaveTextContent("database_url");
+    expect(document.body).not.toHaveTextContent("connect gmail");
   });
 
   it("submits manual admin response intake and shows deterministic classification results", async () => {

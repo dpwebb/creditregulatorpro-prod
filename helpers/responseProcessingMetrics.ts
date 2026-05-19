@@ -6,6 +6,10 @@ import { ensureResponseDocumentSchema } from "./responseDocumentSchema";
 import type { ResponseDocumentUser } from "./responseDocumentService";
 import { getResponseProcessingQueueMetrics, type ResponseProcessingQueueMetrics } from "./responseProcessingQueueService";
 import { getResponseReplayReadinessMetrics, type ResponseReplayReadinessMetrics } from "./responseReplayService";
+import {
+  getResponseWorkerOrchestrationMetrics,
+  type ResponseWorkerOrchestrationMetrics,
+} from "./responseWorkerOrchestrationService";
 import type { Json } from "./schema";
 
 export type ResponseProcessingMetricAlert = {
@@ -17,12 +21,22 @@ export type ResponseProcessingMetricAlert = {
     | "readiness_regression"
     | "suspicious_response_patterns"
     | "repeated_parser_mismatches"
-    | "workflow_stalls";
+    | "workflow_stalls"
+    | "queue_dead_letter_backlog"
+    | "queue_stale_running_jobs"
+    | "queue_retry_backlog"
+    | "queue_oldest_job_age"
+    | "queue_growth_anomaly"
+    | "repeated_worker_failures"
+    | "replay_failures"
+    | "remediation_failures"
+    | "orchestration_overlap_skipped";
   severity: "info" | "warning" | "critical";
   active: boolean;
   count: number;
   threshold: number;
   message: string;
+  remediationTarget?: "queue_remediation" | "replay" | "worker_orchestration";
 };
 
 export type ResponseProcessingMetrics = {
@@ -47,6 +61,7 @@ export type ResponseProcessingMetrics = {
   alerts: ResponseProcessingMetricAlert[];
   replayReadiness: ResponseReplayReadinessMetrics;
   queueHealth: ResponseProcessingQueueMetrics;
+  workerOrchestration: ResponseWorkerOrchestrationMetrics;
   boundaries: {
     redacted: true;
     structuredOnly: true;
@@ -135,9 +150,10 @@ export async function getResponseProcessingMetrics(
     order by count desc, classification asc
   `.execute(db);
 
-  const [replayReadiness, queueHealth] = await Promise.all([
+  const [replayReadiness, queueHealth, workerOrchestration] = await Promise.all([
     getResponseReplayReadinessMetrics(),
     getResponseProcessingQueueMetrics(),
+    getResponseWorkerOrchestrationMetrics(),
   ]);
 
   const alerts: ResponseProcessingMetricAlert[] = [
@@ -168,6 +184,7 @@ export async function getResponseProcessingMetrics(
       count: Math.max(totals.deadLetters, queueHealth.deadLetteredJobs),
       threshold: 1,
       message: "Response ingestion dead letters require operator review.",
+      remediationTarget: "queue_remediation",
     }),
     alert({
       key: "readiness_regression",
@@ -196,6 +213,79 @@ export async function getResponseProcessingMetrics(
       count: totals.workflowStalls,
       threshold: 1,
       message: "Response workflows have unresolved manual-review records older than 24 hours.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "queue_dead_letter_backlog",
+      severity: "critical",
+      count: queueHealth.deadLetteredJobs,
+      threshold: 1,
+      message: "Response-processing queue has dead-lettered jobs requiring operator remediation.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "queue_stale_running_jobs",
+      severity: "critical",
+      count: queueHealth.staleRunningJobs,
+      threshold: 1,
+      message: "Response-processing queue has stale running jobs; review them without auto-reclaiming.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "queue_retry_backlog",
+      severity: "warning",
+      count: queueHealth.retryBacklogJobs,
+      threshold: 5,
+      message: "Response-processing retry backlog crossed the operator review threshold.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "queue_oldest_job_age",
+      severity: "warning",
+      count: queueHealth.oldestQueuedAgeSeconds ?? 0,
+      threshold: 3600,
+      message: "Oldest queued response-processing job has waited at least one hour.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "queue_growth_anomaly",
+      severity: "warning",
+      count: queueHealth.queuedJobs,
+      threshold: 100,
+      message: "Queued response-processing job count crossed the bounded growth threshold.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "repeated_worker_failures",
+      severity: "critical",
+      count: workerOrchestration.recentFailedRuns,
+      threshold: 2,
+      message: "Bounded response worker orchestration failed repeatedly in the last 24 hours.",
+      remediationTarget: "worker_orchestration",
+    }),
+    alert({
+      key: "replay_failures",
+      severity: "warning",
+      count: queueHealth.replayFailureJobs,
+      threshold: 1,
+      message: "Replay queue jobs are failed or dead-lettered and require operator review.",
+      remediationTarget: "replay",
+    }),
+    alert({
+      key: "remediation_failures",
+      severity: "warning",
+      count: queueHealth.remediationFailureJobs,
+      threshold: 1,
+      message: "Operator-remediation replacement jobs are failed or dead-lettered.",
+      remediationTarget: "queue_remediation",
+    }),
+    alert({
+      key: "orchestration_overlap_skipped",
+      severity: "info",
+      count: workerOrchestration.skippedOverlapRuns,
+      threshold: 1,
+      message: "At least one overlapping or stale-lock worker orchestration run was skipped safely.",
+      remediationTarget: "worker_orchestration",
     }),
   ];
 
@@ -210,6 +300,7 @@ export async function getResponseProcessingMetrics(
     alerts,
     replayReadiness,
     queueHealth,
+    workerOrchestration,
     boundaries: {
       redacted: true,
       structuredOnly: true,

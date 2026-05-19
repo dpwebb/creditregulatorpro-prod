@@ -136,6 +136,12 @@ describe("operator regression dashboard", () => {
         }),
         expect.objectContaining({
           category: "Outcome Tracking",
+          name: "Response worker orchestration dry-run",
+          command: "pnpm run response:worker-orchestrate -- --dry-run",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
           name: "Response queue service",
           command: "pnpm exec vitest run tests/api/response-processing-queue.spec.ts",
           runByDefault: true,
@@ -148,8 +154,26 @@ describe("operator regression dashboard", () => {
         }),
         expect.objectContaining({
           category: "Outcome Tracking",
+          name: "Response worker orchestration service",
+          command: "pnpm exec vitest run tests/api/response-worker-orchestration.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Response worker orchestration CLI",
+          command: "pnpm exec vitest run tests/unit/response-processing-worker-orchestrator-script.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
           name: "Response queue synthetic load",
           command: "pnpm run response:queue-load-check",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Response worker orchestration synthetic check",
+          command: "pnpm run response:orchestration-check",
           runByDefault: false,
         }),
         expect.objectContaining({
@@ -239,9 +263,9 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, response replay/backfill dry-run/apply tooling now exists with append-only apply events and no raw response text storage, durable response-processing queue/backpressure/dead-letter tooling now exists with bounded operator worker dry-run support, explicit operator remediation events, dead-letter replacement retry, stale-running review without auto-reclaim, and deterministic synthetic queue/load coverage, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, scheduled worker operations, historical production backfill strategy for records without stored response summaries, non-owner smoke, repeated production-scale smoke/load coverage, and external alert delivery remain future work.",
+        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, response replay/backfill dry-run/apply tooling now exists with append-only apply events and no raw response text storage, durable response-processing queue/backpressure/dead-letter tooling now exists with bounded operator worker dry-run support, explicit operator remediation events, dead-letter replacement retry, stale-running review without auto-reclaim, deterministic synthetic queue/load coverage, bounded scheduled worker orchestration with overlap skipping, and internal operator alert surfacing, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, live scheduled daemon operation, historical production backfill strategy for records without stored response summaries, non-owner smoke, repeated production-scale smoke/load coverage, and external alert delivery remain future work.",
         "Backup/restore verification remains future work.",
-        "Monitoring and alert delivery remain future work.",
+        "External alert delivery remains future work; internal dashboard alert surfacing now exists.",
         "No admin override exists and it should remain absent.",
         "DB registry remains non-runtime governance metadata.",
       ]),
@@ -249,9 +273,13 @@ describe("operator regression dashboard", () => {
     expect(rendered).toContain("Autonomous response auth smokes");
     expect(rendered).toContain("Response replay/backfill dry-run");
     expect(rendered).toContain("Response processing worker dry-run");
+    expect(rendered).toContain("Response worker orchestration dry-run");
+    expect(rendered).toContain("Response worker orchestration synthetic check");
     expect(rendered).toContain("not live mailbox integration or production-load proof");
     expect(rendered).toContain("durable response-processing queue/backpressure/dead-letter tooling now exists");
     expect(rendered).toContain("explicit operator remediation events");
+    expect(rendered).toContain("bounded scheduled worker orchestration with overlap skipping");
+    expect(rendered).toContain("internal operator alert surfacing");
     expect(rendered).toContain("Response queue remediation endpoint");
     expect(rendered).toContain("Response queue synthetic load");
     expect(rendered).toContain("scope-gated seeded/authenticated response auth smokes");

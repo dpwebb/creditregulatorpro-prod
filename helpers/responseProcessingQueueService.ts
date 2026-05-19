@@ -119,6 +119,8 @@ export type ResponseProcessingQueueMetrics = {
   deadLetterAcknowledgedJobs: number;
   staleRunningReviewedJobs: number;
   replacementJobs: number;
+  replayFailureJobs: number;
+  remediationFailureJobs: number;
   lastRemediationStatus: string | null;
   lastRemediationAt: string | null;
   recentWorkerRunStatus: string | null;
@@ -1644,6 +1646,18 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
       from public.response_processing_job_event
       where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued', 'duplicate_remediation_request')
     ),
+    replay_failures as (
+      select count(*)::int as replay_failure_jobs
+      from public.response_processing_job
+      where job_type in ('response_replay_apply', 'response_replay_dry_run')
+        and status in ('failed', 'dead_lettered')
+    ),
+    remediation_failures as (
+      select count(*)::int as remediation_failure_jobs
+      from public.response_processing_job
+      where source = 'operator_remediation'
+        and status in ('failed', 'dead_lettered')
+    ),
     recent_remediation as (
       select event_type, created_at
       from public.response_processing_job_event
@@ -1664,6 +1678,8 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
       remediation.dead_letter_acknowledged_jobs,
       remediation.stale_running_reviewed_jobs,
       remediation.replacement_jobs,
+      replay_failures.replay_failure_jobs,
+      remediation_failures.remediation_failure_jobs,
       recent_remediation.event_type as last_remediation_status,
       recent_remediation.created_at as last_remediation_at,
       recent_worker.event_type as recent_worker_run_status,
@@ -1671,6 +1687,8 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
     from counts
     cross join duplicate_attempts
     cross join remediation
+    cross join replay_failures
+    cross join remediation_failures
     left join recent_remediation on true
     left join recent_worker on true
   `.execute(db);
@@ -1692,6 +1710,8 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
     deadLetterAcknowledgedJobs: Number(rowValue(row, "dead_letter_acknowledged_jobs") ?? 0),
     staleRunningReviewedJobs: Number(rowValue(row, "stale_running_reviewed_jobs") ?? 0),
     replacementJobs: Number(rowValue(row, "replacement_jobs") ?? 0),
+    replayFailureJobs: Number(rowValue(row, "replay_failure_jobs") ?? 0),
+    remediationFailureJobs: Number(rowValue(row, "remediation_failure_jobs") ?? 0),
     lastRemediationStatus: rowValue(row, "last_remediation_status") ? String(rowValue(row, "last_remediation_status")) : null,
     lastRemediationAt: rowValue(row, "last_remediation_at") ? toIso(rowValue(row, "last_remediation_at")) : null,
     recentWorkerRunStatus: rowValue(row, "recent_worker_run_status") ? String(rowValue(row, "recent_worker_run_status")) : null,

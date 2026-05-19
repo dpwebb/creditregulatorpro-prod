@@ -749,80 +749,142 @@ function MetricsStrip() {
   }
 
   return (
-    <section className={styles.metricsStrip} aria-label="Response processing metrics">
-      <div className={styles.metricCell}>
-        <span>Processed 24h</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.processed ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Manual Review</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.manualReview ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Suspicious</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.suspicious ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Failed</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.failed ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>OCR Fallback</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.ocrFallback ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Readiness Regression</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.readinessRegression ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Dead Letters</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.deadLetters ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Queue Queued</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.queuedJobs ?? 0}</strong>
-      </div>
-      <div className={(metrics?.queueHealth.failedJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
-        <span>Queue Failed</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.failedJobs ?? 0}</strong>
-      </div>
-      <div className={(metrics?.queueHealth.deadLetteredJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
-        <span>Queue Dead</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.deadLetteredJobs ?? 0}</strong>
-      </div>
-      <div className={(metrics?.queueHealth.staleRunningJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
-        <span>Queue Stale</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningJobs ?? 0}</strong>
-      </div>
-      <div className={(metrics?.queueHealth.deadLetterAcknowledgedJobs ?? 0) > 0 ? styles.metricCell : styles.metricCell}>
-        <span>DL Reviewed</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.deadLetterAcknowledgedJobs ?? 0}</strong>
-      </div>
-      <div className={(metrics?.queueHealth.staleRunningReviewedJobs ?? 0) > 0 ? styles.metricCell : styles.metricCell}>
-        <span>Stale Reviewed</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningReviewedJobs ?? 0}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Workflow Stalls</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.workflowStalls ?? 0}</strong>
-      </div>
-      <div className={activeAlerts.length > 0 ? styles.metricAlert : styles.metricCell}>
-        <span>Active Alerts</span>
-        <strong>{metricsQuery.isLoading ? "-" : activeAlerts.length}</strong>
-      </div>
-      <div className={styles.metricCell}>
-        <span>Replayable</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.replayableRecords ?? 0}</strong>
-      </div>
-      <div className={(metrics?.replayReadiness.nonReplayableRecords ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
-        <span>Non-Replayable</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.nonReplayableRecords ?? 0}</strong>
-      </div>
-      <div className={(metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
-        <span>Replay Stale</span>
-        <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0}</strong>
-      </div>
-    </section>
+    <>
+      <section className={styles.metricsStrip} aria-label="Response processing metrics">
+        <div className={styles.metricCell}>
+          <span>Processed 24h</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.processed ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Manual Review</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.manualReview ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Suspicious</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.suspicious ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Failed</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.failed ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>OCR Fallback</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.ocrFallback ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Readiness Regression</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.readinessRegression ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Dead Letters</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.deadLetters ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Queue Queued</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.queuedJobs ?? 0}</strong>
+        </div>
+        <div className={(metrics?.queueHealth.failedJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Queue Failed</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.failedJobs ?? 0}</strong>
+        </div>
+        <div className={(metrics?.queueHealth.deadLetteredJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Queue Dead</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.deadLetteredJobs ?? 0}</strong>
+        </div>
+        <div className={(metrics?.queueHealth.staleRunningJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Queue Stale</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningJobs ?? 0}</strong>
+        </div>
+        <div className={(metrics?.queueHealth.retryBacklogJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Retry Backlog</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.retryBacklogJobs ?? 0}</strong>
+        </div>
+        <div className={(metrics?.workerOrchestration?.recentFailedRuns ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Worker Failures</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.workerOrchestration?.recentFailedRuns ?? 0}</strong>
+        </div>
+        <div className={(metrics?.workerOrchestration?.skippedOverlapRuns ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Skipped Runs</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.workerOrchestration?.skippedOverlapRuns ?? 0}</strong>
+        </div>
+        <div className={(metrics?.queueHealth.deadLetterAcknowledgedJobs ?? 0) > 0 ? styles.metricCell : styles.metricCell}>
+          <span>DL Reviewed</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.deadLetterAcknowledgedJobs ?? 0}</strong>
+        </div>
+        <div className={(metrics?.queueHealth.staleRunningReviewedJobs ?? 0) > 0 ? styles.metricCell : styles.metricCell}>
+          <span>Stale Reviewed</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningReviewedJobs ?? 0}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Workflow Stalls</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.workflowStalls ?? 0}</strong>
+        </div>
+        <div className={activeAlerts.length > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Active Alerts</span>
+          <strong>{metricsQuery.isLoading ? "-" : activeAlerts.length}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Last Worker</span>
+          <strong>{metricsQuery.isLoading ? "-" : formatEnum(metrics?.workerOrchestration?.lastRunStatus ?? "none")}</strong>
+        </div>
+        <div className={styles.metricCell}>
+          <span>Replayable</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.replayableRecords ?? 0}</strong>
+        </div>
+        <div className={(metrics?.replayReadiness.nonReplayableRecords ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Non-Replayable</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.nonReplayableRecords ?? 0}</strong>
+        </div>
+        <div className={(metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Replay Stale</span>
+          <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0}</strong>
+        </div>
+      </section>
+      {activeAlerts.length > 0 ? (
+        <section className={styles.queuePanel} aria-label="Internal operator alerts">
+          <div className={styles.reviewHeader}>
+            <AlertTriangle size={18} />
+            <div>
+              <h2>Internal Operator Alerts</h2>
+              <p>Dashboard-only alert surfacing. No email, Slack, webhook, mailbox, or external delivery is active.</p>
+            </div>
+          </div>
+          <div className={styles.reviewNotice}>
+            <ShieldCheck size={18} />
+            <div>
+              <span>Alerts are deterministic and do not trigger auto-remediation.</span>
+              <span>Queue remediation remains an explicit admin action with append-only history.</span>
+              <span>Live mailbox integration and scheduled daemon operation remain deferred.</span>
+            </div>
+          </div>
+          <div className={styles.queueTableWrap}>
+            <table className={styles.queueTable}>
+              <thead>
+                <tr>
+                  <th>Severity</th>
+                  <th>Alert</th>
+                  <th>Count</th>
+                  <th>Operator target</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeAlerts.map((alert) => (
+                  <tr key={alert.key} className={alert.severity === "critical" ? styles.queueWarningRow : undefined}>
+                    <td><Badge variant={alert.severity === "critical" ? "warning" : "info"}>{formatEnum(alert.severity)}</Badge></td>
+                    <td>
+                      <strong>{formatEnum(alert.key)}</strong>
+                      <span>{safeValue(alert.message)}</span>
+                    </td>
+                    <td>{alert.count} / {alert.threshold}</td>
+                    <td>{formatEnum(alert.remediationTarget ?? "operator_dashboard")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+    </>
   );
 }
 
