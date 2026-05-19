@@ -247,6 +247,115 @@ function resetHookMocks() {
             liveMailboxIntegrationUsed: false,
           },
         },
+        lifecycle: {
+          generatedAt: "2026-05-18T12:03:00.000Z",
+          lifecycleVersion: "response-processing-lifecycle-2026-05-19",
+          cleanupEligibleRecords: 0,
+          cleanupMarkedRecords: 0,
+          activeDriftAlerts: 0,
+          criticalDriftAlerts: 0,
+          lastCleanupAt: null,
+          lastDriftReportAt: null,
+          lastSoakCheckAt: "2026-05-18T12:02:00.000Z",
+          lastSoakCheckStatus: "succeeded",
+          retentionPreview: {
+            generatedAt: "2026-05-18T12:03:00.000Z",
+            lifecycleVersion: "response-processing-lifecycle-2026-05-19",
+            dryRun: true,
+            olderThanDays: 90,
+            limit: 100,
+            source: null,
+            queueJobs: {
+              eligibleRecords: 0,
+              previewedRecordIds: [],
+              blockedActiveRecords: 0,
+              blockedStaleRecords: 0,
+              blockedFailedRecords: 0,
+              blockedDeadLetterRecords: 0,
+              eventRowsCovered: 0,
+              destructiveDeleteUsed: false,
+            },
+            orchestrationRuns: {
+              eligibleRecords: 0,
+              previewedRecordIds: [],
+              blockedActiveRecords: 0,
+              blockedStaleRecords: 0,
+              blockedFailedRecords: 0,
+              blockedDeadLetterRecords: 0,
+              eventRowsCovered: 0,
+              destructiveDeleteUsed: false,
+            },
+            replayAuditHistory: {
+              recordsOlderThanRetention: 0,
+              eligibleRecords: 0,
+              reason: "append_only_replay_audit_retained",
+            },
+            internalAlertHistory: {
+              recordsOlderThanRetention: 0,
+              eligibleRecords: 0,
+              reason: "append_only_internal_alert_history_retained",
+            },
+            cleanupAlreadyMarkedRecords: 0,
+            oldestTerminalJobAgeSeconds: null,
+            oldestDeadLetterAgeSeconds: null,
+            oldestTerminalOrchestrationAgeSeconds: null,
+            boundaries: {
+              noDestructiveCleanupByDefault: true,
+              explicitOperatorControlRequired: true,
+              activeJobsProtected: true,
+              runningJobsProtected: true,
+              staleJobsProtected: true,
+              deadLetterJobsProtected: true,
+              appendOnlyLifecycleEvents: true,
+              rawResponseTextStored: false,
+              canonicalFactsMutated: false,
+              violationTruthMutated: false,
+              packetReadinessMutated: false,
+            },
+          },
+          driftReport: {
+            generatedAt: "2026-05-18T12:03:00.000Z",
+            lifecycleVersion: "response-processing-lifecycle-2026-05-19",
+            source: null,
+            lookbackHours: 24,
+            checks: [],
+            activeChecks: 0,
+            criticalChecks: 0,
+            thresholds: {
+              queueGrowthDelta: 100,
+              deadLetterGrowthDelta: 1,
+              retryBacklogJobs: 5,
+              staleRunningJobs: 1,
+              replayNonReplayableRecords: 25,
+              orchestrationOverlapSkips: 3,
+              repeatedWorkerFailures: 2,
+              orphanedReplacementChains: 1,
+              orphanedRemediationReferences: 1,
+              oldestQueuedAgeSeconds: 3600,
+              oldestDeadLetterAgeSeconds: 604800,
+            },
+            trendWindow: {
+              currentQueuedJobsCreated: 0,
+              previousQueuedJobsCreated: 0,
+              currentDeadLetteredJobs: 0,
+              previousDeadLetteredJobs: 0,
+            },
+            boundaries: {
+              operatorVisibleOnly: true,
+              noExternalAlerts: true,
+              noAutoRemediation: true,
+              noRawResponseText: true,
+              liveMailboxIntegrationUsed: false,
+            },
+          },
+          boundaries: {
+            appendOnlyLifecycleEvents: true,
+            destructiveDeleteUsed: false,
+            noRawResponseText: true,
+            externalAlertDeliveryUsed: false,
+            liveMailboxIntegrationUsed: false,
+          },
+        },
         boundaries: {
           redacted: true,
           structuredOnly: true,
@@ -584,6 +693,10 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Worker Failures")).toBeInTheDocument();
     expect(screen.getByText("Skipped Runs")).toBeInTheDocument();
     expect(screen.getByText("Last Worker")).toBeInTheDocument();
+    expect(screen.getByText("Cleanup Eligible")).toBeInTheDocument();
+    expect(screen.getByText("Drift Alerts")).toBeInTheDocument();
+    expect(screen.getByText("Oldest Dead")).toBeInTheDocument();
+    expect(screen.getByText("Last Soak")).toBeInTheDocument();
     expect(screen.getByText("DL Reviewed")).toBeInTheDocument();
     expect(screen.getByText("Stale Reviewed")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Queue Remediation" })).toBeInTheDocument();

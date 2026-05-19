@@ -56,7 +56,9 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/response-processing-queue.spec.ts",
   "pnpm exec vitest run tests/api/response-processing-queue-remediation-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/response-worker-orchestration.spec.ts",
+  "pnpm exec vitest run tests/api/response-processing-lifecycle.spec.ts",
   "pnpm exec vitest run tests/unit/response-classification-engine.spec.ts",
+  "pnpm exec vitest run tests/unit/response-processing-lifecycle-script.spec.ts",
   "pnpm exec vitest run tests/unit/response-processing-worker-orchestrator-script.spec.ts",
   "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
@@ -141,12 +143,12 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, response replay/backfill dry-run/apply tooling now exists with append-only apply events and no raw response text storage, durable response-processing queue/backpressure/dead-letter tooling now exists with bounded operator worker dry-run support, explicit operator remediation events, dead-letter replacement retry, stale-running review without auto-reclaim, deterministic synthetic queue/load coverage, bounded scheduled worker orchestration with overlap skipping, and internal operator alert surfacing, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, live scheduled daemon operation, historical production backfill strategy for records without stored response summaries, non-owner smoke, repeated production-scale smoke/load coverage, and external alert delivery remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, response replay/backfill dry-run/apply tooling now exists with append-only apply events and no raw response text storage, durable response-processing queue/backpressure/dead-letter tooling now exists with bounded operator worker dry-run support, explicit operator remediation events, dead-letter replacement retry, stale-running review without auto-reclaim, deterministic synthetic queue/load coverage, bounded scheduled worker orchestration with overlap skipping, internal operator alert surfacing, append-only lifecycle retention marking, deterministic operational drift detection, and bounded synthetic soak coverage, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, live scheduled daemon operation, physical purge/archival, historical production backfill strategy for records without stored response summaries, non-owner smoke, repeated production-scale smoke/load coverage, and external alert delivery remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
   "Backup/restore verification remains future work.",
-  "External alert delivery remains future work; internal dashboard alert surfacing now exists.",
+  "External alert delivery remains future work; internal dashboard alert surfacing and deterministic drift visibility now exist.",
   "Broader anonymized real-world fixtures are still needed.",
   "No admin override exists and it should remain absent.",
   "DB registry remains non-runtime governance metadata.",
@@ -445,11 +447,30 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           },
         ),
         check(
+          "Response lifecycle retention and drift",
+          "SKIP",
+          "Lifecycle coverage for retention preview dry-run, explicit append-only retention marking, active/stale/dead-letter cleanup refusal, deterministic operational drift thresholds, bounded soak cleanup, and no raw response text or external alert delivery.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/response-processing-lifecycle.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
           "Response worker orchestration CLI",
           "SKIP",
           "CLI parser coverage for dry-run default, explicit --run, max-job bounds, scheduling flags, lock TTL bounds, and sanitized error output.",
           {
             command: "pnpm exec vitest run tests/unit/response-processing-worker-orchestrator-script.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Response lifecycle CLI",
+          "SKIP",
+          "CLI parser coverage for dry-run default, explicit bounded apply options, confirmation/actor handling, invalid combinations, and limit bounds.",
+          {
+            command: "pnpm exec vitest run tests/unit/response-processing-lifecycle-script.spec.ts",
             runByDefault: true,
           },
         ),
@@ -467,6 +488,22 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           "Bounded deterministic orchestration check for max-job enforcement, overlap skips, stale orchestration-lock visibility, repeated worker failures, queue alert conditions, and cleanup of isolated synthetic rows. This is not a live scheduler, daemon, external alert sender, or mailbox integration.",
           {
             command: "pnpm run response:orchestration-check",
+          },
+        ),
+        check(
+          "Response lifecycle retention dry-run",
+          "SKIP",
+          "Operator-only retention and drift report. Dry-run is default and writes nothing; apply mode only appends lifecycle retention markers and never deletes queue/orchestration/replay history.",
+          {
+            command: "pnpm run response:lifecycle -- --dry-run",
+          },
+        ),
+        check(
+          "Response processing soak check",
+          "SKIP",
+          "Bounded deterministic soak check for repeated orchestration cycles, duplicate collapse, retry/dead-letter/stale/overlap drift, replay dry-run, retention preview verification, lifecycle result visibility, and isolated synthetic cleanup.",
+          {
+            command: "pnpm run response:soak-check",
           },
         ),
         check(

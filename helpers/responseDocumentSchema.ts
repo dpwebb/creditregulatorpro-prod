@@ -521,6 +521,57 @@ export function ensureResponseDocumentSchema(): Promise<void> {
         create index if not exists idx_response_worker_orchestration_event_type_created_at
           on public.response_worker_orchestration_event(event_type, created_at desc)
         `.execute(db);
+        await sql`
+        create table if not exists public.response_processing_lifecycle_event (
+          id bigserial primary key,
+          event_type text not null,
+          target_type text null,
+          target_id bigint null,
+          source text not null default 'operator',
+          actor_user_id bigint null,
+          dry_run boolean not null default true,
+          details jsonb not null default '{}'::jsonb,
+          created_at timestamptz not null default now(),
+          constraint response_processing_lifecycle_event_type_check
+            check (event_type in (
+              'retention_previewed',
+              'retention_cleanup_marked',
+              'drift_reported',
+              'soak_check_completed'
+            )),
+          constraint response_processing_lifecycle_target_type_check
+            check (
+              target_type is null or target_type in (
+                'response_processing_job',
+                'response_worker_orchestration_run',
+                'response_processing_event',
+                'internal_alert',
+                'summary'
+              )
+            ),
+          constraint response_processing_lifecycle_actor_user_id_fkey
+            foreign key (actor_user_id) references public.users(id) on delete set null
+        )
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_lifecycle_event_type_created_at
+          on public.response_processing_lifecycle_event(event_type, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_lifecycle_target
+          on public.response_processing_lifecycle_event(event_type, target_type, target_id)
+        `.execute(db);
+        await sql`
+        create unique index if not exists idx_response_processing_lifecycle_cleanup_target_unique
+          on public.response_processing_lifecycle_event(event_type, target_type, target_id)
+          where event_type = 'retention_cleanup_marked'
+            and target_type is not null
+            and target_id is not null
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_lifecycle_source_created_at
+          on public.response_processing_lifecycle_event(source, created_at desc)
+        `.execute(db);
       } finally {
         await sql`select pg_advisory_unlock(hashtext('creditregulatorpro.response_document_schema'))`.execute(db);
       }

@@ -180,6 +180,14 @@ function formatDate(value: Date | string | null | undefined): string {
   return value ? format(value, "MMM d, yyyy h:mm a") : "-";
 }
 
+function formatSeconds(value: number | null | undefined): string {
+  const seconds = Number(value ?? 0);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "-";
+  if (seconds >= 86_400) return `${Math.floor(seconds / 86_400)}d`;
+  if (seconds >= 3_600) return `${Math.floor(seconds / 3_600)}h`;
+  return `${Math.floor(seconds / 60)}m`;
+}
+
 function cleanInteger(value: string): number | undefined {
   const trimmed = value.trim();
   if (!trimmed) return undefined;
@@ -738,6 +746,7 @@ function MetricsStrip() {
   const metricsQuery = useResponseProcessingMetrics({ lookbackHours: 24 });
   const metrics = metricsQuery.data?.metrics;
   const activeAlerts = metrics?.alerts.filter((alert) => alert.active) ?? [];
+  const lifecycle = metrics?.lifecycle;
 
   if (metricsQuery.isError) {
     return (
@@ -838,6 +847,22 @@ function MetricsStrip() {
         <div className={(metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
           <span>Replay Stale</span>
           <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0}</strong>
+        </div>
+        <div className={(lifecycle?.cleanupEligibleRecords ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Cleanup Eligible</span>
+          <strong>{metricsQuery.isLoading ? "-" : lifecycle?.cleanupEligibleRecords ?? 0}</strong>
+        </div>
+        <div className={(lifecycle?.activeDriftAlerts ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Drift Alerts</span>
+          <strong>{metricsQuery.isLoading ? "-" : lifecycle?.activeDriftAlerts ?? 0}</strong>
+        </div>
+        <div className={(lifecycle?.retentionPreview.oldestDeadLetterAgeSeconds ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+          <span>Oldest Dead</span>
+          <strong>{metricsQuery.isLoading ? "-" : formatSeconds(lifecycle?.retentionPreview.oldestDeadLetterAgeSeconds)}</strong>
+        </div>
+        <div className={lifecycle?.lastSoakCheckStatus !== "succeeded" ? styles.metricAlert : styles.metricCell}>
+          <span>Last Soak</span>
+          <strong>{metricsQuery.isLoading ? "-" : formatEnum(lifecycle?.lastSoakCheckStatus ?? "missing")}</strong>
         </div>
       </section>
       {activeAlerts.length > 0 ? (

@@ -4,6 +4,7 @@ import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { ensureResponseDocumentSchema } from "./responseDocumentSchema";
 import type { ResponseDocumentUser } from "./responseDocumentService";
+import { getResponseProcessingLifecycleMetrics, type ResponseProcessingLifecycleMetrics } from "./responseProcessingLifecycleService";
 import { getResponseProcessingQueueMetrics, type ResponseProcessingQueueMetrics } from "./responseProcessingQueueService";
 import { getResponseReplayReadinessMetrics, type ResponseReplayReadinessMetrics } from "./responseReplayService";
 import {
@@ -30,13 +31,16 @@ export type ResponseProcessingMetricAlert = {
     | "repeated_worker_failures"
     | "replay_failures"
     | "remediation_failures"
-    | "orchestration_overlap_skipped";
+    | "orchestration_overlap_skipped"
+    | "retention_cleanup_due"
+    | "operational_drift_detected"
+    | "soak_check_missing";
   severity: "info" | "warning" | "critical";
   active: boolean;
   count: number;
   threshold: number;
   message: string;
-  remediationTarget?: "queue_remediation" | "replay" | "worker_orchestration";
+  remediationTarget?: "queue_remediation" | "replay" | "worker_orchestration" | "lifecycle_retention";
 };
 
 export type ResponseProcessingMetrics = {
@@ -62,6 +66,7 @@ export type ResponseProcessingMetrics = {
   replayReadiness: ResponseReplayReadinessMetrics;
   queueHealth: ResponseProcessingQueueMetrics;
   workerOrchestration: ResponseWorkerOrchestrationMetrics;
+  lifecycle: ResponseProcessingLifecycleMetrics;
   boundaries: {
     redacted: true;
     structuredOnly: true;
@@ -150,10 +155,11 @@ export async function getResponseProcessingMetrics(
     order by count desc, classification asc
   `.execute(db);
 
-  const [replayReadiness, queueHealth, workerOrchestration] = await Promise.all([
+  const [replayReadiness, queueHealth, workerOrchestration, lifecycle] = await Promise.all([
     getResponseReplayReadinessMetrics(),
     getResponseProcessingQueueMetrics(),
     getResponseWorkerOrchestrationMetrics(),
+    getResponseProcessingLifecycleMetrics(),
   ]);
 
   const alerts: ResponseProcessingMetricAlert[] = [
@@ -287,6 +293,30 @@ export async function getResponseProcessingMetrics(
       message: "At least one overlapping or stale-lock worker orchestration run was skipped safely.",
       remediationTarget: "worker_orchestration",
     }),
+    alert({
+      key: "retention_cleanup_due",
+      severity: "info",
+      count: lifecycle.cleanupEligibleRecords,
+      threshold: 1,
+      message: "Response-processing lifecycle retention has cleanup-eligible terminal records; cleanup remains explicit and append-only.",
+      remediationTarget: "lifecycle_retention",
+    }),
+    alert({
+      key: "operational_drift_detected",
+      severity: lifecycle.criticalDriftAlerts > 0 ? "critical" : "warning",
+      count: lifecycle.activeDriftAlerts,
+      threshold: 1,
+      message: "Operational drift checks are active for response-processing queue, replay, orchestration, or remediation history.",
+      remediationTarget: "lifecycle_retention",
+    }),
+    alert({
+      key: "soak_check_missing",
+      severity: "info",
+      count: lifecycle.lastSoakCheckAt ? 0 : 1,
+      threshold: 1,
+      message: "No response-processing soak check result is recorded in lifecycle history yet.",
+      remediationTarget: "lifecycle_retention",
+    }),
   ];
 
   return {
@@ -301,6 +331,7 @@ export async function getResponseProcessingMetrics(
     replayReadiness,
     queueHealth,
     workerOrchestration,
+    lifecycle,
     boundaries: {
       redacted: true,
       structuredOnly: true,
