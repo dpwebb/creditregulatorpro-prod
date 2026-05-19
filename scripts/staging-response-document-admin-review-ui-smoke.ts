@@ -1,6 +1,9 @@
 import { existsSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { chromium, expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { hash } from "bcryptjs";
+import postgres from "postgres";
 
 import {
   assertNoDestructiveCleanupPlanned as assertAdminReviewCleanupPolicy,
@@ -14,6 +17,7 @@ import {
 } from "./staging-response-document-admin-review-smoke";
 import { validateSmokeHost } from "./staging-outcome-tracking-smoke";
 import { RESPONSE_DOCUMENT_UI_PATH } from "./staging-response-document-ui-smoke";
+import { validateDatabaseUrlForTarget } from "./staging-outcome-tracking-fixture-setup";
 
 export const SMOKE_GATE_ENV = "CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_SMOKE";
 export const SKIPPED_EXIT_CODE = 2;
@@ -114,8 +118,11 @@ export const FORBIDDEN_RESPONSE_ADMIN_REVIEW_UI_ENDPOINTS = [
   { method: "POST", path: "/_api/inbox/scrape" },
 ] as const;
 
-type AuthMode = "credentials" | "session_cookie" | "storage_state";
+type AuthMode = "autonomous_db" | "credentials" | "session_cookie" | "storage_state";
 type EnvPrefix = "STAGING" | "LOCAL_SMOKE";
+type ResponseDocumentAdminReviewUiSource =
+  | ResponseDocumentAdminReviewSource
+  | { mode: "auto_existing_response" };
 
 export type ResponseDocumentAdminReviewUiSmokeConfig =
   | {
@@ -128,7 +135,9 @@ export type ResponseDocumentAdminReviewUiSmokeConfig =
       adminEmail?: string;
       adminPassword?: string;
       adminStorageStatePath?: string;
-      source: ResponseDocumentAdminReviewSource;
+      autonomousDatabaseUrl?: string;
+      autonomousDatabaseUrlSource?: string;
+      source: ResponseDocumentAdminReviewUiSource;
       runId: string;
     }
   | { status: "skipped"; reason: string }
@@ -203,6 +212,12 @@ function responseMatchesMarker(record: any, marker: string): boolean {
   return JSON.stringify(record).includes(marker);
 }
 
+function extractSyntheticMarker(record: any): string | null {
+  const serialized = JSON.stringify(record);
+  const marker = serialized.match(/\b(?:OUTCOME|RESPONSE)[_-]?SMOKE_[A-Za-z0-9_-]+\b/i)?.[0] ?? null;
+  return markerIsSynthetic(marker) ? marker : null;
+}
+
 function responseIdFrom(record: any): number {
   const id = Number(record?.id);
   if (!Number.isInteger(id) || id <= 0) {
@@ -229,12 +244,43 @@ function toAbsoluteUrl(baseUrl: string, path: string): string {
   return new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
 }
 
+function defaultStagingBaseUrl(env: NodeJS.ProcessEnv): string | null {
+  return normalizeEnv(env.STAGING_BASE_URL) ?? normalizeEnv(env.STAGING_APP_URL) ?? normalizeEnv(env.APP_BASE_URL) ?? "https://staging.creditregulatorpro.com";
+}
+
+function autonomousAdminEmail(runId: string): string {
+  return `response-admin-review-ui-smoke-${smokeRunIdentifier(runId).toLowerCase()}@example.test`;
+}
+
+function autonomousAdminPassword(): string {
+  return `SmokeAdmin${Date.now()}${randomBytes(4).toString("hex")}A1x`;
+}
+
+function resolveAutonomousDatabaseUrl(
+  env: NodeJS.ProcessEnv,
+  prefix: EnvPrefix,
+): { databaseUrl: string; sourceName: string } | null | { error: string } {
+  const candidates = prefix === "STAGING"
+    ? (["STAGING_DATABASE_URL", "CRP_STAGING_DATABASE_URL", "STAGING_FLOOT_DATABASE_URL", "FLOOT_DATABASE_URL"] as const)
+    : (["LOCAL_DATABASE_URL", "FLOOT_DATABASE_URL"] as const);
+
+  for (const sourceName of candidates) {
+    const rawUrl = normalizeEnv(env[sourceName]);
+    if (!rawUrl) continue;
+    const check = validateDatabaseUrlForTarget(rawUrl, prefix === "STAGING" ? "staging" : "local", sourceName, env);
+    if (check.ok === false) return { error: check.reason };
+    return { databaseUrl: check.databaseUrl, sourceName };
+  }
+
+  return null;
+}
+
 export function buildResponseDocumentAdminReviewUiSource(
   env: NodeJS.ProcessEnv,
   prefix: EnvPrefix,
-): ResponseDocumentAdminReviewSource | null {
+): ResponseDocumentAdminReviewUiSource {
   const syntheticMarker = normalizeEnv(responseEnv(env, prefix, "SYNTHETIC_MARKER"));
-  if (!markerIsSynthetic(syntheticMarker)) return null;
+  if (!markerIsSynthetic(syntheticMarker)) return { mode: "auto_existing_response" };
 
   const responseId = numberEnv(responseEnv(env, prefix, "ID"));
   if (responseId) {
@@ -257,11 +303,10 @@ export function buildSmokeConfig(env: NodeJS.ProcessEnv): ResponseDocumentAdminR
     return { status: "skipped", reason: `SKIPPED: ${SMOKE_GATE_ENV}=true is required.` };
   }
 
-  const stagingBaseUrl = normalizeEnv(env.STAGING_BASE_URL);
   const localBaseUrl = normalizeEnv(env.LOCAL_SMOKE_BASE_URL);
+  const stagingBaseUrl = localBaseUrl ? null : defaultStagingBaseUrl(env);
   const baseUrl = stagingBaseUrl ?? localBaseUrl;
   const prefix: EnvPrefix = stagingBaseUrl ? "STAGING" : "LOCAL_SMOKE";
-  if (!baseUrl) return { status: "skipped", reason: "SKIPPED: no safe authenticated admin context configured." };
 
   const hostCheck = validateSmokeHost(baseUrl);
   if (hostCheck.ok === false) return { status: "error", reason: hostCheck.reason };
@@ -275,21 +320,7 @@ export function buildSmokeConfig(env: NodeJS.ProcessEnv): ResponseDocumentAdminR
     return { status: "skipped", reason: `SKIPPED: configured admin storage state file was not found: ${adminStorageStatePath}` };
   }
 
-  if (!adminSessionCookie && !adminStorageStatePath && (!adminEmail || !adminPassword)) {
-    return { status: "skipped", reason: "SKIPPED: no safe authenticated admin context configured." };
-  }
-
   const source = buildResponseDocumentAdminReviewUiSource(env, prefix);
-  if (!source) {
-    return {
-      status: "skipped",
-      reason:
-        prefix === "STAGING"
-          ? "SKIPPED: no verified response ID or marker configured. Provide STAGING_RESPONSE_SYNTHETIC_MARKER plus optional STAGING_RESPONSE_ID, STAGING_RESPONSE_COMPARISON_RUN_ID, and STAGING_RESPONSE_FINDING_OUTCOME_ID."
-          : "SKIPPED: no verified response ID or marker configured. Provide LOCAL_SMOKE_RESPONSE_SYNTHETIC_MARKER plus optional LOCAL_SMOKE_RESPONSE_ID, LOCAL_SMOKE_RESPONSE_COMPARISON_RUN_ID, and LOCAL_SMOKE_RESPONSE_FINDING_OUTCOME_ID.",
-    };
-  }
-
   const runId = normalizeEnv(env.CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_SMOKE_RUN_ID) ?? defaultSmokeRunId();
   if (adminSessionCookie) {
     return {
@@ -315,21 +346,49 @@ export function buildSmokeConfig(env: NodeJS.ProcessEnv): ResponseDocumentAdminR
       runId,
     };
   }
+  if (adminEmail && adminPassword) {
+    return {
+      status: "ready",
+      baseUrl,
+      host: hostCheck.host,
+      prefix,
+      authMode: "credentials",
+      adminEmail,
+      adminPassword,
+      source,
+      runId,
+    };
+  }
+  const autonomousDb = resolveAutonomousDatabaseUrl(env, prefix);
+  if (autonomousDb !== null) {
+    if ("error" in autonomousDb) {
+      return { status: "error", reason: autonomousDb.error };
+    }
+    return {
+      status: "ready",
+      baseUrl,
+      host: hostCheck.host,
+      prefix,
+      authMode: "autonomous_db",
+      adminEmail: normalizeEnv(env.CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_AUTONOMOUS_ADMIN_EMAIL) ?? autonomousAdminEmail(runId),
+      adminPassword: autonomousAdminPassword(),
+      autonomousDatabaseUrl: autonomousDb.databaseUrl,
+      autonomousDatabaseUrlSource: autonomousDb.sourceName,
+      source,
+      runId,
+    };
+  }
   return {
-    status: "ready",
-    baseUrl,
-    host: hostCheck.host,
-    prefix,
-    authMode: "credentials",
-    adminEmail: adminEmail!,
-    adminPassword: adminPassword!,
-    source,
-    runId,
+    status: "skipped",
+    reason:
+      prefix === "STAGING"
+        ? "SKIPPED: autonomous admin smoke requires STAGING_ADMIN_EMAIL/STAGING_ADMIN_PASSWORD, STAGING_ADMIN_SESSION_COOKIE, STAGING_ADMIN_STORAGE_STATE_PATH, or a staging database URL for synthetic admin bootstrap."
+        : "SKIPPED: autonomous admin smoke requires LOCAL_SMOKE_ADMIN_EMAIL/LOCAL_SMOKE_ADMIN_PASSWORD, LOCAL_SMOKE_ADMIN_SESSION_COOKIE, LOCAL_SMOKE_ADMIN_STORAGE_STATE_PATH, or a local database URL for synthetic admin bootstrap.",
   };
 }
 
 export function redactSecretText(value: string, env: NodeJS.ProcessEnv): string {
-  return redactAdminReviewSecretText(value, env);
+  return redactAdminReviewSecretText(value, env).replace(/postgres(?:ql)?:\/\/[^\s'")]+/gi, "postgres://[REDACTED]");
 }
 
 export function assertNoForbiddenEndpointCalls(observedRequests: string[]): void {
@@ -354,6 +413,75 @@ export function assertNoForbiddenVisibleText(text: string): void {
 export function assertNoDestructiveCleanupPlanned(policy = RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_CLEANUP_POLICY): void {
   if (!/append-only/i.test(policy) || /delete|truncate|drop/i.test(policy)) {
     throw new Error("Response document admin-review UI smoke cleanup policy must be append-only and non-destructive.");
+  }
+}
+
+async function bootstrapAutonomousAdmin(
+  config: Extract<ResponseDocumentAdminReviewUiSmokeConfig, { status: "ready" }> & { authMode: "autonomous_db" },
+): Promise<void> {
+  if (!config.autonomousDatabaseUrl || !config.adminEmail || !config.adminPassword) {
+    throw new Error("Autonomous admin smoke bootstrap is missing synthetic admin configuration.");
+  }
+
+  const sql = postgres(config.autonomousDatabaseUrl, { prepare: false, max: 1, onnotice: () => undefined });
+  try {
+    const passwordHash = await hash(config.adminPassword, 10);
+    const displayName = "Synthetic Response Admin Review UI Smoke";
+    const adminRows = await sql`
+      insert into public.users (email, display_name, role, email_verified)
+      values (${config.adminEmail}, ${displayName}, 'admin', true)
+      on conflict (email)
+      do update set
+        display_name = excluded.display_name,
+        role = 'admin',
+        email_verified = true
+      returning id
+    `;
+    const adminId = Number(adminRows[0]?.id);
+    if (!Number.isInteger(adminId) || adminId <= 0) {
+      throw new Error("Autonomous admin smoke bootstrap could not resolve a synthetic admin user ID.");
+    }
+
+    await sql`
+      insert into public.user_passwords (user_id, password_hash)
+      values (${adminId}, ${passwordHash})
+      on conflict (user_id)
+      do update set password_hash = excluded.password_hash
+    `;
+
+    await sql`
+      insert into public.user_account (
+        user_id,
+        email,
+        full_name,
+        legal_name_signature,
+        role,
+        region,
+        terms_accepted_at,
+        terms_accepted_version
+      )
+      values (
+        ${adminId},
+        ${config.adminEmail},
+        ${displayName},
+        ${displayName},
+        'admin',
+        'CA',
+        now(),
+        'v1'
+      )
+      on conflict (user_id)
+      do update set
+        email = excluded.email,
+        full_name = excluded.full_name,
+        legal_name_signature = excluded.legal_name_signature,
+        role = 'admin',
+        region = 'CA',
+        terms_accepted_at = coalesce(public.user_account.terms_accepted_at, now()),
+        terms_accepted_version = coalesce(public.user_account.terms_accepted_version, 'v1')
+    `;
+  } finally {
+    await sql.end({ timeout: 1 });
   }
 }
 
@@ -409,6 +537,9 @@ async function authenticateAdmin(
     await page.goto("/");
   } else if (config.authMode === "credentials") {
     await loginWithCredentials(page, config.adminEmail!, config.adminPassword!);
+  } else if (config.authMode === "autonomous_db") {
+    await bootstrapAutonomousAdmin(config as Extract<ResponseDocumentAdminReviewUiSmokeConfig, { status: "ready" }> & { authMode: "autonomous_db" });
+    await loginWithCredentials(page, config.adminEmail!, config.adminPassword!);
   } else {
     await page.goto("/");
   }
@@ -459,7 +590,7 @@ async function fetchResponseById(page: Page, responseId: number, marker: string,
 
 async function verifyResponseSource(
   page: Page,
-  source: ResponseDocumentAdminReviewSource,
+  source: ResponseDocumentAdminReviewUiSource,
   runId: string,
 ): Promise<VerifiedResponse> {
   if (source.mode === "existing_response") {
@@ -471,6 +602,21 @@ async function verifyResponseSource(
       throw new Error(`Finding outcome ID mismatch: expected ${source.findingOutcomeId}, got ${verified.findingOutcomeId}.`);
     }
     return verified;
+  }
+
+  if (source.mode === "auto_existing_response") {
+    const listed = await jsonRequest(page, "GET", `${RESPONSE_DOCUMENT_ADMIN_REVIEW_ENDPOINTS.list}?limit=100&responseChannel=email&responseDocumentType=bureau_email_response`);
+    if (!listed.ok) throw new Error(`Response document list returned HTTP ${listed.status}.`);
+    const responses = Array.isArray(listed.body?.responses) ? listed.body.responses : [];
+    const matched = responses.find((record: any) => extractSyntheticMarker(record));
+    if (!matched) {
+      throw new Error(
+        "Response document list did not include an existing synthetic response marker; run the response-document capture smoke first or provide STAGING_RESPONSE_SYNTHETIC_MARKER.",
+      );
+    }
+    const marker = extractSyntheticMarker(matched);
+    if (!marker) throw new Error("Matched response did not include a reusable synthetic marker.");
+    return fetchResponseById(page, responseIdFrom(matched), marker, runId);
   }
 
   const listed = await jsonRequest(page, "GET", `${RESPONSE_DOCUMENT_ADMIN_REVIEW_ENDPOINTS.list}?limit=100&responseChannel=email&responseDocumentType=bureau_email_response`, undefined, {

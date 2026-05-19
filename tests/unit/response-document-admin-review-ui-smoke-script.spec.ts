@@ -61,7 +61,7 @@ describe("response document admin-review UI staging smoke harness", () => {
     );
   });
 
-  it("allows staging host with admin session, credentials, or storage state", () => {
+  it("allows staging host with admin session, credentials, storage state, or autonomous DB bootstrap", () => {
     expect(buildSmokeConfig(readyEnv())).toMatchObject({
       status: "ready",
       authMode: "session_cookie",
@@ -99,6 +99,21 @@ describe("response document admin-review UI staging smoke harness", () => {
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
+
+    expect(
+      buildSmokeConfig(
+        readyEnv({
+          STAGING_ADMIN_SESSION_COOKIE: "",
+          STAGING_ADMIN_EMAIL: "",
+          STAGING_ADMIN_PASSWORD: "",
+          STAGING_DATABASE_URL: "postgres://smoke:secret@staging-db.example.test/creditregulatorpro_staging",
+        }),
+      ),
+    ).toMatchObject({
+      status: "ready",
+      authMode: "autonomous_db",
+      autonomousDatabaseUrlSource: "STAGING_DATABASE_URL",
+    });
   });
 
   it("exits skipped when no safe authenticated admin context exists", async () => {
@@ -112,7 +127,7 @@ describe("response document admin-review UI staging smoke harness", () => {
       ),
     ).toEqual({
       status: "skipped",
-      reason: "SKIPPED: no safe authenticated admin context configured.",
+      reason: expect.stringContaining("autonomous admin smoke requires"),
     });
 
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -124,11 +139,11 @@ describe("response document admin-review UI staging smoke harness", () => {
     });
 
     expect(code).toBe(SKIPPED_EXIT_CODE);
-    expect(logSpy).toHaveBeenCalledWith("SKIPPED: no safe authenticated admin context configured.");
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("SKIPPED: autonomous admin smoke requires"));
     logSpy.mockRestore();
   });
 
-  it("exits skipped when no verified response ID or marker exists", () => {
+  it("falls back to autonomous synthetic response discovery when no response ID or marker exists", () => {
     expect(
       buildSmokeConfig(
         readyEnv({
@@ -138,15 +153,15 @@ describe("response document admin-review UI staging smoke harness", () => {
           STAGING_RESPONSE_FINDING_OUTCOME_ID: "",
         }),
       ),
-    ).toEqual(
+    ).toMatchObject(
       expect.objectContaining({
-        status: "skipped",
-        reason: expect.stringContaining("no verified response ID or marker configured"),
+        status: "ready",
+        source: { mode: "auto_existing_response" },
       }),
     );
   });
 
-  it("supports existing response and find-by-marker source modes", () => {
+  it("supports existing response, find-by-marker, and auto-discovery source modes", () => {
     expect(buildResponseDocumentAdminReviewUiSource(readyEnv(), "STAGING")).toEqual({
       mode: "existing_response",
       syntheticMarker: "OUTCOME_SMOKE_RESPONSE_ADMIN_REVIEW_UI_UNIT",
@@ -170,17 +185,33 @@ describe("response document admin-review UI staging smoke harness", () => {
       mode: "find_by_marker",
       syntheticMarker: "OUTCOME_SMOKE_RESPONSE_ADMIN_REVIEW_UI_UNIT",
     });
+
+    expect(
+      buildResponseDocumentAdminReviewUiSource(
+        readyEnv({
+          STAGING_RESPONSE_ID: "",
+          STAGING_RESPONSE_SYNTHETIC_MARKER: "",
+          STAGING_RESPONSE_COMPARISON_RUN_ID: "",
+          STAGING_RESPONSE_FINDING_OUTCOME_ID: "",
+        }),
+        "STAGING",
+      ),
+    ).toEqual({ mode: "auto_existing_response" });
   });
 
-  it("does not print secrets/session cookie/password", () => {
-    const env = readyEnv({ STAGING_ADMIN_PASSWORD: "synthetic-admin-password" });
-    const raw = "failure floot_built_app_session=secret-admin-session-cookie synthetic-admin-password";
+  it("does not print secrets/session cookie/password/database URL", () => {
+    const env = readyEnv({
+      STAGING_ADMIN_PASSWORD: "synthetic-admin-password",
+      STAGING_DATABASE_URL: "postgres://smoke:secret@staging-db.example.test/creditregulatorpro_staging",
+    });
+    const raw = "failure floot_built_app_session=secret-admin-session-cookie synthetic-admin-password postgres://smoke:secret@staging-db.example.test/creditregulatorpro_staging";
 
     const redacted = redactSecretText(raw, env);
 
     expect(redacted).toContain("[REDACTED]");
     expect(redacted).not.toContain("secret-admin-session-cookie");
     expect(redacted).not.toContain("synthetic-admin-password");
+    expect(redacted).not.toContain("smoke:secret");
   });
 
   it("verifies marker and response preflight are required", () => {
@@ -189,7 +220,19 @@ describe("response document admin-review UI staging smoke harness", () => {
     expect(source).toContain("verifyResponseSource");
     expect(source).toContain("fetchResponseById");
     expect(source).toContain("responseMatchesMarker");
+    expect(source).toContain("auto_existing_response");
+    expect(source).toContain("extractSyntheticMarker");
     expect(source).toContain("did not include required synthetic marker");
+  });
+
+  it("verifies autonomous admin bootstrap is present without weakening auth", () => {
+    const source = smokeSource();
+
+    expect(source).toContain("bootstrapAutonomousAdmin");
+    expect(source).toContain("validateDatabaseUrlForTarget");
+    expect(source).toContain("authMode: \"autonomous_db\"");
+    expect(source).toContain("loginWithCredentials(page, config.adminEmail!, config.adminPassword!)");
+    expect(source).toContain("Configured authenticated context resolved to role");
   });
 
   it("verifies UI route, controls, and safety checks are present", () => {
