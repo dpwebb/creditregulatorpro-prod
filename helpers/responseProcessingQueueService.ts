@@ -190,11 +190,12 @@ const MAX_PAYLOAD_STRING_LENGTH = 500;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_LEASE_SECONDS = 300;
 const FORBIDDEN_KEY_PATTERN =
-  /(raw.?text|response.?text|extracted.?text|email.?body|full.?email|message.?body|mailbox.?credential|password|token|secret|authorization|cookie|session|api.?key|private.?key|database.?url|connection.?string|storage.?url|signed.?url)/i;
+  /(^|[_.:-])(raw.?text|response.?text|extracted.?text|plain.?text|body|body.?text|html|content|subject|from|to|cc|bcc|sender|recipient|sender.?email|recipient.?email|email.?address|email.?body|full.?email|message.?body|mailbox.?credential|mailbox.?password|imap|smtp|pop3|oauth|oauth.?token|access.?token|refresh.?token|client.?secret|password|token|secret|authorization|cookie|session|api.?key|private.?key|database.?url|connection.?string|storage.?url|signed.?url)($|[_.:-])/i;
 const FORBIDDEN_VALUE_PATTERN =
-  /(raw report text|raw pdf text|full email body|email body dump|packet body|storage\.googleapis\.com|x-goog-signature|x-amz-signature|signedurl|signed_url|database_url|postgres:\/\/|mysql:\/\/|mongodb:\/\/|bearer\s+[a-z0-9._-]+|api[_-]?key|private key|mailbox password|imap password|smtp password|oauth refresh token|email auth token|session=|cookie=)/i;
+  /(raw report text|raw pdf text|full email body|email body dump|packet body|storage\.googleapis\.com|x-goog-signature|x-amz-signature|signedurl|signed_url|database_url|postgres:\/\/|mysql:\/\/|mongodb:\/\/|bearer\s+[a-z0-9._-]+|basic\s+[a-z0-9+/=._-]+|sk-[a-z0-9_-]{10,}|ghp_[a-z0-9_]{10,}|github_pat_[a-z0-9_]+|xox[baprs]-[a-z0-9-]+|akia[0-9a-z]{16}|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|private key|password\s*[:=]|secret\s*[:=]|mailbox password|imap password|smtp password|oauth refresh token|email auth token|session=|cookie=)/i;
 const FULL_SIN_PATTERN = /\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/;
 const FULL_ACCOUNT_PATTERN = /\b(?:account|acct|member)\s*(?:number|no\.?|#)?\s*[:#-]?\s*[A-Z0-9][A-Z0-9 -]{9,}\b|\b\d{10,}\b/i;
+const EMAIL_ADDRESS_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 
 function rowValue(row: QueueRow | Record<string, unknown>, snakeCaseKey: string): unknown {
   if (Object.prototype.hasOwnProperty.call(row, snakeCaseKey)) return row[snakeCaseKey as keyof typeof row];
@@ -278,7 +279,14 @@ function sha256(value: string): string {
 
 function sanitizeToken(value: string | null | undefined, fieldName: string, fallback: string): string {
   const token = String(value ?? fallback).trim();
-  if (!SAFE_TOKEN_PATTERN.test(token) || FORBIDDEN_KEY_PATTERN.test(token) || FORBIDDEN_VALUE_PATTERN.test(token)) {
+  if (
+    !SAFE_TOKEN_PATTERN.test(token) ||
+    FORBIDDEN_KEY_PATTERN.test(token) ||
+    FORBIDDEN_VALUE_PATTERN.test(token) ||
+    FULL_SIN_PATTERN.test(token) ||
+    FULL_ACCOUNT_PATTERN.test(token) ||
+    EMAIL_ADDRESS_PATTERN.test(token)
+  ) {
     throw new ResponseProcessingQueueError("UNSAFE_QUEUE_TOKEN", `${fieldName} must be a safe internal token.`);
   }
   return token;
@@ -321,7 +329,12 @@ function sanitizePayloadValue(value: unknown, fieldPath: string, depth: number):
     if (trimmed.length > MAX_PAYLOAD_STRING_LENGTH) {
       throw new ResponseProcessingQueueError("UNSAFE_QUEUE_PAYLOAD", `${fieldPath} string is too long.`);
     }
-    if (FORBIDDEN_VALUE_PATTERN.test(trimmed) || FULL_SIN_PATTERN.test(trimmed) || FULL_ACCOUNT_PATTERN.test(trimmed)) {
+    if (
+      FORBIDDEN_VALUE_PATTERN.test(trimmed) ||
+      FULL_SIN_PATTERN.test(trimmed) ||
+      FULL_ACCOUNT_PATTERN.test(trimmed) ||
+      EMAIL_ADDRESS_PATTERN.test(trimmed)
+    ) {
       throw new ResponseProcessingQueueError("UNSAFE_QUEUE_PAYLOAD", `${fieldPath} includes sensitive content.`);
     }
     return trimmed;
@@ -670,14 +683,7 @@ async function peekNextResponseProcessingJob(): Promise<ResponseProcessingJobRec
         and run_after <= now()
         and attempt_count < max_attempts
       )
-      or (
-        status = 'running'
-        and locked_until is not null
-        and locked_until < now()
-        and attempt_count < max_attempts
-      )
     order by
-      case when status = 'running' then 0 else 1 end,
       run_after asc,
       created_at asc,
       id asc
@@ -703,14 +709,7 @@ export async function claimNextResponseProcessingJob(input: {
           and run_after <= now()
           and attempt_count < max_attempts
         )
-        or (
-          status = 'running'
-          and locked_until is not null
-          and locked_until < now()
-          and attempt_count < max_attempts
-        )
       order by
-        case when status = 'running' then 0 else 1 end,
         run_after asc,
         created_at asc,
         id asc
@@ -731,8 +730,11 @@ export async function claimNextResponseProcessingJob(input: {
         locked_at = now(),
         locked_until = now() + make_interval(secs => ${leaseSeconds})
       where id = ${candidate.id}
+        and status in ('queued', 'failed')
+        and attempt_count < max_attempts
       returning *
     `.execute(trx);
+    if (!updated.rows[0]) return null;
     const claimed = mapJobRow(updated.rows[0]);
     await appendJobEvent(trx as typeof db, {
       jobId: claimed.id,
@@ -743,7 +745,7 @@ export async function claimNextResponseProcessingJob(input: {
       workerId,
       actorUserId: claimed.actorUserId,
       details: {
-        staleReclaim: candidate.status === "running",
+        staleReclaim: false,
         leaseSeconds,
         rawResponseTextLogged: false,
       },
@@ -837,8 +839,18 @@ async function markJobSucceeded(job: ResponseProcessingJobRecord, workerId: stri
         last_error_reason = null,
         result_summary = ${JSON.stringify(resultSummary)}::jsonb
       where id = ${job.id}
+        and status = 'running'
+        and locked_by = ${workerId}
+        and attempt_count = ${job.attemptCount}
       returning *
     `.execute(trx);
+    if (!updated.rows[0]) {
+      throw new ResponseProcessingQueueError(
+        "JOB_FINALIZE_CONFLICT",
+        "Response processing job was not finalized because the worker no longer held the active lease.",
+        true,
+      );
+    }
     const row = mapJobRow(updated.rows[0]);
     await appendJobEvent(trx as typeof db, {
       jobId: row.id,
@@ -866,6 +878,7 @@ export async function markResponseProcessingJobFailed(params: {
   error: unknown;
 }): Promise<ResponseProcessingJobRecord> {
   const normalized = normalizeError(params.error);
+  const workerId = sanitizeToken(params.workerId, "workerId", "response-worker");
   const deadLetter = normalized.permanent || params.job.attemptCount >= params.job.maxAttempts;
   const nextStatus: ResponseProcessingJobStatus = deadLetter ? "dead_lettered" : "failed";
   const eventType: ResponseProcessingJobEventType = deadLetter ? "dead_lettered" : "retry_scheduled";
@@ -891,8 +904,18 @@ export async function markResponseProcessingJobFailed(params: {
           rawResponseTextLogged: false,
         })}::jsonb
       where id = ${params.job.id}
+        and status = 'running'
+        and locked_by = ${workerId}
+        and attempt_count = ${params.job.attemptCount}
       returning *
     `.execute(trx);
+    if (!updated.rows[0]) {
+      throw new ResponseProcessingQueueError(
+        "JOB_FINALIZE_CONFLICT",
+        "Response processing job was not failed because the worker no longer held the active lease.",
+        true,
+      );
+    }
     const row = mapJobRow(updated.rows[0]);
     await appendJobEvent(trx as typeof db, {
       jobId: row.id,
@@ -900,7 +923,7 @@ export async function markResponseProcessingJobFailed(params: {
       previousStatus: "running",
       nextStatus,
       attemptCount: row.attemptCount,
-      workerId: params.workerId,
+      workerId,
       actorUserId: row.actorUserId,
       errorCode: normalized.code,
       errorReason: normalized.reason,
@@ -941,14 +964,16 @@ export async function processNextResponseProcessingJob(input: {
   const job = await claimNextResponseProcessingJob({ workerId, leaseSeconds: input.leaseSeconds });
   if (!job) return { status: "idle", workerId, dryRun: false, job: null };
 
+  let resultSummary: Record<string, Json>;
   try {
-    const resultSummary = await executeResponseProcessingJob(job);
-    const succeeded = await markJobSucceeded(job, workerId, resultSummary);
-    return { status: "succeeded", workerId, dryRun: false, job: succeeded };
+    resultSummary = await executeResponseProcessingJob(job);
   } catch (error) {
     const failed = await markResponseProcessingJobFailed({ job, workerId, error });
     return { status: failed.status === "dead_lettered" ? "dead_lettered" : "failed", workerId, dryRun: false, job: failed };
   }
+
+  const succeeded = await markJobSucceeded(job, workerId, resultSummary);
+  return { status: "succeeded", workerId, dryRun: false, job: succeeded };
 }
 
 export async function requeueDeadLetteredResponseProcessingJob(input: {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseWorkerArgs } from "../../scripts/response-processing-worker";
+import { parseWorkerArgs, safeErrorMessage } from "../../scripts/response-processing-worker";
 
 describe("response processing worker script", () => {
   it("defaults to one bounded non-daemon job", () => {
@@ -33,5 +33,15 @@ describe("response processing worker script", () => {
     expect(() => parseWorkerArgs(["--retry-dead-letter", "42"])).toThrow(/actor-user-id/i);
     expect(() => parseWorkerArgs(["--retry-dead-letter", "42", "--actor-user-id", "7", "--dry-run"])).toThrow(/dry-run/i);
     expect(() => parseWorkerArgs(["--unknown"])).toThrow(/Unknown option/i);
+  });
+
+  it("sanitizes worker top-level errors before logging", () => {
+    expect(safeErrorMessage(new Error("database_url value failed"))).toBe(
+      "Response processing worker failed with a sanitized operational error.",
+    );
+    expect(safeErrorMessage(new Error("raw response text from operator@example.test should not print"))).toBe(
+      "Response processing worker failed with a sanitized operational error.",
+    );
+    expect(safeErrorMessage(new Error("ordinary validation failed"))).toBe("ordinary validation failed");
   });
 });

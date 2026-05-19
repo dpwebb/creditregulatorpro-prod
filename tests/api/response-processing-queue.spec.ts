@@ -31,7 +31,7 @@ const created = {
 };
 
 function marker(): string {
-  return `response-queue-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `response-queue-test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function trackSource(source: string): string {
@@ -167,6 +167,45 @@ describeIfLocalDb("response processing queue", () => {
     })).rejects.toThrow(/actorUserId/i);
   });
 
+  it("rejects mailbox-shaped credentials, raw body fields, email addresses, and unsafe identifiers", async () => {
+    const source = trackSource(marker());
+    await expect(enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        metadata: {
+          body: "verified as accurate",
+        },
+      },
+    })).rejects.toThrow(/unsafe key/i);
+
+    await expect(enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        metadata: {
+          accessToken: "synthetic-token-value",
+        },
+      },
+    })).rejects.toThrow(/unsafe key|sensitive content/i);
+
+    await expect(enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        metadata: {
+          senderDomain: "operator@example.test",
+        },
+      },
+    })).rejects.toThrow(/sensitive content/i);
+
+    await expect(enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source: "1234567890",
+      payload: { filters: { responseId: 999_999_912, limit: 1 } },
+    })).rejects.toThrow(/safe internal token/i);
+  });
+
   it("processes one synthetic dry-run job and leaves only append-only queue events", async () => {
     const source = trackSource(marker());
     const queued = await enqueueResponseProcessingJob({
@@ -260,6 +299,96 @@ describeIfLocalDb("response processing queue", () => {
     expect(Number(claims.rows[0]?.count ?? 0)).toBe(1);
   });
 
+  it("deduplicates concurrent active enqueues but allows new work after terminal status", async () => {
+    const source = trackSource(marker());
+    const idempotencyKey = `${source}-concurrent`;
+    const [left, right] = await Promise.all([
+      enqueueResponseProcessingJob({
+        jobType: "response_replay_dry_run",
+        source,
+        idempotencyKey,
+        payload: { filters: { responseId: 999_999_913, limit: 1 } },
+      }),
+      enqueueResponseProcessingJob({
+        jobType: "response_replay_dry_run",
+        source,
+        idempotencyKey,
+        payload: { filters: { responseId: 999_999_913, limit: 1 } },
+      }),
+    ]);
+    expect([left.status, right.status].sort()).toEqual(["duplicate", "queued"]);
+    const activeRows = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_job
+      where source = ${source}
+        and idempotency_key = ${idempotencyKey}
+    `.execute(db);
+    expect(Number(activeRows.rows[0]?.count ?? 0)).toBe(1);
+
+    await processNextResponseProcessingJob({ workerId: `${source}-worker` });
+    const afterSucceeded = await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      idempotencyKey,
+      payload: { filters: { responseId: 999_999_913, limit: 1 } },
+    });
+    expect(afterSucceeded.status).toBe("queued");
+
+    const allRows = await sql<any>`
+      select status, payload
+      from public.response_processing_job
+      where source = ${source}
+        and idempotency_key = ${idempotencyKey}
+      order by id asc
+    `.execute(db);
+    expect(allRows.rows.map((row) => row.status)).toEqual(["succeeded", "queued"]);
+    assertNoSensitiveLeak(allRows.rows);
+  });
+
+  it("builds stable idempotency keys for equivalent sanitized metadata without over-collapsing differences", async () => {
+    const source = trackSource(marker());
+    const first = await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        filters: { responseId: 999_999_914, limit: 1 },
+        metadata: {
+          attachmentHash: "a".repeat(64),
+          channel: "manual_admin",
+        },
+      },
+    });
+    const reordered = await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        metadata: {
+          channel: "manual_admin",
+          attachmentHash: "a".repeat(64),
+        },
+        filters: { limit: 1, responseId: 999_999_914 },
+      },
+    });
+    const changed = await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        filters: { responseId: 999_999_914, limit: 1 },
+        metadata: {
+          attachmentHash: "b".repeat(64),
+          channel: "manual_admin",
+        },
+      },
+    });
+
+    expect(first.status).toBe("queued");
+    expect(reordered.status).toBe("duplicate");
+    expect(reordered.duplicateOfJobId).toBe(first.job.id);
+    expect(changed.status).toBe("queued");
+    expect(changed.job.id).not.toBe(first.job.id);
+    assertNoSensitiveLeak([first, reordered, changed]);
+  });
+
   it("increments retries deterministically and dead-letters at max attempts", async () => {
     const retrySource = trackSource(marker());
     await enqueueResponseProcessingJob({
@@ -308,7 +437,7 @@ describeIfLocalDb("response processing queue", () => {
     assertNoSensitiveLeak([retryResult, deadResult, metrics]);
   });
 
-  it("detects stale running jobs and can requeue dead-lettered jobs explicitly", async () => {
+  it("detects stale running jobs without silently reclaiming them and can requeue dead-lettered jobs explicitly", async () => {
     const source = trackSource(marker());
     const actorUserId = await createUser(`${source}-actor`);
     const queued = await enqueueResponseProcessingJob({
@@ -327,7 +456,14 @@ describeIfLocalDb("response processing queue", () => {
     const staleMetrics = await getResponseProcessingQueueMetrics();
     expect(staleMetrics.staleRunningJobs).toBeGreaterThanOrEqual(1);
     const staleReplay = await processNextResponseProcessingJob({ workerId: `${source}-stale-worker` });
-    expect(staleReplay.status).toBe("succeeded");
+    expect(staleReplay.status).toBe("idle");
+    const staleClaims = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_job_event
+      where job_id = ${queued.job.id}
+        and event_type = 'claimed'
+    `.execute(db);
+    expect(Number(staleClaims.rows[0]?.count ?? 0)).toBe(1);
 
     const dead = await enqueueResponseProcessingJob({
       jobType: "future_mailbox_intake",

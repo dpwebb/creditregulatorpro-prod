@@ -47,6 +47,7 @@ function printHelp(): void {
     "",
     "Boundaries:",
     "  - Queue payloads are sanitized and do not store raw response text or secrets.",
+    "  - Stale running jobs are reported in metrics and are not silently reclaimed by this worker.",
     "  - future_mailbox_intake is inert and fails closed until live mailbox integration is explicitly implemented.",
     "  - Worker processing does not mutate canonical report facts, tradeline facts, violation truth, packet eligibility, or readiness rules.",
   ].join("\n"));
@@ -118,10 +119,10 @@ function logStructured(event: string, details: Record<string, unknown>): void {
   }));
 }
 
-function safeErrorMessage(error: unknown): string {
+export function safeErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (
-    /postgres:\/\/|mysql:\/\/|mongodb:\/\/|database_url|private key|api[_-]?key|bearer\s+[a-z0-9._-]+|session=|cookie=|oauth refresh token|mailbox password|imap password|smtp password/i.test(message)
+    /raw response text|raw report text|raw pdf text|full email body|email body dump|postgres:\/\/|mysql:\/\/|mongodb:\/\/|database_url|private key|api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|bearer\s+[a-z0-9._-]+|sk-[a-z0-9_-]{10,}|session=|cookie=|oauth refresh token|mailbox password|imap password|smtp password|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(message)
   ) {
     return "Response processing worker failed with a sanitized operational error.";
   }
