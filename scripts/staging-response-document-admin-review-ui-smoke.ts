@@ -83,6 +83,7 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT = [
 ] as const;
 
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT = [
+  "This page does not parse response documents.",
   "This page does not activate regulation runtime truth.",
 ] as const;
 

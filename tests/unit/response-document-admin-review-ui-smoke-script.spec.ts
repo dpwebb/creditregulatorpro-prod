@@ -324,8 +324,15 @@ describe("response document admin-review UI staging smoke harness", () => {
     expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT).toContain(
       "This page does not activate regulation runtime truth.",
     );
+    expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT).toContain(
+      "This page does not parse response documents.",
+    );
     expect(() => assertNoForbiddenVisibleText("This page does not activate regulation runtime truth.")).not.toThrow();
+    expect(() => assertNoForbiddenVisibleText("This page does not parse response documents.")).not.toThrow();
     expect(() => assertNoForbiddenVisibleText("Activate runtime truth")).toThrow(
+      /Forbidden response admin-review UI text/,
+    );
+    expect(() => assertNoForbiddenVisibleText("Parse Response")).toThrow(
       /Forbidden response admin-review UI text/,
     );
     expect(() => assertNoForbiddenVisibleText("Mark Corrected")).toThrow(/Forbidden response admin-review UI text/);

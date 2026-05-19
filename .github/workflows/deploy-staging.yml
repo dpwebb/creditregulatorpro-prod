@@ -254,6 +254,11 @@ jobs:
 
                     const sql = postgres(databaseUrl, { prepare: false, max: 1, onnotice: () => undefined });
                     try {
+                      const tableExists = async (tableName) => {
+                        const rows = await sql`select to_regclass(${`public.${tableName}`}) as table_name`;
+                        return Boolean(rows[0]?.table_name);
+                      };
+
                       const rows = await sql`
                         select id
                         from public.users
@@ -265,32 +270,59 @@ jobs:
                       if (!Number.isInteger(adminId) || adminId <= 0) return;
 
                       const disabledHash = await hash(`disabled-${randomBytes(32).toString("hex")}`, 10);
-                      await sql.begin(async (trx) => {
-                        await trx`
+                      if (await tableExists("user_passwords")) {
+                        await sql`
                           update public.user_passwords
                           set password_hash = ${disabledHash}
                           where user_id = ${adminId}
                         `;
-                        await trx`
+                      }
+                      if (await tableExists("user_account")) {
+                        await sql`
                           update public.user_account
                           set role = '"'"'user'"'"'
                           where user_id = ${adminId}
                             and email = ${email}
                         `;
-                        await trx`
-                          update public.users
-                          set role = '"'"'user'"'"',
-                              email_verified = false
-                          where id = ${adminId}
-                            and email = ${email}
-                        `;
-                        await trx`
+                      }
+                      await sql`
+                        update public.users
+                        set role = '"'"'user'"'"',
+                            email_verified = false
+                        where id = ${adminId}
+                          and email = ${email}
+                      `;
+                      if (await tableExists("sessions")) {
+                        await sql`
                           delete from public.sessions
                           where user_id = ${adminId}
                         `;
-                      });
+                      }
+
+                      const userRows = await sql`
+                        select role
+                        from public.users
+                        where id = ${adminId}
+                          and email = ${email}
+                        limit 1
+                      `;
+                      if (String(userRows[0]?.role ?? "").toLowerCase() === "admin") {
+                        throw new Error("Synthetic response auth smoke cleanup left users.role as admin.");
+                      }
+                      if (await tableExists("user_account")) {
+                        const accountRows = await sql`
+                          select role
+                          from public.user_account
+                          where user_id = ${adminId}
+                            and email = ${email}
+                          limit 1
+                        `;
+                        if (String(accountRows[0]?.role ?? "").toLowerCase() === "admin") {
+                          throw new Error("Synthetic response auth smoke cleanup left user_account.role as admin.");
+                        }
+                      }
                     } finally {
-                      await sql.end({ timeout: 1 });
+                      await sql.end({ timeout: 5 });
                     }
           NODE
                     cleanup_status="$?"
