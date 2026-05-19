@@ -74,11 +74,11 @@ describe("response classification engine", () => {
       },
     });
 
-    expect(result.classification).toBe("remains");
+    expect(result.classification).toBe("suspicious_non_compliant");
     expect(result.processingStatus).toBe("manual_review");
     expect(result.requiresManualReview).toBe(true);
     expect(result.uncertaintyCodes).toEqual(
-      expect.arrayContaining(["ADVERSE_RESPONSE_REQUIRES_REVIEW", "NO_PACKET_LINK", "NO_TRADELINE_LINK", "NO_VIOLATION_LINK", "OCR_FALLBACK_USED"]),
+      expect.arrayContaining(["SUSPICIOUS_RESPONSE_PATTERN", "MIXED_RESPONSE_SIGNALS", "NO_PACKET_LINK", "NO_TRADELINE_LINK", "NO_VIOLATION_LINK", "OCR_FALLBACK_USED"]),
     );
     expect(result.fallbackRequested).toBe(false);
     expect(result.fallbackAllowed).toBe(false);
@@ -108,5 +108,79 @@ describe("response classification engine", () => {
     expect(result.processingStatus).toBe("manual_review");
     expect(result.requiresManualReview).toBe(true);
     expect(result.uncertaintyCodes).toContain("LOW_DETERMINISTIC_CONFIDENCE");
+  });
+
+  it.each([
+    ["verified as accurate", "The account was verified as accurate and will remain as reported.", "remains", true],
+    ["previously verified", "This dispute was previously verified by our office.", "remains", true],
+    ["unable to verify", "We are unable to verify the disputed information.", "unable_to_verify", false],
+    ["deleted", "The tradeline will be deleted from the report.", "verified_deleted", false],
+    ["updated", "We updated the balance and corrected the reported status.", "updated", false],
+    ["frivolous", "We consider this dispute frivolous and will not investigate further.", "frivolous", true],
+    ["duplicate dispute", "This is a duplicate dispute that was already investigated.", "duplicate", true],
+    ["unknown", "Thank you for contacting us.", "unknown_manual_review", true],
+  ] as const)("classifies %s response language with expected review handling", (_label, responseSummary, classification, manualReview) => {
+    const result = classifyResponseDocument({
+      ...baseInput,
+      responseSummary,
+    });
+
+    expect(result.classification).toBe(classification);
+    expect(result.requiresManualReview).toBe(manualReview);
+    expect(result.extractionSource).toBe("deterministic");
+    expect(result.fallbackAllowed).toBe(false);
+  });
+
+  it("does not treat negated deletion or update wording as completed outcomes", () => {
+    const deleted = classifyResponseDocument({
+      ...baseInput,
+      responseSummary: "The account was reviewed and will not be deleted from the report.",
+    });
+    const updated = classifyResponseDocument({
+      ...baseInput,
+      responseSummary: "The balance was reviewed and will not be updated or corrected.",
+    });
+
+    expect(deleted.classification).toBe("unknown_manual_review");
+    expect(deleted.processingStatus).toBe("manual_review");
+    expect(updated.classification).toBe("unknown_manual_review");
+    expect(updated.processingStatus).toBe("manual_review");
+  });
+
+  it("fails closed for mixed or contradictory deterministic outcome language", () => {
+    const result = classifyResponseDocument({
+      ...baseInput,
+      responseSummary: "The item was verified as accurate, but it will also be deleted from the file.",
+    });
+
+    expect(result.classification).toBe("unknown_manual_review");
+    expect(result.processingStatus).toBe("manual_review");
+    expect(result.requiresManualReview).toBe(true);
+    expect(result.uncertaintyCodes).toEqual(expect.arrayContaining(["CONTRADICTORY_RESPONSE_LANGUAGE"]));
+  });
+
+  it("classifies hostile or non-compliant response patterns as suspicious manual review", () => {
+    const result = classifyResponseDocument({
+      ...baseInput,
+      responseSummary: "The account was automated verification only, with no supporting documents and no reinvestigation.",
+    });
+
+    expect(result.classification).toBe("suspicious_non_compliant");
+    expect(result.processingStatus).toBe("manual_review");
+    expect(result.regulationReferences.length).toBeGreaterThan(0);
+  });
+
+  it("does not classify from metadata-only labels or OCR-damaged empty text", () => {
+    const result = classifyResponseDocument({
+      ...baseInput,
+      responseSubject: "",
+      responseSummary: "",
+      rawArtifactMetadata: { fileSha256: "c".repeat(64), ocrFallbackUsed: true },
+      normalizedResponseMetadata: { responseFamily: "verified", operationalLabel: "deleted" },
+    });
+
+    expect(result.classification).toBe("unknown_manual_review");
+    expect(result.processingStatus).toBe("manual_review");
+    expect(result.uncertaintyCodes).toEqual(expect.arrayContaining(["LOW_DETERMINISTIC_CONFIDENCE", "OCR_FALLBACK_USED"]));
   });
 });

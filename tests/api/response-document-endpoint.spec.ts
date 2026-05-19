@@ -652,6 +652,40 @@ describeIfLocalDb("response document capture endpoints", () => {
         "response_processing_event_classification_check",
       ]),
     );
+
+    const reviewColumns = await sql<{ column_name: string }>`
+      select column_name
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'response_admin_review_event'
+        and column_name in (
+          'response_event_id',
+          'user_id',
+          'actor_admin_id',
+          'review_action',
+          'previous_response_status',
+          'next_response_status',
+          'review_notes_present',
+          'review_notes_hash',
+          'confirm_evidence_only',
+          'confirm_no_canonical_change',
+          'confirm_no_outcome_classification',
+          'canonical_facts_mutated',
+          'packet_ready_state_changed'
+        )
+      order by column_name
+    `.execute(db);
+
+    expect(reviewColumns.rows.map((row: any) => row.columnName)).toEqual(
+      expect.arrayContaining([
+        "response_event_id",
+        "review_action",
+        "previous_response_status",
+        "next_response_status",
+        "review_notes_hash",
+        "packet_ready_state_changed",
+      ]),
+    );
   });
 
   it("captures owner response metadata, links packet/outcome/finding/evidence safely, writes audit, and mutates no source truth", async () => {
@@ -889,6 +923,23 @@ describeIfLocalDb("response document capture endpoints", () => {
 
   it("exposes admin-only response processing metrics with uncertainty, suspicious, dead-letter, and stall alerts", async () => {
     const scenario = await createScenario();
+    auth.user = scenario.admin;
+    const before = await metrics();
+    expect(before.response.status).toBe(200);
+    const baselineOcrFallback = Number(before.parsed.metrics.totals.ocrFallback ?? 0);
+
+    auth.user = scenario.owner;
+    await capture(captureBody({
+      packetId: scenario.packetId,
+      responseSummary: "The response includes no method of verification and no supporting documents.",
+      rawArtifactMetadata: { fileSha256: "c".repeat(64), ocrFallbackUsed: false },
+    }));
+
+    auth.user = scenario.admin;
+    const afterFalseOcr = await metrics();
+    expect(afterFalseOcr.response.status).toBe(200);
+    expect(afterFalseOcr.parsed.metrics.totals.ocrFallback).toBe(baselineOcrFallback);
+
     auth.user = scenario.owner;
     await capture(captureBody({
       packetId: scenario.packetId,
@@ -902,10 +953,11 @@ describeIfLocalDb("response document capture endpoints", () => {
     expect(result.parsed.metrics.totals.processed).toBeGreaterThanOrEqual(1);
     expect(result.parsed.metrics.totals.manualReview).toBeGreaterThanOrEqual(1);
     expect(result.parsed.metrics.totals.suspicious).toBeGreaterThanOrEqual(1);
-    expect(result.parsed.metrics.totals.ocrFallback).toBeGreaterThanOrEqual(1);
+    expect(result.parsed.metrics.totals.ocrFallback).toBeGreaterThanOrEqual(baselineOcrFallback + 1);
     expect(result.parsed.metrics.alerts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: "suspicious_response_patterns", active: true }),
+        expect.objectContaining({ key: "classification_uncertainty", count: result.parsed.metrics.totals.manualReview }),
       ]),
     );
     expect(result.parsed.metrics.boundaries).toMatchObject({

@@ -821,6 +821,78 @@ function validateAdminReviewActionLinks(
   }
 }
 
+async function insertResponseAdminReviewEvent(
+  trx: any,
+  params: {
+    previous: ResponseDocumentRecord;
+    updated: ResponseDocumentRecord;
+    reviewAction: ResponseDocumentAdminReviewAction;
+    links: ReturnType<typeof effectiveLinks>;
+    notes: string | null;
+    actorAdminId: number;
+    input: UpdateResponseDocumentAdminReviewInput;
+    createdAt: Date;
+  },
+): Promise<void> {
+  await sql`
+    insert into public.response_admin_review_event (
+      response_event_id,
+      user_id,
+      actor_admin_id,
+      review_action,
+      previous_response_status,
+      next_response_status,
+      packet_id,
+      dispute_packet_finding_id,
+      finding_outcome_id,
+      comparison_run_id,
+      review_notes_present,
+      review_notes_hash,
+      confirm_evidence_only,
+      confirm_no_canonical_change,
+      confirm_no_outcome_classification,
+      explicit_confirmation,
+      response_documents_remain_evidence_metadata_only,
+      canonical_facts_mutated,
+      outcome_classification_created,
+      packet_ready_state_changed,
+      packet_text_changed,
+      runtime_activation,
+      override_path_created,
+      furnisher_flow_created,
+      created_at,
+      created_by
+    ) values (
+      ${params.updated.id},
+      ${params.updated.userId},
+      ${params.actorAdminId},
+      ${params.reviewAction},
+      ${params.previous.responseStatus},
+      ${params.updated.responseStatus},
+      ${params.links.packetId},
+      ${params.links.disputePacketFindingId},
+      ${params.links.findingOutcomeId},
+      ${params.links.comparisonRunId},
+      ${params.notes !== null},
+      ${params.notes ? computedHash([params.notes]) : null},
+      ${params.input.confirmEvidenceOnly === true},
+      ${params.input.confirmNoCanonicalChange === true},
+      ${params.input.confirmNoOutcomeClassification === true},
+      ${params.input.explicitConfirmation === true},
+      ${true},
+      ${false},
+      ${false},
+      ${false},
+      ${false},
+      ${false},
+      ${false},
+      ${false},
+      ${params.createdAt},
+      ${params.actorAdminId}
+    )
+  `.execute(trx);
+}
+
 async function insertResponseProcessingEvent(
   trx: any,
   response: ResponseDocumentRecord,
@@ -1211,9 +1283,21 @@ export async function updateResponseDocumentAdminReview(
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    const updatedResponse = mapResponseDocument(updated as Selectable<BureauResponseEvent>);
+    await insertResponseAdminReviewEvent(trx, {
+      previous: response,
+      updated: updatedResponse,
+      reviewAction,
+      links,
+      notes,
+      actorAdminId: user.id,
+      input,
+      createdAt: now,
+    });
+
     return {
       previous: response,
-      updated: mapResponseDocument(updated as Selectable<BureauResponseEvent>),
+      updated: updatedResponse,
       nextStatus,
     };
   });
@@ -1238,7 +1322,9 @@ export async function updateResponseDocumentAdminReview(
       responseDocumentType: result.updated.responseDocumentType,
       actorAdminId: user.id,
       reviewedAt: now.toISOString(),
-      reviewNotesSummary: notes,
+      reviewNotesPresent: notes !== null,
+      reviewNotesHash: notes ? computedHash([notes]) : null,
+      appendOnlyReviewEventWritten: true,
       responseDocumentsRemainEvidenceMetadataOnly: true,
       laterReportComparisonRequired: true,
       canonicalFactsMutated: false,

@@ -390,6 +390,18 @@ function MetricsStrip() {
         <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.suspicious ?? 0}</strong>
       </div>
       <div className={styles.metricCell}>
+        <span>Failed</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.failed ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
+        <span>OCR Fallback</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.ocrFallback ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
+        <span>Readiness Regression</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.readinessRegression ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
         <span>Dead Letters</span>
         <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.deadLetters ?? 0}</strong>
       </div>

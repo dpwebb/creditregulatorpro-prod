@@ -52,12 +52,12 @@ function formatResponseEnum(value: string | null | undefined): string {
 }
 
 function responseOutcomeLabel(response: ResponseTimelineItem): string {
-  if (response.latestClassification === "verified_deleted") return "Deleted or removed in response";
-  if (response.latestClassification === "updated") return "Updated in response";
-  if (response.latestClassification === "remains") return "Remains as reported";
-  if (response.latestClassification === "unable_to_verify") return "Unable to verify";
-  if (response.latestClassification === "frivolous") return "Frivolous response asserted";
-  if (response.latestClassification === "duplicate") return "Duplicate response asserted";
+  if (response.latestClassification === "verified_deleted") return "Response claims deletion or removal";
+  if (response.latestClassification === "updated") return "Response claims update";
+  if (response.latestClassification === "remains") return "Response says item remains";
+  if (response.latestClassification === "unable_to_verify") return "Response says unable to verify";
+  if (response.latestClassification === "frivolous") return "Response asserts frivolous dispute";
+  if (response.latestClassification === "duplicate") return "Response asserts duplicate dispute";
   if (response.latestClassification === "suspicious_non_compliant") return "Needs compliance review";
   return "Manual review needed";
 }
@@ -112,6 +112,8 @@ function ResponseTimelinePanel({
               <div className={styles.responseTimelineMeta}>
                 <span>{formatDateTime(response.responseReceivedAt)}</span>
                 <span>{formatResponseEnum(response.responseDocumentType)}</span>
+                <span>{Math.round(Number(response.latestClassificationConfidence ?? 0) * 100)}% confidence</span>
+                <span>Intake classification only</span>
                 {response.packetId ? <span>Letter #{response.packetId}</span> : null}
               </div>
               <p>
@@ -144,6 +146,7 @@ export default function PacketsPage() {
   const { showSuccess, showError } = useToast();
   const { isAdmin } = useAuth();
   const responseTimelineQuery = useResponseDocuments({ limit: 5 });
+  const responseTimelineResponses = responseTimelineQuery.data?.responses ?? [];
 
   React.useEffect(() => {
     const nextParams = new URLSearchParams(searchParams);
@@ -394,9 +397,9 @@ export default function PacketsPage() {
         </div>
       )}
 
-      {!isAdmin && (
+      {!isAdmin && responseTimelineResponses.length > 0 && (
         <ResponseTimelinePanel
-          responses={responseTimelineQuery.data?.responses ?? []}
+          responses={responseTimelineResponses}
           isLoading={responseTimelineQuery.isLoading}
           isError={responseTimelineQuery.isError}
         />

@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   createPacket: vi.fn(),
   showSuccess: vi.fn(),
   showError: vi.fn(),
+  responseDocuments: [] as any[],
 }));
 
 vi.mock("../../helpers/packetQueries", () => ({
@@ -58,7 +59,7 @@ vi.mock("../../helpers/useAuth", () => ({
 
 vi.mock("../../helpers/responseDocumentQueries", () => ({
   useResponseDocuments: () => ({
-    data: { responses: [], total: 0 },
+    data: { responses: mocks.responseDocuments, total: mocks.responseDocuments.length },
     isLoading: false,
     isError: false,
     error: null,
@@ -135,6 +136,7 @@ beforeEach(() => {
     credit_bureau: [candidate(42)],
     collection_agency: [],
   };
+  mocks.responseDocuments = [];
 });
 
 describe("packet create dialog routing", () => {
@@ -177,5 +179,35 @@ describe("packet create dialog routing", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Maple Bank Visa/i)).not.toBeChecked();
+  });
+
+  it("does not render the response timeline when no response records exist", () => {
+    renderPacketsPage("/packets");
+
+    expect(screen.queryByRole("region", { name: /response timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Recorded responses will appear/i)).not.toBeInTheDocument();
+  });
+
+  it("renders response timeline only for existing response records with uncertainty visible", () => {
+    mocks.responseDocuments = [
+      {
+        id: 77,
+        packetId: 55,
+        responseReceivedAt: "2026-05-18T12:00:00.000Z",
+        responseDocumentType: "bureau_email_response",
+        latestClassification: "remains",
+        latestClassificationConfidence: 0.83,
+        latestExtractionSource: "deterministic",
+        latestRequiresManualReview: true,
+      },
+    ];
+
+    renderPacketsPage("/packets");
+
+    expect(screen.getByRole("region", { name: /response timeline/i })).toBeInTheDocument();
+    expect(screen.getByText("Response says item remains")).toBeInTheDocument();
+    expect(screen.getByText("83% confidence")).toBeInTheDocument();
+    expect(screen.getByText("Intake classification only")).toBeInTheDocument();
+    expect(screen.getByText(/unresolved and will stay in review/i)).toBeInTheDocument();
   });
 });

@@ -2,7 +2,7 @@ import "../../loadEnv.js";
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { type Kysely } from "kysely";
+import { sql, type Kysely } from "kysely";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { DB, Json, UserRole } from "../../helpers/schema";
@@ -734,8 +734,36 @@ describeIfLocalDb("response document admin-review endpoint", () => {
       runtimeActivation: false,
       overridePathCreated: false,
       furnisherFlowCreated: false,
+      reviewNotesPresent: true,
+      appendOnlyReviewEventWritten: true,
     });
     assertNoSensitiveLeak(audit.details);
+
+    const reviewEvents = await sql<any>`
+      select *
+      from public.response_admin_review_event
+      where response_event_id = ${scenario.responseId}
+      order by id desc
+    `.execute(db);
+    expect(reviewEvents.rows).toHaveLength(1);
+    expect(reviewEvents.rows[0]).toMatchObject({
+      reviewAction: "mark_needs_review",
+      previousResponseStatus: "received",
+      nextResponseStatus: "needs_review",
+      reviewNotesPresent: true,
+      confirmEvidenceOnly: true,
+      confirmNoCanonicalChange: true,
+      confirmNoOutcomeClassification: true,
+      canonicalFactsMutated: false,
+      outcomeClassificationCreated: false,
+      packetReadyStateChanged: false,
+      packetTextChanged: false,
+      runtimeActivation: false,
+      overridePathCreated: false,
+      furnisherFlowCreated: false,
+    });
+    expect(reviewEvents.rows[0].reviewNotesHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(reviewEvents.rows[0])).not.toContain("needs review; captured as evidence");
   });
 
   it("rejects sensitive review notes and forbidden legal-conclusion phrases before storage", async () => {

@@ -8,10 +8,12 @@ let ensurePromise: Promise<void> | null = null;
 export function ensureResponseDocumentSchema(): Promise<void> {
   if (!ensurePromise) {
     ensurePromise = (async () => {
-      await ensureDisputePacketFindingsSchema();
-      await ensureOutcomeTrackingSchema();
+      await sql`select pg_advisory_lock(hashtext('creditregulatorpro.response_document_schema'))`.execute(db);
+      try {
+        await ensureDisputePacketFindingsSchema();
+        await ensureOutcomeTrackingSchema();
 
-      await sql`
+        await sql`
         create table if not exists public.bureau_response_event (
           id bigserial primary key,
           user_id bigint not null,
@@ -68,57 +70,57 @@ export function ensureResponseDocumentSchema(): Promise<void> {
           constraint bureau_response_event_reviewed_by_fkey
             foreign key (reviewed_by) references public.users(id) on delete set null
         )
-      `.execute(db);
+        `.execute(db);
 
-      await sql`
+        await sql`
         create index if not exists idx_bureau_response_event_user_created_at
           on public.bureau_response_event(user_id, created_at desc)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_packet_id
           on public.bureau_response_event(packet_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_dispute_packet_finding_id
           on public.bureau_response_event(dispute_packet_finding_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_finding_outcome_id
           on public.bureau_response_event(finding_outcome_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_comparison_run_id
           on public.bureau_response_event(comparison_run_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_bureau_id
           on public.bureau_response_event(bureau_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_agency_id
           on public.bureau_response_event(agency_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_response_channel
           on public.bureau_response_event(response_channel)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_document_type
           on public.bureau_response_event(response_document_type)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_status
           on public.bureau_response_event(response_status)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_received_at
           on public.bureau_response_event(response_received_at)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_bureau_response_event_normalized_hash
           on public.bureau_response_event(normalized_response_hash)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         alter table public.bureau_response_event
           add column if not exists raw_artifact_metadata jsonb not null default '{}'::jsonb,
           add column if not exists normalized_response_metadata jsonb not null default '{}'::jsonb,
@@ -129,8 +131,8 @@ export function ensureResponseDocumentSchema(): Promise<void> {
           add column if not exists latest_extraction_source text not null default 'deterministic',
           add column if not exists latest_requires_manual_review boolean not null default true,
           add column if not exists latest_processing_created_at timestamptz null
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create table if not exists public.response_processing_event (
           id bigserial primary key,
           response_event_id bigint not null,
@@ -199,44 +201,107 @@ export function ensureResponseDocumentSchema(): Promise<void> {
           constraint response_processing_event_created_by_fkey
             foreign key (created_by) references public.users(id) on delete set null
         )
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_response_event_id
           on public.response_processing_event(response_event_id, created_at desc)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_user_created_at
           on public.response_processing_event(user_id, created_at desc)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_packet_id
           on public.response_processing_event(packet_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_tradeline_id
           on public.response_processing_event(tradeline_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_violation_id
           on public.response_processing_event(violation_id)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_classification
           on public.response_processing_event(classification)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_status
           on public.response_processing_event(processing_status)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_manual_review
           on public.response_processing_event(requires_manual_review)
-      `.execute(db);
-      await sql`
+        `.execute(db);
+        await sql`
         create index if not exists idx_response_processing_event_idempotency
           on public.response_processing_event(idempotency_key)
-      `.execute(db);
-    })();
+        `.execute(db);
+        await sql`
+        create table if not exists public.response_admin_review_event (
+          id bigserial primary key,
+          response_event_id bigint not null,
+          user_id bigint not null,
+          actor_admin_id bigint not null,
+          review_action text not null,
+          previous_response_status text not null,
+          next_response_status text not null,
+          packet_id bigint null,
+          dispute_packet_finding_id bigint null,
+          finding_outcome_id bigint null,
+          comparison_run_id bigint null,
+          review_notes_present boolean not null default false,
+          review_notes_hash text null,
+          confirm_evidence_only boolean not null default false,
+          confirm_no_canonical_change boolean not null default false,
+          confirm_no_outcome_classification boolean not null default false,
+          explicit_confirmation boolean not null default false,
+          response_documents_remain_evidence_metadata_only boolean not null default true,
+          canonical_facts_mutated boolean not null default false,
+          outcome_classification_created boolean not null default false,
+          packet_ready_state_changed boolean not null default false,
+          packet_text_changed boolean not null default false,
+          runtime_activation boolean not null default false,
+          override_path_created boolean not null default false,
+          furnisher_flow_created boolean not null default false,
+          created_at timestamptz not null default now(),
+          created_by bigint null,
+          constraint response_admin_review_event_action_check
+            check (review_action in ('mark_needs_review', 'mark_related', 'mark_unrelated', 'archive_response', 'link_to_packet', 'link_to_outcome', 'add_review_note')),
+          constraint response_admin_review_event_previous_status_check
+            check (previous_response_status in ('received', 'needs_review', 'linked_to_packet', 'linked_to_outcome', 'archived', 'rejected_as_unrelated')),
+          constraint response_admin_review_event_next_status_check
+            check (next_response_status in ('received', 'needs_review', 'linked_to_packet', 'linked_to_outcome', 'archived', 'rejected_as_unrelated')),
+          constraint response_admin_review_event_response_event_id_fkey
+            foreign key (response_event_id) references public.bureau_response_event(id) on delete cascade,
+          constraint response_admin_review_event_user_id_fkey
+            foreign key (user_id) references public.users(id) on delete restrict,
+          constraint response_admin_review_event_actor_admin_id_fkey
+            foreign key (actor_admin_id) references public.users(id) on delete restrict,
+          constraint response_admin_review_event_created_by_fkey
+            foreign key (created_by) references public.users(id) on delete set null
+        )
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_admin_review_event_response_event_id
+          on public.response_admin_review_event(response_event_id, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_admin_review_event_user_created_at
+          on public.response_admin_review_event(user_id, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_admin_review_event_action
+          on public.response_admin_review_event(review_action)
+        `.execute(db);
+      } finally {
+        await sql`select pg_advisory_unlock(hashtext('creditregulatorpro.response_document_schema'))`.execute(db);
+      }
+    })().catch((error) => {
+      ensurePromise = null;
+      throw error;
+    });
   }
 
   return ensurePromise;

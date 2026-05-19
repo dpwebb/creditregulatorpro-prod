@@ -203,6 +203,8 @@ describe("admin response document UI", () => {
     expect(screen.getByText(/Deterministic response parsing runs without AI dependency/i)).toBeInTheDocument();
     expect(screen.getByText(/No mailbox, Gmail, IMAP, or inbox integration is used/i)).toBeInTheDocument();
     expect(screen.getByText("Processed 24h")).toBeInTheDocument();
+    expect(screen.getByText("OCR Fallback")).toBeInTheDocument();
+    expect(screen.getByText("Readiness Regression")).toBeInTheDocument();
   });
 
   it("renders loading, empty, and error list states", () => {

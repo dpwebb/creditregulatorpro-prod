@@ -137,6 +137,7 @@ export type ResponseProcessingResult = {
 };
 
 type RuleMatch = {
+  id: string;
   classification: ResponseClassification;
   confidence: number;
   signals: string[];
@@ -151,6 +152,7 @@ const RULES: Array<{
   classification: ResponseClassification;
   confidence: number;
   patterns: RegExp[];
+  excludePatterns?: RegExp[];
   message: string;
   sourceField: string;
   manualReview?: boolean;
@@ -182,6 +184,7 @@ const RULES: Array<{
       /\birrelevant\b/,
       /\bwill not investigate\b/,
       /\bdeclin(?:e|ed|ing) to investigate\b/,
+      /\brefus(?:e|ed|ing) to investigate\b/,
       /\binsufficient basis\b/,
     ],
     message: "Response indicates a frivolous or investigation refusal position.",
@@ -199,6 +202,7 @@ const RULES: Array<{
       /\bcannot verify\b/,
       /\bcould not verify\b/,
       /\bnot verified\b/,
+      /\bnot able to verify\b/,
       /\bunable to validate\b/,
     ],
     message: "Response states the item could not be verified.",
@@ -214,6 +218,12 @@ const RULES: Array<{
       /\bno longer appears\b/,
       /\bwill be (?:deleted|removed)\b/,
     ],
+    excludePatterns: [
+      /\bnot (?:be )?(?:deleted|removed)\b/,
+      /\bwill not be (?:deleted|removed)\b/,
+      /\bno (?:deletion|removal)\b/,
+      /\bnot (?:eligible|sufficient) for (?:deletion|removal)\b/,
+    ],
     message: "Response states the item was deleted or removed.",
     sourceField: "responseSummary",
   },
@@ -228,6 +238,11 @@ const RULES: Array<{
       /\bamend(?:ed|ment)?\b/,
       /\brevis(?:e|ed|ion)\b/,
     ],
+    excludePatterns: [
+      /\bnot (?:be )?(?:updated|corrected|modified|amended|revised)\b/,
+      /\bwill not be (?:updated|corrected|modified|amended|revised)\b/,
+      /\bno (?:update|correction|modification|amendment|revision)\b/,
+    ],
     message: "Response states the item was updated or corrected.",
     sourceField: "responseSummary",
   },
@@ -238,10 +253,19 @@ const RULES: Array<{
     patterns: [
       /\bverified as accurate\b/,
       /\baccurate as reported\b/,
+      /\bpreviously verified\b/,
       /\bverified\b/,
       /\bconfirmed\b/,
       /\bno change\b/,
       /\bremains\b/,
+    ],
+    excludePatterns: [
+      /\bnot verified\b/,
+      /\bunable to verify\b/,
+      /\bcannot verify\b/,
+      /\bcould not verify\b/,
+      /\bnot able to verify\b/,
+      /\bverified by you\b/,
     ],
     message: "Response states the item remains verified or unchanged.",
     sourceField: "responseSummary",
@@ -262,6 +286,13 @@ const RULES: Array<{
       /\bwrong account\b/,
       /\bnot enough information\b/,
       /\bunable to locate\b/,
+      /\bno reinvestigation\b/,
+      /\bwithout reinvestigation\b/,
+      /\bautomated verification\b/,
+      /\belectronically verified without documents?\b/,
+      /\brefus(?:e|ed|ing) to provide (?:the )?method of verification\b/,
+      /\bnot required to provide (?:the )?method of verification\b/,
+      /\bcontact (?:the )?(?:creditor|furnisher) directly\b/,
     ],
     message: "Response contains a deterministic signal that may require compliance review.",
     sourceField: "responseSummary",
@@ -299,10 +330,24 @@ function includesArtifactOcrFallback(metadata: Record<string, Json> | undefined)
   return metadata?.ocrFallbackUsed === true || metadata?.ocrFallbackUsed === "true";
 }
 
-function firstRuleMatch(text: string): RuleMatch | null {
+const OUTCOME_CLASSIFICATIONS = new Set<ResponseClassification>([
+  "verified_deleted",
+  "updated",
+  "remains",
+  "unable_to_verify",
+]);
+
+function mergeRegulationCategories(matches: RuleMatch[]): ViolationCategory[] {
+  return Array.from(new Set(matches.flatMap((match) => match.regulationCategories ?? [])));
+}
+
+function collectRuleMatches(text: string): RuleMatch[] {
+  const matches: RuleMatch[] = [];
   for (const rule of RULES) {
     if (!rule.patterns.some((pattern) => pattern.test(text))) continue;
-    return {
+    if (rule.excludePatterns?.some((pattern) => pattern.test(text))) continue;
+    matches.push({
+      id: rule.id,
       classification: rule.classification,
       confidence: rule.confidence,
       signals: [rule.id],
@@ -318,9 +363,69 @@ function firstRuleMatch(text: string): RuleMatch | null {
       manualReview: rule.manualReview,
       uncertaintyCodes: rule.uncertaintyCodes,
       regulationCategories: rule.regulationCategories,
-    };
+    });
   }
-  return null;
+  return matches;
+}
+
+function combineManualReviewMatch(primary: RuleMatch, matches: RuleMatch[], extraUncertainty: string[]): RuleMatch {
+  const signals = Array.from(new Set(matches.flatMap((match) => match.signals)));
+  return {
+    ...primary,
+    signals,
+    rationale: matches.flatMap((match) => match.rationale),
+    manualReview: true,
+    uncertaintyCodes: Array.from(new Set([
+      ...(primary.uncertaintyCodes ?? []),
+      ...matches.flatMap((match) => match.uncertaintyCodes ?? []),
+      ...extraUncertainty,
+    ])),
+    regulationCategories: mergeRegulationCategories(matches),
+  };
+}
+
+function contradictoryMatch(matches: RuleMatch[]): RuleMatch {
+  return {
+    id: "response-contradictory",
+    classification: "unknown_manual_review",
+    confidence: 0.45,
+    signals: Array.from(new Set(matches.flatMap((match) => match.signals))),
+    rationale: [
+      {
+        code: "response-contradictory",
+        message: "Response text contains mixed or contradictory deterministic outcome signals and requires manual review.",
+        sourceField: "responseSummary",
+        confidence: 0.45,
+        regulationCategory: "RESPONSE_INCOMPLETE",
+      },
+      ...matches.flatMap((match) => match.rationale),
+    ],
+    manualReview: true,
+    uncertaintyCodes: ["CONTRADICTORY_RESPONSE_LANGUAGE", "LOW_DETERMINISTIC_CONFIDENCE"],
+    regulationCategories: ["RESPONSE_INCOMPLETE"],
+  };
+}
+
+function selectRuleMatch(matches: RuleMatch[]): RuleMatch | null {
+  if (matches.length === 0) return null;
+
+  const suspicious = matches.find((match) => match.classification === "suspicious_non_compliant");
+  if (suspicious) {
+    return combineManualReviewMatch(suspicious, matches, matches.length > 1 ? ["MIXED_RESPONSE_SIGNALS"] : []);
+  }
+
+  const procedural = matches.find((match) => match.classification === "duplicate" || match.classification === "frivolous");
+  if (procedural) {
+    return combineManualReviewMatch(procedural, matches, matches.length > 1 ? ["MIXED_RESPONSE_SIGNALS"] : []);
+  }
+
+  const outcomeMatches = matches.filter((match) => OUTCOME_CLASSIFICATIONS.has(match.classification));
+  const outcomeClassifications = new Set(outcomeMatches.map((match) => match.classification));
+  if (outcomeClassifications.size > 1) {
+    return contradictoryMatch(outcomeMatches);
+  }
+
+  return matches[0];
 }
 
 function regulationReferences(categories: ViolationCategory[] = []): ResponseRegulationReference[] {
@@ -397,17 +502,11 @@ function provenance(input: ResponseClassificationInput, confidence: number): Res
 
 export function classifyResponseDocument(input: ResponseClassificationInput): ResponseProcessingResult {
   const searchableText = normalizeText([
-    input.responseDocumentType,
-    input.responseChannel,
-    input.responseSource,
-    input.responseSenderDomain,
     input.responseSubject,
-    input.responseReferenceId,
     input.responseSummary,
-    JSON.stringify(input.normalizedResponseMetadata ?? {}),
   ].filter(Boolean).join(" "));
 
-  const match = firstRuleMatch(searchableText);
+  const match = searchableText ? selectRuleMatch(collectRuleMatches(searchableText)) : null;
   const defaultRationale: ResponseRationale = {
     code: "response-unknown",
     message: "Response metadata does not contain enough deterministic signal for a confident classification.",

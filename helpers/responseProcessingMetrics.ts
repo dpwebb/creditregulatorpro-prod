@@ -95,9 +95,8 @@ export async function getResponseProcessingMetrics(
       coalesce(sum(case when processing_status = 'failed' then 1 else 0 end), 0)::int as failed,
       coalesce(sum(case when fallback_requested = true then 1 else 0 end), 0)::int as fallback_requested,
       coalesce(sum(case when fallback_allowed = true then 1 else 0 end), 0)::int as fallback_allowed,
-      coalesce(sum(case when raw_artifact_metadata ->> 'ocrFallbackUsed' = 'true'
-        or raw_artifact_metadata ->> 'ocr_fallback_used' = 'true'
-        or raw_artifact_metadata::text ilike '%ocrFallbackUsed%'
+      coalesce(sum(case when lower(coalesce(raw_artifact_metadata ->> 'ocrFallbackUsed', '')) = 'true'
+        or lower(coalesce(raw_artifact_metadata ->> 'ocr_fallback_used', '')) = 'true'
         or uncertainty_codes ? 'OCR_FALLBACK_USED'
         or uncertainty_codes::text ilike '%OCR_FALLBACK_USED%'
         then 1 else 0 end), 0)::int as ocr_fallback,
@@ -150,9 +149,9 @@ export async function getResponseProcessingMetrics(
     alert({
       key: "classification_uncertainty",
       severity: "warning",
-      count: totals.manualReview + totals.unknownManualReview,
+      count: totals.manualReview,
       threshold: 5,
-      message: "Manual-review or unknown response classifications crossed the review threshold.",
+      message: "Manual-review response classifications crossed the review threshold.",
     }),
     alert({
       key: "ingestion_dead_letters",
