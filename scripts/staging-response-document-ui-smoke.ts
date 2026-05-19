@@ -553,14 +553,15 @@ async function assertUiSafetyText(page: Page): Promise<void> {
 }
 
 async function applyResponseFilters(page: Page, verified: VerifiedResponse): Promise<void> {
-  await page.getByLabel("Response channel", { exact: true }).selectOption(verified.responseChannel);
-  await page.getByLabel("Document type", { exact: true }).selectOption(verified.responseDocumentType);
-  await page.getByLabel("Status", { exact: true }).selectOption(verified.responseStatus);
+  const filters = page.locator("section[aria-label='Response document filters']");
+  await filters.locator("label", { hasText: "Response channel" }).locator("select").selectOption(verified.responseChannel);
+  await filters.locator("label", { hasText: "Document type" }).locator("select").selectOption(verified.responseDocumentType);
+  await filters.locator("label", { hasText: "Status" }).locator("select").selectOption(verified.responseStatus);
   if (verified.comparisonRunId) {
-    await page.getByLabel("Comparison run ID", { exact: true }).fill(String(verified.comparisonRunId));
+    await filters.locator("label", { hasText: "Comparison run ID" }).locator("input").fill(String(verified.comparisonRunId));
   }
   if (verified.findingOutcomeId) {
-    await page.getByLabel("Finding outcome ID", { exact: true }).fill(String(verified.findingOutcomeId));
+    await filters.locator("label", { hasText: "Finding outcome ID" }).locator("input").fill(String(verified.findingOutcomeId));
   }
 }
 

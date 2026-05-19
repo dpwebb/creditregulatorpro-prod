@@ -703,10 +703,15 @@ async function openResponseDetail(page: Page, verified: VerifiedResponse): Promi
   for (const text of RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT) {
     await expect(page.getByText(text, { exact: true }).first()).toBeVisible({ timeout: 15000 });
   }
-  await page.getByLabel("Response channel", { exact: true }).selectOption(verified.responseChannel);
-  await page.getByLabel("Document type", { exact: true }).selectOption(verified.responseDocumentType);
-  if (verified.comparisonRunId) await page.getByLabel("Comparison run ID", { exact: true }).fill(String(verified.comparisonRunId));
-  if (verified.findingOutcomeId) await page.getByLabel("Finding outcome ID", { exact: true }).fill(String(verified.findingOutcomeId));
+  const filters = page.locator("section[aria-label='Response document filters']");
+  await filters.locator("label", { hasText: "Response channel" }).locator("select").selectOption(verified.responseChannel);
+  await filters.locator("label", { hasText: "Document type" }).locator("select").selectOption(verified.responseDocumentType);
+  if (verified.comparisonRunId) {
+    await filters.locator("label", { hasText: "Comparison run ID" }).locator("input").fill(String(verified.comparisonRunId));
+  }
+  if (verified.findingOutcomeId) {
+    await filters.locator("label", { hasText: "Finding outcome ID" }).locator("input").fill(String(verified.findingOutcomeId));
+  }
 
   const card = page.getByRole("article").filter({ hasText: `Response #${verified.responseId}` });
   await expect(card).toHaveCount(1, { timeout: 15000 });
