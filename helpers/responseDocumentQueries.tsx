@@ -14,6 +14,11 @@ import {
   type OutputType as ResponseAdminReviewOutput,
 } from "../endpoints/responses/admin-review_POST.schema";
 import {
+  postResponseCapture,
+  type InputType as ResponseCaptureInput,
+  type OutputType as ResponseCaptureOutput,
+} from "../endpoints/responses/capture_POST.schema";
+import {
   getResponseProcessingMetrics,
   type InputType as ResponseProcessingMetricsInput,
 } from "../endpoints/responses/metrics_GET.schema";
@@ -22,6 +27,7 @@ export const RESPONSE_DOCUMENTS_QUERY_KEY = ["responses", "documents"] as const;
 export const RESPONSE_DOCUMENT_QUERY_KEY = ["responses", "document"] as const;
 export const RESPONSE_PROCESSING_METRICS_QUERY_KEY = ["responses", "processing-metrics"] as const;
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_MUTATION_KEY = ["responses", "admin-review"] as const;
+export const RESPONSE_DOCUMENT_CAPTURE_MUTATION_KEY = ["responses", "capture"] as const;
 
 export function useResponseDocuments(filters?: ResponseDocumentListInput) {
   return useQuery({
@@ -61,10 +67,26 @@ export function useResponseDocumentAdminReviewMutation() {
   });
 }
 
+export function useResponseCaptureMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: RESPONSE_DOCUMENT_CAPTURE_MUTATION_KEY,
+    mutationFn: (input: ResponseCaptureInput) => postResponseCapture(input),
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: RESPONSE_DOCUMENTS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: RESPONSE_PROCESSING_METRICS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: [...RESPONSE_DOCUMENT_QUERY_KEY, data.response.id] });
+    },
+  });
+}
+
 export type {
   ResponseDocumentListInput,
   ResponseDocumentGetInput,
   ResponseProcessingMetricsInput,
   ResponseAdminReviewInput,
   ResponseAdminReviewOutput,
+  ResponseCaptureInput,
+  ResponseCaptureOutput,
 };

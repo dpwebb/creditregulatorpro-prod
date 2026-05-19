@@ -8,7 +8,11 @@ const mocks = vi.hoisted(() => ({
   useResponseDocument: vi.fn(),
   useResponseProcessingMetrics: vi.fn(),
   useResponseDocumentAdminReviewMutation: vi.fn(),
+  useResponseCaptureMutation: vi.fn(),
   adminReviewMutateAsync: vi.fn(),
+  responseCaptureMutateAsync: vi.fn(),
+  useAdminUsers: vi.fn(),
+  useAdminUserDetail: vi.fn(),
   refetchResponses: vi.fn(),
   listResponse: null as any,
   detailResponse: null as any,
@@ -19,6 +23,12 @@ vi.mock("../../helpers/responseDocumentQueries", () => ({
   useResponseDocument: mocks.useResponseDocument,
   useResponseProcessingMetrics: mocks.useResponseProcessingMetrics,
   useResponseDocumentAdminReviewMutation: mocks.useResponseDocumentAdminReviewMutation,
+  useResponseCaptureMutation: mocks.useResponseCaptureMutation,
+}));
+
+vi.mock("../../helpers/adminQueries", () => ({
+  useAdminUsers: mocks.useAdminUsers,
+  useAdminUserDetail: mocks.useAdminUserDetail,
 }));
 
 import { AdminRoute } from "../../components/ProtectedRoute";
@@ -173,6 +183,83 @@ function resetHookMocks() {
     isPending: false,
     error: null,
   });
+  mocks.responseCaptureMutateAsync.mockResolvedValue({
+    response: responseRecord,
+    intake: {
+      status: "captured",
+      sourceType: "manual_admin",
+      duplicateOfResponseId: null,
+      idempotencyKey: "capture-idempotency",
+      responseTextHash: "b".repeat(64),
+      responseTextStored: false,
+    },
+  });
+  mocks.useResponseCaptureMutation.mockReturnValue({
+    mutateAsync: mocks.responseCaptureMutateAsync,
+    isPending: false,
+    error: null,
+  });
+  mocks.useAdminUsers.mockReturnValue({
+    data: {
+      users: [
+        {
+          id: 11,
+          email: "consumer@example.test",
+          displayName: "Synthetic Consumer",
+          fullName: null,
+          role: "user",
+          createdAt: "2026-05-18T12:00:00.000Z",
+          emailVerified: true,
+          avatarUrl: null,
+          tradelinesCount: 1,
+          packetsCount: 1,
+          evidenceEventsCount: 0,
+          subscriptionPlan: null,
+          subscriptionStatus: null,
+          reportArtifactsCount: 1,
+        },
+      ],
+      total: 1,
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  });
+  mocks.useAdminUserDetail.mockReturnValue({
+    data: {
+      user: {
+        id: 11,
+        email: "consumer@example.test",
+        displayName: "Synthetic Consumer",
+        role: "user",
+        emailVerified: true,
+        avatarUrl: null,
+        createdAt: "2026-05-18T12:00:00.000Z",
+      },
+      subscription: null,
+      tradelines: [],
+      packets: [
+        {
+          id: 21,
+          status: "draft",
+          type: "bureau_dispute",
+          createdAt: "2026-05-18T12:00:00.000Z",
+          tradelineAccountNumber: null,
+          creditorName: "Synthetic Creditor",
+          originalCreditorName: null,
+          terminalLabel: "response test packet",
+          deliveryMethod: "mail",
+          violationCategory: "RESPONSE_INCOMPLETE",
+          obligationType: "DISPUTE_INVESTIGATION",
+        },
+      ],
+      reportArtifacts: [],
+      recentActivity: [],
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  });
 }
 
 beforeEach(() => {
@@ -205,6 +292,96 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Processed 24h")).toBeInTheDocument();
     expect(screen.getByText("OCR Fallback")).toBeInTheDocument();
     expect(screen.getByText("Readiness Regression")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Manual Response Capture" })).toBeInTheDocument();
+    expect(screen.getByText(/Live mailbox connections remain disabled/i)).toBeInTheDocument();
+  });
+
+  it("renders admin manual capture controls without live mailbox controls", () => {
+    render(<AdminResponseDocumentsPage />);
+
+    expect(screen.getByLabelText("Search consumer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Consumer")).toBeInTheDocument();
+    expect(screen.getByLabelText("Existing packet")).toBeInTheDocument();
+    expect(screen.getByLabelText("Intake source")).toBeInTheDocument();
+    expect(screen.getByLabelText("Response text")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /submit response intake/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /connect gmail/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /connect imap/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /inbox sync/i })).not.toBeInTheDocument();
+  });
+
+  it("submits manual admin response intake and shows deterministic classification results", async () => {
+    render(<AdminResponseDocumentsPage />);
+
+    fireEvent.change(screen.getByLabelText("Consumer"), { target: { value: "11" } });
+    fireEvent.change(screen.getByLabelText("Existing packet"), { target: { value: "21" } });
+    fireEvent.change(screen.getByLabelText("Capture document type"), { target: { value: "bureau_email_response" } });
+    fireEvent.change(screen.getByLabelText("Capture response channel"), { target: { value: "email" } });
+    fireEvent.change(screen.getByLabelText("Response date"), { target: { value: "2026-05-18" } });
+    fireEvent.change(screen.getByLabelText("Response text"), {
+      target: { value: "We verified as accurate and the item remains unchanged." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submit response intake/i }));
+
+    await waitFor(() => {
+      expect(mocks.responseCaptureMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          intakeSourceType: "manual_admin",
+          userId: 11,
+          packetId: 21,
+          responseText: "We verified as accurate and the item remains unchanged.",
+          responseStatus: "received",
+          normalizedResponseMetadata: expect.objectContaining({
+            senderType: "bureau",
+          }),
+          sourceMetadata: expect.objectContaining({
+            liveMailboxIntegrationUsed: false,
+          }),
+        }),
+      );
+    });
+    expect(await screen.findByText("Response captured")).toBeInTheDocument();
+    expect(screen.getByText("Manual review is required before this response can influence any downstream outcome.")).toBeInTheDocument();
+    expect(screen.getAllByText("83% confidence").length).toBeGreaterThan(0);
+  });
+
+  it("shows duplicate intake status returned by idempotent capture", async () => {
+    mocks.responseCaptureMutateAsync.mockResolvedValueOnce({
+      response: responseRecord,
+      intake: {
+        status: "duplicate",
+        sourceType: "manual_admin",
+        duplicateOfResponseId: 901,
+        idempotencyKey: "capture-idempotency",
+        responseTextHash: "b".repeat(64),
+        responseTextStored: false,
+      },
+    });
+    render(<AdminResponseDocumentsPage />);
+
+    fireEvent.change(screen.getByLabelText("Consumer"), { target: { value: "11" } });
+    fireEvent.change(screen.getByLabelText("Response text"), {
+      target: { value: "We verified as accurate and the item remains unchanged." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submit response intake/i }));
+
+    expect(await screen.findByText("Duplicate intake matched existing response")).toBeInTheDocument();
+  });
+
+  it("rejects malformed capture form input before calling the capture endpoint", async () => {
+    render(<AdminResponseDocumentsPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: /submit response intake/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Select a consumer");
+    expect(mocks.responseCaptureMutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Consumer"), { target: { value: "11" } });
+    fireEvent.change(screen.getByLabelText("Response text"), {
+      target: { value: "Full SIN 123-456-789" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /submit response intake/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("full SIN-like values");
+    expect(mocks.responseCaptureMutateAsync).not.toHaveBeenCalled();
   });
 
   it("renders loading, empty, and error list states", () => {
@@ -497,8 +674,6 @@ describe("admin response document UI", () => {
   it("does not render unsupported response, legal, parser, inbox, or override controls", async () => {
     await openResponseDetail();
 
-    expect(screen.queryByRole("button", { name: /capture response/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /upload response/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /review response/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark corrected/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /mark removed/i })).not.toBeInTheDocument();
@@ -512,6 +687,7 @@ describe("admin response document UI", () => {
     expect(screen.queryByRole("button", { name: /inbox sync/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect gmail/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect imap/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /connect outlook/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /parse response/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /make final truth/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /force outcome/i })).not.toBeInTheDocument();
@@ -532,9 +708,9 @@ describe("admin response document UI", () => {
     expect(source).toContain("get_GET.schema");
     expect(source).toContain("metrics_GET.schema");
     expect(source).toContain("admin-review_POST.schema");
+    expect(source).toContain("capture_POST.schema");
+    expect(source).toContain("intakeSourceType");
     expect(source).toContain("invalidateQueries");
-    expect(source).not.toContain("capture_POST.schema");
-    expect(source).not.toMatch(/\/_api\/responses\/capture/i);
     expect(source).not.toMatch(/useBureauCommunication|bureau-communication_POST|record-response_POST/i);
     expect(source).not.toMatch(/\/_api\/parser|\/_api\/ocr|\/_api\/ingest\/process/i);
     expect(source).not.toMatch(/\/_api\/packet\/(?:readiness|build|create|save|send|delivery|pdf)/i);

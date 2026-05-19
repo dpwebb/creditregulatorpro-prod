@@ -24,14 +24,14 @@ export const RESPONSE_DOCUMENT_UI_REQUIRED_TEXT = [
   "This page does not change packet readiness or wording.",
   "This page does not activate regulation runtime truth.",
   "No mailbox, Gmail, IMAP, or inbox integration is used.",
+  "Manual Response Capture",
+  "Live mailbox connections remain disabled.",
 ] as const;
 
 export const RESPONSE_DOCUMENT_UI_DETAIL_NOTICE =
   "Response captured and classified deterministically. Later credit-report comparison is still required before corrected, removed, or unchanged source-truth outcomes can change.";
 
 export const RESPONSE_DOCUMENT_UI_FORBIDDEN_CONTROLS = [
-  "Capture Response",
-  "Upload Response",
   "Review Response",
   "Mark Related",
   "Mark Unrelated",
@@ -99,7 +99,7 @@ export const FORBIDDEN_RESPONSE_DOCUMENT_UI_ENDPOINTS = [
 ] as const;
 
 export const RESPONSE_DOCUMENT_UI_CLEANUP_POLICY =
-  "Response document UI smoke is read-only: no cleanup is needed because it does not create, mutate, or remove response, audit, evidence, outcome, packet, or canonical rows.";
+  "Response document UI smoke is non-mutating: it opens the manual intake surface without submitting it, and no cleanup is needed because it does not create, mutate, or remove response, audit, evidence, outcome, packet, or canonical rows.";
 
 type AuthMode = "credentials" | "session_cookie";
 type EnvPrefix = "STAGING" | "LOCAL_SMOKE";
@@ -394,8 +394,8 @@ export function assertNoForbiddenEndpointCalls(observedRequests: string[]): void
 }
 
 export function assertNoDestructiveCleanupPlanned(policy = RESPONSE_DOCUMENT_UI_CLEANUP_POLICY): void {
-  if (!/read-only/i.test(policy) || /create response|capture response|mutate response|archive response/i.test(policy)) {
-    throw new Error("Response document UI smoke cleanup policy must be read-only and non-mutating.");
+  if (!/non-mutating/i.test(policy) || /submit manual response intake|connect mailbox|sync mailbox|archive response/i.test(policy)) {
+    throw new Error("Response document UI smoke cleanup policy must be non-mutating.");
   }
 }
 
@@ -548,6 +548,8 @@ async function assertUiSafetyText(page: Page): Promise<void> {
   await expect(page.getByText("This page does not change packet readiness or wording.")).toBeVisible();
   await expect(page.getByText("This page does not activate regulation runtime truth.")).toBeVisible();
   await expect(page.getByText("No mailbox, Gmail, IMAP, or inbox integration is used.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Manual Response Capture" })).toBeVisible();
+  await expect(page.getByText(/Live mailbox connections remain disabled/i)).toBeVisible();
 }
 
 async function applyResponseFilters(page: Page, verified: VerifiedResponse): Promise<void> {
@@ -684,7 +686,7 @@ export async function runSmoke(config: Extract<ResponseDocumentUiSmokeConfig, { 
         responseListLoaded: true,
         syntheticResponseVisible: true,
         detailPanelOpened: true,
-        readOnlyControlsAbsent: true,
+        nonMutatingRouteSmoke: true,
         correctedRemovedUnchangedControlsAbsent: true,
         parserInboxMailboxControlsAbsent: true,
         legalConclusionWordingAbsent: true,

@@ -187,6 +187,8 @@ describe("response document UI staging smoke harness", () => {
         "Response documents keep immutable evidence plus append-only deterministic processing.",
         "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
         "No mailbox, Gmail, IMAP, or inbox integration is used.",
+        "Manual Response Capture",
+        "Live mailbox connections remain disabled.",
       ]),
     );
 
@@ -208,12 +210,12 @@ describe("response document UI staging smoke harness", () => {
     expect(source).toContain("laterReportComparisonStillRequired: true");
   });
 
-  it("verifies read-only behavior checks are present", () => {
-    expect(RESPONSE_DOCUMENT_UI_CLEANUP_POLICY).toContain("read-only");
+  it("verifies non-mutating route-smoke behavior checks are present", () => {
+    expect(RESPONSE_DOCUMENT_UI_CLEANUP_POLICY).toContain("non-mutating");
     expect(RESPONSE_DOCUMENT_UI_CLEANUP_POLICY).toContain("no cleanup is needed");
 
     const source = smokeSource();
-    expect(source).toContain("readOnlyControlsAbsent: true");
+    expect(source).toContain("nonMutatingRouteSmoke: true");
     expect(source).toContain("assertForbiddenControlsAbsent");
     expect(source).not.toContain('jsonRequest(page, "POST"');
     expect(source).not.toContain("createdResponseIds");
@@ -305,9 +307,9 @@ describe("response document UI staging smoke harness", () => {
   });
 
   it("verifies no destructive cleanup is attempted", () => {
-    expect(RESPONSE_DOCUMENT_UI_CLEANUP_POLICY).toContain("read-only");
+    expect(RESPONSE_DOCUMENT_UI_CLEANUP_POLICY).toContain("non-mutating");
     expect(RESPONSE_DOCUMENT_UI_CLEANUP_POLICY).toContain("does not create, mutate, or remove");
     expect(() => assertNoDestructiveCleanupPlanned()).not.toThrow();
-    expect(() => assertNoDestructiveCleanupPlanned("capture response row")).toThrow(/read-only/);
+    expect(() => assertNoDestructiveCleanupPlanned("submit manual response intake")).toThrow(/non-mutating/);
   });
 });

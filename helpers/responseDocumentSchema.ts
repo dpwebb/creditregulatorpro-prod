@@ -133,6 +133,11 @@ export function ensureResponseDocumentSchema(): Promise<void> {
           add column if not exists latest_processing_created_at timestamptz null
         `.execute(db);
         await sql`
+        create unique index if not exists idx_bureau_response_event_intake_idempotency_unique
+          on public.bureau_response_event ((normalized_response_metadata #>> '{intake,idempotencyKey}'))
+          where normalized_response_metadata #>> '{intake,idempotencyKey}' is not null
+        `.execute(db);
+        await sql`
         create table if not exists public.response_processing_event (
           id bigserial primary key,
           response_event_id bigint not null,

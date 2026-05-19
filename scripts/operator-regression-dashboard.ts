@@ -102,7 +102,7 @@ export const GATED_SMOKE_CHECKS = [
     name: "Outcome Admin Review smoke",
     command: "pnpm run smoke:outcome-admin-review",
     notes:
-      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend, append-only deterministic response processing, append-only response admin-review event logging, admin response UI, response-document admin-review backend, and authenticated response admin-review UI smoke now exist, while full response capture UI and inbox integration remain future work.",
+      "Manual/gated admin-review smoke. Requires CRP_OUTCOME_ADMIN_REVIEW_SMOKE=true, safe staging admin context, and a verified synthetic outcome run or fixture IDs. Authenticated staging smoke has passed for a synthetic existing run; response-document capture backend, append-only deterministic response processing, append-only response admin-review event logging, admin response UI, manual/admin response capture UI, inbox-ready intake abstraction, response-document admin-review backend, and authenticated response admin-review UI smoke now exist, while live mailbox integration remains future work.",
   },
   {
     name: "Outcome Admin Review UI smoke",
@@ -120,7 +120,7 @@ export const GATED_SMOKE_CHECKS = [
     name: "Response Document UI smoke",
     command: "pnpm run smoke:response-document-ui",
     notes:
-      "Manual/gated admin-only Response Documents UI smoke. Requires CRP_RESPONSE_DOCUMENT_UI_SMOKE=true, safe staging admin context, and verified synthetic response data. Authenticated staging smoke has passed for route/list/detail visibility, deterministic processing source visibility, manual-review states, metrics, and evidence/provenance notices.",
+      "Manual/gated admin-only Response Documents UI smoke. Requires CRP_RESPONSE_DOCUMENT_UI_SMOKE=true, safe staging admin context, and verified synthetic response data. Authenticated staging smoke has passed for route/list/detail visibility, deterministic processing source visibility, manual-review states, metrics, evidence/provenance notices, and the non-mutating manual intake surface; the smoke does not submit capture data.",
   },
   {
     name: "Response Document Admin Review smoke",
@@ -137,7 +137,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; response capture UI, inbox integration, historical backfill, non-owner smoke, production-scale repeated smoke, external alert delivery, and queue/backpressure workers remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, historical backfill, non-owner smoke, production-scale repeated smoke, external alert delivery, and queue/backpressure workers remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -370,7 +370,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Response document capture endpoint",
           "SKIP",
-          "Endpoint-backed response capture coverage for bureau_response_event plus append-only response_processing_event and response_admin_review_event schema creation, owner/admin/support boundaries, packet/outcome/finding/evidence/tradeline/violation linkage, deterministic processing metadata, sanitized audit, privacy/no-overexposure, metrics, and source guards that prevent credit-report parser, OCR pipeline, packet, violation, runtime truth, admin override, or direct furnisher paths. Authenticated staging smoke has passed in admin and user-owned contexts for capture/list/get and outcome-linked email response metadata.",
+          "Endpoint-backed response capture coverage for bureau_response_event plus append-only response_processing_event and response_admin_review_event schema creation, owner/admin/support boundaries, packet/outcome/finding/evidence/tradeline/violation linkage, deterministic processing metadata, inbox-ready manual_admin/simulated_inbox intake, response-text hashing, duplicate/idempotent intake handling, sanitized audit, privacy/no-overexposure, metrics, and source guards that prevent credit-report parser, OCR pipeline, packet, violation, runtime truth, admin override, direct furnisher paths, or live mailbox integration. Authenticated staging smoke has passed in admin and user-owned contexts for capture/list/get and outcome-linked email response metadata.",
           {
             kind: "endpoint-test",
             command: "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
@@ -399,7 +399,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Response document admin UI",
           "SKIP",
-          "Admin-only Response Documents UI coverage for list/detail, supported filters, response processing metrics, deterministic extraction source visibility, manual-review states, safe metadata rendering, evidence/provenance notices, metadata-only admin-review controls, required notes, confirmation guardrails, unsupported legal/override/inbox/source-truth controls, and source guards limiting calls to response list/get/metrics/admin-review endpoints. Authenticated staging UI smoke has passed for route/list/detail and the metadata-only admin-review UI action path.",
+          "Admin-only Response Documents UI coverage for list/detail, supported filters, response processing metrics, deterministic extraction source visibility, manual-review states, safe metadata rendering, evidence/provenance notices, manual/admin response capture controls, idempotent duplicate result visibility, metadata-only admin-review controls, required notes, confirmation guardrails, unsupported legal/override/live-inbox/source-truth controls, and source guards limiting mutations to response capture/admin-review endpoints only. Authenticated staging UI smoke has passed for route/list/detail and the metadata-only admin-review UI action path.",
           {
             command: "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
             runByDefault: true,

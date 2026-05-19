@@ -37,6 +37,7 @@
 }
 
 .toolbar,
+.capturePanel,
 .listPanel,
 .detailPanel,
 .responseCard,
@@ -51,6 +52,47 @@
 .toolbar {
   padding: var(--spacing-4);
   margin-bottom: var(--spacing-5);
+}
+
+.capturePanel {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-5);
+}
+
+.captureForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.captureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: var(--spacing-3);
+}
+
+.captureResult {
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--success) 7%, var(--card));
+  padding: var(--spacing-3);
+}
+
+.captureResultHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-3);
+}
+
+.captureResultHeader strong,
+.captureResultHeader span {
+  display: block;
+}
+
+.captureResultHeader span {
+  color: var(--muted-foreground);
+  font-size: 0.86rem;
 }
 
 .metricsStrip {

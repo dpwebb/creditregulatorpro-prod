@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ResponseDocumentRecord } from "../../helpers/responseDocumentService";
+import type { ResponseIntakeResult, ResponseIntakeSourceType } from "../../helpers/responseIntakeService";
 import type { Json } from "../../helpers/schema";
 import {
   BureauResponseChannelArrayValues,
@@ -21,7 +22,10 @@ const safeMetadataSchema: z.ZodType<Json> = z.lazy(() =>
 
 const safeMetadataObjectSchema = z.record(z.string().regex(/^[a-zA-Z0-9_.:-]{1,64}$/), safeMetadataSchema);
 
+const responseIntakeSourceTypeSchema = z.enum(["manual_admin", "simulated_inbox", "future_mailbox"]);
+
 export const schema = z.object({
+  intakeSourceType: responseIntakeSourceTypeSchema.optional(),
   userId: z.coerce.number().int().positive().optional(),
   packetId: z.coerce.number().int().positive().nullable().optional(),
   disputePacketFindingId: z.coerce.number().int().positive().nullable().optional(),
@@ -39,17 +43,27 @@ export const schema = z.object({
   attachmentEvidenceId: z.coerce.number().int().positive().nullable().optional(),
   evidenceAttachmentId: z.coerce.number().int().positive().nullable().optional(),
   normalizedResponseHash: z.string().trim().max(128).nullable().optional(),
+  responseText: z.string().trim().max(4000).nullable().optional(),
   responseSummary: z.string().trim().max(1000).nullable().optional(),
   responseStatus: z.enum(BureauResponseStatusArrayValues).optional(),
   rawArtifactMetadata: safeMetadataObjectSchema.nullable().optional(),
   normalizedResponseMetadata: safeMetadataObjectSchema.nullable().optional(),
+  sourceMessageId: z.string().trim().max(160).nullable().optional(),
+  sourceReceivedAt: z.coerce.date().nullable().optional(),
+  sourceMetadata: safeMetadataObjectSchema.nullable().optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
 
 export type OutputType = {
   response: ResponseDocumentRecord;
+  intake?: Pick<
+    ResponseIntakeResult,
+    "status" | "sourceType" | "duplicateOfResponseId" | "idempotencyKey" | "responseTextHash" | "responseTextStored"
+  >;
 };
+
+export type ResponseCaptureIntakeSourceType = ResponseIntakeSourceType;
 
 export const postResponseCapture = async (body: InputType, init?: RequestInit): Promise<OutputType> => {
   const validatedInput = schema.parse(body);

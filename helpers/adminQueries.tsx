@@ -9,11 +9,17 @@ import {
   InputType as AdminUsersInput,
   OutputType as AdminUsersOutput,
 } from "../endpoints/admin/users_GET.schema";
+import {
+  getAdminUserDetail,
+  InputType as AdminUserDetailInput,
+  OutputType as AdminUserDetailOutput,
+} from "../endpoints/admin/user-detail_GET.schema";
 
 // Query Keys
 export const ADMIN_QUERY_KEYS = {
   auditLogs: (filters: AuditLogsInput) => ["admin", "auditLogs", filters] as const,
   users: (filters: AdminUsersInput) => ["admin", "users", filters] as const,
+  userDetail: (userId: number | null | undefined) => ["admin", "userDetail", userId] as const,
 };
 
 /**
@@ -41,5 +47,21 @@ export function useAdminUsers(filters: AdminUsersInput) {
   });
 }
 
+export function useAdminUserDetail(userId?: AdminUserDetailInput["userId"] | null) {
+  return useQuery({
+    queryKey: ADMIN_QUERY_KEYS.userDetail(userId),
+    queryFn: () => getAdminUserDetail({ userId: userId as number }),
+    enabled: Number.isInteger(userId) && Number(userId) > 0,
+    staleTime: 60 * 1000,
+  });
+}
+
 // Export types for convenience
-export type { AuditLogsInput, AuditLogsOutput, AdminUsersInput, AdminUsersOutput };
+export type {
+  AuditLogsInput,
+  AuditLogsOutput,
+  AdminUsersInput,
+  AdminUsersOutput,
+  AdminUserDetailInput,
+  AdminUserDetailOutput,
+};

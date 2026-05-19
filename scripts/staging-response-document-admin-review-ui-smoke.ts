@@ -38,6 +38,8 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT = [
   "This page does not change packet readiness or wording.",
   "This page does not activate regulation runtime truth.",
   "No mailbox, Gmail, IMAP, or inbox integration is used.",
+  "Manual Response Capture",
+  "Live mailbox connections remain disabled.",
 ] as const;
 
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT = [
@@ -74,8 +76,6 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT = [
   "This proves correction",
   "This is legal proof",
   "The agency must pay",
-  "Capture Response",
-  "Upload Response",
   "Connect Gmail",
   "Connect IMAP",
   "Inbox Sync",

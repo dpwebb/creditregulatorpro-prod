@@ -194,6 +194,7 @@ const SAFE_METADATA_KEY_PATTERN = /^[a-zA-Z0-9_.:-]{1,64}$/;
 const SAFE_METADATA_MAX_DEPTH = 4;
 const SAFE_METADATA_MAX_KEYS = 60;
 const SAFE_METADATA_MAX_ARRAY_ITEMS = 30;
+const RESPONSE_INTAKE_TEXT_LIMIT = 4000;
 
 const RESPONSE_ADMIN_REVIEW_ACTIONS: ResponseDocumentAdminReviewAction[] = [
   "mark_needs_review",
@@ -344,6 +345,28 @@ function computedHash(parts: Array<string | null>): string {
   return createHash("sha256")
     .update(parts.map((part) => part ?? "").join("|"))
     .digest("hex");
+}
+
+export function computeResponseDocumentStableHash(parts: Array<string | null>): string {
+  return computedHash(parts);
+}
+
+export function sanitizeResponseIntakeText(value: string | null | undefined) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) {
+    throw new BusinessRuleError("responseText is required for response intake.", 400);
+  }
+  if (trimmed.length > RESPONSE_INTAKE_TEXT_LIMIT) {
+    throw new BusinessRuleError(`responseText must be ${RESPONSE_INTAKE_TEXT_LIMIT} characters or fewer.`, 400);
+  }
+  const safe = assertSafeText(trimmed, "responseText");
+  return {
+    text: safe,
+    summary: safe.slice(0, TEXT_LIMITS.responseSummary),
+    textHash: computedHash([safe]),
+    textLength: safe.length,
+    summaryTruncated: safe.length > TEXT_LIMITS.responseSummary,
+  };
 }
 
 export function sanitizeResponseMetadata(input: CaptureResponseDocumentInput) {
@@ -510,7 +533,7 @@ function addCandidate(candidates: Set<number>, value: number | null | undefined)
   if (value !== null && value !== undefined) candidates.add(Number(value));
 }
 
-async function validateRelationships(
+export async function validateResponseDocumentRelationships(
   input: CaptureResponseDocumentInput,
   user: ResponseDocumentUser,
 ): Promise<RelationshipContext> {
@@ -1007,7 +1030,7 @@ export async function captureResponseDocument(
   request?: Request,
 ): Promise<ResponseDocumentRecord> {
   await ensureResponseDocumentSchema();
-  const links = await validateRelationships(input, user);
+  const links = await validateResponseDocumentRelationships(input, user);
   const safe = sanitizeResponseMetadata(input);
   const now = new Date();
 
@@ -1240,7 +1263,7 @@ export async function updateResponseDocumentAdminReview(
       reviewAction === "link_to_packet" ||
       reviewAction === "link_to_outcome"
     ) {
-      await validateRelationships(
+      await validateResponseDocumentRelationships(
         {
           userId: response.userId,
           packetId: links.packetId,

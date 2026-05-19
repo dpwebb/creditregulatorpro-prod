@@ -4,12 +4,15 @@ import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  ClipboardList,
   Eye,
   FileText,
   Filter,
+  Inbox,
   MessageSquare,
   RefreshCw,
   Search,
+  Send,
   ShieldCheck,
 } from "lucide-react";
 
@@ -29,11 +32,14 @@ import {
 import {
   useResponseDocument,
   useResponseDocumentAdminReviewMutation,
+  useResponseCaptureMutation,
   useResponseDocuments,
   useResponseProcessingMetrics,
   type ResponseAdminReviewInput,
+  type ResponseCaptureOutput,
   type ResponseDocumentListInput,
 } from "../helpers/responseDocumentQueries";
+import { useAdminUserDetail, useAdminUsers, type AdminUserDetailOutput } from "../helpers/adminQueries";
 import type { OutputType as ResponseGetOutput } from "../endpoints/responses/get_GET.schema";
 import type { OutputType as ResponseListOutput } from "../endpoints/responses/list_GET.schema";
 import styles from "./admin-response-documents.module.css";
@@ -42,6 +48,7 @@ type ResponseRecord = ResponseListOutput["responses"][number];
 type ResponseDetail = ResponseGetOutput["response"];
 type ResponseReviewAction = ResponseAdminReviewInput["reviewAction"];
 type ResponseReviewActionOption = Exclude<ResponseReviewAction, "link_to_packet">;
+type CaptureResult = ResponseCaptureOutput;
 
 type FilterState = {
   responseChannel: string;
@@ -59,6 +66,31 @@ type FilterState = {
   offset: string;
 };
 
+type CaptureFormState = {
+  userSearch: string;
+  userId: string;
+  packetId: string;
+  disputePacketFindingId: string;
+  findingOutcomeId: string;
+  comparisonRunId: string;
+  bureauId: string;
+  agencyId: string;
+  senderType: "bureau" | "creditor" | "collector";
+  intakeSourceType: "manual_admin" | "simulated_inbox";
+  responseChannel: BureauResponseChannel;
+  responseDocumentType: BureauResponseDocumentType;
+  responseReceivedAt: string;
+  responseSource: string;
+  responseSubject: string;
+  responseSenderDomain: string;
+  responseReferenceId: string;
+  responseText: string;
+  artifactName: string;
+  artifactSha256: string;
+  artifactReference: string;
+  ocrFallbackUsed: boolean;
+};
+
 const EMPTY_FILTERS: FilterState = {
   responseChannel: "",
   responseDocumentType: "",
@@ -73,6 +105,31 @@ const EMPTY_FILTERS: FilterState = {
   endDate: "",
   limit: "50",
   offset: "0",
+};
+
+const EMPTY_CAPTURE_FORM: CaptureFormState = {
+  userSearch: "",
+  userId: "",
+  packetId: "",
+  disputePacketFindingId: "",
+  findingOutcomeId: "",
+  comparisonRunId: "",
+  bureauId: "",
+  agencyId: "",
+  senderType: "bureau",
+  intakeSourceType: "manual_admin",
+  responseChannel: "manual_record",
+  responseDocumentType: "bureau_letter_response",
+  responseReceivedAt: new Date().toISOString().slice(0, 10),
+  responseSource: "manual_admin",
+  responseSubject: "",
+  responseSenderDomain: "",
+  responseReferenceId: "",
+  responseText: "",
+  artifactName: "",
+  artifactSha256: "",
+  artifactReference: "",
+  ocrFallbackUsed: false,
 };
 
 const SENSITIVE_KEY_PATTERN =
@@ -259,6 +316,311 @@ function EvidenceNotice() {
   );
 }
 
+function ResponseCapturePanel({ onCaptured }: { onCaptured: (responseId: number) => void }) {
+  const [form, setForm] = useState<CaptureFormState>(EMPTY_CAPTURE_FORM);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [captureResult, setCaptureResult] = useState<CaptureResult | null>(null);
+  const userQuery = useAdminUsers({
+    role: "user",
+    search: form.userSearch.trim() || undefined,
+    limit: 25,
+    offset: 0,
+  });
+  const selectedUserId = cleanInteger(form.userId);
+  const userDetailQuery = useAdminUserDetail(selectedUserId);
+  const captureMutation = useResponseCaptureMutation();
+  const selectedResponse = captureResult?.response ?? null;
+
+  const update = <K extends keyof CaptureFormState>(key: K, value: CaptureFormState[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFormError(null);
+  };
+
+  const choosePacket = (packetId: string) => {
+    const packet = userDetailQuery.data?.packets.find((item) => String(item.id) === packetId);
+    setForm((current) => ({
+      ...current,
+      packetId,
+      responseSource: packet?.creditorName ?? packet?.originalCreditorName ?? current.responseSource,
+    }));
+    setFormError(null);
+  };
+
+  const submitCapture = async (event: FormEvent) => {
+    event.preventDefault();
+    setFormError(null);
+    setCaptureResult(null);
+
+    const userId = cleanInteger(form.userId);
+    if (!userId) {
+      setFormError("Select a consumer before capturing a response.");
+      return;
+    }
+    const responseTextError = validateCaptureResponseText(form.responseText);
+    if (responseTextError) {
+      setFormError(responseTextError);
+      return;
+    }
+    if (!form.responseReceivedAt.trim()) {
+      setFormError("Response date is required.");
+      return;
+    }
+
+    const rawArtifactMetadata: Record<string, unknown> = {
+      captureMode: form.intakeSourceType,
+      ocrFallbackUsed: form.ocrFallbackUsed,
+    };
+    if (form.artifactName.trim()) rawArtifactMetadata.artifactName = form.artifactName.trim();
+    if (form.artifactSha256.trim()) rawArtifactMetadata.artifactSha256 = form.artifactSha256.trim();
+    if (form.artifactReference.trim()) rawArtifactMetadata.artifactReference = form.artifactReference.trim();
+
+    try {
+      const result = await captureMutation.mutateAsync({
+        intakeSourceType: form.intakeSourceType,
+        userId,
+        packetId: cleanInteger(form.packetId) ?? null,
+        disputePacketFindingId: cleanInteger(form.disputePacketFindingId) ?? null,
+        findingOutcomeId: cleanInteger(form.findingOutcomeId) ?? null,
+        comparisonRunId: cleanInteger(form.comparisonRunId) ?? null,
+        bureauId: cleanInteger(form.bureauId) ?? null,
+        agencyId: cleanInteger(form.agencyId) ?? null,
+        responseChannel: form.responseChannel,
+        responseDocumentType: form.responseDocumentType,
+        responseReceivedAt: new Date(`${form.responseReceivedAt}T00:00:00.000Z`),
+        responseSource: form.responseSource.trim() || form.intakeSourceType,
+        responseSubject: form.responseSubject.trim() || null,
+        responseSenderDomain: form.responseSenderDomain.trim() || null,
+        responseReferenceId: form.responseReferenceId.trim() || null,
+        responseText: form.responseText.trim(),
+        responseStatus: "received",
+        rawArtifactMetadata,
+        normalizedResponseMetadata: {
+          senderType: form.senderType,
+          sourceType: form.intakeSourceType,
+          captureUi: "admin-response-documents",
+        },
+        sourceMetadata: {
+          uiSource: "admin_response_capture",
+          senderType: form.senderType,
+          liveMailboxIntegrationUsed: false,
+        },
+      } as any);
+
+      setCaptureResult(result);
+      onCaptured(result.response.id);
+      if (result.intake?.status !== "duplicate") {
+        setForm((current) => ({
+          ...EMPTY_CAPTURE_FORM,
+          userSearch: current.userSearch,
+          userId: current.userId,
+          responseReceivedAt: new Date().toISOString().slice(0, 10),
+        }));
+      }
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Unable to capture response.");
+    }
+  };
+
+  return (
+    <section className={styles.capturePanel} aria-label="Manual response capture">
+      <div className={styles.reviewHeader}>
+        <Inbox size={18} />
+        <div>
+          <h2>Manual Response Capture</h2>
+          <p>Admin-only intake for manual or simulated response records. Live mailbox connections remain disabled.</p>
+        </div>
+      </div>
+
+      <div className={styles.reviewNotice}>
+        <ShieldCheck size={18} />
+        <div>
+          <span>Response text is used only for deterministic intake classification and hashing.</span>
+          <span>Do not enter full SINs, full account numbers, mailbox credentials, raw report dumps, or legal conclusions.</span>
+          <span>Submitting this form does not change canonical report facts, violation truth, packet readiness, or packet wording.</span>
+        </div>
+      </div>
+
+      <form className={styles.captureForm} onSubmit={submitCapture}>
+        <div className={styles.captureGrid}>
+          <label className={styles.reviewField}>
+            <span>Search consumer</span>
+            <input
+              value={form.userSearch}
+              onChange={(event) => update("userSearch", event.target.value)}
+              placeholder="Search by name or email"
+            />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Consumer</span>
+            <select value={form.userId} onChange={(event) => update("userId", event.target.value)}>
+              <option value="">Select consumer</option>
+              {(userQuery.data?.users ?? []).map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.displayName || `User ${user.id}`} - #{user.id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.reviewField}>
+            <span>Existing packet</span>
+            <select value={form.packetId} onChange={(event) => choosePacket(event.target.value)} disabled={!selectedUserId || userDetailQuery.isLoading}>
+              <option value="">No packet link</option>
+              {(userDetailQuery.data?.packets ?? []).map((packet) => (
+                <option key={packet.id} value={packet.id}>{packetLabel(packet)}</option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture packet ID</span>
+            <input value={form.packetId} onChange={(event) => update("packetId", event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture packet finding ID</span>
+            <input value={form.disputePacketFindingId} onChange={(event) => update("disputePacketFindingId", event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture finding outcome ID</span>
+            <input value={form.findingOutcomeId} onChange={(event) => update("findingOutcomeId", event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture comparison run ID</span>
+            <input value={form.comparisonRunId} onChange={(event) => update("comparisonRunId", event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Sender type</span>
+            <select value={form.senderType} onChange={(event) => update("senderType", event.target.value as CaptureFormState["senderType"])}>
+              <option value="bureau">Bureau</option>
+              <option value="creditor">Creditor</option>
+              <option value="collector">Collector</option>
+            </select>
+          </label>
+          <label className={styles.reviewField}>
+            <span>Intake source</span>
+            <select value={form.intakeSourceType} onChange={(event) => update("intakeSourceType", event.target.value as CaptureFormState["intakeSourceType"])}>
+              <option value="manual_admin">Manual admin</option>
+              <option value="simulated_inbox">Simulated inbox</option>
+            </select>
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture response channel</span>
+            <select value={form.responseChannel} onChange={(event) => update("responseChannel", event.target.value as BureauResponseChannel)}>
+              {BureauResponseChannelArrayValues.map((value) => (
+                <option key={value} value={value}>{formatEnum(value)}</option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture document type</span>
+            <select value={form.responseDocumentType} onChange={(event) => update("responseDocumentType", event.target.value as BureauResponseDocumentType)}>
+              {BureauResponseDocumentTypeArrayValues.map((value) => (
+                <option key={value} value={value}>{formatEnum(value)}</option>
+              ))}
+            </select>
+          </label>
+          <label className={styles.reviewField}>
+            <span>Response date</span>
+            <input type="date" value={form.responseReceivedAt} onChange={(event) => update("responseReceivedAt", event.target.value)} />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Source name</span>
+            <input value={form.responseSource} onChange={(event) => update("responseSource", event.target.value)} placeholder="Equifax, TransUnion, creditor, collector" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture bureau ID</span>
+            <input value={form.bureauId} onChange={(event) => update("bureauId", event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Capture agency ID</span>
+            <input value={form.agencyId} onChange={(event) => update("agencyId", event.target.value)} inputMode="numeric" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Sender domain</span>
+            <input value={form.responseSenderDomain} onChange={(event) => update("responseSenderDomain", event.target.value)} placeholder="example.test" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Reference ID</span>
+            <input value={form.responseReferenceId} onChange={(event) => update("responseReferenceId", event.target.value)} />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Subject</span>
+            <input value={form.responseSubject} onChange={(event) => update("responseSubject", event.target.value)} />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Artifact name</span>
+            <input value={form.artifactName} onChange={(event) => update("artifactName", event.target.value)} placeholder="response-letter.pdf" />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Artifact SHA-256</span>
+            <input value={form.artifactSha256} onChange={(event) => update("artifactSha256", event.target.value)} />
+          </label>
+          <label className={styles.reviewField}>
+            <span>Artifact reference</span>
+            <input value={form.artifactReference} onChange={(event) => update("artifactReference", event.target.value)} />
+          </label>
+        </div>
+
+        <label className={styles.reviewField}>
+          <span>Response text</span>
+          <textarea
+            value={form.responseText}
+            onChange={(event) => update("responseText", event.target.value)}
+            placeholder="Paste safe response wording only. Do not paste raw report text, secrets, full account numbers, or full SINs."
+            rows={5}
+          />
+        </label>
+
+        <label className={styles.confirmationRow}>
+          <input
+            type="checkbox"
+            checked={form.ocrFallbackUsed}
+            onChange={(event) => update("ocrFallbackUsed", event.target.checked)}
+          />
+          <span>Artifact metadata indicates OCR fallback was used.</span>
+        </label>
+
+        {formError ? (
+          <div className={styles.reviewError} role="alert">
+            <AlertTriangle size={16} />
+            <span>{formError}</span>
+          </div>
+        ) : null}
+
+        {selectedResponse ? (
+          <div className={styles.captureResult} role="status">
+            <div className={styles.captureResultHeader}>
+              <ClipboardList size={18} />
+              <div>
+                <strong>{captureResult?.intake?.status === "duplicate" ? "Duplicate intake matched existing response" : "Response captured"}</strong>
+                <span>Response #{selectedResponse.id}</span>
+              </div>
+            </div>
+            <ProcessingSummary response={selectedResponse} />
+            <div className={styles.detailGrid}>
+              <DetailRow label="Classification" value={formatEnum(selectedResponse.latestClassification)} />
+              <DetailRow label="Confidence" value={percent(selectedResponse.latestClassificationConfidence)} />
+              <DetailRow label="Extraction source" value={formatEnum(selectedResponse.latestExtractionSource)} />
+              <DetailRow label="Manual review" value={selectedResponse.latestRequiresManualReview ? "required" : "not required"} />
+            </div>
+            {selectedResponse.latestRequiresManualReview ? (
+              <div className={styles.warningBox}>
+                <AlertTriangle size={16} />
+                <span>Manual review is required before this response can influence any downstream outcome.</span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className={styles.reviewActions}>
+          <Button type="submit" disabled={captureMutation.isPending}>
+            <Send size={16} />
+            Submit Response Intake
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 function ProcessingSummary({ response }: { response: ResponseRecord | ResponseDetail }) {
   return (
     <div className={styles.processingSummary}>
@@ -433,6 +795,31 @@ function validateReviewNotes(value: string): string | null {
   }
   if (LEGAL_CONCLUSION_PATTERN.test(trimmed)) return "Review notes cannot include legal-conclusion language.";
   return null;
+}
+
+function validateCaptureResponseText(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Response text is required.";
+  if (trimmed.length > 4000) return "Response text must be 4000 characters or fewer.";
+  if (REVIEW_NOTE_SIN_PATTERN.test(trimmed)) return "Response text cannot include full SIN-like values.";
+  if (REVIEW_NOTE_ACCOUNT_PATTERN.test(trimmed) || REVIEW_NOTE_LONG_NUMBER_PATTERN.test(trimmed)) {
+    return "Response text cannot include full unmasked account-like values.";
+  }
+  if (REVIEW_NOTE_RAW_SECRET_PATTERN.test(trimmed)) {
+    return "Response text cannot include raw report dumps, storage paths, signed URLs, cookies, tokens, keys, database URLs, or mailbox credentials.";
+  }
+  if (LEGAL_CONCLUSION_PATTERN.test(trimmed)) return "Response text cannot include legal-conclusion language.";
+  return null;
+}
+
+function packetLabel(packet: AdminUserDetailOutput["packets"][number]): string {
+  const parts = [
+    `#${packet.id}`,
+    packet.type ? formatEnum(packet.type) : null,
+    packet.creditorName ?? packet.originalCreditorName,
+    packet.terminalLabel,
+  ].filter(Boolean);
+  return parts.join(" - ");
 }
 
 function hasAnyLink(values: Array<number | undefined>): boolean {
@@ -824,6 +1211,7 @@ export default function AdminResponseDocumentsPage() {
 
       <SafetyBanner />
       <MetricsStrip />
+      <ResponseCapturePanel onCaptured={setSelectedResponseId} />
 
       <section className={styles.toolbar} aria-label="Response document filters">
         <div className={styles.toolbarHeader}>

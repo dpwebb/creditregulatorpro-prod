@@ -243,6 +243,8 @@ describe("response document admin-review UI staging smoke harness", () => {
         "Response documents keep immutable evidence plus append-only deterministic processing.",
         "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
         "No mailbox, Gmail, IMAP, or inbox integration is used.",
+        "Manual Response Capture",
+        "Live mailbox connections remain disabled.",
       ]),
     );
     expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT).toEqual(

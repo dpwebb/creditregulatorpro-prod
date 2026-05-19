@@ -686,6 +686,15 @@ describeIfLocalDb("response document capture endpoints", () => {
         "packet_ready_state_changed",
       ]),
     );
+
+    const indexes = await sql<{ indexname: string }>`
+      select indexname
+      from pg_indexes
+      where schemaname = 'public'
+        and tablename = 'bureau_response_event'
+        and indexname = 'idx_bureau_response_event_intake_idempotency_unique'
+    `.execute(db);
+    expect(indexes.rows.map((row) => row.indexname)).toContain("idx_bureau_response_event_intake_idempotency_unique");
   });
 
   it("captures owner response metadata, links packet/outcome/finding/evidence safely, writes audit, and mutates no source truth", async () => {
@@ -785,6 +794,181 @@ describeIfLocalDb("response document capture endpoints", () => {
       packetReadyStateChanged: false,
     });
     assertNoSensitiveLeak(audit);
+  });
+
+  it("captures manual_admin intake, returns classification visibility, and does not log raw response text", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+    const responseTextMarker = "INTAKE_TEXT_MARKER_ALPHA";
+
+    const result = await capture(captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSource: "manual_admin",
+      responseText: `We verified as accurate and the item remains unchanged. ${responseTextMarker}`,
+      responseSummary: undefined,
+      rawArtifactMetadata: { artifactName: "manual-response.txt", ocrFallbackUsed: false },
+      normalizedResponseMetadata: { senderType: "bureau" },
+      sourceMetadata: { uiSource: "admin_response_capture", liveMailboxIntegrationUsed: false },
+    }));
+
+    expect(result.response.status, JSON.stringify(result.parsed)).toBe(200);
+    expect(result.parsed.intake).toMatchObject({
+      status: "captured",
+      sourceType: "manual_admin",
+      duplicateOfResponseId: null,
+      responseTextStored: false,
+    });
+    expect(result.parsed.response).toMatchObject({
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      latestClassification: "remains",
+      latestExtractionSource: "deterministic",
+      latestRequiresManualReview: true,
+    });
+    expect(result.parsed.response.normalizedResponseMetadata.intake).toMatchObject({
+      sourceType: "manual_admin",
+      responseTextStored: false,
+      duplicatePolicy: "user_packet_source_date_text_hash_metadata",
+    });
+    expect(result.parsed.response.normalizedResponseMetadata.intake.idempotencyKey).toEqual(result.parsed.intake.idempotencyKey);
+
+    const auditRows = await db
+      .selectFrom("auditLog")
+      .select(["details", "errorMessage"])
+      .where("entityType", "=", "SYSTEM")
+      .where("entityId", "=", result.parsed.response.id)
+      .execute();
+    expect(JSON.stringify(auditRows)).not.toContain(responseTextMarker);
+    expect(JSON.stringify(auditRows)).toContain("response_intake_captured");
+    assertNoSensitiveLeak(auditRows);
+  });
+
+  it("supports simulated_inbox intake and returns deterministic completed classification when confidence is sufficient", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+
+    const result = await capture(captureBody({
+      intakeSourceType: "simulated_inbox",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSource: "simulated_inbox",
+      responseText: "We are unable to verify the disputed item after reinvestigation.",
+      responseSummary: undefined,
+      rawArtifactMetadata: { artifactName: "simulated-inbox-message.eml", ocrFallbackUsed: false },
+      normalizedResponseMetadata: { senderType: "bureau", simulated: true },
+      sourceMessageId: "simulated-message-001",
+      sourceMetadata: { sourceHarness: "synthetic_simulated_inbox", liveMailboxIntegrationUsed: false },
+    }));
+
+    expect(result.response.status, JSON.stringify(result.parsed)).toBe(200);
+    expect(result.parsed.intake).toMatchObject({
+      status: "captured",
+      sourceType: "simulated_inbox",
+      responseTextStored: false,
+    });
+    expect(result.parsed.response.latestProcessingEvent).toMatchObject({
+      classification: "unable_to_verify",
+      extractionSource: "deterministic",
+      requiresManualReview: false,
+      packetId: scenario.packetId,
+      violationId: scenario.findingId,
+      tradelineId: scenario.tradelineId,
+    });
+    assertNoSensitiveLeak(result.parsed);
+  });
+
+  it("deduplicates identical intake attempts while allowing meaningful metadata differences", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+    const body = captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSource: "manual_admin",
+      responseReceivedAt: "2026-05-18T00:00:00.000Z",
+      responseText: "We verified as accurate and the item remains unchanged.",
+      responseSummary: undefined,
+      rawArtifactMetadata: { artifactName: "manual-response.txt", artifactSha256: "c".repeat(64) },
+      normalizedResponseMetadata: { senderType: "bureau", flags: { second: true, first: false } },
+      sourceMetadata: { captureMode: "manual", preserveOrder: true },
+    });
+
+    const first = await capture(body);
+    const duplicate = await capture(body);
+    const reorderedDuplicate = await capture({
+      ...body,
+      rawArtifactMetadata: { artifactSha256: "c".repeat(64), artifactName: "manual-response.txt" },
+      normalizedResponseMetadata: { flags: { first: false, second: true }, senderType: "bureau" },
+      sourceMetadata: { preserveOrder: true, captureMode: "manual" },
+    });
+    const differentMetadata = await capture({
+      ...body,
+      rawArtifactMetadata: { artifactName: "manual-response-second-copy.txt", artifactSha256: "d".repeat(64) },
+    });
+
+    expect(first.response.status).toBe(200);
+    expect(duplicate.response.status).toBe(200);
+    expect(differentMetadata.response.status).toBe(200);
+    expect(duplicate.parsed.intake).toMatchObject({
+      status: "duplicate",
+      duplicateOfResponseId: first.parsed.response.id,
+      idempotencyKey: first.parsed.intake.idempotencyKey,
+    });
+    expect(reorderedDuplicate.parsed.intake).toMatchObject({
+      status: "duplicate",
+      duplicateOfResponseId: first.parsed.response.id,
+      idempotencyKey: first.parsed.intake.idempotencyKey,
+    });
+    expect(duplicate.parsed.response.id).toBe(first.parsed.response.id);
+    expect(reorderedDuplicate.parsed.response.id).toBe(first.parsed.response.id);
+    expect(differentMetadata.parsed.intake.status).toBe("captured");
+    expect(differentMetadata.parsed.response.id).not.toBe(first.parsed.response.id);
+
+    const duplicateAudit = await db
+      .selectFrom("auditLog")
+      .select("details")
+      .where("entityType", "=", "SYSTEM")
+      .where("entityId", "=", first.parsed.response.id)
+      .execute();
+    expect(JSON.stringify(duplicateAudit)).toContain("response_intake_duplicate");
+    assertNoSensitiveLeak(duplicateAudit);
+  });
+
+  it("rejects malformed intake without leaking unsafe response text", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+
+    const missingText = await capture(captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseText: "",
+      responseSummary: undefined,
+    }));
+    expect(missingText.response.status).toBe(400);
+    expect(JSON.stringify(missingText.parsed)).toContain("requires response text");
+
+    const unsafeText = await capture(captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseText: "Full SIN 123-456-789",
+      responseSummary: undefined,
+    }));
+    expect(unsafeText.response.status).toBe(400);
+    expect(JSON.stringify(unsafeText.parsed)).not.toContain("123-456-789");
+    assertNoSensitiveLeak(unsafeText.parsed);
+
+    auth.user = scenario.owner;
+    const userAttempt = await capture(captureBody({
+      intakeSourceType: "manual_admin",
+      packetId: scenario.packetId,
+      responseText: "We verified as accurate.",
+      responseSummary: undefined,
+    }));
+    expect(userAttempt.response.status).toBe(403);
   });
 
   it("enforces auth, owner/admin/support behavior, and cross-owner relationship validation", async () => {
@@ -978,6 +1162,7 @@ describeIfLocalDb("response document capture endpoints", () => {
     const source = [
       "helpers/responseDocumentSchema.ts",
       "helpers/responseDocumentService.ts",
+      "helpers/responseIntakeService.ts",
       "endpoints/responses/capture_POST.ts",
       "endpoints/responses/list_GET.ts",
       "endpoints/responses/get_GET.ts",
