@@ -830,7 +830,7 @@ describeIfLocalDb("response document capture endpoints", () => {
     expect(result.parsed.response.normalizedResponseMetadata.intake).toMatchObject({
       sourceType: "manual_admin",
       responseTextStored: false,
-      duplicatePolicy: "user_packet_source_date_text_hash_metadata",
+      duplicatePolicy: "user_relationship_source_date_text_hash_metadata",
     });
     expect(result.parsed.response.normalizedResponseMetadata.intake.idempotencyKey).toEqual(result.parsed.intake.idempotencyKey);
 
@@ -875,6 +875,44 @@ describeIfLocalDb("response document capture endpoints", () => {
       packetId: scenario.packetId,
       violationId: scenario.findingId,
       tradelineId: scenario.tradelineId,
+    });
+    assertNoSensitiveLeak(result.parsed);
+  });
+
+  it("supports future_mailbox as an inert normalized source without live mailbox integration", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+
+    const result = await capture(captureBody({
+      intakeSourceType: "future_mailbox",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSource: "future_mailbox",
+      responseText: "We are unable to verify the disputed item after reinvestigation.",
+      responseSummary: undefined,
+      sourceMessageId: "future-mailbox-placeholder-001",
+      sourceMetadata: {
+        sourceBoundary: "inert_placeholder",
+        liveMailboxIntegrationUsed: false,
+      },
+    }));
+
+    expect(result.response.status, JSON.stringify(result.parsed)).toBe(200);
+    expect(result.parsed.intake).toMatchObject({
+      status: "captured",
+      sourceType: "future_mailbox",
+      responseTextStored: false,
+    });
+    expect(result.parsed.response).toMatchObject({
+      responseSource: "future_mailbox",
+      latestExtractionSource: "deterministic",
+    });
+    expect(result.parsed.response.rawArtifactMetadata.intakeArtifact).toMatchObject({
+      sourceType: "future_mailbox",
+      responseTextStored: false,
+    });
+    expect(result.parsed.response.normalizedResponseMetadata.sourceMetadata).toMatchObject({
+      liveMailboxIntegrationUsed: false,
     });
     assertNoSensitiveLeak(result.parsed);
   });
@@ -934,6 +972,89 @@ describeIfLocalDb("response document capture endpoints", () => {
       .execute();
     expect(JSON.stringify(duplicateAudit)).toContain("response_intake_duplicate");
     assertNoSensitiveLeak(duplicateAudit);
+  });
+
+  it("does not over-collapse packetless intake when meaningful relationship or subject scope differs", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+    const secondBureauId = await createBureau(`TransUnion ${marker()}`);
+    const body = captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: null,
+      bureauId: scenario.bureauId,
+      responseSource: "manual_admin",
+      responseReceivedAt: "2026-05-18T00:00:00.000Z",
+      responseSubject: "Synthetic response scope A",
+      responseSenderDomain: null,
+      responseReferenceId: null,
+      responseText: "We verified as accurate and the item remains unchanged.",
+      responseSummary: undefined,
+      rawArtifactMetadata: { artifactName: "manual-packetless-response.txt", artifactSha256: "e".repeat(64) },
+      normalizedResponseMetadata: { senderType: "bureau" },
+      sourceMetadata: { captureMode: "manual" },
+    });
+
+    const first = await capture(body);
+    const duplicate = await capture(body);
+    const differentBureau = await capture({
+      ...body,
+      bureauId: secondBureauId,
+    });
+    const differentSubject = await capture({
+      ...body,
+      responseSubject: "Synthetic response scope B",
+    });
+
+    expect(first.response.status).toBe(200);
+    expect(duplicate.parsed.intake).toMatchObject({
+      status: "duplicate",
+      duplicateOfResponseId: first.parsed.response.id,
+    });
+    expect(differentBureau.response.status).toBe(200);
+    expect(differentBureau.parsed.intake.status).toBe("captured");
+    expect(differentBureau.parsed.response.id).not.toBe(first.parsed.response.id);
+    expect(differentSubject.response.status).toBe(200);
+    expect(differentSubject.parsed.intake.status).toBe("captured");
+    expect(differentSubject.parsed.response.id).not.toBe(first.parsed.response.id);
+    assertNoSensitiveLeak([first.parsed, duplicate.parsed, differentBureau.parsed, differentSubject.parsed]);
+  });
+
+  it("uses the idempotency index to collapse concurrent duplicate intake submissions", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+    const body = captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSource: "manual_admin",
+      responseReceivedAt: "2026-05-18T00:00:00.000Z",
+      responseText: "We verified as accurate and the item remains unchanged.",
+      responseSummary: undefined,
+      rawArtifactMetadata: { artifactName: "concurrent-response.txt", artifactSha256: "f".repeat(64) },
+      normalizedResponseMetadata: { senderType: "bureau", concurrency: true },
+      sourceMetadata: { captureMode: "manual" },
+    });
+
+    const [left, right] = await Promise.all([capture(body), capture(body)]);
+    expect(left.response.status).toBe(200);
+    expect(right.response.status).toBe(200);
+    const results = [left.parsed, right.parsed];
+    expect(results.map((item) => item.intake.status).sort()).toEqual(["captured", "duplicate"]);
+    const captured = results.find((item) => item.intake.status === "captured");
+    const duplicate = results.find((item) => item.intake.status === "duplicate");
+    expect(captured).toBeDefined();
+    expect(duplicate).toBeDefined();
+    expect(duplicate?.response.id).toBe(captured?.response.id);
+    expect(duplicate?.intake.duplicateOfResponseId).toBe(captured?.response.id);
+
+    const rows = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.bureau_response_event
+      where normalized_response_metadata #>> '{intake,idempotencyKey}' = ${captured?.intake.idempotencyKey}
+    `.execute(db);
+    expect(Number(rows.rows[0]?.count ?? 0)).toBe(1);
+    assertNoSensitiveLeak(results);
   });
 
   it("rejects malformed intake without leaking unsafe response text", async () => {

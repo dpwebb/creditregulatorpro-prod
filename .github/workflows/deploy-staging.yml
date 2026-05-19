@@ -175,6 +175,21 @@ jobs:
             cd /opt/creditregulatorpro-staging/app
             git fetch --prune origin
             git checkout "$TARGET_SHA"
+            remove_unsupported_vite_node_env() {
+              local env_file
+              local tmp_file
+              for env_file in .env .env.local .env.production .env.production.local .env.staging .env.staging.local; do
+                [ -f "$env_file" ] || continue
+                if grep -Eq '^[[:space:]]*NODE_ENV[[:space:]]*=[[:space:]]*production[[:space:]]*$' "$env_file"; then
+                  tmp_file="$(mktemp)"
+                  grep -Ev '^[[:space:]]*NODE_ENV[[:space:]]*=[[:space:]]*production[[:space:]]*$' "$env_file" > "$tmp_file"
+                  cat "$tmp_file" > "$env_file"
+                  rm -f "$tmp_file"
+                  echo "Removed unsupported NODE_ENV=production from ${env_file} before Vite build."
+                fi
+              done
+            }
+            remove_unsupported_vite_node_env
             corepack enable
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile

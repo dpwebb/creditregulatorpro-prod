@@ -139,7 +139,7 @@ function prepareIntakeCaptureInput(input: ResponseIntakeInput, user: ResponseDoc
         responseTextLength: responseText?.textLength ?? null,
         responseSummaryTruncated: responseText?.summaryTruncated ?? false,
         responseTextStored: false,
-        duplicatePolicy: "user_packet_source_date_text_hash_metadata",
+        duplicatePolicy: "user_relationship_source_date_text_hash_metadata",
       },
       sourceMetadata: input.sourceMetadata ?? {},
     };
@@ -159,11 +159,23 @@ function prepareIntakeCaptureInput(input: ResponseIntakeInput, user: ResponseDoc
       input.intakeSourceType,
       String(links.userId),
       links.packetId === null ? "packet-null" : String(links.packetId),
+      links.disputePacketFindingId === null ? "packet-finding-null" : String(links.disputePacketFindingId),
+      links.findingOutcomeId === null ? "finding-outcome-null" : String(links.findingOutcomeId),
+      links.comparisonRunId === null ? "comparison-run-null" : String(links.comparisonRunId),
+      links.bureauId === null ? "bureau-null" : String(links.bureauId),
+      links.agencyId === null ? "agency-null" : String(links.agencyId),
+      input.attachmentEvidenceId === null || input.attachmentEvidenceId === undefined
+        ? "attachment-evidence-null"
+        : String(input.attachmentEvidenceId),
+      input.evidenceAttachmentId === null || input.evidenceAttachmentId === undefined
+        ? "evidence-attachment-null"
+        : String(input.evidenceAttachmentId),
       safe.responseSource,
       toDateKey(safe.responseReceivedAt),
       safe.normalizedResponseHash,
       baseCaptureInput.responseChannel,
       baseCaptureInput.responseDocumentType,
+      safe.responseSubject,
       safe.responseSenderDomain,
       safe.responseReferenceId,
       metadataHash(safe.rawArtifactMetadata),
