@@ -92,8 +92,11 @@ Inspected representative files and functions:
 ### 5. Clock scan has a status-case mismatch and unbounded full-table behavior
 
 - Severity: **High**
+- Implementation status: **Implemented 2026-05-19**. `endpoints/clock/scan_POST.ts` now scans the canonical lowercase packet status `"generated"` in an ordered batch and requires bearer-token cron authorization. The same status and batch constants are shared with `helpers/cronClockScan.tsx` through `helpers/clockScanConfig.ts`.
+- Implemented limits/decisions: clock scan batch limit is 100 packets per request, ordered by packet id ascending; query-token authentication was removed for this endpoint because no source caller depended on it and bearer-token cron auth is the intended path.
+- Regression evidence: `tests/api/clock-scan-endpoint.spec.ts` covers lowercase `"generated"` packet pickup, the bounded scan limit, bearer-token authorization, and query-token rejection. Existing packet creation/PDF behavior remains covered by `tests/api/packet-lifecycle-endpoint.spec.ts`.
 - Affected area: Workflow deadlines, operational correctness, deploy readiness
-- Files/routes/functions:
+- Original finding files/routes/functions:
   - `endpoints/clock/scan_POST.ts` - queries `.where("status", "=", "GENERATED")` and scans all matching rows.
   - `helpers/disputePacketService.ts` - `createDisputePacketRecord()` inserts packet status `"generated"` and processing status `"completed"`.
   - `endpoints/packet/pdf_GET.ts` - download logic explicitly accepts both `"generated"` and `"GENERATED"` when updating status.

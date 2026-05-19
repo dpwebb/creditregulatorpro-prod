@@ -3,33 +3,32 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { chain } from "../../helpers/hashChain";
 import { deriveCronSecret } from "../../helpers/cronSecret";
+import { CLOCK_SCAN_BATCH_LIMIT, CLOCK_SCAN_PACKET_STATUS } from "../../helpers/clockScanConfig";
 
 const CRON_SECRET = deriveCronSecret("clock-scan-cron");
 
 export async function handle(request: Request) {
   try {
-    // 1. Authenticate via Bearer token or ?token= query param
-    const url = new URL(request.url);
-    const queryToken = url.searchParams.get("token");
+    // 1. Authenticate via Bearer token.
     const authHeader = request.headers.get("Authorization");
     const bearerToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.substring(7)
+      ? authHeader.substring(7).trim()
       : null;
 
-    const providedToken = queryToken || bearerToken;
-
-    if (!providedToken || providedToken !== CRON_SECRET) {
+    if (!bearerToken || bearerToken !== CRON_SECRET) {
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid or missing token" }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // 2. Query GENERATED packets
+    // 2. Query canonical generated packets in a bounded deterministic batch.
     const packets = await db
       .selectFrom("packet")
       .selectAll()
-      .where("status", "=", "GENERATED")
+      .where("status", "=", CLOCK_SCAN_PACKET_STATUS)
+      .orderBy("id", "asc")
+      .limit(CLOCK_SCAN_BATCH_LIMIT)
       .execute();
 
     let packetsProcessed = 0;
@@ -96,7 +95,7 @@ export async function handle(request: Request) {
       }
     }
 
-    console.log(`clock/scan: processed ${packetsProcessed} packet(s) out of ${packets.length} GENERATED`);
+    console.log(`clock/scan: processed ${packetsProcessed} packet(s) out of ${packets.length} ${CLOCK_SCAN_PACKET_STATUS} packet(s)`);
 
     return new Response(
       JSON.stringify({

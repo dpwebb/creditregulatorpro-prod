@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { chain } from "./hashChain";
+import { CLOCK_SCAN_BATCH_LIMIT, CLOCK_SCAN_PACKET_STATUS } from "./clockScanConfig";
 
 export async function cronClockScan(): Promise<void> {
   console.log("Starting cronClockScan job...");
@@ -7,7 +8,9 @@ export async function cronClockScan(): Promise<void> {
     const packets = await db
       .selectFrom("packet")
       .selectAll()
-      .where("status", "=", "GENERATED")
+      .where("status", "=", CLOCK_SCAN_PACKET_STATUS)
+      .orderBy("id", "asc")
+      .limit(CLOCK_SCAN_BATCH_LIMIT)
       .execute();
 
     let packetsProcessed = 0;
@@ -74,7 +77,7 @@ export async function cronClockScan(): Promise<void> {
       }
     }
     console.log(
-      `cronClockScan completed. Processed ${packetsProcessed} packets.`
+      `cronClockScan completed. Processed ${packetsProcessed} of ${packets.length} ${CLOCK_SCAN_PACKET_STATUS} packet(s).`
     );
   } catch (error) {
     console.error("cronClockScan failed:", error);
