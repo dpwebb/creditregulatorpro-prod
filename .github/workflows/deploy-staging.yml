@@ -292,7 +292,7 @@ jobs:
                     } finally {
                       await sql.end({ timeout: 1 });
                     }
-                    NODE
+          NODE
                     cleanup_status="$?"
                     rm -f \
                       /tmp/response-auth-cleanup.log \
@@ -382,7 +382,7 @@ jobs:
                   } finally {
                     await sql.end({ timeout: 1 });
                   }
-                  NODE
+          NODE
 
                   node --input-type=module <<'"'"'NODE'"'"'
                   const baseUrl = process.env.STAGING_BASE_URL;
@@ -421,7 +421,7 @@ jobs:
                   if (body?.user?.role !== "admin") {
                     throw new Error(`Synthetic response auth smoke admin preflight resolved role ${String(body?.user?.role)}.`);
                   }
-                  NODE
+          NODE
 
                   export CRP_OUTCOME_TRACKING_FIXTURE_SETUP=true
                   export CRP_OUTCOME_TRACKING_FIXTURE_TARGET=staging
@@ -451,7 +451,7 @@ jobs:
                   for (const [key, value] of Object.entries(suggestedEnv)) {
                     console.log(`export ${key}=${JSON.stringify(String(value))}`);
                   }
-                  NODE
+          NODE
                   . /tmp/response-auth-outcome-fixture.env
 
                   export CRP_OUTCOME_TRACKING_SMOKE=true
