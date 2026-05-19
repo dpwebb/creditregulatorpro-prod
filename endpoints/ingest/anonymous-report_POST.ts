@@ -7,6 +7,12 @@ import { generateAnonymousPreview } from "../../helpers/anonymousCompliancePrevi
 import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
 import { isScannedPdfUnsupportedError } from "../../helpers/creditReportPdfEligibility";
 import { logRejectedScannedPdfUpload } from "../../helpers/creditReportUploadRejectionAudit";
+import {
+  ANONYMOUS_REPORT_UPLOAD_MAX_BYTES,
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 import { ZodError } from "zod";
 
 export async function handle(request: Request) {
@@ -18,7 +24,14 @@ export async function handle(request: Request) {
       throw new OriginNotAllowedError();
     }
 
+    if (isUploadRequestContentLengthTooLarge(request, ANONYMOUS_REPORT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Credit report", ANONYMOUS_REPORT_UPLOAD_MAX_BYTES);
+    }
+
     const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, ANONYMOUS_REPORT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Credit report", ANONYMOUS_REPORT_UPLOAD_MAX_BYTES);
+    }
 
     let json: unknown;
     try {

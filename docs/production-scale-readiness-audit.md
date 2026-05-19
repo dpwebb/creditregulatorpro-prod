@@ -34,7 +34,9 @@ Inspected representative files and functions:
 ### 1. Unbounded server-side base64 upload contracts
 
 - Severity: **Critical**
-- Implementation status: **Implemented 2026-05-19**. Shared validation now lives in `helpers/uploadPayloadValidation.ts` and is wired into `helpers/schemas.tsx`, `endpoints/ingest/anonymous-report_POST.schema.ts`, `endpoints/evidence-attachment/upload_POST.schema.ts`, and `endpoints/evidence/bureau-communication_POST.schema.ts`. Evidence and bureau endpoints now use the same decoded-byte calculation before storage/hash work. Regression evidence: `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, and `tests/api/critical-schema.spec.ts`.
+- Implementation status: **Implemented 2026-05-19**. Shared validation lives in `helpers/uploadPayloadValidation.ts` and is wired into `helpers/schemas.tsx`, `endpoints/ingest/report_POST.ts`, `endpoints/ingest/anonymous-report_POST.schema.ts`, `endpoints/ingest/anonymous-report_POST.ts`, `endpoints/evidence-attachment/upload_POST.schema.ts`, `endpoints/evidence-attachment/upload_POST.ts`, `endpoints/evidence/bureau-communication_POST.schema.ts`, and `endpoints/evidence/bureau-communication_POST.ts`.
+- Implemented limits: authenticated credit report PDFs: 15 MiB decoded bytes; anonymous credit report PDFs: 20 MiB decoded bytes; evidence attachments: 10 MiB decoded bytes; bureau communications: 10 MiB decoded bytes; file names: 180 characters; descriptions: 1000 characters. Credit reports allow only `application/pdf`; evidence and bureau uploads allow only `application/pdf`, `image/png`, `image/jpeg`, and `image/jpg`.
+- Regression evidence: `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, `tests/api/critical-schema.spec.ts`, and `tests/api/ocr-extract-upload-limit-endpoint.spec.ts` cover oversized payloads, raw request-body guards, invalid MIME types, malformed base64, valid happy paths, and preservation of the existing OCR 15 MiB limit.
 - Affected area: File/PDF/OCR, load, database growth
 - Original finding files/routes/functions:
   - `helpers/schemas.tsx` - `UploadReportInput` accepts `fileName: z.string()`, `mimeType: z.string()`, `bytesBase64: z.string()` with no server-side size, MIME enum, or filename bounds.
@@ -405,7 +407,7 @@ Use this before any staging-to-production promotion.
 
 ### Phase 1: Must fix before limited beta
 
-1. [x] Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication. Implemented in `helpers/uploadPayloadValidation.ts` with route/schema coverage in `tests/api/report-ingest-lifecycle-endpoint.spec.ts` and `tests/api/evidence-privacy-endpoint.spec.ts`.
+1. [x] Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication. Implemented in `helpers/uploadPayloadValidation.ts` with route/schema coverage in `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, `tests/api/critical-schema.spec.ts`, and `tests/api/ocr-extract-upload-limit-endpoint.spec.ts`.
 2. Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test.
 3. Add default/max pagination to packet and report-artifact list endpoints.
 4. Add production workflow post-deploy root/login/auth-session health checks.

@@ -10,6 +10,7 @@ export const EVIDENCE_UPLOAD_MIME_TYPES = ["application/pdf", "image/png", "imag
 
 export const MAX_UPLOAD_FILE_NAME_LENGTH = 180;
 export const MAX_UPLOAD_DESCRIPTION_LENGTH = 1000;
+export const UPLOAD_REQUEST_BODY_OVERHEAD_BYTES = 8 * 1024;
 
 const MAX_MIME_TYPE_LENGTH = 100;
 const DATA_URL_PREFIX_PATTERN = /^data:([^;,]+);base64,/i;
@@ -24,13 +25,40 @@ type Base64UploadIssueConfig = {
   fileLabel: string;
 };
 
-function formatUploadLimit(maxBytes: number): string {
+export function formatUploadLimit(maxBytes: number): string {
   const mb = maxBytes / (1024 * 1024);
   return Number.isInteger(mb) ? `${mb} MB` : `${maxBytes} bytes`;
 }
 
 function maxBase64PayloadLength(maxBytes: number): number {
   return Math.ceil(maxBytes / 3) * 4;
+}
+
+export function getUploadRequestBodyMaxBytes(maxDecodedBytes: number): number {
+  return maxBase64PayloadLength(maxDecodedBytes) + UPLOAD_REQUEST_BODY_OVERHEAD_BYTES;
+}
+
+export function isUploadRequestContentLengthTooLarge(request: Request, maxDecodedBytes: number): boolean {
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength) return false;
+  const parsedLength = Number(contentLength);
+  return Number.isFinite(parsedLength) && parsedLength > getUploadRequestBodyMaxBytes(maxDecodedBytes);
+}
+
+export function isUploadRequestTextTooLarge(text: string, maxDecodedBytes: number): boolean {
+  return new TextEncoder().encode(text).byteLength > getUploadRequestBodyMaxBytes(maxDecodedBytes);
+}
+
+export function uploadRequestTooLargeResponse(fileLabel: string, maxDecodedBytes: number): Response {
+  return new Response(
+    JSON.stringify({
+      error: `${fileLabel} request body exceeds the ${formatUploadLimit(maxDecodedBytes)} upload limit`,
+    }),
+    {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
 }
 
 function getPayloadDecodedByteLength(payload: string): number {

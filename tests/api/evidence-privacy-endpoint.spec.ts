@@ -6,6 +6,7 @@ import { NotAuthenticatedError } from "../../helpers/getSetServerSession";
 import {
   BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES,
   EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES,
+  getUploadRequestBodyMaxBytes,
 } from "../../helpers/uploadPayloadValidation";
 
 type QueryResult = {
@@ -137,6 +138,18 @@ function postRequest(path: string, body: unknown) {
     method: "POST",
     headers: { "content-type": "application/json", "user-agent": "synthetic-evidence-privacy-test" },
     body: JSON.stringify(body),
+  });
+}
+
+function oversizedRawPostRequest(path: string, maxDecodedBytes: number) {
+  return new Request(`http://localhost${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-length": String(getUploadRequestBodyMaxBytes(maxDecodedBytes) + 1),
+      "user-agent": "synthetic-evidence-privacy-test",
+    },
+    body: "{",
   });
 }
 
@@ -614,6 +627,39 @@ describe("evidence privacy and ownership endpoints", () => {
     expect(mocks.logAudit).not.toHaveBeenCalled();
   });
 
+  it("rejects raw oversized evidence attachment bodies before JSON parse, ownership, storage, or audit work", async () => {
+    const response = await uploadAttachment(
+      oversizedRawPostRequest("/_api/evidence-attachment/upload", EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Evidence attachment request body exceeds the 10 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(mocks.uploadEvidence).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed evidence attachment base64 before ownership, storage, or audit work", async () => {
+    const response = await uploadAttachment(
+      postRequest(
+        "/_api/evidence-attachment/upload",
+        attachmentUploadBody({ fileDataBase64: "not-valid-base64!" }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Evidence attachment data must be valid base64",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(mocks.uploadEvidence).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid evidence attachment MIME types before storage work", async () => {
     const response = await uploadAttachment(
       postRequest(
@@ -734,6 +780,37 @@ describe("evidence privacy and ownership endpoints", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "Bureau communication exceeds the 10 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects raw oversized bureau communication bodies before JSON parse, ownership, hashing, or transaction work", async () => {
+    const response = await recordBureauCommunication(
+      oversizedRawPostRequest("/_api/evidence/bureau-communication", BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Bureau communication request body exceeds the 10 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed bureau communication base64 before ownership, hashing, or transaction work", async () => {
+    const response = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({ fileDataBase64: "not-valid-base64!" }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Bureau communication data must be valid base64",
     });
     expect(mocks.db.selectFrom).not.toHaveBeenCalled();
     expect(mocks.db.transaction).not.toHaveBeenCalled();

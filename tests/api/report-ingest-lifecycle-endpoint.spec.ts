@@ -103,6 +103,7 @@ import {
 import {
   ANONYMOUS_REPORT_UPLOAD_MAX_BYTES,
   AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES,
+  getUploadRequestBodyMaxBytes,
 } from "../../helpers/uploadPayloadValidation";
 
 function makeBuilder(table: string, kind: DbOperation["kind"], result: QueryResult = {}) {
@@ -162,6 +163,18 @@ function postRequest(path: string, body: unknown) {
     method: "POST",
     headers: { "content-type": "application/json", "user-agent": "synthetic-report-ingest-test" },
     body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+}
+
+function oversizedRawPostRequest(path: string, maxDecodedBytes: number) {
+  return new Request(`http://localhost${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-length": String(getUploadRequestBodyMaxBytes(maxDecodedBytes) + 1),
+      "user-agent": "synthetic-report-ingest-test",
+    },
+    body: "{",
   });
 }
 
@@ -396,6 +409,30 @@ describe("report ingest lifecycle endpoints", () => {
     await expect(malformed.json()).resolves.toEqual({ error: "Invalid request body" });
   });
 
+  it("rejects raw oversized authenticated upload bodies before JSON parse or submit work", async () => {
+    const response = await submitReport(
+      oversizedRawPostRequest("/_api/ingest/report", AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Credit report request body exceeds the 15 MB upload limit",
+    });
+    expect(mocks.resolveUserSession).not.toHaveBeenCalled();
+    expect(mocks.handleIngestSubmit).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed authenticated upload base64 before submit work", async () => {
+    const response = await submitReport(
+      postRequest("/_api/ingest/report", uploadInput({ bytesBase64: "not-valid-base64!" })),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Credit report data must be valid base64" });
+    expect(mocks.resolveUserSession).not.toHaveBeenCalled();
+    expect(mocks.handleIngestSubmit).not.toHaveBeenCalled();
+  });
+
   it("rejects oversized authenticated upload before submit, parsing, or storage work", async () => {
     const response = await submitReport(
       postRequest(
@@ -416,6 +453,30 @@ describe("report ingest lifecycle endpoints", () => {
         "/_api/ingest/anonymous-report",
         uploadInput({ bytesBase64: oversizedBase64For(ANONYMOUS_REPORT_UPLOAD_MAX_BYTES) }),
       ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Please upload a PDF file to continue." });
+    expect(mocks.checkRateLimit).not.toHaveBeenCalled();
+    expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
+  });
+
+  it("rejects raw oversized anonymous upload bodies before JSON parse or preview extraction", async () => {
+    const response = await submitAnonymousReport(
+      oversizedRawPostRequest("/_api/ingest/anonymous-report", ANONYMOUS_REPORT_UPLOAD_MAX_BYTES),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "Credit report request body exceeds the 20 MB upload limit",
+    });
+    expect(mocks.checkRateLimit).not.toHaveBeenCalled();
+    expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed anonymous upload base64 before rate limiting or preview extraction", async () => {
+    const response = await submitAnonymousReport(
+      postRequest("/_api/ingest/anonymous-report", uploadInput({ bytesBase64: "not-valid-base64!" })),
     );
 
     expect(response.status).toBe(400);

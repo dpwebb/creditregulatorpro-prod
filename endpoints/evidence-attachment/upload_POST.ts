@@ -7,7 +7,13 @@ import { uploadEvidence } from "../../helpers/evidenceManager";
 import { uploadFile } from "../../helpers/gcsStorage";
 import { checkRateLimit } from "../../helpers/rateLimiter";
 import { logAudit } from "../../helpers/auditLogger";
-import { getBase64DecodedByteLength } from "../../helpers/uploadPayloadValidation";
+import {
+  EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES,
+  getBase64DecodedByteLength,
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 export async function handle(request: Request) {
   try {
@@ -19,7 +25,16 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Upload limit reached. Please try again later." }), { status: 429 });
     }
 
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Evidence attachment", EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Evidence attachment", EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     const { obligationInstanceId, packetId, fileName, fileType, fileDataBase64, description } = schema.parse(json);
 
     const isAdmin = user.role === "admin";

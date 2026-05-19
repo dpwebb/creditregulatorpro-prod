@@ -12,7 +12,13 @@ import {
   classifyBureauResponse,
   type BureauResponseClassification,
 } from "../../helpers/bureauResponseClassifier";
-import { getBase64DecodedByteLength } from "../../helpers/uploadPayloadValidation";
+import {
+  BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES,
+  getBase64DecodedByteLength,
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 import CryptoJS from "crypto-js";
 
 function toJsonArray(value: string[] | undefined): Json | undefined {
@@ -140,7 +146,16 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Upload limit reached. Please try again later." }), { status: 429 });
     }
 
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Bureau communication", BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Bureau communication", BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     const input = schema.parse(json);
 
     const isAdmin = user.role === "admin";

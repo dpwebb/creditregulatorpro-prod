@@ -3,6 +3,12 @@ import { handleIngestSubmit } from "../../helpers/ingestReportHandler";
 import { resolveUserSession } from "../../helpers/ingestSessionResolver";
 import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { validateOrigin } from "../../helpers/domainGuard";
+import {
+  AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES,
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 
 export async function handle(request: Request) {
@@ -13,7 +19,16 @@ export async function handle(request: Request) {
 
   let input;
   try {
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Credit report", AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Credit report", AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     input = UploadReportInput.parse(json);
   } catch (error) {
     console.error("Error parsing input:", error);

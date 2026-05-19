@@ -72,6 +72,14 @@ describe("critical API schema contracts", () => {
         bytesBase64: pdfBase64,
       }).success
     ).toBe(false);
+    expect(
+      uploadSchema.safeParse({
+        region: "CA",
+        fileName: "credit-report.pdf",
+        mimeType: "application/pdf",
+        bytesBase64: "not-valid-base64!",
+      }).success
+    ).toBe(false);
 
     expect(
       profileSchema.safeParse({
