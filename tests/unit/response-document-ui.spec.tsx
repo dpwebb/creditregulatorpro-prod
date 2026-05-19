@@ -7,10 +7,13 @@ const mocks = vi.hoisted(() => ({
   useResponseDocuments: vi.fn(),
   useResponseDocument: vi.fn(),
   useResponseProcessingMetrics: vi.fn(),
+  useResponseProcessingQueue: vi.fn(),
   useResponseDocumentAdminReviewMutation: vi.fn(),
   useResponseCaptureMutation: vi.fn(),
+  useResponseQueueRemediationMutation: vi.fn(),
   adminReviewMutateAsync: vi.fn(),
   responseCaptureMutateAsync: vi.fn(),
+  queueRemediationMutateAsync: vi.fn(),
   useAdminUsers: vi.fn(),
   useAdminUserDetail: vi.fn(),
   refetchResponses: vi.fn(),
@@ -22,8 +25,10 @@ vi.mock("../../helpers/responseDocumentQueries", () => ({
   useResponseDocuments: mocks.useResponseDocuments,
   useResponseDocument: mocks.useResponseDocument,
   useResponseProcessingMetrics: mocks.useResponseProcessingMetrics,
+  useResponseProcessingQueue: mocks.useResponseProcessingQueue,
   useResponseDocumentAdminReviewMutation: mocks.useResponseDocumentAdminReviewMutation,
   useResponseCaptureMutation: mocks.useResponseCaptureMutation,
+  useResponseQueueRemediationMutation: mocks.useResponseQueueRemediationMutation,
 }));
 
 vi.mock("../../helpers/adminQueries", () => ({
@@ -196,6 +201,11 @@ function resetHookMocks() {
           retryBacklogJobs: 0,
           oldestQueuedAgeSeconds: null,
           duplicateEnqueueAttempts: 0,
+          deadLetterAcknowledgedJobs: 0,
+          staleRunningReviewedJobs: 0,
+          replacementJobs: 0,
+          lastRemediationStatus: null,
+          lastRemediationAt: null,
           recentWorkerRunStatus: null,
           recentWorkerRunAt: null,
           boundaries: {
@@ -222,6 +232,145 @@ function resetHookMocks() {
     isLoading: false,
     isFetching: false,
     isError: false,
+    error: null,
+  });
+  mocks.useResponseProcessingQueue.mockReturnValue({
+    data: {
+      jobs: [
+        {
+          id: 701,
+          jobType: "future_mailbox_intake",
+          status: "dead_lettered",
+          idempotencyKey: "synthetic-queue-job",
+          actorUserId: 41,
+          source: "synthetic_queue",
+          runAfter: "2026-05-18T12:00:00.000Z",
+          startedAt: "2026-05-18T12:01:00.000Z",
+          finishedAt: "2026-05-18T12:02:00.000Z",
+          createdAt: "2026-05-18T12:00:00.000Z",
+          updatedAt: "2026-05-18T12:02:00.000Z",
+          attemptCount: 1,
+          maxAttempts: 1,
+          lockedBy: null,
+          lockedAt: null,
+          lockedUntil: null,
+          lastErrorCode: "LIVE_MAILBOX_INTEGRATION_DEFERRED",
+          lastErrorReason: "future_mailbox_intake is an inert placeholder until live mailbox integration is explicitly implemented.",
+          payloadSummary: {
+            responseId: null,
+            sourceType: "future_mailbox",
+            filterKeys: [],
+            classification: null,
+            manualReviewRequired: null,
+            metadataKeys: [],
+            messageReferenceHashPresent: true,
+            sourceMessageHashPresent: false,
+            confirmApply: false,
+            dryRunOnly: false,
+            rawResponseTextStored: false,
+            liveMailboxIntegrationUsed: false,
+          },
+          resultSummary: {},
+          staleRunning: false,
+          retryEligible: true,
+          acknowledgeEligible: true,
+          staleReviewEligible: false,
+          remediationStatus: {
+            deadLetterAcknowledgedAt: null,
+            staleRunningReviewedAt: null,
+            replacementJobId: null,
+          },
+          lastEvent: {
+            id: 801,
+            jobId: 701,
+            eventType: "dead_lettered",
+            previousStatus: "running",
+            nextStatus: "dead_lettered",
+            attemptCount: 1,
+            workerId: "synthetic-worker",
+            actorUserId: 41,
+            details: { rawResponseTextLogged: false },
+            errorCode: "LIVE_MAILBOX_INTEGRATION_DEFERRED",
+            errorReason: "future mailbox deferred",
+            createdAt: "2026-05-18T12:02:00.000Z",
+          },
+        },
+        {
+          id: 702,
+          jobType: "response_replay_dry_run",
+          status: "running",
+          idempotencyKey: "synthetic-stale-job",
+          actorUserId: null,
+          source: "synthetic_queue",
+          runAfter: "2026-05-18T12:00:00.000Z",
+          startedAt: "2026-05-18T12:01:00.000Z",
+          finishedAt: null,
+          createdAt: "2026-05-18T12:00:00.000Z",
+          updatedAt: "2026-05-18T12:01:00.000Z",
+          attemptCount: 1,
+          maxAttempts: 3,
+          lockedBy: "synthetic-worker",
+          lockedAt: "2026-05-18T12:01:00.000Z",
+          lockedUntil: "2026-05-18T11:59:00.000Z",
+          lastErrorCode: null,
+          lastErrorReason: null,
+          payloadSummary: {
+            responseId: 901,
+            sourceType: null,
+            filterKeys: ["responseId"],
+            classification: null,
+            manualReviewRequired: null,
+            metadataKeys: [],
+            messageReferenceHashPresent: false,
+            sourceMessageHashPresent: false,
+            confirmApply: false,
+            dryRunOnly: true,
+            rawResponseTextStored: false,
+            liveMailboxIntegrationUsed: false,
+          },
+          resultSummary: {},
+          staleRunning: true,
+          retryEligible: false,
+          acknowledgeEligible: false,
+          staleReviewEligible: true,
+          remediationStatus: {
+            deadLetterAcknowledgedAt: null,
+            staleRunningReviewedAt: null,
+            replacementJobId: null,
+          },
+          lastEvent: {
+            id: 802,
+            jobId: 702,
+            eventType: "claimed",
+            previousStatus: "queued",
+            nextStatus: "running",
+            attemptCount: 1,
+            workerId: "synthetic-worker",
+            actorUserId: null,
+            details: { staleReclaim: false },
+            errorCode: null,
+            errorReason: null,
+            createdAt: "2026-05-18T12:01:00.000Z",
+          },
+        },
+      ],
+      total: 2,
+    },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+  });
+  mocks.queueRemediationMutateAsync.mockResolvedValue({
+    remediation: {
+      status: "dead_letter_acknowledged",
+      job: null,
+      replacementJob: null,
+    },
+  });
+  mocks.useResponseQueueRemediationMutation.mockReturnValue({
+    mutateAsync: mocks.queueRemediationMutateAsync,
+    isPending: false,
     error: null,
   });
   mocks.adminReviewMutateAsync.mockResolvedValue({ response: mocks.detailResponse });
@@ -346,6 +495,10 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Queue Failed")).toBeInTheDocument();
     expect(screen.getByText("Queue Dead")).toBeInTheDocument();
     expect(screen.getByText("Queue Stale")).toBeInTheDocument();
+    expect(screen.getByText("DL Reviewed")).toBeInTheDocument();
+    expect(screen.getByText("Stale Reviewed")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Queue Remediation" })).toBeInTheDocument();
+    expect(screen.getByText(/Live mailbox scheduling remains deferred/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Manual Response Capture" })).toBeInTheDocument();
     expect(screen.getByText(/Live mailbox connections remain disabled/i)).toBeInTheDocument();
   });
@@ -362,6 +515,49 @@ describe("admin response document UI", () => {
     expect(screen.queryByRole("button", { name: /connect gmail/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /connect imap/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /inbox sync/i })).not.toBeInTheDocument();
+  });
+
+  it("renders queue remediation states and submits explicit operator actions", async () => {
+    render(<AdminResponseDocumentsPage />);
+
+    expect(screen.getByText("Job")).toBeInTheDocument();
+    expect(screen.getByText("#701")).toBeInTheDocument();
+    expect(screen.getByText("#702")).toBeInTheDocument();
+    expect(screen.getByText(/future mailbox intake/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Stale running/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Dead-letter retries create a replacement job/i)).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("raw response text");
+    expect(document.body).not.toHaveTextContent("database_url");
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm retry/i }));
+    await waitFor(() => {
+      expect(mocks.queueRemediationMutateAsync).toHaveBeenCalledWith({
+        jobId: 701,
+        action: "retry_job",
+        confirmRetry: true,
+        confirmReview: undefined,
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /acknowledge/i }));
+    await waitFor(() => {
+      expect(mocks.queueRemediationMutateAsync).toHaveBeenCalledWith({
+        jobId: 701,
+        action: "acknowledge_dead_letter",
+        confirmRetry: undefined,
+        confirmReview: true,
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /mark reviewed/i }));
+    await waitFor(() => {
+      expect(mocks.queueRemediationMutateAsync).toHaveBeenCalledWith({
+        jobId: 702,
+        action: "mark_stale_reviewed",
+        confirmRetry: undefined,
+        confirmReview: true,
+      });
+    });
   });
 
   it("submits manual admin response intake and shows deterministic classification results", async () => {
@@ -763,6 +959,8 @@ describe("admin response document UI", () => {
     expect(source).toContain("metrics_GET.schema");
     expect(source).toContain("admin-review_POST.schema");
     expect(source).toContain("capture_POST.schema");
+    expect(source).toContain("queue_GET.schema");
+    expect(source).toContain("queue-remediation_POST.schema");
     expect(source).toContain("intakeSourceType");
     expect(source).toContain("invalidateQueries");
     expect(source).not.toMatch(/useBureauCommunication|bureau-communication_POST|record-response_POST/i);

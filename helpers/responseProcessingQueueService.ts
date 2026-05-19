@@ -26,7 +26,11 @@ export type ResponseProcessingJobEventType =
   | "failed"
   | "retry_scheduled"
   | "dead_lettered"
-  | "requeued";
+  | "requeued"
+  | "operator_retry_requested"
+  | "dead_letter_acknowledged"
+  | "stale_running_reviewed"
+  | "replacement_enqueued";
 
 export type ResponseProcessingQueuePayload = {
   responseId?: number;
@@ -111,6 +115,11 @@ export type ResponseProcessingQueueMetrics = {
   retryBacklogJobs: number;
   oldestQueuedAgeSeconds: number | null;
   duplicateEnqueueAttempts: number;
+  deadLetterAcknowledgedJobs: number;
+  staleRunningReviewedJobs: number;
+  replacementJobs: number;
+  lastRemediationStatus: string | null;
+  lastRemediationAt: string | null;
   recentWorkerRunStatus: string | null;
   recentWorkerRunAt: string | null;
   boundaries: {
@@ -124,6 +133,85 @@ export type ResponseProcessingQueueMetrics = {
     violationTruthMutated: false;
     packetReadinessMutated: false;
   };
+};
+
+export type ResponseProcessingQueueEventRecord = {
+  id: number;
+  jobId: number;
+  eventType: ResponseProcessingJobEventType;
+  previousStatus: ResponseProcessingJobStatus | null;
+  nextStatus: ResponseProcessingJobStatus;
+  attemptCount: number;
+  workerId: string | null;
+  actorUserId: number | null;
+  details: Record<string, Json>;
+  errorCode: string | null;
+  errorReason: string | null;
+  createdAt: string;
+};
+
+export type ResponseProcessingQueuePayloadSummary = {
+  responseId: number | null;
+  sourceType: string | null;
+  filterKeys: string[];
+  classification: string | null;
+  manualReviewRequired: boolean | null;
+  metadataKeys: string[];
+  messageReferenceHashPresent: boolean;
+  sourceMessageHashPresent: boolean;
+  confirmApply: boolean;
+  dryRunOnly: boolean;
+  rawResponseTextStored: false;
+  liveMailboxIntegrationUsed: false;
+};
+
+export type ResponseProcessingJobInspection = Omit<ResponseProcessingJobRecord, "payload" | "resultSummary"> & {
+  payloadSummary: ResponseProcessingQueuePayloadSummary;
+  resultSummary: Record<string, Json>;
+  staleRunning: boolean;
+  retryEligible: boolean;
+  acknowledgeEligible: boolean;
+  staleReviewEligible: boolean;
+  remediationStatus: {
+    deadLetterAcknowledgedAt: string | null;
+    staleRunningReviewedAt: string | null;
+    replacementJobId: number | null;
+  };
+  lastEvent: ResponseProcessingQueueEventRecord | null;
+  events?: ResponseProcessingQueueEventRecord[];
+};
+
+export type ListResponseProcessingJobsInput = {
+  jobId?: number | null;
+  status?: ResponseProcessingJobStatus | null;
+  limit?: number | null;
+  offset?: number | null;
+  includeEvents?: boolean;
+};
+
+export type ListResponseProcessingJobsResult = {
+  jobs: ResponseProcessingJobInspection[];
+  total: number;
+};
+
+export type ResponseProcessingRemediationAction =
+  | "retry_job"
+  | "acknowledge_dead_letter"
+  | "mark_stale_reviewed";
+
+export type RemediateResponseProcessingJobInput = {
+  jobId: number;
+  action: ResponseProcessingRemediationAction;
+  actorUserId: number;
+  confirmRetry?: boolean | null;
+  confirmReview?: boolean | null;
+  reviewNote?: string | null;
+};
+
+export type RemediateResponseProcessingJobResult = {
+  status: "retry_queued" | "replacement_queued" | "dead_letter_acknowledged" | "stale_running_reviewed";
+  job: ResponseProcessingJobInspection;
+  replacementJob: ResponseProcessingJobInspection | null;
 };
 
 type QueueRow = {
@@ -167,7 +255,32 @@ type QueueRow = {
   resultSummary?: unknown;
 };
 
-class ResponseProcessingQueueError extends Error {
+type QueueEventRow = {
+  id?: unknown;
+  job_id?: unknown;
+  jobId?: unknown;
+  event_type?: unknown;
+  eventType?: unknown;
+  previous_status?: unknown;
+  previousStatus?: unknown;
+  next_status?: unknown;
+  nextStatus?: unknown;
+  attempt_count?: unknown;
+  attemptCount?: unknown;
+  worker_id?: unknown;
+  workerId?: unknown;
+  actor_user_id?: unknown;
+  actorUserId?: unknown;
+  details?: unknown;
+  error_code?: unknown;
+  errorCode?: unknown;
+  error_reason?: unknown;
+  errorReason?: unknown;
+  created_at?: unknown;
+  createdAt?: unknown;
+};
+
+export class ResponseProcessingQueueError extends Error {
   readonly code: string;
   readonly permanent: boolean;
 
@@ -257,6 +370,86 @@ function mapJobRow(row: QueueRow): ResponseProcessingJobRecord {
     lastErrorCode: rowValue(row, "last_error_code") ? String(rowValue(row, "last_error_code")) : null,
     lastErrorReason: rowValue(row, "last_error_reason") ? String(rowValue(row, "last_error_reason")) : null,
     resultSummary: jsonRecord(rowValue(row, "result_summary")),
+  };
+}
+
+function safeDetailsValue(value: unknown, fieldPath: string, depth: number): Json {
+  if (depth > MAX_PAYLOAD_DEPTH) return "[redacted]";
+  if (value === null || value === undefined) return null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (
+      trimmed.length > MAX_PAYLOAD_STRING_LENGTH ||
+      FORBIDDEN_VALUE_PATTERN.test(trimmed) ||
+      FULL_SIN_PATTERN.test(trimmed) ||
+      FULL_ACCOUNT_PATTERN.test(trimmed) ||
+      EMAIL_ADDRESS_PATTERN.test(trimmed)
+    ) {
+      return "[redacted]";
+    }
+    return trimmed;
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, MAX_PAYLOAD_ARRAY_ITEMS).map((item, index) => safeDetailsValue(item, `${fieldPath}.${index}`, depth + 1));
+  }
+  if (typeof value === "object") {
+    const output: Record<string, Json> = {};
+    let redactedKeyCount = 0;
+    for (const [key, item] of Object.entries(value as Record<string, unknown>).slice(0, MAX_PAYLOAD_KEYS)) {
+      if (!SAFE_KEY_PATTERN.test(key) || FORBIDDEN_KEY_PATTERN.test(key)) {
+        redactedKeyCount += 1;
+        output[`redacted_key_${redactedKeyCount}`] = "[redacted]";
+        continue;
+      }
+      output[key] = safeDetailsValue(item, `${fieldPath}.${key}`, depth + 1);
+    }
+    return output;
+  }
+  return "[redacted]";
+}
+
+function safeDetailsRecord(value: unknown): Record<string, Json> {
+  const raw = jsonRecord(value);
+  const safe = safeDetailsValue(raw, "details", 0);
+  return safe && typeof safe === "object" && !Array.isArray(safe) ? safe as Record<string, Json> : {};
+}
+
+function mapEventRow(row: QueueEventRow): ResponseProcessingQueueEventRecord {
+  return {
+    id: requiredNumber(rowValue(row, "id"), "event.id"),
+    jobId: requiredNumber(rowValue(row, "job_id"), "event.jobId"),
+    eventType: String(rowValue(row, "event_type")) as ResponseProcessingJobEventType,
+    previousStatus: rowValue(row, "previous_status") ? String(rowValue(row, "previous_status")) as ResponseProcessingJobStatus : null,
+    nextStatus: String(rowValue(row, "next_status")) as ResponseProcessingJobStatus,
+    attemptCount: Number(rowValue(row, "attempt_count") ?? 0),
+    workerId: rowValue(row, "worker_id") ? String(rowValue(row, "worker_id")) : null,
+    actorUserId: toNumber(rowValue(row, "actor_user_id")),
+    details: safeDetailsRecord(rowValue(row, "details")),
+    errorCode: rowValue(row, "error_code") ? sanitizeErrorString(rowValue(row, "error_code"), "QUEUE_ERROR", 80) : null,
+    errorReason: rowValue(row, "error_reason") ? sanitizeErrorString(rowValue(row, "error_reason"), "Response processing event error.") : null,
+    createdAt: toIso(rowValue(row, "created_at")),
+  };
+}
+
+function summarizePayload(payload: ResponseProcessingQueuePayload): ResponseProcessingQueuePayloadSummary {
+  const filterEntries = payload.filters ? Object.entries(payload.filters) : [];
+  const metadataEntries = payload.metadata ? Object.entries(payload.metadata) : [];
+  return {
+    responseId: payload.responseId ?? (typeof payload.filters?.responseId === "number" ? payload.filters.responseId : null),
+    sourceType: payload.sourceType ?? (typeof payload.filters?.sourceType === "string" ? payload.filters.sourceType : null),
+    filterKeys: filterEntries.map(([key]) => key).sort(),
+    classification: typeof payload.filters?.classification === "string" ? payload.filters.classification : null,
+    manualReviewRequired: typeof payload.filters?.manualReviewRequired === "boolean" ? payload.filters.manualReviewRequired : null,
+    metadataKeys: metadataEntries.map(([key]) => key).sort(),
+    messageReferenceHashPresent: Boolean(payload.messageReferenceHash),
+    sourceMessageHashPresent: Boolean(payload.sourceMessageHash),
+    confirmApply: payload.confirmApply === true,
+    dryRunOnly: payload.dryRunOnly === true,
+    rawResponseTextStored: false,
+    liveMailboxIntegrationUsed: false,
   };
 }
 
@@ -489,7 +682,12 @@ function hasUniqueViolation(error: unknown): boolean {
 
 function sanitizeErrorString(value: unknown, fallback: string, limit = 240): string {
   const raw = String(value ?? fallback).replace(/\s+/g, " ").trim() || fallback;
-  const withoutSecrets = FORBIDDEN_VALUE_PATTERN.test(raw) || FULL_SIN_PATTERN.test(raw) || FULL_ACCOUNT_PATTERN.test(raw)
+  const withoutSecrets = (
+    FORBIDDEN_VALUE_PATTERN.test(raw) ||
+    FULL_SIN_PATTERN.test(raw) ||
+    FULL_ACCOUNT_PATTERN.test(raw) ||
+    EMAIL_ADDRESS_PATTERN.test(raw)
+  )
     ? fallback
     : raw;
   return withoutSecrets.slice(0, limit);
@@ -549,7 +747,7 @@ async function appendJobEvent(
       ${params.attemptCount},
       ${params.workerId ?? null},
       ${params.actorUserId ?? null},
-      ${JSON.stringify(params.details ?? {})}::jsonb,
+      ${JSON.stringify(params.details ?? {})}::text::jsonb,
       ${params.errorCode ?? null},
       ${params.errorReason ?? null}
     )
@@ -566,6 +764,176 @@ async function findActiveJobByIdempotencyKey(idempotencyKey: string): Promise<Re
     limit 1
   `.execute(db);
   return result.rows[0] ? mapJobRow(result.rows[0]) : null;
+}
+
+function normalizeJobStatus(value: ResponseProcessingJobStatus | null | undefined): ResponseProcessingJobStatus | null {
+  if (!value) return null;
+  if (!["queued", "running", "succeeded", "failed", "dead_lettered"].includes(value)) {
+    throw new ResponseProcessingQueueError("INVALID_QUEUE_STATUS", "Unsupported response processing job status filter.");
+  }
+  return value;
+}
+
+function normalizeRemediationAction(value: ResponseProcessingRemediationAction): ResponseProcessingRemediationAction {
+  if (!["retry_job", "acknowledge_dead_letter", "mark_stale_reviewed"].includes(value)) {
+    throw new ResponseProcessingQueueError("UNSUPPORTED_REMEDIATION_ACTION", "Unsupported response processing queue remediation action.");
+  }
+  return value;
+}
+
+function normalizeLimit(value: number | null | undefined, fallback: number, max: number): number {
+  if (value === undefined || value === null) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > max) {
+    throw new ResponseProcessingQueueError("INVALID_QUEUE_LIMIT", `limit must be an integer from 1 to ${max}.`);
+  }
+  return parsed;
+}
+
+function normalizeOffset(value: number | null | undefined): number {
+  if (value === undefined || value === null) return 0;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new ResponseProcessingQueueError("INVALID_QUEUE_OFFSET", "offset must be a non-negative integer.");
+  }
+  return parsed;
+}
+
+function normalizeReviewNote(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const safe = safeDetailsValue(value, "reviewNote", 0);
+  if (typeof safe !== "string" || safe === "[redacted]") {
+    throw new ResponseProcessingQueueError("UNSAFE_REMEDIATION_NOTE", "reviewNote includes unsafe content.");
+  }
+  return safe.slice(0, 500);
+}
+
+function isJobStaleRunning(job: ResponseProcessingJobRecord): boolean {
+  return job.status === "running" && Boolean(job.lockedUntil) && new Date(job.lockedUntil as string).getTime() < Date.now();
+}
+
+function buildInspection(job: ResponseProcessingJobRecord, events: ResponseProcessingQueueEventRecord[]): ResponseProcessingJobInspection {
+  const sortedEvents = [...events].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id - right.id);
+  const lastEvent = sortedEvents[sortedEvents.length - 1] ?? null;
+  const acknowledgedEvent = [...sortedEvents].reverse().find((event) => event.eventType === "dead_letter_acknowledged") ?? null;
+  const staleReviewedEvent = [...sortedEvents].reverse().find((event) => event.eventType === "stale_running_reviewed") ?? null;
+  const replacementEvent = [...sortedEvents].reverse().find((event) => event.eventType === "replacement_enqueued") ?? null;
+  const replacementJobId = replacementEvent?.details.replacementJobId;
+  const staleRunning = isJobStaleRunning(job);
+  return {
+    id: job.id,
+    jobType: job.jobType,
+    status: job.status,
+    idempotencyKey: job.idempotencyKey,
+    actorUserId: job.actorUserId,
+    source: job.source,
+    runAfter: job.runAfter,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
+    lockedBy: job.lockedBy,
+    lockedAt: job.lockedAt,
+    lockedUntil: job.lockedUntil,
+    lastErrorCode: job.lastErrorCode ? sanitizeErrorString(job.lastErrorCode, "QUEUE_ERROR", 80) : null,
+    lastErrorReason: job.lastErrorReason ? sanitizeErrorString(job.lastErrorReason, "Response processing job error.") : null,
+    payloadSummary: summarizePayload(job.payload),
+    resultSummary: safeDetailsRecord(job.resultSummary),
+    staleRunning,
+    retryEligible: job.status === "failed" || job.status === "dead_lettered",
+    acknowledgeEligible: job.status === "dead_lettered" && !acknowledgedEvent,
+    staleReviewEligible: staleRunning && !staleReviewedEvent,
+    remediationStatus: {
+      deadLetterAcknowledgedAt: acknowledgedEvent?.createdAt ?? null,
+      staleRunningReviewedAt: staleReviewedEvent?.createdAt ?? null,
+      replacementJobId: typeof replacementJobId === "number" ? replacementJobId : null,
+    },
+    lastEvent,
+    events: sortedEvents,
+  };
+}
+
+async function loadEventsForJobs(jobIds: number[]): Promise<Map<number, ResponseProcessingQueueEventRecord[]>> {
+  if (jobIds.length === 0) return new Map();
+  const result = await sql<QueueEventRow>`
+    select *
+    from public.response_processing_job_event
+    where job_id in (${sql.join(jobIds)})
+    order by job_id asc, created_at asc, id asc
+  `.execute(db);
+  const eventsByJob = new Map<number, ResponseProcessingQueueEventRecord[]>();
+  for (const row of result.rows) {
+    const event = mapEventRow(row);
+    const events = eventsByJob.get(event.jobId) ?? [];
+    events.push(event);
+    eventsByJob.set(event.jobId, events);
+  }
+  return eventsByJob;
+}
+
+export async function listResponseProcessingJobsForRemediation(
+  input: ListResponseProcessingJobsInput = {},
+): Promise<ListResponseProcessingJobsResult> {
+  await ensureResponseDocumentSchema();
+  const jobId = input.jobId === null || input.jobId === undefined ? null : requiredNumber(input.jobId, "jobId");
+  const status = normalizeJobStatus(input.status ?? null);
+  const limit = normalizeLimit(input.limit, 25, 100);
+  const offset = normalizeOffset(input.offset);
+
+  const rows = await sql<QueueRow>`
+    select *
+    from public.response_processing_job
+    where (${jobId}::bigint is null or id = ${jobId})
+      and (${status}::text is null or status = ${status})
+    order by
+      case
+        when status = 'dead_lettered' then 1
+        when status = 'running' and locked_until is not null and locked_until < now() then 2
+        when status = 'failed' then 3
+        when status = 'queued' then 4
+        when status = 'running' then 5
+        else 6
+      end,
+      updated_at desc,
+      id desc
+    limit ${limit}
+    offset ${offset}
+  `.execute(db);
+  const totalResult = await sql<{ count: string }>`
+    select count(*)::text as count
+    from public.response_processing_job
+    where (${jobId}::bigint is null or id = ${jobId})
+      and (${status}::text is null or status = ${status})
+  `.execute(db);
+  const jobs = rows.rows.map(mapJobRow);
+  const eventsByJob = await loadEventsForJobs(jobs.map((job) => job.id));
+  return {
+    jobs: jobs.map((job) => {
+      const inspection = buildInspection(job, eventsByJob.get(job.id) ?? []);
+      if (!input.includeEvents) delete inspection.events;
+      return inspection;
+    }),
+    total: Number(totalResult.rows[0]?.count ?? 0),
+  };
+}
+
+async function loadJobInspection(jobId: number, executor: typeof db = db): Promise<ResponseProcessingJobInspection> {
+  const jobResult = await sql<QueueRow>`
+    select *
+    from public.response_processing_job
+    where id = ${jobId}
+  `.execute(executor);
+  const job = jobResult.rows[0] ? mapJobRow(jobResult.rows[0]) : null;
+  if (!job) throw new ResponseProcessingQueueError("JOB_NOT_FOUND", "Response processing job not found.");
+  const events = await sql<QueueEventRow>`
+    select *
+    from public.response_processing_job_event
+    where job_id = ${jobId}
+    order by created_at asc, id asc
+  `.execute(executor);
+  return buildInspection(job, events.rows.map(mapEventRow));
 }
 
 export async function enqueueResponseProcessingJob(
@@ -622,7 +990,7 @@ export async function enqueueResponseProcessingJob(
         ) values (
           ${jobType},
           'queued',
-          ${JSON.stringify(payload)}::jsonb,
+          ${JSON.stringify(payload)}::text::jsonb,
           ${idempotencyKey},
           ${actorUserId},
           ${source},
@@ -673,8 +1041,9 @@ export async function enqueueResponseProcessingJob(
   }
 }
 
-async function peekNextResponseProcessingJob(): Promise<ResponseProcessingJobRecord | null> {
+async function peekNextResponseProcessingJob(sourceFilter?: string | null): Promise<ResponseProcessingJobRecord | null> {
   await ensureResponseDocumentSchema();
+  const source = sourceFilter ? sanitizeToken(sourceFilter, "source", "") : null;
   const result = await sql<QueueRow>`
     select *
     from public.response_processing_job
@@ -683,6 +1052,7 @@ async function peekNextResponseProcessingJob(): Promise<ResponseProcessingJobRec
         and run_after <= now()
         and attempt_count < max_attempts
       )
+      and (${source}::text is null or source = ${source})
     order by
       run_after asc,
       created_at asc,
@@ -695,9 +1065,11 @@ async function peekNextResponseProcessingJob(): Promise<ResponseProcessingJobRec
 export async function claimNextResponseProcessingJob(input: {
   workerId: string;
   leaseSeconds?: number;
+  source?: string | null;
 }): Promise<ResponseProcessingJobRecord | null> {
   await ensureResponseDocumentSchema();
   const workerId = sanitizeToken(input.workerId, "workerId", "response-worker");
+  const source = input.source ? sanitizeToken(input.source, "source", "") : null;
   const leaseSeconds = Math.min(Math.max(Number(input.leaseSeconds ?? DEFAULT_LEASE_SECONDS), 30), 3600);
 
   return db.transaction().execute(async (trx) => {
@@ -709,6 +1081,7 @@ export async function claimNextResponseProcessingJob(input: {
           and run_after <= now()
           and attempt_count < max_attempts
         )
+        and (${source}::text is null or source = ${source})
       order by
         run_after asc,
         created_at asc,
@@ -732,6 +1105,7 @@ export async function claimNextResponseProcessingJob(input: {
       where id = ${candidate.id}
         and status in ('queued', 'failed')
         and attempt_count < max_attempts
+        and (${source}::text is null or source = ${source})
       returning *
     `.execute(trx);
     if (!updated.rows[0]) return null;
@@ -837,7 +1211,7 @@ async function markJobSucceeded(job: ResponseProcessingJobRecord, workerId: stri
         locked_until = null,
         last_error_code = null,
         last_error_reason = null,
-        result_summary = ${JSON.stringify(resultSummary)}::jsonb
+        result_summary = ${JSON.stringify(resultSummary)}::text::jsonb
       where id = ${job.id}
         and status = 'running'
         and locked_by = ${workerId}
@@ -902,7 +1276,7 @@ export async function markResponseProcessingJobFailed(params: {
           retryDelaySeconds: retryDelay,
           permanent: deadLetter,
           rawResponseTextLogged: false,
-        })}::jsonb
+        })}::text::jsonb
       where id = ${params.job.id}
         and status = 'running'
         and locked_by = ${workerId}
@@ -941,10 +1315,12 @@ export async function processNextResponseProcessingJob(input: {
   workerId?: string;
   leaseSeconds?: number;
   dryRun?: boolean;
+  source?: string | null;
 } = {}): Promise<ProcessResponseProcessingJobResult> {
   const workerId = sanitizeToken(input.workerId, "workerId", `response-worker-${process.pid}`);
+  const source = input.source ? sanitizeToken(input.source, "source", "") : null;
   if (input.dryRun === true) {
-    const job = await peekNextResponseProcessingJob();
+    const job = await peekNextResponseProcessingJob(source);
     if (!job) return { status: "idle", workerId, dryRun: true, job: null };
     return {
       status: "dry_run_preview",
@@ -961,7 +1337,7 @@ export async function processNextResponseProcessingJob(input: {
     };
   }
 
-  const job = await claimNextResponseProcessingJob({ workerId, leaseSeconds: input.leaseSeconds });
+  const job = await claimNextResponseProcessingJob({ workerId, leaseSeconds: input.leaseSeconds, source });
   if (!job) return { status: "idle", workerId, dryRun: false, job: null };
 
   let resultSummary: Record<string, Json>;
@@ -979,10 +1355,27 @@ export async function processNextResponseProcessingJob(input: {
 export async function requeueDeadLetteredResponseProcessingJob(input: {
   jobId: number;
   actorUserId: number;
-}): Promise<ResponseProcessingJobRecord> {
+}): Promise<ResponseProcessingJobInspection> {
+  const result = await remediateResponseProcessingJob({
+    jobId: input.jobId,
+    actorUserId: input.actorUserId,
+    action: "retry_job",
+    confirmRetry: true,
+  });
+  if (!result.replacementJob) {
+    throw new ResponseProcessingQueueError("JOB_REQUEUE_UNSAFE", "Dead-letter retry did not create a replacement job.");
+  }
+  return result.replacementJob;
+}
+
+export async function remediateResponseProcessingJob(
+  input: RemediateResponseProcessingJobInput,
+): Promise<RemediateResponseProcessingJobResult> {
   await ensureResponseDocumentSchema();
   const jobId = requiredNumber(input.jobId, "jobId");
   const actorUserId = requiredNumber(input.actorUserId, "actorUserId");
+  const action = normalizeRemediationAction(input.action);
+  const reviewNote = normalizeReviewNote(input.reviewNote);
 
   return db.transaction().execute(async (trx) => {
     const locked = await sql<QueueRow>`
@@ -993,47 +1386,188 @@ export async function requeueDeadLetteredResponseProcessingJob(input: {
     `.execute(trx);
     const previous = locked.rows[0] ? mapJobRow(locked.rows[0]) : null;
     if (!previous) throw new ResponseProcessingQueueError("JOB_NOT_FOUND", "Response processing job not found.");
-    if (previous.status !== "dead_lettered") {
-      throw new ResponseProcessingQueueError("JOB_REQUEUE_UNSAFE", "Only dead-lettered response processing jobs can be manually requeued.");
+
+    if (action === "acknowledge_dead_letter") {
+      if (input.confirmReview !== true) {
+        throw new ResponseProcessingQueueError("REMEDIATION_CONFIRMATION_REQUIRED", "Dead-letter acknowledgement requires explicit confirmation.");
+      }
+      if (previous.status !== "dead_lettered") {
+        throw new ResponseProcessingQueueError("JOB_REMEDIATION_UNSAFE", "Only dead-lettered jobs can be acknowledged.");
+      }
+      await appendJobEvent(trx as typeof db, {
+        jobId: previous.id,
+        eventType: "dead_letter_acknowledged",
+        previousStatus: previous.status,
+        nextStatus: previous.status,
+        attemptCount: previous.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          reviewNotePresent: Boolean(reviewNote),
+          rawResponseTextLogged: false,
+          destructiveDeletionUsed: false,
+          liveMailboxIntegrationUsed: false,
+        },
+      });
+      return {
+        status: "dead_letter_acknowledged",
+        job: await loadJobInspection(previous.id, trx as typeof db),
+        replacementJob: null,
+      };
     }
 
-    const updated = await sql<QueueRow>`
-      update public.response_processing_job
-      set
-        status = 'queued',
-        run_after = now(),
-        updated_at = now(),
-        started_at = null,
-        finished_at = null,
-        attempt_count = 0,
-        locked_by = null,
-        locked_at = null,
-        locked_until = null,
-        last_error_code = null,
-        last_error_reason = null,
-        result_summary = ${JSON.stringify({
-          requeuedFromDeadLetter: true,
-          requeuedByActorUserId: actorUserId,
+    if (action === "mark_stale_reviewed") {
+      if (input.confirmReview !== true) {
+        throw new ResponseProcessingQueueError("REMEDIATION_CONFIRMATION_REQUIRED", "Stale-running review requires explicit confirmation.");
+      }
+      if (!isJobStaleRunning(previous)) {
+        throw new ResponseProcessingQueueError("JOB_REMEDIATION_UNSAFE", "Only stale running jobs can be marked reviewed.");
+      }
+      await appendJobEvent(trx as typeof db, {
+        jobId: previous.id,
+        eventType: "stale_running_reviewed",
+        previousStatus: previous.status,
+        nextStatus: previous.status,
+        attemptCount: previous.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          staleRunningReviewed: true,
+          autoReclaimed: false,
+          reviewNotePresent: Boolean(reviewNote),
           rawResponseTextLogged: false,
-        })}::jsonb
-      where id = ${jobId}
+          destructiveDeletionUsed: false,
+          liveMailboxIntegrationUsed: false,
+        },
+      });
+      return {
+        status: "stale_running_reviewed",
+        job: await loadJobInspection(previous.id, trx as typeof db),
+        replacementJob: null,
+      };
+    }
+
+    if (input.confirmRetry !== true) {
+      throw new ResponseProcessingQueueError("REMEDIATION_CONFIRMATION_REQUIRED", "Queue retry requires explicit confirmation.");
+    }
+    if (previous.status !== "failed" && previous.status !== "dead_lettered") {
+      throw new ResponseProcessingQueueError("JOB_REMEDIATION_UNSAFE", "Only failed or dead-lettered jobs can be retried.");
+    }
+
+    if (previous.status === "failed") {
+      const updated = await sql<QueueRow>`
+        update public.response_processing_job
+        set
+          status = 'queued',
+          run_after = now(),
+          updated_at = now(),
+          finished_at = null,
+          locked_by = null,
+          locked_at = null,
+          locked_until = null
+        where id = ${previous.id}
+          and status = 'failed'
+        returning *
+      `.execute(trx);
+      const row = updated.rows[0] ? mapJobRow(updated.rows[0]) : null;
+      if (!row) throw new ResponseProcessingQueueError("JOB_REMEDIATION_CONFLICT", "Response processing job retry was not applied.");
+      await appendJobEvent(trx as typeof db, {
+        jobId: row.id,
+        eventType: "operator_retry_requested",
+        previousStatus: "failed",
+        nextStatus: "queued",
+        attemptCount: row.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          retryQueuedByActorUserId: actorUserId,
+          reviewNotePresent: Boolean(reviewNote),
+          rawResponseTextLogged: false,
+          destructiveDeletionUsed: false,
+          liveMailboxIntegrationUsed: false,
+        },
+      });
+      return {
+        status: "retry_queued",
+        job: await loadJobInspection(row.id, trx as typeof db),
+        replacementJob: null,
+      };
+    }
+
+    const replacementPayload = normalizePayload(previous.jobType, previous.payload);
+    const replacementActorUserId = previous.jobType === "response_replay_apply"
+      ? previous.actorUserId ?? actorUserId
+      : previous.actorUserId;
+    if (previous.jobType === "response_replay_apply" && !replacementActorUserId) {
+      throw new ResponseProcessingQueueError("REPLAY_APPLY_ACTOR_REQUIRED", "response_replay_apply replacement requires actorUserId.");
+    }
+    const replacementIdempotencyKey = `remediation:${previous.id}:${sha256(stableJsonStringify({
+      action,
+      actorUserId,
+      createdAt: new Date().toISOString(),
+      previousAttemptCount: previous.attemptCount,
+    })).slice(0, 48)}`;
+    const replacement = await sql<QueueRow>`
+      insert into public.response_processing_job (
+        job_type,
+        status,
+        payload,
+        idempotency_key,
+        actor_user_id,
+        source,
+        run_after,
+        max_attempts
+      ) values (
+        ${previous.jobType},
+        'queued',
+        ${JSON.stringify(replacementPayload)}::text::jsonb,
+        ${replacementIdempotencyKey},
+        ${replacementActorUserId ?? actorUserId},
+        'operator_remediation',
+        now(),
+        ${previous.maxAttempts}
+      )
       returning *
     `.execute(trx);
-    const row = mapJobRow(updated.rows[0]);
+    const replacementJob = mapJobRow(replacement.rows[0]);
     await appendJobEvent(trx as typeof db, {
-      jobId: row.id,
-      eventType: "requeued",
-      previousStatus: "dead_lettered",
+      jobId: replacementJob.id,
+      eventType: "queued",
       nextStatus: "queued",
       attemptCount: 0,
       actorUserId,
       details: {
-        requeuedByActorUserId: actorUserId,
+        jobType: replacementJob.jobType,
+        source: replacementJob.source,
+        replacementForJobId: previous.id,
+        queueVersion: RESPONSE_PROCESSING_QUEUE_VERSION,
+        rawResponseTextStored: false,
         rawResponseTextLogged: false,
         liveMailboxIntegrationUsed: false,
       },
     });
-    return row;
+    await appendJobEvent(trx as typeof db, {
+      jobId: previous.id,
+      eventType: "replacement_enqueued",
+      previousStatus: "dead_lettered",
+      nextStatus: "dead_lettered",
+      attemptCount: previous.attemptCount,
+      actorUserId,
+      details: {
+        remediationAction: action,
+        replacementJobId: replacementJob.id,
+        reviewNotePresent: Boolean(reviewNote),
+        terminalJobMutated: false,
+        rawResponseTextLogged: false,
+        destructiveDeletionUsed: false,
+        liveMailboxIntegrationUsed: false,
+      },
+    });
+    return {
+      status: "replacement_queued",
+      job: await loadJobInspection(previous.id, trx as typeof db),
+      replacementJob: await loadJobInspection(replacementJob.id, trx as typeof db),
+    };
   });
 }
 
@@ -1058,6 +1592,21 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
       from public.response_processing_job_event
       where event_type = 'duplicate_enqueue'
     ),
+    remediation as (
+      select
+        coalesce(count(distinct case when event_type = 'dead_letter_acknowledged' then job_id else null end), 0)::int as dead_letter_acknowledged_jobs,
+        coalesce(count(distinct case when event_type = 'stale_running_reviewed' then job_id else null end), 0)::int as stale_running_reviewed_jobs,
+        coalesce(count(distinct case when event_type = 'replacement_enqueued' then job_id else null end), 0)::int as replacement_jobs
+      from public.response_processing_job_event
+      where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued')
+    ),
+    recent_remediation as (
+      select event_type, created_at
+      from public.response_processing_job_event
+      where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued')
+      order by created_at desc, id desc
+      limit 1
+    ),
     recent_worker as (
       select event_type, created_at
       from public.response_processing_job_event
@@ -1068,10 +1617,17 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
     select
       counts.*,
       duplicate_attempts.duplicate_enqueue_attempts,
+      remediation.dead_letter_acknowledged_jobs,
+      remediation.stale_running_reviewed_jobs,
+      remediation.replacement_jobs,
+      recent_remediation.event_type as last_remediation_status,
+      recent_remediation.created_at as last_remediation_at,
       recent_worker.event_type as recent_worker_run_status,
       recent_worker.created_at as recent_worker_run_at
     from counts
     cross join duplicate_attempts
+    cross join remediation
+    left join recent_remediation on true
     left join recent_worker on true
   `.execute(db);
   const row = result.rows[0] ?? {};
@@ -1089,6 +1645,11 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
     retryBacklogJobs: Number(rowValue(row, "retry_backlog_jobs") ?? 0),
     oldestQueuedAgeSeconds: oldest === null || oldest === undefined ? null : Number(oldest),
     duplicateEnqueueAttempts: Number(rowValue(row, "duplicate_enqueue_attempts") ?? 0),
+    deadLetterAcknowledgedJobs: Number(rowValue(row, "dead_letter_acknowledged_jobs") ?? 0),
+    staleRunningReviewedJobs: Number(rowValue(row, "stale_running_reviewed_jobs") ?? 0),
+    replacementJobs: Number(rowValue(row, "replacement_jobs") ?? 0),
+    lastRemediationStatus: rowValue(row, "last_remediation_status") ? String(rowValue(row, "last_remediation_status")) : null,
+    lastRemediationAt: rowValue(row, "last_remediation_at") ? toIso(rowValue(row, "last_remediation_at")) : null,
     recentWorkerRunStatus: rowValue(row, "recent_worker_run_status") ? String(rowValue(row, "recent_worker_run_status")) : null,
     recentWorkerRunAt: rowValue(row, "recent_worker_run_at") ? toIso(rowValue(row, "recent_worker_run_at")) : null,
     boundaries: {

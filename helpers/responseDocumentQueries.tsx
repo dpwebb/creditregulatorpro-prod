@@ -22,12 +22,23 @@ import {
   getResponseProcessingMetrics,
   type InputType as ResponseProcessingMetricsInput,
 } from "../endpoints/responses/metrics_GET.schema";
+import {
+  getResponseProcessingQueue,
+  type InputType as ResponseProcessingQueueInput,
+} from "../endpoints/responses/queue_GET.schema";
+import {
+  postResponseQueueRemediation,
+  type InputType as ResponseQueueRemediationInput,
+  type OutputType as ResponseQueueRemediationOutput,
+} from "../endpoints/responses/queue-remediation_POST.schema";
 
 export const RESPONSE_DOCUMENTS_QUERY_KEY = ["responses", "documents"] as const;
 export const RESPONSE_DOCUMENT_QUERY_KEY = ["responses", "document"] as const;
 export const RESPONSE_PROCESSING_METRICS_QUERY_KEY = ["responses", "processing-metrics"] as const;
+export const RESPONSE_PROCESSING_QUEUE_QUERY_KEY = ["responses", "processing-queue"] as const;
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_MUTATION_KEY = ["responses", "admin-review"] as const;
 export const RESPONSE_DOCUMENT_CAPTURE_MUTATION_KEY = ["responses", "capture"] as const;
+export const RESPONSE_QUEUE_REMEDIATION_MUTATION_KEY = ["responses", "queue-remediation"] as const;
 
 export function useResponseDocuments(filters?: ResponseDocumentListInput) {
   return useQuery({
@@ -49,6 +60,14 @@ export function useResponseProcessingMetrics(filters?: ResponseProcessingMetrics
   return useQuery({
     queryKey: [...RESPONSE_PROCESSING_METRICS_QUERY_KEY, filters],
     queryFn: () => getResponseProcessingMetrics(filters),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useResponseProcessingQueue(filters?: ResponseProcessingQueueInput) {
+  return useQuery({
+    queryKey: [...RESPONSE_PROCESSING_QUEUE_QUERY_KEY, filters],
+    queryFn: () => getResponseProcessingQueue(filters),
     placeholderData: (previousData) => previousData,
   });
 }
@@ -81,12 +100,28 @@ export function useResponseCaptureMutation() {
   });
 }
 
+export function useResponseQueueRemediationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: RESPONSE_QUEUE_REMEDIATION_MUTATION_KEY,
+    mutationFn: (input: ResponseQueueRemediationInput) => postResponseQueueRemediation(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: RESPONSE_PROCESSING_QUEUE_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: RESPONSE_PROCESSING_METRICS_QUERY_KEY });
+    },
+  });
+}
+
 export type {
   ResponseDocumentListInput,
   ResponseDocumentGetInput,
   ResponseProcessingMetricsInput,
+  ResponseProcessingQueueInput,
   ResponseAdminReviewInput,
   ResponseAdminReviewOutput,
   ResponseCaptureInput,
   ResponseCaptureOutput,
+  ResponseQueueRemediationInput,
+  ResponseQueueRemediationOutput,
 };

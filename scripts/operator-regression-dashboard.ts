@@ -53,6 +53,8 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/unit/outcome-admin-review-ui.spec.tsx",
   "pnpm exec vitest run tests/api/response-document-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/response-document-admin-review-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/response-processing-queue.spec.ts",
+  "pnpm exec vitest run tests/api/response-processing-queue-remediation-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/response-classification-engine.spec.ts",
   "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
@@ -137,7 +139,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, response replay/backfill dry-run/apply tooling now exists with append-only apply events and no raw response text storage, durable response-processing queue/backpressure/dead-letter tooling now exists with bounded operator worker dry-run support and stale-running jobs reported rather than silently reclaimed, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, historical production backfill strategy for records without stored response summaries, non-owner smoke, production-scale repeated smoke/load coverage, and external alert delivery remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for immutable response records with append-only deterministic processing and append-only response admin-review event logging, response replay/backfill dry-run/apply tooling now exists with append-only apply events and no raw response text storage, durable response-processing queue/backpressure/dead-letter tooling now exists with bounded operator worker dry-run support, explicit operator remediation events, dead-letter replacement retry, stale-running review without auto-reclaim, and deterministic synthetic queue/load coverage, authenticated admin-only Response Documents UI smoke covers response list/detail processing visibility plus the non-mutating manual intake surface, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; live mailbox integration, scheduled worker operations, historical production backfill strategy for records without stored response summaries, non-owner smoke, repeated production-scale smoke/load coverage, and external alert delivery remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -400,6 +402,34 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           "Operator-only bounded worker preview for the durable response-processing queue. Dry-run previews the next eligible queued/retry job without claiming or writing; stale running jobs are reported for operator review rather than silently reclaimed, real worker runs remain explicit and bounded, and live mailbox integration remains deferred.",
           {
             command: "pnpm run response:worker -- --dry-run",
+          },
+        ),
+        check(
+          "Response queue service",
+          "SKIP",
+          "DB-backed queue coverage for sanitized payload validation, duplicate active-job collapse, row-lock claiming, retry/dead-letter behavior, stale-running visibility, replay apply guard preservation, append-only remediation events, and terminal dead-letter replacement retry.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/response-processing-queue.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Response queue remediation endpoint",
+          "SKIP",
+          "Admin-only queue inspection and remediation coverage for structured sanitized job summaries, retry confirmation, dead-letter acknowledgement, replacement-job retry, stale-running review without auto-reclaim, and no raw response text or credential leakage.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/response-processing-queue-remediation-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Response queue synthetic load",
+          "SKIP",
+          "Bounded deterministic synthetic load check for multiple sanitized jobs, duplicate collapse, worker processing, retryable failure, dead-letter path, stale-running metrics, and cleanup of isolated synthetic rows. This is not live mailbox ingestion or a scheduled worker.",
+          {
+            command: "pnpm run response:queue-load-check",
           },
         ),
         check(

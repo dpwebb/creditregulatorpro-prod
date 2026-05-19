@@ -42,7 +42,7 @@ function printHelp(): void {
     "  --max-jobs <1-100>             Process up to N eligible jobs, sequentially.",
     "  --dry-run                      Preview the next eligible job without claiming or writing.",
     "  --worker-id <safe-token>       Optional safe worker identifier for logs and job leases.",
-    "  --retry-dead-letter <job-id>   Requeue a dead-lettered job for operator retry.",
+    "  --retry-dead-letter <job-id>   Create a sanitized replacement job for a dead-lettered job.",
     "  --actor-user-id <id>           Required with --retry-dead-letter.",
     "",
     "Boundaries:",
@@ -135,11 +135,12 @@ async function runWorker(options: WorkerCliOptions): Promise<number> {
       jobId: options.retryDeadLetterJobId,
       actorUserId: Number(options.actorUserId),
     });
-    logStructured("dead_letter_requeued", {
+    logStructured("dead_letter_replacement_queued", {
       jobId: job.id,
       jobType: job.jobType,
       status: job.status,
       attemptCount: job.attemptCount,
+      terminalJobMutated: false,
     });
     return 0;
   }

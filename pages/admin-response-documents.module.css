@@ -38,6 +38,7 @@
 
 .toolbar,
 .capturePanel,
+.queuePanel,
 .listPanel,
 .detailPanel,
 .responseCard,
@@ -55,6 +56,11 @@
 }
 
 .capturePanel {
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-5);
+}
+
+.queuePanel {
   padding: var(--spacing-4);
   margin-bottom: var(--spacing-5);
 }
@@ -93,6 +99,49 @@
 .captureResultHeader span {
   color: var(--muted-foreground);
   font-size: 0.86rem;
+}
+
+.queueTableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.queueTable {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.queueTable th,
+.queueTable td {
+  border-bottom: 1px solid var(--border);
+  padding: var(--spacing-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.queueTable th {
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.queueTable td span,
+.queueTable td strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.queueWarningRow {
+  background: color-mix(in srgb, var(--warning) 7%, var(--card));
+}
+
+.queueActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2);
 }
 
 .metricsStrip {

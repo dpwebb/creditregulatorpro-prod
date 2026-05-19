@@ -35,9 +35,12 @@ import {
   useResponseCaptureMutation,
   useResponseDocuments,
   useResponseProcessingMetrics,
+  useResponseProcessingQueue,
+  useResponseQueueRemediationMutation,
   type ResponseAdminReviewInput,
   type ResponseCaptureOutput,
   type ResponseDocumentListInput,
+  type ResponseQueueRemediationInput,
 } from "../helpers/responseDocumentQueries";
 import { useAdminUserDetail, useAdminUsers, type AdminUserDetailOutput } from "../helpers/adminQueries";
 import type { OutputType as ResponseGetOutput } from "../endpoints/responses/get_GET.schema";
@@ -49,6 +52,7 @@ type ResponseDetail = ResponseGetOutput["response"];
 type ResponseReviewAction = ResponseAdminReviewInput["reviewAction"];
 type ResponseReviewActionOption = Exclude<ResponseReviewAction, "link_to_packet">;
 type CaptureResult = ResponseCaptureOutput;
+type QueueRemediationAction = ResponseQueueRemediationInput["action"];
 
 type FilterState = {
   responseChannel: string;
@@ -232,6 +236,13 @@ function classificationVariant(value: string | null | undefined) {
   if (value === "verified_deleted" || value === "unable_to_verify") return "success";
   if (value === "updated") return "info";
   if (value === "remains" || value === "frivolous" || value === "duplicate" || value === "suspicious_non_compliant") return "warning";
+  return "default";
+}
+
+function queueStatusVariant(value: string | null | undefined) {
+  if (value === "succeeded") return "success";
+  if (value === "queued" || value === "running") return "info";
+  if (value === "failed" || value === "dead_lettered") return "warning";
   return "default";
 }
 
@@ -783,6 +794,14 @@ function MetricsStrip() {
         <span>Queue Stale</span>
         <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningJobs ?? 0}</strong>
       </div>
+      <div className={(metrics?.queueHealth.deadLetterAcknowledgedJobs ?? 0) > 0 ? styles.metricCell : styles.metricCell}>
+        <span>DL Reviewed</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.deadLetterAcknowledgedJobs ?? 0}</strong>
+      </div>
+      <div className={(metrics?.queueHealth.staleRunningReviewedJobs ?? 0) > 0 ? styles.metricCell : styles.metricCell}>
+        <span>Stale Reviewed</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningReviewedJobs ?? 0}</strong>
+      </div>
       <div className={styles.metricCell}>
         <span>Workflow Stalls</span>
         <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.workflowStalls ?? 0}</strong>
@@ -803,6 +822,170 @@ function MetricsStrip() {
         <span>Replay Stale</span>
         <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0}</strong>
       </div>
+    </section>
+  );
+}
+
+function QueueRemediationPanel() {
+  const queueQuery = useResponseProcessingQueue({ limit: 25, includeEvents: false });
+  const remediationMutation = useResponseQueueRemediationMutation();
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const jobs = queueQuery.data?.jobs ?? [];
+
+  const runRemediation = async (jobId: number, action: QueueRemediationAction) => {
+    setMessage(null);
+    setError(null);
+    try {
+      await remediationMutation.mutateAsync({
+        jobId,
+        action,
+        confirmRetry: action === "retry_job" ? true : undefined,
+        confirmReview: action === "retry_job" ? undefined : true,
+      });
+      setMessage(
+        action === "retry_job"
+          ? "Queue retry requested with append-only remediation history."
+          : "Queue remediation review recorded.",
+      );
+    } catch (remediationError) {
+      setError(remediationError instanceof Error ? remediationError.message : "Unable to remediate response queue job.");
+    }
+  };
+
+  return (
+    <section className={styles.queuePanel} aria-label="Response queue remediation">
+      <div className={styles.reviewHeader}>
+        <Activity size={18} />
+        <div>
+          <h2>Queue Remediation</h2>
+          <p>Admin-only inspection and append-only remediation for response-processing jobs. Live mailbox scheduling remains deferred.</p>
+        </div>
+      </div>
+
+      <div className={styles.reviewNotice}>
+        <ShieldCheck size={18} />
+        <div>
+          <span>Retry actions require an explicit operator click and actor attribution.</span>
+          <span>Dead-letter retries create a replacement job; the terminal job is not silently mutated.</span>
+          <span>Stale running jobs can be marked reviewed, but they are not automatically reclaimed or reprocessed.</span>
+        </div>
+      </div>
+
+      {queueQuery.isLoading ? (
+        <Skeleton className={styles.responseSkeleton} />
+      ) : queueQuery.isError ? (
+        <div className={styles.warningBox} role="alert">
+          <AlertTriangle size={18} />
+          <span>{queueQuery.error instanceof Error ? queueQuery.error.message : "Unable to load response queue jobs."}</span>
+        </div>
+      ) : jobs.length === 0 ? (
+        <div className={styles.stateBox}>
+          <ClipboardList size={24} />
+          <h3>No response queue jobs</h3>
+          <p>Operator remediation controls appear here when queued, failed, dead-lettered, or stale jobs exist.</p>
+        </div>
+      ) : (
+        <div className={styles.queueTableWrap}>
+          <table className={styles.queueTable}>
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Status</th>
+                <th>Attempts</th>
+                <th>Payload summary</th>
+                <th>Failure</th>
+                <th>Last event</th>
+                <th>Remediation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((job) => (
+                <tr key={job.id} className={job.staleRunning || job.status === "dead_lettered" ? styles.queueWarningRow : undefined}>
+                  <td>
+                    <strong>#{job.id}</strong>
+                    <span>{formatEnum(job.jobType)}</span>
+                  </td>
+                  <td>
+                    <Badge variant={queueStatusVariant(job.status)}>{formatEnum(job.status)}</Badge>
+                    {job.staleRunning ? <span className={styles.manualReviewFlag}>Stale running</span> : null}
+                  </td>
+                  <td>{job.attemptCount} / {job.maxAttempts}</td>
+                  <td>
+                    <span>Response {job.payloadSummary.responseId ?? "-"}</span>
+                    <span>Filters {job.payloadSummary.filterKeys.join(", ") || "-"}</span>
+                    <span>Metadata {job.payloadSummary.metadataKeys.join(", ") || "-"}</span>
+                  </td>
+                  <td>{safeValue(job.lastErrorReason ?? job.lastErrorCode ?? "-")}</td>
+                  <td>
+                    <span>{formatEnum(job.lastEvent?.eventType ?? "-")}</span>
+                    <span>{formatDate(job.lastEvent?.createdAt)}</span>
+                  </td>
+                  <td>
+                    <div className={styles.queueActions}>
+                      {job.retryEligible ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void runRemediation(job.id, "retry_job")}
+                          disabled={remediationMutation.isPending}
+                        >
+                          <RefreshCw size={14} />
+                          Confirm Retry
+                        </Button>
+                      ) : null}
+                      {job.acknowledgeEligible ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void runRemediation(job.id, "acknowledge_dead_letter")}
+                          disabled={remediationMutation.isPending}
+                        >
+                          <CheckCircle2 size={14} />
+                          Acknowledge
+                        </Button>
+                      ) : null}
+                      {job.staleReviewEligible ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void runRemediation(job.id, "mark_stale_reviewed")}
+                          disabled={remediationMutation.isPending}
+                        >
+                          <ShieldCheck size={14} />
+                          Mark Reviewed
+                        </Button>
+                      ) : null}
+                      {job.remediationStatus.deadLetterAcknowledgedAt ? (
+                        <span>Dead letter reviewed {formatDate(job.remediationStatus.deadLetterAcknowledgedAt)}</span>
+                      ) : null}
+                      {job.remediationStatus.staleRunningReviewedAt ? (
+                        <span>Stale reviewed {formatDate(job.remediationStatus.staleRunningReviewedAt)}</span>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {error ? (
+        <div className={styles.reviewError} role="alert">
+          <AlertTriangle size={16} />
+          <span>{error}</span>
+        </div>
+      ) : null}
+      {message ? (
+        <div className={styles.reviewSuccess} role="status">
+          <CheckCircle2 size={16} />
+          <span>{message}</span>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1239,6 +1422,7 @@ export default function AdminResponseDocumentsPage() {
 
       <SafetyBanner />
       <MetricsStrip />
+      <QueueRemediationPanel />
       <ResponseCapturePanel onCaptured={setSelectedResponseId} />
 
       <section className={styles.toolbar} aria-label="Response document filters">

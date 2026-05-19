@@ -1300,6 +1300,9 @@ describeIfLocalDb("response document capture endpoints", () => {
       staleRunningJobs: expect.any(Number),
       retryBacklogJobs: expect.any(Number),
       duplicateEnqueueAttempts: expect.any(Number),
+      deadLetterAcknowledgedJobs: expect.any(Number),
+      staleRunningReviewedJobs: expect.any(Number),
+      replacementJobs: expect.any(Number),
       boundaries: {
         durableDbBacked: true,
         appendOnlyJobEvents: true,

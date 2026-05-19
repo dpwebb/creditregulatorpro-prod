@@ -361,7 +361,11 @@ export function ensureResponseDocumentSchema(): Promise<void> {
               'failed',
               'retry_scheduled',
               'dead_lettered',
-              'requeued'
+              'requeued',
+              'operator_retry_requested',
+              'dead_letter_acknowledged',
+              'stale_running_reviewed',
+              'replacement_enqueued'
             )),
           constraint response_processing_job_event_next_status_check
             check (next_status in ('queued', 'running', 'succeeded', 'failed', 'dead_lettered')),
@@ -372,6 +376,28 @@ export function ensureResponseDocumentSchema(): Promise<void> {
           constraint response_processing_job_event_actor_user_id_fkey
             foreign key (actor_user_id) references public.users(id) on delete set null
         )
+        `.execute(db);
+        await sql`
+        alter table public.response_processing_job_event
+          drop constraint if exists response_processing_job_event_type_check
+        `.execute(db);
+        await sql`
+        alter table public.response_processing_job_event
+          add constraint response_processing_job_event_type_check
+          check (event_type in (
+            'queued',
+            'duplicate_enqueue',
+            'claimed',
+            'succeeded',
+            'failed',
+            'retry_scheduled',
+            'dead_lettered',
+            'requeued',
+            'operator_retry_requested',
+            'dead_letter_acknowledged',
+            'stale_running_reviewed',
+            'replacement_enqueued'
+          ))
         `.execute(db);
         await sql`
         create unique index if not exists idx_response_processing_job_active_idempotency_unique

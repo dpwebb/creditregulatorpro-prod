@@ -8,10 +8,13 @@ import {
   claimNextResponseProcessingJob,
   enqueueResponseProcessingJob,
   getResponseProcessingQueueMetrics,
+  listResponseProcessingJobsForRemediation,
   processNextResponseProcessingJob,
   requeueDeadLetteredResponseProcessingJob,
+  remediateResponseProcessingJob,
 } from "../../helpers/responseProcessingQueueService";
 import { ensureResponseDocumentSchema } from "../../helpers/responseDocumentSchema";
+import { runSyntheticResponseQueueLoadCheck } from "../../scripts/response-processing-queue-load-check";
 import { assertSafeLocalDatabaseUrl } from "../utils/localDbHarness";
 
 const safeDbUrl = (() => {
@@ -67,6 +70,44 @@ async function createUser(name: string, role: UserRole = "admin"): Promise<numbe
 
 async function cleanupCreatedRows(): Promise<void> {
   for (const source of Array.from(new Set(created.sources))) {
+    await sql`
+      with replacement_ids as (
+        select (normalized_details.details ->> 'replacementJobId')::bigint as id
+        from public.response_processing_job_event event
+        join public.response_processing_job job on job.id = event.job_id
+        cross join lateral (
+          select case
+            when jsonb_typeof(event.details) = 'string' then (event.details #>> '{}')::jsonb
+            else event.details
+          end as details
+        ) normalized_details
+        where job.source = ${source}
+          and normalized_details.details ->> 'replacementJobId' ~ '^[0-9]+$'
+      )
+      delete from public.response_processing_job_event event
+      using public.response_processing_job replacement
+      where event.job_id = replacement.id
+        and replacement.source = 'operator_remediation'
+        and replacement.id in (select id from replacement_ids)
+    `.execute(db);
+    await sql`
+      with replacement_ids as (
+        select (normalized_details.details ->> 'replacementJobId')::bigint as id
+        from public.response_processing_job_event event
+        join public.response_processing_job job on job.id = event.job_id
+        cross join lateral (
+          select case
+            when jsonb_typeof(event.details) = 'string' then (event.details #>> '{}')::jsonb
+            else event.details
+          end as details
+        ) normalized_details
+        where job.source = ${source}
+          and normalized_details.details ->> 'replacementJobId' ~ '^[0-9]+$'
+      )
+      delete from public.response_processing_job
+      where source = 'operator_remediation'
+        and id in (select id from replacement_ids)
+    `.execute(db);
     await sql`
       delete from public.response_processing_job_event event
       using public.response_processing_job job
@@ -128,13 +169,18 @@ describeIfLocalDb("response processing queue", () => {
     });
 
     const rows = await sql<any>`
-      select job.payload, event.event_type, event.details
+      select
+        jsonb_typeof(job.payload) as payload_type,
+        event.event_type,
+        jsonb_typeof(event.details) as details_type
       from public.response_processing_job job
       left join public.response_processing_job_event event on event.job_id = job.id
       where job.source = ${source}
       order by event.id asc
     `.execute(db);
     expect(rows.rows.map((row) => row.event_type ?? row.eventType)).toEqual(["queued", "duplicate_enqueue"]);
+    expect(rows.rows.every((row) => (row.payload_type ?? row.payloadType) === "object")).toBe(true);
+    expect(rows.rows.every((row) => (row.details_type ?? row.detailsType) === "object")).toBe(true);
     assertNoSensitiveLeak(rows.rows);
   });
 
@@ -214,7 +260,7 @@ describeIfLocalDb("response processing queue", () => {
       payload: { filters: { responseId: 999_999_903, limit: 1 } },
     });
 
-    const result = await processNextResponseProcessingJob({ workerId: `${source}-worker` });
+    const result = await processNextResponseProcessingJob({ workerId: `${source}-worker`, source });
     expect(result.status).toBe("succeeded");
     expect(result.job?.id).toBe(queued.job.id);
     expect(result.job?.resultSummary).toMatchObject({
@@ -249,7 +295,7 @@ describeIfLocalDb("response processing queue", () => {
       where job_id = ${queued.job.id}
     `.execute(db);
 
-    const preview = await processNextResponseProcessingJob({ workerId: `${source}-worker`, dryRun: true });
+    const preview = await processNextResponseProcessingJob({ workerId: `${source}-worker`, dryRun: true, source });
     expect(preview).toMatchObject({
       status: "dry_run_preview",
       dryRun: true,
@@ -284,8 +330,8 @@ describeIfLocalDb("response processing queue", () => {
     });
 
     const [left, right] = await Promise.all([
-      processNextResponseProcessingJob({ workerId: `${source}-worker-left` }),
-      processNextResponseProcessingJob({ workerId: `${source}-worker-right` }),
+      processNextResponseProcessingJob({ workerId: `${source}-worker-left`, source }),
+      processNextResponseProcessingJob({ workerId: `${source}-worker-right`, source }),
     ]);
     const statuses = [left.status, right.status].sort();
     expect(statuses).toEqual(["idle", "succeeded"]);
@@ -325,7 +371,7 @@ describeIfLocalDb("response processing queue", () => {
     `.execute(db);
     expect(Number(activeRows.rows[0]?.count ?? 0)).toBe(1);
 
-    await processNextResponseProcessingJob({ workerId: `${source}-worker` });
+    await processNextResponseProcessingJob({ workerId: `${source}-worker`, source });
     const afterSucceeded = await enqueueResponseProcessingJob({
       jobType: "response_replay_dry_run",
       source,
@@ -402,7 +448,7 @@ describeIfLocalDb("response processing queue", () => {
         },
       },
     });
-    const retryResult = await processNextResponseProcessingJob({ workerId: `${retrySource}-worker` });
+    const retryResult = await processNextResponseProcessingJob({ workerId: `${retrySource}-worker`, source: retrySource });
     expect(retryResult.status).toBe("failed");
     expect(retryResult.job?.attemptCount).toBe(1);
     expect(retryResult.job?.lastErrorCode).toBe("QUEUE_PROCESSING_FAILED");
@@ -419,7 +465,7 @@ describeIfLocalDb("response processing queue", () => {
         },
       },
     });
-    const deadResult = await processNextResponseProcessingJob({ workerId: `${deadSource}-worker` });
+    const deadResult = await processNextResponseProcessingJob({ workerId: `${deadSource}-worker`, source: deadSource });
     expect(deadResult.status).toBe("dead_lettered");
     expect(deadResult.job?.status).toBe("dead_lettered");
     expect(deadResult.job?.attemptCount).toBe(1);
@@ -437,7 +483,7 @@ describeIfLocalDb("response processing queue", () => {
     assertNoSensitiveLeak([retryResult, deadResult, metrics]);
   });
 
-  it("detects stale running jobs without silently reclaiming them and can requeue dead-lettered jobs explicitly", async () => {
+  it("detects stale running jobs without silently reclaiming them and records explicit remediation events", async () => {
     const source = trackSource(marker());
     const actorUserId = await createUser(`${source}-actor`);
     const queued = await enqueueResponseProcessingJob({
@@ -445,7 +491,7 @@ describeIfLocalDb("response processing queue", () => {
       source,
       payload: { filters: { responseId: 999_999_905, limit: 1 } },
     });
-    const claimed = await claimNextResponseProcessingJob({ workerId: `${source}-claimer`, leaseSeconds: 30 });
+    const claimed = await claimNextResponseProcessingJob({ workerId: `${source}-claimer`, leaseSeconds: 30, source });
     expect(claimed?.id).toBe(queued.job.id);
 
     await sql`
@@ -455,7 +501,7 @@ describeIfLocalDb("response processing queue", () => {
     `.execute(db);
     const staleMetrics = await getResponseProcessingQueueMetrics();
     expect(staleMetrics.staleRunningJobs).toBeGreaterThanOrEqual(1);
-    const staleReplay = await processNextResponseProcessingJob({ workerId: `${source}-stale-worker` });
+    const staleReplay = await processNextResponseProcessingJob({ workerId: `${source}-stale-worker`, source });
     expect(staleReplay.status).toBe("idle");
     const staleClaims = await sql<{ count: string }>`
       select count(*)::text as count
@@ -465,27 +511,227 @@ describeIfLocalDb("response processing queue", () => {
     `.execute(db);
     expect(Number(staleClaims.rows[0]?.count ?? 0)).toBe(1);
 
+    await expect(remediateResponseProcessingJob({
+      jobId: queued.job.id,
+      actorUserId,
+      action: "mark_stale_reviewed",
+    })).rejects.toThrow(/confirmation/i);
+
+    const staleReviewed = await remediateResponseProcessingJob({
+      jobId: queued.job.id,
+      actorUserId,
+      action: "mark_stale_reviewed",
+      confirmReview: true,
+    });
+    expect(staleReviewed.status).toBe("stale_running_reviewed");
+    expect(staleReviewed.job).toMatchObject({
+      id: queued.job.id,
+      status: "running",
+      staleRunning: true,
+      remediationStatus: {
+        staleRunningReviewedAt: expect.any(String),
+      },
+    });
+
     const dead = await enqueueResponseProcessingJob({
       jobType: "future_mailbox_intake",
       source,
       maxAttempts: 1,
       payload: { messageReferenceHash: "a".repeat(64) },
     });
-    const deadResult = await processNextResponseProcessingJob({ workerId: `${source}-dead-worker` });
+    const deadResult = await processNextResponseProcessingJob({ workerId: `${source}-dead-worker`, source });
     expect(deadResult.job?.id).toBe(dead.job.id);
     expect(deadResult.status).toBe("dead_lettered");
     expect(deadResult.job?.lastErrorCode).toBe("LIVE_MAILBOX_INTEGRATION_DEFERRED");
+
+    await expect(remediateResponseProcessingJob({
+      jobId: dead.job.id,
+      actorUserId,
+      action: "acknowledge_dead_letter",
+    })).rejects.toThrow(/confirmation/i);
+
+    const acknowledged = await remediateResponseProcessingJob({
+      jobId: dead.job.id,
+      actorUserId,
+      action: "acknowledge_dead_letter",
+      confirmReview: true,
+    });
+    expect(acknowledged.status).toBe("dead_letter_acknowledged");
+    expect(acknowledged.job).toMatchObject({
+      id: dead.job.id,
+      status: "dead_lettered",
+      remediationStatus: {
+        deadLetterAcknowledgedAt: expect.any(String),
+      },
+    });
+
+    await expect(remediateResponseProcessingJob({
+      jobId: dead.job.id,
+      actorUserId,
+      action: "retry_job",
+    })).rejects.toThrow(/confirmation/i);
 
     const requeued = await requeueDeadLetteredResponseProcessingJob({
       jobId: dead.job.id,
       actorUserId,
     });
     expect(requeued).toMatchObject({
-      id: dead.job.id,
       status: "queued",
-      attemptCount: 0,
+      payloadSummary: {
+        sourceType: "future_mailbox",
+      },
     });
-    assertNoSensitiveLeak([staleMetrics, deadResult, requeued]);
+    expect(requeued.id).not.toBe(dead.job.id);
+
+    const original = await listResponseProcessingJobsForRemediation({ jobId: dead.job.id, includeEvents: true });
+    expect(original.jobs[0]).toMatchObject({
+      id: dead.job.id,
+      status: "dead_lettered",
+      remediationStatus: {
+        replacementJobId: requeued.id,
+      },
+    });
+    expect(original.jobs[0].events?.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining(["dead_letter_acknowledged", "replacement_enqueued"]),
+    );
+    const remediationMetrics = await getResponseProcessingQueueMetrics();
+    expect(remediationMetrics.deadLetterAcknowledgedJobs).toBeGreaterThanOrEqual(1);
+    expect(remediationMetrics.staleRunningReviewedJobs).toBeGreaterThanOrEqual(1);
+    expect(remediationMetrics.replacementJobs).toBeGreaterThanOrEqual(1);
+    assertNoSensitiveLeak([staleMetrics, deadResult, staleReviewed, acknowledged, requeued, original, remediationMetrics]);
+  });
+
+  it("operator retry for failed jobs is explicit, auditable, and does not create duplicate records", async () => {
+    const source = trackSource(marker());
+    const actorUserId = await createUser(`${source}-actor`);
+    await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      maxAttempts: 2,
+      payload: {
+        filters: {
+          classification: "unsupported_response_state" as any,
+          limit: 1,
+        },
+      },
+    });
+    const failed = await processNextResponseProcessingJob({ workerId: `${source}-worker`, source });
+    expect(failed.status).toBe("failed");
+
+    const retried = await remediateResponseProcessingJob({
+      jobId: failed.job!.id,
+      actorUserId,
+      action: "retry_job",
+      confirmRetry: true,
+    });
+    expect(retried).toMatchObject({
+      status: "retry_queued",
+      replacementJob: null,
+      job: {
+        id: failed.job!.id,
+        status: "queued",
+        attemptCount: 1,
+      },
+    });
+    const events = await sql<any>`
+      select event_type
+      from public.response_processing_job_event
+      where job_id = ${failed.job!.id}
+      order by id asc
+    `.execute(db);
+    expect(events.rows.map((row) => row.event_type ?? row.eventType)).toEqual(
+      expect.arrayContaining(["operator_retry_requested"]),
+    );
+    const activeRows = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_job
+      where source = ${source}
+    `.execute(db);
+    expect(Number(activeRows.rows[0]?.count ?? 0)).toBe(1);
+    assertNoSensitiveLeak([retried, events.rows]);
+  });
+
+  it("lists sanitized queue job inspections without raw payload values", async () => {
+    const source = trackSource(marker());
+    const queued = await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        filters: {
+          responseId: 999_999_916,
+          classification: "remains" as any,
+          manualReviewRequired: true,
+          limit: 1,
+        },
+        metadata: {
+          attachmentHash: "c".repeat(64),
+          fixture: "queue_inspection",
+        },
+      },
+    });
+
+    const listed = await listResponseProcessingJobsForRemediation({ jobId: queued.job.id, includeEvents: true });
+    expect(listed.total).toBe(1);
+    expect(listed.jobs[0]).toMatchObject({
+      id: queued.job.id,
+      status: "queued",
+      payloadSummary: {
+        responseId: 999_999_916,
+        classification: "remains",
+        manualReviewRequired: true,
+        metadataKeys: ["attachmentHash", "fixture"],
+        rawResponseTextStored: false,
+        liveMailboxIntegrationUsed: false,
+      },
+    });
+    expect(JSON.stringify(listed.jobs[0])).not.toContain("queue_inspection");
+    assertNoSensitiveLeak(listed);
+  });
+
+  it("redacts unsafe legacy event keys and stored error reasons from inspection output", async () => {
+    const source = trackSource(marker());
+    const queued = await enqueueResponseProcessingJob({
+      jobType: "response_replay_dry_run",
+      source,
+      payload: {
+        filters: {
+          responseId: 999_999_917,
+          limit: 1,
+        },
+      },
+    });
+    await sql`
+      update public.response_processing_job
+      set
+        last_error_code = 'DATABASE_URL',
+        last_error_reason = 'postgres://synthetic-redacted-host'
+      where id = ${queued.job.id}
+    `.execute(db);
+    await sql`
+      insert into public.response_processing_job_event (
+        job_id,
+        event_type,
+        previous_status,
+        next_status,
+        attempt_count,
+        details
+      ) values (
+        ${queued.job.id},
+        'failed',
+        'running',
+        'failed',
+        1,
+        ${JSON.stringify({ rawText: "safe-placeholder", safeKey: "safe-value" })}::text::jsonb
+      )
+    `.execute(db);
+
+    const listed = await listResponseProcessingJobsForRemediation({ jobId: queued.job.id, includeEvents: true });
+    const serialized = JSON.stringify(listed);
+    expect(serialized).not.toContain("rawText");
+    expect(serialized).not.toContain("postgres://synthetic-redacted-host");
+    expect(serialized).toContain("redacted_key_1");
+    expect(listed.jobs[0].lastErrorReason).toBe("Response processing job error.");
+    assertNoSensitiveLeak(listed);
   });
 
   it("allows replay apply jobs only with explicit confirmation and actor attribution", async () => {
@@ -505,7 +751,7 @@ describeIfLocalDb("response processing queue", () => {
       },
     });
 
-    const result = await processNextResponseProcessingJob({ workerId: `${source}-worker` });
+    const result = await processNextResponseProcessingJob({ workerId: `${source}-worker`, source });
     expect(result.status).toBe("succeeded");
     expect(result.job?.id).toBe(queued.job.id);
     expect(result.job?.actorUserId).toBe(actorUserId);
@@ -517,6 +763,27 @@ describeIfLocalDb("response processing queue", () => {
       violationTruthMutated: false,
       packetReadinessMutated: false,
     });
+    assertNoSensitiveLeak(result);
+  });
+
+  it("runs the bounded synthetic queue/load check and cleans isolated rows", async () => {
+    const result = await runSyntheticResponseQueueLoadCheck();
+    expect(result).toMatchObject({
+      event: "response_queue_load_check",
+      duplicateCollapsed: true,
+      retryableFailureObserved: true,
+      deadLetterObserved: true,
+      staleRunningObserved: true,
+      cleanupComplete: true,
+      rawResponseTextLogged: false,
+      liveMailboxIntegrationUsed: false,
+    });
+    const remaining = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_job
+      where source = ${result.source}
+    `.execute(db);
+    expect(Number(remaining.rows[0]?.count ?? 0)).toBe(0);
     assertNoSensitiveLeak(result);
   });
 });
