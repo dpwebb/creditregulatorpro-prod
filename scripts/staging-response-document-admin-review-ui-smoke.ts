@@ -39,7 +39,7 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT = [
   "This page does not activate regulation runtime truth.",
   "No mailbox, Gmail, IMAP, or inbox integration is used.",
   "Manual Response Capture",
-  "Live mailbox connections remain disabled.",
+  "Admin-only intake for manual or simulated response records. Live mailbox connections remain disabled.",
 ] as const;
 
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT = [

@@ -188,7 +188,7 @@ describe("response document UI staging smoke harness", () => {
         "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
         "No mailbox, Gmail, IMAP, or inbox integration is used.",
         "Manual Response Capture",
-        "Live mailbox connections remain disabled.",
+        "Admin-only intake for manual or simulated response records. Live mailbox connections remain disabled.",
       ]),
     );
 
