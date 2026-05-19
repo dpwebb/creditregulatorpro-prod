@@ -136,7 +136,7 @@ export const GATED_SMOKE_CHECKS = [
 ];
 
 export const KNOWN_SCALE_GAPS = [
-  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for the response list/detail path, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs autonomous seeded response auth smokes after deploy and health checks; response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+  "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for the response list/detail path, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs scope-gated autonomous seeded response auth smokes after deploy and health checks: runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed; response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
   "Broader production-scale workflow coverage remains ongoing.",
   "Admin correction candidate classification remains future work.",
   "Formal rule/version approval workflow remains future work.",
@@ -233,7 +233,13 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check(
           "Autonomous response auth smokes",
           "INFO",
-          "Staging deploy workflow runs seeded/authenticated response auth smokes after deploy and health checks: response capture/list/get, response UI, response admin-review backend, and response admin-review UI. This is a deploy-time safety gate, not full production monitoring.",
+          "Staging deploy workflow runs scope-gated seeded/authenticated response auth smokes after deploy and health checks: response capture/list/get, response UI, response admin-review backend, and response admin-review UI. Runtime/app/workflow/Docker/backend/UI/script changes run the full suite, docs/readiness/operator-dashboard-only changes skip it by design, and unknown changed-file scope runs it fail-closed. This is a deploy-time safety gate, not full production monitoring.",
+          { kind: "info" },
+        ),
+        check(
+          "App image apt-utils cleanup",
+          "INFO",
+          "The app Docker image includes apt-utils before OCR/PDF runtime package installation; poppler-utils, tesseract-ocr, and tesseract-ocr-eng remain installed, and filtered deploy logs no longer show the apt-utils package-install warning.",
           { kind: "info" },
         ),
       ],
