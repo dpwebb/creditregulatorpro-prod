@@ -166,8 +166,10 @@ jobs:
           STAGING_USER: ${{ secrets.STAGING_USER }}
           STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
           TARGET_SHA: ${{ steps.target.outputs.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before || '' }}
+          WORKFLOW_EVENT_NAME: ${{ github.event_name }}
         run: |
-          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' bash -s" <<'REMOTE'
+          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' PUSH_BEFORE_SHA='$PUSH_BEFORE_SHA' WORKFLOW_EVENT_NAME='$WORKFLOW_EVENT_NAME' bash -s" <<'REMOTE'
             set -euo pipefail
 
             cd /opt/creditregulatorpro-staging/app
@@ -220,6 +222,47 @@ jobs:
             }
 
             wait_for_staging_health "before"
+
+            response_auth_smokes_required() {
+              local changed_files="/tmp/response-auth-changed-files.txt"
+              local changed_file
+
+              rm -f "$changed_files"
+
+              if [ "${WORKFLOW_EVENT_NAME:-}" = "push" ] &&
+                [ -n "${PUSH_BEFORE_SHA:-}" ] &&
+                ! printf '%s' "$PUSH_BEFORE_SHA" | grep -Eq '^0{40}$' &&
+                git cat-file -e "$PUSH_BEFORE_SHA^{commit}" 2>/dev/null; then
+                git diff --name-only "$PUSH_BEFORE_SHA" "$TARGET_SHA" > "$changed_files"
+              elif git rev-parse "$TARGET_SHA^" >/dev/null 2>&1; then
+                git diff-tree --no-commit-id --name-only -r "$TARGET_SHA" > "$changed_files"
+              else
+                echo "Running automated staging response auth smokes: changed-file scope is unavailable."
+                return 0
+              fi
+
+              if [ ! -s "$changed_files" ]; then
+                echo "Running automated staging response auth smokes: no changed-file scope was detected."
+                rm -f "$changed_files"
+                return 0
+              fi
+
+              while IFS= read -r changed_file; do
+                case "$changed_file" in
+                  docs/*|*.md|scripts/operator-regression-dashboard.ts|tests/unit/operator-regression-dashboard.spec.ts)
+                    ;;
+                  *)
+                    echo "Running automated staging response auth smokes: changed file requires full response smoke coverage ($changed_file)."
+                    rm -f "$changed_files"
+                    return 0
+                    ;;
+                esac
+              done < "$changed_files"
+
+              rm -f "$changed_files"
+              echo "Skipping automated staging response auth smokes: changed files are docs/readiness/operator-dashboard only."
+              return 1
+            }
 
             run_response_auth_smokes() {
               echo "Running automated staging response auth smokes."
@@ -537,7 +580,9 @@ jobs:
                 '
             }
 
-            run_response_auth_smokes
+            if response_auth_smokes_required; then
+              run_response_auth_smokes
+            fi
 
             wait_for_staging_health "after"
 
