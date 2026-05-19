@@ -203,13 +203,14 @@ describe("operator regression dashboard", () => {
 
     expect(KNOWN_SCALE_GAPS).toEqual(
       expect.arrayContaining([
-        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for the original list/detail visibility path, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, and response admin-review UI controls are deployed with local coverage; authenticated response admin-review UI smoke, response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
+        "Persisted outcome tracking backend has passed authenticated staging smoke for a synthetic response-only path, authenticated outcome admin-review smoke has passed for a synthetic metadata-only review path, authenticated admin-only Outcome Reviews UI smoke has passed for a metadata-only UI review path, response-document capture backend coverage plus authenticated admin/user-owned staging smoke now exist for metadata/evidence-only response records, authenticated admin-only Response Documents UI smoke has passed for the response list/detail path, response-document admin-review backend coverage plus authenticated admin-review smoke now exist for metadata-only review actions, authenticated response admin-review UI smoke has passed for one metadata-only review action, and the staging deploy workflow now runs autonomous seeded response auth smokes after deploy and health checks; response capture UI, response parser/inbox integration, consumer-facing outcome/response UI, historical backfill, non-owner smoke, production-scale repeated smoke, and monitoring remain future work.",
         "Backup/restore verification remains future work.",
         "Monitoring and alert delivery remain future work.",
         "No admin override exists and it should remain absent.",
         "DB registry remains non-runtime governance metadata.",
       ]),
     );
+    expect(rendered).toContain("Autonomous response auth smokes");
     expect(rendered).toContain("DB registry remains non-runtime governance metadata.");
     expect(rendered).toContain("No admin override exists and it should remain absent.");
     expect(rendered).toContain("static runtime mappings remain active truth");
