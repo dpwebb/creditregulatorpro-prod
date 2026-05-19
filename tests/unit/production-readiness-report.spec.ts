@@ -85,9 +85,12 @@ describe("production readiness report", () => {
   it("checks important operator files without reading production data", () => {
     const report = buildProductionReadinessReport({
       runGit: fakeGit(""),
-      fileExists: (path) => path.includes("production-readiness-checklist.md"),
+      fileExists: (path) =>
+        path.includes("limited-beta-operator-launch-policy.md") ||
+        path.includes("production-readiness-checklist.md"),
     });
 
+    expect(report.requiredFiles.map((file) => file.path)).toContain("docs/limited-beta-operator-launch-policy.md");
     expect(report.requiredFiles.map((file) => file.path)).toContain("docs/production-readiness-checklist.md");
     expect(report.missingRequiredFiles).toEqual(
       expect.arrayContaining([

@@ -46,6 +46,7 @@ export const READINESS_LEVELS = [
 ];
 
 export const REQUIRED_OPERATOR_FILES = [
+  "docs/limited-beta-operator-launch-policy.md",
   "docs/production-readiness-checklist.md",
   "scripts/production-readiness-gate.mjs",
   "scripts/promote-production.mjs",

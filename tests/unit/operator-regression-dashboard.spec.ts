@@ -30,6 +30,7 @@ describe("operator regression dashboard", () => {
     const output = renderDashboard(report);
 
     expect(output).toContain("Repository / Release State");
+    expect(output).toContain("Limited beta operator policy exists");
     expect(output).toContain("Core Logical Regression");
     expect(output).toContain("Auth / Session Lifecycle");
     expect(output).toContain("Admin Audit / Activity Logs");
@@ -63,6 +64,10 @@ describe("operator regression dashboard", () => {
 
     expect(checks).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          category: "Repository / Release State",
+          name: "Limited beta operator policy exists",
+        }),
         expect.objectContaining({
           category: "Core Logical Regression",
           name: "Golden Path",

@@ -213,6 +213,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
   const commit = readGitValue(runGit, ["rev-parse", "HEAD"]);
   const subject = readGitValue(runGit, ["log", "-1", "--pretty=%s"]);
   const clean = statusShort.length === 0;
+  const limitedBetaPolicyExists = repoFileExists(cwd, fileExists, "docs/limited-beta-operator-launch-policy.md");
   const checklistExists = repoFileExists(cwd, fileExists, "docs/production-readiness-checklist.md");
   const readinessReportExists = repoFileExists(cwd, fileExists, "scripts/production-readiness-report.ts");
 
@@ -225,6 +226,12 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         }),
         check("Branch", "INFO", branch, { kind: "repository" }),
         check("Commit", "INFO", `${commit} ${subject}`, { kind: "repository" }),
+        check(
+          "Limited beta operator policy exists",
+          limitedBetaPolicyExists ? "PASS" : "FAIL",
+          "docs/limited-beta-operator-launch-policy.md",
+          { kind: "repository" },
+        ),
         check(
           "Production-readiness checklist exists",
           checklistExists ? "PASS" : "FAIL",
