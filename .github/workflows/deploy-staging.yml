@@ -193,5 +193,289 @@ jobs:
               exit 1
             }
 
+            curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com || {
+              echo "Staging health check failed before response auth smokes."
+              exit 1
+            }
+
+            run_response_auth_smokes() {
+              echo "Running automated staging response auth smokes."
+              local smoke_seed
+              local smoke_marker
+              local smoke_email
+              local smoke_password
+
+              smoke_seed="$(printf '%s-%s' "$TARGET_SHA" "$(date -u +%Y%m%d%H%M%S)" | sha256sum | awk '{print $1}' | cut -c1-16)"
+              smoke_marker="OUTCOME_SMOKE_R${smoke_seed:0:8}_H${smoke_seed:8:8}"
+              smoke_email="response-auth-smoke-${smoke_seed:0:8}-r${smoke_seed:8:8}@example.test"
+              smoke_password="SmokeAdmin${smoke_seed}A1x"
+
+              docker exec \
+                -e SMOKE_ADMIN_EMAIL="$smoke_email" \
+                -e SMOKE_ADMIN_PASSWORD="$smoke_password" \
+                -e SMOKE_MARKER="$smoke_marker" \
+                creditregulatorpro-staging \
+                bash -lc '
+                  set -euo pipefail
+
+                  export STAGING_BASE_URL="https://staging.creditregulatorpro.com"
+                  export STAGING_DATABASE_URL="${STAGING_DATABASE_URL:-${FLOOT_DATABASE_URL:-}}"
+                  export STAGING_ADMIN_EMAIL="$SMOKE_ADMIN_EMAIL"
+                  export STAGING_ADMIN_PASSWORD="$SMOKE_ADMIN_PASSWORD"
+
+                  cleanup_response_auth_smoke() {
+                    local smoke_status="$?"
+                    local cleanup_status=0
+                    set +e
+                    node --input-type=module <<'"'"'NODE'"'"' >/tmp/response-auth-cleanup.log 2>&1
+                    import { randomBytes } from "node:crypto";
+                    import postgres from "postgres";
+                    import { hash } from "bcryptjs";
+
+                    const email = process.env.SMOKE_ADMIN_EMAIL;
+                    const databaseUrl = process.env.FLOOT_DATABASE_URL ?? process.env.STAGING_DATABASE_URL;
+                    const syntheticEmailPattern = /^response-auth-smoke-[0-9a-f]{8}-r[0-9a-f]{8}@example\.test$/i;
+
+                    if (!email || !syntheticEmailPattern.test(email)) {
+                      throw new Error("Synthetic response auth smoke cleanup refused an unexpected email pattern.");
+                    }
+                    if (!databaseUrl) {
+                      throw new Error("Synthetic response auth smoke cleanup is missing database configuration.");
+                    }
+
+                    const sql = postgres(databaseUrl, { prepare: false, max: 1, onnotice: () => undefined });
+                    try {
+                      const rows = await sql`
+                        select id
+                        from public.users
+                        where email = ${email}
+                          and email ~* '"'"'^response-auth-smoke-[0-9a-f]{8}-r[0-9a-f]{8}@example[.]test$'"'"'
+                        limit 1
+                      `;
+                      const adminId = Number(rows[0]?.id);
+                      if (!Number.isInteger(adminId) || adminId <= 0) return;
+
+                      const disabledHash = await hash(`disabled-${randomBytes(32).toString("hex")}`, 10);
+                      await sql.begin(async (trx) => {
+                        await trx`
+                          update public.user_passwords
+                          set password_hash = ${disabledHash}
+                          where user_id = ${adminId}
+                        `;
+                        await trx`
+                          update public.user_account
+                          set role = '"'"'user'"'"'
+                          where user_id = ${adminId}
+                            and email = ${email}
+                        `;
+                        await trx`
+                          update public.users
+                          set role = '"'"'user'"'"',
+                              email_verified = false
+                          where id = ${adminId}
+                            and email = ${email}
+                        `;
+                        await trx`
+                          delete from public.sessions
+                          where user_id = ${adminId}
+                        `;
+                      });
+                    } finally {
+                      await sql.end({ timeout: 1 });
+                    }
+                    NODE
+                    cleanup_status="$?"
+                    rm -f \
+                      /tmp/response-auth-cleanup.log \
+                      /tmp/response-auth-outcome-fixture.json \
+                      /tmp/response-auth-outcome-fixture.env \
+                      /tmp/response-auth-outcome-smoke.json
+                    if [ "$cleanup_status" -ne 0 ]; then
+                      echo "Synthetic response auth smoke admin neutralization failed."
+                      if [ "$smoke_status" -eq 0 ]; then
+                        exit "$cleanup_status"
+                      fi
+                    else
+                      echo "Synthetic response auth smoke admin neutralized."
+                    fi
+                    exit "$smoke_status"
+                  }
+                  trap cleanup_response_auth_smoke EXIT
+
+                  node --input-type=module <<'"'"'NODE'"'"'
+                  import postgres from "postgres";
+                  import { hash } from "bcryptjs";
+
+                  const email = process.env.SMOKE_ADMIN_EMAIL;
+                  const password = process.env.SMOKE_ADMIN_PASSWORD;
+                  const databaseUrl = process.env.FLOOT_DATABASE_URL ?? process.env.STAGING_DATABASE_URL;
+                  if (!email || !password || !databaseUrl) {
+                    throw new Error("Automated response auth smoke is missing synthetic admin or database configuration.");
+                  }
+
+                  const sql = postgres(databaseUrl, { prepare: false, max: 1, onnotice: () => undefined });
+                  try {
+                    const passwordHash = await hash(password, 10);
+                    const displayName = "Synthetic Response Auth Smoke";
+                    const adminRows = await sql`
+                      insert into public.users (email, display_name, role, email_verified)
+                      values (${email}, ${displayName}, '"'"'admin'"'"', true)
+                      on conflict (email)
+                      do update set
+                        display_name = excluded.display_name,
+                        role = '"'"'admin'"'"',
+                        email_verified = true
+                      returning id
+                    `;
+                    const adminId = Number(adminRows[0]?.id);
+                    if (!Number.isInteger(adminId) || adminId <= 0) {
+                      throw new Error("Could not resolve automated response auth smoke admin ID.");
+                    }
+
+                    await sql`
+                      insert into public.user_passwords (user_id, password_hash)
+                      values (${adminId}, ${passwordHash})
+                      on conflict (user_id)
+                      do update set password_hash = excluded.password_hash
+                    `;
+
+                    await sql`
+                      insert into public.user_account (
+                        user_id,
+                        email,
+                        full_name,
+                        legal_name_signature,
+                        role,
+                        region,
+                        terms_accepted_at,
+                        terms_accepted_version
+                      )
+                      values (
+                        ${adminId},
+                        ${email},
+                        ${displayName},
+                        ${displayName},
+                        '"'"'admin'"'"',
+                        '"'"'CA'"'"',
+                        now(),
+                        '"'"'v1'"'"'
+                      )
+                      on conflict (user_id)
+                      do update set
+                        email = excluded.email,
+                        full_name = excluded.full_name,
+                        legal_name_signature = excluded.legal_name_signature,
+                        role = '"'"'admin'"'"',
+                        region = '"'"'CA'"'"',
+                        terms_accepted_at = coalesce(public.user_account.terms_accepted_at, now()),
+                        terms_accepted_version = coalesce(public.user_account.terms_accepted_version, '"'"'v1'"'"')
+                    `;
+                  } finally {
+                    await sql.end({ timeout: 1 });
+                  }
+                  NODE
+
+                  node --input-type=module <<'"'"'NODE'"'"'
+                  const baseUrl = process.env.STAGING_BASE_URL;
+                  const email = process.env.SMOKE_ADMIN_EMAIL;
+                  const password = process.env.SMOKE_ADMIN_PASSWORD;
+                  if (!baseUrl || !email || !password) {
+                    throw new Error("Synthetic response auth smoke admin preflight is missing auth configuration.");
+                  }
+                  const toUrl = (path) => new URL(path, baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`).toString();
+                  const login = await fetch(toUrl("/_api/auth/login_with_password"), {
+                    method: "POST",
+                    body: JSON.stringify({ email, password }),
+                    headers: {
+                      "Content-Type": "application/json",
+                      Accept: "application/json",
+                      Origin: baseUrl,
+                    },
+                  });
+                  if (!login.ok) {
+                    throw new Error(`Synthetic response auth smoke admin preflight login failed with HTTP ${login.status}.`);
+                  }
+                  const sessionCookie = (login.headers.get("set-cookie") ?? "").match(/floot_built_app_session=[^;,\s]+/)?.[0] ?? "";
+                  if (!sessionCookie) {
+                    throw new Error("Synthetic response auth smoke admin preflight login did not return a session cookie.");
+                  }
+                  const session = await fetch(toUrl("/_api/auth/session"), {
+                    headers: {
+                      Accept: "application/json",
+                      Cookie: sessionCookie,
+                    },
+                  });
+                  if (!session.ok) {
+                    throw new Error(`Synthetic response auth smoke admin preflight session check failed with HTTP ${session.status}.`);
+                  }
+                  const body = await session.json();
+                  if (body?.user?.role !== "admin") {
+                    throw new Error(`Synthetic response auth smoke admin preflight resolved role ${String(body?.user?.role)}.`);
+                  }
+                  NODE
+
+                  export CRP_OUTCOME_TRACKING_FIXTURE_SETUP=true
+                  export CRP_OUTCOME_TRACKING_FIXTURE_TARGET=staging
+                  export CRP_OUTCOME_TRACKING_FIXTURE_MARKER="$SMOKE_MARKER"
+                  pnpm --silent run smoke:outcome-fixture-setup > /tmp/response-auth-outcome-fixture.json
+
+                  node --input-type=module <<'"'"'NODE'"'"' > /tmp/response-auth-outcome-fixture.env
+                  import { readFileSync } from "node:fs";
+                  const output = JSON.parse(readFileSync("/tmp/response-auth-outcome-fixture.json", "utf8"));
+                  const suggestedEnv = output.suggestedEnv ?? {};
+                  const required = [
+                    "STAGING_OUTCOME_PREVIOUS_REPORT_ARTIFACT_ID",
+                    "STAGING_OUTCOME_LATER_REPORT_ARTIFACT_ID",
+                    "STAGING_OUTCOME_SYNTHETIC_MARKER",
+                  ];
+                  if (output.status !== "created") {
+                    throw new Error("Synthetic outcome fixture setup did not report created status.");
+                  }
+                  for (const key of required) {
+                    if (!suggestedEnv[key]) {
+                      throw new Error(`Synthetic outcome fixture setup did not provide ${key}.`);
+                    }
+                  }
+                  if (suggestedEnv.STAGING_OUTCOME_SYNTHETIC_MARKER !== process.env.SMOKE_MARKER) {
+                    throw new Error("Synthetic outcome fixture marker did not match response auth smoke marker.");
+                  }
+                  for (const [key, value] of Object.entries(suggestedEnv)) {
+                    console.log(`export ${key}=${JSON.stringify(String(value))}`);
+                  }
+                  NODE
+                  . /tmp/response-auth-outcome-fixture.env
+
+                  export CRP_OUTCOME_TRACKING_SMOKE=true
+                  pnpm --silent run smoke:outcome-tracking > /tmp/response-auth-outcome-smoke.json
+
+                  export STAGING_RESPONSE_SYNTHETIC_MARKER="$SMOKE_MARKER"
+                  export STAGING_RESPONSE_COMPARISON_RUN_ID="$(node --input-type=module -e '"'"'import { readFileSync } from "node:fs"; const output = JSON.parse(readFileSync("/tmp/response-auth-outcome-smoke.json", "utf8")); if (output.status !== "passed") throw new Error("Outcome tracking smoke did not report passed status."); if (output.fixture?.syntheticMarker !== process.env.SMOKE_MARKER) throw new Error("Outcome tracking smoke marker did not match response auth smoke marker."); const comparisonRunId = Number(output.outcome?.comparisonRunId); if (!Number.isInteger(comparisonRunId) || comparisonRunId <= 0) throw new Error("Outcome tracking smoke did not return a valid comparison run ID."); process.stdout.write(String(comparisonRunId));'"'"')"
+                  if [ -z "$STAGING_RESPONSE_COMPARISON_RUN_ID" ]; then
+                    echo "Automated response auth smoke could not resolve comparison run ID."
+                    exit 1
+                  fi
+
+                  export CRP_RESPONSE_DOCUMENT_SMOKE=true
+                  pnpm run smoke:response-document
+
+                  export CRP_RESPONSE_DOCUMENT_UI_SMOKE=true
+                  pnpm exec playwright install --with-deps chromium >/dev/null
+                  pnpm run smoke:response-document-ui
+
+                  export CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_SMOKE=true
+                  pnpm run smoke:response-document-admin-review
+
+                  export CRP_RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_SMOKE=true
+                  pnpm run smoke:response-document-admin-review-ui
+                '
+            }
+
+            run_response_auth_smokes
+
+            curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com || {
+              echo "Staging health check failed after response auth smokes."
+              exit 1
+            }
+
             git log -1 --oneline
           REMOTE
