@@ -10,13 +10,13 @@ This audit is documentation-only. It does not change runtime behavior, parser ou
 
 ## A. Executive Verdict
 
-**Verdict: Limited beta ready with blockers.**
+**Verdict: Limited beta ready with constraints.**
 
 The response-processing subsystem is comparatively strong: manual/admin intake, deterministic classification, replay/backfill, DB-backed queueing, remediation, bounded orchestration, retention marking, drift detection, and soak checks are implemented with append-only events and privacy guardrails in `helpers/responseDocumentSchema.ts`, `helpers/responseProcessingQueueService.ts`, `helpers/responseWorkerOrchestrationService.ts`, `helpers/responseProcessingLifecycleService.ts`, and related tests.
 
-The project is **not production-at-scale ready**. The highest-risk paths are still the older report ingestion, OCR/PDF parsing, report artifact storage, packet PDF generation, production deployment verification, and operational disaster-recovery proof. Several high-cost flows remain synchronous and request-bound. Large base64 payload handling is not consistently enforced on the server. Raw uploaded report PDFs are stored directly in the database-backed `reportArtifact.storageUrl` path. Production deploy checks are materially thinner than staging checks.
+The project is **not production-at-scale ready**. The highest-risk paths are still the older report ingestion, OCR/PDF parsing, report artifact storage, packet PDF generation, incomplete ingest/PDF/storage observability, and operational disaster-recovery proof. Several high-cost flows remain synchronous and request-bound. Phase 1 now adds server-side upload bounds, bounded clock scanning, bounded packet/artifact list pagination, stronger production workflow checks, route-wide auth classification coverage, and a limited beta operator policy; these are controlled-beta constraints, not scale architecture.
 
-Limited beta should not proceed until the Phase 1 blockers below are fixed or explicitly constrained by operator policy, traffic limits, and rollback gates.
+Limited beta should proceed only under the documented operator policy, traffic limits, and rollback gates.
 
 ## Audit Method
 
@@ -177,7 +177,7 @@ Inspected representative files and functions:
 | Load/concurrency | Fail | High-cost upload/process path is synchronous in `endpoints/ingest/process_POST.ts` -> `helpers/ingestReportHandler.tsx` -> `helpers/ingestCorePipeline.tsx`. Response queue is durable, but main ingest/PDF paths are not. | Add ingest/PDF job queues with idempotency, leases, bounded retries, dead letters, and dashboard metrics. |
 | Database | Partial | Response tables have advisory-lock additive DDL and indexes in `helpers/responseDocumentSchema.ts`; core local bootstrap has indexes in `scripts/bootstrap-local-app-fixtures.ts`; global pool is `max: 3` in `helpers/db.tsx`; raw PDFs are stored in `reportArtifact.storageUrl`. | Add forward migration runner, tune pool, add hot-query indexes after query plan review, move large blobs out of DB. |
 | File/PDF/OCR | Fail | `endpoints/ocr/extract_POST.ts` enforces 15 MB, but `helpers/schemas.tsx`, `anonymous-report_POST.schema.ts`, and evidence upload schemas do not. OCR is deterministic and bounded per command in `helpers/deterministicOcr.ts`, but not queued. | Add server-side file limits everywhere, queue OCR, track page/time metrics, object-store PDFs, add malformed/large PDF tests. |
-| Auth/tenant isolation | Partial | Many critical routes call `getServerUserSession()`. Ownership is enforced in packet, evidence, artifact, and response routes (`helpers/accessControl.ts`, `helpers/disputePacketService.ts`, `helpers/responseDocumentService.ts`). Tests cover non-owner denial in `tests/api/*`. Cron endpoints use derived secrets and some support query tokens. | Expand route-surface auth audit to every endpoint, remove query-token cron auth, add public/cron endpoint inventory tests. |
+| Auth/tenant isolation | Partial | Many critical routes call `getServerUserSession()`. Ownership is enforced in packet, evidence, artifact, and response routes (`helpers/accessControl.ts`, `helpers/disputePacketService.ts`, `helpers/responseDocumentService.ts`). Tests cover non-owner denial in `tests/api/*`. Route-wide auth classification now covers all endpoint handlers. Cron endpoints use derived secrets; clock scan is bearer-only, while scheduled registry scan and retention still support query tokens. | Continue removing legacy query-token cron auth where deployment callers permit it; keep public/cron/session/admin/webhook endpoint inventory tests current. |
 | Observability | Partial | Operator dashboard and response metrics include queue/dead-letter/stale/drift/soak status. `scripts/staging-observability-check.mjs` analyzes bounded staging logs. | Add durable ingest/PDF/storage/auth metrics and alert surfacing; run observability gate in release evidence, not only opt-in. |
 | Deployment/rollback | Partial | Staging workflow runs `pnpm run check`, deploy health, and scoped response-auth smokes. `scripts/promote-production.mjs` gates promotion. Production workflow runs build-only preflight and no post-deploy health checks. Rollback SHA input exists. | Add production post-deploy checks and stronger workflow preflight; require recorded rollback SHA and latest staging deploy match. |
 | Disaster recovery | Partial | `scripts/refresh-local-from-staging.mjs` supports guarded local restore. `scripts/staging-backup-restore-checklist.mjs` verifies checklist safety but does not run dump/restore unless explicitly gated. | Run and record human-observed restore drill; define production backup RPO/RTO, restore owner, and sensitive dump retention procedure. |
@@ -255,8 +255,8 @@ Positive evidence:
 
 Risks:
 
-- Authenticated and anonymous report upload schemas lack server-side byte caps.
-- Evidence attachment and bureau communication uploads lack server-side byte caps. Bureau communication stores file base64 directly in `evidenceAttachment.storageUrl` in `endpoints/evidence/bureau-communication_POST.ts`.
+- Upload endpoints now enforce server-side decoded-byte caps and MIME allowlists, but report ingest/OCR/compliance processing remains request-bound.
+- Bureau communication still stores file base64 directly in `evidenceAttachment.storageUrl` in `endpoints/evidence/bureau-communication_POST.ts`.
 - `helpers/pdfTextExtractor.tsx` logs parser/OCR steps via console, not a durable metric model.
 - Packet PDFs are generated synchronously.
 - Report artifact retention is not proven as a production purge/archive flow.
@@ -278,7 +278,7 @@ Positive evidence:
 
 Risks:
 
-- Some operational endpoints use non-session cron tokens and accept query tokens: `endpoints/clock/scan_POST.ts` and `endpoints/retention/auto-purge_POST.ts`.
+- Some operational endpoints use non-session cron tokens and still accept query tokens: `endpoints/regulation-registry/scheduled-scan_POST.ts` and `endpoints/retention/auto-purge_POST.ts`. `endpoints/clock/scan_POST.ts` now requires bearer-token cron authorization.
 - `endpoints/retention/auto-purge_POST.ts` still allows a legacy token derived from the first 32 characters of `JWT_SECRET`.
 - `server.ts` generated endpoint wrappers often return `"Error loading endpoint code " + e.message`, which is acceptable for module load errors but should be reviewed for production sanitization consistency.
 
@@ -319,9 +319,7 @@ Positive evidence:
 
 Risks:
 
-- Production workflow check job runs `pnpm run build` only, not `pnpm run check`.
-- Production workflow does not run post-deploy health probes.
-- Production workflow does not run response-auth smokes or an explicit production-safe equivalent.
+- Production workflow now runs `pnpm run check` and production-safe post-deploy root/login/auth-session probes, but it intentionally does not run staging-only synthetic admin response-auth smokes against production.
 - Backup/restore checklist is not the same as a completed restore drill.
 - Rollback is code-level; additive schema tables may remain, and no reversible migration ledger was identified.
 - Environment validation is distributed across helpers; no central startup env validation schema was found for critical runtime variables.
@@ -343,16 +341,12 @@ Strong existing coverage:
 - Operator dashboard: `tests/unit/operator-regression-dashboard.spec.ts`.
 - Staging deploy workflow: `tests/unit/deploy-staging-workflow.spec.ts`.
 
-Highest-value missing tests to add first:
+Highest-value remaining tests to add first:
 
-1. Direct API upload limit tests for authenticated ingest, anonymous ingest, evidence attachment, and bureau communication, proving oversized base64 is rejected before parse/storage.
-2. Clock scan regression test proving lowercase `"generated"` packet status is scanned or status is canonicalized.
-3. Packet list default/max limit test for `endpoints/packet/list_GET.schema.ts` and handler.
-4. Concurrent ingest/process smoke with synthetic PDFs proving idempotency or explicit duplicate rejection.
-5. Repeated packet PDF download test proving render caching or bounded behavior once implemented.
-6. Route-wide auth classification test: every endpoint must declare public, session, admin, webhook-signature, or cron-token auth.
-7. Production workflow test ensuring `.github/workflows/deploy-production.yml` runs the required preflight and post-deploy health checks once added.
-8. Restore-drill evidence test or checklist artifact requiring date, operator, source SHA, target DB guard, and post-restore golden path result.
+1. Concurrent ingest/process smoke with synthetic PDFs proving idempotency or explicit duplicate rejection after ingest queue work begins.
+2. Repeated packet PDF download test proving render caching or bounded behavior once implemented.
+3. Restore-drill evidence test or checklist artifact requiring date, operator, source SHA, target DB guard, and post-restore golden path result.
+4. Production-scale repeated smoke/load coverage for upload, OCR fallback, packet build/PDF, response worker operation, and dashboard reads.
 
 ## D. Production Promotion Checklist
 
@@ -414,7 +408,7 @@ Use this before any staging-to-production promotion.
 ### Phase 1: Must fix before limited beta
 
 1. [x] Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication. Implemented in `helpers/uploadPayloadValidation.ts` with route/schema coverage in `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, `tests/api/critical-schema.spec.ts`, and `tests/api/ocr-extract-upload-limit-endpoint.spec.ts`.
-2. Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test.
+2. [x] Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test. Implemented in `endpoints/clock/scan_POST.ts`, `helpers/clockScanConfig.ts`, and `helpers/cronClockScan.tsx` using canonical lowercase `"generated"` and a batch limit of 100. Covered by `tests/api/clock-scan-endpoint.spec.ts` for lowercase pickup, bounded scanning, bearer-token cron auth, and query-token rejection.
 3. [x] Add default/max pagination to packet and report-artifact list endpoints. Implemented in `endpoints/packet/list_GET.schema.ts`, `endpoints/packet/list_GET.ts`, `endpoints/report-artifact/list_GET.schema.ts`, and `endpoints/report-artifact/list_GET.ts` with default 50, max 100, and excessive limits rejected rather than capped. Covered by `tests/api/packet-delivery-status-endpoint.spec.ts` and `tests/api/report-ingest-lifecycle-endpoint.spec.ts`.
 4. [x] Add production workflow post-deploy root/login/auth-session health checks. Implemented in `.github/workflows/deploy-production.yml` with `pnpm run check` preflight, remote `pnpm run build` preservation, selected checkout SHA verification, and post-deploy checks for `/`, `/login`, and unauthenticated `/_api/auth/session` denial. Covered by `tests/unit/deploy-production-workflow.spec.ts`.
 5. [x] Add route-wide auth classification test for public/session/admin/webhook/cron endpoints. Implemented in `tests/contracts/route-auth-classification.spec.ts` with 281 endpoint handlers classified across public, session-authenticated, admin-only, cron-token authenticated, webhook-signature authenticated, and intentionally test/local-only categories. No endpoint guard fixes were required and no new blockers were flagged. Covered by `pnpm run test:contracts`.
@@ -449,4 +443,4 @@ Use this before any staging-to-production promotion.
 
 ## Final Classification
 
-CreditRegulatorPro has a strong deterministic compliance core and a notably hardened response-processing subsystem, but it is not production-at-scale ready. The next safest work is not live mailbox integration or broader feature expansion; it is upload bounding, ingest/PDF queueing, storage lifecycle hardening, production deploy verification, and restore/load proof.
+CreditRegulatorPro has a strong deterministic compliance core and a notably hardened response-processing subsystem, but it is not production-at-scale ready. The next safest work is not live mailbox integration or broader feature expansion; it is ingest/PDF queueing, storage lifecycle hardening, ingest/PDF/storage observability, and restore/load proof.
