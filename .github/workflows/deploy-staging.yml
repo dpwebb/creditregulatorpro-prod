@@ -281,7 +281,10 @@ jobs:
                         limit 1
                       `;
                       const adminId = Number(rows[0]?.id);
-                      if (!Number.isInteger(adminId) || adminId <= 0) return;
+                      if (!Number.isInteger(adminId) || adminId <= 0) {
+                        await sql.end({ timeout: 5 });
+                        process.exit(0);
+                      }
 
                       const disabledHash = await hash(`disabled-${randomBytes(32).toString("hex")}`, 10);
                       if (await tableExists("user_passwords")) {
