@@ -340,19 +340,27 @@ jobs:
                     }
           NODE
                     cleanup_status="$?"
-                    rm -f \
-                      /tmp/response-auth-cleanup.log \
-                      /tmp/response-auth-outcome-fixture.json \
-                      /tmp/response-auth-outcome-fixture.env \
-                      /tmp/response-auth-outcome-smoke.json
                     if [ "$cleanup_status" -ne 0 ]; then
                       echo "Synthetic response auth smoke admin neutralization failed."
+                      if [ -s /tmp/response-auth-cleanup.log ]; then
+                        sed -E "s#postgres(ql)?://[^[:space:]]+#postgres://[REDACTED]#g; s#(floot_built_app_session=)[^;[:space:]]+#\1[REDACTED]#g; s#(password|Cookie|Authorization|token|apiKey|privateKey|databaseUrl)[^[:space:]]+#\1=[REDACTED]#gi" /tmp/response-auth-cleanup.log | tail -20
+                      fi
                       if [ "$smoke_status" -eq 0 ]; then
+                        rm -f \
+                          /tmp/response-auth-cleanup.log \
+                          /tmp/response-auth-outcome-fixture.json \
+                          /tmp/response-auth-outcome-fixture.env \
+                          /tmp/response-auth-outcome-smoke.json
                         exit "$cleanup_status"
                       fi
                     else
                       echo "Synthetic response auth smoke admin neutralized."
                     fi
+                    rm -f \
+                      /tmp/response-auth-cleanup.log \
+                      /tmp/response-auth-outcome-fixture.json \
+                      /tmp/response-auth-outcome-fixture.env \
+                      /tmp/response-auth-outcome-smoke.json
                     exit "$smoke_status"
                   }
                   trap cleanup_response_auth_smoke EXIT
