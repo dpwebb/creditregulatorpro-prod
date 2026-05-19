@@ -1382,8 +1382,29 @@ describeIfLocalDb("response document capture endpoints", () => {
     `.execute(db);
     expect(afterDryRunProcessing.rows[0]?.count).toBe(beforeProcessing.rows[0]?.count);
 
+    await expect(runResponseProcessingReplay({
+      mode: "apply",
+      actorUserId: scenario.admin.id,
+      filters: { responseId: replayableId },
+    })).rejects.toThrow(/confirmApply/i);
+
+    await expect(runResponseProcessingReplay({
+      mode: "apply",
+      confirmApply: true,
+      filters: { responseId: replayableId },
+    })).rejects.toThrow(/actorUserId/i);
+
+    await expect(runResponseProcessingReplay({
+      filters: { classification: "unsupported_response_state" as any },
+    })).rejects.toThrow(/classification/i);
+
+    await expect(runResponseProcessingReplay({
+      filters: { startDate: "not-a-date" },
+    })).rejects.toThrow(/valid date/i);
+
     const apply = await runResponseProcessingReplay({
       mode: "apply",
+      confirmApply: true,
       actorUserId: scenario.admin.id,
       filters: { responseId: replayableId },
     });
@@ -1416,7 +1437,17 @@ describeIfLocalDb("response document capture endpoints", () => {
     expect(replayEventMetadata?.replay).toMatchObject({
       replaySource: RESPONSE_REPLAY_TOOL_VERSION,
       replayMode: "apply",
+      actorUserId: scenario.admin.id,
       responseTextStored: false,
+    });
+    const deterministicExtractionValue =
+      replayEvent.rows[0]?.deterministic_extraction ?? replayEvent.rows[0]?.deterministicExtraction;
+    const deterministicExtraction =
+      typeof deterministicExtractionValue === "string" ? JSON.parse(deterministicExtractionValue) : deterministicExtractionValue;
+    expect(deterministicExtraction).toMatchObject({
+      replaySource: RESPONSE_REPLAY_TOOL_VERSION,
+      replayMode: "apply",
+      replayActorUserId: scenario.admin.id,
     });
 
     const audit = await db

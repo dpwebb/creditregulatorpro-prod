@@ -37,6 +37,7 @@ export type ResponseReplayFilters = {
 
 export type ResponseReplayOptions = {
   mode?: ResponseReplayMode;
+  confirmApply?: boolean;
   filters?: ResponseReplayFilters;
   actorUserId?: number | null;
 };
@@ -161,6 +162,18 @@ type ReplayRow = {
   latestUncertaintyCodes: string[];
 };
 
+const RESPONSE_REPLAY_CLASSIFICATIONS = new Set<ResponseClassification>([
+  "verified_deleted",
+  "updated",
+  "remains",
+  "frivolous",
+  "unable_to_verify",
+  "duplicate",
+  "suspicious_non_compliant",
+  "unknown_manual_review",
+]);
+const SAFE_REPLAY_FILTER_TOKEN_PATTERN = /^[a-zA-Z0-9_.:-]{1,80}$/;
+
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
@@ -209,16 +222,85 @@ function toIso(value: Date | string): string {
   return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
 }
 
+function normalizeReplayMode(value: unknown): ResponseReplayMode {
+  if (value === undefined || value === null) return "dry_run";
+  if (value === "dry_run" || value === "apply") return value;
+  throw new Error("Response replay mode must be dry_run or apply.");
+}
+
+function normalizePositiveInteger(value: unknown, fieldName: string): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Response replay ${fieldName} filter must be a positive integer.`);
+  }
+  return parsed;
+}
+
 function normalizedLimit(value: unknown): number {
-  const parsed = Number(value ?? 500);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 500;
-  return Math.min(Math.trunc(parsed), 1000);
+  if (value === undefined || value === null || value === "") return 500;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 1000) {
+    throw new Error("Response replay limit filter must be an integer from 1 to 1000.");
+  }
+  return parsed;
+}
+
+function normalizeReplayDate(value: unknown, fieldName: string): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Response replay ${fieldName} filter must be a valid date.`);
+  }
+  return date.toISOString();
+}
+
+function normalizeReplaySourceType(value: unknown): ResponseReplaySourceType | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const sourceType = String(value).trim();
+  if (!SAFE_REPLAY_FILTER_TOKEN_PATTERN.test(sourceType)) {
+    throw new Error("Response replay sourceType filter must be a safe source token.");
+  }
+  return sourceType;
+}
+
+function normalizeReplayClassification(value: unknown): ResponseClassification | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (!RESPONSE_REPLAY_CLASSIFICATIONS.has(value as ResponseClassification)) {
+    throw new Error("Response replay classification filter is unsupported.");
+  }
+  return value as ResponseClassification;
+}
+
+function normalizeReplayBoolean(value: unknown, fieldName: string): boolean | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "boolean") {
+    throw new Error(`Response replay ${fieldName} filter must be a boolean.`);
+  }
+  return value;
 }
 
 function normalizeFilters(filters: ResponseReplayFilters | undefined): ResponseReplayFilters {
+  const userId = normalizePositiveInteger(filters?.userId, "userId");
+  const consumerId = normalizePositiveInteger(filters?.consumerId, "consumerId");
+  if (userId !== undefined && consumerId !== undefined && userId !== consumerId) {
+    throw new Error("Response replay userId and consumerId filters must match when both are provided.");
+  }
+  const startDate = normalizeReplayDate(filters?.startDate, "startDate");
+  const endDate = normalizeReplayDate(filters?.endDate, "endDate");
+  if (startDate && endDate && new Date(startDate).getTime() >= new Date(endDate).getTime()) {
+    throw new Error("Response replay startDate filter must be before endDate.");
+  }
   return {
-    ...filters,
-    userId: filters?.consumerId ?? filters?.userId,
+    userId: consumerId ?? userId,
+    consumerId: undefined,
+    packetId: normalizePositiveInteger(filters?.packetId, "packetId"),
+    responseId: normalizePositiveInteger(filters?.responseId, "responseId"),
+    sourceType: normalizeReplaySourceType(filters?.sourceType),
+    classification: normalizeReplayClassification(filters?.classification),
+    manualReviewRequired: normalizeReplayBoolean(filters?.manualReviewRequired, "manualReviewRequired"),
+    startDate,
+    endDate,
     limit: normalizedLimit(filters?.limit),
   };
 }
@@ -409,6 +491,7 @@ async function appendReplayProcessingEvent(params: {
       replayedAt: params.replayedAt,
       replaySource: RESPONSE_REPLAY_TOOL_VERSION,
       replayMode: "apply",
+      actorUserId: params.actorUserId,
       originalLatestProcessingEventId: params.row.latestProcessingEventId,
       originalParserVersion: params.row.latestParserVersion,
       originalClassifierRuleId: params.row.latestClassifierRuleId,
@@ -424,6 +507,7 @@ async function appendReplayProcessingEvent(params: {
     replayedAt: params.replayedAt,
     replaySource: RESPONSE_REPLAY_TOOL_VERSION,
     replayMode: "apply",
+    replayActorUserId: params.actorUserId,
   };
 
   const result = await sql<{ id: string | number }>`
@@ -529,6 +613,7 @@ async function auditReplayApply(params: {
       replayMode: "apply",
       replaySource: RESPONSE_REPLAY_TOOL_VERSION,
       replayedAt: params.replayedAt,
+      actorUserId: params.actorUserId,
       parserVersion: params.processing.parserVersion,
       classifierRuleId: params.processing.classifierRuleId,
       classification: params.processing.classification,
@@ -555,13 +640,15 @@ function incrementReason(reasons: Map<ResponseReplayReasonCount["reason"], numbe
 }
 
 export async function runResponseProcessingReplay(options: ResponseReplayOptions = {}): Promise<ResponseReplayRunResult> {
-  await ensureResponseDocumentSchema();
-  const mode = options.mode ?? "dry_run";
+  const mode = normalizeReplayMode(options.mode);
+  const filters = normalizeFilters(options.filters);
+  if (mode === "apply" && options.confirmApply !== true) {
+    throw new Error("Response replay apply mode requires explicit confirmApply.");
+  }
   if (mode === "apply" && (!Number.isInteger(options.actorUserId) || Number(options.actorUserId) <= 0)) {
     throw new Error("Response replay apply mode requires a positive actorUserId.");
   }
-
-  const filters = normalizeFilters(options.filters);
+  await ensureResponseDocumentSchema();
   const rows = await loadReplayRows(filters);
   const generatedAt = new Date().toISOString();
   const reasonCounts = new Map<ResponseReplayReasonCount["reason"], number>();

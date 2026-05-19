@@ -7,6 +7,7 @@ import {
   type ResponseReplayFilters,
   type ResponseReplayMode,
 } from "../helpers/responseReplayService";
+import type { ResponseClassification } from "../helpers/responseClassificationEngine";
 
 export type ResponseReplayCliOptions = {
   mode: ResponseReplayMode;
@@ -20,6 +21,18 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
+const RESPONSE_REPLAY_CLASSIFICATIONS = new Set<ResponseClassification>([
+  "verified_deleted",
+  "updated",
+  "remains",
+  "frivolous",
+  "unable_to_verify",
+  "duplicate",
+  "suspicious_non_compliant",
+  "unknown_manual_review",
+]);
+const SAFE_FILTER_TOKEN_PATTERN = /^[a-zA-Z0-9_.:-]{1,80}$/;
+
 function parsePositiveInt(value: string | undefined, flag: string): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -32,6 +45,36 @@ function parseBool(value: string | undefined, flag: string): boolean {
   if (value === "true") return true;
   if (value === "false") return false;
   fail(`${flag} requires true or false.`);
+}
+
+function parseLimit(value: string | undefined, flag: string): number {
+  const parsed = parsePositiveInt(value, flag);
+  if (parsed > 1000) fail(`${flag} must be 1000 or less.`);
+  return parsed;
+}
+
+function parseSafeToken(value: string | undefined, flag: string): string {
+  const token = String(value ?? "").trim();
+  if (!SAFE_FILTER_TOKEN_PATTERN.test(token)) {
+    fail(`${flag} requires a safe token containing only letters, numbers, underscore, dot, colon, or hyphen.`);
+  }
+  return token;
+}
+
+function parseClassification(value: string | undefined, flag: string): ResponseClassification {
+  const classification = parseSafeToken(value, flag) as ResponseClassification;
+  if (!RESPONSE_REPLAY_CLASSIFICATIONS.has(classification)) {
+    fail(`${flag} is not a supported response classification.`);
+  }
+  return classification;
+}
+
+function parseDateFilter(value: string | undefined, flag: string): string {
+  const candidate = String(value ?? "").trim();
+  if (!candidate) fail(`${flag} requires a value.`);
+  const date = new Date(candidate);
+  if (Number.isNaN(date.getTime())) fail(`${flag} requires a valid date.`);
+  return candidate;
 }
 
 function nextValue(args: string[], index: number, flag: string): string {
@@ -113,12 +156,12 @@ export function parseReplayArgs(args: string[]): ResponseReplayCliOptions {
       continue;
     }
     if (arg === "--source-type") {
-      options.filters.sourceType = nextValue(args, index, arg);
+      options.filters.sourceType = parseSafeToken(nextValue(args, index, arg), arg);
       index += 1;
       continue;
     }
     if (arg === "--classification") {
-      options.filters.classification = nextValue(args, index, arg) as ResponseReplayFilters["classification"];
+      options.filters.classification = parseClassification(nextValue(args, index, arg), arg);
       index += 1;
       continue;
     }
@@ -128,17 +171,17 @@ export function parseReplayArgs(args: string[]): ResponseReplayCliOptions {
       continue;
     }
     if (arg === "--start-date") {
-      options.filters.startDate = nextValue(args, index, arg);
+      options.filters.startDate = parseDateFilter(nextValue(args, index, arg), arg);
       index += 1;
       continue;
     }
     if (arg === "--end-date") {
-      options.filters.endDate = nextValue(args, index, arg);
+      options.filters.endDate = parseDateFilter(nextValue(args, index, arg), arg);
       index += 1;
       continue;
     }
     if (arg === "--limit") {
-      options.filters.limit = parsePositiveInt(nextValue(args, index, arg), arg);
+      options.filters.limit = parseLimit(nextValue(args, index, arg), arg);
       index += 1;
       continue;
     }
@@ -185,6 +228,7 @@ async function main() {
   const options = parseReplayArgs(process.argv.slice(2));
   const result = await runResponseProcessingReplay({
     mode: options.mode,
+    confirmApply: options.confirmApply,
     actorUserId: options.actorUserId,
     filters: options.filters,
   });

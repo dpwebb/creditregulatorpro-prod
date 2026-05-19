@@ -50,6 +50,15 @@ describe("response processing replay script", () => {
     expect(parseReplayArgs(["--apply", "--confirm-apply", "--actor-user-id", "9"]).mode).toBe("apply");
   });
 
+  it("rejects malformed filters before replay execution", () => {
+    expect(() => parseReplayArgs(["--classification", "not_a_response_state"])).toThrow(/supported response classification/i);
+    expect(() => parseReplayArgs(["--source-type", "manual admin raw text"])).toThrow(/safe token/i);
+    expect(() => parseReplayArgs(["--manual-review-required", "maybe"])).toThrow(/true or false/i);
+    expect(() => parseReplayArgs(["--start-date", "not-a-date"])).toThrow(/valid date/i);
+    expect(() => parseReplayArgs(["--limit", "1001"])).toThrow(/1000 or less/i);
+    expect(() => parseReplayArgs(["--response-id", "0"])).toThrow(/positive integer/i);
+  });
+
   it("keeps replay tooling out of live mailbox and source-truth paths", () => {
     const source = [
       "helpers/responseReplayService.ts",
