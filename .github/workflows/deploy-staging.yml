@@ -211,13 +211,21 @@ jobs:
 
             wait_for_staging_health() {
               local label="$1"
+              local health_url="https://staging.creditregulatorpro.com/login"
+              local status_code
               for attempt in $(seq 1 30); do
-                if curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com/login; then
-                  return 0
+                if status_code="$(curl -k -sS -o /dev/null -w '%{http_code}' "$health_url" 2>/dev/null)"; then
+                  if printf '%s' "$status_code" | grep -Eq '^[23][0-9][0-9]$'; then
+                    echo "Staging health check ${label} response auth smokes passed on attempt ${attempt}."
+                    return 0
+                  fi
+                else
+                  status_code="curl_error"
                 fi
+                echo "Staging health check ${label} response auth smokes retry ${attempt}/30 returned HTTP ${status_code}; retrying until the public login route is ready."
                 sleep 2
               done
-              echo "Staging health check failed ${label} response auth smokes."
+              echo "Staging health check failed ${label} response auth smokes after 30 attempts."
               return 1
             }
 
