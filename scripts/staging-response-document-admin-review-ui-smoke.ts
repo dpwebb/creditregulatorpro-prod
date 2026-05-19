@@ -82,6 +82,10 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT = [
   "Parse Response",
 ] as const;
 
+export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT = [
+  "This page does not activate regulation runtime truth.",
+] as const;
+
 export const FORBIDDEN_RESPONSE_ADMIN_REVIEW_UI_ENDPOINTS = [
   { method: "POST", path: "/_api/responses/capture" },
   { method: "POST", path: "/_api/parser/run" },
@@ -401,12 +405,18 @@ export function assertNoForbiddenEndpointCalls(observedRequests: string[]): void
 }
 
 export function assertNoForbiddenVisibleText(text: string): void {
+  let scanText = text;
+  for (const allowedPhrase of RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT) {
+    const escapedAllowed = allowedPhrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    scanText = scanText.replace(new RegExp(escapedAllowed, "gi"), "");
+  }
+
   for (const phrase of RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT) {
     const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = ["Demand", "Enforce", "Activate"].includes(phrase)
       ? new RegExp(`\\b${escaped}\\b`, "i")
       : new RegExp(escaped, "i");
-    if (pattern.test(text)) throw new Error(`Forbidden response admin-review UI text found: ${phrase}.`);
+    if (pattern.test(scanText)) throw new Error(`Forbidden response admin-review UI text found: ${phrase}.`);
   }
 }
 

@@ -13,6 +13,7 @@ import {
   FORBIDDEN_RESPONSE_ADMIN_REVIEW_UI_ENDPOINTS,
   redactSecretText,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_ACTION,
+  RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_CLEANUP_POLICY,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT,
@@ -320,6 +321,13 @@ describe("response document admin-review UI staging smoke harness", () => {
     );
     expect(() => assertNoForbiddenVisibleText("Response documents are evidence and metadata only.")).not.toThrow();
     expect(() => assertNoForbiddenVisibleText("Enforcement mechanisms")).not.toThrow();
+    expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT).toContain(
+      "This page does not activate regulation runtime truth.",
+    );
+    expect(() => assertNoForbiddenVisibleText("This page does not activate regulation runtime truth.")).not.toThrow();
+    expect(() => assertNoForbiddenVisibleText("Activate runtime truth")).toThrow(
+      /Forbidden response admin-review UI text/,
+    );
     expect(() => assertNoForbiddenVisibleText("Mark Corrected")).toThrow(/Forbidden response admin-review UI text/);
   });
 
