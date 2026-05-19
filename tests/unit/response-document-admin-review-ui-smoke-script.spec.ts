@@ -240,7 +240,8 @@ describe("response document admin-review UI staging smoke harness", () => {
     expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT).toEqual(
       expect.arrayContaining([
         "Response Documents",
-        "Response documents are evidence and metadata only.",
+        "Response documents keep immutable evidence plus append-only deterministic processing.",
+        "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
         "No mailbox, Gmail, IMAP, or inbox integration is used.",
       ]),
     );
@@ -319,16 +320,16 @@ describe("response document admin-review UI staging smoke harness", () => {
         "Parse Response",
       ]),
     );
-    expect(() => assertNoForbiddenVisibleText("Response documents are evidence and metadata only.")).not.toThrow();
+    expect(() => assertNoForbiddenVisibleText("Response documents keep immutable evidence plus append-only deterministic processing.")).not.toThrow();
     expect(() => assertNoForbiddenVisibleText("Enforcement mechanisms")).not.toThrow();
     expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT).toContain(
       "This page does not activate regulation runtime truth.",
     );
     expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT).toContain(
-      "This page does not parse response documents.",
+      "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
     );
     expect(() => assertNoForbiddenVisibleText("This page does not activate regulation runtime truth.")).not.toThrow();
-    expect(() => assertNoForbiddenVisibleText("This page does not parse response documents.")).not.toThrow();
+    expect(() => assertNoForbiddenVisibleText("Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.")).not.toThrow();
     expect(() => assertNoForbiddenVisibleText("Activate runtime truth")).toThrow(
       /Forbidden response admin-review UI text/,
     );

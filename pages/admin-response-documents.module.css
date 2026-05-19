@@ -40,7 +40,9 @@
 .listPanel,
 .detailPanel,
 .responseCard,
-.reviewPanel {
+.reviewPanel,
+.processingPanel,
+.metricsStrip {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -49,6 +51,45 @@
 .toolbar {
   padding: var(--spacing-4);
   margin-bottom: var(--spacing-5);
+}
+
+.metricsStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--spacing-3);
+  padding: var(--spacing-3);
+  margin-bottom: var(--spacing-5);
+}
+
+.metricCell,
+.metricAlert {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  padding: var(--spacing-3);
+}
+
+.metricAlert {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+  background: color-mix(in srgb, var(--warning) 8%, var(--background));
+}
+
+.metricCell span,
+.metricAlert span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.metricCell strong,
+.metricAlert strong {
+  display: block;
+  color: var(--foreground);
+  font-size: 1.25rem;
+  margin-top: var(--spacing-1);
 }
 
 .toolbarHeader,
@@ -275,6 +316,52 @@
 .warningBox {
   border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
   background: color-mix(in srgb, var(--warning) 8%, var(--card));
+}
+
+.processingSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--spacing-3);
+  color: var(--muted-foreground);
+  font-size: 0.86rem;
+}
+
+.manualReviewFlag {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.processingPanel {
+  padding: var(--spacing-4);
+}
+
+.codeList,
+.rationaleList {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  padding: var(--spacing-3);
+}
+
+.codeList > span,
+.rationaleList > span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-2);
+  text-transform: uppercase;
+}
+
+.rationaleList p {
+  margin: var(--spacing-2) 0 0;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .reviewPanel {

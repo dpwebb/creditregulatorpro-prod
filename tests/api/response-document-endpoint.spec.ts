@@ -47,6 +47,7 @@ let db: Kysely<DB>;
 let captureResponse: EndpointHandle;
 let listResponses: EndpointHandle;
 let getResponse: EndpointHandle;
+let getMetrics: EndpointHandle;
 
 const created = {
   userIds: [] as number[],
@@ -115,9 +116,11 @@ async function cleanupCreatedRows(): Promise<void> {
 
   if (responseIds.length > 0) {
     await db.deleteFrom("auditLog").where("entityType", "=", "SYSTEM").where("entityId", "in", responseIds).execute();
+    await sql`delete from public.response_processing_event where response_event_id in (${sql.join(responseIds)})`.execute(db);
     await db.deleteFrom("bureauResponseEvent").where("id", "in", responseIds).execute();
   }
   if (userIds.length > 0) {
+    await sql`delete from public.response_processing_event where user_id in (${sql.join(userIds)})`.execute(db);
     await db.deleteFrom("bureauResponseEvent").where("userId", "in", userIds).execute();
   }
   if (evidenceAttachmentIds.length > 0) {
@@ -487,6 +490,11 @@ async function get(responseId: number) {
   return { response, parsed: await response.json() };
 }
 
+async function metrics(path = "/_api/responses/metrics?lookbackHours=24") {
+  const response = await getMetrics(getRequest(path));
+  return { response, parsed: await response.json() };
+}
+
 function assertNoSensitiveLeak(value: unknown) {
   const serialized = JSON.stringify(value);
   expect(serialized).not.toContain("123-456-789");
@@ -505,6 +513,7 @@ describeIfLocalDb("response document capture endpoints", () => {
     captureResponse = (await import("../../endpoints/responses/capture_POST")).handle;
     listResponses = (await import("../../endpoints/responses/list_GET")).handle;
     getResponse = (await import("../../endpoints/responses/get_GET")).handle;
+    getMetrics = (await import("../../endpoints/responses/metrics_GET")).handle;
   });
 
   afterEach(async () => {
@@ -517,7 +526,7 @@ describeIfLocalDb("response document capture endpoints", () => {
     await db?.destroy();
   });
 
-  it("creates the response event table idempotently with metadata-only columns and indexes", async () => {
+  it("creates response capture and append-only processing tables idempotently with safe indexes", async () => {
     await (await import("../../helpers/responseDocumentSchema")).ensureResponseDocumentSchema();
     await (await import("../../helpers/responseDocumentSchema")).ensureResponseDocumentSchema();
 
@@ -549,7 +558,15 @@ describeIfLocalDb("response document capture endpoints", () => {
           'created_by',
           'reviewed_by',
           'reviewed_at',
-          'review_notes'
+          'review_notes',
+          'raw_artifact_metadata',
+          'normalized_response_metadata',
+          'latest_processing_event_id',
+          'latest_processing_status',
+          'latest_classification',
+          'latest_classification_confidence',
+          'latest_extraction_source',
+          'latest_requires_manual_review'
         )
       order by column_name
     `.execute(db);
@@ -564,6 +581,49 @@ describeIfLocalDb("response document capture endpoints", () => {
         "response_document_type",
         "response_received_at",
         "response_status",
+        "latest_classification",
+        "latest_requires_manual_review",
+      ]),
+    );
+
+    const processingColumns = await sql<{ column_name: string }>`
+      select column_name
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'response_processing_event'
+        and column_name in (
+          'response_event_id',
+          'user_id',
+          'packet_id',
+          'tradeline_id',
+          'violation_id',
+          'processing_status',
+          'extraction_source',
+          'classifier_rule_id',
+          'parser_version',
+          'classification',
+          'classification_confidence',
+          'requires_manual_review',
+          'uncertainty_codes',
+          'deterministic_extraction',
+          'field_provenance',
+          'rationale',
+          'regulation_references',
+          'readiness_impact',
+          'violation_impact',
+          'idempotency_key'
+        )
+      order by column_name
+    `.execute(db);
+
+    expect(processingColumns.rows.map((row: any) => row.columnName)).toEqual(
+      expect.arrayContaining([
+        "response_event_id",
+        "classification",
+        "classification_confidence",
+        "field_provenance",
+        "readiness_impact",
+        "violation_impact",
       ]),
     );
 
@@ -577,6 +637,19 @@ describeIfLocalDb("response document capture endpoints", () => {
         "bureau_response_event_channel_check",
         "bureau_response_event_document_type_check",
         "bureau_response_event_status_check",
+      ]),
+    );
+
+    const processingConstraints = await sql<{ conname: string }>`
+      select conname
+      from pg_constraint
+      where conrelid = 'public.response_processing_event'::regclass
+    `.execute(db);
+    expect(processingConstraints.rows.map((row) => row.conname)).toEqual(
+      expect.arrayContaining([
+        "response_processing_event_status_check",
+        "response_processing_event_source_check",
+        "response_processing_event_classification_check",
       ]),
     );
   });
@@ -597,6 +670,9 @@ describeIfLocalDb("response document capture endpoints", () => {
       comparisonRunId: scenario.comparisonRunId,
       findingOutcomeId: scenario.findingOutcomeId,
       evidenceAttachmentId: scenario.evidenceAttachmentId,
+      responseSummary: "The bureau says the item remains verified as accurate with no change.",
+      rawArtifactMetadata: { fileName: "synthetic-response.pdf", fileSha256: "a".repeat(64), ocrFallbackUsed: false },
+      normalizedResponseMetadata: { senderType: "bureau", responseFamily: "verified" },
     }));
 
     expect(result.response.status).toBe(200);
@@ -610,9 +686,36 @@ describeIfLocalDb("response document capture endpoints", () => {
       responseChannel: "email",
       responseDocumentType: "bureau_email_response",
       responseStatus: "received",
+      latestClassification: "remains",
+      latestExtractionSource: "deterministic",
+      latestRequiresManualReview: true,
+    });
+    expect(result.parsed.response.latestProcessingEvent).toMatchObject({
+      classification: "remains",
+      extractionSource: "deterministic",
+      processingStatus: "manual_review",
+      packetId: scenario.packetId,
+      tradelineId: scenario.tradelineId,
+      violationId: scenario.findingId,
+      requiresManualReview: true,
+    });
+    expect(result.parsed.response.latestProcessingEvent.fieldProvenance.length).toBeGreaterThan(0);
+    expect(result.parsed.response.latestProcessingEvent.readinessImpact).toMatchObject({
+      readinessGateMutated: false,
+    });
+    expect(result.parsed.response.latestProcessingEvent.violationImpact).toMatchObject({
+      violationTruthMutated: false,
+      linkedViolationId: scenario.findingId,
     });
     expect(JSON.stringify(result.parsed.response)).not.toContain("storageUrl");
     assertNoSensitiveLeak(result.parsed);
+
+    const processingRows = await sql<{ response_event_id: number }>`
+      select response_event_id
+      from public.response_processing_event
+      where response_event_id = ${result.parsed.response.id}
+    `.execute(db);
+    expect(processingRows.rows).toHaveLength(1);
 
     const after = {
       packet: await db.selectFrom("packet").selectAll().where("id", "=", scenario.packetId).executeTakeFirstOrThrow(),
@@ -639,6 +742,13 @@ describeIfLocalDb("response document capture endpoints", () => {
       packetId: scenario.packetId,
       findingOutcomeId: scenario.findingOutcomeId,
       comparisonRunId: scenario.comparisonRunId,
+      responseProcessingStatus: "manual_review",
+      responseClassification: "remains",
+      deterministicExtraction: true,
+      fallbackUsed: false,
+      canonicalFactsMutated: false,
+      violationTruthMutated: false,
+      packetReadyStateChanged: false,
     });
     assertNoSensitiveLeak(audit);
   });
@@ -715,6 +825,13 @@ describeIfLocalDb("response document capture endpoints", () => {
       expect(result.response.status).toBe(400);
       assertNoSensitiveLeak(result.parsed);
     }
+
+    const unsafeMetadata = await capture(captureBody({
+      packetId: scenario.packetId,
+      rawArtifactMetadata: { storageUrl: "s3://private/path?x-amz-signature=secret" },
+    }));
+    expect(unsafeMetadata.response.status).toBe(400);
+    assertNoSensitiveLeak(unsafeMetadata.parsed);
   });
 
   it("lists and gets owner-scoped sanitized responses while admins can read across owners", async () => {
@@ -732,11 +849,24 @@ describeIfLocalDb("response document capture endpoints", () => {
     expect(listed.response.status).toBe(200);
     expect(listed.parsed.total).toBeGreaterThanOrEqual(1);
     expect(listed.parsed.responses.some((item: any) => item.id === responseId)).toBe(true);
+    expect(listed.parsed.responses.find((item: any) => item.id === responseId)).toMatchObject({
+      latestClassification: "unknown_manual_review",
+      latestExtractionSource: "deterministic",
+      latestRequiresManualReview: true,
+    });
     assertNoSensitiveLeak(listed.parsed);
 
     let fetched = await get(responseId);
     expect(fetched.response.status).toBe(200);
     expect(fetched.parsed.response.id).toBe(responseId);
+    expect(fetched.parsed.response.latestProcessingEvent).toMatchObject({
+      classification: "unknown_manual_review",
+      processingStatus: "manual_review",
+      extractionSource: "deterministic",
+      packetId: scenario.packetId,
+      violationId: scenario.findingId,
+      tradelineId: scenario.tradelineId,
+    });
     assertNoSensitiveLeak(fetched.parsed);
 
     auth.user = scenario.other;
@@ -755,6 +885,41 @@ describeIfLocalDb("response document capture endpoints", () => {
     auth.user = scenario.support;
     listed = await list("/_api/responses/list?limit=10");
     expect(listed.response.status).toBe(403);
+  });
+
+  it("exposes admin-only response processing metrics with uncertainty, suspicious, dead-letter, and stall alerts", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.owner;
+    await capture(captureBody({
+      packetId: scenario.packetId,
+      responseSummary: "The response includes no method of verification and no supporting documents.",
+      rawArtifactMetadata: { fileSha256: "b".repeat(64), ocrFallbackUsed: true },
+    }));
+
+    auth.user = scenario.admin;
+    const result = await metrics();
+    expect(result.response.status).toBe(200);
+    expect(result.parsed.metrics.totals.processed).toBeGreaterThanOrEqual(1);
+    expect(result.parsed.metrics.totals.manualReview).toBeGreaterThanOrEqual(1);
+    expect(result.parsed.metrics.totals.suspicious).toBeGreaterThanOrEqual(1);
+    expect(result.parsed.metrics.totals.ocrFallback).toBeGreaterThanOrEqual(1);
+    expect(result.parsed.metrics.alerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "suspicious_response_patterns", active: true }),
+      ]),
+    );
+    expect(result.parsed.metrics.boundaries).toMatchObject({
+      redacted: true,
+      structuredOnly: true,
+      noRawResponseText: true,
+      noCanonicalMutation: true,
+      noPacketReadinessMutation: true,
+    });
+    assertNoSensitiveLeak(result.parsed);
+
+    auth.user = scenario.owner;
+    const denied = await metrics();
+    expect(denied.response.status).toBe(403);
   });
 
   it("keeps response capture source boundaries away from parser, OCR, packet, violation, runtime truth, and override paths", () => {

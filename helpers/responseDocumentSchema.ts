@@ -118,6 +118,124 @@ export function ensureResponseDocumentSchema(): Promise<void> {
         create index if not exists idx_bureau_response_event_normalized_hash
           on public.bureau_response_event(normalized_response_hash)
       `.execute(db);
+      await sql`
+        alter table public.bureau_response_event
+          add column if not exists raw_artifact_metadata jsonb not null default '{}'::jsonb,
+          add column if not exists normalized_response_metadata jsonb not null default '{}'::jsonb,
+          add column if not exists latest_processing_event_id bigint null,
+          add column if not exists latest_processing_status text not null default 'pending',
+          add column if not exists latest_classification text not null default 'unknown_manual_review',
+          add column if not exists latest_classification_confidence numeric not null default 0,
+          add column if not exists latest_extraction_source text not null default 'deterministic',
+          add column if not exists latest_requires_manual_review boolean not null default true,
+          add column if not exists latest_processing_created_at timestamptz null
+      `.execute(db);
+      await sql`
+        create table if not exists public.response_processing_event (
+          id bigserial primary key,
+          response_event_id bigint not null,
+          user_id bigint not null,
+          packet_id bigint null,
+          dispute_packet_finding_id bigint null,
+          finding_outcome_id bigint null,
+          comparison_run_id bigint null,
+          bureau_id bigint null,
+          agency_id bigint null,
+          tradeline_id bigint null,
+          violation_id bigint null,
+          processing_kind text not null default 'deterministic_response_classification',
+          processing_status text not null default 'manual_review',
+          extraction_source text not null default 'deterministic',
+          classifier_rule_id text not null,
+          parser_version text not null,
+          classification text not null default 'unknown_manual_review',
+          classification_confidence numeric not null default 0,
+          confidence_threshold numeric not null default 0.8,
+          requires_manual_review boolean not null default true,
+          uncertainty_codes jsonb not null default '[]'::jsonb,
+          raw_artifact_metadata jsonb not null default '{}'::jsonb,
+          normalized_response_metadata jsonb not null default '{}'::jsonb,
+          deterministic_extraction jsonb not null default '{}'::jsonb,
+          field_provenance jsonb not null default '[]'::jsonb,
+          rationale jsonb not null default '[]'::jsonb,
+          regulation_references jsonb not null default '[]'::jsonb,
+          readiness_impact jsonb not null default '{}'::jsonb,
+          violation_impact jsonb not null default '{}'::jsonb,
+          idempotency_key text not null,
+          normalized_response_hash text null,
+          original_evidence_hash text null,
+          fallback_requested boolean not null default false,
+          fallback_allowed boolean not null default false,
+          fallback_reason text null,
+          dead_letter_reason text null,
+          created_at timestamptz not null default now(),
+          created_by bigint null,
+          constraint response_processing_event_status_check
+            check (processing_status in ('completed', 'manual_review', 'dead_letter', 'failed', 'skipped')),
+          constraint response_processing_event_source_check
+            check (extraction_source in ('deterministic', 'ai_fallback', 'manual_admin_review')),
+          constraint response_processing_event_classification_check
+            check (classification in ('verified_deleted', 'updated', 'remains', 'frivolous', 'unable_to_verify', 'duplicate', 'suspicious_non_compliant', 'unknown_manual_review')),
+          constraint response_processing_event_response_event_id_fkey
+            foreign key (response_event_id) references public.bureau_response_event(id) on delete cascade,
+          constraint response_processing_event_user_id_fkey
+            foreign key (user_id) references public.users(id) on delete restrict,
+          constraint response_processing_event_packet_id_fkey
+            foreign key (packet_id) references public.packet(id) on delete set null,
+          constraint response_processing_event_dispute_packet_finding_id_fkey
+            foreign key (dispute_packet_finding_id) references public.dispute_packet_findings(id) on delete set null,
+          constraint response_processing_event_finding_outcome_id_fkey
+            foreign key (finding_outcome_id) references public.finding_outcome(id) on delete set null,
+          constraint response_processing_event_comparison_run_id_fkey
+            foreign key (comparison_run_id) references public.outcome_comparison_run(id) on delete set null,
+          constraint response_processing_event_bureau_id_fkey
+            foreign key (bureau_id) references public.bureau(id) on delete set null,
+          constraint response_processing_event_agency_id_fkey
+            foreign key (agency_id) references public.licensed_collection_agency(id) on delete set null,
+          constraint response_processing_event_tradeline_id_fkey
+            foreign key (tradeline_id) references public.tradeline(id) on delete set null,
+          constraint response_processing_event_violation_id_fkey
+            foreign key (violation_id) references public.creditor_obligation_test(id) on delete set null,
+          constraint response_processing_event_created_by_fkey
+            foreign key (created_by) references public.users(id) on delete set null
+        )
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_response_event_id
+          on public.response_processing_event(response_event_id, created_at desc)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_user_created_at
+          on public.response_processing_event(user_id, created_at desc)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_packet_id
+          on public.response_processing_event(packet_id)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_tradeline_id
+          on public.response_processing_event(tradeline_id)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_violation_id
+          on public.response_processing_event(violation_id)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_classification
+          on public.response_processing_event(classification)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_status
+          on public.response_processing_event(processing_status)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_manual_review
+          on public.response_processing_event(requires_manual_review)
+      `.execute(db);
+      await sql`
+        create index if not exists idx_response_processing_event_idempotency
+          on public.response_processing_event(idempotency_key)
+      `.execute(db);
     })();
   }
 

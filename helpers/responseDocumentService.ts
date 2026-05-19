@@ -1,15 +1,23 @@
 import { createHash } from "crypto";
-import { type Selectable } from "kysely";
+import { sql, type Selectable } from "kysely";
 
 import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { logAudit } from "./auditLogger";
 import { ensureResponseDocumentSchema } from "./responseDocumentSchema";
+import {
+  classifyResponseDocument,
+  type ResponseClassification,
+  type ResponseExtractionSource,
+  type ResponseProcessingResult,
+  type ResponseProcessingStatus,
+} from "./responseClassificationEngine";
 import type {
   BureauResponseChannel,
   BureauResponseDocumentType,
   BureauResponseEvent,
   BureauResponseStatus,
+  Json,
   UserRole,
 } from "./schema";
 
@@ -40,6 +48,8 @@ export type CaptureResponseDocumentInput = {
   normalizedResponseHash?: string | null;
   responseSummary?: string | null;
   responseStatus?: BureauResponseStatus;
+  rawArtifactMetadata?: Record<string, Json> | null;
+  normalizedResponseMetadata?: Record<string, Json> | null;
 };
 
 export type ResponseDocumentFilters = {
@@ -102,12 +112,63 @@ export type ResponseDocumentRecord = {
   normalizedResponseHash: string | null;
   responseSummary: string | null;
   responseStatus: BureauResponseStatus;
+  rawArtifactMetadata: Record<string, Json>;
+  normalizedResponseMetadata: Record<string, Json>;
+  latestProcessingEventId: number | null;
+  latestProcessingStatus: ResponseProcessingStatus | "pending";
+  latestClassification: ResponseClassification;
+  latestClassificationConfidence: number;
+  latestExtractionSource: ResponseExtractionSource;
+  latestRequiresManualReview: boolean;
+  latestProcessingCreatedAt: Date | string | null;
+  latestProcessingEvent: ResponseProcessingEventRecord | null;
   createdBy: number | null;
   reviewedBy: number | null;
   reviewedAt: Date | string | null;
   reviewNotes: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+};
+
+export type ResponseProcessingEventRecord = {
+  id: number;
+  responseEventId: number;
+  userId: number;
+  packetId: number | null;
+  disputePacketFindingId: number | null;
+  findingOutcomeId: number | null;
+  comparisonRunId: number | null;
+  bureauId: number | null;
+  agencyId: number | null;
+  tradelineId: number | null;
+  violationId: number | null;
+  processingKind: string;
+  processingStatus: ResponseProcessingStatus;
+  extractionSource: ResponseExtractionSource;
+  classifierRuleId: string;
+  parserVersion: string;
+  classification: ResponseClassification;
+  classificationConfidence: number;
+  confidenceThreshold: number;
+  requiresManualReview: boolean;
+  uncertaintyCodes: Json[];
+  rawArtifactMetadata: Record<string, Json>;
+  normalizedResponseMetadata: Record<string, Json>;
+  deterministicExtraction: Record<string, Json>;
+  fieldProvenance: Json[];
+  rationale: Json[];
+  regulationReferences: Json[];
+  readinessImpact: Record<string, Json>;
+  violationImpact: Record<string, Json>;
+  idempotencyKey: string;
+  normalizedResponseHash: string | null;
+  originalEvidenceHash: string | null;
+  fallbackRequested: boolean;
+  fallbackAllowed: boolean;
+  fallbackReason: string | null;
+  deadLetterReason: string | null;
+  createdAt: Date | string;
+  createdBy: number | null;
 };
 
 const TEXT_LIMITS = {
@@ -129,6 +190,10 @@ const LEGAL_CONCLUSION_PATTERN =
   /\b(equifax admitted fault|the bureau corrected the item|the bureau violated the law|you won|entitled to damages|this proves correction|this is legal proof|the agency must pay|confirmed legal violation|legal violation|demand|enforce)\b/i;
 const REVIEW_NOTE_FORBIDDEN_PATTERN = /\b(mark corrected|mark removed|mark unchanged)\b/i;
 const HASH_PATTERN = /^[a-f0-9]{32,128}$/i;
+const SAFE_METADATA_KEY_PATTERN = /^[a-zA-Z0-9_.:-]{1,64}$/;
+const SAFE_METADATA_MAX_DEPTH = 4;
+const SAFE_METADATA_MAX_KEYS = 60;
+const SAFE_METADATA_MAX_ARRAY_ITEMS = 30;
 
 const RESPONSE_ADMIN_REVIEW_ACTIONS: ResponseDocumentAdminReviewAction[] = [
   "mark_needs_review",
@@ -209,6 +274,56 @@ function sanitizeHash(value: string | null | undefined): string | null {
   return trimmed.toLowerCase();
 }
 
+function sanitizeMetadataValue(value: unknown, fieldPath: string, depth: number): Json {
+  if (depth > SAFE_METADATA_MAX_DEPTH) {
+    throw new BusinessRuleError(`${fieldPath} metadata is too deeply nested.`, 400);
+  }
+  if (value === null) return null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new BusinessRuleError(`${fieldPath} metadata includes a non-finite number.`, 400);
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (trimmed.length > 500) {
+      throw new BusinessRuleError(`${fieldPath} metadata string must be 500 characters or fewer.`, 400);
+    }
+    return assertSafeText(trimmed, fieldPath);
+  }
+  if (Array.isArray(value)) {
+    if (value.length > SAFE_METADATA_MAX_ARRAY_ITEMS) {
+      throw new BusinessRuleError(`${fieldPath} metadata array has too many items.`, 400);
+    }
+    return value.map((item, index) => sanitizeMetadataValue(item, `${fieldPath}.${index}`, depth + 1));
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>);
+    if (entries.length > SAFE_METADATA_MAX_KEYS) {
+      throw new BusinessRuleError(`${fieldPath} metadata has too many keys.`, 400);
+    }
+    const safe: Record<string, Json> = {};
+    for (const [key, nestedValue] of entries) {
+      if (!SAFE_METADATA_KEY_PATTERN.test(key) || STORAGE_SECRET_PATTERN.test(key) || SECRET_PATTERN.test(key)) {
+        throw new BusinessRuleError(`${fieldPath} metadata includes an unsafe key.`, 400);
+      }
+      safe[key] = sanitizeMetadataValue(nestedValue, `${fieldPath}.${key}`, depth + 1);
+    }
+    return safe;
+  }
+  throw new BusinessRuleError(`${fieldPath} metadata includes unsupported content.`, 400);
+}
+
+function sanitizeMetadataObject(value: Record<string, Json> | null | undefined, fieldName: string): Record<string, Json> {
+  if (value === null || value === undefined) return {};
+  const sanitized = sanitizeMetadataValue(value, fieldName, 0);
+  if (sanitized === null || Array.isArray(sanitized) || typeof sanitized !== "object") {
+    throw new BusinessRuleError(`${fieldName} must be an object.`, 400);
+  }
+  return sanitized as Record<string, Json>;
+}
+
 function sanitizeReviewNotes(value: string | null | undefined, required: boolean): string | null {
   const trimmed = String(value ?? "").trim();
   if (!trimmed) {
@@ -238,6 +353,8 @@ export function sanitizeResponseMetadata(input: CaptureResponseDocumentInput) {
   const responseSenderDomain = sanitizeOptionalText(input.responseSenderDomain, "responseSenderDomain", { lower: true });
   const responseReferenceId = sanitizeOptionalText(input.responseReferenceId, "responseReferenceId");
   const responseSummary = sanitizeOptionalText(input.responseSummary, "responseSummary");
+  const rawArtifactMetadata = sanitizeMetadataObject(input.rawArtifactMetadata, "rawArtifactMetadata");
+  const normalizedResponseMetadata = sanitizeMetadataObject(input.normalizedResponseMetadata, "normalizedResponseMetadata");
   const suppliedHash = sanitizeHash(input.normalizedResponseHash);
   const normalizedResponseHash = suppliedHash ?? computedHash([
     input.responseChannel,
@@ -248,6 +365,8 @@ export function sanitizeResponseMetadata(input: CaptureResponseDocumentInput) {
     responseSubject,
     responseReferenceId,
     responseSummary,
+    JSON.stringify(rawArtifactMetadata),
+    JSON.stringify(normalizedResponseMetadata),
   ]);
 
   return {
@@ -258,10 +377,83 @@ export function sanitizeResponseMetadata(input: CaptureResponseDocumentInput) {
     responseReferenceId,
     responseSummary,
     normalizedResponseHash,
+    rawArtifactMetadata,
+    normalizedResponseMetadata,
   };
 }
 
-function mapResponseDocument(row: Selectable<BureauResponseEvent>): ResponseDocumentRecord {
+function jsonRecord(value: unknown): Record<string, Json> {
+  if (typeof value === "string") {
+    try {
+      return jsonRecord(JSON.parse(value));
+    } catch {
+      return {};
+    }
+  }
+  if (!value || Array.isArray(value) || typeof value !== "object") return {};
+  return value as Record<string, Json>;
+}
+
+function jsonArray(value: unknown): Json[] {
+  if (typeof value === "string") {
+    try {
+      return jsonArray(JSON.parse(value));
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(value) ? (value as Json[]) : [];
+}
+
+function toBool(value: unknown, fallback = false): boolean {
+  if (value === null || value === undefined) return fallback;
+  return value === true || value === "true" || value === 1 || value === "1";
+}
+
+function mapProcessingEventRow(row: any): ResponseProcessingEventRecord {
+  return {
+    id: requiredNumber(row.id),
+    responseEventId: requiredNumber(row.responseEventId ?? row.response_event_id),
+    userId: requiredNumber(row.userId ?? row.user_id),
+    packetId: toNumber(row.packetId ?? row.packet_id),
+    disputePacketFindingId: toNumber(row.disputePacketFindingId ?? row.dispute_packet_finding_id),
+    findingOutcomeId: toNumber(row.findingOutcomeId ?? row.finding_outcome_id),
+    comparisonRunId: toNumber(row.comparisonRunId ?? row.comparison_run_id),
+    bureauId: toNumber(row.bureauId ?? row.bureau_id),
+    agencyId: toNumber(row.agencyId ?? row.agency_id),
+    tradelineId: toNumber(row.tradelineId ?? row.tradeline_id),
+    violationId: toNumber(row.violationId ?? row.violation_id),
+    processingKind: row.processingKind ?? row.processing_kind,
+    processingStatus: row.processingStatus ?? row.processing_status,
+    extractionSource: row.extractionSource ?? row.extraction_source,
+    classifierRuleId: row.classifierRuleId ?? row.classifier_rule_id,
+    parserVersion: row.parserVersion ?? row.parser_version,
+    classification: row.classification,
+    classificationConfidence: Number(row.classificationConfidence ?? row.classification_confidence ?? 0),
+    confidenceThreshold: Number(row.confidenceThreshold ?? row.confidence_threshold ?? 0),
+    requiresManualReview: toBool(row.requiresManualReview ?? row.requires_manual_review, true),
+    uncertaintyCodes: jsonArray(row.uncertaintyCodes ?? row.uncertainty_codes),
+    rawArtifactMetadata: jsonRecord(row.rawArtifactMetadata ?? row.raw_artifact_metadata),
+    normalizedResponseMetadata: jsonRecord(row.normalizedResponseMetadata ?? row.normalized_response_metadata),
+    deterministicExtraction: jsonRecord(row.deterministicExtraction ?? row.deterministic_extraction),
+    fieldProvenance: jsonArray(row.fieldProvenance ?? row.field_provenance),
+    rationale: jsonArray(row.rationale),
+    regulationReferences: jsonArray(row.regulationReferences ?? row.regulation_references),
+    readinessImpact: jsonRecord(row.readinessImpact ?? row.readiness_impact),
+    violationImpact: jsonRecord(row.violationImpact ?? row.violation_impact),
+    idempotencyKey: row.idempotencyKey ?? row.idempotency_key,
+    normalizedResponseHash: row.normalizedResponseHash ?? row.normalized_response_hash ?? null,
+    originalEvidenceHash: row.originalEvidenceHash ?? row.original_evidence_hash ?? null,
+    fallbackRequested: toBool(row.fallbackRequested ?? row.fallback_requested),
+    fallbackAllowed: toBool(row.fallbackAllowed ?? row.fallback_allowed),
+    fallbackReason: row.fallbackReason ?? row.fallback_reason ?? null,
+    deadLetterReason: row.deadLetterReason ?? row.dead_letter_reason ?? null,
+    createdAt: row.createdAt ?? row.created_at,
+    createdBy: toNumber(row.createdBy ?? row.created_by),
+  };
+}
+
+function mapResponseDocument(row: Selectable<BureauResponseEvent> | any): ResponseDocumentRecord {
   return {
     id: requiredNumber(row.id),
     userId: requiredNumber(row.userId),
@@ -283,6 +475,16 @@ function mapResponseDocument(row: Selectable<BureauResponseEvent>): ResponseDocu
     normalizedResponseHash: row.normalizedResponseHash,
     responseSummary: row.responseSummary,
     responseStatus: row.responseStatus,
+    rawArtifactMetadata: jsonRecord(row.rawArtifactMetadata),
+    normalizedResponseMetadata: jsonRecord(row.normalizedResponseMetadata),
+    latestProcessingEventId: toNumber(row.latestProcessingEventId),
+    latestProcessingStatus: row.latestProcessingStatus ?? "pending",
+    latestClassification: row.latestClassification ?? "unknown_manual_review",
+    latestClassificationConfidence: Number(row.latestClassificationConfidence ?? 0),
+    latestExtractionSource: row.latestExtractionSource ?? "deterministic",
+    latestRequiresManualReview: toBool(row.latestRequiresManualReview, true),
+    latestProcessingCreatedAt: row.latestProcessingCreatedAt ?? null,
+    latestProcessingEvent: null,
     createdBy: toNumber(row.createdBy),
     reviewedBy: toNumber(row.reviewedBy),
     reviewedAt: row.reviewedAt,
@@ -299,6 +501,9 @@ type RelationshipContext = {
   findingOutcomeId: number | null;
   comparisonRunId: number | null;
   bureauId: number | null;
+  agencyId: number | null;
+  tradelineId: number | null;
+  violationId: number | null;
 };
 
 function addCandidate(candidates: Set<number>, value: number | null | undefined) {
@@ -322,23 +527,35 @@ async function validateRelationships(
   let findingOutcomeId = input.findingOutcomeId ?? null;
   let comparisonRunId = input.comparisonRunId ?? null;
   let bureauId = input.bureauId ?? null;
+  let agencyId = input.agencyId ?? null;
+  let tradelineId: number | null = null;
+  let violationId: number | null = null;
 
   if (packetId) {
     const packet = await db
       .selectFrom("packet")
       .leftJoin("tradeline", "tradeline.id", "packet.tradelineId")
-      .select(["packet.id", "packet.userId", "packet.bureauId", "tradeline.userId as tradelineUserId"])
+      .select([
+        "packet.id",
+        "packet.userId",
+        "packet.bureauId",
+        "packet.tradelineId",
+        "packet.creditorObligationTestId",
+        "tradeline.userId as tradelineUserId",
+      ])
       .where("packet.id", "=", packetId)
       .executeTakeFirst();
     if (!packet) throw new BusinessRuleError("Packet not found.", 404);
     addCandidate(candidateUserIds, toNumber(packet.userId) ?? toNumber(packet.tradelineUserId));
     bureauId = bureauId ?? toNumber(packet.bureauId);
+    tradelineId = tradelineId ?? toNumber(packet.tradelineId);
+    violationId = violationId ?? toNumber(packet.creditorObligationTestId);
   }
 
   if (disputePacketFindingId) {
     const finding = await db
       .selectFrom("disputePacketFindings")
-      .select(["id", "disputePacketId", "userId", "bureauId"])
+      .select(["id", "disputePacketId", "userId", "bureauId", "tradelineId", "creditorObligationTestId"])
       .where("id", "=", disputePacketFindingId)
       .executeTakeFirst();
     if (!finding) throw new BusinessRuleError("Packet finding not found.", 404);
@@ -348,6 +565,8 @@ async function validateRelationships(
     packetId = packetId ?? requiredNumber(finding.disputePacketId);
     addCandidate(candidateUserIds, requiredNumber(finding.userId));
     bureauId = bureauId ?? toNumber(finding.bureauId);
+    tradelineId = tradelineId ?? toNumber(finding.tradelineId);
+    violationId = violationId ?? toNumber(finding.creditorObligationTestId);
   }
 
   if (comparisonRunId) {
@@ -365,7 +584,15 @@ async function validateRelationships(
   if (findingOutcomeId) {
     const outcome = await db
       .selectFrom("findingOutcome")
-      .select(["id", "userId", "comparisonRunId", "disputePacketId", "disputePacketFindingId"])
+      .select([
+        "id",
+        "userId",
+        "comparisonRunId",
+        "disputePacketId",
+        "disputePacketFindingId",
+        "previousTradelineId",
+        "creditorObligationTestId",
+      ])
       .where("id", "=", findingOutcomeId)
       .executeTakeFirst();
     if (!outcome) throw new BusinessRuleError("Finding outcome not found.", 404);
@@ -376,6 +603,8 @@ async function validateRelationships(
     comparisonRunId = comparisonRunId ?? requiredNumber(outcome.comparisonRunId);
     packetId = packetId ?? toNumber(outcome.disputePacketId);
     disputePacketFindingId = disputePacketFindingId ?? toNumber(outcome.disputePacketFindingId);
+    tradelineId = tradelineId ?? toNumber(outcome.previousTradelineId);
+    violationId = violationId ?? toNumber(outcome.creditorObligationTestId);
   }
 
   if (input.evidenceAttachmentId) {
@@ -438,6 +667,40 @@ async function validateRelationships(
     if (!agency) throw new BusinessRuleError("Collection agency not found.", 404);
   }
 
+  if (packetId && (!tradelineId || !violationId || !bureauId)) {
+    const packet = await db
+      .selectFrom("packet")
+      .leftJoin("tradeline", "tradeline.id", "packet.tradelineId")
+      .select([
+        "packet.id",
+        "packet.userId",
+        "packet.bureauId",
+        "packet.tradelineId",
+        "packet.creditorObligationTestId",
+        "tradeline.userId as tradelineUserId",
+      ])
+      .where("packet.id", "=", packetId)
+      .executeTakeFirst();
+    if (!packet) throw new BusinessRuleError("Packet not found.", 404);
+    addCandidate(candidateUserIds, toNumber(packet.userId) ?? toNumber(packet.tradelineUserId));
+    bureauId = bureauId ?? toNumber(packet.bureauId);
+    tradelineId = tradelineId ?? toNumber(packet.tradelineId);
+    violationId = violationId ?? toNumber(packet.creditorObligationTestId);
+  }
+
+  if (disputePacketFindingId && (!tradelineId || !violationId || !bureauId)) {
+    const finding = await db
+      .selectFrom("disputePacketFindings")
+      .select(["id", "userId", "bureauId", "tradelineId", "creditorObligationTestId"])
+      .where("id", "=", disputePacketFindingId)
+      .executeTakeFirst();
+    if (!finding) throw new BusinessRuleError("Packet finding not found.", 404);
+    addCandidate(candidateUserIds, requiredNumber(finding.userId));
+    bureauId = bureauId ?? toNumber(finding.bureauId);
+    tradelineId = tradelineId ?? toNumber(finding.tradelineId);
+    violationId = violationId ?? toNumber(finding.creditorObligationTestId);
+  }
+
   if (candidateUserIds.size === 0) {
     if (isAdmin(user)) {
       throw new BusinessRuleError("Admin capture without a linked record requires userId.", 400);
@@ -461,6 +724,9 @@ async function validateRelationships(
     findingOutcomeId,
     comparisonRunId,
     bureauId,
+    agencyId,
+    tradelineId,
+    violationId,
   };
 }
 
@@ -555,6 +821,114 @@ function validateAdminReviewActionLinks(
   }
 }
 
+async function insertResponseProcessingEvent(
+  trx: any,
+  response: ResponseDocumentRecord,
+  links: RelationshipContext,
+  processing: ResponseProcessingResult,
+  safe: ReturnType<typeof sanitizeResponseMetadata>,
+  actorUserId: number,
+): Promise<ResponseProcessingEventRecord> {
+  const result = await sql<any>`
+    insert into public.response_processing_event (
+      response_event_id,
+      user_id,
+      packet_id,
+      dispute_packet_finding_id,
+      finding_outcome_id,
+      comparison_run_id,
+      bureau_id,
+      agency_id,
+      tradeline_id,
+      violation_id,
+      processing_kind,
+      processing_status,
+      extraction_source,
+      classifier_rule_id,
+      parser_version,
+      classification,
+      classification_confidence,
+      confidence_threshold,
+      requires_manual_review,
+      uncertainty_codes,
+      raw_artifact_metadata,
+      normalized_response_metadata,
+      deterministic_extraction,
+      field_provenance,
+      rationale,
+      regulation_references,
+      readiness_impact,
+      violation_impact,
+      idempotency_key,
+      normalized_response_hash,
+      original_evidence_hash,
+      fallback_requested,
+      fallback_allowed,
+      fallback_reason,
+      dead_letter_reason,
+      created_by
+    ) values (
+      ${response.id},
+      ${links.userId},
+      ${links.packetId},
+      ${links.disputePacketFindingId},
+      ${links.findingOutcomeId},
+      ${links.comparisonRunId},
+      ${links.bureauId},
+      ${links.agencyId},
+      ${links.tradelineId},
+      ${links.violationId},
+      ${processing.processingKind},
+      ${processing.processingStatus},
+      ${processing.extractionSource},
+      ${processing.classifierRuleId},
+      ${processing.parserVersion},
+      ${processing.classification},
+      ${processing.classificationConfidence},
+      ${processing.confidenceThreshold},
+      ${processing.requiresManualReview},
+      ${JSON.stringify(processing.uncertaintyCodes)}::jsonb,
+      ${JSON.stringify(safe.rawArtifactMetadata)}::jsonb,
+      ${JSON.stringify(safe.normalizedResponseMetadata)}::jsonb,
+      ${JSON.stringify(processing.deterministicExtraction)}::jsonb,
+      ${JSON.stringify(processing.fieldProvenance)}::jsonb,
+      ${JSON.stringify(processing.rationale)}::jsonb,
+      ${JSON.stringify(processing.regulationReferences)}::jsonb,
+      ${JSON.stringify(processing.readinessImpact)}::jsonb,
+      ${JSON.stringify(processing.violationImpact)}::jsonb,
+      ${processing.idempotencyKey},
+      ${processing.normalizedResponseHash},
+      ${processing.originalEvidenceHash},
+      ${processing.fallbackRequested},
+      ${processing.fallbackAllowed},
+      ${processing.fallbackReason},
+      ${processing.deadLetterReason},
+      ${actorUserId}
+    )
+    returning *
+  `.execute(trx);
+
+  const row = result.rows[0];
+  if (!row) throw new BusinessRuleError("Response processing event was not created.", 500);
+  return mapProcessingEventRow(row);
+}
+
+async function loadLatestProcessingEvents(responseIds: number[]): Promise<Map<number, ResponseProcessingEventRecord>> {
+  if (responseIds.length === 0) return new Map();
+  const result = await sql<any>`
+    select distinct on (response_event_id) *
+    from public.response_processing_event
+    where response_event_id in (${sql.join(responseIds)})
+    order by response_event_id, created_at desc, id desc
+  `.execute(db);
+  const map = new Map<number, ResponseProcessingEventRecord>();
+  for (const row of result.rows) {
+    const event = mapProcessingEventRow(row);
+    map.set(event.responseEventId, event);
+  }
+  return map;
+}
+
 export async function captureResponseDocument(
   input: CaptureResponseDocumentInput,
   user: ResponseDocumentUser,
@@ -565,36 +939,82 @@ export async function captureResponseDocument(
   const safe = sanitizeResponseMetadata(input);
   const now = new Date();
 
-  const inserted = await db
-    .insertInto("bureauResponseEvent")
-    .values({
-      userId: links.userId,
-      packetId: links.packetId,
-      disputePacketFindingId: links.disputePacketFindingId,
-      findingOutcomeId: links.findingOutcomeId,
-      comparisonRunId: links.comparisonRunId,
-      bureauId: links.bureauId ?? input.bureauId ?? null,
-      agencyId: input.agencyId ?? null,
-      responseChannel: input.responseChannel,
-      responseDocumentType: input.responseDocumentType,
-      responseReceivedAt: safe.responseReceivedAt,
-      responseSource: safe.responseSource,
-      responseSubject: safe.responseSubject,
-      responseSenderDomain: safe.responseSenderDomain,
-      responseReferenceId: safe.responseReferenceId,
-      attachmentEvidenceId: input.attachmentEvidenceId ?? null,
-      evidenceAttachmentId: input.evidenceAttachmentId ?? null,
-      normalizedResponseHash: safe.normalizedResponseHash,
-      responseSummary: safe.responseSummary,
-      responseStatus: input.responseStatus ?? "received",
-      createdBy: user.id,
-      createdAt: now,
-      updatedAt: now,
-    } as any)
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  const { record, processing } = await db.transaction().execute(async (trx) => {
+    const inserted = await trx
+      .insertInto("bureauResponseEvent")
+      .values({
+        userId: links.userId,
+        packetId: links.packetId,
+        disputePacketFindingId: links.disputePacketFindingId,
+        findingOutcomeId: links.findingOutcomeId,
+        comparisonRunId: links.comparisonRunId,
+        bureauId: links.bureauId ?? input.bureauId ?? null,
+        agencyId: links.agencyId,
+        responseChannel: input.responseChannel,
+        responseDocumentType: input.responseDocumentType,
+        responseReceivedAt: safe.responseReceivedAt,
+        responseSource: safe.responseSource,
+        responseSubject: safe.responseSubject,
+        responseSenderDomain: safe.responseSenderDomain,
+        responseReferenceId: safe.responseReferenceId,
+        attachmentEvidenceId: input.attachmentEvidenceId ?? null,
+        evidenceAttachmentId: input.evidenceAttachmentId ?? null,
+        normalizedResponseHash: safe.normalizedResponseHash,
+        responseSummary: safe.responseSummary,
+        responseStatus: input.responseStatus ?? "received",
+        rawArtifactMetadata: safe.rawArtifactMetadata,
+        normalizedResponseMetadata: safe.normalizedResponseMetadata,
+        createdBy: user.id,
+        createdAt: now,
+        updatedAt: now,
+      } as any)
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
-  const record = mapResponseDocument(inserted as Selectable<BureauResponseEvent>);
+    const response = mapResponseDocument(inserted as Selectable<BureauResponseEvent>);
+    const processing = classifyResponseDocument({
+      responseEventId: response.id,
+      responseChannel: response.responseChannel,
+      responseDocumentType: response.responseDocumentType,
+      responseStatus: response.responseStatus,
+      responseReceivedAt: response.responseReceivedAt,
+      responseSource: response.responseSource,
+      responseSubject: response.responseSubject,
+      responseSenderDomain: response.responseSenderDomain,
+      responseReferenceId: response.responseReferenceId,
+      responseSummary: response.responseSummary,
+      normalizedResponseHash: response.normalizedResponseHash,
+      attachmentEvidenceId: response.attachmentEvidenceId,
+      evidenceAttachmentId: response.evidenceAttachmentId,
+      rawArtifactMetadata: safe.rawArtifactMetadata,
+      normalizedResponseMetadata: safe.normalizedResponseMetadata,
+      relationships: links,
+    });
+    const processingEvent = await insertResponseProcessingEvent(trx, response, links, processing, safe, user.id);
+    const updated = await trx
+      .updateTable("bureauResponseEvent")
+      .set({
+        latestProcessingEventId: processingEvent.id,
+        latestProcessingStatus: processing.processingStatus,
+        latestClassification: processing.classification,
+        latestClassificationConfidence: processing.classificationConfidence,
+        latestExtractionSource: processing.extractionSource,
+        latestRequiresManualReview: processing.requiresManualReview,
+        latestProcessingCreatedAt: processingEvent.createdAt,
+        updatedAt: now,
+      } as any)
+      .where("id", "=", response.id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      record: {
+        ...mapResponseDocument(updated as Selectable<BureauResponseEvent>),
+        latestProcessingEvent: processingEvent,
+      },
+      processing,
+    };
+  });
 
   await logAudit({
     action: "RESPONSE_RECORDED",
@@ -614,6 +1034,20 @@ export async function captureResponseDocument(
       responseDocumentType: record.responseDocumentType,
       responseStatus: record.responseStatus,
       responseReceivedAt: record.responseReceivedAt,
+      responseProcessingStatus: processing.processingStatus,
+      responseClassification: processing.classification,
+      responseClassificationConfidence: processing.classificationConfidence,
+      responseRequiresManualReview: processing.requiresManualReview,
+      deterministicExtraction: true,
+      fallbackUsed: false,
+      appendOnlyProcessingEventId: record.latestProcessingEventId,
+      tradelineId: links.tradelineId,
+      violationId: links.violationId,
+      responseArtifactsRemainImmutable: true,
+      responseEvidenceOverwritten: false,
+      canonicalFactsMutated: false,
+      violationTruthMutated: false,
+      packetReadyStateChanged: false,
       createdBy: user.id,
     },
     status: "SUCCESS",
@@ -670,9 +1104,14 @@ export async function listResponseDocuments(
     .limit(limit)
     .offset(offset)
     .execute();
+  const responses = rows.map((row) => mapResponseDocument(row as Selectable<BureauResponseEvent>));
+  const processingEvents = await loadLatestProcessingEvents(responses.map((response) => response.id));
+  for (const response of responses) {
+    response.latestProcessingEvent = processingEvents.get(response.id) ?? null;
+  }
 
   return {
-    responses: rows.map((row) => mapResponseDocument(row as Selectable<BureauResponseEvent>)),
+    responses,
     total,
   };
 }
@@ -688,7 +1127,10 @@ export async function getResponseDocument(
   if (!isAdmin(user)) query = query.where("userId", "=", user.id);
   const row = await query.executeTakeFirst();
   if (!row) throw new BusinessRuleError("Response document not found.", 404);
-  return mapResponseDocument(row as Selectable<BureauResponseEvent>);
+  const response = mapResponseDocument(row as Selectable<BureauResponseEvent>);
+  const processingEvents = await loadLatestProcessingEvents([response.id]);
+  response.latestProcessingEvent = processingEvents.get(response.id) ?? null;
+  return response;
 }
 
 export async function updateResponseDocumentAdminReview(
@@ -811,5 +1253,7 @@ export async function updateResponseDocumentAdminReview(
     request,
   });
 
+  const processingEvents = await loadLatestProcessingEvents([result.updated.id]);
+  result.updated.latestProcessingEvent = processingEvents.get(result.updated.id) ?? null;
   return result.updated;
 }

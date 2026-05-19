@@ -17,9 +17,9 @@ export const RESPONSE_DOCUMENT_UI_PATH = "/admin-response-documents";
 
 export const RESPONSE_DOCUMENT_UI_REQUIRED_TEXT = [
   "Response Documents",
-  "Response documents are evidence and metadata only.",
-  "A later credit report comparison is still required to classify corrected, removed, or unchanged outcomes.",
-  "This page does not parse response documents.",
+  "Response documents keep immutable evidence plus append-only deterministic processing.",
+  "Response classifications are intake outcomes only; later credit-report comparison remains required before source-truth outcomes change.",
+  "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
   "This page does not change canonical report facts.",
   "This page does not change packet readiness or wording.",
   "This page does not activate regulation runtime truth.",
@@ -27,7 +27,7 @@ export const RESPONSE_DOCUMENT_UI_REQUIRED_TEXT = [
 ] as const;
 
 export const RESPONSE_DOCUMENT_UI_DETAIL_NOTICE =
-  "Response captured. Later credit-report comparison is required before corrected/removed/unchanged outcomes can be classified.";
+  "Response captured and classified deterministically. Later credit-report comparison is still required before corrected, removed, or unchanged source-truth outcomes can change.";
 
 export const RESPONSE_DOCUMENT_UI_FORBIDDEN_CONTROLS = [
   "Capture Response",
@@ -541,9 +541,9 @@ async function verifyResponseSource(
 
 async function assertUiSafetyText(page: Page): Promise<void> {
   await expect(page.getByRole("heading", { name: "Response Documents" })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText("Response documents are evidence and metadata only.")).toBeVisible();
-  await expect(page.getByText(/A later credit report comparison is still required/i)).toBeVisible();
-  await expect(page.getByText("This page does not parse response documents.")).toBeVisible();
+  await expect(page.getByText("Response documents keep immutable evidence plus append-only deterministic processing.")).toBeVisible();
+  await expect(page.getByText(/later credit-report comparison remains required/i)).toBeVisible();
+  await expect(page.getByText("Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.")).toBeVisible();
   await expect(page.getByText("This page does not change canonical report facts.")).toBeVisible();
   await expect(page.getByText("This page does not change packet readiness or wording.")).toBeVisible();
   await expect(page.getByText("This page does not activate regulation runtime truth.")).toBeVisible();

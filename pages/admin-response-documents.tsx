@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import {
+  Activity,
   AlertTriangle,
   CheckCircle2,
   Eye,
@@ -29,6 +30,7 @@ import {
   useResponseDocument,
   useResponseDocumentAdminReviewMutation,
   useResponseDocuments,
+  useResponseProcessingMetrics,
   type ResponseAdminReviewInput,
   type ResponseDocumentListInput,
 } from "../helpers/responseDocumentQueries";
@@ -169,6 +171,18 @@ function channelVariant(value: string | null | undefined) {
   return "default";
 }
 
+function classificationVariant(value: string | null | undefined) {
+  if (value === "verified_deleted" || value === "unable_to_verify") return "success";
+  if (value === "updated") return "info";
+  if (value === "remains" || value === "frivolous" || value === "duplicate" || value === "suspicious_non_compliant") return "warning";
+  return "default";
+}
+
+function percent(value: number | null | undefined): string {
+  const numeric = Number(value ?? 0);
+  return `${Math.round(Math.max(0, Math.min(1, numeric)) * 100)}%`;
+}
+
 function sanitizeText(value: string, key?: string): string {
   if (key && HASH_KEY_PATTERN.test(key) && HASH_VALUE_PATTERN.test(value)) return value;
   if (RAW_OR_SECRET_PATTERN.test(value) || LEGAL_CONCLUSION_PATTERN.test(value)) return "[redacted]";
@@ -222,9 +236,9 @@ function SafetyBanner() {
     <div className={styles.safetyBanner}>
       <ShieldCheck size={18} />
       <div>
-        <strong>Response documents are evidence and metadata only.</strong>
-        <span>A later credit report comparison is still required to classify corrected, removed, or unchanged outcomes.</span>
-        <span>This page does not parse response documents.</span>
+        <strong>Response documents keep immutable evidence plus append-only deterministic processing.</strong>
+        <span>Response classifications are intake outcomes only; later credit-report comparison remains required before source-truth outcomes change.</span>
+        <span>Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.</span>
         <span>This page does not change canonical report facts.</span>
         <span>This page does not change packet readiness or wording.</span>
         <span>This page does not activate regulation runtime truth.</span>
@@ -239,9 +253,155 @@ function EvidenceNotice() {
     <div className={styles.evidenceNotice}>
       <ShieldCheck size={18} />
       <span>
-        Response captured. Later credit-report comparison is required before corrected/removed/unchanged outcomes can be classified.
+        Response captured and classified deterministically. Later credit-report comparison is still required before corrected, removed, or unchanged source-truth outcomes can change.
       </span>
     </div>
+  );
+}
+
+function ProcessingSummary({ response }: { response: ResponseRecord | ResponseDetail }) {
+  return (
+    <div className={styles.processingSummary}>
+      <Badge variant={classificationVariant(response.latestClassification)}>{formatEnum(response.latestClassification)}</Badge>
+      <span>{percent(response.latestClassificationConfidence)} confidence</span>
+      <span>{formatEnum(response.latestExtractionSource)}</span>
+      {response.latestRequiresManualReview ? (
+        <span className={styles.manualReviewFlag}>Manual review</span>
+      ) : (
+        <span>Deterministic complete</span>
+      )}
+    </div>
+  );
+}
+
+function ResponseProcessingBlock({ response }: { response: ResponseDetail }) {
+  const event = response.latestProcessingEvent;
+  const rationale = Array.isArray(event?.rationale) ? event.rationale : [];
+  const uncertaintyCodes = Array.isArray(event?.uncertaintyCodes) ? event.uncertaintyCodes : [];
+  const regulationReferences = Array.isArray(event?.regulationReferences) ? event.regulationReferences : [];
+
+  return (
+    <section className={styles.processingPanel}>
+      <div className={styles.reviewHeader}>
+        <Activity size={18} />
+        <div>
+          <h3>Deterministic Response Processing</h3>
+          <p>Append-only intake result. No packet readiness, violation truth, or report parser facts are changed.</p>
+        </div>
+      </div>
+
+      <div className={styles.detailGrid}>
+        <DetailRow label="Classification" value={formatEnum(response.latestClassification)} />
+        <DetailRow label="Confidence" value={percent(response.latestClassificationConfidence)} />
+        <DetailRow label="Extraction source" value={formatEnum(response.latestExtractionSource)} />
+        <DetailRow label="Manual review" value={response.latestRequiresManualReview ? "required" : "not required"} />
+        <DetailRow label="Processing status" value={formatEnum(response.latestProcessingStatus)} />
+        <DetailRow label="Processed at" value={formatDate(response.latestProcessingCreatedAt)} />
+      </div>
+
+      {response.latestRequiresManualReview ? (
+        <div className={styles.warningBox}>
+          <AlertTriangle size={18} />
+          <span>Uncertain or adverse response state remains unresolved until an admin review or later deterministic comparison supports a change.</span>
+        </div>
+      ) : null}
+
+      {event ? (
+        <>
+          <div className={styles.metadataGrid}>
+            <MetadataBlock label="Parser version" value={event.parserVersion} />
+            <MetadataBlock label="Rule ID" value={event.classifierRuleId} />
+            <MetadataBlock label="Readiness impact" value={event.readinessImpact?.notes ?? "No readiness mutation."} />
+            <MetadataBlock label="Violation impact" value={event.violationImpact?.notes ?? "No violation truth mutation."} />
+          </div>
+          {uncertaintyCodes.length > 0 ? (
+            <div className={styles.codeList}>
+              <span>Uncertainty</span>
+              <div className={styles.badgeRow}>
+                {uncertaintyCodes.map((code) => (
+                  <Badge key={String(code)} variant="warning">{formatEnum(String(code))}</Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {rationale.length > 0 ? (
+            <div className={styles.rationaleList}>
+              <span>Evidence-Linked Rationale</span>
+              {rationale.map((item, index) => {
+                const record = item as Record<string, unknown>;
+                return (
+                  <p key={`${String(record.code ?? "rationale")}-${index}`}>
+                    {safeValue(record.message, "rationale")} ({percent(Number(record.confidence ?? 0))})
+                  </p>
+                );
+              })}
+            </div>
+          ) : null}
+          {regulationReferences.length > 0 ? (
+            <div className={styles.rationaleList}>
+              <span>Reference Review Links</span>
+              {regulationReferences.map((item, index) => {
+                const record = item as Record<string, unknown>;
+                return (
+                  <p key={`${String(record.regulationId ?? "regulation")}-${index}`}>
+                    This item may require review under {safeValue(record.citation)}.
+                  </p>
+                );
+              })}
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className={styles.warningBox}>
+          <AlertTriangle size={18} />
+          <span>No processing event is attached. Treat this response as manual review until replayed.</span>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MetricsStrip() {
+  const metricsQuery = useResponseProcessingMetrics({ lookbackHours: 24 });
+  const metrics = metricsQuery.data?.metrics;
+  const activeAlerts = metrics?.alerts.filter((alert) => alert.active) ?? [];
+
+  if (metricsQuery.isError) {
+    return (
+      <div className={styles.warningBox} role="alert">
+        <AlertTriangle size={18} />
+        <span>{metricsQuery.error instanceof Error ? metricsQuery.error.message : "Unable to load response metrics."}</span>
+      </div>
+    );
+  }
+
+  return (
+    <section className={styles.metricsStrip} aria-label="Response processing metrics">
+      <div className={styles.metricCell}>
+        <span>Processed 24h</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.processed ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
+        <span>Manual Review</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.manualReview ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
+        <span>Suspicious</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.suspicious ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
+        <span>Dead Letters</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.deadLetters ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
+        <span>Workflow Stalls</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.workflowStalls ?? 0}</strong>
+      </div>
+      <div className={activeAlerts.length > 0 ? styles.metricAlert : styles.metricCell}>
+        <span>Active Alerts</span>
+        <strong>{metricsQuery.isLoading ? "-" : activeAlerts.length}</strong>
+      </div>
+    </section>
   );
 }
 
@@ -553,6 +713,8 @@ function ResponseCard({
         <DetailRow label="Evidence attachment" value={response.evidenceAttachmentId} />
       </div>
 
+      <ProcessingSummary response={response} />
+
       <div className={styles.cardActions}>
         <Button variant="secondary" size="sm" onClick={() => onSelect(response.id)}>
           <Eye size={16} />
@@ -609,6 +771,7 @@ function ResponseDetailPanel({ response }: { response: ResponseDetail }) {
         <MetadataBlock label="Normalized response hash" value={response.normalizedResponseHash} fieldKey="normalizedResponseHash" monospace />
       </div>
 
+      <ResponseProcessingBlock response={response} />
       <EvidenceNotice />
       <ResponseAdminReviewControls response={response} />
     </div>
@@ -648,6 +811,7 @@ export default function AdminResponseDocumentsPage() {
       </PageHeader>
 
       <SafetyBanner />
+      <MetricsStrip />
 
       <section className={styles.toolbar} aria-label="Response document filters">
         <div className={styles.toolbarHeader}>
@@ -777,7 +941,7 @@ export default function AdminResponseDocumentsPage() {
             <FileText size={18} />
             <div>
               <h2>Response Detail</h2>
-              <p>Safe metadata view with admin-only review controls. No response parsing or source-truth change happens here.</p>
+              <p>Safe metadata view with deterministic intake results and isolated admin-only review controls.</p>
             </div>
           </div>
 

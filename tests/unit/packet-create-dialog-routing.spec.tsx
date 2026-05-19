@@ -56,6 +56,15 @@ vi.mock("../../helpers/useAuth", () => ({
   }),
 }));
 
+vi.mock("../../helpers/responseDocumentQueries", () => ({
+  useResponseDocuments: () => ({
+    data: { responses: [], total: 0 },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }),
+}));
+
 // Routing behavior does not exercise PDF rendering; keep CI out of pdfjs' CJS/TLA boundary.
 vi.mock("@react-pdf-viewer/core", () => ({
   Worker: ({ children }: { children?: ReactNode }) => children ?? null,

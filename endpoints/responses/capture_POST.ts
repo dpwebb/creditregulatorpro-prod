@@ -31,6 +31,8 @@ export async function handle(request: Request) {
         normalizedResponseHash: input.normalizedResponseHash ?? null,
         responseSummary: input.responseSummary ?? null,
         responseStatus: input.responseStatus,
+        rawArtifactMetadata: input.rawArtifactMetadata ?? null,
+        normalizedResponseMetadata: input.normalizedResponseMetadata ?? null,
       },
       { id: user.id, role: user.role },
       request,

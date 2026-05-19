@@ -29,6 +29,8 @@ import { exportToCSV } from "../helpers/csvExporter";
 import { generateReportPDF } from "../helpers/reportGenerator";
 import { formatDateTime, formatRelativeTime, formatDate } from "../helpers/formatters";
 import { useAuth } from "../helpers/useAuth";
+import { useResponseDocuments } from "../helpers/responseDocumentQueries";
+import type { OutputType as ResponseListOutput } from "../endpoints/responses/list_GET.schema";
 import { Link, useSearchParams } from "react-router-dom";
 import type { DisputePacketType } from "../helpers/disputePacketTemplate";
 import type { DisputePacketCandidate } from "../helpers/disputePacketService";
@@ -40,6 +42,89 @@ export function parseInitialPacketIssueId(searchParams: URLSearchParams): number
   if (issueIdParam === null) return null;
   const parsedIssueId = Number(issueIdParam);
   return Number.isInteger(parsedIssueId) && parsedIssueId > 0 ? parsedIssueId : null;
+}
+
+type ResponseTimelineItem = ResponseListOutput["responses"][number];
+
+function formatResponseEnum(value: string | null | undefined): string {
+  if (!value) return "Unknown";
+  return value.replace(/_/g, " ");
+}
+
+function responseOutcomeLabel(response: ResponseTimelineItem): string {
+  if (response.latestClassification === "verified_deleted") return "Deleted or removed in response";
+  if (response.latestClassification === "updated") return "Updated in response";
+  if (response.latestClassification === "remains") return "Remains as reported";
+  if (response.latestClassification === "unable_to_verify") return "Unable to verify";
+  if (response.latestClassification === "frivolous") return "Frivolous response asserted";
+  if (response.latestClassification === "duplicate") return "Duplicate response asserted";
+  if (response.latestClassification === "suspicious_non_compliant") return "Needs compliance review";
+  return "Manual review needed";
+}
+
+function ResponseTimelinePanel({
+  responses,
+  isLoading,
+  isError,
+}: {
+  responses: ResponseTimelineItem[];
+  isLoading: boolean;
+  isError: boolean;
+}) {
+  if (isError) {
+    return (
+      <section className={styles.responseTimelinePanel} aria-label="Response timeline">
+        <div className={styles.responseTimelineHeader}>
+          <AlertCircle size={18} />
+          <div>
+            <h2>Response Timeline</h2>
+            <p>Unable to load recent response history.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className={styles.responseTimelinePanel} aria-label="Response timeline">
+      <div className={styles.responseTimelineHeader}>
+        <FileCheck size={18} />
+        <div>
+          <h2>Response Timeline</h2>
+          <p>Recent bureau, creditor, and collector responses linked to your dispute work.</p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className={styles.responseTimelineSkeleton} />
+      ) : responses.length === 0 ? (
+        <div className={styles.responseTimelineEmpty}>Recorded responses will appear here after they are captured.</div>
+      ) : (
+        <div className={styles.responseTimelineList}>
+          {responses.map((response) => (
+            <article key={response.id} className={response.latestRequiresManualReview ? styles.responseTimelineAlert : styles.responseTimelineItem}>
+              <div className={styles.responseTimelineTop}>
+                <strong>{responseOutcomeLabel(response)}</strong>
+                <Badge variant={response.latestRequiresManualReview ? "warning" : "info"}>
+                  {formatResponseEnum(response.latestExtractionSource)}
+                </Badge>
+              </div>
+              <div className={styles.responseTimelineMeta}>
+                <span>{formatDateTime(response.responseReceivedAt)}</span>
+                <span>{formatResponseEnum(response.responseDocumentType)}</span>
+                {response.packetId ? <span>Letter #{response.packetId}</span> : null}
+              </div>
+              <p>
+                {response.latestRequiresManualReview
+                  ? "This response is unresolved and will stay in review until a safe comparison or admin review supports the next step."
+                  : "This response was classified deterministically. Packet readiness still waits for the normal evidence comparison path."}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default function PacketsPage() {
@@ -58,6 +143,7 @@ export default function PacketsPage() {
   
   const { showSuccess, showError } = useToast();
   const { isAdmin } = useAuth();
+  const responseTimelineQuery = useResponseDocuments({ limit: 5 });
 
   React.useEffect(() => {
     const nextParams = new URLSearchParams(searchParams);
@@ -306,6 +392,14 @@ export default function PacketsPage() {
             You have letters ready to review. Open one, check it over, and mark it ready to mail.
           </div>
         </div>
+      )}
+
+      {!isAdmin && (
+        <ResponseTimelinePanel
+          responses={responseTimelineQuery.data?.responses ?? []}
+          isLoading={responseTimelineQuery.isLoading}
+          isError={responseTimelineQuery.isError}
+        />
       )}
 
       {isAdmin && data?.packets && data.packets.length > 0 && (

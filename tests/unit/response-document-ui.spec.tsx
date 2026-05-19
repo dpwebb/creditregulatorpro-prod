@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   useResponseDocuments: vi.fn(),
   useResponseDocument: vi.fn(),
+  useResponseProcessingMetrics: vi.fn(),
   useResponseDocumentAdminReviewMutation: vi.fn(),
   adminReviewMutateAsync: vi.fn(),
   refetchResponses: vi.fn(),
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../helpers/responseDocumentQueries", () => ({
   useResponseDocuments: mocks.useResponseDocuments,
   useResponseDocument: mocks.useResponseDocument,
+  useResponseProcessingMetrics: mocks.useResponseProcessingMetrics,
   useResponseDocumentAdminReviewMutation: mocks.useResponseDocumentAdminReviewMutation,
 }));
 
@@ -44,6 +46,55 @@ const responseRecord = {
   normalizedResponseHash: "a".repeat(64),
   responseSummary: "Synthetic response recorded as evidence metadata.",
   responseStatus: "linked_to_outcome",
+  rawArtifactMetadata: { fileSha256: "a".repeat(64) },
+  normalizedResponseMetadata: { senderType: "bureau" },
+  latestProcessingEventId: 1001,
+  latestProcessingStatus: "manual_review",
+  latestClassification: "remains",
+  latestClassificationConfidence: 0.83,
+  latestExtractionSource: "deterministic",
+  latestRequiresManualReview: true,
+  latestProcessingCreatedAt: "2026-05-18T12:02:00.000Z",
+  latestProcessingEvent: {
+    id: 1001,
+    responseEventId: 901,
+    userId: 11,
+    packetId: 21,
+    disputePacketFindingId: 22,
+    findingOutcomeId: 23,
+    comparisonRunId: 24,
+    bureauId: 25,
+    agencyId: null,
+    tradelineId: 28,
+    violationId: 29,
+    processingKind: "deterministic_response_classification",
+    processingStatus: "manual_review",
+    extractionSource: "deterministic",
+    classifierRuleId: "response-document-classifier-v1",
+    parserVersion: "response-document-parser-2026-05-19",
+    classification: "remains",
+    classificationConfidence: 0.83,
+    confidenceThreshold: 0.8,
+    requiresManualReview: true,
+    uncertaintyCodes: ["ADVERSE_RESPONSE_REQUIRES_REVIEW"],
+    rawArtifactMetadata: { fileSha256: "a".repeat(64) },
+    normalizedResponseMetadata: { senderType: "bureau" },
+    deterministicExtraction: { linkedPacketId: 21, linkedViolationId: 29, linkedTradelineId: 28 },
+    fieldProvenance: [{ field: "classification", sourceField: "responseSummary", evidenceType: "response_summary", confidence: 0.83 }],
+    rationale: [{ code: "response-remains", message: "Response states the item remains verified or unchanged.", confidence: 0.83 }],
+    regulationReferences: [],
+    readinessImpact: { readinessGateMutated: false, readinessRegression: false, notes: "Response intake is recorded for review only." },
+    violationImpact: { violationTruthMutated: false, linkedViolationId: 29, notes: "Response classification does not rewrite violation truth." },
+    idempotencyKey: "synthetic",
+    normalizedResponseHash: "a".repeat(64),
+    originalEvidenceHash: "a".repeat(64),
+    fallbackRequested: false,
+    fallbackAllowed: false,
+    fallbackReason: "AI fallback disabled",
+    deadLetterReason: null,
+    createdAt: "2026-05-18T12:02:00.000Z",
+    createdBy: 11,
+  },
   createdBy: 11,
   reviewedBy: null,
   reviewedAt: null,
@@ -80,6 +131,42 @@ function resetHookMocks() {
     isError: false,
     error: null,
   }));
+  mocks.useResponseProcessingMetrics.mockReturnValue({
+    data: {
+      metrics: {
+        lookbackHours: 24,
+        generatedAt: "2026-05-18T12:03:00.000Z",
+        totals: {
+          processed: 1,
+          completed: 0,
+          manualReview: 1,
+          unknownManualReview: 0,
+          suspicious: 0,
+          deadLetters: 0,
+          failed: 0,
+          fallbackRequested: 0,
+          fallbackAllowed: 0,
+          ocrFallback: 0,
+          readinessRegression: 0,
+          repeatedParserMismatch: 0,
+          workflowStalls: 0,
+        },
+        classificationCounts: [{ classification: "remains", count: 1 }],
+        alerts: [],
+        boundaries: {
+          redacted: true,
+          structuredOnly: true,
+          noRawResponseText: true,
+          noCanonicalMutation: true,
+          noPacketReadinessMutation: true,
+        },
+      },
+    },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+  });
   mocks.adminReviewMutateAsync.mockResolvedValue({ response: mocks.detailResponse });
   mocks.useResponseDocumentAdminReviewMutation.mockReturnValue({
     mutateAsync: mocks.adminReviewMutateAsync,
@@ -112,8 +199,10 @@ describe("admin response document UI", () => {
     render(<AdminResponseDocumentsPage />);
 
     expect(screen.getByRole("heading", { name: "Response Documents" })).toBeInTheDocument();
-    expect(screen.getByText(/Response documents are evidence and metadata only/i)).toBeInTheDocument();
+    expect(screen.getByText(/immutable evidence plus append-only deterministic processing/i)).toBeInTheDocument();
+    expect(screen.getByText(/Deterministic response parsing runs without AI dependency/i)).toBeInTheDocument();
     expect(screen.getByText(/No mailbox, Gmail, IMAP, or inbox integration is used/i)).toBeInTheDocument();
+    expect(screen.getByText("Processed 24h")).toBeInTheDocument();
   });
 
   it("renders loading, empty, and error list states", () => {
@@ -203,8 +292,12 @@ describe("admin response document UI", () => {
     expect(screen.getAllByText("22").length).toBeGreaterThan(0);
     expect(screen.getAllByText("23").length).toBeGreaterThan(0);
     expect(screen.getAllByText("24").length).toBeGreaterThan(0);
+    expect(screen.getByText("Deterministic Response Processing")).toBeInTheDocument();
+    expect(screen.getAllByText("remains").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("deterministic").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Uncertain or adverse response state remains unresolved/i)).toBeInTheDocument();
     expect(screen.getByText(/Response captured/i)).toBeInTheDocument();
-    expect(screen.getByText(/Later credit-report comparison is required/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Later credit-report comparison is still required/i).length).toBeGreaterThan(0);
   });
 
   it("redacts unsafe response metadata in the detail panel", async () => {
@@ -435,6 +528,7 @@ describe("admin response document UI", () => {
 
     expect(source).toContain("list_GET.schema");
     expect(source).toContain("get_GET.schema");
+    expect(source).toContain("metrics_GET.schema");
     expect(source).toContain("admin-review_POST.schema");
     expect(source).toContain("invalidateQueries");
     expect(source).not.toContain("capture_POST.schema");

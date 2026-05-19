@@ -184,8 +184,8 @@ describe("response document UI staging smoke harness", () => {
     expect(RESPONSE_DOCUMENT_UI_REQUIRED_TEXT).toEqual(
       expect.arrayContaining([
         "Response Documents",
-        "Response documents are evidence and metadata only.",
-        "This page does not parse response documents.",
+        "Response documents keep immutable evidence plus append-only deterministic processing.",
+        "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
         "No mailbox, Gmail, IMAP, or inbox integration is used.",
       ]),
     );
@@ -199,7 +199,7 @@ describe("response document UI staging smoke harness", () => {
   });
 
   it("verifies safety, evidence-only, and later-comparison-required checks are present", () => {
-    expect(RESPONSE_DOCUMENT_UI_DETAIL_NOTICE).toContain("Later credit-report comparison is required");
+    expect(RESPONSE_DOCUMENT_UI_DETAIL_NOTICE).toContain("Later credit-report comparison is still required");
     const source = smokeSource();
 
     expect(source).toContain("evidenceMetadataOnlyNoticeRendered: true");
@@ -268,7 +268,7 @@ describe("response document UI staging smoke harness", () => {
     expect(() =>
       assertResponseDocumentUiPrivacySafe({
         displayText:
-          "Response documents are evidence and metadata only. A later credit report comparison is still needed.",
+          "Response documents keep immutable evidence plus append-only deterministic processing. Later credit-report comparison remains required.",
         maskedAccountNumber: "****1234",
       }),
     ).not.toThrow();

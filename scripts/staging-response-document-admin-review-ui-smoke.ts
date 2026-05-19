@@ -31,9 +31,9 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_CLEANUP_POLICY =
 
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT = [
   "Response Documents",
-  "Response documents are evidence and metadata only.",
-  "A later credit report comparison is still required to classify corrected, removed, or unchanged outcomes.",
-  "This page does not parse response documents.",
+  "Response documents keep immutable evidence plus append-only deterministic processing.",
+  "Response classifications are intake outcomes only; later credit-report comparison remains required before source-truth outcomes change.",
+  "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
   "This page does not change canonical report facts.",
   "This page does not change packet readiness or wording.",
   "This page does not activate regulation runtime truth.",
@@ -83,7 +83,7 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT = [
 ] as const;
 
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_SAFETY_TEXT = [
-  "This page does not parse response documents.",
+  "Deterministic response parsing runs without AI dependency, and fallback extraction is disabled unless explicitly approved.",
   "This page does not activate regulation runtime truth.",
 ] as const;
 

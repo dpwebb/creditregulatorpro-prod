@@ -1,11 +1,25 @@
 import { z } from "zod";
 
 import type { ResponseDocumentRecord } from "../../helpers/responseDocumentService";
+import type { Json } from "../../helpers/schema";
 import {
   BureauResponseChannelArrayValues,
   BureauResponseDocumentTypeArrayValues,
   BureauResponseStatusArrayValues,
 } from "../../helpers/schema";
+
+const safeMetadataSchema: z.ZodType<Json> = z.lazy(() =>
+  z.union([
+    z.string().max(500),
+    z.number().finite(),
+    z.boolean(),
+    z.null(),
+    z.array(safeMetadataSchema).max(30),
+    z.record(z.string().regex(/^[a-zA-Z0-9_.:-]{1,64}$/), safeMetadataSchema),
+  ]),
+);
+
+const safeMetadataObjectSchema = z.record(z.string().regex(/^[a-zA-Z0-9_.:-]{1,64}$/), safeMetadataSchema);
 
 export const schema = z.object({
   userId: z.coerce.number().int().positive().optional(),
@@ -27,6 +41,8 @@ export const schema = z.object({
   normalizedResponseHash: z.string().trim().max(128).nullable().optional(),
   responseSummary: z.string().trim().max(1000).nullable().optional(),
   responseStatus: z.enum(BureauResponseStatusArrayValues).optional(),
+  rawArtifactMetadata: safeMetadataObjectSchema.nullable().optional(),
+  normalizedResponseMetadata: safeMetadataObjectSchema.nullable().optional(),
 });
 
 export type InputType = z.infer<typeof schema>;
