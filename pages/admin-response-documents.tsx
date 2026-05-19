@@ -775,6 +775,18 @@ function MetricsStrip() {
         <span>Active Alerts</span>
         <strong>{metricsQuery.isLoading ? "-" : activeAlerts.length}</strong>
       </div>
+      <div className={styles.metricCell}>
+        <span>Replayable</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.replayableRecords ?? 0}</strong>
+      </div>
+      <div className={(metrics?.replayReadiness.nonReplayableRecords ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+        <span>Non-Replayable</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.nonReplayableRecords ?? 0}</strong>
+      </div>
+      <div className={(metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+        <span>Replay Stale</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.replayReadiness.staleOrMissingClassifierMetadata ?? 0}</strong>
+      </div>
     </section>
   );
 }

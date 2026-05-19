@@ -4,6 +4,7 @@ import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { ensureResponseDocumentSchema } from "./responseDocumentSchema";
 import type { ResponseDocumentUser } from "./responseDocumentService";
+import { getResponseReplayReadinessMetrics, type ResponseReplayReadinessMetrics } from "./responseReplayService";
 import type { Json } from "./schema";
 
 export type ResponseProcessingMetricAlert = {
@@ -43,6 +44,7 @@ export type ResponseProcessingMetrics = {
   };
   classificationCounts: Array<{ classification: string; count: number }>;
   alerts: ResponseProcessingMetricAlert[];
+  replayReadiness: ResponseReplayReadinessMetrics;
   boundaries: {
     redacted: true;
     structuredOnly: true;
@@ -189,6 +191,7 @@ export async function getResponseProcessingMetrics(
       message: "Response workflows have unresolved manual-review records older than 24 hours.",
     }),
   ];
+  const replayReadiness = await getResponseReplayReadinessMetrics();
 
   return {
     lookbackHours,
@@ -199,6 +202,7 @@ export async function getResponseProcessingMetrics(
       count: toNumber(countRow.count),
     })),
     alerts,
+    replayReadiness,
     boundaries: {
       redacted: true,
       structuredOnly: true,

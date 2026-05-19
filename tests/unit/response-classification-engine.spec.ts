@@ -131,6 +131,118 @@ describe("response classification engine", () => {
     expect(result.fallbackAllowed).toBe(false);
   });
 
+  it.each([
+    [
+      "verified without evidence",
+      "We verified this account with no evidence enclosed and no supporting documents.",
+      "suspicious_non_compliant",
+      ["SUSPICIOUS_RESPONSE_PATTERN"],
+    ],
+    [
+      "previously investigated same dispute",
+      "This is the same dispute and was previously investigated.",
+      "duplicate",
+      ["DUPLICATE_RESPONSE_REQUIRES_REVIEW"],
+    ],
+    [
+      "frivolous without explanation",
+      "We consider your dispute frivolous and will not investigate further without providing an explanation.",
+      "frivolous",
+      ["FRIVOLOUS_RESPONSE_REQUIRES_REVIEW"],
+    ],
+    [
+      "vague update",
+      "We updated the information on your credit file.",
+      "updated",
+      ["UPDATED_WITHOUT_FIELD_DETAIL", "LOW_DETERMINISTIC_CONFIDENCE"],
+    ],
+    [
+      "deleted and verified",
+      "The account was verified as accurate and will be deleted from your file.",
+      "unknown_manual_review",
+      ["CONTRADICTORY_RESPONSE_LANGUAGE"],
+    ],
+    [
+      "unable to verify but remains",
+      "We are unable to verify the account, however it will remain as reported.",
+      "unknown_manual_review",
+      ["CONTRADICTORY_RESPONSE_LANGUAGE"],
+    ],
+    [
+      "contacted creditor without determination",
+      "We contacted the creditor and have no supporting documents to provide.",
+      "suspicious_non_compliant",
+      ["SUSPICIOUS_RESPONSE_PATTERN"],
+    ],
+    [
+      "account remains unchanged",
+      "The account remains unchanged after our review.",
+      "remains",
+      ["ADVERSE_RESPONSE_REQUIRES_REVIEW"],
+    ],
+    [
+      "unable to locate account",
+      "We are unable to locate your account based on the information provided.",
+      "suspicious_non_compliant",
+      ["SUSPICIOUS_RESPONSE_PATTERN"],
+    ],
+    [
+      "not enough information",
+      "Not enough information provided to continue the investigation.",
+      "suspicious_non_compliant",
+      ["SUSPICIOUS_RESPONSE_PATTERN"],
+    ],
+    [
+      "duplicate dispute",
+      "Duplicate dispute already reviewed by our office.",
+      "duplicate",
+      ["DUPLICATE_RESPONSE_REQUIRES_REVIEW"],
+    ],
+    [
+      "third-party authorization missing",
+      "Third-party authorization missing, so we will not investigate this dispute.",
+      "suspicious_non_compliant",
+      ["SUSPICIOUS_RESPONSE_PATTERN"],
+    ],
+    [
+      "ocr damaged partial",
+      "ver fied acc urate upd ted rem",
+      "unknown_manual_review",
+      ["LOW_DETERMINISTIC_CONFIDENCE"],
+    ],
+    [
+      "empty response",
+      "",
+      "unknown_manual_review",
+      ["LOW_DETERMINISTIC_CONFIDENCE"],
+    ],
+    [
+      "contradictory outcome language",
+      "Unable to verify, deleted, and verified as accurate.",
+      "unknown_manual_review",
+      ["CONTRADICTORY_RESPONSE_LANGUAGE"],
+    ],
+    [
+      "hostile non-compliant language",
+      "We refuse to provide the method of verification and used automated verification without documents.",
+      "suspicious_non_compliant",
+      ["SUSPICIOUS_RESPONSE_PATTERN"],
+    ],
+  ] as const)("keeps hostile or ambiguous fixture %s in manual review", (_label, responseSummary, classification, uncertaintyCodes) => {
+    const result = classifyResponseDocument({
+      ...baseInput,
+      responseSummary,
+    });
+
+    expect(result.classification).toBe(classification);
+    expect(result.requiresManualReview).toBe(true);
+    expect(result.processingStatus).toBe("manual_review");
+    expect(result.classificationConfidence).toBeLessThanOrEqual(classification === "remains" ? 0.83 : 0.88);
+    expect(result.uncertaintyCodes).toEqual(expect.arrayContaining([...uncertaintyCodes]));
+    expect(result.extractionSource).toBe("deterministic");
+    expect(result.fallbackAllowed).toBe(false);
+  });
+
   it("does not treat negated deletion or update wording as completed outcomes", () => {
     const deleted = classifyResponseDocument({
       ...baseInput,

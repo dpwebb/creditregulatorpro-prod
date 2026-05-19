@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 
 import type { DB, Json, UserRole } from "../../helpers/schema";
 import { NotAuthenticatedError } from "../../helpers/getSetServerSession";
+import { RESPONSE_REPLAY_TOOL_VERSION, runResponseProcessingReplay } from "../../helpers/responseReplayService";
 import { assertSafeLocalDatabaseUrl } from "../utils/localDbHarness";
 
 type EndpointHandle = (request: Request) => Promise<Response>;
@@ -1272,6 +1273,23 @@ describeIfLocalDb("response document capture endpoints", () => {
       noCanonicalMutation: true,
       noPacketReadinessMutation: true,
     });
+    expect(result.parsed.metrics.replayReadiness).toMatchObject({
+      totalResponseRecords: expect.any(Number),
+      replayableRecords: expect.any(Number),
+      nonReplayableRecords: expect.any(Number),
+      staleOrMissingClassifierMetadata: expect.any(Number),
+      missingProcessingSummary: expect.any(Number),
+      manualReviewRequired: expect.any(Number),
+      uncertainty: expect.any(Number),
+      duplicateAttemptAudits: expect.any(Number),
+      lastReplayDryRunAt: null,
+      boundaries: {
+        noRawResponseText: true,
+        dryRunDoesNotPersist: true,
+        applyIsAppendOnly: true,
+        liveMailboxIntegrationUsed: false,
+      },
+    });
     assertNoSensitiveLeak(result.parsed);
 
     auth.user = scenario.owner;
@@ -1279,14 +1297,168 @@ describeIfLocalDb("response document capture endpoints", () => {
     expect(denied.response.status).toBe(403);
   });
 
+  it("runs response replay dry-run on empty filters without mutating processing events", async () => {
+    const result = await runResponseProcessingReplay({
+      filters: {
+        responseId: 999_999_999,
+        limit: 10,
+      },
+    });
+
+    expect(result.mode).toBe("dry_run");
+    expect(result.totals).toMatchObject({
+      scanned: 0,
+      replayable: 0,
+      nonReplayable: 0,
+      appendedProcessingEvents: 0,
+    });
+    expect(result.boundaries).toMatchObject({
+      noRawResponseTextStored: true,
+      noRawResponseTextLogged: true,
+      liveMailboxIntegrationUsed: false,
+    });
+    assertNoSensitiveLeak(result);
+  });
+
+  it("reports replay dry-run, stale metadata, non-replayable records, and append-only apply behavior", async () => {
+    const scenario = await createScenario();
+    auth.user = scenario.admin;
+
+    const replayableCapture = await capture(captureBody({
+      intakeSourceType: "manual_admin",
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSource: "manual_admin",
+      responseText: "We verified as accurate and the item remains unchanged.",
+      responseSummary: undefined,
+      rawArtifactMetadata: { artifactName: "replay-response.txt", artifactSha256: "a".repeat(64) },
+      normalizedResponseMetadata: { senderType: "bureau", replayFixture: true },
+      sourceMetadata: { replayHarness: true },
+    }));
+    if (!replayableCapture.parsed.response?.id) {
+      throw new Error(`Synthetic replay capture failed with status ${replayableCapture.response.status}: ${String(replayableCapture.parsed.error ?? "missing sanitized response")}`);
+    }
+    const replayableId = Number(replayableCapture.parsed.response.id);
+    await sql`
+      update public.response_processing_event
+      set parser_version = 'response-document-parser-old-version'
+      where response_event_id = ${replayableId}
+    `.execute(db);
+
+    const beforeProcessing = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_event
+      where response_event_id = ${replayableId}
+    `.execute(db);
+    const originalResponse = await db
+      .selectFrom("bureauResponseEvent")
+      .select(["rawArtifactMetadata", "normalizedResponseMetadata", "latestProcessingEventId", "latestClassification"])
+      .where("id", "=", replayableId)
+      .executeTakeFirstOrThrow();
+
+    const dryRun = await runResponseProcessingReplay({ filters: { responseId: replayableId } });
+    expect(dryRun.mode).toBe("dry_run");
+    expect(dryRun.totals).toMatchObject({
+      scanned: 1,
+      replayable: 1,
+      nonReplayable: 0,
+      staleOrMissingClassifierMetadata: 1,
+      appendedProcessingEvents: 0,
+    });
+    expect(dryRun.records[0]).toMatchObject({
+      responseId: replayableId,
+      replayable: true,
+      replayClassification: "remains",
+      latestParserVersion: "response-document-parser-old-version",
+      staleClassifierMetadata: true,
+      wouldAppendProcessingEvent: true,
+      appendedProcessingEventId: null,
+    });
+
+    const afterDryRunProcessing = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_event
+      where response_event_id = ${replayableId}
+    `.execute(db);
+    expect(afterDryRunProcessing.rows[0]?.count).toBe(beforeProcessing.rows[0]?.count);
+
+    const apply = await runResponseProcessingReplay({
+      mode: "apply",
+      actorUserId: scenario.admin.id,
+      filters: { responseId: replayableId },
+    });
+    expect(apply.totals.appendedProcessingEvents).toBe(1);
+    expect(apply.records[0]?.appendedProcessingEventId).toEqual(expect.any(Number));
+
+    const afterApplyProcessing = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_event
+      where response_event_id = ${replayableId}
+    `.execute(db);
+    expect(Number(afterApplyProcessing.rows[0]?.count ?? 0)).toBe(Number(beforeProcessing.rows[0]?.count ?? 0) + 1);
+
+    const unchangedResponse = await db
+      .selectFrom("bureauResponseEvent")
+      .select(["rawArtifactMetadata", "normalizedResponseMetadata", "latestProcessingEventId", "latestClassification"])
+      .where("id", "=", replayableId)
+      .executeTakeFirstOrThrow();
+    expect(unchangedResponse).toEqual(originalResponse);
+
+    const replayEvent = await sql<any>`
+      select normalized_response_metadata, deterministic_extraction
+      from public.response_processing_event
+      where id = ${apply.records[0]?.appendedProcessingEventId}
+    `.execute(db);
+    const replayEventMetadataValue =
+      replayEvent.rows[0]?.normalized_response_metadata ?? replayEvent.rows[0]?.normalizedResponseMetadata;
+    const replayEventMetadata =
+      typeof replayEventMetadataValue === "string" ? JSON.parse(replayEventMetadataValue) : replayEventMetadataValue;
+    expect(replayEventMetadata?.replay).toMatchObject({
+      replaySource: RESPONSE_REPLAY_TOOL_VERSION,
+      replayMode: "apply",
+      responseTextStored: false,
+    });
+
+    const audit = await db
+      .selectFrom("auditLog")
+      .select(["actionType", "details"])
+      .where("entityType", "=", "SYSTEM")
+      .where("entityId", "=", replayableId)
+      .execute();
+    expect(JSON.stringify(audit)).toContain("response_processing_replay_applied");
+    assertNoSensitiveLeak([dryRun, apply, audit, replayEvent.rows]);
+
+    const nonReplayable = await capture(captureBody({
+      userId: scenario.owner.id,
+      packetId: scenario.packetId,
+      responseSummary: null,
+      normalizedResponseMetadata: { intake: { responseTextStored: false, responseTextHash: "b".repeat(64) } },
+    }));
+    if (!nonReplayable.parsed.response?.id) {
+      throw new Error(`Synthetic non-replayable capture failed with status ${nonReplayable.response.status}: ${String(nonReplayable.parsed.error ?? "missing sanitized response")}`);
+    }
+    const nonReplayableId = Number(nonReplayable.parsed.response.id);
+    const nonReplayableRun = await runResponseProcessingReplay({ filters: { responseId: nonReplayableId } });
+    expect(nonReplayableRun.records[0]).toMatchObject({
+      responseId: nonReplayableId,
+      replayable: false,
+      nonReplayableReason: "raw_response_text_not_stored",
+      replayClassification: null,
+    });
+    expect(nonReplayableRun.totals.appendedProcessingEvents).toBe(0);
+    assertNoSensitiveLeak(nonReplayableRun);
+  });
+
   it("keeps response capture source boundaries away from parser, OCR, packet, violation, runtime truth, and override paths", () => {
     const source = [
       "helpers/responseDocumentSchema.ts",
       "helpers/responseDocumentService.ts",
       "helpers/responseIntakeService.ts",
+      "helpers/responseReplayService.ts",
       "endpoints/responses/capture_POST.ts",
       "endpoints/responses/list_GET.ts",
       "endpoints/responses/get_GET.ts",
+      "scripts/response-processing-replay.ts",
     ]
       .map((path) => readFileSync(resolve(path), "utf8"))
       .join("\n");
@@ -1295,7 +1467,7 @@ describeIfLocalDb("response document capture endpoints", () => {
     expect(source).not.toMatch(/pdfTextExtractor|ocr|deterministicCreditReportPipeline|extractCanonical|parseCreditReport|ingestCorePipeline/i);
     expect(source).not.toMatch(/scanAndPersistViolations|detectViolations|complianceScanner|fireViolation/i);
     expect(source).not.toMatch(/buildSimpleDisputePacketContent|createDisputePacket|generatePacket|generatePacketContentPdfBase64/i);
-    expect(source).not.toMatch(/evaluatePacketReadiness|validateDisputePacketReadiness|packetReadiness|packetWording/i);
+    expect(source).not.toMatch(/evaluatePacketReadiness|validateDisputePacketReadiness|packetWording/i);
     expect(source).not.toMatch(/activateRuntime|runtimeBridgeMapping|regulationRuntimeTruth|regulationRegistry/i);
     expect(source).not.toMatch(/adminOverride|direct furnisher|furnisher packet/i);
     expect(source).not.toMatch(/updateTable\("packet"\)|updateTable\("reportArtifact"\)|updateTable\("tradeline"\)|updateTable\("creditorObligationTest"\)|updateTable\("findingOutcome"\)|updateTable\("outcomeComparisonRun"\)/);

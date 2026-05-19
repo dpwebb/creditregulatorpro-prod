@@ -163,6 +163,26 @@ function resetHookMocks() {
         },
         classificationCounts: [{ classification: "remains", count: 1 }],
         alerts: [],
+        replayReadiness: {
+          generatedAt: "2026-05-18T12:03:00.000Z",
+          totalResponseRecords: 1,
+          replayableRecords: 1,
+          nonReplayableRecords: 0,
+          nonReplayableReasonCounts: [],
+          staleOrMissingClassifierMetadata: 0,
+          missingProcessingSummary: 0,
+          manualReviewRequired: 1,
+          uncertainty: 1,
+          duplicateAttemptAudits: 0,
+          lastReplayDryRunAt: null,
+          lastReplayApplyAt: null,
+          boundaries: {
+            noRawResponseText: true,
+            dryRunDoesNotPersist: true,
+            applyIsAppendOnly: true,
+            liveMailboxIntegrationUsed: false,
+          },
+        },
         boundaries: {
           redacted: true,
           structuredOnly: true,
@@ -292,6 +312,9 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Processed 24h")).toBeInTheDocument();
     expect(screen.getByText("OCR Fallback")).toBeInTheDocument();
     expect(screen.getByText("Readiness Regression")).toBeInTheDocument();
+    expect(screen.getByText("Replayable")).toBeInTheDocument();
+    expect(screen.getByText("Non-Replayable")).toBeInTheDocument();
+    expect(screen.getByText("Replay Stale")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Manual Response Capture" })).toBeInTheDocument();
     expect(screen.getByText(/Live mailbox connections remain disabled/i)).toBeInTheDocument();
   });

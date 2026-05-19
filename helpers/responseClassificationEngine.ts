@@ -258,6 +258,9 @@ const RULES: Array<{
       /\bconfirmed\b/,
       /\bno change\b/,
       /\bremains\b/,
+      /\bwill remain\b/,
+      /\bremain(?:s)? as reported\b/,
+      /\bremain(?:s)? unchanged\b/,
     ],
     excludePatterns: [
       /\bnot verified\b/,
@@ -281,6 +284,8 @@ const RULES: Array<{
       /\bmethod of verification (?:missing|not provided|unavailable)\b/,
       /\bwithout (?:supporting )?documents?\b/,
       /\bno (?:supporting )?documents?\b/,
+      /\bwithout evidence\b/,
+      /\bno evidence\b/,
       /\brubber stamp\b/,
       /\bdoes not match\b/,
       /\bwrong account\b/,
@@ -293,6 +298,9 @@ const RULES: Array<{
       /\brefus(?:e|ed|ing) to provide (?:the )?method of verification\b/,
       /\bnot required to provide (?:the )?method of verification\b/,
       /\bcontact (?:the )?(?:creditor|furnisher) directly\b/,
+      /\bcontacted (?:the )?(?:creditor|furnisher)\b/,
+      /\bthird[- ]party authorization (?:is )?(?:missing|required|not provided)\b/,
+      /\bauthorization (?:is )?(?:missing|required|not provided)\b/,
     ],
     message: "Response contains a deterministic signal that may require compliance review.",
     sourceField: "responseSummary",
@@ -336,6 +344,13 @@ const OUTCOME_CLASSIFICATIONS = new Set<ResponseClassification>([
   "remains",
   "unable_to_verify",
 ]);
+
+const VAGUE_UPDATE_PATTERN =
+  /\b(?:updated|corrected|revised|modified|amended) (?:the )?(?:information|account information|reported information|file|credit file|record|records)\b/;
+const FIELD_DETAIL_PATTERN =
+  /\b(?:balance|status|date|limit|payment|account number|account no|opened|closed|past due|creditor|furnisher|name|address|amount|rating|remark|late|delinquency|collection)\b/;
+const REMAINS_ADVERSE_LANGUAGE_PATTERN =
+  /\b(?:will remain|remain(?:s)? as reported|remain(?:s)? unchanged|account remains unchanged|no change)\b/;
 
 function mergeRegulationCategories(matches: RuleMatch[]): ViolationCategory[] {
   return Array.from(new Set(matches.flatMap((match) => match.regulationCategories ?? [])));
@@ -406,7 +421,33 @@ function contradictoryMatch(matches: RuleMatch[]): RuleMatch {
   };
 }
 
-function selectRuleMatch(matches: RuleMatch[]): RuleMatch | null {
+function vagueUpdatedMatch(match: RuleMatch): RuleMatch {
+  return {
+    ...match,
+    confidence: 0.62,
+    manualReview: true,
+    rationale: [
+      {
+        code: "response-updated-without-field-detail",
+        message: "Response says information was updated but does not provide enough field-level detail for automatic outcome handling.",
+        sourceField: "responseSummary",
+        confidence: 0.62,
+        regulationCategory: "RESPONSE_INCOMPLETE",
+      },
+      ...match.rationale,
+    ],
+    uncertaintyCodes: Array.from(new Set([
+      ...(match.uncertaintyCodes ?? []),
+      "UPDATED_WITHOUT_FIELD_DETAIL",
+    ])),
+    regulationCategories: Array.from(new Set([
+      ...(match.regulationCategories ?? []),
+      "RESPONSE_INCOMPLETE" as ViolationCategory,
+    ])),
+  };
+}
+
+function selectRuleMatch(matches: RuleMatch[], text: string): RuleMatch | null {
   if (matches.length === 0) return null;
 
   const suspicious = matches.find((match) => match.classification === "suspicious_non_compliant");
@@ -420,12 +461,45 @@ function selectRuleMatch(matches: RuleMatch[]): RuleMatch | null {
   }
 
   const outcomeMatches = matches.filter((match) => OUTCOME_CLASSIFICATIONS.has(match.classification));
+  const unableToVerify = outcomeMatches.find((match) => match.classification === "unable_to_verify");
+  if (unableToVerify && REMAINS_ADVERSE_LANGUAGE_PATTERN.test(text)) {
+    return contradictoryMatch([
+      unableToVerify,
+      {
+        id: "response-remains-conflicting-language",
+        classification: "remains",
+        confidence: 0.83,
+        signals: ["response-remains-conflicting-language"],
+        rationale: [
+          {
+            code: "response-remains-conflicting-language",
+            message: "Response also states the item will remain or remain unchanged.",
+            sourceField: "responseSummary",
+            confidence: 0.83,
+            regulationCategory: "RESPONSE_INCOMPLETE",
+          },
+        ],
+        manualReview: true,
+        uncertaintyCodes: ["ADVERSE_RESPONSE_REQUIRES_REVIEW"],
+        regulationCategories: ["RESPONSE_INCOMPLETE"],
+      },
+    ]);
+  }
   const outcomeClassifications = new Set(outcomeMatches.map((match) => match.classification));
   if (outcomeClassifications.size > 1) {
     return contradictoryMatch(outcomeMatches);
   }
 
-  return matches[0];
+  const selected = matches[0];
+  if (
+    selected.classification === "updated" &&
+    VAGUE_UPDATE_PATTERN.test(text) &&
+    !FIELD_DETAIL_PATTERN.test(text)
+  ) {
+    return vagueUpdatedMatch(selected);
+  }
+
+  return selected;
 }
 
 function regulationReferences(categories: ViolationCategory[] = []): ResponseRegulationReference[] {
@@ -506,7 +580,7 @@ export function classifyResponseDocument(input: ResponseClassificationInput): Re
     input.responseSummary,
   ].filter(Boolean).join(" "));
 
-  const match = searchableText ? selectRuleMatch(collectRuleMatches(searchableText)) : null;
+  const match = searchableText ? selectRuleMatch(collectRuleMatches(searchableText), searchableText) : null;
   const defaultRationale: ResponseRationale = {
     code: "response-unknown",
     message: "Response metadata does not contain enough deterministic signal for a confident classification.",
