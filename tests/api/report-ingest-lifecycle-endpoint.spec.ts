@@ -93,6 +93,10 @@ import { handle as submitReport } from "../../endpoints/ingest/report_POST";
 import { handle as submitAnonymousReport } from "../../endpoints/ingest/anonymous-report_POST";
 import { handle as processReport } from "../../endpoints/ingest/process_POST";
 import { handle as listReportArtifacts } from "../../endpoints/report-artifact/list_GET";
+import {
+  REPORT_ARTIFACT_LIST_DEFAULT_LIMIT,
+  REPORT_ARTIFACT_LIST_MAX_LIMIT,
+} from "../../endpoints/report-artifact/list_GET.schema";
 import { handle as getReportArtifact } from "../../endpoints/report-artifact/get_GET";
 import { handle as getUploadResults } from "../../endpoints/upload-results/get_GET";
 import { handle as runParserLab } from "../../endpoints/parser-lab/run_POST";
@@ -254,6 +258,18 @@ function whereValues(column: string) {
   return mocks.operations
     .filter((operation) => operation.method === "where" && operation.args[0] === column)
     .map((operation) => operation.args);
+}
+
+function limitValuesFor(table: string) {
+  return mocks.operations
+    .filter((operation) => operation.table === table && operation.method === "limit")
+    .map((operation) => operation.args[0]);
+}
+
+function offsetValuesFor(table: string) {
+  return mocks.operations
+    .filter((operation) => operation.table === table && operation.method === "offset")
+    .map((operation) => operation.args[0]);
 }
 
 async function readSseEvents(response: Response) {
@@ -622,8 +638,20 @@ describe("report ingest lifecycle endpoints", () => {
       "=",
       "completed",
     ]);
-    expect(mocks.operations).toContainEqual(expect.objectContaining({ method: "limit", args: [10] }));
-    expect(mocks.operations).toContainEqual(expect.objectContaining({ method: "offset", args: [0] }));
+    expect(limitValuesFor("reportArtifact")).toContain(10);
+    expect(offsetValuesFor("reportArtifact")).toContain(0);
+    responseTextIsPrivacySafe(body);
+  });
+
+  it("rejects excessive report-artifact list limits before running list queries", async () => {
+    const response = await listReportArtifacts(
+      getRequest(`/_api/report-artifact/list?limit=${REPORT_ARTIFACT_LIST_MAX_LIMIT + 1}`),
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toEqual(expect.any(String));
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
     responseTextIsPrivacySafe(body);
   });
 
@@ -636,6 +664,8 @@ describe("report ingest lifecycle endpoints", () => {
     expect(adminList.status).toBe(200);
     await expect(adminList.json()).resolves.toMatchObject({ total: 1 });
     expect(whereValues("reportArtifact.userId")).toEqual([]);
+    expect(limitValuesFor("reportArtifact")).toContain(REPORT_ARTIFACT_LIST_DEFAULT_LIMIT);
+    expect(offsetValuesFor("reportArtifact")).toEqual([]);
 
     mocks.operations.length = 0;
     mocks.getServerUserSession.mockResolvedValueOnce({ user: currentUser("support") });

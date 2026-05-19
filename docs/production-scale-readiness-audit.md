@@ -78,8 +78,9 @@ Inspected representative files and functions:
 ### 4. Packet PDF generation and some packet lists are not scale-bounded enough
 
 - Severity: **High**
+- Pagination sub-item status: **Implemented 2026-05-19**. `endpoints/packet/list_GET.schema.ts` and `endpoints/report-artifact/list_GET.schema.ts` now default to 50 rows and reject limits above 100 with schema validation; handlers always apply the validated limit. Regression coverage was added in `tests/api/packet-delivery-status-endpoint.spec.ts` and `tests/api/report-ingest-lifecycle-endpoint.spec.ts` for default limits, explicit safe limits, excessive-limit rejection, and preserved owner/admin filters.
 - Affected area: Packet generation, PDF, load
-- Files/routes/functions:
+- Original finding files/routes/functions:
   - `endpoints/packet/pdf_GET.ts` - `handle()` generates `generatePacketContentPdfBase64()` synchronously on download whenever `packet.content` exists, then records download status.
   - `endpoints/packet/send-first-class_POST.ts` and `endpoints/packet/send-registered_POST.ts` - send flows also call `generatePacketContentPdfBase64()` synchronously.
   - `endpoints/packet/list_GET.schema.ts` - `limit` has `.min(1).optional()` with no maximum or default.
@@ -234,7 +235,7 @@ Positive evidence:
 Risks:
 
 - `helpers/db.tsx` uses a fixed pool `max: 3`; no environment-controlled production pool tuning was found.
-- Several list endpoints use optional limits without defaults or maximums, including `endpoints/packet/list_GET.schema.ts` and `endpoints/report-artifact/list_GET.schema.ts`.
+- Packet and report-artifact list pagination was bounded on 2026-05-19 with default 50 and max 100; other list endpoints should continue to be reviewed under their owning workstreams.
 - Core schema migration is split across generated types, local bootstrap scripts, and runtime `ensure*Schema` functions.
 - Raw PDF blobs in `report_artifact.storage_url` will make backup/restore and query I/O expensive.
 - Per-request session update in `helpers/getServerUserSession.tsx` writes `sessions.lastAccessed` on every authenticated request.
@@ -412,7 +413,7 @@ Use this before any staging-to-production promotion.
 
 1. [x] Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication. Implemented in `helpers/uploadPayloadValidation.ts` with route/schema coverage in `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, `tests/api/critical-schema.spec.ts`, and `tests/api/ocr-extract-upload-limit-endpoint.spec.ts`.
 2. Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test.
-3. Add default/max pagination to packet and report-artifact list endpoints.
+3. [x] Add default/max pagination to packet and report-artifact list endpoints. Implemented in `endpoints/packet/list_GET.schema.ts`, `endpoints/packet/list_GET.ts`, `endpoints/report-artifact/list_GET.schema.ts`, and `endpoints/report-artifact/list_GET.ts` with default 50, max 100, and excessive limits rejected rather than capped. Covered by `tests/api/packet-delivery-status-endpoint.spec.ts` and `tests/api/report-ingest-lifecycle-endpoint.spec.ts`.
 4. Add production workflow post-deploy root/login/auth-session health checks.
 5. Add route-wide auth classification test for public/session/admin/webhook/cron endpoints.
 6. Add operator launch policy limiting beta concurrency, upload size, packet volume, and response-worker operations until ingest queue exists.

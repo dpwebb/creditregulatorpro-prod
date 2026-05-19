@@ -4,8 +4,11 @@ import { Selectable } from "kysely";
 import { Packet } from "../../helpers/schema";
 import type { PacketLifecycleSummary } from "../../helpers/packetLifecycle";
 
+export const PACKET_LIST_DEFAULT_LIMIT = 50;
+export const PACKET_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
-  limit: z.coerce.number().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(PACKET_LIST_MAX_LIMIT).default(PACKET_LIST_DEFAULT_LIMIT),
   offset: z.coerce.number().min(0).optional(),
 });
 

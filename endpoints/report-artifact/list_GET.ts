@@ -74,11 +74,9 @@ export async function handle(request: Request) {
 
     dataQuery = dataQuery.orderBy("reportArtifact.createdAt", "desc");
 
-    if (validatedInput.limit !== undefined) {
-      dataQuery = dataQuery.limit(validatedInput.limit);
-      if (validatedInput.offset !== undefined) {
-        dataQuery = dataQuery.offset(validatedInput.offset);
-      }
+    dataQuery = dataQuery.limit(validatedInput.limit);
+    if (validatedInput.offset !== undefined) {
+      dataQuery = dataQuery.offset(validatedInput.offset);
     }
 
     const rawArtifacts = await dataQuery.execute();

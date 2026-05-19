@@ -117,6 +117,10 @@ vi.mock("../../helpers/packetPdfContent", () => ({
 import { handle as recordDelivery } from "../../endpoints/packet/delivery_POST";
 import { handle as getPacket } from "../../endpoints/packet/get_GET";
 import { handle as listPackets } from "../../endpoints/packet/list_GET";
+import {
+  PACKET_LIST_DEFAULT_LIMIT,
+  PACKET_LIST_MAX_LIMIT,
+} from "../../endpoints/packet/list_GET.schema";
 import { handle as sendFirstClass } from "../../endpoints/packet/send-first-class_POST";
 import { handle as sendRegistered } from "../../endpoints/packet/send-registered_POST";
 import { handle as updatePacketStatus } from "../../endpoints/packet/update-status_POST";
@@ -370,6 +374,18 @@ function whereValues(column: string) {
   return mocks.operations
     .filter((operation) => operation.method === "where" && operation.args[0] === column)
     .map((operation) => operation.args);
+}
+
+function limitValuesFor(table: string) {
+  return mocks.operations
+    .filter((operation) => operation.table === table && operation.method === "limit")
+    .map((operation) => operation.args[0]);
+}
+
+function offsetValuesFor(table: string) {
+  return mocks.operations
+    .filter((operation) => operation.table === table && operation.method === "offset")
+    .map((operation) => operation.args[0]);
 }
 
 function expectNoSensitiveLeak(value: unknown) {
@@ -773,6 +789,8 @@ describe("packet delivery, status, and send endpoint coverage", () => {
       }),
     });
     expect(mocks.operations.some((operation) => operation.table === "disputePacketFindings")).toBe(false);
+    expect(limitValuesFor("packet")).toContain(10);
+    expect(offsetValuesFor("packet")).toContain(0);
     expectNoSensitiveLeak(listBody);
 
     queueResults({ first: detailPacketRow() });
@@ -802,6 +820,44 @@ describe("packet delivery, status, and send endpoint coverage", () => {
 
     expect(nonOwnerGet.status).toBe(403);
     expectNoSensitiveLeak(await nonOwnerGet.json());
+  });
+
+  it("applies default bounded packet list pagination while preserving owner filters", async () => {
+    queueResults({ firstOrThrow: { total: "0" } }, { execute: [] });
+
+    const response = await listPackets(getRequest("/_api/packet/list"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ total: 0, packets: [] });
+    expect(limitValuesFor("packet")).toContain(PACKET_LIST_DEFAULT_LIMIT);
+    expect(offsetValuesFor("packet")).toEqual([]);
+    expect(whereValues("packet.userId")).toContainEqual(["packet.userId", "=", 10]);
+    expect(whereValues("packet.processingStatus")).toContainEqual(["packet.processingStatus", "=", "completed"]);
+    expect(mocks.operations).toContainEqual(
+      expect.objectContaining({ table: "packet", method: "orderBy", args: ["packet.createdAt", "desc"] }),
+    );
+  });
+
+  it("preserves admin packet list scope while applying the default limit", async () => {
+    mocks.getServerUserSession.mockResolvedValueOnce({ user: currentUser("admin") });
+    queueResults({ firstOrThrow: { total: "0" } }, { execute: [] });
+
+    const response = await listPackets(getRequest("/_api/packet/list"));
+
+    expect(response.status).toBe(200);
+    expect(limitValuesFor("packet")).toContain(PACKET_LIST_DEFAULT_LIMIT);
+    expect(whereValues("packet.userId")).toEqual([]);
+    expect(whereValues("packet.processingStatus")).toEqual([]);
+  });
+
+  it("rejects excessive packet list limits before running list queries", async () => {
+    const response = await listPackets(getRequest(`/_api/packet/list?limit=${PACKET_LIST_MAX_LIMIT + 1}`));
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toEqual(expect.any(String));
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expectNoSensitiveLeak(body);
   });
 
   it("keeps packet delivery endpoint sources away from parser, evidence extraction, packet wording/PDF layout, runtime activation, and live provider fetches", () => {

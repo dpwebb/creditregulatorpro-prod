@@ -80,11 +80,9 @@ export async function handle(request: Request) {
         .where('packet.processingStatus', '=', 'completed');
     }
 
-    if (validatedInput.limit !== undefined) {
-      dataQuery = dataQuery.limit(validatedInput.limit);
-      if (validatedInput.offset !== undefined) {
-        dataQuery = dataQuery.offset(validatedInput.offset);
-      }
+    dataQuery = dataQuery.limit(validatedInput.limit);
+    if (validatedInput.offset !== undefined) {
+      dataQuery = dataQuery.offset(validatedInput.offset);
     }
 
     const rawPackets = await dataQuery.execute();

@@ -3,8 +3,11 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { ReportArtifact } from "../../helpers/schema";
 
+export const REPORT_ARTIFACT_LIST_DEFAULT_LIMIT = 50;
+export const REPORT_ARTIFACT_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
-  limit: z.coerce.number().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(REPORT_ARTIFACT_LIST_MAX_LIMIT).default(REPORT_ARTIFACT_LIST_DEFAULT_LIMIT),
   offset: z.coerce.number().min(0).optional(),
 });
 
