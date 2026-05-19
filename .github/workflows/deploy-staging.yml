@@ -193,10 +193,19 @@ jobs:
               exit 1
             }
 
-            curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com || {
-              echo "Staging health check failed before response auth smokes."
-              exit 1
+            wait_for_staging_health() {
+              local label="$1"
+              for attempt in $(seq 1 30); do
+                if curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com/login; then
+                  return 0
+                fi
+                sleep 2
+              done
+              echo "Staging health check failed ${label} response auth smokes."
+              return 1
             }
+
+            wait_for_staging_health "before"
 
             run_response_auth_smokes() {
               echo "Running automated staging response auth smokes."
@@ -472,10 +481,7 @@ jobs:
 
             run_response_auth_smokes
 
-            curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com || {
-              echo "Staging health check failed after response auth smokes."
-              exit 1
-            }
+            wait_for_staging_health "after"
 
             git log -1 --oneline
           REMOTE
