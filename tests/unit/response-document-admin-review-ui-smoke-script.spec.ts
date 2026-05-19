@@ -14,8 +14,10 @@ import {
   redactSecretText,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_ACTION,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_CLEANUP_POLICY,
+  RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_NOTE,
+  RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT,
   RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_REQUIRED_TEXT,
   runCli,
   SKIPPED_EXIT_CODE,
@@ -191,6 +193,20 @@ describe("response document admin-review UI staging smoke harness", () => {
   });
 
   it("verifies UI route, controls, and safety checks are present", () => {
+    expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT).toEqual(
+      expect.arrayContaining([
+        "Response Documents",
+        "Response documents are evidence and metadata only.",
+        "No mailbox, Gmail, IMAP, or inbox integration is used.",
+      ]),
+    );
+    expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT).toEqual(
+      expect.arrayContaining([
+        "Admin Metadata Review",
+        "Admin review updates response metadata only.",
+        "Save Metadata Review",
+      ]),
+    );
     expect(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_REQUIRED_TEXT).toEqual(
       expect.arrayContaining([
         "Response Documents",
@@ -205,6 +221,31 @@ describe("response document admin-review UI staging smoke harness", () => {
     expect(source).toContain("submitAdminReviewUiAction");
     expect(source).toContain("Save Metadata Review");
     expect(source).toContain("Response review metadata saved.");
+  });
+
+  it("waits for the selected response detail panel before checking admin-review controls", () => {
+    const source = smokeSource();
+
+    expect(source).toContain("RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT");
+    expect(source).toContain("responseDetailPanelLocator");
+    expect(source).toContain("assertAdminReviewDetailSection");
+    expect(source).toContain("detailPanel.getByRole(\"heading\", { name: /Admin Metadata Review/i })");
+    expect(source).toContain("detailPanel.getByRole(\"button\", { name: /Save Metadata Review/i })");
+    expect(source).toContain("submitAdminReviewUiAction(detailPanel)");
+  });
+
+  it("reports redacted diagnostics when the admin-review section is missing", () => {
+    const source = smokeSource();
+
+    expect(source).toContain("buildAdminReviewUiDiagnostics");
+    expect(source).toContain("currentUrl=");
+    expect(source).toContain("adminRouteRendered=");
+    expect(source).toContain("responseListLoaded=");
+    expect(source).toContain("syntheticResponseVisible=");
+    expect(source).toContain("detailPanelVisible=");
+    expect(source).toContain("adminMetadataReviewVisible=");
+    expect(source).toContain("saveMetadataReviewVisible=");
+    expect(source).toContain("redactSecretText");
   });
 
   it("verifies only the safe add-review-note action is submitted through the UI", () => {

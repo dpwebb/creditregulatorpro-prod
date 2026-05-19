@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { chromium, expect, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
 import {
   assertNoDestructiveCleanupPlanned as assertAdminReviewCleanupPolicy,
@@ -25,9 +25,18 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_NOTE =
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_CLEANUP_POLICY =
   "Response document admin-review UI smoke is append-only: it leaves response review metadata, audit rows, evidence rows, outcome rows, packet rows, and canonical rows in place by design.";
 
-export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_REQUIRED_TEXT = [
+export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT = [
   "Response Documents",
   "Response documents are evidence and metadata only.",
+  "A later credit report comparison is still required to classify corrected, removed, or unchanged outcomes.",
+  "This page does not parse response documents.",
+  "This page does not change canonical report facts.",
+  "This page does not change packet readiness or wording.",
+  "This page does not activate regulation runtime truth.",
+  "No mailbox, Gmail, IMAP, or inbox integration is used.",
+] as const;
+
+export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT = [
   "Admin Metadata Review",
   "Admin review updates response metadata only.",
   "A later credit-report comparison is still required to classify corrected, removed, or unchanged outcomes.",
@@ -35,6 +44,11 @@ export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_REQUIRED_TEXT = [
   "This does not change packet readiness or wording.",
   "This does not create an admin override.",
   "Save Metadata Review",
+] as const;
+
+export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_REQUIRED_TEXT = [
+  ...RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT,
+  ...RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_DETAIL_REQUIRED_TEXT,
 ] as const;
 
 export const RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_FORBIDDEN_VISIBLE_TEXT = [
@@ -470,9 +484,66 @@ async function verifyResponseSource(
   return fetchResponseById(page, responseIdFrom(matched), source.syntheticMarker, runId);
 }
 
-async function openResponseDetail(page: Page, verified: VerifiedResponse): Promise<void> {
+function responseDetailPanelLocator(page: Page): Locator {
+  return page.locator("section").filter({ hasText: "Response Detail" }).first();
+}
+
+async function compactLocatorText(locator: Locator, timeout = 3000): Promise<string> {
+  const text = await locator.innerText({ timeout }).catch(() => "");
+  return text.replace(/\s+/g, " ").trim().slice(0, 900);
+}
+
+async function compactVisibleTexts(locator: Locator, timeout = 3000): Promise<string[]> {
+  await locator.first().waitFor({ state: "attached", timeout }).catch(() => undefined);
+  const texts = await locator.allInnerTexts().catch(() => []);
+  return texts.map((text) => text.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 20);
+}
+
+export async function buildAdminReviewUiDiagnostics(page: Page, detailPanel?: Locator, verified?: VerifiedResponse | null): Promise<string> {
+  const bodyText = await compactLocatorText(page.locator("body"), 3000);
+  const detailText = detailPanel ? await compactLocatorText(detailPanel, 3000) : "";
+  const headings = await compactVisibleTexts(page.getByRole("heading"), 3000);
+  const buttons = await compactVisibleTexts(page.getByRole("button"), 3000);
+  const diagnostics = [
+    "Response admin-review UI diagnostics:",
+    `currentUrl=${redactSecretText(page.url(), process.env)}`,
+    `expectedResponseId=${verified?.responseId ?? "unknown"}`,
+    `adminRouteRendered=${/Response Documents/i.test(bodyText)}`,
+    `responseListLoaded=${/Captured Responses/i.test(bodyText)}`,
+    `syntheticResponseVisible=${verified ? bodyText.includes(`Response #${verified.responseId}`) : "unknown"}`,
+    `detailPanelVisible=${/Response Detail/i.test(detailText)}`,
+    `adminMetadataReviewVisible=${/Admin Metadata Review/i.test(detailText)}`,
+    `saveMetadataReviewVisible=${/Save Metadata Review/i.test(detailText)}`,
+    `visibleHeadings=${redactSecretText(headings.join(" | "), process.env)}`,
+    `visibleButtons=${redactSecretText(buttons.join(" | "), process.env)}`,
+    `detailPanelText=${redactSecretText(detailText, process.env)}`,
+  ];
+  return diagnostics.join("\n");
+}
+
+async function assertAdminReviewDetailSection(page: Page, detailPanel: Locator, verified: VerifiedResponse): Promise<void> {
+  try {
+    await expect(detailPanel.getByText(`Response #${verified.responseId}`, { exact: true }).first()).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText(formatEnumForUi(verified.responseChannel), { exact: true }).first()).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText(formatEnumForUi(verified.responseDocumentType), { exact: true }).first()).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByRole("heading", { name: /Admin Metadata Review/i })).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText("Admin review updates response metadata only.", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText("A later credit-report comparison is still required to classify corrected, removed, or unchanged outcomes.", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText("This does not change canonical report facts.", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText("This does not change packet readiness or wording.", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByText("This does not create an admin override.", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(detailPanel.getByRole("button", { name: /Save Metadata Review/i })).toBeVisible({ timeout: 15000 });
+  } catch (error) {
+    const diagnostics = await buildAdminReviewUiDiagnostics(page, detailPanel, verified);
+    throw new Error(
+      `Response admin-review controls were not visible in the selected response detail panel.\n${diagnostics}\n${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+async function openResponseDetail(page: Page, verified: VerifiedResponse): Promise<Locator> {
   await page.goto(RESPONSE_DOCUMENT_UI_PATH);
-  for (const text of RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_REQUIRED_TEXT) {
+  for (const text of RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT) {
     await expect(page.getByText(text, { exact: true }).first()).toBeVisible({ timeout: 15000 });
   }
   await page.getByLabel("Response channel").selectOption(verified.responseChannel);
@@ -483,19 +554,19 @@ async function openResponseDetail(page: Page, verified: VerifiedResponse): Promi
   const card = page.getByRole("article").filter({ hasText: `Response #${verified.responseId}` });
   await expect(card).toHaveCount(1, { timeout: 15000 });
   await card.getByRole("button", { name: /View Details/i }).click();
-  await expect(page.getByText(`Response #${verified.responseId}`, { exact: true }).first()).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText(formatEnumForUi(verified.responseChannel), { exact: true }).first()).toBeVisible();
-  await expect(page.getByText(formatEnumForUi(verified.responseDocumentType), { exact: true }).first()).toBeVisible();
+  const detailPanel = responseDetailPanelLocator(page);
+  await assertAdminReviewDetailSection(page, detailPanel, verified);
+  return detailPanel;
 }
 
-async function submitAdminReviewUiAction(page: Page): Promise<void> {
-  await page.getByLabel("Review action").selectOption(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_ACTION);
-  await page.getByLabel("Review notes").fill(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_NOTE);
-  await page.getByLabel(/response remains evidence\/metadata only/i).check();
-  await page.getByLabel(/does not change canonical report facts/i).check();
-  await page.getByLabel(/does not classify corrected, removed, or unchanged outcomes/i).check();
-  await page.getByRole("button", { name: /Save Metadata Review/i }).click();
-  await expect(page.getByText("Response review metadata saved.", { exact: true })).toBeVisible({ timeout: 15000 });
+async function submitAdminReviewUiAction(detailPanel: Locator): Promise<void> {
+  await detailPanel.getByLabel("Review action").selectOption(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_ALLOWED_ACTION);
+  await detailPanel.getByLabel("Review notes").fill(RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_NOTE);
+  await detailPanel.getByLabel(/response remains evidence\/metadata only/i).check();
+  await detailPanel.getByLabel(/does not change canonical report facts/i).check();
+  await detailPanel.getByLabel(/does not classify corrected, removed, or unchanged outcomes/i).check();
+  await detailPanel.getByRole("button", { name: /Save Metadata Review/i }).click();
+  await expect(detailPanel.getByText("Response review metadata saved.", { exact: true })).toBeVisible({ timeout: 15000 });
 }
 
 async function verifyPostReviewResponse(page: Page, verified: VerifiedResponse): Promise<any> {
@@ -533,12 +604,12 @@ export async function runSmoke(config: Extract<ResponseDocumentAdminReviewUiSmok
   try {
     const session = await authenticateAdmin(context, page, config);
     verified = await verifyResponseSource(page, config.source, config.runId);
-    await openResponseDetail(page, verified);
+    const detailPanel = await openResponseDetail(page, verified);
     const beforeText = await page.locator("body").innerText();
     assertNoForbiddenVisibleText(beforeText);
     assertResponseAdminReviewPrivacySafe({ displayText: beforeText }, verified.privacyContext);
 
-    await submitAdminReviewUiAction(page);
+    await submitAdminReviewUiAction(detailPanel);
     const updated = await verifyPostReviewResponse(page, verified);
 
     const health = await page.request.get("/");
