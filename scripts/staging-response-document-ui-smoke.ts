@@ -553,14 +553,14 @@ async function assertUiSafetyText(page: Page): Promise<void> {
 }
 
 async function applyResponseFilters(page: Page, verified: VerifiedResponse): Promise<void> {
-  await page.getByLabel("Response channel").selectOption(verified.responseChannel);
-  await page.getByLabel("Document type").selectOption(verified.responseDocumentType);
-  await page.getByLabel("Status").selectOption(verified.responseStatus);
+  await page.getByLabel("Response channel", { exact: true }).selectOption(verified.responseChannel);
+  await page.getByLabel("Document type", { exact: true }).selectOption(verified.responseDocumentType);
+  await page.getByLabel("Status", { exact: true }).selectOption(verified.responseStatus);
   if (verified.comparisonRunId) {
-    await page.getByLabel("Comparison run ID").fill(String(verified.comparisonRunId));
+    await page.getByLabel("Comparison run ID", { exact: true }).fill(String(verified.comparisonRunId));
   }
   if (verified.findingOutcomeId) {
-    await page.getByLabel("Finding outcome ID").fill(String(verified.findingOutcomeId));
+    await page.getByLabel("Finding outcome ID", { exact: true }).fill(String(verified.findingOutcomeId));
   }
 }
 

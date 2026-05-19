@@ -703,10 +703,10 @@ async function openResponseDetail(page: Page, verified: VerifiedResponse): Promi
   for (const text of RESPONSE_DOCUMENT_ADMIN_REVIEW_UI_PAGE_REQUIRED_TEXT) {
     await expect(page.getByText(text, { exact: true }).first()).toBeVisible({ timeout: 15000 });
   }
-  await page.getByLabel("Response channel").selectOption(verified.responseChannel);
-  await page.getByLabel("Document type").selectOption(verified.responseDocumentType);
-  if (verified.comparisonRunId) await page.getByLabel("Comparison run ID").fill(String(verified.comparisonRunId));
-  if (verified.findingOutcomeId) await page.getByLabel("Finding outcome ID").fill(String(verified.findingOutcomeId));
+  await page.getByLabel("Response channel", { exact: true }).selectOption(verified.responseChannel);
+  await page.getByLabel("Document type", { exact: true }).selectOption(verified.responseDocumentType);
+  if (verified.comparisonRunId) await page.getByLabel("Comparison run ID", { exact: true }).fill(String(verified.comparisonRunId));
+  if (verified.findingOutcomeId) await page.getByLabel("Finding outcome ID", { exact: true }).fill(String(verified.findingOutcomeId));
 
   const card = page.getByRole("article").filter({ hasText: `Response #${verified.responseId}` });
   await expect(card).toHaveCount(1, { timeout: 15000 });
