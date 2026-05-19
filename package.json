@@ -34,6 +34,7 @@
     "smoke:response-document-admin-review": "tsx scripts/staging-response-document-admin-review-smoke.ts",
     "smoke:response-document-admin-review-ui": "tsx scripts/staging-response-document-admin-review-ui-smoke.ts",
     "response:replay": "tsx scripts/response-processing-replay.ts",
+    "response:worker": "tsx scripts/response-processing-worker.ts",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",
     "test:violation-corrections:db": "tsx scripts/violation-correction-integration.ts",

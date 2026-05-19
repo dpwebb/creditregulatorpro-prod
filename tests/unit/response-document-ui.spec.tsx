@@ -183,6 +183,33 @@ function resetHookMocks() {
             liveMailboxIntegrationUsed: false,
           },
         },
+        queueHealth: {
+          generatedAt: "2026-05-18T12:03:00.000Z",
+          queueVersion: "response-processing-queue-2026-05-19",
+          totalJobs: 0,
+          queuedJobs: 0,
+          runningJobs: 0,
+          succeededJobs: 0,
+          failedJobs: 0,
+          deadLetteredJobs: 0,
+          staleRunningJobs: 0,
+          retryBacklogJobs: 0,
+          oldestQueuedAgeSeconds: null,
+          duplicateEnqueueAttempts: 0,
+          recentWorkerRunStatus: null,
+          recentWorkerRunAt: null,
+          boundaries: {
+            durableDbBacked: true,
+            appendOnlyJobEvents: true,
+            noRawResponseText: true,
+            noSecretsInPayload: true,
+            liveMailboxIntegrationUsed: false,
+            externalAlertDeliveryUsed: false,
+            canonicalFactsMutated: false,
+            violationTruthMutated: false,
+            packetReadinessMutated: false,
+          },
+        },
         boundaries: {
           redacted: true,
           structuredOnly: true,
@@ -315,6 +342,10 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Replayable")).toBeInTheDocument();
     expect(screen.getByText("Non-Replayable")).toBeInTheDocument();
     expect(screen.getByText("Replay Stale")).toBeInTheDocument();
+    expect(screen.getByText("Queue Queued")).toBeInTheDocument();
+    expect(screen.getByText("Queue Failed")).toBeInTheDocument();
+    expect(screen.getByText("Queue Dead")).toBeInTheDocument();
+    expect(screen.getByText("Queue Stale")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Manual Response Capture" })).toBeInTheDocument();
     expect(screen.getByText(/Live mailbox connections remain disabled/i)).toBeInTheDocument();
   });

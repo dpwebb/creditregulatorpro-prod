@@ -300,6 +300,104 @@ export function ensureResponseDocumentSchema(): Promise<void> {
         create index if not exists idx_response_admin_review_event_action
           on public.response_admin_review_event(review_action)
         `.execute(db);
+        await sql`
+        create table if not exists public.response_processing_job (
+          id bigserial primary key,
+          job_type text not null,
+          status text not null default 'queued',
+          payload jsonb not null default '{}'::jsonb,
+          idempotency_key text not null,
+          actor_user_id bigint null,
+          source text not null default 'operator',
+          run_after timestamptz not null default now(),
+          started_at timestamptz null,
+          finished_at timestamptz null,
+          created_at timestamptz not null default now(),
+          updated_at timestamptz not null default now(),
+          attempt_count integer not null default 0,
+          max_attempts integer not null default 3,
+          locked_by text null,
+          locked_at timestamptz null,
+          locked_until timestamptz null,
+          last_error_code text null,
+          last_error_reason text null,
+          result_summary jsonb not null default '{}'::jsonb,
+          constraint response_processing_job_type_check
+            check (job_type in (
+              'response_intake_process',
+              'response_replay_apply',
+              'response_replay_dry_run',
+              'response_classification_refresh',
+              'future_mailbox_intake'
+            )),
+          constraint response_processing_job_status_check
+            check (status in ('queued', 'running', 'succeeded', 'failed', 'dead_lettered')),
+          constraint response_processing_job_attempt_check
+            check (attempt_count >= 0 and max_attempts > 0 and max_attempts <= 25),
+          constraint response_processing_job_actor_user_id_fkey
+            foreign key (actor_user_id) references public.users(id) on delete set null
+        )
+        `.execute(db);
+        await sql`
+        create table if not exists public.response_processing_job_event (
+          id bigserial primary key,
+          job_id bigint not null,
+          event_type text not null,
+          previous_status text null,
+          next_status text not null,
+          attempt_count integer not null default 0,
+          worker_id text null,
+          actor_user_id bigint null,
+          details jsonb not null default '{}'::jsonb,
+          error_code text null,
+          error_reason text null,
+          created_at timestamptz not null default now(),
+          constraint response_processing_job_event_type_check
+            check (event_type in (
+              'queued',
+              'duplicate_enqueue',
+              'claimed',
+              'succeeded',
+              'failed',
+              'retry_scheduled',
+              'dead_lettered',
+              'requeued'
+            )),
+          constraint response_processing_job_event_next_status_check
+            check (next_status in ('queued', 'running', 'succeeded', 'failed', 'dead_lettered')),
+          constraint response_processing_job_event_previous_status_check
+            check (previous_status is null or previous_status in ('queued', 'running', 'succeeded', 'failed', 'dead_lettered')),
+          constraint response_processing_job_event_job_id_fkey
+            foreign key (job_id) references public.response_processing_job(id) on delete cascade,
+          constraint response_processing_job_event_actor_user_id_fkey
+            foreign key (actor_user_id) references public.users(id) on delete set null
+        )
+        `.execute(db);
+        await sql`
+        create unique index if not exists idx_response_processing_job_active_idempotency_unique
+          on public.response_processing_job(idempotency_key)
+          where status in ('queued', 'running', 'failed')
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_job_status_run_after
+          on public.response_processing_job(status, run_after, created_at, id)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_job_type_status
+          on public.response_processing_job(job_type, status)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_job_locked_until
+          on public.response_processing_job(status, locked_until)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_job_event_job_created_at
+          on public.response_processing_job_event(job_id, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_response_processing_job_event_type_created_at
+          on public.response_processing_job_event(event_type, created_at desc)
+        `.execute(db);
       } finally {
         await sql`select pg_advisory_unlock(hashtext('creditregulatorpro.response_document_schema'))`.execute(db);
       }

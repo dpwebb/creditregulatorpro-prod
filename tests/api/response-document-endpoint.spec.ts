@@ -1290,6 +1290,28 @@ describeIfLocalDb("response document capture endpoints", () => {
         liveMailboxIntegrationUsed: false,
       },
     });
+    expect(result.parsed.metrics.queueHealth).toMatchObject({
+      totalJobs: expect.any(Number),
+      queuedJobs: expect.any(Number),
+      runningJobs: expect.any(Number),
+      succeededJobs: expect.any(Number),
+      failedJobs: expect.any(Number),
+      deadLetteredJobs: expect.any(Number),
+      staleRunningJobs: expect.any(Number),
+      retryBacklogJobs: expect.any(Number),
+      duplicateEnqueueAttempts: expect.any(Number),
+      boundaries: {
+        durableDbBacked: true,
+        appendOnlyJobEvents: true,
+        noRawResponseText: true,
+        noSecretsInPayload: true,
+        liveMailboxIntegrationUsed: false,
+        externalAlertDeliveryUsed: false,
+        canonicalFactsMutated: false,
+        violationTruthMutated: false,
+        packetReadinessMutated: false,
+      },
+    });
     assertNoSensitiveLeak(result.parsed);
 
     auth.user = scenario.owner;
@@ -1486,6 +1508,7 @@ describeIfLocalDb("response document capture endpoints", () => {
       "helpers/responseDocumentService.ts",
       "helpers/responseIntakeService.ts",
       "helpers/responseReplayService.ts",
+      "helpers/responseProcessingQueueService.ts",
       "endpoints/responses/capture_POST.ts",
       "endpoints/responses/list_GET.ts",
       "endpoints/responses/get_GET.ts",

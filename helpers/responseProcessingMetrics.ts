@@ -4,6 +4,7 @@ import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { ensureResponseDocumentSchema } from "./responseDocumentSchema";
 import type { ResponseDocumentUser } from "./responseDocumentService";
+import { getResponseProcessingQueueMetrics, type ResponseProcessingQueueMetrics } from "./responseProcessingQueueService";
 import { getResponseReplayReadinessMetrics, type ResponseReplayReadinessMetrics } from "./responseReplayService";
 import type { Json } from "./schema";
 
@@ -45,6 +46,7 @@ export type ResponseProcessingMetrics = {
   classificationCounts: Array<{ classification: string; count: number }>;
   alerts: ResponseProcessingMetricAlert[];
   replayReadiness: ResponseReplayReadinessMetrics;
+  queueHealth: ResponseProcessingQueueMetrics;
   boundaries: {
     redacted: true;
     structuredOnly: true;
@@ -133,6 +135,11 @@ export async function getResponseProcessingMetrics(
     order by count desc, classification asc
   `.execute(db);
 
+  const [replayReadiness, queueHealth] = await Promise.all([
+    getResponseReplayReadinessMetrics(),
+    getResponseProcessingQueueMetrics(),
+  ]);
+
   const alerts: ResponseProcessingMetricAlert[] = [
     alert({
       key: "parser_failure_spike",
@@ -158,7 +165,7 @@ export async function getResponseProcessingMetrics(
     alert({
       key: "ingestion_dead_letters",
       severity: "critical",
-      count: totals.deadLetters,
+      count: Math.max(totals.deadLetters, queueHealth.deadLetteredJobs),
       threshold: 1,
       message: "Response ingestion dead letters require operator review.",
     }),
@@ -191,7 +198,6 @@ export async function getResponseProcessingMetrics(
       message: "Response workflows have unresolved manual-review records older than 24 hours.",
     }),
   ];
-  const replayReadiness = await getResponseReplayReadinessMetrics();
 
   return {
     lookbackHours,
@@ -203,6 +209,7 @@ export async function getResponseProcessingMetrics(
     })),
     alerts,
     replayReadiness,
+    queueHealth,
     boundaries: {
       redacted: true,
       structuredOnly: true,

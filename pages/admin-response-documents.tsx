@@ -768,6 +768,22 @@ function MetricsStrip() {
         <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.deadLetters ?? 0}</strong>
       </div>
       <div className={styles.metricCell}>
+        <span>Queue Queued</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.queuedJobs ?? 0}</strong>
+      </div>
+      <div className={(metrics?.queueHealth.failedJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+        <span>Queue Failed</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.failedJobs ?? 0}</strong>
+      </div>
+      <div className={(metrics?.queueHealth.deadLetteredJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+        <span>Queue Dead</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.deadLetteredJobs ?? 0}</strong>
+      </div>
+      <div className={(metrics?.queueHealth.staleRunningJobs ?? 0) > 0 ? styles.metricAlert : styles.metricCell}>
+        <span>Queue Stale</span>
+        <strong>{metricsQuery.isLoading ? "-" : metrics?.queueHealth.staleRunningJobs ?? 0}</strong>
+      </div>
+      <div className={styles.metricCell}>
         <span>Workflow Stalls</span>
         <strong>{metricsQuery.isLoading ? "-" : metrics?.totals.workflowStalls ?? 0}</strong>
       </div>
