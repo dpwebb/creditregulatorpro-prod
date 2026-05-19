@@ -365,7 +365,8 @@ export function ensureResponseDocumentSchema(): Promise<void> {
               'operator_retry_requested',
               'dead_letter_acknowledged',
               'stale_running_reviewed',
-              'replacement_enqueued'
+              'replacement_enqueued',
+              'duplicate_remediation_request'
             )),
           constraint response_processing_job_event_next_status_check
             check (next_status in ('queued', 'running', 'succeeded', 'failed', 'dead_lettered')),
@@ -396,7 +397,8 @@ export function ensureResponseDocumentSchema(): Promise<void> {
             'operator_retry_requested',
             'dead_letter_acknowledged',
             'stale_running_reviewed',
-            'replacement_enqueued'
+            'replacement_enqueued',
+            'duplicate_remediation_request'
           ))
         `.execute(db);
         await sql`

@@ -297,6 +297,64 @@ function resetHookMocks() {
         },
         {
           id: 702,
+          jobType: "future_mailbox_intake",
+          status: "dead_lettered",
+          idempotencyKey: "synthetic-replaced-job",
+          actorUserId: 41,
+          source: "synthetic_queue",
+          runAfter: "2026-05-18T12:00:00.000Z",
+          startedAt: "2026-05-18T12:01:00.000Z",
+          finishedAt: "2026-05-18T12:02:00.000Z",
+          createdAt: "2026-05-18T12:00:00.000Z",
+          updatedAt: "2026-05-18T12:02:00.000Z",
+          attemptCount: 1,
+          maxAttempts: 1,
+          lockedBy: null,
+          lockedAt: null,
+          lockedUntil: null,
+          lastErrorCode: "LIVE_MAILBOX_INTEGRATION_DEFERRED",
+          lastErrorReason: "future mailbox deferred",
+          payloadSummary: {
+            responseId: null,
+            sourceType: "future_mailbox",
+            filterKeys: [],
+            classification: null,
+            manualReviewRequired: null,
+            metadataKeys: [],
+            messageReferenceHashPresent: true,
+            sourceMessageHashPresent: false,
+            confirmApply: false,
+            dryRunOnly: false,
+            rawResponseTextStored: false,
+            liveMailboxIntegrationUsed: false,
+          },
+          resultSummary: {},
+          staleRunning: false,
+          retryEligible: false,
+          acknowledgeEligible: false,
+          staleReviewEligible: false,
+          remediationStatus: {
+            deadLetterAcknowledgedAt: null,
+            staleRunningReviewedAt: null,
+            replacementJobId: 704,
+          },
+          lastEvent: {
+            id: 803,
+            jobId: 702,
+            eventType: "replacement_enqueued",
+            previousStatus: "dead_lettered",
+            nextStatus: "dead_lettered",
+            attemptCount: 1,
+            workerId: null,
+            actorUserId: 41,
+            details: { replacementJobId: 704, rawResponseTextLogged: false },
+            errorCode: null,
+            errorReason: null,
+            createdAt: "2026-05-18T12:03:00.000Z",
+          },
+        },
+        {
+          id: 703,
           jobType: "response_replay_dry_run",
           status: "running",
           idempotencyKey: "synthetic-stale-job",
@@ -340,7 +398,7 @@ function resetHookMocks() {
           },
           lastEvent: {
             id: 802,
-            jobId: 702,
+            jobId: 703,
             eventType: "claimed",
             previousStatus: "queued",
             nextStatus: "running",
@@ -354,7 +412,7 @@ function resetHookMocks() {
           },
         },
       ],
-      total: 2,
+      total: 3,
     },
     isLoading: false,
     isFetching: false,
@@ -523,7 +581,10 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Job")).toBeInTheDocument();
     expect(screen.getByText("#701")).toBeInTheDocument();
     expect(screen.getByText("#702")).toBeInTheDocument();
-    expect(screen.getByText(/future mailbox intake/i)).toBeInTheDocument();
+    expect(screen.getByText("#703")).toBeInTheDocument();
+    expect(screen.getByText("Replacement #704")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /confirm retry/i })).toHaveLength(1);
+    expect(screen.getAllByText(/future mailbox intake/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Stale running/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Dead-letter retries create a replacement job/i)).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("raw response text");
@@ -552,7 +613,7 @@ describe("admin response document UI", () => {
     fireEvent.click(screen.getByRole("button", { name: /mark reviewed/i }));
     await waitFor(() => {
       expect(mocks.queueRemediationMutateAsync).toHaveBeenCalledWith({
-        jobId: 702,
+        jobId: 703,
         action: "mark_stale_reviewed",
         confirmRetry: undefined,
         confirmReview: true,

@@ -30,7 +30,8 @@ export type ResponseProcessingJobEventType =
   | "operator_retry_requested"
   | "dead_letter_acknowledged"
   | "stale_running_reviewed"
-  | "replacement_enqueued";
+  | "replacement_enqueued"
+  | "duplicate_remediation_request";
 
 export type ResponseProcessingQueuePayload = {
   responseId?: number;
@@ -842,7 +843,7 @@ function buildInspection(job: ResponseProcessingJobRecord, events: ResponseProce
     payloadSummary: summarizePayload(job.payload),
     resultSummary: safeDetailsRecord(job.resultSummary),
     staleRunning,
-    retryEligible: job.status === "failed" || job.status === "dead_lettered",
+    retryEligible: job.status === "failed" || (job.status === "dead_lettered" && !replacementEvent),
     acknowledgeEligible: job.status === "dead_lettered" && !acknowledgedEvent,
     staleReviewEligible: staleRunning && !staleReviewedEvent,
     remediationStatus: {
@@ -934,6 +935,22 @@ async function loadJobInspection(jobId: number, executor: typeof db = db): Promi
     order by created_at asc, id asc
   `.execute(executor);
   return buildInspection(job, events.rows.map(mapEventRow));
+}
+
+async function findReplacementJobIdForDeadLetter(jobId: number, executor: typeof db = db): Promise<number | null> {
+  const result = await sql<QueueEventRow>`
+    select *
+    from public.response_processing_job_event
+    where job_id = ${jobId}
+      and event_type = 'replacement_enqueued'
+    order by created_at desc, id desc
+    limit 1
+  `.execute(executor);
+  const event = result.rows[0] ? mapEventRow(result.rows[0]) : null;
+  const replacementJobId = event?.details.replacementJobId;
+  return typeof replacementJobId === "number" && Number.isInteger(replacementJobId) && replacementJobId > 0
+    ? replacementJobId
+    : null;
 }
 
 export async function enqueueResponseProcessingJob(
@@ -1494,6 +1511,33 @@ export async function remediateResponseProcessingJob(
       };
     }
 
+    const existingReplacementJobId = await findReplacementJobIdForDeadLetter(previous.id, trx as typeof db);
+    if (existingReplacementJobId) {
+      await appendJobEvent(trx as typeof db, {
+        jobId: previous.id,
+        eventType: "duplicate_remediation_request",
+        previousStatus: "dead_lettered",
+        nextStatus: "dead_lettered",
+        attemptCount: previous.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          replacementJobId: existingReplacementJobId,
+          duplicateReplacementPrevented: true,
+          reviewNotePresent: Boolean(reviewNote),
+          terminalJobMutated: false,
+          rawResponseTextLogged: false,
+          destructiveDeletionUsed: false,
+          liveMailboxIntegrationUsed: false,
+        },
+      });
+      return {
+        status: "replacement_queued",
+        job: await loadJobInspection(previous.id, trx as typeof db),
+        replacementJob: await loadJobInspection(existingReplacementJobId, trx as typeof db),
+      };
+    }
+
     const replacementPayload = normalizePayload(previous.jobType, previous.payload);
     const replacementActorUserId = previous.jobType === "response_replay_apply"
       ? previous.actorUserId ?? actorUserId
@@ -1598,12 +1642,12 @@ export async function getResponseProcessingQueueMetrics(): Promise<ResponseProce
         coalesce(count(distinct case when event_type = 'stale_running_reviewed' then job_id else null end), 0)::int as stale_running_reviewed_jobs,
         coalesce(count(distinct case when event_type = 'replacement_enqueued' then job_id else null end), 0)::int as replacement_jobs
       from public.response_processing_job_event
-      where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued')
+      where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued', 'duplicate_remediation_request')
     ),
     recent_remediation as (
       select event_type, created_at
       from public.response_processing_job_event
-      where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued')
+      where event_type in ('operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'replacement_enqueued', 'duplicate_remediation_request')
       order by created_at desc, id desc
       limit 1
     ),

@@ -965,6 +965,9 @@ function QueueRemediationPanel() {
                       {job.remediationStatus.staleRunningReviewedAt ? (
                         <span>Stale reviewed {formatDate(job.remediationStatus.staleRunningReviewedAt)}</span>
                       ) : null}
+                      {job.remediationStatus.replacementJobId ? (
+                        <span>Replacement #{job.remediationStatus.replacementJobId}</span>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

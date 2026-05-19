@@ -27,6 +27,7 @@ const safeDbUrl = (() => {
 
 const describeIfLocalDb = safeDbUrl ? describe : describe.skip;
 let db: Kysely<DB>;
+let markerCounter = 0;
 
 const created = {
   sources: [] as string[],
@@ -34,7 +35,8 @@ const created = {
 };
 
 function marker(): string {
-  return `response-queue-test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  markerCounter += 1;
+  return `response-queue-test-${Date.now().toString(36)}-${markerCounter.toString(36)}`;
 }
 
 function trackSource(source: string): string {
@@ -546,6 +548,13 @@ describeIfLocalDb("response processing queue", () => {
 
     await expect(remediateResponseProcessingJob({
       jobId: dead.job.id,
+      actorUserId: 0,
+      action: "acknowledge_dead_letter",
+      confirmReview: true,
+    })).rejects.toThrow(/actorUserId/i);
+
+    await expect(remediateResponseProcessingJob({
+      jobId: dead.job.id,
       actorUserId,
       action: "acknowledge_dead_letter",
     })).rejects.toThrow(/confirmation/i);
@@ -587,6 +596,7 @@ describeIfLocalDb("response processing queue", () => {
     expect(original.jobs[0]).toMatchObject({
       id: dead.job.id,
       status: "dead_lettered",
+      retryEligible: false,
       remediationStatus: {
         replacementJobId: requeued.id,
       },
@@ -599,6 +609,67 @@ describeIfLocalDb("response processing queue", () => {
     expect(remediationMetrics.staleRunningReviewedJobs).toBeGreaterThanOrEqual(1);
     expect(remediationMetrics.replacementJobs).toBeGreaterThanOrEqual(1);
     assertNoSensitiveLeak([staleMetrics, deadResult, staleReviewed, acknowledged, requeued, original, remediationMetrics]);
+  });
+
+  it("deduplicates concurrent dead-letter replacement remediation for the same terminal job", async () => {
+    const source = trackSource(marker());
+    const actorUserId = await createUser(`${source}-actor`);
+    const dead = await enqueueResponseProcessingJob({
+      jobType: "future_mailbox_intake",
+      source,
+      maxAttempts: 1,
+      runAfter: "2000-01-01T00:00:00.000Z",
+      payload: { messageReferenceHash: "d".repeat(64) },
+    });
+    const deadResult = await processNextResponseProcessingJob({ workerId: `${source}-dead-worker`, source });
+    expect(deadResult.status).toBe("dead_lettered");
+
+    const [first, second] = await Promise.all([
+      remediateResponseProcessingJob({
+        jobId: dead.job.id,
+        actorUserId,
+        action: "retry_job",
+        confirmRetry: true,
+      }),
+      remediateResponseProcessingJob({
+        jobId: dead.job.id,
+        actorUserId,
+        action: "retry_job",
+        confirmRetry: true,
+      }),
+    ]);
+
+    expect(first.status).toBe("replacement_queued");
+    expect(second.status).toBe("replacement_queued");
+    expect(first.replacementJob?.id).toBeTruthy();
+    expect(second.replacementJob?.id).toBe(first.replacementJob?.id);
+    expect(first.job.id).toBe(dead.job.id);
+    expect(second.job.status).toBe("dead_lettered");
+
+    const events = await sql<any>`
+      select event_type, details
+      from public.response_processing_job_event
+      where job_id = ${dead.job.id}
+      order by id asc
+    `.execute(db);
+    const eventTypes = events.rows.map((row) => row.event_type ?? row.eventType);
+    expect(eventTypes.filter((eventType) => eventType === "replacement_enqueued")).toHaveLength(1);
+    expect(eventTypes.filter((eventType) => eventType === "duplicate_remediation_request")).toHaveLength(1);
+
+    const replacements = await sql<{ count: string }>`
+      select count(*)::text as count
+      from public.response_processing_job
+      where source = 'operator_remediation'
+        and id in (
+          select (details ->> 'replacementJobId')::bigint
+          from public.response_processing_job_event
+          where job_id = ${dead.job.id}
+            and event_type = 'replacement_enqueued'
+            and details ->> 'replacementJobId' ~ '^[0-9]+$'
+        )
+    `.execute(db);
+    expect(Number(replacements.rows[0]?.count ?? 0)).toBe(1);
+    assertNoSensitiveLeak([first, second, events.rows]);
   });
 
   it("operator retry for failed jobs is explicit, auditable, and does not create duplicate records", async () => {
@@ -685,6 +756,73 @@ describeIfLocalDb("response processing queue", () => {
       },
     });
     expect(JSON.stringify(listed.jobs[0])).not.toContain("queue_inspection");
+    assertNoSensitiveLeak(listed);
+  });
+
+  it("reads legacy JSON-string JSONB payload and event details without exposing raw values", async () => {
+    const source = trackSource(marker());
+    const payload = JSON.stringify({
+      filters: {
+        responseId: 999_999_918,
+        limit: 1,
+      },
+      metadata: {
+        fixture: "legacy_json_string_payload",
+      },
+    });
+    const inserted = await sql<{ id: string }>`
+      insert into public.response_processing_job (
+        job_type,
+        status,
+        payload,
+        idempotency_key,
+        source,
+        result_summary
+      ) values (
+        'response_replay_dry_run',
+        'queued',
+        ${JSON.stringify(payload)}::text::jsonb,
+        ${`${source}:legacy-json-string`},
+        ${source},
+        ${JSON.stringify(JSON.stringify({ safeResult: true }))}::text::jsonb
+      )
+      returning id::text as id
+    `.execute(db);
+    const jobId = Number(inserted.rows[0]?.id);
+    await sql`
+      insert into public.response_processing_job_event (
+        job_id,
+        event_type,
+        next_status,
+        attempt_count,
+        details
+      ) values (
+        ${jobId},
+        'queued',
+        'queued',
+        0,
+        ${JSON.stringify(JSON.stringify({ safeKey: "legacy-safe-value", replacementJobId: 12345 }))}::text::jsonb
+      )
+    `.execute(db);
+
+    const listed = await listResponseProcessingJobsForRemediation({ jobId, includeEvents: true });
+    expect(listed.jobs[0]).toMatchObject({
+      id: jobId,
+      payloadSummary: {
+        responseId: 999_999_918,
+        metadataKeys: ["fixture"],
+      },
+      resultSummary: {
+        safeResult: true,
+      },
+      lastEvent: {
+        details: {
+          safeKey: "legacy-safe-value",
+          replacementJobId: 12345,
+        },
+      },
+    });
+    expect(JSON.stringify(listed)).not.toContain("legacy_json_string_payload");
     assertNoSensitiveLeak(listed);
   });
 

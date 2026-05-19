@@ -41,6 +41,7 @@ const describeIfLocalDb = safeDbUrl ? describe : describe.skip;
 let db: Kysely<DB>;
 let queueGet: EndpointHandle;
 let queueRemediationPost: EndpointHandle;
+let markerCounter = 0;
 
 const created = {
   sources: [] as string[],
@@ -48,7 +49,8 @@ const created = {
 };
 
 function marker(): string {
-  return `response-queue-remediation-endpoint-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  markerCounter += 1;
+  return `response-queue-remediation-endpoint-${Date.now().toString(36)}-${markerCounter.toString(36)}`;
 }
 
 function trackSource(source: string): string {
@@ -286,6 +288,16 @@ describeIfLocalDb("response processing queue remediation endpoints", () => {
     expect(replacement.remediation.status).toBe("replacement_queued");
     expect(replacement.remediation.replacementJob.id).not.toBe(dead.job.id);
     expect(replacement.remediation.job.status).toBe("dead_lettered");
+
+    response = await queueRemediationPost(postRequest("/_api/responses/queue-remediation", {
+      jobId: dead.job.id,
+      action: "retry_job",
+      confirmRetry: true,
+    }));
+    const duplicateReplacement = await response.json();
+    expect(response.status).toBe(200);
+    expect(duplicateReplacement.remediation.status).toBe("replacement_queued");
+    expect(duplicateReplacement.remediation.replacementJob.id).toBe(replacement.remediation.replacementJob.id);
 
     const stale = await enqueueResponseProcessingJob({
       jobType: "response_replay_dry_run",

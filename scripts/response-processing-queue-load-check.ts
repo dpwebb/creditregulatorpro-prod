@@ -26,8 +26,11 @@ type SyntheticQueueLoadResult = {
   liveMailboxIntegrationUsed: false;
 };
 
+let markerCounter = 0;
+
 function marker(): string {
-  return `response-queue-load-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  markerCounter += 1;
+  return `response-queue-load-${Date.now().toString(36)}-${process.pid.toString(36)}-${markerCounter.toString(36)}`;
 }
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -45,6 +48,14 @@ async function cleanup(source: string): Promise<void> {
     delete from public.response_processing_job
     where source = ${source}
   `.execute(db);
+  const remaining = await sql<{ count: string }>`
+    select count(*)::text as count
+    from public.response_processing_job
+    where source = ${source}
+  `.execute(db);
+  if (Number(remaining.rows[0]?.count ?? 0) !== 0) {
+    throw new Error("Synthetic response queue load cleanup left queue jobs behind.");
+  }
 }
 
 export async function runSyntheticResponseQueueLoadCheck(): Promise<SyntheticQueueLoadResult> {
