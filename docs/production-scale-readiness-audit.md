@@ -109,8 +109,10 @@ Inspected representative files and functions:
 ### 6. Production deployment workflow is thinner than staging
 
 - Severity: **High**
+- Implementation status: **Implemented 2026-05-19**. `.github/workflows/deploy-production.yml` now runs `pnpm run check` as production preflight, preserves the remote `pnpm run build`, verifies the selected checkout SHA before container build, and performs production-safe post-deploy checks for `/`, `/login`, and unauthenticated `/_api/auth/session` denial. Staging-only synthetic admin response-auth smokes remain staging-only.
+- Regression evidence: `tests/unit/deploy-production-workflow.spec.ts` covers production preflight, rollback SHA selection, selected checkout SHA verification, public route checks, login route checks, auth-session denial, and absence of staging-only synthetic admin smokes.
 - Affected area: Deployment, rollback, smoke confidence
-- Files/routes/functions:
+- Original finding files/routes/functions:
   - `.github/workflows/deploy-staging.yml` - runs `pnpm run check`, deploys, waits for `/login`, and scope-gates autonomous response-auth smokes.
   - `.github/workflows/deploy-production.yml` - check job runs only `pnpm run build`; deploy job does not run post-deploy health checks or response-auth smokes.
   - `scripts/promote-production.mjs` - safer path runs `scripts/check-staging-gate.mjs` and `pnpm run check` before pushing staging to production, unless `--skip-staging-gate` is used.
@@ -414,7 +416,7 @@ Use this before any staging-to-production promotion.
 1. [x] Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication. Implemented in `helpers/uploadPayloadValidation.ts` with route/schema coverage in `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, `tests/api/critical-schema.spec.ts`, and `tests/api/ocr-extract-upload-limit-endpoint.spec.ts`.
 2. Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test.
 3. [x] Add default/max pagination to packet and report-artifact list endpoints. Implemented in `endpoints/packet/list_GET.schema.ts`, `endpoints/packet/list_GET.ts`, `endpoints/report-artifact/list_GET.schema.ts`, and `endpoints/report-artifact/list_GET.ts` with default 50, max 100, and excessive limits rejected rather than capped. Covered by `tests/api/packet-delivery-status-endpoint.spec.ts` and `tests/api/report-ingest-lifecycle-endpoint.spec.ts`.
-4. Add production workflow post-deploy root/login/auth-session health checks.
+4. [x] Add production workflow post-deploy root/login/auth-session health checks. Implemented in `.github/workflows/deploy-production.yml` with `pnpm run check` preflight, remote `pnpm run build` preservation, selected checkout SHA verification, and post-deploy checks for `/`, `/login`, and unauthenticated `/_api/auth/session` denial. Covered by `tests/unit/deploy-production-workflow.spec.ts`.
 5. Add route-wide auth classification test for public/session/admin/webhook/cron endpoints.
 6. Add operator launch policy limiting beta concurrency, upload size, packet volume, and response-worker operations until ingest queue exists.
 

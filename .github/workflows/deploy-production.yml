@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   check:
-    name: Build check
+    name: Build and regression check
     if: github.repository == 'dpwebb/creditregulatorpro-prod'
     runs-on: ubuntu-latest
     steps:
@@ -37,8 +37,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm run build
+      - name: Build + internal regression checks
+        run: pnpm run check
 
   deploy:
     name: Deploy to production server
@@ -159,6 +159,13 @@ jobs:
             cd /opt/creditregulatorpro/app
             git fetch --prune origin
             git checkout --force "$TARGET_SHA"
+            deployed_sha="$(git rev-parse HEAD)"
+            target_sha="$(git rev-parse "$TARGET_SHA")"
+            if [ "$deployed_sha" != "$target_sha" ]; then
+              echo "Production checkout SHA mismatch: expected ${target_sha}, got ${deployed_sha}."
+              exit 1
+            fi
+            echo "Production checkout verified at ${deployed_sha}."
             cp docker-compose.production.yml docker-compose.yml
             corepack enable
             corepack prepare pnpm@10 --activate
@@ -169,3 +176,51 @@ jobs:
             docker ps --filter name=creditregulatorpro-app
             git log -1 --oneline
           REMOTE
+
+      - name: Verify production health
+        env:
+          PRODUCTION_APP_URL: ${{ vars.PRODUCTION_APP_URL || 'https://creditregulatorpro.com' }}
+        run: |
+          set -euo pipefail
+
+          base_url="${PRODUCTION_APP_URL%/}"
+
+          wait_for_status() {
+            local label="$1"
+            local method="$2"
+            local path="$3"
+            local accepted_regex="$4"
+            local url="${base_url}${path}"
+            local status_code
+
+            for attempt in $(seq 1 30); do
+              if [ "$method" = "HEAD" ]; then
+                if status_code="$(curl -sS -L -I -H "User-Agent: creditregulatorpro-production-deploy-health/1.0" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
+                  :
+                else
+                  status_code="curl_error"
+                fi
+              else
+                if status_code="$(curl -sS -L -X "$method" -H "User-Agent: creditregulatorpro-production-deploy-health/1.0" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
+                  :
+                else
+                  status_code="curl_error"
+                fi
+              fi
+
+              if printf '%s' "$status_code" | grep -Eq "$accepted_regex"; then
+                echo "Production health check ${label} passed on attempt ${attempt} with HTTP ${status_code}."
+                return 0
+              fi
+
+              echo "Production health check ${label} retry ${attempt}/30 returned HTTP ${status_code}."
+              sleep 2
+            done
+
+            echo "Production health check ${label} failed after 30 attempts."
+            return 1
+          }
+
+          wait_for_status "root route" "HEAD" "/" '^[23][0-9][0-9]$'
+          wait_for_status "login route" "GET" "/login" '^[23][0-9][0-9]$'
+          wait_for_status "auth session denial" "GET" "/_api/auth/session" '^(401|403)$'
