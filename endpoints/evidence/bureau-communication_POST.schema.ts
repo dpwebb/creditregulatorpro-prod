@@ -3,6 +3,15 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { EvidenceEvent, EvidenceAttachment, ObligationInstance } from "../../helpers/schema";
 import type { BureauResponseClassification } from "../../helpers/bureauResponseClassifier";
+import {
+  addBase64UploadValidationIssues,
+  BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES,
+  EVIDENCE_UPLOAD_MIME_TYPES,
+  uploadBase64PayloadSchema,
+  uploadDescriptionSchema,
+  uploadFileNameSchema,
+  uploadMimeTypeSchema,
+} from "../../helpers/uploadPayloadValidation";
 
 export const BureauCommunicationTypes = [
   "BUREAU_RESPONSE_RECEIVED",
@@ -14,17 +23,20 @@ export const BureauCommunicationTypes = [
 ] as const;
 
 export const schema = z.object({
-  fileDataBase64: z.string().min(1, "File content is required"),
-  fileName: z.string().min(1, "File name is required"),
-  fileType: z.string().refine((val) => {
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
-    return allowedTypes.includes(val);
-  }, "File type must be PDF, PNG, or JPG"),
+  fileDataBase64: uploadBase64PayloadSchema(
+    BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES,
+    "Bureau communication"
+  ),
+  fileName: uploadFileNameSchema("File name"),
+  fileType: uploadMimeTypeSchema(
+    EVIDENCE_UPLOAD_MIME_TYPES,
+    "File type must be PDF, PNG, or JPG"
+  ),
   communicationType: z.enum(BureauCommunicationTypes),
   tradelineId: z.number().optional(),
   packetId: z.number().optional(),
   obligationInstanceId: z.number().optional(),
-  description: z.string().optional(),
+  description: uploadDescriptionSchema().optional(),
   responseStatus: z.string().optional(),
   responseLetterContent: z.string().optional(),
   responseMovDisclosed: z.boolean().optional(),
@@ -38,6 +50,14 @@ export const schema = z.object({
   responseSignatoryName: z.string().optional(),
   responseSignatoryTitle: z.string().optional(),
   runAudit: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  addBase64UploadValidationIssues(data, ctx, {
+    base64Field: "fileDataBase64",
+    mimeTypeField: "fileType",
+    maxBytes: BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES,
+    allowedMimeTypes: EVIDENCE_UPLOAD_MIME_TYPES,
+    fileLabel: "Bureau communication",
+  });
 }).refine(data => data.tradelineId || data.packetId || data.obligationInstanceId, {
   message: "At least one of tradelineId, packetId, or obligationInstanceId must be provided",
 });

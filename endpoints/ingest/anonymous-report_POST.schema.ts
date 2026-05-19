@@ -1,11 +1,33 @@
 import { z } from "zod";
+import {
+  addBase64UploadValidationIssues,
+  ANONYMOUS_REPORT_UPLOAD_MAX_BYTES,
+  CREDIT_REPORT_UPLOAD_MIME_TYPES,
+  uploadBase64PayloadSchema,
+  uploadFileNameSchema,
+  uploadMimeTypeSchema,
+} from "../../helpers/uploadPayloadValidation";
 
 
 export const schema = z.object({
-  bytesBase64: z.string().min(1, "File data is required"),
-  fileName: z.string().min(1, "Filename is required"),
-  mimeType: z.string().min(1, "Mime type is required"),
+  bytesBase64: uploadBase64PayloadSchema(
+    ANONYMOUS_REPORT_UPLOAD_MAX_BYTES,
+    "Credit report"
+  ),
+  fileName: uploadFileNameSchema("Filename"),
+  mimeType: uploadMimeTypeSchema(
+    CREDIT_REPORT_UPLOAD_MIME_TYPES,
+    "Credit report upload must be a PDF"
+  ),
   region: z.literal("CA"),
+}).superRefine((data, ctx) => {
+  addBase64UploadValidationIssues(data, ctx, {
+    base64Field: "bytesBase64",
+    mimeTypeField: "mimeType",
+    maxBytes: ANONYMOUS_REPORT_UPLOAD_MAX_BYTES,
+    allowedMimeTypes: CREDIT_REPORT_UPLOAD_MIME_TYPES,
+    fileLabel: "Credit report",
+  });
 });
 
 export type InputType = z.infer<typeof schema>;

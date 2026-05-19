@@ -35,6 +35,9 @@ const mocks = vi.hoisted(() => ({
   runParserLabStage: vi.fn(),
   isAdmin: vi.fn(),
   shouldSuppressStaleReportingViolation: vi.fn(),
+  checkRateLimit: vi.fn(),
+  extractCanonicalCreditReport: vi.fn(),
+  generateAnonymousPreview: vi.fn(),
 }));
 
 vi.mock("../../helpers/db", () => ({
@@ -70,7 +73,24 @@ vi.mock("../../helpers/staleReportingGuard", () => ({
   shouldSuppressStaleReportingViolation: mocks.shouldSuppressStaleReportingViolation,
 }));
 
+vi.mock("../../helpers/rateLimiter", () => ({
+  checkRateLimit: mocks.checkRateLimit,
+  RateLimitConfig: {
+    UPLOAD: { maxAttempts: 10, windowMinutes: 60 },
+    ANONYMOUS_UPLOAD: { maxAttempts: 5, windowMinutes: 22 },
+  },
+}));
+
+vi.mock("../../helpers/canonicalCreditReportExtractor", () => ({
+  extractCanonicalCreditReport: mocks.extractCanonicalCreditReport,
+}));
+
+vi.mock("../../helpers/anonymousCompliancePreview", () => ({
+  generateAnonymousPreview: mocks.generateAnonymousPreview,
+}));
+
 import { handle as submitReport } from "../../endpoints/ingest/report_POST";
+import { handle as submitAnonymousReport } from "../../endpoints/ingest/anonymous-report_POST";
 import { handle as processReport } from "../../endpoints/ingest/process_POST";
 import { handle as listReportArtifacts } from "../../endpoints/report-artifact/list_GET";
 import { handle as getReportArtifact } from "../../endpoints/report-artifact/get_GET";
@@ -80,6 +100,10 @@ import {
   SCANNED_PDF_UNSUPPORTED_CODE,
   ScannedPdfUnsupportedError,
 } from "../../helpers/creditReportPdfEligibility";
+import {
+  ANONYMOUS_REPORT_UPLOAD_MAX_BYTES,
+  AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES,
+} from "../../helpers/uploadPayloadValidation";
 
 function makeBuilder(table: string, kind: DbOperation["kind"], result: QueryResult = {}) {
   const builder: Record<string, any> = {};
@@ -149,6 +173,10 @@ function uploadInput(overrides: Record<string, unknown> = {}) {
     bytesBase64: "JVBERi0xLjQKJXN5bnRoZXRpYw==",
     ...overrides,
   };
+}
+
+function oversizedBase64For(limitBytes: number) {
+  return "A".repeat(Math.ceil((limitBytes + 1) / 3) * 4);
 }
 
 function artifactRow(overrides: Record<string, unknown> = {}) {
@@ -315,6 +343,17 @@ beforeEach(() => {
   mocks.runParserLabStage.mockResolvedValue(parserLabOutput);
   mocks.isAdmin.mockImplementation((user: { role?: string }) => user.role === "admin");
   mocks.shouldSuppressStaleReportingViolation.mockReturnValue(false);
+  mocks.checkRateLimit.mockResolvedValue({ allowed: true });
+  mocks.extractCanonicalCreditReport.mockResolvedValue({ parseResult: { synthetic: true } });
+  mocks.generateAnonymousPreview.mockReturnValue([
+    {
+      type: "SYNTHETIC_REVIEW",
+      title: "Synthetic review item",
+      detail: "Synthetic detail.",
+      solution: "Review the synthetic item.",
+      urgency: "high",
+    },
+  ]);
 });
 
 describe("report ingest lifecycle endpoints", () => {
@@ -341,28 +380,76 @@ describe("report ingest lifecycle endpoints", () => {
   });
 
   it("rejects unsupported or malformed upload requests without returning extracted content", async () => {
-    mocks.handleIngestSubmit.mockResolvedValueOnce({
-      success: false,
-      error: "Unsupported file type. Please upload a PDF.",
-      code: "UNSUPPORTED_MIME_TYPE",
-    });
-
     const unsupported = await submitReport(
       postRequest("/_api/ingest/report", uploadInput({ fileName: "synthetic.txt", mimeType: "text/plain" })),
     );
 
     expect(unsupported.status).toBe(400);
     const unsupportedBody = await unsupported.json();
-    expect(unsupportedBody).toEqual({
-      artifactId: null,
-      extractionStatus: "failed",
-      error: "Unsupported file type. Please upload a PDF.",
-    });
+    expect(unsupportedBody).toEqual({ error: "Credit report upload must be a PDF" });
     responseTextIsPrivacySafe(unsupportedBody);
+    expect(mocks.resolveUserSession).not.toHaveBeenCalled();
+    expect(mocks.handleIngestSubmit).not.toHaveBeenCalled();
 
     const malformed = await submitReport(postRequest("/_api/ingest/report", "{"));
     expect(malformed.status).toBe(400);
     await expect(malformed.json()).resolves.toEqual({ error: "Invalid request body" });
+  });
+
+  it("rejects oversized authenticated upload before submit, parsing, or storage work", async () => {
+    const response = await submitReport(
+      postRequest(
+        "/_api/ingest/report",
+        uploadInput({ bytesBase64: oversizedBase64For(AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES) }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Credit report exceeds the 15 MB upload limit" });
+    expect(mocks.resolveUserSession).not.toHaveBeenCalled();
+    expect(mocks.handleIngestSubmit).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized anonymous upload before rate limiting or preview extraction", async () => {
+    const response = await submitAnonymousReport(
+      postRequest(
+        "/_api/ingest/anonymous-report",
+        uploadInput({ bytesBase64: oversizedBase64For(ANONYMOUS_REPORT_UPLOAD_MAX_BYTES) }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Please upload a PDF file to continue." });
+    expect(mocks.checkRateLimit).not.toHaveBeenCalled();
+    expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
+  });
+
+  it("accepts a bounded anonymous PDF upload through the current preview path", async () => {
+    const body = uploadInput({
+      bytesBase64: "data:application/pdf;base64,JVBERi0xLjQKJXN5bnRoZXRpYw==",
+    });
+
+    const response = await submitAnonymousReport(postRequest("/_api/ingest/anonymous-report", body));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      problemCount: 1,
+      sampleProblems: [
+        {
+          type: "SYNTHETIC_REVIEW",
+          title: "Synthetic review item",
+          detail: "Synthetic detail.",
+          solution: "Review the synthetic item.",
+          urgency: "high",
+        },
+      ],
+    });
+    expect(mocks.checkRateLimit).toHaveBeenCalledWith("unknown_ip", "ANON_UPLOAD", 5, 22);
+    expect(mocks.extractCanonicalCreditReport).toHaveBeenCalledWith({
+      bytesBase64: body.bytesBase64,
+      mimeType: "application/pdf",
+      allowAiFallback: false,
+    });
   });
 
   it("maps scanned or low-quality upload rejection to a controlled fail-closed response", async () => {

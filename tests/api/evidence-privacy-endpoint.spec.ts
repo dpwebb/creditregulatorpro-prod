@@ -3,6 +3,10 @@ import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { NotAuthenticatedError } from "../../helpers/getSetServerSession";
+import {
+  BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES,
+  EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES,
+} from "../../helpers/uploadPayloadValidation";
 
 type QueryResult = {
   execute?: unknown[];
@@ -192,6 +196,10 @@ function attachmentUploadBody(overrides: Record<string, unknown> = {}) {
     description: "Synthetic supporting document.",
     ...overrides,
   };
+}
+
+function oversizedBase64For(limitBytes: number) {
+  return "A".repeat(Math.ceil((limitBytes + 1) / 3) * 4);
 }
 
 function violationWithEvidenceLocation(overrides: Record<string, unknown> = {}) {
@@ -586,6 +594,46 @@ describe("evidence privacy and ownership endpoints", () => {
     expectNoSensitiveLeak(mocks.logAudit.mock.calls, { allowLocalStorageUrl: true });
   });
 
+  it("rejects oversized evidence attachment uploads before ownership, storage, or audit work", async () => {
+    const response = await uploadAttachment(
+      postRequest(
+        "/_api/evidence-attachment/upload",
+        attachmentUploadBody({
+          fileDataBase64: oversizedBase64For(EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Evidence attachment exceeds the 10 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(mocks.uploadEvidence).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid evidence attachment MIME types before storage work", async () => {
+    const response = await uploadAttachment(
+      postRequest(
+        "/_api/evidence-attachment/upload",
+        attachmentUploadBody({
+          fileName: "synthetic-evidence.txt",
+          fileType: "text/plain",
+          fileDataBase64: Buffer.from("SYNTHETIC_TEXT_FILE").toString("base64"),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "File type must be PDF, PNG, or JPG" });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(mocks.uploadEvidence).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
   it("denies non-owner attachment upload before storage, metadata, or audit writes", async () => {
     queueResults({ first: { userId: 99 } });
 
@@ -671,6 +719,79 @@ describe("evidence privacy and ownership endpoints", () => {
     });
     expect(mocks.db.transaction).not.toHaveBeenCalled();
     expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized bureau communication uploads before ownership, hashing, or transaction work", async () => {
+    const response = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({
+          fileDataBase64: oversizedBase64For(BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Bureau communication exceeds the 10 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("records a bounded bureau communication upload through the existing evidence path", async () => {
+    const body = bureauCommunicationBody();
+    queueResults(
+      { first: { id: 701, userId: 10, organizationId: 1000 } },
+      { first: { currentHash: "previous-synthetic-hash" } },
+      { firstOrThrow: evidenceEvent({ id: 502, eventType: "BUREAU_RESPONSE_RECEIVED" }) },
+      {
+        firstOrThrow: attachment({
+          id: 802,
+          obligationInstanceId: null,
+          packetId: null,
+          fileName: "synthetic-bureau-response.pdf",
+          storageUrl: body.fileDataBase64,
+        }),
+      },
+      { first: null },
+    );
+
+    const response = await recordBureauCommunication(
+      postRequest("/_api/evidence/bureau-communication", body),
+    );
+
+    expect(response.status).toBe(200);
+    const responseBody = await response.json();
+    expect(responseBody).toMatchObject({
+      evidenceEvent: expect.objectContaining({ id: 502 }),
+      evidenceAttachment: expect.objectContaining({
+        id: 802,
+        fileName: "synthetic-bureau-response.pdf",
+      }),
+      updatedObligationInstance: null,
+      fileHash: expect.any(String),
+      responseClassification: expect.any(Object),
+    });
+    expect(valuesFor("evidenceAttachment")[0]).toMatchObject({
+      fileName: "synthetic-bureau-response.pdf",
+      fileType: "application/pdf",
+      fileSizeBytes: Buffer.from(body.fileDataBase64, "base64").length,
+      storageUrl: body.fileDataBase64,
+      uploadedBy: 10,
+      region: "CA",
+    });
+    expect(mocks.db.transaction).toHaveBeenCalled();
+    expect(mocks.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "RESPONSE_RECORDED",
+        entityType: "EVIDENCE_EVENT",
+        entityId: 502,
+        userId: 10,
+        status: "SUCCESS",
+      }),
+    );
   });
 
   it("keeps packet detail evidence-adjacent metadata masked and storage details on the packet contract only", async () => {

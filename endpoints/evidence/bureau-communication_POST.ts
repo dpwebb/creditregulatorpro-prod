@@ -12,6 +12,7 @@ import {
   classifyBureauResponse,
   type BureauResponseClassification,
 } from "../../helpers/bureauResponseClassifier";
+import { getBase64DecodedByteLength } from "../../helpers/uploadPayloadValidation";
 import CryptoJS from "crypto-js";
 
 function toJsonArray(value: string[] | undefined): Json | undefined {
@@ -215,8 +216,7 @@ export async function handle(request: Request) {
     // Compute SHA-256 hash of the file content
     const fileHash = CryptoJS.SHA256(input.fileDataBase64).toString(CryptoJS.enc.Hex);
     
-    // Calculate file size roughly from base64 string
-    const fileSizeBytes = Math.ceil((input.fileDataBase64.length * 3) / 4) - (input.fileDataBase64.indexOf('=') > 0 ? (input.fileDataBase64.length - input.fileDataBase64.indexOf('=')) : 0);
+    const fileSizeBytes = getBase64DecodedByteLength(input.fileDataBase64);
 
     // Use a transaction to ensure atomicity and hash chain integrity
     const result = await db.transaction().execute(async (trx) => {

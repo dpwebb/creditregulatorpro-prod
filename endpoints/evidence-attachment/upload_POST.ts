@@ -7,6 +7,7 @@ import { uploadEvidence } from "../../helpers/evidenceManager";
 import { uploadFile } from "../../helpers/gcsStorage";
 import { checkRateLimit } from "../../helpers/rateLimiter";
 import { logAudit } from "../../helpers/auditLogger";
+import { getBase64DecodedByteLength } from "../../helpers/uploadPayloadValidation";
 
 export async function handle(request: Request) {
   try {
@@ -55,10 +56,7 @@ export async function handle(request: Request) {
       }
     }
 
-    // Calculate file size roughly from base64 string
-    const base64Data = fileDataBase64.includes(",") ? fileDataBase64.split(",")[1] : fileDataBase64;
-    const paddingCount = (base64Data.match(/=+$/) ?? [""])[0].length;
-    const fileSizeBytes = Math.ceil((base64Data.length * 3) / 4) - paddingCount;
+    const fileSizeBytes = getBase64DecodedByteLength(fileDataBase64);
 
     // Upload file to GCS; object path scoped by userId and timestamped to avoid collisions
     const timestamp = Date.now();

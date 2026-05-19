@@ -34,8 +34,9 @@ Inspected representative files and functions:
 ### 1. Unbounded server-side base64 upload contracts
 
 - Severity: **Critical**
+- Implementation status: **Implemented 2026-05-19**. Shared validation now lives in `helpers/uploadPayloadValidation.ts` and is wired into `helpers/schemas.tsx`, `endpoints/ingest/anonymous-report_POST.schema.ts`, `endpoints/evidence-attachment/upload_POST.schema.ts`, and `endpoints/evidence/bureau-communication_POST.schema.ts`. Evidence and bureau endpoints now use the same decoded-byte calculation before storage/hash work. Regression evidence: `tests/api/report-ingest-lifecycle-endpoint.spec.ts`, `tests/api/evidence-privacy-endpoint.spec.ts`, and `tests/api/critical-schema.spec.ts`.
 - Affected area: File/PDF/OCR, load, database growth
-- Files/routes/functions:
+- Original finding files/routes/functions:
   - `helpers/schemas.tsx` - `UploadReportInput` accepts `fileName: z.string()`, `mimeType: z.string()`, `bytesBase64: z.string()` with no server-side size, MIME enum, or filename bounds.
   - `endpoints/ingest/report_POST.ts` - `handle()` reads the full body with `await request.text()` before validation.
   - `endpoints/ingest/anonymous-report_POST.schema.ts` and `endpoints/ingest/anonymous-report_POST.ts` - public anonymous preview accepts `bytesBase64` without server-side size bounds.
@@ -404,7 +405,7 @@ Use this before any staging-to-production promotion.
 
 ### Phase 1: Must fix before limited beta
 
-1. Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication.
+1. [x] Add server-side upload byte limits and MIME validation for `UploadReportInput`, anonymous upload, evidence attachment, and bureau communication. Implemented in `helpers/uploadPayloadValidation.ts` with route/schema coverage in `tests/api/report-ingest-lifecycle-endpoint.spec.ts` and `tests/api/evidence-privacy-endpoint.spec.ts`.
 2. Fix `clock/scan_POST.ts` to use the canonical packet status and add a regression test.
 3. Add default/max pagination to packet and report-artifact list endpoints.
 4. Add production workflow post-deploy root/login/auth-session health checks.

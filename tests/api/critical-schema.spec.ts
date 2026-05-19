@@ -11,6 +11,7 @@ import { schema as violationCorrectionEvidenceSchema } from "../../endpoints/adm
 import { schema as violationCorrectionFinalizeSchema } from "../../endpoints/admin/violation-correction/finalize_POST.schema";
 import { schema as violationCorrectionUpdateSchema } from "../../endpoints/admin/violation-correction/update_POST.schema";
 import { schema as parserTestDeleteSchema } from "../../endpoints/parser-test-case/delete_POST.schema";
+import { MAX_UPLOAD_FILE_NAME_LENGTH } from "../../helpers/uploadPayloadValidation";
 
 const pdfBase64 = Buffer.from("%PDF-1.4\n%%EOF", "utf8").toString("base64");
 const idImageDataUrl =
@@ -59,6 +60,14 @@ describe("critical API schema contracts", () => {
       uploadSchema.safeParse({
         region: "US",
         fileName: "credit-report.pdf",
+        mimeType: "application/pdf",
+        bytesBase64: pdfBase64,
+      }).success
+    ).toBe(false);
+    expect(
+      uploadSchema.safeParse({
+        region: "CA",
+        fileName: `${"a".repeat(MAX_UPLOAD_FILE_NAME_LENGTH)}.pdf`,
         mimeType: "application/pdf",
         bytesBase64: pdfBase64,
       }).success
