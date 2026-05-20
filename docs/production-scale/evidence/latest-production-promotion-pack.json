@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T22:22:11.307Z",
+  "generatedAt": "2026-05-20T22:42:06.837Z",
   "currentBranch": "staging",
-  "currentCommitHash": "8559aca22ad78c5fa527ff32ab6cece5cf1d04aa",
+  "currentCommitHash": "44d51b245646efd84a87a016912b9630dc95f1f2",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -44,6 +44,7 @@
     "pnpm run alerts:exclusion:validate",
     "pnpm run response:ops-readiness-evidence",
     "pnpm run production-worker:readiness-evidence",
+    "pnpm run ingest:worker:staging-evidence",
     "pnpm run storage:raw-report-remediation-plan",
     "pnpm run storage:raw-report-remediation-acceptance",
     "pnpm run check:migrations",
@@ -312,6 +313,35 @@
       "status": "prepared-awaiting-human-production-evidence"
     },
     {
+      "command": "pnpm run ingest:worker:staging-evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+          "exists": true,
+          "reportName": "staging-ingest-worker-queue-drain-evidence",
+          "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
+          "generatedAt": "2026-05-20T22:40:14.241Z",
+          "status": "accepted-staging-queue-drain",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T22:40:14.241Z",
+      "status": "accepted-staging-queue-drain"
+    },
+    {
       "command": "pnpm run storage:raw-report-remediation-plan",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -536,12 +566,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T22:21:55.710Z",
+          "generatedAt": "2026-05-20T22:41:47.077Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T22:21:55.710Z",
+      "latestGeneratedAt": "2026-05-20T22:41:47.077Z",
       "status": null
     },
     {
@@ -988,7 +1018,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T22:21:55.710Z",
+      "generatedAt": "2026-05-20T22:41:47.077Z",
       "status": null,
       "productionProof": false
     },
@@ -1044,6 +1074,24 @@
       "evidenceType": "SIMULATED",
       "generatedAt": "2026-05-20T17:59:00.836Z",
       "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+      "exists": true,
+      "reportName": "staging-ingest-worker-queue-drain-evidence",
+      "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
+      "generatedAt": "2026-05-20T22:40:14.241Z",
+      "status": "accepted-staging-queue-drain",
       "productionProof": false
     },
     {
@@ -1663,7 +1711,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T22:16:01.966Z",
+      "generatedAt": "2026-05-20T22:22:11.307Z",
       "status": null,
       "productionProof": false
     },
@@ -1688,7 +1736,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1708,7 +1756,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -1727,9 +1775,38 @@
       "dashboardPassAloneIsReleaseEvidence": false
     }
   },
+  "stagingIngestWorkerEvidence": {
+    "reportName": "staging-ingest-worker-queue-drain-evidence",
+    "generatedAt": "2026-05-20T22:40:14.241Z",
+    "status": "accepted-staging-queue-drain",
+    "accepted": true,
+    "evidencePath": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+    "productionProof": false,
+    "stagingProof": true,
+    "queueDepthBeforeRun": 2,
+    "queueDepthAfterRun": 0,
+    "processedCount": 2,
+    "failedCount": 0,
+    "deadLetterCount": 0,
+    "blockerCoverage": {
+      "blocker2StagingQueueDrain": true,
+      "blocker2ProductionRuntime": false,
+      "blocker11ProductionParityAndRollback": false
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "safety": {
+      "productionDataMutated": false,
+      "productionTargetsUsed": false,
+      "productionWorkerActivationDeferred": true,
+      "workerAlwaysOn": false
+    }
+  },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1752,7 +1829,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -1812,7 +1889,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -1979,7 +2056,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "accepted-formal-waiver",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "waived",
@@ -2013,7 +2090,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-20T22:22:11.307Z",
+    "generatedAt": "2026-05-20T22:42:06.837Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -2094,7 +2171,7 @@
       "severity": "Critical",
       "area": "Production ingest runtime",
       "currentStatus": "partial",
-      "classification": "partial",
+      "classification": "fixed with staging evidence",
       "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
       "proofCategories": [
         "simulated",
@@ -2103,6 +2180,7 @@
       ],
       "allowedProofCommands": [
         "pnpm run ingest:worker:simulated-proof",
+        "pnpm run ingest:worker:staging-evidence",
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
@@ -2123,6 +2201,8 @@
         "docs/production-ingest-worker-activation.md",
         "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
         "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+        "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+        "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
@@ -3166,54 +3246,6 @@
       "waiverReason": null
     },
     {
-      "number": 2,
-      "title": "Production ingest runtime",
-      "severity": "Critical",
-      "area": "Production ingest runtime",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
-      "proofCategories": [
-        "simulated",
-        "staging",
-        "automated-local"
-      ],
-      "allowedProofCommands": [
-        "pnpm run ingest:worker:simulated-proof",
-        "pnpm run production-worker:activation-plan",
-        "pnpm run production-worker:readiness-evidence",
-        "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
-        "pnpm run staging:ingest-worker -- --dry-run",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
-        "pnpm run operator:dashboard",
-        "pnpm run test:api"
-      ],
-      "forbiddenProofTypes": [
-        "unapproved production worker activation",
-        "production queue mutation without explicit production apply guards",
-        "live provider calls",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/staging-ingest-worker-operation.md",
-        "docs/production-ingest-worker-activation.md",
-        "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
-        "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
-        "docs/production-scale/evidence/latest-production-worker-readiness.md",
-        "docs/production-scale/evidence/latest-production-worker-readiness.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
-      "humanProofRequired": false,
-      "simulatedProofAcceptable": true,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
       "number": 6,
       "title": "Historical raw report bytes",
       "severity": "High",
@@ -3827,6 +3859,7 @@
     "Production activation requires operator approval.",
     "Historical raw report remediation requires accepted sanitized operator evidence.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
+    "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
     "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
     "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",

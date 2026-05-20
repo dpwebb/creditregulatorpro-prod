@@ -1,0 +1,189 @@
+{
+  "reportName": "staging-ingest-worker-queue-drain-evidence",
+  "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
+  "generatedAt": "2026-05-20T22:40:14.241Z",
+  "branch": "staging",
+  "commit": "44d51b245646efd84a87a016912b9630dc95f1f2",
+  "environment": "staging-safe",
+  "status": "accepted-staging-queue-drain",
+  "productionProof": false,
+  "stagingProof": true,
+  "mode": "apply",
+  "command": "pnpm run ingest:worker:staging-evidence",
+  "workerCommand": "pnpm run ingest:worker -- --apply --max-jobs 2 --concurrency 1 --worker-id staging-ingest-evidence --source staging_ingest_evidence_mpenagm9",
+  "workerExitCode": 0,
+  "capturedWorkerLogLines": 0,
+  "boundedExecution": {
+    "explicitMaxJobsRequired": true,
+    "maxJobs": 2,
+    "concurrency": 1,
+    "sourceScoped": true,
+    "source": "staging_ingest_evidence_mpenagm9",
+    "workerId": "staging-ingest-evidence"
+  },
+  "queueDepthBeforeRun": 2,
+  "queueDepthAfterRun": 0,
+  "eligibleDepthBeforeRun": 2,
+  "eligibleDepthAfterRun": 0,
+  "processedCount": 2,
+  "failedCount": 0,
+  "deadLetterCount": 0,
+  "queueMetrics": {
+    "globalBefore": {
+      "totalJobs": 4,
+      "queuedJobs": 4,
+      "failedJobs": 0,
+      "deadLetteredJobs": 0,
+      "oldestQueuedAgeSeconds": 47735
+    },
+    "globalAfter": {
+      "totalJobs": 6,
+      "queuedJobs": 4,
+      "failedJobs": 0,
+      "deadLetteredJobs": 0,
+      "oldestQueuedAgeSeconds": 47737
+    },
+    "scopedBeforeCreation": {
+      "source": "staging_ingest_evidence_mpenagm9",
+      "totalJobs": 0,
+      "queuedJobs": 0,
+      "runningJobs": 0,
+      "succeededJobs": 0,
+      "failedJobs": 0,
+      "deadLetteredJobs": 0,
+      "canceledJobs": 0,
+      "eligibleJobs": 0,
+      "staleRunningJobs": 0,
+      "oldestQueuedAgeSeconds": null,
+      "jobIds": [],
+      "statuses": {}
+    },
+    "scopedBeforeRun": {
+      "source": "staging_ingest_evidence_mpenagm9",
+      "totalJobs": 2,
+      "queuedJobs": 2,
+      "runningJobs": 0,
+      "succeededJobs": 0,
+      "failedJobs": 0,
+      "deadLetteredJobs": 0,
+      "canceledJobs": 0,
+      "eligibleJobs": 2,
+      "staleRunningJobs": 0,
+      "oldestQueuedAgeSeconds": 0,
+      "jobIds": [
+        252,
+        253
+      ],
+      "statuses": {
+        "queued": 2
+      }
+    },
+    "scopedAfterRun": {
+      "source": "staging_ingest_evidence_mpenagm9",
+      "totalJobs": 2,
+      "queuedJobs": 0,
+      "runningJobs": 0,
+      "succeededJobs": 2,
+      "failedJobs": 0,
+      "deadLetteredJobs": 0,
+      "canceledJobs": 0,
+      "eligibleJobs": 0,
+      "staleRunningJobs": 0,
+      "oldestQueuedAgeSeconds": null,
+      "jobIds": [
+        252,
+        253
+      ],
+      "statuses": {
+        "succeeded": 2
+      }
+    }
+  },
+  "syntheticBatch": {
+    "createdJobs": 2,
+    "jobIds": [
+      252,
+      253
+    ],
+    "reportArtifactIds": [
+      1376,
+      1377
+    ],
+    "usesRealConsumerReports": false,
+    "syntheticOrSanitizedFixturesOnly": true
+  },
+  "lifecycleEvents": {
+    "totalEvents": 10,
+    "eventCounts": {
+      "claimed": 2,
+      "compliance_scan_started": 2,
+      "ocr_parsing_started": 2,
+      "queued": 2,
+      "succeeded": 2
+    },
+    "claimedEvents": 2,
+    "succeededEvents": 2,
+    "retryScheduledEvents": 0,
+    "deadLetteredEvents": 0,
+    "cleanupAttemptedEvents": 0,
+    "cleanupFailedEvents": 0,
+    "operatorRemediationEvents": 0
+  },
+  "scopedBatch": {
+    "staleQueuedJobsRemaining": false,
+    "eligibleJobsRemaining": 0,
+    "runningJobsRemaining": 0,
+    "staleRunningJobsRemaining": 0
+  },
+  "workflowGate": {
+    "requiresRunIngestWorkerInput": true,
+    "requiredInput": "run_ingest_worker=true",
+    "requiresExplicitMaxJobs": true,
+    "requiresStagingConfirmation": true,
+    "stagingConfirmation": "staging-safe-ingest-worker-evidence",
+    "dryRunSupported": true,
+    "emptyQueueNoOpSafe": true,
+    "productionWorkerDefaultOff": true
+  },
+  "blockerCoverage": {
+    "blocker2StagingQueueDrain": true,
+    "blocker2ProductionRuntime": false,
+    "blocker11ProductionParityAndRollback": false
+  },
+  "safety": {
+    "stagingSafeOnly": true,
+    "productionDataMutated": false,
+    "productionTargetsUsed": false,
+    "productionWorkerActivatedByDefault": false,
+    "productionWorkerActivationDeferred": true,
+    "workerAlwaysOn": false,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "packetReadinessChanged": false,
+    "packetPdfLogicChanged": false,
+    "violationEvidenceLogicChanged": false,
+    "retentionBehaviorChanged": false,
+    "realConsumerPiiUsed": false,
+    "rawReportTextIncludedInEvidence": false,
+    "rawPdfBase64IncludedInEvidence": false,
+    "liveExternalProvidersUsed": false
+  },
+  "requiredStatements": [
+    "STAGING SAFE ONLY.",
+    "Bounded execution was used.",
+    "The ingest worker is not always-on.",
+    "Production worker activation remains deferred unless separately approved.",
+    "Parser and OCR behavior were not changed.",
+    "No production mutation occurred.",
+    "This staging evidence is not production proof."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+    "json": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json"
+  },
+  "accepted": true,
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

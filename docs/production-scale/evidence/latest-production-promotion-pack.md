@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T22:22:11.307Z
+Generated at: 2026-05-20T22:42:06.837Z
 Current branch: `staging`
-Current commit hash: `8559aca22ad78c5fa527ff32ab6cece5cf1d04aa`
+Current commit hash: `44d51b245646efd84a87a016912b9630dc95f1f2`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -15,6 +15,7 @@ Recommended readiness classification: **limited beta**
 - Production activation requires operator approval.
 - Historical raw report remediation requires accepted sanitized operator evidence.
 - Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.
+- Staging ingest worker queue-drain evidence is staging proof only and does not activate production.
 - Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
 - Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.
 - Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.
@@ -35,6 +36,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run alerts:exclusion:validate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-exclusion-validation.md, docs/production-scale/evidence/latest-alerting-exclusion-validation.json
 - `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
+- `pnpm run ingest:worker:staging-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md, docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json
 - `pnpm run storage:raw-report-remediation-plan` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json
 - `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
 - `pnpm run check:migrations` - reference-required; evidence: none
@@ -92,6 +94,17 @@ Recommended readiness classification: **limited beta**
 - Blocker 2 coverage: not accepted
 - Blocker 11 coverage: not accepted
 - Codex processed production jobs: no
+
+## Staging Ingest Worker Evidence
+
+- Status: accepted-staging-queue-drain
+- Accepted staging queue drain: yes
+- Production proof: no
+- Queue depth before/after: 2/0
+- Processed/failed/dead-lettered: 2/0/0
+- Blocker 2 staging queue drain: accepted
+- Blocker 2 production runtime: not accepted
+- Production worker activation remains deferred.
 
 ## Raw Report Remediation Acceptance
 
@@ -188,7 +201,6 @@ Recommended readiness classification: **limited beta**
 ## Unresolved Production Blockers
 
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #11 Production deployment parity (High; partial) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
@@ -209,6 +221,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json` - present
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.md` - present
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.json` - present; evidenceType=SIMULATED
+- `docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md` - present
+- `docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json` - present; evidenceType=STAGING_INGEST_WORKER_QUEUE_DRAIN
 - `docs/production-scale/evidence/latest-load-simulated.md` - present
 - `docs/production-scale/evidence/latest-load-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-load-measured.md` - present

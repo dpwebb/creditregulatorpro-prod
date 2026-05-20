@@ -6,6 +6,7 @@ export const MAX_STAGING_INGEST_WORKER_MAX_JOBS = 10;
 export const DEFAULT_STAGING_INGEST_WORKER_CONCURRENCY = 1;
 export const DEFAULT_STAGING_INGEST_WORKER_ID = "staging-ingest-orchestrator";
 export const DEFAULT_STAGING_CONTAINER_NAME = "creditregulatorpro-staging";
+export const DEFAULT_STAGING_INGEST_WORKER_SOURCE = "staging_ingest_worker";
 
 const SAFE_TOKEN_PATTERN = /^[a-zA-Z0-9_.:-]{1,120}$/;
 const SAFE_CONTAINER_PATTERN = /^[a-zA-Z0-9_.-]{1,120}$/;
@@ -61,6 +62,14 @@ function assertEnvironmentGate(env) {
   }
 }
 
+function assertStagingSafeSource(source) {
+  const safeSource = safeToken(source, "--source");
+  if (!/(staging|synthetic|evidence)/i.test(safeSource)) {
+    fail("--source must explicitly reference staging, synthetic, or evidence.");
+  }
+  return safeSource;
+}
+
 function printHelp() {
   console.log([
     "Usage: pnpm run staging:ingest-worker -- [options]",
@@ -74,6 +83,7 @@ function printHelp() {
     "  --max-jobs <1-10>                 Maximum jobs for this run. Default: 5.",
     "  --concurrency <1>                 Worker concurrency. Only 1 is supported.",
     "  --worker-id <safe-token>          Worker ID passed to the ingest worker.",
+    "  --source <safe-token>             Staging-safe source scope. Default: staging_ingest_worker.",
     "  --container-name <safe-name>      Staging container name. Default: creditregulatorpro-staging.",
     "",
     "The container command injects CRP_ENV=staging, checks database env presence,",
@@ -97,6 +107,7 @@ export function parseStagingIngestWorkerArgs(args, env = process.env) {
       : DEFAULT_STAGING_INGEST_WORKER_MAX_JOBS,
     concurrency: DEFAULT_STAGING_INGEST_WORKER_CONCURRENCY,
     workerId: DEFAULT_STAGING_INGEST_WORKER_ID,
+    source: assertStagingSafeSource(env.CRP_STAGING_INGEST_WORKER_SOURCE ?? DEFAULT_STAGING_INGEST_WORKER_SOURCE),
     containerName: assertStagingContainerName(env.CRP_STAGING_CONTAINER_NAME ?? DEFAULT_STAGING_CONTAINER_NAME),
   };
 
@@ -137,6 +148,11 @@ export function parseStagingIngestWorkerArgs(args, env = process.env) {
       index += 1;
       continue;
     }
+    if (arg === "--source") {
+      options.source = assertStagingSafeSource(nextValue(args, index, arg));
+      index += 1;
+      continue;
+    }
     if (arg === "--container-name") {
       options.containerName = assertStagingContainerName(nextValue(args, index, arg));
       index += 1;
@@ -153,12 +169,13 @@ export function buildStagingIngestWorkerShellCommand(options) {
   const workerId = safeToken(options.workerId, "--worker-id");
   const maxJobs = parseBoundedInteger(String(options.maxJobs), "--max-jobs", 1, MAX_STAGING_INGEST_WORKER_MAX_JOBS);
   const concurrency = parseBoundedInteger(String(options.concurrency), "--concurrency", 1, 1);
+  const source = assertStagingSafeSource(options.source);
 
   return [
     "set -euo pipefail",
     'if [ "${CRP_ENV:-}" != "staging" ]; then echo "Refusing staging ingest worker: CRP_ENV must be staging."; exit 1; fi',
     'if [ -z "${FLOOT_DATABASE_URL:-${STAGING_DATABASE_URL:-${DATABASE_URL:-}}}" ]; then echo "Refusing staging ingest worker: database environment is missing."; exit 1; fi',
-    `pnpm run ingest:worker -- ${modeFlag} --max-jobs ${maxJobs} --concurrency ${concurrency} --worker-id ${workerId}`,
+    `pnpm run ingest:worker -- ${modeFlag} --max-jobs ${maxJobs} --concurrency ${concurrency} --worker-id ${workerId} --source ${source}`,
   ].join("\n");
 }
 

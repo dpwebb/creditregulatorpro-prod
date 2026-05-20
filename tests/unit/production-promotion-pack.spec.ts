@@ -37,6 +37,7 @@ function buildPack() {
   return buildProductionPromotionPackReport({
     rootDir: process.cwd(),
     dashboardReport: dashboardWithSkips(),
+    stagingIngestWorkerEvidence: notSubmittedStagingIngestWorkerEvidence(),
     measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
     runtimeSizePolicyAcceptance: notSubmittedRuntimeSizePolicyAcceptance(),
     generatedAt: "2026-05-20T12:00:00.000Z",
@@ -248,6 +249,70 @@ function acceptedMeasuredLoadEvidenceAcceptance() {
   };
 }
 
+function acceptedStagingIngestWorkerEvidence() {
+  return {
+    reportName: "staging-ingest-worker-queue-drain-evidence",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "accepted-staging-queue-drain",
+    accepted: true,
+    evidencePath: "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+    productionProof: false,
+    stagingProof: true,
+    queueDepthBeforeRun: 2,
+    queueDepthAfterRun: 0,
+    processedCount: 2,
+    failedCount: 0,
+    deadLetterCount: 0,
+    blockerCoverage: {
+      blocker2StagingQueueDrain: true,
+      blocker2ProductionRuntime: false,
+      blocker11ProductionParityAndRollback: false,
+    },
+    validation: {
+      ok: true,
+      errors: [],
+    },
+    safety: {
+      productionDataMutated: false,
+      productionTargetsUsed: false,
+      productionWorkerActivationDeferred: true,
+      workerAlwaysOn: false,
+    },
+  };
+}
+
+function notSubmittedStagingIngestWorkerEvidence() {
+  return {
+    reportName: "staging-ingest-worker-queue-drain-evidence",
+    generatedAt: null,
+    status: "not-submitted",
+    accepted: false,
+    evidencePath: null,
+    productionProof: false,
+    stagingProof: false,
+    queueDepthBeforeRun: null,
+    queueDepthAfterRun: null,
+    processedCount: null,
+    failedCount: null,
+    deadLetterCount: null,
+    blockerCoverage: {
+      blocker2StagingQueueDrain: false,
+      blocker2ProductionRuntime: false,
+      blocker11ProductionParityAndRollback: false,
+    },
+    validation: {
+      ok: false,
+      errors: ["No accepted staging ingest worker queue-drain evidence has been generated."],
+    },
+    safety: {
+      productionDataMutated: false,
+      productionTargetsUsed: false,
+      productionWorkerActivationDeferred: true,
+      workerAlwaysOn: false,
+    },
+  };
+}
+
 function notSubmittedRuntimeSizePolicyAcceptance() {
   return {
     reportName: "runtime-size-policy-acceptance",
@@ -425,6 +490,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
+    expect(report.commandList).toContain("pnpm run ingest:worker:staging-evidence");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-plan");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-acceptance");
     expect(report.commandList).toContain("pnpm run alerts:dry-run");
@@ -499,7 +565,38 @@ describe("production promotion evidence pack", () => {
         productionIngestRuntime: false,
       },
     });
+    expect(report.stagingIngestWorkerEvidence).toMatchObject({
+      accepted: false,
+      productionProof: false,
+      blockerCoverage: {
+        blocker2StagingQueueDrain: false,
+      },
+    });
     expect(blocker2?.classification).toBe("partial");
+  });
+
+  it("classifies blocker 2 as staging-evidenced only with accepted staging queue-drain evidence", () => {
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      stagingIngestWorkerEvidence: acceptedStagingIngestWorkerEvidence(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
+    const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
+
+    expect(blocker2?.classification).toBe("fixed with staging evidence");
+    expect(blocker11?.classification).toBe("partial");
+    expect(report.stagingIngestWorkerEvidence).toMatchObject({
+      accepted: true,
+      productionProof: false,
+      queueDepthBeforeRun: 2,
+      queueDepthAfterRun: 0,
+      processedCount: 2,
+    });
+    expect(report.productionWorkerReadinessEvidence.productionProof).toBe(false);
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
   it("keeps blockers 3, 16, and 17 simulated-proof-only without accepted measured evidence", () => {
@@ -834,6 +931,7 @@ describe("production promotion evidence pack", () => {
       expect.arrayContaining([
         "pnpm run production-scale:evidence",
         "pnpm run production-worker:readiness-evidence",
+        "pnpm run ingest:worker:staging-evidence",
         "pnpm run response:ops-readiness-evidence",
         "pnpm run alerts:exclusion:validate",
         "pnpm run alerts:dry-run",

@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T22:21:55.710Z",
+  "generatedAt": "2026-05-20T22:41:47.077Z",
   "branch": "staging",
-  "commit": "8559aca22ad78c5fa527ff32ab6cece5cf1d04aa",
+  "commit": "44d51b245646efd84a87a016912b9630dc95f1f2",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -213,6 +213,7 @@
           "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
           "allowedProofCommands": [
             "pnpm run ingest:worker:simulated-proof",
+            "pnpm run ingest:worker:staging-evidence",
             "pnpm run production-worker:activation-plan",
             "pnpm run production-worker:readiness-evidence",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
@@ -236,6 +237,8 @@
             "docs/production-ingest-worker-activation.md",
             "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
             "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+            "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+            "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
@@ -1143,6 +1146,7 @@
           "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
           "allowedProofCommands": [
             "pnpm run ingest:worker:simulated-proof",
+            "pnpm run ingest:worker:staging-evidence",
             "pnpm run production-worker:activation-plan",
             "pnpm run production-worker:readiness-evidence",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
@@ -1166,6 +1170,8 @@
             "docs/production-ingest-worker-activation.md",
             "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
             "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+            "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+            "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
@@ -1476,6 +1482,7 @@
           "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
           "allowedProofCommands": [
             "pnpm run ingest:worker:simulated-proof",
+            "pnpm run ingest:worker:staging-evidence",
             "pnpm run production-worker:activation-plan",
             "pnpm run production-worker:readiness-evidence",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
@@ -1499,6 +1506,8 @@
             "docs/production-ingest-worker-activation.md",
             "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
             "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+            "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+            "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
@@ -2299,6 +2308,7 @@
       "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
       "allowedProofCommands": [
         "pnpm run ingest:worker:simulated-proof",
+        "pnpm run ingest:worker:staging-evidence",
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
@@ -2322,6 +2332,8 @@
         "docs/production-ingest-worker-activation.md",
         "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
         "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+        "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+        "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",

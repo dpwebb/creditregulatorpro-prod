@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T22:21:55.710Z
+Generated at: 2026-05-20T22:41:47.077Z
 Current branch: `staging`
-Current commit hash: `8559aca22ad78c5fa527ff32ab6cece5cf1d04aa`
+Current commit hash: `44d51b245646efd84a87a016912b9630dc95f1f2`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -35,7 +35,7 @@ Dashboard exact commands recorded: yes
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker:staging-evidence`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.
@@ -140,7 +140,7 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - SIMULATED - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker:staging-evidence`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - SIMULATED - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.
@@ -175,7 +175,7 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
 
 - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker:staging-evidence`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.
@@ -270,7 +270,7 @@ No read-only production command is executed by this report. Any production evide
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker:staging-evidence`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:readiness-evidence`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.

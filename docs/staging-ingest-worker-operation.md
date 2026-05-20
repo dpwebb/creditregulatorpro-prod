@@ -12,10 +12,15 @@ This runbook covers the staging-only bounded execution path for queued report in
 - Runtime target: existing `creditregulatorpro-staging` container.
 - Production activation: deferred to a separate production-scoped task.
 
-The staging deploy workflow includes an optional `workflow_dispatch` input named `run_ingest_worker`. It defaults to `false`. When set to `true`, the deploy runs one bounded apply pass after staging health and response-auth smokes:
+The staging deploy workflow includes an optional `workflow_dispatch` input named `run_ingest_worker`. It defaults to `false`. When set to `true`, operators must also provide `ingest_worker_mode`, `ingest_worker_max_jobs`, `ingest_worker_source`, and `ingest_worker_staging_ack=staging-safe-ingest-worker-evidence`. The source must be a safe staging/synthetic/evidence scope. The deploy runs one bounded dry-run or apply pass after staging health and response-auth smokes:
 
 ```bash
-docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc '
+docker exec \
+  -e CRP_ENV=staging \
+  -e STAGING_INGEST_WORKER_MODE=apply \
+  -e STAGING_INGEST_WORKER_MAX_JOBS=5 \
+  -e STAGING_INGEST_WORKER_SOURCE=staging_ingest_evidence_manual \
+  creditregulatorpro-staging bash -lc '
   set -euo pipefail
   if [ "${CRP_ENV:-}" != "staging" ]; then
     echo "Refusing staging ingest worker: CRP_ENV must be staging."
@@ -25,7 +30,7 @@ docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc '
     echo "Refusing staging ingest worker: database environment is missing."
     exit 1
   fi
-  pnpm run ingest:worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-deploy-ingest-worker
+  pnpm run ingest:worker -- --apply --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"
 '
 ```
 
@@ -42,7 +47,7 @@ pnpm run staging:ingest-worker -- --dry-run
 Bounded apply:
 
 ```bash
-pnpm run staging:ingest-worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual
+pnpm run staging:ingest-worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual --source staging_ingest_evidence_manual
 ```
 
 Direct container dry-run if the wrapper is unavailable:
@@ -52,7 +57,7 @@ docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc '
   set -euo pipefail
   test "${CRP_ENV:-}" = staging
   test -n "${FLOOT_DATABASE_URL:-${STAGING_DATABASE_URL:-${DATABASE_URL:-}}}"
-  pnpm run ingest:worker -- --dry-run --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual
+  pnpm run ingest:worker -- --dry-run --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual --source staging_ingest_evidence_manual
 '
 ```
 
@@ -82,12 +87,25 @@ The simulated proof should show 3 scoped synthetic jobs before apply, 0 queued/r
 
 ## Manual Staging Evidence Capture
 
+For synthetic staging-safe queue-drain evidence, prefer the evidence command:
+
+```bash
+pnpm run ingest:worker:staging-evidence
+```
+
+Expected outputs:
+
+- `docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md`
+- `docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json`
+
+Accepted output is staging proof only. It is not production proof and does not activate production.
+
 For actual staging operator evidence, run a dry-run first, record the queue status, then run one bounded apply only if the queued work is expected and staging-safe:
 
 ```bash
 pnpm run staging:ingest-worker -- --dry-run
 pnpm run operator:dashboard
-pnpm run staging:ingest-worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual
+pnpm run staging:ingest-worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual --source staging_ingest_evidence_manual
 pnpm run staging:ingest-worker -- --dry-run
 pnpm run operator:dashboard
 ```

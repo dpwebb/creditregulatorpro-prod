@@ -74,6 +74,10 @@ export const DEFAULT_PROMOTION_PACK_MD = "docs/production-scale/evidence/latest-
 export const DEFAULT_PROMOTION_PACK_JSON = "docs/production-scale/evidence/latest-production-promotion-pack.json";
 export const DEFAULT_AUDIT_PATH = "docs/production-at-scale-maximum-audit.md";
 export const DEFAULT_REGISTRY_PATH = "docs/production-scale/blocker-registry.json";
+export const STAGING_INGEST_WORKER_EVIDENCE_MD_PATH =
+  "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md";
+export const STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH =
+  "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json";
 
 export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run typecheck",
@@ -90,6 +94,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run alerts:exclusion:validate",
   "pnpm run response:ops-readiness-evidence",
   "pnpm run production-worker:readiness-evidence",
+  "pnpm run ingest:worker:staging-evidence",
   "pnpm run storage:raw-report-remediation-plan",
   "pnpm run storage:raw-report-remediation-acceptance",
   "pnpm run check:migrations",
@@ -105,6 +110,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run production-scale:evidence",
   "pnpm run restore:drill:simulated",
   "pnpm run ingest:worker:simulated-proof",
+  "pnpm run ingest:worker:staging-evidence",
   "pnpm run baseline:production-scale-local -- --simulated",
   "pnpm run alerts:dry-run",
   "pnpm run storage:raw-report-inventory",
@@ -138,6 +144,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run ingest:worker:simulated-proof": [
     "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
     "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+  ],
+  "pnpm run ingest:worker:staging-evidence": [
+    STAGING_INGEST_WORKER_EVIDENCE_MD_PATH,
+    STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH,
   ],
   "pnpm run baseline:production-scale-local -- --simulated": [
     "docs/production-scale/evidence/latest-load-simulated.md",
@@ -312,6 +322,109 @@ function summarizeEvidenceFile(rootDir, relativePath) {
   };
 }
 
+function buildStagingIngestWorkerEvidenceAcceptance(rootDir) {
+  const parsed = readJsonIfPresent(rootDir, STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH);
+  if (!parsed) {
+    return {
+      reportName: "staging-ingest-worker-queue-drain-evidence",
+      generatedAt: null,
+      status: existsSync(repoPath(rootDir, STAGING_INGEST_WORKER_EVIDENCE_MD_PATH))
+        ? "submitted-markdown-requires-json"
+        : "not-submitted",
+      accepted: false,
+      evidencePath: null,
+      productionProof: false,
+      stagingProof: false,
+      queueDepthBeforeRun: null,
+      queueDepthAfterRun: null,
+      processedCount: null,
+      failedCount: null,
+      deadLetterCount: null,
+      blockerCoverage: {
+        blocker2StagingQueueDrain: false,
+        blocker2ProductionRuntime: false,
+        blocker11ProductionParityAndRollback: false,
+      },
+      validation: {
+        ok: false,
+        errors: ["No accepted staging ingest worker queue-drain evidence has been generated."],
+      },
+      safety: {
+        productionDataMutated: false,
+        productionTargetsUsed: false,
+        productionWorkerActivationDeferred: true,
+        workerAlwaysOn: false,
+      },
+    };
+  }
+
+  const errors = [];
+  if (parsed.evidenceType !== "STAGING_INGEST_WORKER_QUEUE_DRAIN") {
+    errors.push("evidenceType must be STAGING_INGEST_WORKER_QUEUE_DRAIN.");
+  }
+  if (parsed.environment !== "staging-safe") errors.push("environment must be staging-safe.");
+  if (parsed.productionProof === true) errors.push("staging ingest worker evidence must not be production proof.");
+  if (parsed.stagingProof !== true) errors.push("stagingProof must be true.");
+  if (parsed.accepted !== true || parsed.status !== "accepted-staging-queue-drain") {
+    errors.push("staging ingest worker evidence has not been accepted.");
+  }
+  if (!Number.isInteger(parsed.queueDepthBeforeRun) || parsed.queueDepthBeforeRun < 1) {
+    errors.push("queueDepthBeforeRun must show at least one scoped queued job before apply.");
+  }
+  if (parsed.queueDepthAfterRun !== 0 || parsed.eligibleDepthAfterRun !== 0) {
+    errors.push("scoped queue depth and eligible depth must be zero after apply.");
+  }
+  if (!Number.isInteger(parsed.processedCount) || parsed.processedCount < 1) {
+    errors.push("processedCount must be at least one.");
+  }
+  if (parsed.processedCount > parsed.boundedExecution?.maxJobs) {
+    errors.push("processedCount must not exceed bounded maxJobs.");
+  }
+  if (parsed.failedCount !== 0 || parsed.deadLetterCount !== 0) {
+    errors.push("failedCount and deadLetterCount must be zero.");
+  }
+  if (parsed.safety?.productionDataMutated !== false || parsed.safety?.productionTargetsUsed !== false) {
+    errors.push("staging evidence must record no production mutation and no production targets.");
+  }
+  if (parsed.safety?.productionWorkerActivationDeferred !== true || parsed.safety?.workerAlwaysOn !== false) {
+    errors.push("staging evidence must keep production worker activation deferred and non-daemon.");
+  }
+  if (parsed.safety?.parserBehaviorChanged !== false || parsed.safety?.ocrBehaviorChanged !== false) {
+    errors.push("staging evidence must not change parser or OCR behavior.");
+  }
+  const accepted = errors.length === 0;
+
+  return {
+    reportName: parsed.reportName ?? "staging-ingest-worker-queue-drain-evidence",
+    generatedAt: parsed.generatedAt ?? null,
+    status: accepted ? "accepted-staging-queue-drain" : "failed",
+    accepted,
+    evidencePath: STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH,
+    productionProof: false,
+    stagingProof: accepted,
+    queueDepthBeforeRun: parsed.queueDepthBeforeRun ?? null,
+    queueDepthAfterRun: parsed.queueDepthAfterRun ?? null,
+    processedCount: parsed.processedCount ?? null,
+    failedCount: parsed.failedCount ?? null,
+    deadLetterCount: parsed.deadLetterCount ?? null,
+    blockerCoverage: {
+      blocker2StagingQueueDrain: accepted,
+      blocker2ProductionRuntime: false,
+      blocker11ProductionParityAndRollback: false,
+    },
+    validation: {
+      ok: accepted,
+      errors,
+    },
+    safety: {
+      productionDataMutated: parsed.safety?.productionDataMutated === true,
+      productionTargetsUsed: parsed.safety?.productionTargetsUsed === true,
+      productionWorkerActivationDeferred: parsed.safety?.productionWorkerActivationDeferred === true,
+      workerAlwaysOn: parsed.safety?.workerAlwaysOn === true,
+    },
+  };
+}
+
 function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -320,6 +433,7 @@ function classifyBlocker(
   blocker,
   humanRestoreEvidenceAcceptance = null,
   productionWorkerReadinessEvidence = null,
+  stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
@@ -339,6 +453,14 @@ function classifyBlocker(
     productionWorkerReadinessEvidence?.acceptedProductionRunEvidence?.accepted === true
   ) {
     return "fixed with human-observed evidence";
+  }
+  if (
+    blocker.number === 2 &&
+    stagingIngestWorkerEvidence?.accepted === true &&
+    stagingIngestWorkerEvidence?.blockerCoverage?.blocker2StagingQueueDrain === true &&
+    stagingIngestWorkerEvidence?.productionProof !== true
+  ) {
+    return "fixed with staging evidence";
   }
   if (blocker.number === 11) {
     if (
@@ -531,6 +653,7 @@ export function buildProductionPromotionPackReport({
   dashboardReport = null,
   humanRestoreEvidenceAcceptance = null,
   productionWorkerReadinessEvidence = null,
+  stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
@@ -569,6 +692,8 @@ export function buildProductionPromotionPackReport({
     humanRestoreEvidenceAcceptance ?? buildHumanRestoreDrillEvidenceAcceptanceReport({ rootDir, generatedAt });
   const workerReadinessEvidence =
     productionWorkerReadinessEvidence ?? buildProductionWorkerReadinessEvidenceReport({ rootDir, generatedAt });
+  const stagingIngestEvidence =
+    stagingIngestWorkerEvidence ?? buildStagingIngestWorkerEvidenceAcceptance(rootDir);
   const rawReportRemediationEvidence =
     rawReportRemediationAcceptance ?? buildRawReportRemediationAcceptanceReport({ rootDir, generatedAt });
   const responseOpsEvidence =
@@ -585,6 +710,7 @@ export function buildProductionPromotionPackReport({
       blocker,
       acceptedHumanRestoreEvidence,
       workerReadinessEvidence,
+      stagingIngestEvidence,
       rawReportRemediationEvidence,
       responseOpsEvidence,
       migrationGate,
@@ -711,6 +837,32 @@ export function buildProductionPromotionPackReport({
         productionJobsProcessedByCodex: workerReadinessEvidence.safety?.productionJobsProcessedByCodex === true,
         productionWorkerActivatedByDefault: workerReadinessEvidence.safety?.productionWorkerActivatedByDefault === true,
         dashboardPassAloneIsReleaseEvidence: workerReadinessEvidence.safety?.dashboardPassAloneIsReleaseEvidence === true,
+      },
+    },
+    stagingIngestWorkerEvidence: {
+      reportName: stagingIngestEvidence.reportName,
+      generatedAt: stagingIngestEvidence.generatedAt,
+      status: stagingIngestEvidence.status,
+      accepted: stagingIngestEvidence.accepted === true,
+      evidencePath: stagingIngestEvidence.evidencePath,
+      productionProof: stagingIngestEvidence.productionProof === true,
+      stagingProof: stagingIngestEvidence.stagingProof === true,
+      queueDepthBeforeRun: stagingIngestEvidence.queueDepthBeforeRun,
+      queueDepthAfterRun: stagingIngestEvidence.queueDepthAfterRun,
+      processedCount: stagingIngestEvidence.processedCount,
+      failedCount: stagingIngestEvidence.failedCount,
+      deadLetterCount: stagingIngestEvidence.deadLetterCount,
+      blockerCoverage: stagingIngestEvidence.blockerCoverage,
+      validation: {
+        ok: stagingIngestEvidence.validation?.ok === true,
+        errors: stagingIngestEvidence.validation?.errors ?? [],
+      },
+      safety: {
+        productionDataMutated: stagingIngestEvidence.safety?.productionDataMutated === true,
+        productionTargetsUsed: stagingIngestEvidence.safety?.productionTargetsUsed === true,
+        productionWorkerActivationDeferred:
+          stagingIngestEvidence.safety?.productionWorkerActivationDeferred === true,
+        workerAlwaysOn: stagingIngestEvidence.safety?.workerAlwaysOn === true,
       },
     },
     rawReportRemediationAcceptance: {
@@ -898,6 +1050,7 @@ export function buildProductionPromotionPackReport({
       "Production activation requires operator approval.",
       "Historical raw report remediation requires accepted sanitized operator evidence.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
+      "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
       "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
       "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
       "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
@@ -943,6 +1096,7 @@ export function validatePromotionPackReport(report) {
   }
   const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
   const workerReadiness = report.productionWorkerReadinessEvidence;
+  const stagingIngest = report.stagingIngestWorkerEvidence;
   const responseOpsReadiness = report.responseOpsReadinessEvidence;
   const migrationGate = report.migrationGateEvidence;
   const measuredLoad = report.measuredLoadEvidenceAcceptance;
@@ -967,6 +1121,18 @@ export function validatePromotionPackReport(report) {
       workerReadiness?.safety?.productionJobsProcessedByCodex === true
     ) {
       errors.push("Blocker 2 cannot be production-ready without accepted production queue-depth evidence.");
+    }
+  }
+  if (blocker2?.classification === "fixed with staging evidence") {
+    if (
+      stagingIngest?.accepted !== true ||
+      stagingIngest?.blockerCoverage?.blocker2StagingQueueDrain !== true ||
+      stagingIngest?.productionProof === true ||
+      stagingIngest?.safety?.productionDataMutated === true ||
+      stagingIngest?.safety?.productionTargetsUsed === true ||
+      stagingIngest?.safety?.productionWorkerActivationDeferred !== true
+    ) {
+      errors.push("Blocker 2 staging evidence requires accepted staging-safe queue-drain proof and cannot be production proof.");
     }
   }
   if (blocker3?.classification === "fixed with automated evidence") {
@@ -1133,6 +1299,7 @@ export function validatePromotionPackReport(report) {
     for (const command of [
       "pnpm run production-scale:evidence",
       "pnpm run production-worker:readiness-evidence",
+      "pnpm run ingest:worker:staging-evidence",
       "pnpm run response:ops-readiness-evidence",
       "pnpm run alerts:exclusion:validate",
       "pnpm run alerts:dry-run",
@@ -1217,6 +1384,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Production activation requires operator approval.",
     "- Historical raw report remediation requires accepted sanitized operator evidence.",
     "- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
+    "- Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
     "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
     "- Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "- Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
@@ -1265,6 +1433,21 @@ export function renderPromotionPackMarkdown(report) {
     `- Codex processed production jobs: ${
       report.productionWorkerReadinessEvidence.safety?.productionJobsProcessedByCodex ? "yes" : "no"
     }`,
+    "",
+    "## Staging Ingest Worker Evidence",
+    "",
+    `- Status: ${report.stagingIngestWorkerEvidence.status}`,
+    `- Accepted staging queue drain: ${report.stagingIngestWorkerEvidence.accepted ? "yes" : "no"}`,
+    `- Production proof: ${report.stagingIngestWorkerEvidence.productionProof ? "yes" : "no"}`,
+    `- Queue depth before/after: ${report.stagingIngestWorkerEvidence.queueDepthBeforeRun ?? "n/a"}/${report.stagingIngestWorkerEvidence.queueDepthAfterRun ?? "n/a"}`,
+    `- Processed/failed/dead-lettered: ${report.stagingIngestWorkerEvidence.processedCount ?? "n/a"}/${report.stagingIngestWorkerEvidence.failedCount ?? "n/a"}/${report.stagingIngestWorkerEvidence.deadLetterCount ?? "n/a"}`,
+    `- Blocker 2 staging queue drain: ${
+      report.stagingIngestWorkerEvidence.blockerCoverage?.blocker2StagingQueueDrain ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 2 production runtime: ${
+      report.stagingIngestWorkerEvidence.blockerCoverage?.blocker2ProductionRuntime ? "accepted" : "not accepted"
+    }`,
+    "- Production worker activation remains deferred.",
     "",
     "## Raw Report Remediation Acceptance",
     "",

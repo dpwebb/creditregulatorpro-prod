@@ -39,16 +39,26 @@ describe("staging deploy workflow health gate", () => {
     const source = workflowSource();
 
     expect(source).toContain("run_ingest_worker:");
+    expect(source).toContain("ingest_worker_mode:");
+    expect(source).toContain("ingest_worker_max_jobs:");
+    expect(source).toContain("ingest_worker_source:");
+    expect(source).toContain("ingest_worker_staging_ack:");
     expect(source).toContain("RUN_INGEST_WORKER");
+    expect(source).toContain("STAGING_INGEST_WORKER_MAX_JOBS");
+    expect(source).toContain("staging-safe-ingest-worker-evidence");
     expect(source).toContain("run_staging_ingest_worker_orchestration() {");
     expect(source).toContain(
       "Skipping bounded staging ingest worker orchestration. Manual workflow_dispatch run_ingest_worker=true is required.",
     );
-    expect(source).toContain("docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc");
+    expect(source).toContain("-e CRP_ENV=staging");
+    expect(source).toContain("-e STAGING_INGEST_WORKER_SOURCE=\"$STAGING_INGEST_WORKER_SOURCE\"");
+    expect(source).toContain("creditregulatorpro-staging bash -lc");
     expect(source).toContain('if [ "${CRP_ENV:-}" != "staging" ]; then');
     expect(source).toContain("database environment is missing");
+    expect(source).toContain("ingest_worker_max_jobs must be explicitly set to 1-10");
+    expect(source).toContain("ingest_worker_source must be explicitly staging-safe");
     expect(source).toContain(
-      "pnpm run ingest:worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-deploy-ingest-worker",
+      'pnpm run ingest:worker -- "$mode_flag" --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"',
     );
     expect(source).not.toContain("--max-jobs 100 --concurrency 1 --worker-id staging-deploy-ingest-worker");
   });

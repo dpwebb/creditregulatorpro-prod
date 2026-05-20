@@ -11,10 +11,26 @@ on:
         required: false
         type: string
       run_ingest_worker:
-        description: "Run one bounded staging ingest worker apply pass after deploy verification."
+        description: "Run one bounded staging ingest worker dry-run or apply pass after deploy verification."
         required: false
         type: boolean
         default: false
+      ingest_worker_mode:
+        description: "Required when run_ingest_worker=true. Must be dry-run or apply."
+        required: false
+        type: string
+      ingest_worker_max_jobs:
+        description: "Required bounded staging ingest worker job limit when run_ingest_worker=true. Must be 1-10."
+        required: false
+        type: string
+      ingest_worker_source:
+        description: "Required staging-safe queue source scope. Must be a safe token containing staging, synthetic, or evidence."
+        required: false
+        type: string
+      ingest_worker_staging_ack:
+        description: "Required when run_ingest_worker=true. Must equal staging-safe-ingest-worker-evidence."
+        required: false
+        type: string
 
 concurrency:
   group: staging-deploy
@@ -174,8 +190,41 @@ jobs:
           PUSH_BEFORE_SHA: ${{ github.event.before || '' }}
           WORKFLOW_EVENT_NAME: ${{ github.event_name }}
           RUN_INGEST_WORKER: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker || false }}
+          STAGING_INGEST_WORKER_MODE: ${{ inputs.ingest_worker_mode || '' }}
+          STAGING_INGEST_WORKER_MAX_JOBS: ${{ inputs.ingest_worker_max_jobs || '' }}
+          STAGING_INGEST_WORKER_SOURCE: ${{ inputs.ingest_worker_source || '' }}
+          STAGING_INGEST_WORKER_ACK: ${{ inputs.ingest_worker_staging_ack || '' }}
         run: |
-          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' PUSH_BEFORE_SHA='$PUSH_BEFORE_SHA' WORKFLOW_EVENT_NAME='$WORKFLOW_EVENT_NAME' RUN_INGEST_WORKER='$RUN_INGEST_WORKER' bash -s" <<'REMOTE'
+          if [ "${RUN_INGEST_WORKER:-false}" = "true" ]; then
+            case "${STAGING_INGEST_WORKER_MODE:-}" in
+              dry-run|apply) ;;
+              *)
+                echo "Refusing staging ingest worker input: ingest_worker_mode must be dry-run or apply."
+                exit 1
+                ;;
+            esac
+            case "${STAGING_INGEST_WORKER_MAX_JOBS:-}" in
+              1|2|3|4|5|6|7|8|9|10) ;;
+              *)
+                echo "Refusing staging ingest worker input: ingest_worker_max_jobs must be explicitly set to 1-10."
+                exit 1
+                ;;
+            esac
+            if [ "${STAGING_INGEST_WORKER_ACK:-}" != "staging-safe-ingest-worker-evidence" ]; then
+              echo "Refusing staging ingest worker input: ingest_worker_staging_ack is missing or invalid."
+              exit 1
+            fi
+            if ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eq '^[a-zA-Z0-9_.:-]{1,120}$'; then
+              echo "Refusing staging ingest worker input: ingest_worker_source must be a safe token."
+              exit 1
+            fi
+            if ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eiq '(staging|synthetic|evidence)'; then
+              echo "Refusing staging ingest worker input: ingest_worker_source must be explicitly staging-safe."
+              exit 1
+            fi
+          fi
+
+          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' PUSH_BEFORE_SHA='$PUSH_BEFORE_SHA' WORKFLOW_EVENT_NAME='$WORKFLOW_EVENT_NAME' RUN_INGEST_WORKER='$RUN_INGEST_WORKER' STAGING_INGEST_WORKER_MODE='$STAGING_INGEST_WORKER_MODE' STAGING_INGEST_WORKER_MAX_JOBS='$STAGING_INGEST_WORKER_MAX_JOBS' STAGING_INGEST_WORKER_SOURCE='$STAGING_INGEST_WORKER_SOURCE' STAGING_INGEST_WORKER_ACK='$STAGING_INGEST_WORKER_ACK' bash -s" <<'REMOTE'
             set -euo pipefail
 
             cd /opt/creditregulatorpro-staging/app
@@ -621,8 +670,41 @@ jobs:
                 return 0
               fi
 
+              case "${STAGING_INGEST_WORKER_MODE:-}" in
+                dry-run|apply) ;;
+                *)
+                  echo "Refusing staging ingest worker: ingest_worker_mode must be dry-run or apply."
+                  exit 1
+                  ;;
+              esac
+              case "${STAGING_INGEST_WORKER_MAX_JOBS:-}" in
+                1|2|3|4|5|6|7|8|9|10) ;;
+                *)
+                  echo "Refusing staging ingest worker: ingest_worker_max_jobs must be 1-10."
+                  exit 1
+                  ;;
+              esac
+              if [ "${STAGING_INGEST_WORKER_ACK:-}" != "staging-safe-ingest-worker-evidence" ]; then
+                echo "Refusing staging ingest worker: staging acknowledgement is missing or invalid."
+                exit 1
+              fi
+              if ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eq '^[a-zA-Z0-9_.:-]{1,120}$'; then
+                echo "Refusing staging ingest worker: source must be a safe token."
+                exit 1
+              fi
+              if ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eiq '(staging|synthetic|evidence)'; then
+                echo "Refusing staging ingest worker: source must be explicitly staging-safe."
+                exit 1
+              fi
+
               echo "Running bounded staging ingest worker orchestration."
-              docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc '
+              echo "Staging ingest worker evidence: mode=${STAGING_INGEST_WORKER_MODE} max_jobs=${STAGING_INGEST_WORKER_MAX_JOBS} source_scope=${STAGING_INGEST_WORKER_SOURCE} failure_stops_workflow=true."
+              docker exec \
+                -e CRP_ENV=staging \
+                -e STAGING_INGEST_WORKER_MODE="$STAGING_INGEST_WORKER_MODE" \
+                -e STAGING_INGEST_WORKER_MAX_JOBS="$STAGING_INGEST_WORKER_MAX_JOBS" \
+                -e STAGING_INGEST_WORKER_SOURCE="$STAGING_INGEST_WORKER_SOURCE" \
+                creditregulatorpro-staging bash -lc '
                 set -euo pipefail
                 if [ "${CRP_ENV:-}" != "staging" ]; then
                   echo "Refusing staging ingest worker: CRP_ENV must be staging."
@@ -632,7 +714,11 @@ jobs:
                   echo "Refusing staging ingest worker: database environment is missing."
                   exit 1
                 fi
-                pnpm run ingest:worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-deploy-ingest-worker
+                mode_flag="--dry-run"
+                if [ "${STAGING_INGEST_WORKER_MODE:-}" = "apply" ]; then
+                  mode_flag="--apply"
+                fi
+                pnpm run ingest:worker -- "$mode_flag" --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"
               '
             }
 
