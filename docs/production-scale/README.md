@@ -37,6 +37,29 @@ Dashboard PASS alone is not release evidence. Dashboard `SKIP` rows remain visib
 
 The operator dashboard distinguishes `PASS`, `FAIL`, `SKIP`, `SIMULATED`, and `HUMAN_REQUIRED`. Release evidence must record exact commands and cannot promote `SIMULATED` or `HUMAN_REQUIRED` rows to production proof.
 
+## Production Promotion Pack
+
+Run:
+
+```bash
+pnpm run production-scale:promotion-pack
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-production-promotion-pack.md`
+- `docs/production-scale/evidence/latest-production-promotion-pack.json`
+
+The promotion pack consolidates the blocker registry, latest generated evidence files, required command references, skipped dashboard checks, simulated proof-only blockers, staging-only proof, human-required proof, waivers, and unresolved production/scale blockers.
+
+Readiness classification is evidence-bound:
+
+- `limited beta`: critical/high, simulated-only, human-required, partial, or open blockers remain.
+- `broader production`: no critical/high unresolved blocker remains, but production-at-scale evidence is still incomplete.
+- `production-at-scale`: every blocker is fixed with accepted evidence or explicitly waived with an approved reason.
+
+Codex must not promote the classification beyond the evidence in the pack. SIMULATED evidence is not production proof, dashboard PASS alone is not release evidence when SKIP rows exist, and production activation requires explicit operator approval.
+
 ## Production-Safe Probe Evidence
 
 Run:

@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T20:08:09.537Z
+Generated at: 2026-05-20T20:14:43.724Z
 Current branch: `staging`
-Current commit hash: `dab749d9cef5457fb0fb411bdd9f6aaa8f3b9ca7`
+Current commit hash: `5d72d1c51ca1cdf91a24e6418ebed91cd97e89f6`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -25,7 +25,7 @@ Dashboard exact commands recorded: yes
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, partial=13, simulated-proof-only=4, fixed=6, open=1
+- Status counts: requires-human-proof=1, partial=13, simulated-proof-only=4, fixed=7
 
 ## Automated Local Evidence
 
@@ -121,14 +121,14 @@ Dashboard exact commands recorded: yes
   Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`, `pnpm run production-safe-probes:evidence`
   Next action: Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.
-- #24 Documentation drift (Low; open)
-  Proof required: Docs diff and registry evidence that current blocker data matches the controlling audit.
-  Allowed commands: `pnpm run production-scale:evidence`, `git diff --check`
-  Next action: Run the evidence command after each scoped blocker task and keep docs aligned.
-- #25 Dashboard default SKIP semantics (Low; partial)
-  Proof required: Dashboard report must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.
-  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm run alerts:dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
-  Next action: Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status.
+- #24 Documentation drift (Low; partial)
+  Proof required: Promotion pack and registry evidence must detect stale audit/tracker commit references and keep blocker data aligned with the controlling audit before promotion.
+  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run production-scale:promotion-pack`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts`, `git diff --check`
+  Next action: Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision.
+- #25 Dashboard default SKIP semantics (Low; fixed)
+  Proof required: Dashboard and promotion-pack reports distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.
+  Allowed commands: `pnpm run production-scale:promotion-pack`, `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm run alerts:dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts`
+  Next action: Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS.
 
 ## Simulated Evidence
 
@@ -328,12 +328,8 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`, `pnpm run production-safe-probes:evidence`
   Next action: Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.
-- #24 Documentation drift (Low; open)
-  Proof required: Docs diff and registry evidence that current blocker data matches the controlling audit.
-  Allowed commands: `pnpm run production-scale:evidence`, `git diff --check`
-  Next action: Run the evidence command after each scoped blocker task and keep docs aligned.
-- #25 Dashboard default SKIP semantics (Low; partial)
-  Proof required: Dashboard report must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.
-  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm run alerts:dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
-  Next action: Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status.
+- #24 Documentation drift (Low; partial)
+  Proof required: Promotion pack and registry evidence must detect stale audit/tracker commit references and keep blocker data aligned with the controlling audit before promotion.
+  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run production-scale:promotion-pack`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts`, `git diff --check`
+  Next action: Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision.
 

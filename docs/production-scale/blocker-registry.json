@@ -79,12 +79,14 @@
     "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-backup-restore-checklist.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
     "git diff --check",
+    "pnpm run production-scale:promotion-pack",
     "pnpm run production-safe-probes:evidence",
     "pnpm run staging-owner-denial-smoke:evidence",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts",
     "pnpm run sensitive-list-endpoints:evidence",
     "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
-    "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts"
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts"
   ],
   "blockers": [
     {
@@ -1054,13 +1056,15 @@
         "docs/production-at-scale-execution-tracker.md",
         "docs/production-at-scale-maximum-audit.md"
       ],
-      "currentStatus": "open",
-      "proofTypeRequired": "Docs diff and registry evidence that current blocker data matches the controlling audit.",
+      "currentStatus": "partial",
+      "proofTypeRequired": "Promotion pack and registry evidence must detect stale audit/tracker commit references and keep blocker data aligned with the controlling audit before promotion.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts",
         "git diff --check"
       ],
       "forbiddenProofTypes": [
@@ -1075,10 +1079,12 @@
       "relatedEvidenceOutputPaths": [
         "docs/production-scale/README.md",
         "docs/production-scale/blocker-registry.json",
+        "docs/production-scale/evidence/latest-production-promotion-pack.md",
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Run the evidence command after each scoped blocker task and keep docs aligned."
+      "recommendedNextAction": "Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision."
     },
     {
       "number": 25,
@@ -1089,17 +1095,19 @@
         "scripts/operator-regression-dashboard.ts:490",
         "scripts/operator-regression-dashboard.ts"
       ],
-      "currentStatus": "partial",
-      "proofTypeRequired": "Dashboard report must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.",
+      "currentStatus": "fixed",
+      "proofTypeRequired": "Dashboard and promotion-pack reports distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
+        "pnpm run production-scale:promotion-pack",
         "pnpm run production-scale:evidence",
         "pnpm run operator:dashboard",
         "pnpm run alerts:dry-run",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts"
       ],
       "forbiddenProofTypes": [
         "SKIP treated as PASS",
@@ -1111,12 +1119,14 @@
       "simulatedProofAcceptable": false,
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-promotion-pack.md",
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status."
+      "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS."
     }
   ]
 }

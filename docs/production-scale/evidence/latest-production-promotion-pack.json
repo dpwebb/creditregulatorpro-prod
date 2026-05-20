@@ -1,0 +1,3000 @@
+{
+  "reportName": "production-promotion-evidence-pack",
+  "generatedAt": "2026-05-20T20:16:14.890Z",
+  "currentBranch": "staging",
+  "currentCommitHash": "5d72d1c51ca1cdf91a24e6418ebed91cd97e89f6",
+  "auditFilePath": "docs/production-at-scale-maximum-audit.md",
+  "auditDate": "2026-05-20",
+  "auditDateParseable": true,
+  "auditCurrentCommitHash": "6fb3b063622fdaf236b97bb6aac0f9a999b5bd88",
+  "staleReferences": {
+    "auditCommitReferenceStale": true,
+    "trackerCommitReferences": [
+      "18c7e187c52a27b34eb41e3811a7d1527f7f1166",
+      "ae6e20a586d025c6487aaca7f5113ef7ef5e76e2",
+      "6ac420ef5893a06bc224759a17a10a0e497f6d5c",
+      "e7ff406ebc86b852cf63b17845daecd854176f55"
+    ],
+    "finalVerificationCommitReferences": [
+      "e7ff406ebc86b852cf63b17845daecd854176f55",
+      "3221226505"
+    ]
+  },
+  "registry": {
+    "path": "docs/production-scale/blocker-registry.json",
+    "expectedBlockerCount": 25,
+    "actualBlockerCount": 25,
+    "validation": {
+      "valid": true,
+      "errors": []
+    }
+  },
+  "commandList": [
+    "pnpm run typecheck",
+    "pnpm run build",
+    "pnpm run test:contracts",
+    "pnpm run test:api",
+    "pnpm run test:golden-path",
+    "pnpm run test:regression-dashboard",
+    "pnpm run test:deterministic-ingestion-report",
+    "pnpm run response:soak-check",
+    "pnpm run operator:dashboard",
+    "pnpm run check:migrations",
+    "pnpm run check:restore-drill-evidence",
+    "pnpm run report:runtime-size",
+    "git diff --check",
+    "pnpm run production-scale:evidence",
+    "pnpm run restore:drill:simulated",
+    "pnpm run ingest:worker:simulated-proof",
+    "pnpm run baseline:production-scale-local -- --simulated",
+    "pnpm run alerts:dry-run",
+    "pnpm run storage:raw-report-inventory",
+    "pnpm run retention:archive-restore:simulated",
+    "pnpm run packet-pdf:cache-miss-proof",
+    "pnpm run production-worker:activation-plan",
+    "pnpm run migrations:evidence",
+    "pnpm run production-safe-probes:evidence",
+    "pnpm run staging-owner-denial-smoke:evidence",
+    "pnpm run sensitive-list-endpoints:evidence",
+    "pnpm run check:runtime-size",
+    "pnpm run baseline:production-scale-local -- --dry-run",
+    "pnpm run response:orchestration-check",
+    "pnpm run response:worker-orchestrate -- --dry-run",
+    "pnpm run response:lifecycle -- --dry-run",
+    "pnpm run response:replay -- --dry-run",
+    "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+    "pnpm run staging:ingest-worker -- --dry-run",
+    "pnpm run production-scale:promotion-pack"
+  ],
+  "commandResultSummary": [
+    {
+      "command": "pnpm run typecheck",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run build",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run test:contracts",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run test:api",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run test:golden-path",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run test:regression-dashboard",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run response:soak-check",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run operator:dashboard",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run check:migrations",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run check:restore-drill-evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run report:runtime-size",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T19:28:09.012Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T19:28:09.012Z",
+      "status": null
+    },
+    {
+      "command": "git diff --check",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run production-scale:evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-scale-evidence.json",
+          "exists": true,
+          "reportName": "production-scale-blocker-evidence",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T20:14:43.724Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T20:14:43.724Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run restore:drill:simulated",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+          "exists": true,
+          "reportName": "restore-drill-simulated",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T17:51:17.812Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T17:51:17.812Z",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run ingest:worker:simulated-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+          "exists": true,
+          "reportName": "ingest-worker-simulated-queue-drain-proof",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T17:59:00.836Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T17:59:00.836Z",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run baseline:production-scale-local -- --simulated",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-load-simulated.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-load-simulated.json",
+          "exists": true,
+          "reportName": "production-scale-load-simulated",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T18:30:24.005Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T18:30:24.005Z",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run alerts:dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+          "exists": true,
+          "reportName": "alerts-dry-run-evidence",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T18:38:30.557Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T18:38:30.557Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run storage:raw-report-inventory",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+          "exists": true,
+          "reportName": "storage-raw-report-inventory",
+          "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
+          "generatedAt": "2026-05-20T18:22:49.350Z",
+          "status": "database-unavailable",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T18:22:49.350Z",
+      "status": "database-unavailable"
+    },
+    {
+      "command": "pnpm run retention:archive-restore:simulated",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+          "exists": true,
+          "reportName": "retention-archive-restore-simulated",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T19:40:20.478Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T19:40:20.478Z",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run packet-pdf:cache-miss-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
+          "exists": true,
+          "reportName": "packet-pdf-cache-miss-proof",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T19:53:42.158Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T19:53:42.158Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run production-worker:activation-plan",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+          "exists": true,
+          "reportName": "production-worker-activation-plan",
+          "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
+          "generatedAt": "2026-05-20T20:08:08.761Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T20:08:08.761Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run migrations:evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-migration-governance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-migration-governance.json",
+          "exists": true,
+          "reportName": "migration-governance-drift-evidence",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T18:44:36.108Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T18:44:36.108Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run production-safe-probes:evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-safe-probes.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-safe-probes.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": null,
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run staging-owner-denial-smoke:evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+          "exists": true,
+          "reportName": "staging-owner-denial-smoke",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T18:54:00.891Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T18:54:00.891Z",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run sensitive-list-endpoints:evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.json",
+          "exists": true,
+          "reportName": "sensitive-list-endpoints-evidence",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T19:11:15.370Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T19:11:15.370Z",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run check:runtime-size",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T19:28:09.012Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T19:28:09.012Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run baseline:production-scale-local -- --dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run response:orchestration-check",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run response:worker-orchestrate -- --dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run response:lifecycle -- --dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run response:replay -- --dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run staging:ingest-worker -- --dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
+      "command": "pnpm run production-scale:promotion-pack",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    }
+  ],
+  "generatedEvidenceFileReferences": [
+    {
+      "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-scale-evidence.json",
+      "exists": true,
+      "reportName": "production-scale-blocker-evidence",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T20:14:43.724Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+      "exists": true,
+      "reportName": "restore-drill-simulated",
+      "evidenceType": "SIMULATED",
+      "generatedAt": "2026-05-20T17:51:17.812Z",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+      "exists": true,
+      "reportName": "ingest-worker-simulated-queue-drain-proof",
+      "evidenceType": "SIMULATED",
+      "generatedAt": "2026-05-20T17:59:00.836Z",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-load-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-load-simulated.json",
+      "exists": true,
+      "reportName": "production-scale-load-simulated",
+      "evidenceType": "SIMULATED",
+      "generatedAt": "2026-05-20T18:30:24.005Z",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerts-dry-run.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+      "exists": true,
+      "reportName": "alerts-dry-run-evidence",
+      "evidenceType": "SIMULATED",
+      "generatedAt": "2026-05-20T18:38:30.557Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+      "exists": true,
+      "reportName": "storage-raw-report-inventory",
+      "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
+      "generatedAt": "2026-05-20T18:22:49.350Z",
+      "status": "database-unavailable",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+      "exists": true,
+      "reportName": "retention-archive-restore-simulated",
+      "evidenceType": "SIMULATED",
+      "generatedAt": "2026-05-20T19:40:20.478Z",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
+      "exists": true,
+      "reportName": "packet-pdf-cache-miss-proof",
+      "evidenceType": "SIMULATED",
+      "generatedAt": "2026-05-20T19:53:42.158Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+      "exists": true,
+      "reportName": "production-worker-activation-plan",
+      "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
+      "generatedAt": "2026-05-20T20:08:08.761Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-governance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-governance.json",
+      "exists": true,
+      "reportName": "migration-governance-drift-evidence",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T18:44:36.108Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-safe-probes.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-safe-probes.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+      "exists": true,
+      "reportName": "staging-owner-denial-smoke",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T18:54:00.891Z",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.json",
+      "exists": true,
+      "reportName": "sensitive-list-endpoints-evidence",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T19:11:15.370Z",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T19:28:09.012Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/restore-drill-evidence-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/staging-ingest-worker-operation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-ingest-worker-activation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale-load-harness.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/packet-pdf-cache.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/packet-pdf-cache-miss-scaling-decision.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/operator-ingest-remediation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/report-artifact-storage.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/response-processing-production-ops-runbook.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-observability-metrics.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/database-migration-policy.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "migrations/0000-runtime-schema-inventory.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-at-scale-execution-tracker.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/runtime-size-and-dependency-report.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/runtime-size-threshold-policy.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-at-scale-endpoint-auth-appendix.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/README.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/blocker-registry.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-promotion-pack.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-promotion-pack.json",
+      "exists": true,
+      "reportName": "production-promotion-evidence-pack",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T20:13:38.672Z",
+      "status": null,
+      "productionProof": false
+    }
+  ],
+  "blockerClassifications": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "proofCategories": [
+        "human-observed",
+        "automated-local",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run restore:drill:simulated",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm run test:golden-path",
+        "pnpm run operator:dashboard",
+        "pnpm run response:soak-check"
+      ],
+      "forbiddenProofTypes": [
+        "simulated restore proof represented as completed disaster recovery",
+        "template-only validation represented as completed restore evidence",
+        "production mutation",
+        "real PII or raw credit reports",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run ingest:worker:simulated-proof",
+        "pnpm run production-worker:activation-plan",
+        "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+        "pnpm run staging:ingest-worker -- --dry-run",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run operator:dashboard",
+        "pnpm run test:api"
+      ],
+      "forbiddenProofTypes": [
+        "unapproved production worker activation",
+        "production queue mutation without explicit production apply guards",
+        "live provider calls",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/staging-ingest-worker-operation.md",
+        "docs/production-ingest-worker-activation.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 3,
+      "title": "Load/concurrency proof",
+      "severity": "High",
+      "area": "Load/concurrency proof",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED load represented as production proof",
+        "dry-run represented as production proof",
+        "production load execution",
+        "real PII or credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 4,
+      "title": "Packet PDF scaling",
+      "severity": "High",
+      "area": "Packet PDF scaling",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Automated proof that packet PDF cache misses are bounded by a synchronous envelope with duplicate collapse, timeout, overload failure evidence, send-route provider-free failure, cache hit behavior, invalidation behavior, and non-owner denial.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run packet-pdf:cache-miss-proof",
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts",
+        "pnpm run test:golden-path",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED cache-miss proof represented as production-at-scale proof",
+        "mail provider sends",
+        "packet wording changes",
+        "production cache-miss load",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/packet-pdf-cache.md",
+        "docs/packet-pdf-cache-miss-scaling-decision.md",
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+        "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 5,
+      "title": "Ingest cleanup/data safety",
+      "severity": "High",
+      "area": "Ingest cleanup/data safety",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Automated proof that default failed-ingest cleanup is non-destructive, marks remediation-required state, preserves artifacts/tradelines/evidence, and keeps any retained destructive path explicitly confirmed and production-refusing.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "silent destructive deletion",
+        "default destructive deletion",
+        "unconfirmed destructive cleanup",
+        "production cleanup",
+        "parser or canonical output changes",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/operator-ingest-remediation.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
+      "proofCategories": [
+        "automated-local",
+        "staging"
+      ],
+      "allowedProofCommands": [
+        "pnpm run storage:raw-report-inventory",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
+        "pnpm run test:api",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "silent historical migration",
+        "production dump inspection",
+        "raw report bytes in evidence",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/report-artifact-storage.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 7,
+      "title": "Bureau communication storage",
+      "severity": "High",
+      "area": "Bureau communication storage",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Automated storage adapter proof for new bureau attachments plus compatibility proof for old inline records.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
+        "pnpm run test:api",
+        "pnpm run typecheck"
+      ],
+      "forbiddenProofTypes": [
+        "raw attachment bytes in DB evidence",
+        "live mail delivery",
+        "production evidence mutation",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/report-artifact-storage.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 8,
+      "title": "Response operations maturity",
+      "severity": "High",
+      "area": "Response operations maturity",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run response:soak-check",
+        "pnpm run response:orchestration-check",
+        "pnpm run response:worker-orchestrate -- --dry-run",
+        "pnpm run response:lifecycle -- --dry-run",
+        "pnpm run response:replay -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "live mailbox integration",
+        "external alert delivery without approval",
+        "queue semantic changes",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/response-processing-production-ops-runbook.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm run response:orchestration-check",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED alert proof represented as live alert delivery",
+        "real external delivery",
+        "PII alert payloads",
+        "provider credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm run typecheck"
+      ],
+      "forbiddenProofTypes": [
+        "runtime DDL changes",
+        "schema mutation without review",
+        "production DB introspection",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/database-migration-policy.md",
+        "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+      "proofCategories": [
+        "automated-local",
+        "read-only-production",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run production-worker:activation-plan",
+        "pnpm run test:contracts",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "production fixture creation",
+        "production deploy changes",
+        "secrets or sessions",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+      ],
+      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 12,
+      "title": "OCR route-local validation shape",
+      "severity": "Medium",
+      "area": "OCR route-local validation shape",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "OCR shared upload-validation proof plus valid-fixture output-stability evidence.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts",
+        "pnpm run test:deterministic-ingestion-report",
+        "pnpm run typecheck"
+      ],
+      "forbiddenProofTypes": [
+        "OCR output behavior change",
+        "parser behavior change",
+        "real PII PDF fixture",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 13,
+      "title": "Parser-test list sensitive field",
+      "severity": "Medium",
+      "area": "Parser-test list sensitive field",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Metadata-only parser-test list proof plus admin-only raw text detail/export proof.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx",
+        "pnpm run test:api",
+        "pnpm run typecheck",
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+        "pnpm run test:contracts",
+        "pnpm run test:golden-path",
+        "pnpm run test:deterministic-ingestion-report"
+      ],
+      "forbiddenProofTypes": [
+        "parser truth changes",
+        "raw extracted text in list evidence",
+        "production parser-test data inspection",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
+      ],
+      "recommendedNextAction": "Keep parser-test list metadata-only; use admin-only get/export paths for raw extracted text workflows and keep UI detail hydration covered by tests.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 14,
+      "title": "Consumer signature list sensitive field",
+      "severity": "Medium",
+      "area": "Consumer signature list sensitive field",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Metadata-only consumer-signature list proof plus owner/admin get-by-id signature data proof.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts",
+        "pnpm run test:api",
+        "pnpm run typecheck",
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+        "pnpm run test:contracts"
+      ],
+      "forbiddenProofTypes": [
+        "signature image data in list evidence",
+        "owner filtering changes without tests",
+        "production signature data inspection",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
+      ],
+      "recommendedNextAction": "Keep signature list metadata-only; use owner/admin get-by-id detail when signature image data is required.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 15,
+      "title": "Hidden-risk list semantics",
+      "severity": "Medium",
+      "area": "Hidden-risk list semantics",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Design/evidence artifact for hidden-risk aggregate and stale-suppression semantics; full bounded pagination remains a separate UI/query task.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts",
+        "pnpm run test:api",
+        "pnpm run typecheck",
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "blind limit changing aggregate semantics",
+        "dashboard UI change without tests",
+        "production hidden-risk data inspection",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-at-scale-execution-tracker.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
+      ],
+      "recommendedNextAction": "Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 16,
+      "title": "DB pool pressure evidence",
+      "severity": "Medium",
+      "area": "DB pool pressure evidence",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+      "proofCategories": [
+        "staging",
+        "automated-local",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED DB pool signal represented as production proof",
+        "production DB stress",
+        "credentials in evidence",
+        "dry-run as measured staging proof",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 17,
+      "title": "Rate limiter write pressure",
+      "severity": "Medium",
+      "area": "Rate limiter write pressure",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm run test:api"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED pressure represented as production proof",
+        "production hostile-traffic simulation",
+        "real IPs or identifiers",
+        "rate-limit behavior change without tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 18,
+      "title": "Runtime-size gates",
+      "severity": "Medium",
+      "area": "Runtime-size gates",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
+      "proofCategories": [
+        "automated-local",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run build",
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "non-blocking threshold represented as blocking",
+        "dependency upgrades",
+        "chunking changes without tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/runtime-size-and-dependency-report.md",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "docs/production-scale/evidence/latest-runtime-size.md",
+        "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 19,
+      "title": "Heavy PDF/OCR dependencies",
+      "severity": "Medium",
+      "area": "Heavy PDF/OCR dependencies",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Policy-bound WARN/WAIVED baseline for heavy PDF/OCR dependencies plus OCR deterministic regression proof for any future dependency or Docker package change.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "PDF/OCR dependency changes",
+        "Docker package changes",
+        "OCR parser behavior changes",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/runtime-size-and-dependency-report.md",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "docs/production-scale/evidence/latest-runtime-size.md",
+        "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "read-only-production",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run test:contracts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "production fixture creation",
+        "real tenant records in evidence",
+        "credentials or cookies in evidence",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-at-scale-endpoint-auth-appendix.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+      ],
+      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 21,
+      "title": "Ingest observability release gating",
+      "severity": "Medium",
+      "area": "Ingest observability release gating",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
+      "proofCategories": [
+        "automated-local",
+        "staging"
+      ],
+      "allowedProofCommands": [
+        "pnpm run production-scale:evidence",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "dashboard PASS alone",
+        "silent skipped checks",
+        "release gate changes in this framework",
+        "raw report metrics"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED retention proof represented as physical archive/restore completion",
+        "physical purge represented as recoverable without proof",
+        "production retention apply",
+        "audit mutation outside tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 23,
+      "title": "Public routes inventory risk",
+      "severity": "Medium",
+      "area": "Public routes inventory risk",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run test:contracts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts",
+        "pnpm run production-safe-probes:evidence"
+      ],
+      "forbiddenProofTypes": [
+        "public route behavior change without contract",
+        "credentialed production probes",
+        "secrets in evidence",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-at-scale-endpoint-auth-appendix.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json"
+      ],
+      "recommendedNextAction": "Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 24,
+      "title": "Documentation drift",
+      "severity": "Low",
+      "area": "Documentation drift",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Promotion pack and registry evidence must detect stale audit/tracker commit references and keep blocker data aligned with the controlling audit before promotion.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts",
+        "git diff --check"
+      ],
+      "forbiddenProofTypes": [
+        "stale audit represented as current",
+        "production-at-scale readiness claim",
+        "silent blocker removal",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/README.md",
+        "docs/production-scale/blocker-registry.json",
+        "docs/production-scale/evidence/latest-production-promotion-pack.md",
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 25,
+      "title": "Dashboard default SKIP semantics",
+      "severity": "Low",
+      "area": "Dashboard default SKIP semantics",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Dashboard and promotion-pack reports distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run production-scale:promotion-pack",
+        "pnpm run production-scale:evidence",
+        "pnpm run operator:dashboard",
+        "pnpm run alerts:dry-run",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SKIP treated as PASS",
+        "dashboard PASS alone",
+        "hidden skipped checks",
+        "production-at-scale readiness claim"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-promotion-pack.md",
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    }
+  ],
+  "unresolvedProductionBlockers": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "proofCategories": [
+        "human-observed",
+        "automated-local",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run restore:drill:simulated",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm run test:golden-path",
+        "pnpm run operator:dashboard",
+        "pnpm run response:soak-check"
+      ],
+      "forbiddenProofTypes": [
+        "simulated restore proof represented as completed disaster recovery",
+        "template-only validation represented as completed restore evidence",
+        "production mutation",
+        "real PII or raw credit reports",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run ingest:worker:simulated-proof",
+        "pnpm run production-worker:activation-plan",
+        "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+        "pnpm run staging:ingest-worker -- --dry-run",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run operator:dashboard",
+        "pnpm run test:api"
+      ],
+      "forbiddenProofTypes": [
+        "unapproved production worker activation",
+        "production queue mutation without explicit production apply guards",
+        "live provider calls",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/staging-ingest-worker-operation.md",
+        "docs/production-ingest-worker-activation.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
+      "proofCategories": [
+        "automated-local",
+        "staging"
+      ],
+      "allowedProofCommands": [
+        "pnpm run storage:raw-report-inventory",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
+        "pnpm run test:api",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "silent historical migration",
+        "production dump inspection",
+        "raw report bytes in evidence",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/report-artifact-storage.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 8,
+      "title": "Response operations maturity",
+      "severity": "High",
+      "area": "Response operations maturity",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run response:soak-check",
+        "pnpm run response:orchestration-check",
+        "pnpm run response:worker-orchestrate -- --dry-run",
+        "pnpm run response:lifecycle -- --dry-run",
+        "pnpm run response:replay -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "live mailbox integration",
+        "external alert delivery without approval",
+        "queue semantic changes",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/response-processing-production-ops-runbook.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm run response:orchestration-check",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED alert proof represented as live alert delivery",
+        "real external delivery",
+        "PII alert payloads",
+        "provider credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm run typecheck"
+      ],
+      "forbiddenProofTypes": [
+        "runtime DDL changes",
+        "schema mutation without review",
+        "production DB introspection",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/database-migration-policy.md",
+        "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+      "proofCategories": [
+        "automated-local",
+        "read-only-production",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run production-worker:activation-plan",
+        "pnpm run test:contracts",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "production fixture creation",
+        "production deploy changes",
+        "secrets or sessions",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+      ],
+      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "read-only-production",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run test:contracts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "production fixture creation",
+        "real tenant records in evidence",
+        "credentials or cookies in evidence",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-at-scale-endpoint-auth-appendix.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+      ],
+      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 21,
+      "title": "Ingest observability release gating",
+      "severity": "Medium",
+      "area": "Ingest observability release gating",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
+      "proofCategories": [
+        "automated-local",
+        "staging"
+      ],
+      "allowedProofCommands": [
+        "pnpm run production-scale:evidence",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "dashboard PASS alone",
+        "silent skipped checks",
+        "release gate changes in this framework",
+        "raw report metrics"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED retention proof represented as physical archive/restore completion",
+        "physical purge represented as recoverable without proof",
+        "production retention apply",
+        "audit mutation outside tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    }
+  ],
+  "unresolvedScaleBlockers": [
+    {
+      "number": 3,
+      "title": "Load/concurrency proof",
+      "severity": "High",
+      "area": "Load/concurrency proof",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED load represented as production proof",
+        "dry-run represented as production proof",
+        "production load execution",
+        "real PII or credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 16,
+      "title": "DB pool pressure evidence",
+      "severity": "Medium",
+      "area": "DB pool pressure evidence",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+      "proofCategories": [
+        "staging",
+        "automated-local",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED DB pool signal represented as production proof",
+        "production DB stress",
+        "credentials in evidence",
+        "dry-run as measured staging proof",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 17,
+      "title": "Rate limiter write pressure",
+      "severity": "Medium",
+      "area": "Rate limiter write pressure",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm run test:api"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED pressure represented as production proof",
+        "production hostile-traffic simulation",
+        "real IPs or identifiers",
+        "rate-limit behavior change without tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 18,
+      "title": "Runtime-size gates",
+      "severity": "Medium",
+      "area": "Runtime-size gates",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
+      "proofCategories": [
+        "automated-local",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run build",
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "non-blocking threshold represented as blocking",
+        "dependency upgrades",
+        "chunking changes without tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/runtime-size-and-dependency-report.md",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "docs/production-scale/evidence/latest-runtime-size.md",
+        "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    }
+  ],
+  "skippedChecks": {
+    "dashboardAvailable": true,
+    "dashboardCommand": "pnpm run operator:dashboard -- --json",
+    "checksSkipped": true,
+    "skipCount": 54,
+    "treatsSkipAsPass": false,
+    "dashboardPassAloneIsReleaseEvidence": false,
+    "summary": {
+      "pass": 9,
+      "fail": 2,
+      "skip": 54,
+      "simulated": 1,
+      "humanRequired": 3,
+      "manual": 12,
+      "open": 12,
+      "info": 8
+    }
+  },
+  "simulatedProofOnlyChecks": [
+    {
+      "number": 3,
+      "title": "Load/concurrency proof",
+      "severity": "High",
+      "area": "Load/concurrency proof",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED load represented as production proof",
+        "dry-run represented as production proof",
+        "production load execution",
+        "real PII or credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm run response:orchestration-check",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED alert proof represented as live alert delivery",
+        "real external delivery",
+        "PII alert payloads",
+        "provider credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 16,
+      "title": "DB pool pressure evidence",
+      "severity": "Medium",
+      "area": "DB pool pressure evidence",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+      "proofCategories": [
+        "staging",
+        "automated-local",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED DB pool signal represented as production proof",
+        "production DB stress",
+        "credentials in evidence",
+        "dry-run as measured staging proof",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 17,
+      "title": "Rate limiter write pressure",
+      "severity": "Medium",
+      "area": "Rate limiter write pressure",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+        "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run operator:dashboard",
+        "pnpm run test:api"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED pressure represented as production proof",
+        "production hostile-traffic simulation",
+        "real IPs or identifiers",
+        "rate-limit behavior change without tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale-load-harness.md",
+        "docs/production-scale/evidence/latest-load-simulated.md",
+        "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    }
+  ],
+  "stagingProofOnlyChecks": [],
+  "humanRequiredProof": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "proofCategories": [
+        "human-observed",
+        "automated-local",
+        "simulated"
+      ],
+      "allowedProofCommands": [
+        "pnpm run restore:drill:simulated",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm run test:golden-path",
+        "pnpm run operator:dashboard",
+        "pnpm run response:soak-check"
+      ],
+      "forbiddenProofTypes": [
+        "simulated restore proof represented as completed disaster recovery",
+        "template-only validation represented as completed restore evidence",
+        "production mutation",
+        "real PII or raw credit reports",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+      "proofCategories": [
+        "automated-local",
+        "read-only-production",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run production-worker:activation-plan",
+        "pnpm run test:contracts",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "production fixture creation",
+        "production deploy changes",
+        "secrets or sessions",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+      ],
+      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "read-only-production",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run test:contracts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "production fixture creation",
+        "real tenant records in evidence",
+        "credentials or cookies in evidence",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-at-scale-endpoint-auth-appendix.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+      ],
+      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "waiverReason": null
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED retention proof represented as physical archive/restore completion",
+        "physical purge represented as recoverable without proof",
+        "production retention apply",
+        "audit mutation outside tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "waiverReason": null
+    }
+  ],
+  "waivers": [],
+  "readinessClassification": {
+    "value": "limited beta",
+    "canPromoteProductionAtScale": false,
+    "reason": "Critical/high, simulated-only, human-required, partial, or open blockers remain."
+  },
+  "safety": {
+    "productionDataMutated": false,
+    "liveExternalProvidersCalled": false,
+    "realConsumerPiiUsed": false,
+    "productionAtScaleClaimed": false,
+    "simulatedProofIsProductionProof": false,
+    "dashboardPassTreatedAsCompleteReleaseEvidence": false
+  },
+  "requiredStatements": [
+    "SIMULATED proof is not production proof.",
+    "Dashboard PASS alone is not complete release evidence when checks are skipped.",
+    "Production activation requires operator approval.",
+    "Codex must not promote readiness classification beyond the evidence in this pack."
+  ]
+}
