@@ -8,6 +8,7 @@ import { ensureIngestProcessingQueueSchema } from "../../helpers/ingestProcessin
 import {
   claimNextIngestProcessingJob,
   enqueueIngestProcessingJob,
+  extendIngestProcessingJobLease,
   getIngestProcessingQueueMetrics,
   listIngestProcessingJobEvents,
   markIngestProcessingJobFailed,
@@ -134,6 +135,20 @@ describeIfLocalDb("ingest processing queue", () => {
     await cleanupCreatedRows();
   });
 
+  it("ensures the durable queue schema idempotently", async () => {
+    await expect(ensureIngestProcessingQueueSchema()).resolves.toBeUndefined();
+    await expect(ensureIngestProcessingQueueSchema()).resolves.toBeUndefined();
+
+    const tables = await sql<any>`
+      select
+        to_regclass('public.ingest_processing_job')::text as job_table,
+        to_regclass('public.ingest_processing_job_event')::text as event_table
+    `.execute(db);
+    const row = tables.rows[0] ?? {};
+    expect(row.job_table ?? row.jobTable).toBe("ingest_processing_job");
+    expect(row.event_table ?? row.eventTable).toBe("ingest_processing_job_event");
+  });
+
   it("enqueues sanitized durable jobs and records duplicate idempotency attempts without raw bytes or text", async () => {
     const source = trackSource(marker());
     const { userId, artifactId } = await createQueueSubject(source);
@@ -245,6 +260,14 @@ describeIfLocalDb("ingest processing queue", () => {
     const secondClaim = await claimNextIngestProcessingJob({ workerId: `${source}-second`, source });
     expect(secondClaim).toBeNull();
 
+    const extended = await extendIngestProcessingJobLease({
+      job: claimed!,
+      workerId: `${source}-claimer`,
+      leaseSeconds: 120,
+    });
+    expect(extended.lockedUntil).not.toBeNull();
+    expect(new Date(extended.lockedUntil!).getTime()).toBeGreaterThan(new Date(claimed!.lockedUntil!).getTime());
+
     await sql`
       update public.ingest_processing_job
       set locked_until = now() - interval '1 minute'
@@ -257,7 +280,7 @@ describeIfLocalDb("ingest processing queue", () => {
     const metrics = await getIngestProcessingQueueMetrics();
     expect(metrics.staleRunningJobs).toBeGreaterThanOrEqual(1);
     const events = await listIngestProcessingJobEvents(queued.job.id);
-    expect(events.map((event) => event.eventType)).toEqual(["queued", "claimed"]);
+    expect(events.map((event) => event.eventType)).toEqual(["queued", "claimed", "lease_extended"]);
     assertNoSensitiveLeak([claimed, metrics, events]);
   });
 
@@ -330,6 +353,23 @@ describeIfLocalDb("ingest processing queue", () => {
     expect(retryResult.status).toBe("failed");
     expect(retryResult.attemptCount).toBe(1);
     expect(retryResult.lastErrorCode).toBe("INGEST_PROCESSING_FAILED");
+    const retryMetrics = await getIngestProcessingQueueMetrics();
+    expect(retryMetrics.failedJobs).toBeGreaterThanOrEqual(1);
+
+    await sql`
+      update public.ingest_processing_job
+      set run_after = now() - interval '1 minute'
+      where id = ${retryClaim.id}
+    `.execute(db);
+    const retryFinalClaim = await claimNextIngestProcessingJob({ workerId: `${retryWorkerId}-second`, source: retrySource });
+    if (!retryFinalClaim) throw new Error("Expected retry job second claim.");
+    const retryDeadLetter = await markIngestProcessingJobFailed({
+      job: retryFinalClaim,
+      workerId: `${retryWorkerId}-second`,
+      error: new Error("Second transient OCR service timeout without report text"),
+    });
+    expect(retryDeadLetter.status).toBe("dead_lettered");
+    expect(retryDeadLetter.attemptCount).toBe(2);
 
     const deadSource = trackSource(marker());
     const deadSubject = await createQueueSubject(deadSource);
@@ -353,11 +393,10 @@ describeIfLocalDb("ingest processing queue", () => {
 
     const retryEvents = await listIngestProcessingJobEvents(retryClaim.id);
     const deadEvents = await listIngestProcessingJobEvents(deadClaim.id);
-    expect(retryEvents.map((event) => event.eventType)).toEqual(["queued", "claimed", "retry_scheduled"]);
+    expect(retryEvents.map((event) => event.eventType)).toEqual(["queued", "claimed", "retry_scheduled", "claimed", "dead_lettered"]);
     expect(deadEvents.map((event) => event.eventType)).toEqual(["queued", "claimed", "dead_lettered"]);
 
     const metrics = await getIngestProcessingQueueMetrics();
-    expect(metrics.failedJobs).toBeGreaterThanOrEqual(1);
     expect(metrics.deadLetteredJobs).toBeGreaterThanOrEqual(1);
     expect(metrics.boundaries).toMatchObject({
       durableDbBacked: true,
@@ -367,7 +406,7 @@ describeIfLocalDb("ingest processing queue", () => {
       parserOutputMutated: false,
       endpointCutoverEnabled: false,
     });
-    assertNoSensitiveLeak([retryResult, deadResult, retryEvents, deadEvents, metrics]);
+    assertNoSensitiveLeak([retryResult, retryDeadLetter, deadResult, retryMetrics, retryEvents, deadEvents, metrics]);
   });
 
   it("deduplicates concurrent active enqueues but allows new work after terminal status", async () => {

@@ -15,6 +15,7 @@ export type IngestProcessingJobEventType =
   | "queued"
   | "duplicate_enqueue"
   | "claimed"
+  | "lease_extended"
   | "ocr_parsing_started"
   | "compliance_scan_started"
   | "succeeded"
@@ -213,6 +214,7 @@ const EVENT_TYPE_SET = new Set<string>([
   "queued",
   "duplicate_enqueue",
   "claimed",
+  "lease_extended",
   "ocr_parsing_started",
   "compliance_scan_started",
   "succeeded",
@@ -836,6 +838,53 @@ export async function claimNextIngestProcessingJob(input: {
       },
     });
     return claimed;
+  });
+}
+
+export async function extendIngestProcessingJobLease(params: {
+  job: IngestProcessingJobRecord;
+  workerId: string;
+  leaseSeconds?: number;
+}): Promise<IngestProcessingJobRecord> {
+  await ensureIngestProcessingQueueSchema();
+  const workerId = sanitizeToken(params.workerId, "workerId", "ingest-worker");
+  const leaseSeconds = Math.min(Math.max(Number(params.leaseSeconds ?? DEFAULT_LEASE_SECONDS), 30), 3600);
+
+  return db.transaction().execute(async (trx) => {
+    const updated = await sql<QueueRow>`
+      update public.ingest_processing_job
+      set
+        updated_at = now(),
+        locked_until = now() + make_interval(secs => ${leaseSeconds})
+      where id = ${params.job.id}
+        and status = 'running'
+        and locked_by = ${workerId}
+        and attempt_count = ${params.job.attemptCount}
+      returning *
+    `.execute(trx);
+    if (!updated.rows[0]) {
+      throw new IngestProcessingQueueError(
+        "JOB_LEASE_EXTEND_CONFLICT",
+        "Ingest processing job lease was not extended because the worker no longer held the active lease.",
+        true,
+      );
+    }
+    const row = mapJobRow(updated.rows[0]);
+    await appendJobEvent(trx as typeof db, {
+      jobId: row.id,
+      eventType: "lease_extended",
+      previousStatus: "running",
+      nextStatus: "running",
+      attemptCount: row.attemptCount,
+      workerId,
+      actorUserId: row.actorUserId,
+      details: {
+        leaseSeconds,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
+    return row;
   });
 }
 
