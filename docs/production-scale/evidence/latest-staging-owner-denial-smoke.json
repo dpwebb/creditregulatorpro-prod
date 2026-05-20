@@ -1,0 +1,348 @@
+{
+  "reportName": "staging-owner-denial-smoke",
+  "label": "LOCAL/STAGING SYNTHETIC ONLY",
+  "generatedAt": "2026-05-20T18:54:00.891Z",
+  "branch": "staging",
+  "commit": "63f8615c4d87703fcb113e5a776821fc2fa76302",
+  "status": "passed",
+  "productionProof": false,
+  "stagingOrLocalProofOnly": true,
+  "syntheticFixturesOnly": true,
+  "productionDataMutated": false,
+  "productionFixturesCreated": false,
+  "liveExternalProvidersConnected": false,
+  "statements": [
+    "This is local/staging-only synthetic owner-denial evidence.",
+    "This is not production proof and does not create production fixtures.",
+    "No real consumer PII, credit reports, credentials, production database dumps, or live mail delivery are used.",
+    "Owner B must not read owner A synthetic case, evidence, report artifact, packet, packet PDF, or response records.",
+    "Admin-only routes must remain admin-only."
+  ],
+  "actors": {
+    "ownerA": {
+      "id": "synthetic-owner-a",
+      "role": "user",
+      "tenantId": "synthetic-tenant-a"
+    },
+    "ownerB": {
+      "id": "synthetic-owner-b",
+      "role": "user",
+      "tenantId": "synthetic-tenant-b"
+    },
+    "admin": {
+      "id": "synthetic-admin",
+      "role": "admin",
+      "tenantId": "synthetic-admin-tenant"
+    },
+    "support": {
+      "id": "synthetic-support",
+      "role": "support",
+      "tenantId": "synthetic-support-tenant"
+    }
+  },
+  "ownerDenialChecks": [
+    {
+      "name": "owner B denied owner A case",
+      "domain": "case",
+      "route": "/_api/cases/review",
+      "recordId": "synthetic-case-a",
+      "requester": "synthetic-owner-b",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner A can read own case",
+      "domain": "case",
+      "route": "/_api/cases/review",
+      "recordId": "synthetic-case-a",
+      "requester": "synthetic-owner-a",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "support denied owner A case",
+      "domain": "case",
+      "route": "/_api/cases/review",
+      "recordId": "synthetic-case-a",
+      "requester": "synthetic-support",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner B denied owner A evidence",
+      "domain": "evidence",
+      "route": "/_api/evidence/list?packetId=synthetic-packet-a",
+      "recordId": "synthetic-evidence-a",
+      "requester": "synthetic-owner-b",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner A can read own evidence",
+      "domain": "evidence",
+      "route": "/_api/evidence/list?packetId=synthetic-packet-a",
+      "recordId": "synthetic-evidence-a",
+      "requester": "synthetic-owner-a",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "support denied owner A evidence",
+      "domain": "evidence",
+      "route": "/_api/evidence/list?packetId=synthetic-packet-a",
+      "recordId": "synthetic-evidence-a",
+      "requester": "synthetic-support",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner B denied owner A report artifact",
+      "domain": "report artifact",
+      "route": "/_api/report-artifact/get?id=synthetic-report-a",
+      "recordId": "synthetic-report-a",
+      "requester": "synthetic-owner-b",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner A can read own report artifact",
+      "domain": "report artifact",
+      "route": "/_api/report-artifact/get?id=synthetic-report-a",
+      "recordId": "synthetic-report-a",
+      "requester": "synthetic-owner-a",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "support denied owner A report artifact",
+      "domain": "report artifact",
+      "route": "/_api/report-artifact/get?id=synthetic-report-a",
+      "recordId": "synthetic-report-a",
+      "requester": "synthetic-support",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner B denied owner A packet",
+      "domain": "packet",
+      "route": "/_api/packet/get?id=synthetic-packet-a",
+      "recordId": "synthetic-packet-a",
+      "requester": "synthetic-owner-b",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner A can read own packet",
+      "domain": "packet",
+      "route": "/_api/packet/get?id=synthetic-packet-a",
+      "recordId": "synthetic-packet-a",
+      "requester": "synthetic-owner-a",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "support denied owner A packet",
+      "domain": "packet",
+      "route": "/_api/packet/get?id=synthetic-packet-a",
+      "recordId": "synthetic-packet-a",
+      "requester": "synthetic-support",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner B denied owner A packet PDF",
+      "domain": "packet PDF",
+      "route": "/_api/packet/pdf?id=synthetic-packet-a",
+      "recordId": "synthetic-packet-pdf-a",
+      "requester": "synthetic-owner-b",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner A can read own packet PDF",
+      "domain": "packet PDF",
+      "route": "/_api/packet/pdf?id=synthetic-packet-a",
+      "recordId": "synthetic-packet-pdf-a",
+      "requester": "synthetic-owner-a",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "support denied owner A packet PDF",
+      "domain": "packet PDF",
+      "route": "/_api/packet/pdf?id=synthetic-packet-a",
+      "recordId": "synthetic-packet-pdf-a",
+      "requester": "synthetic-support",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner B denied owner A response document",
+      "domain": "response document",
+      "route": "/_api/responses/get?id=synthetic-response-a",
+      "recordId": "synthetic-response-a",
+      "requester": "synthetic-owner-b",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "owner A can read own response document",
+      "domain": "response document",
+      "route": "/_api/responses/get?id=synthetic-response-a",
+      "recordId": "synthetic-response-a",
+      "requester": "synthetic-owner-a",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "support denied owner A response document",
+      "domain": "response document",
+      "route": "/_api/responses/get?id=synthetic-response-a",
+      "recordId": "synthetic-response-a",
+      "requester": "synthetic-support",
+      "recordOwner": "synthetic-owner-a",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    }
+  ],
+  "adminOnlyChecks": [
+    {
+      "name": "owner B denied admin-only route /_api/admin/users",
+      "route": "/_api/admin/users",
+      "requester": "synthetic-owner-b",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "support denied admin-only route /_api/admin/users",
+      "route": "/_api/admin/users",
+      "requester": "synthetic-support",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "admin can access admin-only route /_api/admin/users",
+      "route": "/_api/admin/users",
+      "requester": "synthetic-admin",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "owner B denied admin-only route /_api/admin/ingest-queue",
+      "route": "/_api/admin/ingest-queue",
+      "requester": "synthetic-owner-b",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "support denied admin-only route /_api/admin/ingest-queue",
+      "route": "/_api/admin/ingest-queue",
+      "requester": "synthetic-support",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "admin can access admin-only route /_api/admin/ingest-queue",
+      "route": "/_api/admin/ingest-queue",
+      "requester": "synthetic-admin",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "owner B denied admin-only route /_api/responses/queue",
+      "route": "/_api/responses/queue",
+      "requester": "synthetic-owner-b",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "support denied admin-only route /_api/responses/queue",
+      "route": "/_api/responses/queue",
+      "requester": "synthetic-support",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "admin can access admin-only route /_api/responses/queue",
+      "route": "/_api/responses/queue",
+      "requester": "synthetic-admin",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    },
+    {
+      "name": "owner B denied admin-only route /_api/regulatory-notification/list",
+      "route": "/_api/regulatory-notification/list",
+      "requester": "synthetic-owner-b",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "support denied admin-only route /_api/regulatory-notification/list",
+      "route": "/_api/regulatory-notification/list",
+      "requester": "synthetic-support",
+      "expected": "DENY",
+      "actual": "DENY",
+      "passed": true
+    },
+    {
+      "name": "admin can access admin-only route /_api/regulatory-notification/list",
+      "route": "/_api/regulatory-notification/list",
+      "requester": "synthetic-admin",
+      "expected": "ALLOW",
+      "actual": "ALLOW",
+      "passed": true
+    }
+  ],
+  "summary": {
+    "totalChecks": 30,
+    "passedChecks": 30,
+    "failedChecks": 0,
+    "ownerBDeniedOwnerARecords": true,
+    "adminOnlyRoutesDeniedForNonAdmins": true
+  }
+}

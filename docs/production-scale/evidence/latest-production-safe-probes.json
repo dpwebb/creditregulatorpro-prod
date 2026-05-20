@@ -1,0 +1,506 @@
+{
+  "status": "passed",
+  "startedAt": "2026-05-20T18:56:33.311Z",
+  "completedAt": "2026-05-20T18:56:33.437Z",
+  "branch": "staging",
+  "commit": "63f8615c4d87703fcb113e5a776821fc2fa76302",
+  "targetHost": "staging.creditregulatorpro.com",
+  "planOnly": true,
+  "runtimeProbePlan": [
+    {
+      "method": "HEAD",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "app shell",
+      "path": "/",
+      "acceptedStatuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "login route",
+      "path": "/login",
+      "acceptedStatuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "auth session endpoint",
+      "path": "/_api/auth/session",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "admin mock lifecycle endpoint",
+      "path": "/_api/admin/mock-lifecycle/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "runtime bridge mapping list endpoint",
+      "path": "/_api/regulation-registry/runtime-bridge/list",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "advisory bridge report endpoint",
+      "path": "/_api/regulation-registry/advisory-bridge/report",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "report artifact list endpoint",
+      "path": "/_api/report-artifact/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "packet list endpoint",
+      "path": "/_api/packet/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "evidence event list endpoint",
+      "path": "/_api/evidence/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "response document list endpoint",
+      "path": "/_api/responses/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "support ticket list endpoint",
+      "path": "/_api/support-ticket/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "auth session endpoint invalid session",
+      "path": "/_api/auth/session",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "admin mock lifecycle endpoint invalid session",
+      "path": "/_api/admin/mock-lifecycle/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "runtime bridge mapping list endpoint invalid session",
+      "path": "/_api/regulation-registry/runtime-bridge/list",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "advisory bridge report endpoint invalid session",
+      "path": "/_api/regulation-registry/advisory-bridge/report",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "report artifact list endpoint invalid session",
+      "path": "/_api/report-artifact/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "packet list endpoint invalid session",
+      "path": "/_api/packet/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "evidence event list endpoint invalid session",
+      "path": "/_api/evidence/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "response document list endpoint invalid session",
+      "path": "/_api/responses/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    },
+    {
+      "method": "GET",
+      "readOnly": true,
+      "mutationExpected": false,
+      "name": "support ticket list endpoint invalid session",
+      "path": "/_api/support-ticket/list?limit=1",
+      "acceptedStatuses": [
+        401,
+        403
+      ],
+      "headers": {
+        "Cookie": "floot_built_app_session=invalid-production-readiness-probe"
+      }
+    }
+  ],
+  "localChecks": [],
+  "stagingDeploy": null,
+  "publicChecks": [],
+  "protectedUnauthenticatedChecks": [],
+  "protectedInvalidSessionChecks": [],
+  "staticRejectionContracts": [
+    {
+      "name": "missing cron token denial - clock scan",
+      "route": "/_api/clock/scan",
+      "method": "POST",
+      "handlerFile": "endpoints/clock/scan_POST.ts",
+      "expectedStatus": 401,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "invalid cron token denial - clock scan",
+      "route": "/_api/clock/scan",
+      "method": "POST",
+      "handlerFile": "endpoints/clock/scan_POST.ts",
+      "expectedStatus": 401,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "missing cron token denial - regulation scheduled scan",
+      "route": "/_api/regulation-registry/scheduled-scan",
+      "method": "POST",
+      "handlerFile": "endpoints/regulation-registry/scheduled-scan_POST.ts",
+      "expectedStatus": 401,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "invalid cron token denial - regulation scheduled scan",
+      "route": "/_api/regulation-registry/scheduled-scan",
+      "method": "POST",
+      "handlerFile": "endpoints/regulation-registry/scheduled-scan_POST.ts",
+      "expectedStatus": 401,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "missing cron token denial - retention auto purge",
+      "route": "/_api/retention/auto-purge",
+      "method": "POST",
+      "handlerFile": "endpoints/retention/auto-purge_POST.ts",
+      "expectedStatus": 401,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "invalid cron token denial - retention auto purge",
+      "route": "/_api/retention/auto-purge",
+      "method": "POST",
+      "handlerFile": "endpoints/retention/auto-purge_POST.ts",
+      "expectedStatus": 401,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "unsigned PostGrid webhook rejection",
+      "route": "/_api/webhook/postgrid",
+      "method": "POST",
+      "handlerFile": "endpoints/webhook/postgrid_POST.ts",
+      "expectedStatus": null,
+      "expectedStatuses": [
+        401,
+        500
+      ],
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "unsigned Stripe webhook rejection",
+      "route": "/_api/webhook/stripe",
+      "method": "POST",
+      "handlerFile": "endpoints/webhook/stripe_POST.ts",
+      "expectedStatus": null,
+      "expectedStatuses": [
+        401
+      ],
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "invalid tracking webhook bearer rejection",
+      "route": "/_api/webhook/tracking",
+      "method": "POST",
+      "handlerFile": "endpoints/webhook/tracking_POST.ts",
+      "expectedStatus": null,
+      "expectedStatuses": [
+        401
+      ],
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-template/delete_POST.ts",
+      "route": "endpoints/admin/letter-template/delete_POST.ts",
+      "method": "POST",
+      "handlerFile": "endpoints/admin/letter-template/delete_POST.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-template/history_GET.ts",
+      "route": "endpoints/admin/letter-template/history_GET.ts",
+      "method": "GET",
+      "handlerFile": "endpoints/admin/letter-template/history_GET.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-template/humanize_POST.ts",
+      "route": "endpoints/admin/letter-template/humanize_POST.ts",
+      "method": "POST",
+      "handlerFile": "endpoints/admin/letter-template/humanize_POST.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-template/rollback_POST.ts",
+      "route": "endpoints/admin/letter-template/rollback_POST.ts",
+      "method": "POST",
+      "handlerFile": "endpoints/admin/letter-template/rollback_POST.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-template/seed_POST.ts",
+      "route": "endpoints/admin/letter-template/seed_POST.ts",
+      "method": "POST",
+      "handlerFile": "endpoints/admin/letter-template/seed_POST.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-template_POST.ts",
+      "route": "endpoints/admin/letter-template_POST.ts",
+      "method": "POST",
+      "handlerFile": "endpoints/admin/letter-template_POST.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    },
+    {
+      "name": "retired public route remains reset - endpoints/admin/letter-templates_GET.ts",
+      "route": "endpoints/admin/letter-templates_GET.ts",
+      "method": "GET",
+      "handlerFile": "endpoints/admin/letter-templates_GET.ts",
+      "expectedStatus": 410,
+      "expectedStatuses": null,
+      "productionExecution": "static-contract-only",
+      "productionHttpRequestExecuted": false,
+      "productionMutationExpected": false,
+      "status": "passed",
+      "missingSourceSnippets": []
+    }
+  ],
+  "safety": {
+    "runtimeProbeCount": 0,
+    "runtimeProbeMethods": [],
+    "runtimeProbePlanCount": 20,
+    "runtimeProbePlanMethods": [
+      "GET",
+      "HEAD"
+    ],
+    "runtimeProbePlanReadOnly": true,
+    "runtimeProbesReadOnly": true,
+    "staticContractCount": 16,
+    "staticContractsPassed": true,
+    "cronTokenDenialCovered": true,
+    "webhookRejectionCovered": true,
+    "retiredPublicRoutesCovered": true,
+    "unauthenticatedBodiesScanned": 0,
+    "unauthenticatedSensitiveFindings": [],
+    "productionDataMutated": false,
+    "productionFixturesCreated": false,
+    "productionWorkerActivated": false,
+    "liveExternalProvidersConnected": false
+  },
+  "statements": [
+    "Production runtime probes are read-only GET/HEAD requests only.",
+    "POST-only cron, webhook, and retired-route rejection checks are static contract evidence and are not executed against production by this gate.",
+    "Unauthenticated runtime probe bodies are scanned for high-confidence PII, raw report, credential, and token markers where a body is returned.",
+    "This gate does not create production fixtures, mutate production data, activate production workers, or call live external providers."
+  ]
+}

@@ -311,6 +311,42 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
   "intentionally test/local-only": [],
 } satisfies Record<AuthCategory, readonly string[]>;
 
+const EXPECTED_PUBLIC_ROUTE_HANDLERS = [
+  "endpoints/admin/letter-template/delete_POST.ts",
+  "endpoints/admin/letter-template/history_GET.ts",
+  "endpoints/admin/letter-template/humanize_POST.ts",
+  "endpoints/admin/letter-template/rollback_POST.ts",
+  "endpoints/admin/letter-template/seed_POST.ts",
+  "endpoints/admin/letter-template_POST.ts",
+  "endpoints/admin/letter-templates_GET.ts",
+  "endpoints/auth/establish_session_POST.ts",
+  "endpoints/auth/login_with_password_POST.ts",
+  "endpoints/auth/logout_POST.ts",
+  "endpoints/auth/oauth_authorize_GET.ts",
+  "endpoints/auth/oauth_callback_GET.ts",
+  "endpoints/auth/register_with_password_POST.ts",
+  "endpoints/auth/request_password_reset_POST.ts",
+  "endpoints/auth/reset_password_POST.ts",
+  "endpoints/auth/verify_email_POST.ts",
+  "endpoints/escalation/auto-trigger_POST.ts",
+  "endpoints/escalation/scan_POST.ts",
+  "endpoints/escalation/trigger_POST.ts",
+  "endpoints/ingest/anonymous-report_POST.ts",
+  "endpoints/lead/reminder_POST.ts",
+  "endpoints/pdf/platform-functions_GET.ts",
+  "endpoints/planner/select_POST.ts",
+] as const;
+
+const RETIRED_PUBLIC_RESET_ROUTE_HANDLERS = [
+  "endpoints/admin/letter-template/delete_POST.ts",
+  "endpoints/admin/letter-template/history_GET.ts",
+  "endpoints/admin/letter-template/humanize_POST.ts",
+  "endpoints/admin/letter-template/rollback_POST.ts",
+  "endpoints/admin/letter-template/seed_POST.ts",
+  "endpoints/admin/letter-template_POST.ts",
+  "endpoints/admin/letter-templates_GET.ts",
+] as const;
+
 function toPosix(filePath: string): string {
   return filePath.replace(/\\/g, "/");
 }
@@ -411,11 +447,17 @@ describe("route auth classification contract", () => {
     const classifiedHandlers = classificationEntries()
       .map(({ handlerFile }) => handlerFile)
       .sort();
+    const unclassifiedHandlers = endpointHandlers().filter((handlerFile) => !classificationMap().has(handlerFile));
 
     expect(duplicateClassifications()).toEqual([]);
+    expect(unclassifiedHandlers).toEqual([]);
     expect(classifiedHandlers).toEqual(endpointHandlers());
     expect(classifiedHandlers).toEqual(serverRouteHandlers());
     expect(classifiedHandlers).toHaveLength(283);
+  });
+
+  it("pins the public route inventory so changes require explicit contract updates", () => {
+    expect(ROUTE_AUTH_CLASSIFICATIONS.public).toEqual(EXPECTED_PUBLIC_ROUTE_HANDLERS);
   });
 
   it("keeps representative public endpoints explicitly public", () => {
@@ -428,6 +470,22 @@ describe("route auth classification contract", () => {
     for (const handlerFile of ROUTE_AUTH_CLASSIFICATIONS.public.filter((file) => file.startsWith("endpoints/admin/"))) {
       expect(endpointSource(handlerFile)).toMatch(/RESET_MESSAGE|status:\s*410/);
     }
+  });
+
+  it("keeps retired public reset routes from silently reviving", () => {
+    for (const handlerFile of RETIRED_PUBLIC_RESET_ROUTE_HANDLERS) {
+      const source = endpointSource(handlerFile);
+      expectCategory(handlerFile, "public");
+      expect(source).toContain("RESET_MESSAGE");
+      expect(source).toMatch(/status:\s*410/);
+      expect(source).not.toMatch(/\bdb\.|insertInto|updateTable|deleteFrom|transaction\(/);
+      expect(source).not.toMatch(/getServerUserSession|getServerSessionOrThrow|resolveUserSession/);
+    }
+  });
+
+  it("keeps unsafe or local-only endpoint inventory empty unless explicitly classified", () => {
+    expect(ROUTE_AUTH_CLASSIFICATIONS["intentionally test/local-only"]).toEqual([]);
+    expect(classificationEntries().filter(({ category }) => category === "intentionally test/local-only")).toEqual([]);
   });
 
   it("requires representative user endpoints to use session auth", () => {

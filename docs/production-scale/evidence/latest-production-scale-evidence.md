@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T18:44:36.091Z
+Generated at: 2026-05-20T18:56:47.774Z
 Current branch: `staging`
-Current commit hash: `c6cc055d5b3c53049ed34b815a8c84a636c0068b`
+Current commit hash: `63f8615c4d87703fcb113e5a776821fc2fa76302`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -70,9 +70,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
   Next action: Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
-  Next action: Keep production probes read-only and run seeded privacy smokes only locally or in staging.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
 - #12 OCR route-local validation shape (Medium; fixed)
   Proof required: OCR shared upload-validation proof plus valid-fixture output-stability evidence.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`, `pnpm run test:deterministic-ingestion-report`, `pnpm run typecheck`
@@ -106,9 +106,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
   Next action: Document package baselines and require OCR/parser regressions for future runtime package changes.
 - #20 Production-safe privacy probe depth (Medium; partial)
-  Proof required: Local/staging owner-denial proof plus human-observed read-only production probe evidence.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`
-  Next action: Keep production probes read-only and use synthetic local/staging fixtures for deeper owner denial.
+  Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #21 Ingest observability release gating (Medium; partial)
   Proof required: Release evidence capture that records exact commands and dashboard skips.
   Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
@@ -118,9 +118,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
   Next action: Add retention archive/restore evidence and keep destructive apply human-approved.
 - #23 Public routes inventory risk (Medium; partial)
-  Proof required: Executable route auth contract proof that public legacy handlers remain classified and fail closed.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`
-  Next action: Keep route auth contract strict and fail on public handler drift.
+  Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`, `pnpm run production-safe-probes:evidence`
+  Next action: Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.
 - #24 Documentation drift (Low; open)
   Proof required: Docs diff and registry evidence that current blocker data matches the controlling audit.
   Allowed commands: `pnpm run production-scale:evidence`, `git diff --check`
@@ -198,9 +198,9 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #20 Production-safe privacy probe depth (Medium; partial)
-  Proof required: Local/staging owner-denial proof plus human-observed read-only production probe evidence.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`
-  Next action: Keep production probes read-only and use synthetic local/staging fixtures for deeper owner denial.
+  Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #21 Ingest observability release gating (Medium; partial)
   Proof required: Release evidence capture that records exact commands and dashboard skips.
   Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
@@ -211,13 +211,13 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
 No read-only production command is executed by this report. Any production evidence must be human-observed, sanitized, and non-mutating.
 
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
-  Next action: Keep production probes read-only and run seeded privacy smokes only locally or in staging.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
 - #20 Production-safe privacy probe depth (Medium; partial)
-  Proof required: Local/staging owner-denial proof plus human-observed read-only production probe evidence.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`
-  Next action: Keep production probes read-only and use synthetic local/staging fixtures for deeper owner denial.
+  Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 
 ## Human-Observed Evidence
 
@@ -234,17 +234,17 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
-  Next action: Keep production probes read-only and run seeded privacy smokes only locally or in staging.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
 - #18 Runtime-size gates (Medium; partial)
   Proof required: Runtime-size report plus accepted warning-only or hard-threshold policy.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
   Next action: Capture warning-only runtime-size artifacts and decide thresholds separately.
 - #20 Production-safe privacy probe depth (Medium; partial)
-  Proof required: Local/staging owner-denial proof plus human-observed read-only production probe evidence.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`
-  Next action: Keep production probes read-only and use synthetic local/staging fixtures for deeper owner denial.
+  Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; partial)
   Proof required: Retention guard proof plus human-observed archive/restore lifecycle evidence.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
@@ -289,9 +289,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
   Next action: Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
-  Next action: Keep production probes read-only and run seeded privacy smokes only locally or in staging.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
 - #13 Parser-test list sensitive field (Medium; open)
   Proof required: Admin UI compatibility plus metadata-only list proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx`, `pnpm run test:api`, `pnpm run typecheck`
@@ -321,9 +321,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
   Next action: Document package baselines and require OCR/parser regressions for future runtime package changes.
 - #20 Production-safe privacy probe depth (Medium; partial)
-  Proof required: Local/staging owner-denial proof plus human-observed read-only production probe evidence.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`
-  Next action: Keep production probes read-only and use synthetic local/staging fixtures for deeper owner denial.
+  Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #21 Ingest observability release gating (Medium; partial)
   Proof required: Release evidence capture that records exact commands and dashboard skips.
   Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
@@ -333,9 +333,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
   Next action: Add retention archive/restore evidence and keep destructive apply human-approved.
 - #23 Public routes inventory risk (Medium; partial)
-  Proof required: Executable route auth contract proof that public legacy handlers remain classified and fail closed.
-  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`
-  Next action: Keep route auth contract strict and fail on public handler drift.
+  Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
+  Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`, `pnpm run production-safe-probes:evidence`
+  Next action: Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.
 - #24 Documentation drift (Low; open)
   Proof required: Docs diff and registry evidence that current blocker data matches the controlling audit.
   Allowed commands: `pnpm run production-scale:evidence`, `git diff --check`

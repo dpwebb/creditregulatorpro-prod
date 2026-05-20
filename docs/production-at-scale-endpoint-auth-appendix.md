@@ -4,6 +4,26 @@ Generated from `tests/contracts/route-auth-classification.spec.ts` at commit `6f
 
 The contract suite passed for this audit and asserts that the classified endpoints exactly equal the endpoint files discovered under `endpoints/` and the handlers registered by `server.ts`. Unsafe/unclassified endpoints: none in the executable contract.
 
+## Production-Safe Probe Evidence
+
+Runtime production probes are limited to read-only `GET`/`HEAD` requests. The production-safe probe evidence command is:
+
+```bash
+pnpm run production-safe-probes:evidence
+```
+
+It writes `docs/production-scale/evidence/latest-production-safe-probes.md` and `docs/production-scale/evidence/latest-production-safe-probes.json`.
+
+Cron-token, webhook, and retired public reset routes are POST-capable, so their missing/invalid token and reset expectations are verified as static route-contract evidence only. They are not executed against production by the evidence command.
+
+Local/staging owner-denial proof uses synthetic owner A/B fixtures only:
+
+```bash
+pnpm run staging-owner-denial-smoke:evidence
+```
+
+It writes `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` and `docs/production-scale/evidence/latest-staging-owner-denial-smoke.json`. This proof is local/staging-only and is not production mutation proof.
+
 ## Public (23)
 
 - `endpoints/admin/letter-template/delete_POST.ts`

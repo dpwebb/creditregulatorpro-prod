@@ -37,6 +37,38 @@ Dashboard PASS alone is not release evidence. Dashboard `SKIP` rows remain visib
 
 The operator dashboard distinguishes `PASS`, `FAIL`, `SKIP`, `SIMULATED`, and `HUMAN_REQUIRED`. Release evidence must record exact commands and cannot promote `SIMULATED` or `HUMAN_REQUIRED` rows to production proof.
 
+## Production-Safe Probe Evidence
+
+Run:
+
+```bash
+pnpm run production-safe-probes:evidence
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-production-safe-probes.md`
+- `docs/production-scale/evidence/latest-production-safe-probes.json`
+
+The runtime production probe plan is read-only: only `GET` and `HEAD` requests may be executed against a production-like target. Cron-token denials, webhook unsigned/invalid denials, and retired public reset routes are POST-capable surfaces, so this evidence records them as static route-contract proof only and does not execute those POSTs against production.
+
+The report records branch, commit, target host, exact probe groups, static rejection contracts, body-scan status for unauthenticated runtime responses, and explicit safety statements that no production fixtures are created, no production data is mutated, no production worker is activated, and no live external provider is called.
+
+## Local/Staging Owner-Denial Smoke
+
+Run:
+
+```bash
+pnpm run staging-owner-denial-smoke:evidence
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md`
+- `docs/production-scale/evidence/latest-staging-owner-denial-smoke.json`
+
+This is `LOCAL/STAGING SYNTHETIC ONLY` evidence. It uses synthetic owner A, owner B, support, and admin fixtures to prove owner B cannot read owner A case, evidence, report artifact, packet, packet PDF, or response-related records, and that admin-only routes remain admin-only. It is not production proof and must not create production fixtures.
+
 ## Simulated Restore Drill
 
 Run:
