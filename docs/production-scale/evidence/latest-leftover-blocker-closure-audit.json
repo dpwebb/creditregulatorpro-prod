@@ -1,0 +1,1883 @@
+{
+  "reportName": "leftover-blocker-closure-audit",
+  "generatedAt": "2026-05-20T22:22:26.742Z",
+  "sourcePromotionPack": "docs/production-scale/evidence/latest-production-promotion-pack.json",
+  "sourcePromotionPackGeneratedAt": "2026-05-20T22:22:11.307Z",
+  "currentBranch": "staging",
+  "currentCommitHash": "8559aca22ad78c5fa527ff32ab6cece5cf1d04aa",
+  "readinessClassification": {
+    "value": "limited beta",
+    "canPromoteProductionAtScale": false,
+    "reason": "Critical/high, simulated-only, human-required, partial, or open blockers remain."
+  },
+  "summary": {
+    "totalBlockers": 25,
+    "remainingBlockerCount": 11,
+    "remainingProductionBlockerCount": 7,
+    "remainingScaleBlockerCount": 0,
+    "humanRequiredCount": 4,
+    "simulatedOnlyCount": 1,
+    "waivedCount": 2,
+    "fixedOrWaivedCount": 14
+  },
+  "priorTrackedBlockers": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run storage:raw-report-remediation-acceptance"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 8,
+      "title": "Response operations maturity",
+      "severity": "High",
+      "area": "Response operations maturity",
+      "currentStatus": "partial",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "closureState": "simulated-only",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "waived with explicit reason",
+      "closureState": "waived",
+      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources.",
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 21,
+      "title": "Ingest observability release gating",
+      "severity": "Medium",
+      "area": "Ingest observability release gating",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 3,
+      "title": "Load/concurrency proof",
+      "severity": "High",
+      "area": "Load/concurrency proof",
+      "currentStatus": "simulated-proof-only",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 16,
+      "title": "DB pool pressure evidence",
+      "severity": "Medium",
+      "area": "DB pool pressure evidence",
+      "currentStatus": "simulated-proof-only",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 17,
+      "title": "Rate limiter write pressure",
+      "severity": "Medium",
+      "area": "Rate limiter write pressure",
+      "currentStatus": "simulated-proof-only",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 18,
+      "title": "Runtime-size gates",
+      "severity": "Medium",
+      "area": "Runtime-size gates",
+      "currentStatus": "partial",
+      "classification": "waived with explicit reason",
+      "closureState": "waived",
+      "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made.",
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    }
+  ],
+  "allBlockers": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 3,
+      "title": "Load/concurrency proof",
+      "severity": "High",
+      "area": "Load/concurrency proof",
+      "currentStatus": "simulated-proof-only",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 4,
+      "title": "Packet PDF scaling",
+      "severity": "High",
+      "area": "Packet PDF scaling",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 5,
+      "title": "Ingest cleanup/data safety",
+      "severity": "High",
+      "area": "Ingest cleanup/data safety",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run storage:raw-report-remediation-acceptance"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 7,
+      "title": "Bureau communication storage",
+      "severity": "High",
+      "area": "Bureau communication storage",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 8,
+      "title": "Response operations maturity",
+      "severity": "High",
+      "area": "Response operations maturity",
+      "currentStatus": "partial",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "closureState": "simulated-only",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "waived with explicit reason",
+      "closureState": "waived",
+      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources.",
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 12,
+      "title": "OCR route-local validation shape",
+      "severity": "Medium",
+      "area": "OCR route-local validation shape",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 13,
+      "title": "Parser-test list sensitive field",
+      "severity": "Medium",
+      "area": "Parser-test list sensitive field",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 14,
+      "title": "Consumer signature list sensitive field",
+      "severity": "Medium",
+      "area": "Consumer signature list sensitive field",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 15,
+      "title": "Hidden-risk list semantics",
+      "severity": "Medium",
+      "area": "Hidden-risk list semantics",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Design/evidence artifact for hidden-risk aggregate semantics, stale-suppression semantics, and a separate bounded pagination plan that does not change aggregate truth."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 16,
+      "title": "DB pool pressure evidence",
+      "severity": "Medium",
+      "area": "DB pool pressure evidence",
+      "currentStatus": "simulated-proof-only",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 17,
+      "title": "Rate limiter write pressure",
+      "severity": "Medium",
+      "area": "Rate limiter write pressure",
+      "currentStatus": "simulated-proof-only",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 18,
+      "title": "Runtime-size gates",
+      "severity": "Medium",
+      "area": "Runtime-size gates",
+      "currentStatus": "partial",
+      "classification": "waived with explicit reason",
+      "closureState": "waived",
+      "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made.",
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 19,
+      "title": "Heavy PDF/OCR dependencies",
+      "severity": "Medium",
+      "area": "Heavy PDF/OCR dependencies",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted heavy PDF/OCR dependency governance tying runtime-size WARN/WAIVED baseline to deterministic OCR/parser regression proof for any future dependency or Docker package change."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 21,
+      "title": "Ingest observability release gating",
+      "severity": "Medium",
+      "area": "Ingest observability release gating",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 23,
+      "title": "Public routes inventory risk",
+      "severity": "Medium",
+      "area": "Public routes inventory risk",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run test:contracts",
+        "pnpm run production-safe-probes:evidence"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 24,
+      "title": "Documentation drift",
+      "severity": "Low",
+      "area": "Documentation drift",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Stale audit/tracker reference cleanup and aligned promotion-pack evidence after the latest commit, with blocker data still matching the controlling audit."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "git diff --check"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 25,
+      "title": "Dashboard default SKIP semantics",
+      "severity": "Low",
+      "area": "Dashboard default SKIP semantics",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
+      "waiverReason": null,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
+    }
+  ],
+  "remainingBlockers": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run storage:raw-report-remediation-acceptance"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "closureState": "simulated-only",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 15,
+      "title": "Hidden-risk list semantics",
+      "severity": "Medium",
+      "area": "Hidden-risk list semantics",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Design/evidence artifact for hidden-risk aggregate semantics, stale-suppression semantics, and a separate bounded pagination plan that does not change aggregate truth."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 19,
+      "title": "Heavy PDF/OCR dependencies",
+      "severity": "Medium",
+      "area": "Heavy PDF/OCR dependencies",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted heavy PDF/OCR dependency governance tying runtime-size WARN/WAIVED baseline to deterministic OCR/parser regression proof for any future dependency or Docker package change."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 23,
+      "title": "Public routes inventory risk",
+      "severity": "Medium",
+      "area": "Public routes inventory risk",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run test:contracts",
+        "pnpm run production-safe-probes:evidence"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    },
+    {
+      "number": 24,
+      "title": "Documentation drift",
+      "severity": "Low",
+      "area": "Documentation drift",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Stale audit/tracker reference cleanup and aligned promotion-pack evidence after the latest commit, with blocker data still matching the controlling audit."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "git diff --check"
+      ],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
+    }
+  ],
+  "remainingProductionBlockers": [
+    {
+      "number": 1,
+      "title": "Disaster recovery",
+      "severity": "Critical",
+      "area": "Disaster recovery",
+      "currentStatus": "requires-human-proof",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run storage:raw-report-remediation-acceptance"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "simulated proof only",
+      "closureState": "simulated-only",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 11,
+      "title": "Production deployment parity",
+      "severity": "High",
+      "area": "Production deployment parity",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "closureState": "partial",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 20,
+      "title": "Production-safe privacy probe depth",
+      "severity": "Medium",
+      "area": "Production-safe privacy probe depth",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run production-safe-probes:evidence",
+        "pnpm run staging-owner-denial-smoke:evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/latest-production-safe-probes.md",
+        "docs/production-scale/evidence/latest-production-safe-probes.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    },
+    {
+      "number": 22,
+      "title": "Retention archive/restore proof",
+      "severity": "Medium",
+      "area": "Retention archive/restore proof",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "closureState": "human-required",
+      "waiverReason": null,
+      "missingEvidence": [
+        "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
+      ],
+      "exactRequiredCommands": [
+        "pnpm run retention:archive-restore:simulated",
+        "pnpm run restore:accept-human-evidence"
+      ],
+      "humanArtifacts": [
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json"
+      ],
+      "codexCanSafelyClose": false,
+      "operatorActionRequired": true
+    }
+  ],
+  "remainingScaleBlockers": [],
+  "missingEvidenceFiles": [
+    {
+      "path": "docs/production-scale/evidence/human-restore-drill-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/human-restore-drill-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/live-alert-proof.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/live-alert-proof.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    }
+  ],
+  "referencedEvidenceFiles": [
+    {
+      "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-scale-evidence.json",
+      "exists": true,
+      "reportName": "production-scale-blocker-evidence",
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+      "exists": true,
+      "reportName": "restore-drill-simulated",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+      "exists": true,
+      "reportName": "human-restore-drill-evidence-acceptance",
+      "evidenceType": null,
+      "status": "not-submitted",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+      "exists": true,
+      "reportName": "ingest-worker-simulated-queue-drain-proof",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-load-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-load-simulated.json",
+      "exists": true,
+      "reportName": "production-scale-load-simulated",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-load-measured.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-load-measured.json",
+      "exists": true,
+      "reportName": "production-scale-load-measured",
+      "evidenceType": "MEASURED_LOCAL",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerts-dry-run.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+      "exists": true,
+      "reportName": "alerts-dry-run-evidence",
+      "evidenceType": "SIMULATED",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+      "exists": true,
+      "reportName": "alerting-exclusion-validation",
+      "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
+      "status": "not-submitted",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-response-ops-readiness.json",
+      "exists": true,
+      "reportName": "response-ops-readiness-evidence",
+      "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+      "status": "operator-ready-with-deferred-controls",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+      "exists": true,
+      "reportName": "storage-raw-report-inventory",
+      "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
+      "status": "database-unavailable",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+      "exists": true,
+      "reportName": "storage-raw-report-remediation-plan",
+      "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
+      "status": "inventory-unreliable",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
+      "exists": true,
+      "reportName": "storage-raw-report-remediation-acceptance",
+      "evidenceType": null,
+      "status": "not-submitted",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+      "exists": true,
+      "reportName": "retention-archive-restore-simulated",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
+      "exists": true,
+      "reportName": "packet-pdf-cache-miss-proof",
+      "evidenceType": "SIMULATED",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+      "exists": true,
+      "reportName": "production-worker-activation-plan",
+      "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-readiness.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-readiness.json",
+      "exists": true,
+      "reportName": "production-worker-readiness-evidence",
+      "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
+      "status": "prepared-awaiting-human-production-evidence",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-governance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-governance.json",
+      "exists": true,
+      "reportName": "migration-governance-drift-evidence",
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-gate.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-gate.json",
+      "exists": true,
+      "reportName": "migration-governance-release-gate",
+      "evidenceType": "MIGRATION_GATE_EVIDENCE",
+      "status": "accepted-formal-waiver",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-safe-probes.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-safe-probes.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+      "exists": true,
+      "reportName": "staging-owner-denial-smoke",
+      "evidenceType": null,
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.json",
+      "exists": true,
+      "reportName": "sensitive-list-endpoints-evidence",
+      "evidenceType": null,
+      "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
+      "exists": true,
+      "reportName": "runtime-size-policy-acceptance",
+      "evidenceType": null,
+      "status": "accepted-warning-only-waiver",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/human-restore-drill-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/human-restore-drill-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/live-alert-proof.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/live-alert-proof.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/migration-governance-policy.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/load-threshold-policy.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/restore-drill-evidence-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/staging-ingest-worker-operation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-ingest-worker-activation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale-load-harness.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/packet-pdf-cache.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/packet-pdf-cache-miss-scaling-decision.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/operator-ingest-remediation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/report-artifact-storage.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/response-processing-production-ops-runbook.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-observability-metrics.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/alerting-exclusion-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/database-migration-policy.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "migrations/0000-runtime-schema-inventory.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-at-scale-execution-tracker.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/runtime-size-and-dependency-report.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/runtime-size-threshold-policy.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-at-scale-endpoint-auth-appendix.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-promotion-pack.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-promotion-pack.json",
+      "exists": true,
+      "reportName": "production-promotion-evidence-pack",
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/README.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/blocker-registry.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    }
+  ],
+  "safety": {
+    "productionDataMutated": false,
+    "liveProvidersUsed": false,
+    "realPiiUsed": false,
+    "simulatedProofPromotedToProductionProof": false,
+    "dashboardSkipTreatedAsPass": false,
+    "productionAtScaleClaimedWithOpenBlockers": false
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}
