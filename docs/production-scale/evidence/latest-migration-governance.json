@@ -1,9 +1,9 @@
 {
   "reportName": "migration-governance-drift-evidence",
-  "generatedAt": "2026-05-20T18:44:36.108Z",
-  "evidenceTimestamp": "2026-05-20T18:44:36.108Z",
+  "generatedAt": "2026-05-20T21:43:23.256Z",
+  "evidenceTimestamp": "2026-05-20T21:43:23.256Z",
   "branch": "staging",
-  "commit": "c6cc055d5b3c53049ed34b815a8c84a636c0068b",
+  "commit": "6c0f772662c7be75e7a51a51b100fb7f07d10680",
   "safety": {
     "nonMutating": true,
     "requiresDatabase": false,
@@ -1545,7 +1545,7 @@
   "migrationLedgerEntries": [
     {
       "path": "migrations/0000-runtime-schema-inventory.md",
-      "bytes": 2275
+      "bytes": 2777
     }
   ],
   "unknownSchemaMutationSources": [],

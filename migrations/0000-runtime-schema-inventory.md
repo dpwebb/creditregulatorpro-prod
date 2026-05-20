@@ -42,7 +42,12 @@ This entry records existing schema creation and mutation sources. It does not ex
 - `docs/production-scale/evidence/latest-migration-governance.md`
 - `docs/production-scale/evidence/latest-migration-governance.json`
 
-This inventory does not change production deployment behavior and does not hard-fail deploys.
+`pnpm run migrations:gate` reads `docs/production-scale/migration-governance-policy.json` and writes non-mutating release gate evidence to:
+
+- `docs/production-scale/evidence/latest-migration-gate.md`
+- `docs/production-scale/evidence/latest-migration-gate.json`
+
+This inventory does not execute DDL or change production deployment behavior. The current policy mode is `waived`: approved runtime ensure residuals are formally waived during additive ledger cutover, but unknown, unledgered, missing, or unapproved schema mutation sources still fail the gate.
 
 The checker distinguishes warning-only residuals from release-blocking governance findings. Known runtime ensure sources represented in this inventory are warning-only residuals. Unknown mutation sources, unledgered mutation sources, missing expected source files, missing expected inventory entries, or a missing ledger are release-blocking governance findings for review.
 
@@ -50,4 +55,4 @@ The checker distinguishes warning-only residuals from release-blocking governanc
 
 Future migration tasks should convert runtime DDL ownership into additive, reviewed ledger migrations one workstream at a time. Runtime ensure functions must stay active until each replacement migration and rollback path is tested.
 
-Migration governance remains partial until those runtime ensure residuals have a fully governed additive migration strategy and a separately approved hard gate.
+Migration governance remains dependent on the active gate policy until those runtime ensure residuals have a fully governed additive migration strategy and the policy can move to `release-blocking`.

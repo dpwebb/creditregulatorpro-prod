@@ -12,6 +12,13 @@ import {
 } from "./production-worker-readiness-evidence.mjs";
 
 import {
+  buildMigrationGateReport,
+  MIGRATION_GATE_JSON_PATH,
+  MIGRATION_GATE_MD_PATH,
+  MIGRATION_GATE_POLICY_PATH,
+} from "./migration-gate.mjs";
+
+import {
   ALERTING_EXCLUSION_EVIDENCE_JSON_PATH,
   ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
   ALERTING_EXCLUSION_VALIDATION_JSON_PATH,
@@ -73,6 +80,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run storage:raw-report-remediation-acceptance",
   "pnpm run check:migrations",
   "pnpm run check:restore-drill-evidence",
+  "pnpm run migrations:gate",
   "pnpm run restore:accept-human-evidence",
   "pnpm run report:runtime-size",
   "git diff --check",
@@ -162,6 +170,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run migrations:evidence": [
     "docs/production-scale/evidence/latest-migration-governance.md",
     "docs/production-scale/evidence/latest-migration-governance.json",
+  ],
+  "pnpm run migrations:gate": [
+    MIGRATION_GATE_MD_PATH,
+    MIGRATION_GATE_JSON_PATH,
   ],
   "pnpm run production-safe-probes:evidence": [
     "docs/production-scale/evidence/latest-production-safe-probes.md",
@@ -286,6 +298,7 @@ function classifyBlocker(
   productionWorkerReadinessEvidence = null,
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
+  migrationGateEvidence = null,
 ) {
   if (
     blocker.number === 2 &&
@@ -333,6 +346,22 @@ function classifyBlocker(
     )
   ) {
     return "fixed with human-observed evidence";
+  }
+  if (
+    blocker.number === 10 &&
+    migrationGateEvidence?.blockerCoverage?.migrationGovernance === true &&
+    migrationGateEvidence?.policyMode === "release-blocking" &&
+    migrationGateEvidence?.releaseGateAccepted === true
+  ) {
+    return "fixed with automated evidence";
+  }
+  if (
+    blocker.number === 10 &&
+    migrationGateEvidence?.blockerCoverage?.migrationGovernance === true &&
+    migrationGateEvidence?.policyMode === "waived" &&
+    migrationGateEvidence?.formalWaiver?.accepted === true
+  ) {
+    return "waived with explicit reason";
   }
   if (
     blocker.number === 22 &&
@@ -443,6 +472,7 @@ export function buildProductionPromotionPackReport({
   productionWorkerReadinessEvidence = null,
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
+  migrationGateEvidence = null,
   generatedAt = new Date().toISOString(),
   env = process.env,
 } = {}) {
@@ -480,6 +510,8 @@ export function buildProductionPromotionPackReport({
     rawReportRemediationAcceptance ?? buildRawReportRemediationAcceptanceReport({ rootDir, generatedAt });
   const responseOpsEvidence =
     responseOpsReadinessEvidence ?? buildResponseOpsReadinessEvidenceReport({ rootDir, generatedAt, env });
+  const migrationGate =
+    migrationGateEvidence ?? buildMigrationGateReport({ rootDir, generatedAt });
 
   const classifiedBlockers = loadedRegistry.blockers.map((blocker) => {
     const classification = classifyBlocker(
@@ -488,6 +520,7 @@ export function buildProductionPromotionPackReport({
       workerReadinessEvidence,
       rawReportRemediationEvidence,
       responseOpsEvidence,
+      migrationGate,
     );
     return {
       number: blocker.number,
@@ -514,6 +547,8 @@ export function buildProductionPromotionPackReport({
                     ? rawReportRemediationEvidence.evidencePath
                   : blocker.number === 9
                     ? responseOpsEvidence.alerting?.exclusionValidation?.evidencePath ?? responseOpsEvidence.alerting?.liveAlertProof?.evidencePath
+                  : blocker.number === 10
+                    ? migrationGate.policyPath
                   : acceptedHumanRestoreEvidence.evidencePath,
               acceptedAt:
                 blocker.number === 2 || blocker.number === 11
@@ -522,6 +557,8 @@ export function buildProductionPromotionPackReport({
                     ? rawReportRemediationEvidence.generatedAt
                   : blocker.number === 9
                     ? responseOpsEvidence.generatedAt
+                  : blocker.number === 10
+                    ? migrationGate.generatedAt
                   : acceptedHumanRestoreEvidence.generatedAt,
             }
           : null,
@@ -542,6 +579,7 @@ export function buildProductionPromotionPackReport({
     ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
     LIVE_ALERT_PROOF_JSON_PATH,
     LIVE_ALERT_PROOF_MD_PATH,
+    MIGRATION_GATE_POLICY_PATH,
     ...classifiedBlockers.flatMap((blocker) => blocker.relatedEvidenceOutputPaths),
   ]).map((filePath) => summarizeEvidenceFile(rootDir, filePath));
   const commandResults = buildCommandList(rootDir, loadedRegistry, packageJson);
@@ -623,6 +661,36 @@ export function buildProductionPromotionPackReport({
         rawSensitiveValuesAccepted: rawReportRemediationEvidence.safety?.rawSensitiveValuesAccepted === true,
       },
     },
+    migrationGateEvidence: {
+      reportName: migrationGate.reportName,
+      generatedAt: migrationGate.generatedAt,
+      status: migrationGate.status,
+      policyPath: migrationGate.policyPath,
+      policyMode: migrationGate.policyMode,
+      releaseGateAccepted: migrationGate.releaseGateAccepted === true,
+      runtimeEnsureResidualImpact: migrationGate.runtimeEnsureResidualImpact,
+      releaseBlockingFindings: migrationGate.releaseBlockingFindings?.length ?? 0,
+      warningOnlyFindings: migrationGate.warningOnlyFindings?.length ?? 0,
+      waivedFindings: migrationGate.waivedFindings?.length ?? 0,
+      blockerCoverage: migrationGate.blockerCoverage,
+      formalWaiver: {
+        accepted: migrationGate.formalWaiver?.accepted === true,
+        reason: migrationGate.formalWaiver?.reason ?? null,
+        approvedByRole: migrationGate.formalWaiver?.approvedByRole ?? null,
+        acceptedAt: migrationGate.formalWaiver?.acceptedAt ?? null,
+        expiresOn: migrationGate.formalWaiver?.expiresOn ?? null,
+      },
+      safety: {
+        nonMutating: migrationGate.safety?.nonMutating === true,
+        requiresDatabase: migrationGate.safety?.requiresDatabase === true,
+        mutatesDatabase: migrationGate.safety?.mutatesDatabase === true,
+        executesDdl: migrationGate.safety?.executesDdl === true,
+        productionMutationAttempted: migrationGate.safety?.productionMutationAttempted === true,
+        schemaChangedByCodex: migrationGate.safety?.schemaChangedByCodex === true,
+        runtimeEnsurePathsRemoved: migrationGate.safety?.runtimeEnsurePathsRemoved === true,
+        adHocDdlAdded: migrationGate.safety?.adHocDdlAdded === true,
+      },
+    },
     responseOpsReadinessEvidence: {
       reportName: responseOpsEvidence.reportName,
       generatedAt: responseOpsEvidence.generatedAt,
@@ -675,6 +743,7 @@ export function buildProductionPromotionPackReport({
       "Dashboard PASS alone is not complete release evidence when checks are skipped.",
       "Production activation requires operator approval.",
       "Historical raw report remediation requires accepted sanitized operator evidence.",
+      "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
       "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
       "Codex must not promote readiness classification beyond the evidence in this pack.",
     ],
@@ -719,11 +788,13 @@ export function validatePromotionPackReport(report) {
   const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const responseOpsReadiness = report.responseOpsReadinessEvidence;
+  const migrationGate = report.migrationGateEvidence;
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
   const blocker2 = blockers.find((blocker) => blocker.number === 2);
   const blocker6 = blockers.find((blocker) => blocker.number === 6);
   const blocker8 = blockers.find((blocker) => blocker.number === 8);
   const blocker9 = blockers.find((blocker) => blocker.number === 9);
+  const blocker10 = blockers.find((blocker) => blocker.number === 10);
   const blocker11 = blockers.find((blocker) => blocker.number === 11);
   const blocker21 = blockers.find((blocker) => blocker.number === 21);
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
@@ -778,6 +849,42 @@ export function validatePromotionPackReport(report) {
       responseOpsReadiness?.safety?.liveAlertsSentByCodex === true
     ) {
       errors.push("Blocker 9 cannot be fixed without live alert proof or accepted formal alert exclusion.");
+    }
+  }
+  if (blocker10?.classification === "fixed with automated evidence") {
+    if (
+      migrationGate?.policyMode !== "release-blocking" ||
+      migrationGate?.releaseGateAccepted !== true ||
+      migrationGate?.blockerCoverage?.migrationGovernance !== true ||
+      migrationGate?.releaseBlockingFindings !== 0 ||
+      migrationGate?.safety?.nonMutating !== true ||
+      migrationGate?.safety?.requiresDatabase === true ||
+      migrationGate?.safety?.mutatesDatabase === true ||
+      migrationGate?.safety?.executesDdl === true ||
+      migrationGate?.safety?.productionMutationAttempted === true ||
+      migrationGate?.safety?.schemaChangedByCodex === true ||
+      migrationGate?.safety?.adHocDdlAdded === true
+    ) {
+      errors.push("Blocker 10 cannot be fixed without accepted non-mutating release-blocking migration gate evidence.");
+    }
+  }
+  if (blocker10?.classification === "waived with explicit reason") {
+    if (
+      migrationGate?.policyMode !== "waived" ||
+      migrationGate?.releaseGateAccepted !== true ||
+      migrationGate?.blockerCoverage?.migrationGovernance !== true ||
+      migrationGate?.formalWaiver?.accepted !== true ||
+      !migrationGate?.formalWaiver?.reason ||
+      migrationGate?.releaseBlockingFindings !== 0 ||
+      migrationGate?.safety?.nonMutating !== true ||
+      migrationGate?.safety?.requiresDatabase === true ||
+      migrationGate?.safety?.mutatesDatabase === true ||
+      migrationGate?.safety?.executesDdl === true ||
+      migrationGate?.safety?.productionMutationAttempted === true ||
+      migrationGate?.safety?.schemaChangedByCodex === true ||
+      migrationGate?.safety?.adHocDdlAdded === true
+    ) {
+      errors.push("Blocker 10 cannot be policy-closed without an accepted formal migration gate waiver and non-mutating evidence.");
     }
   }
   if (blocker21?.classification === "fixed with automated evidence") {
@@ -866,6 +973,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Codex must not promote readiness classification beyond evidence.",
     "- Production activation requires operator approval.",
     "- Historical raw report remediation requires accepted sanitized operator evidence.",
+    "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
     "- Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "",
     "## Command Result Summary",
@@ -922,6 +1030,21 @@ export function renderPromotionPackMarkdown(report) {
       report.rawReportRemediationAcceptance.blockerCoverage?.historicalRawReportBytes ? "accepted" : "not accepted"
     }`,
     `- Sensitive findings: ${report.rawReportRemediationAcceptance.validation?.sensitiveFindings?.length ?? 0}`,
+    "",
+    "## Migration Gate Evidence",
+    "",
+    `- Status: ${report.migrationGateEvidence.status}`,
+    `- Policy mode: ${report.migrationGateEvidence.policyMode}`,
+    `- Release gate accepted: ${report.migrationGateEvidence.releaseGateAccepted ? "yes" : "no"}`,
+    `- Runtime ensure residual impact: ${report.migrationGateEvidence.runtimeEnsureResidualImpact}`,
+    `- Release-blocking findings: ${report.migrationGateEvidence.releaseBlockingFindings}`,
+    `- Formal waiver accepted: ${report.migrationGateEvidence.formalWaiver?.accepted ? "yes" : "no"}`,
+    `- Formal waiver reason: ${report.migrationGateEvidence.formalWaiver?.reason ?? "n/a"}`,
+    `- Blocker 10 coverage: ${
+      report.migrationGateEvidence.blockerCoverage?.migrationGovernance ? "accepted" : "not accepted"
+    }`,
+    `- Gate mutates DB: ${report.migrationGateEvidence.safety?.mutatesDatabase ? "yes" : "no"}`,
+    `- Gate executes DDL: ${report.migrationGateEvidence.safety?.executesDdl ? "yes" : "no"}`,
     "",
     "## Response Ops Readiness Evidence",
     "",

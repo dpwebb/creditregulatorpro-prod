@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "policyName": "production-scale-migration-governance-policy",
+  "currentMode": "waived",
+  "modeDescription": "The migration gate is active and fails closed for unknown, missing, unledgered, or unapproved schema mutation sources. Existing approved runtime ensure residuals are formally waived until reviewed additive ledger cutover completes.",
+  "approvedRuntimeEnsureInventory": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "status": "approved-residual",
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "cutoverRequired": true
+    }
+  ],
+  "allowedBootstrapScripts": [
+    {
+      "path": "scripts/bootstrap-local-auth-schema.ts",
+      "scope": "local bootstrap only",
+      "productionAllowed": false,
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md"
+    },
+    {
+      "path": "scripts/bootstrap-local-app-fixtures.ts",
+      "scope": "local bootstrap and fixtures only",
+      "productionAllowed": false,
+      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md"
+    }
+  ],
+  "forbiddenMutationPatterns": [
+    {
+      "pattern": "drop table/index",
+      "reason": "Destructive DDL requires a separate reviewed migration and rollback plan."
+    },
+    {
+      "pattern": "unknown schema mutation source",
+      "reason": "Any schema mutation source outside approved inventory fails the gate."
+    },
+    {
+      "pattern": "unledgered schema mutation source",
+      "reason": "Every schema mutation source must be named in the migration ledger."
+    },
+    {
+      "pattern": "unapproved bootstrap mutation source",
+      "reason": "Bootstrap DDL must remain explicitly approved and non-production."
+    }
+  ],
+  "releaseGateRequirements": [
+    "Run pnpm run check:migrations.",
+    "Run pnpm run migrations:evidence.",
+    "Run pnpm run migrations:gate.",
+    "Unknown schema mutation source count must be zero.",
+    "Unledgered schema mutation source count must be zero.",
+    "Missing expected source count must be zero.",
+    "Missing expected inventory entry count must be zero.",
+    "Bootstrap mutation sources must be limited to allowedBootstrapScripts.",
+    "The gate must remain non-mutating and must not connect to a database.",
+    "Runtime ensure residuals must stay visible until reviewed additive migration cutover completes."
+  ],
+  "waiverRequirements": [
+    "currentMode must be waived.",
+    "formalWaiver.status must be approved.",
+    "formalWaiver.reason must identify the migration/runtime ensure residual being waived.",
+    "formalWaiver.approvedByRole must identify an accountable operator or release role.",
+    "formalWaiver.acceptedAt must be recorded.",
+    "formalWaiver.expiresOn must be recorded and not expired.",
+    "The waiver cannot permit unknown, unledgered, missing, or unapproved schema mutation sources."
+  ],
+  "formalWaiver": {
+    "status": "approved",
+    "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
+    "approvedByRole": "Release governance owner",
+    "acceptedAt": "2026-05-20T00:00:00.000Z",
+    "expiresOn": "2026-08-20",
+    "conditions": [
+      "Do not remove runtime ensure paths without a focused migration task and tests.",
+      "Do not add ad hoc DDL outside approved inventory.",
+      "Do not mutate production as part of gate validation.",
+      "Keep migrations:gate evidence attached to promotion decisions."
+    ]
+  },
+  "futureCutoverProcedure": [
+    "Select one runtime ensure source and create a reviewed additive ledger migration entry.",
+    "Name affected tables, indexes, runtime ensure function, rollback notes, and verification commands.",
+    "Keep the runtime ensure function active until redundant-additive behavior is proven.",
+    "Only remove or narrow an ensure path in a separate task with focused tests for that runtime path.",
+    "After all residuals are migrated or intentionally retained, switch currentMode to release-blocking in a reviewed policy update."
+  ],
+  "safety": {
+    "nonMutating": true,
+    "productionMutationForbidden": true,
+    "runtimeDdlNotChangedByPolicy": true,
+    "databaseConnectionForbidden": true
+  }
+}

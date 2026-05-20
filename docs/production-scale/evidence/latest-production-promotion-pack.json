@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T21:29:55.331Z",
+  "generatedAt": "2026-05-20T21:43:34.905Z",
   "currentBranch": "staging",
-  "currentCommitHash": "0bfcd7c47069874b454143f951c90c5199b26d8c",
+  "currentCommitHash": "6c0f772662c7be75e7a51a51b100fb7f07d10680",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -47,6 +47,7 @@
     "pnpm run storage:raw-report-remediation-acceptance",
     "pnpm run check:migrations",
     "pnpm run check:restore-drill-evidence",
+    "pnpm run migrations:gate",
     "pnpm run restore:accept-human-evidence",
     "pnpm run report:runtime-size",
     "git diff --check",
@@ -356,6 +357,35 @@
       "evidenceFiles": [],
       "latestGeneratedAt": null,
       "status": null
+    },
+    {
+      "command": "pnpm run migrations:gate",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-migration-gate.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-migration-gate.json",
+          "exists": true,
+          "reportName": "migration-governance-release-gate",
+          "evidenceType": "MIGRATION_GATE_EVIDENCE",
+          "generatedAt": "2026-05-20T21:43:27.356Z",
+          "status": "accepted-formal-waiver",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:43:27.356Z",
+      "status": "accepted-formal-waiver"
     },
     {
       "command": "pnpm run restore:accept-human-evidence",
@@ -678,12 +708,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T18:44:36.108Z",
+          "generatedAt": "2026-05-20T21:43:23.256Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T18:44:36.108Z",
+      "latestGeneratedAt": "2026-05-20T21:43:23.256Z",
       "status": null
     },
     {
@@ -1168,8 +1198,26 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T18:44:36.108Z",
+      "generatedAt": "2026-05-20T21:43:23.256Z",
       "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-gate.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-gate.json",
+      "exists": true,
+      "reportName": "migration-governance-release-gate",
+      "evidenceType": "MIGRATION_GATE_EVIDENCE",
+      "generatedAt": "2026-05-20T21:43:27.356Z",
+      "status": "accepted-formal-waiver",
       "productionProof": false
     },
     {
@@ -1328,6 +1376,15 @@
     {
       "path": "docs/production-scale/evidence/live-alert-proof.md",
       "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/migration-governance-policy.json",
+      "exists": true,
       "reportName": null,
       "evidenceType": null,
       "generatedAt": null,
@@ -1501,7 +1558,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:15:53.560Z",
+      "generatedAt": "2026-05-20T21:29:55.331Z",
       "status": null,
       "productionProof": false
     },
@@ -1526,7 +1583,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T21:29:55.331Z",
+    "generatedAt": "2026-05-20T21:43:34.905Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1546,7 +1603,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T21:29:55.331Z",
+    "generatedAt": "2026-05-20T21:43:34.905Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -1567,7 +1624,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T21:29:55.331Z",
+    "generatedAt": "2026-05-20T21:43:34.905Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1588,9 +1645,43 @@
       "rawSensitiveValuesAccepted": false
     }
   },
+  "migrationGateEvidence": {
+    "reportName": "migration-governance-release-gate",
+    "generatedAt": "2026-05-20T21:43:34.905Z",
+    "status": "accepted-formal-waiver",
+    "policyPath": "docs/production-scale/migration-governance-policy.json",
+    "policyMode": "waived",
+    "releaseGateAccepted": true,
+    "runtimeEnsureResidualImpact": "formally-waived",
+    "releaseBlockingFindings": 0,
+    "warningOnlyFindings": 0,
+    "waivedFindings": 13,
+    "blockerCoverage": {
+      "migrationGovernance": true,
+      "acceptedReleaseBlocking": false,
+      "acceptedFormalWaiver": true
+    },
+    "formalWaiver": {
+      "accepted": true,
+      "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
+      "approvedByRole": "Release governance owner",
+      "acceptedAt": "2026-05-20T00:00:00.000Z",
+      "expiresOn": "2026-08-20"
+    },
+    "safety": {
+      "nonMutating": true,
+      "requiresDatabase": false,
+      "mutatesDatabase": false,
+      "executesDdl": false,
+      "productionMutationAttempted": false,
+      "schemaChangedByCodex": false,
+      "runtimeEnsurePathsRemoved": false,
+      "adHocDdlAdded": false
+    }
+  },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-20T21:29:55.331Z",
+    "generatedAt": "2026-05-20T21:43:34.905Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -2028,36 +2119,42 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
+      "classification": "waived with explicit reason",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run check:migrations",
         "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
         "pnpm run typecheck"
       ],
       "forbiddenProofTypes": [
         "runtime DDL changes",
         "schema mutation without review",
         "production DB introspection",
+        "policy closure without release-blocking mode or formal waiver",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/database-migration-policy.md",
+        "docs/production-scale/migration-governance-policy.json",
         "migrations/0000-runtime-schema-inventory.md",
         "docs/production-scale/evidence/latest-migration-governance.md",
         "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-gate.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.",
+      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
-      "waiverReason": null
+      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources."
     },
     {
       "number": 11,
@@ -2860,43 +2957,6 @@
       "waiverReason": null
     },
     {
-      "number": 10,
-      "title": "Migration governance",
-      "severity": "High",
-      "area": "Migration governance",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
-      "proofCategories": [
-        "automated-local"
-      ],
-      "allowedProofCommands": [
-        "pnpm run check:migrations",
-        "pnpm run migrations:evidence",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
-        "pnpm run typecheck"
-      ],
-      "forbiddenProofTypes": [
-        "runtime DDL changes",
-        "schema mutation without review",
-        "production DB introspection",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/database-migration-policy.md",
-        "migrations/0000-runtime-schema-inventory.md",
-        "docs/production-scale/evidence/latest-migration-governance.md",
-        "docs/production-scale/evidence/latest-migration-governance.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.",
-      "humanProofRequired": false,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
       "number": 11,
       "title": "Production deployment parity",
       "severity": "High",
@@ -3570,7 +3630,51 @@
       "waiverReason": null
     }
   ],
-  "waivers": [],
+  "waivers": [
+    {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "waived with explicit reason",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
+        "pnpm run typecheck"
+      ],
+      "forbiddenProofTypes": [
+        "runtime DDL changes",
+        "schema mutation without review",
+        "production DB introspection",
+        "policy closure without release-blocking mode or formal waiver",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/database-migration-policy.md",
+        "docs/production-scale/migration-governance-policy.json",
+        "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-gate.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
+      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources."
+    }
+  ],
   "readinessClassification": {
     "value": "limited beta",
     "canPromoteProductionAtScale": false,
@@ -3589,6 +3693,7 @@
     "Dashboard PASS alone is not complete release evidence when checks are skipped.",
     "Production activation requires operator approval.",
     "Historical raw report remediation requires accepted sanitized operator evidence.",
+    "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
     "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "Codex must not promote readiness classification beyond the evidence in this pack."
   ]

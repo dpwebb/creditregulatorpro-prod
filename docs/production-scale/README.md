@@ -344,13 +344,18 @@ Run:
 ```bash
 pnpm run check:migrations
 pnpm run migrations:evidence
+pnpm run migrations:gate
 ```
 
 Outputs:
 
 - `docs/production-scale/evidence/latest-migration-governance.md`
 - `docs/production-scale/evidence/latest-migration-governance.json`
+- `docs/production-scale/evidence/latest-migration-gate.md`
+- `docs/production-scale/evidence/latest-migration-gate.json`
 
 The checker is a static, non-mutating source and ledger scan. It reports branch, commit, evidence timestamp, known runtime ensure sources, bootstrap scripts, unknown or unledgered schema mutation sources, missing expected sources, missing expected inventory entries, and whether findings are `warning-only` or `release-blocking`.
 
-Migration governance remains partial while runtime ensure paths exist. The remediation path is a reviewed additive migration ledger cutover, one runtime ensure workstream at a time, with rollback notes and separately approved deployment gating.
+The gate policy is `docs/production-scale/migration-governance-policy.json`. `migrations:gate` is also static and non-mutating. It fails closed for unknown schema mutation sources, unledgered mutation sources, missing expected sources, missing inventory entries, unapproved bootstrap mutation sources, and forbidden mutation patterns. It does not connect to a database, run DDL, inspect production, or alter deployment state.
+
+Current gate mode is `waived`: approved runtime ensure residuals are formally waived only while reviewed additive migration ledger cutover remains in progress. That waiver does not permit unknown, missing, unledgered, or unapproved schema mutation sources. The remediation path remains a reviewed additive migration ledger cutover, one runtime ensure workstream at a time, with rollback notes before switching the policy to `release-blocking`.

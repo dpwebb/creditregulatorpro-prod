@@ -1,9 +1,9 @@
 # Migration Governance Drift Evidence
 
 Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.
-Generated at: 2026-05-20T18:44:36.108Z
+Generated at: 2026-05-20T21:43:23.256Z
 Current branch: staging
-Current commit hash: c6cc055d5b3c53049ed34b815a8c84a636c0068b
+Current commit hash: 6c0f772662c7be75e7a51a51b100fb7f07d10680
 Scan roots: helpers, scripts, endpoints/migration
 Ledger directory: migrations
 Checker mode: release-visible-reporting-only
@@ -37,7 +37,7 @@ Hard deploy gate enabled: no
 - endpoints/migration/update_POST.ts (present): Admin metadata endpoint for updating migration status; does not execute DDL.
 
 ## Migration Ledger Entries
-- migrations/0000-runtime-schema-inventory.md (2275 bytes)
+- migrations/0000-runtime-schema-inventory.md (2777 bytes)
 
 ## Detected Schema Mutation Sources
 - helpers/aiAssistRunStore.ts: 3 matched schema mutation pattern(s)

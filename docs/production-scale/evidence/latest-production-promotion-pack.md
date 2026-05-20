@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T21:29:55.331Z
+Generated at: 2026-05-20T21:43:34.905Z
 Current branch: `staging`
-Current commit hash: `0bfcd7c47069874b454143f951c90c5199b26d8c`
+Current commit hash: `6c0f772662c7be75e7a51a51b100fb7f07d10680`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -14,6 +14,7 @@ Recommended readiness classification: **limited beta**
 - Codex must not promote readiness classification beyond evidence.
 - Production activation requires operator approval.
 - Historical raw report remediation requires accepted sanitized operator evidence.
+- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
 - Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.
 
 ## Command Result Summary
@@ -35,6 +36,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
 - `pnpm run check:migrations` - reference-required; evidence: none
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
+- `pnpm run migrations:gate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-gate.md, docs/production-scale/evidence/latest-migration-gate.json
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
 - `git diff --check` - reference-required; evidence: none
@@ -95,6 +97,19 @@ Recommended readiness classification: **limited beta**
 - Blocker 6 coverage: not accepted
 - Sensitive findings: 0
 
+## Migration Gate Evidence
+
+- Status: accepted-formal-waiver
+- Policy mode: waived
+- Release gate accepted: yes
+- Runtime ensure residual impact: formally-waived
+- Release-blocking findings: 0
+- Formal waiver accepted: yes
+- Formal waiver reason: Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.
+- Blocker 10 coverage: accepted
+- Gate mutates DB: no
+- Gate executes DDL: no
+
 ## Response Ops Readiness Evidence
 
 - Status: operator-ready-with-deferred-controls
@@ -128,7 +143,7 @@ Recommended readiness classification: **limited beta**
 
 ## Waivers
 
-- None.
+- #10 Migration governance (High; waived with explicit reason) - Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.
 
 ## Unresolved Production Blockers
 
@@ -136,7 +151,6 @@ Recommended readiness classification: **limited beta**
 - #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
-- #10 Migration governance (High; partial) - Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #20 Production-safe privacy probe depth (Medium; human proof required) - Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
@@ -182,6 +196,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-production-worker-readiness.json` - present; evidenceType=PRODUCTION_WORKER_READINESS_EVIDENCE
 - `docs/production-scale/evidence/latest-migration-governance.md` - present
 - `docs/production-scale/evidence/latest-migration-governance.json` - present
+- `docs/production-scale/evidence/latest-migration-gate.md` - present
+- `docs/production-scale/evidence/latest-migration-gate.json` - present; evidenceType=MIGRATION_GATE_EVIDENCE
 - `docs/production-scale/evidence/latest-production-safe-probes.md` - present
 - `docs/production-scale/evidence/latest-production-safe-probes.json` - present
 - `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` - present
@@ -200,6 +216,7 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/alerting-exclusion-evidence.md` - missing
 - `docs/production-scale/evidence/live-alert-proof.json` - missing
 - `docs/production-scale/evidence/live-alert-proof.md` - missing
+- `docs/production-scale/migration-governance-policy.json` - present
 - `docs/restore-drill-evidence-template.md` - present
 - `docs/staging-ingest-worker-operation.md` - present
 - `docs/production-ingest-worker-activation.md` - present

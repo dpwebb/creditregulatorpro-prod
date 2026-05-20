@@ -7,6 +7,7 @@ import {
   REQUIRED_PROMOTION_COMMANDS,
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
+import { buildMigrationGateReport } from "../../scripts/migration-gate.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
 import {
   buildAlertingExclusionValidationReport,
@@ -107,6 +108,56 @@ function acceptedAlertingExclusionEvidence() {
   };
 }
 
+function warningOnlyMigrationGateEvidence() {
+  return {
+    reportName: "migration-governance-release-gate",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "warning-only",
+    policyPath: "docs/production-scale/migration-governance-policy.json",
+    policyMode: "warning-only",
+    releaseGateAccepted: false,
+    runtimeEnsureResidualImpact: "warning-only",
+    releaseBlockingFindings: [],
+    warningOnlyFindings: [{ category: "approved-runtime-ensure-residual" }],
+    waivedFindings: [],
+    blockerCoverage: {
+      migrationGovernance: false,
+      acceptedReleaseBlocking: false,
+      acceptedFormalWaiver: false,
+    },
+    formalWaiver: {
+      accepted: false,
+      reason: null,
+    },
+    safety: {
+      nonMutating: true,
+      requiresDatabase: false,
+      mutatesDatabase: false,
+      executesDdl: false,
+      productionMutationAttempted: false,
+      schemaChangedByCodex: false,
+      runtimeEnsurePathsRemoved: false,
+      adHocDdlAdded: false,
+    },
+  };
+}
+
+function acceptedReleaseBlockingMigrationGateEvidence() {
+  return {
+    ...warningOnlyMigrationGateEvidence(),
+    status: "accepted-release-blocking",
+    policyMode: "release-blocking",
+    releaseGateAccepted: true,
+    runtimeEnsureResidualImpact: "release-blocking",
+    warningOnlyFindings: [],
+    blockerCoverage: {
+      migrationGovernance: true,
+      acceptedReleaseBlocking: true,
+      acceptedFormalWaiver: false,
+    },
+  };
+}
+
 describe("production promotion evidence pack", () => {
   it("fails if a required blocker is missing", () => {
     const registry = JSON.parse(readFileSync(resolve("docs/production-scale/blocker-registry.json"), "utf8"));
@@ -174,6 +225,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run alerts:dry-run");
     expect(report.commandList).toContain("pnpm run alerts:exclusion:validate");
     expect(report.commandList).toContain("pnpm run response:ops-readiness-evidence");
+    expect(report.commandList).toContain("pnpm run migrations:gate");
   });
 
   it("does not claim production-at-scale readiness while unresolved or human-required blockers remain", () => {
@@ -275,6 +327,69 @@ describe("production promotion evidence pack", () => {
 
     expect(rawReportRemediationAcceptance.accepted).toBe(true);
     expect(blocker6?.classification).toBe("fixed with human-observed evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 10 partial when migration gate remains warning-only", () => {
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      migrationGateEvidence: warningOnlyMigrationGateEvidence(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker10 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 10);
+
+    expect(report.migrationGateEvidence).toMatchObject({
+      policyMode: "warning-only",
+      releaseGateAccepted: false,
+      blockerCoverage: {
+        migrationGovernance: false,
+      },
+    });
+    expect(blocker10?.classification).toBe("partial");
+  });
+
+  it("classifies blocker 10 fixed with accepted release-blocking migration gate evidence", () => {
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      migrationGateEvidence: acceptedReleaseBlockingMigrationGateEvidence(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker10 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 10);
+
+    expect(blocker10?.classification).toBe("fixed with automated evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("classifies blocker 10 policy-closed with accepted formal migration gate waiver", () => {
+    const migrationGateEvidence = buildMigrationGateReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      migrationGateEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker10 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 10);
+
+    expect(migrationGateEvidence.status).toBe("accepted-formal-waiver");
+    expect(report.migrationGateEvidence).toMatchObject({
+      policyMode: "waived",
+      releaseGateAccepted: true,
+      formalWaiver: {
+        accepted: true,
+      },
+      blockerCoverage: {
+        migrationGovernance: true,
+      },
+    });
+    expect(blocker10?.classification).toBe("waived with explicit reason");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 

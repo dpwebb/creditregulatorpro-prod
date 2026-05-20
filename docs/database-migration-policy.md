@@ -13,7 +13,8 @@ CreditRegulatorPro remains limited beta ready with strict constraints. It is not
 - Runtime schema ensure functions remain in place until a later audited migration task replaces them with reviewed additive migrations.
 - Runtime ensure functions must not be removed, disabled, or rewritten without a task that explicitly owns schema migration cutover and tests the affected runtime paths.
 - The migration checker is non-mutating. It statically scans source files and ledger files only.
-- `pnpm run check:migrations` is release-visible reporting only. It writes non-mutating evidence, but it must not hard-fail production deploys until a later task wires a stable, audited gate.
+- `pnpm run check:migrations` is release-visible reporting only. It writes non-mutating evidence.
+- `pnpm run migrations:gate` is the accepted non-mutating release gate policy check. It fails closed for unknown, missing, unledgered, or unapproved mutation sources, while the current policy formally waives approved runtime ensure residuals during reviewed additive ledger cutover.
 
 ## Required Future Migration Shape
 
@@ -94,11 +95,32 @@ pnpm run migrations:evidence
 
 This uses the same non-mutating checker and writes the same release-visible evidence files.
 
+## Migration Gate
+
+Run:
+
+```bash
+pnpm run migrations:gate
+```
+
+The gate reads `docs/production-scale/migration-governance-policy.json` and writes:
+
+- `docs/production-scale/evidence/latest-migration-gate.md`
+- `docs/production-scale/evidence/latest-migration-gate.json`
+
+Gate modes:
+
+- `warning-only`: approved runtime ensure residuals remain visible warnings and blocker 10 is not policy-closed.
+- `release-blocking`: approved runtime ensure residuals become blocking until reviewed additive migration cutover is complete.
+- `waived`: approved runtime ensure residuals are formally waived with an accountable reason, role, timestamp, expiry, and conditions. Unknown, unledgered, missing, or unapproved mutation sources still fail the gate.
+
+The gate does not connect to the database, read credentials, run DDL, alter tables, update generated types, mutate production data, or change runtime behavior.
+
 ## Current Residual Risk
 
 Runtime ensure functions remain active. They are release-visible residuals, not completed migration governance. Their presence is warning-only when every expected source exists and is represented in the ledger, but unknown mutation sources, unledgered sources, missing expected sources, and missing expected inventory entries are release-blocking findings for governance review.
 
-Migration governance remains partial until runtime ensure ownership is fully governed through reviewed additive migrations, rollback notes, and a separately approved hard gate.
+Migration governance is policy-closed only through an accepted `migrations:gate` result in `release-blocking` mode or a valid formal waiver. The current accepted waiver keeps approved runtime ensure residuals visible while the reviewed additive migration ledger cutover is completed.
 
 ## Remediation Path
 

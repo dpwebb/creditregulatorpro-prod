@@ -38,6 +38,7 @@
     "pnpm run retention:archive-restore:simulated",
     "pnpm run check:migrations",
     "pnpm run migrations:evidence",
+    "pnpm run migrations:gate",
     "pnpm run baseline:production-scale-local -- --dry-run",
     "pnpm run baseline:production-scale-local -- --simulated",
     "pnpm run packet-pdf:cache-miss-proof",
@@ -87,6 +88,7 @@
     "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-backup-restore-checklist.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
     "git diff --check",
     "pnpm run production-scale:promotion-pack",
     "pnpm run production-safe-probes:evidence",
@@ -539,23 +541,28 @@
       "affectedFilesRoutesFunctions": [
         "helpers/*Schema*",
         "scripts/check-migrations.mjs",
+        "scripts/migration-gate.mjs",
+        "docs/production-scale/migration-governance-policy.json",
         "migrations/0000-runtime-schema-inventory.md"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run check:migrations",
         "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
         "pnpm run typecheck"
       ],
       "forbiddenProofTypes": [
         "runtime DDL changes",
         "schema mutation without review",
         "production DB introspection",
+        "policy closure without release-blocking mode or formal waiver",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
@@ -563,13 +570,17 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/database-migration-policy.md",
+        "docs/production-scale/migration-governance-policy.json",
         "migrations/0000-runtime-schema-inventory.md",
         "docs/production-scale/evidence/latest-migration-governance.md",
         "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-gate.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time."
+      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources.",
+      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time."
     },
     {
       "number": 11,

@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T21:15:53.717Z",
+  "generatedAt": "2026-05-20T21:43:34.889Z",
   "branch": "staging",
-  "commit": "7f2229341f3693b1caba5471b17a2a88d9e87782",
+  "commit": "6c0f772662c7be75e7a51a51b100fb7f07d10680",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -427,20 +427,24 @@
           "severity": "High",
           "area": "Response operations maturity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+          "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run response:soak-check",
             "pnpm run response:orchestration-check",
             "pnpm run response:worker-orchestrate -- --dry-run",
             "pnpm run response:lifecycle -- --dry-run",
             "pnpm run response:replay -- --dry-run",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts"
           ],
           "forbiddenProofTypes": [
             "live mailbox integration",
             "external alert delivery without approval",
+            "live scheduler enabled by default",
+            "production purge/archive or backfill",
             "queue semantic changes",
             "dashboard PASS alone"
           ],
@@ -449,12 +453,14 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/response-processing-production-ops-runbook.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof."
+          "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production."
         },
         {
           "number": 9,
@@ -465,14 +471,18 @@
           "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run alerts:exclusion:validate",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run operator:dashboard",
             "pnpm run response:orchestration-check",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
           ],
           "forbiddenProofTypes": [
             "SIMULATED alert proof represented as live alert delivery",
             "real external delivery",
+            "formal exclusion without operator acknowledgement",
             "PII alert payloads",
             "provider credentials",
             "dashboard PASS alone"
@@ -482,8 +492,17 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/alerting-exclusion-template.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
+            "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+            "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+            "docs/production-scale/evidence/live-alert-proof.md",
+            "docs/production-scale/evidence/live-alert-proof.json",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
@@ -495,17 +514,20 @@
           "severity": "High",
           "area": "Migration governance",
           "currentStatus": "partial",
-          "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
+          "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
           "allowedProofCommands": [
             "pnpm run check:migrations",
             "pnpm run migrations:evidence",
+            "pnpm run migrations:gate",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
             "pnpm run typecheck"
           ],
           "forbiddenProofTypes": [
             "runtime DDL changes",
             "schema mutation without review",
             "production DB introspection",
+            "policy closure without release-blocking mode or formal waiver",
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
@@ -513,13 +535,16 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/database-migration-policy.md",
+            "docs/production-scale/migration-governance-policy.json",
             "migrations/0000-runtime-schema-inventory.md",
             "docs/production-scale/evidence/latest-migration-governance.md",
             "docs/production-scale/evidence/latest-migration-governance.json",
+            "docs/production-scale/evidence/latest-migration-gate.md",
+            "docs/production-scale/evidence/latest-migration-gate.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time."
+          "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time."
         },
         {
           "number": 11,
@@ -864,6 +889,9 @@
           "allowedProofCommands": [
             "pnpm run production-scale:evidence",
             "pnpm run production-worker:readiness-evidence",
+            "pnpm run response:ops-readiness-evidence",
+            "pnpm run alerts:exclusion:validate",
+            "pnpm run alerts:dry-run",
             "pnpm run production-scale:promotion-pack",
             "pnpm run operator:dashboard",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
@@ -881,12 +909,18 @@
             "docs/production-observability-metrics.md",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
             "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+            "docs/production-scale/evidence/latest-alerts-dry-run.md",
+            "docs/production-scale/evidence/latest-alerts-dry-run.json",
             "docs/production-scale/evidence/latest-production-promotion-pack.md",
             "docs/production-scale/evidence/latest-production-promotion-pack.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
+          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
         },
         {
           "number": 22,
@@ -1187,20 +1221,24 @@
           "severity": "High",
           "area": "Response operations maturity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+          "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run response:soak-check",
             "pnpm run response:orchestration-check",
             "pnpm run response:worker-orchestrate -- --dry-run",
             "pnpm run response:lifecycle -- --dry-run",
             "pnpm run response:replay -- --dry-run",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts"
           ],
           "forbiddenProofTypes": [
             "live mailbox integration",
             "external alert delivery without approval",
+            "live scheduler enabled by default",
+            "production purge/archive or backfill",
             "queue semantic changes",
             "dashboard PASS alone"
           ],
@@ -1209,12 +1247,14 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/response-processing-production-ops-runbook.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof."
+          "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production."
         },
         {
           "number": 9,
@@ -1225,14 +1265,18 @@
           "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run alerts:exclusion:validate",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run operator:dashboard",
             "pnpm run response:orchestration-check",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
           ],
           "forbiddenProofTypes": [
             "SIMULATED alert proof represented as live alert delivery",
             "real external delivery",
+            "formal exclusion without operator acknowledgement",
             "PII alert payloads",
             "provider credentials",
             "dashboard PASS alone"
@@ -1242,8 +1286,17 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/alerting-exclusion-template.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
+            "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+            "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+            "docs/production-scale/evidence/live-alert-proof.md",
+            "docs/production-scale/evidence/live-alert-proof.json",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
@@ -1526,20 +1579,24 @@
           "severity": "High",
           "area": "Response operations maturity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+          "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run response:soak-check",
             "pnpm run response:orchestration-check",
             "pnpm run response:worker-orchestrate -- --dry-run",
             "pnpm run response:lifecycle -- --dry-run",
             "pnpm run response:replay -- --dry-run",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts"
           ],
           "forbiddenProofTypes": [
             "live mailbox integration",
             "external alert delivery without approval",
+            "live scheduler enabled by default",
+            "production purge/archive or backfill",
             "queue semantic changes",
             "dashboard PASS alone"
           ],
@@ -1548,12 +1605,14 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/response-processing-production-ops-runbook.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof."
+          "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production."
         },
         {
           "number": 16,
@@ -1665,6 +1724,9 @@
           "allowedProofCommands": [
             "pnpm run production-scale:evidence",
             "pnpm run production-worker:readiness-evidence",
+            "pnpm run response:ops-readiness-evidence",
+            "pnpm run alerts:exclusion:validate",
+            "pnpm run alerts:dry-run",
             "pnpm run production-scale:promotion-pack",
             "pnpm run operator:dashboard",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
@@ -1682,12 +1744,18 @@
             "docs/production-observability-metrics.md",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
             "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+            "docs/production-scale/evidence/latest-alerts-dry-run.md",
+            "docs/production-scale/evidence/latest-alerts-dry-run.json",
             "docs/production-scale/evidence/latest-production-promotion-pack.md",
             "docs/production-scale/evidence/latest-production-promotion-pack.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
+          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
         }
       ]
     },
@@ -1870,20 +1938,24 @@
           "severity": "High",
           "area": "Response operations maturity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+          "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run response:soak-check",
             "pnpm run response:orchestration-check",
             "pnpm run response:worker-orchestrate -- --dry-run",
             "pnpm run response:lifecycle -- --dry-run",
             "pnpm run response:replay -- --dry-run",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts"
           ],
           "forbiddenProofTypes": [
             "live mailbox integration",
             "external alert delivery without approval",
+            "live scheduler enabled by default",
+            "production purge/archive or backfill",
             "queue semantic changes",
             "dashboard PASS alone"
           ],
@@ -1892,12 +1964,14 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/response-processing-production-ops-runbook.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof."
+          "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production."
         },
         {
           "number": 9,
@@ -1908,14 +1982,18 @@
           "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
           "allowedProofCommands": [
             "pnpm run alerts:dry-run",
+            "pnpm run alerts:exclusion:validate",
+            "pnpm run response:ops-readiness-evidence",
             "pnpm run operator:dashboard",
             "pnpm run response:orchestration-check",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
           ],
           "forbiddenProofTypes": [
             "SIMULATED alert proof represented as live alert delivery",
             "real external delivery",
+            "formal exclusion without operator acknowledgement",
             "PII alert payloads",
             "provider credentials",
             "dashboard PASS alone"
@@ -1925,8 +2003,17 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/alerting-exclusion-template.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
+            "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+            "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+            "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+            "docs/production-scale/evidence/live-alert-proof.md",
+            "docs/production-scale/evidence/live-alert-proof.json",
+            "docs/production-scale/evidence/latest-response-ops-readiness.md",
+            "docs/production-scale/evidence/latest-response-ops-readiness.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
@@ -2245,20 +2332,24 @@
       "severity": "High",
       "area": "Response operations maturity",
       "currentStatus": "partial",
-      "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+      "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run response:ops-readiness-evidence",
         "pnpm run response:soak-check",
         "pnpm run response:orchestration-check",
         "pnpm run response:worker-orchestrate -- --dry-run",
         "pnpm run response:lifecycle -- --dry-run",
         "pnpm run response:replay -- --dry-run",
         "pnpm run operator:dashboard",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts"
       ],
       "forbiddenProofTypes": [
         "live mailbox integration",
         "external alert delivery without approval",
+        "live scheduler enabled by default",
+        "production purge/archive or backfill",
         "queue semantic changes",
         "dashboard PASS alone"
       ],
@@ -2267,12 +2358,14 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/response-processing-production-ops-runbook.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof."
+      "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production."
     },
     {
       "number": 9,
@@ -2283,14 +2376,18 @@
       "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence",
         "pnpm run operator:dashboard",
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
         "real external delivery",
+        "formal exclusion without operator acknowledgement",
         "PII alert payloads",
         "provider credentials",
         "dashboard PASS alone"
@@ -2300,8 +2397,17 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-observability-metrics.md",
+        "docs/production-scale/alerting-exclusion-template.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -2313,17 +2419,20 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
       "allowedProofCommands": [
         "pnpm run check:migrations",
         "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
         "pnpm run typecheck"
       ],
       "forbiddenProofTypes": [
         "runtime DDL changes",
         "schema mutation without review",
         "production DB introspection",
+        "policy closure without release-blocking mode or formal waiver",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
@@ -2331,13 +2440,16 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/database-migration-policy.md",
+        "docs/production-scale/migration-governance-policy.json",
         "migrations/0000-runtime-schema-inventory.md",
         "docs/production-scale/evidence/latest-migration-governance.md",
         "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-gate.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time."
+      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time."
     },
     {
       "number": 11,
