@@ -299,6 +299,18 @@ describe("operator regression dashboard", () => {
         }),
         expect.objectContaining({
           category: "Outcome Tracking",
+          name: "Response scheduler activation conditions",
+          command: "pnpm run response:worker-orchestrate -- --dry-run",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Response external alert dry-run boundary",
+          command: "pnpm run response:orchestration-check",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
           name: "Response queue service",
           command: "pnpm exec vitest run tests/api/response-processing-queue.spec.ts",
           runByDefault: true,
@@ -349,6 +361,24 @@ describe("operator regression dashboard", () => {
           category: "Outcome Tracking",
           name: "Response lifecycle retention dry-run",
           command: "pnpm run response:lifecycle -- --dry-run",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Response purge/archive readiness",
+          command: "pnpm run response:lifecycle -- --dry-run",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Response historical backfill plan",
+          command: "pnpm run response:replay -- --dry-run",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Outcome Tracking",
+          name: "Response remediation operator controls",
+          command: "pnpm exec vitest run tests/api/response-processing-queue-remediation-endpoint.spec.ts",
           runByDefault: false,
         }),
         expect.objectContaining({
@@ -524,10 +554,19 @@ describe("operator regression dashboard", () => {
     expect(rendered).toContain("Response replay/backfill dry-run");
     expect(rendered).toContain("Response processing worker dry-run");
     expect(rendered).toContain("Response worker orchestration dry-run");
+    expect(rendered).toContain("Response scheduler activation conditions");
+    expect(rendered).toContain("Response external alert dry-run boundary");
     expect(rendered).toContain("Response worker orchestration synthetic check");
     expect(rendered).toContain("Response lifecycle retention dry-run");
+    expect(rendered).toContain("Response purge/archive readiness");
+    expect(rendered).toContain("Response historical backfill plan");
+    expect(rendered).toContain("Response remediation operator controls");
     expect(rendered).toContain("Response processing soak check");
     expect(rendered).toContain("not live mailbox integration or production-load proof");
+    expect(rendered).toContain("live daemon activation is not automatic");
+    expect(rendered).toContain("Real email, Slack, webhook, SMS, push, or pager delivery remains intentionally absent");
+    expect(rendered).toContain("does not physically purge or archive response-processing history");
+    expect(rendered).toContain("records without sanitized stored summaries remain non-replayable");
     expect(rendered).toContain("durable response-processing queue/backpressure/dead-letter tooling now exists");
     expect(rendered).toContain("explicit operator remediation events");
     expect(rendered).toContain("bounded scheduled worker orchestration with overlap skipping");

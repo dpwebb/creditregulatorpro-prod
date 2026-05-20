@@ -664,6 +664,22 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           },
         ),
         check(
+          "Response scheduler activation conditions",
+          "SKIP",
+          "Runbook-backed scheduler proof: live daemon activation is not automatic; operators must first pass dry-run orchestration, response soak, dashboard, and response tests, then use only an explicit bounded --run invocation with max-job and lock-scope evidence.",
+          {
+            command: "pnpm run response:worker-orchestrate -- --dry-run",
+          },
+        ),
+        check(
+          "Response external alert dry-run boundary",
+          "SKIP",
+          "Synthetic orchestration proof for internal alert surfacing only. Real email, Slack, webhook, SMS, push, or pager delivery remains intentionally absent; future external providers require mocked dry-run tests before live delivery.",
+          {
+            command: "pnpm run response:orchestration-check",
+          },
+        ),
+        check(
           "Response queue service",
           "SKIP",
           "DB-backed queue coverage for sanitized payload validation, duplicate active-job collapse, row-lock claiming, retry/dead-letter behavior, stale-running visibility, replay apply guard preservation, append-only remediation events, and terminal dead-letter replacement retry.",
@@ -743,6 +759,30 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           "Operator-only retention and drift report. Dry-run is default and writes nothing; apply mode only appends lifecycle retention markers and never deletes queue/orchestration/replay history.",
           {
             command: "pnpm run response:lifecycle -- --dry-run",
+          },
+        ),
+        check(
+          "Response purge/archive readiness",
+          "SKIP",
+          "Runbook-backed lifecycle proof: retention dry-run identifies eligible terminal records and protected stale/dead-letter records, while apply remains explicit, actor-attributed, append-only, and does not physically purge or archive response-processing history.",
+          {
+            command: "pnpm run response:lifecycle -- --dry-run",
+          },
+        ),
+        check(
+          "Response historical backfill plan",
+          "SKIP",
+          "Runbook-backed replay proof: dry-run reports replayable and non-replayable records with reason counts; apply requires explicit confirmation and actor attribution, and records without sanitized stored summaries remain non-replayable without rehydrating raw response text.",
+          {
+            command: "pnpm run response:replay -- --dry-run",
+          },
+        ),
+        check(
+          "Response remediation operator controls",
+          "SKIP",
+          "Runbook-backed remediation proof: admin-only retry, dead-letter acknowledgement, replacement-job retry, and stale-running review require explicit confirmations and append-only events without deleting queue history or exposing raw response text.",
+          {
+            command: "pnpm exec vitest run tests/api/response-processing-queue-remediation-endpoint.spec.ts",
           },
         ),
         check(
