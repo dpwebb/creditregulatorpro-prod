@@ -4,6 +4,30 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import { deleteUserReportDataCascade } from "../../helpers/deleteReportArtifactCascade";
 import { logAudit } from "../../helpers/auditLogger";
+import { validateAdminResetEnvironment } from "../../helpers/adminResetSafety";
+
+function logResetFailure(error: unknown): void {
+  if (error instanceof BusinessRuleError) {
+    console.warn("[admin-reset-user] Request rejected.", {
+      statusCode: error.statusCode,
+      reason: error.message,
+    });
+    return;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { code?: unknown; constraint?: unknown; table?: unknown; message?: unknown };
+    console.error("[admin-reset-user] Unexpected reset failure.", {
+      code: typeof candidate.code === "string" ? candidate.code : undefined,
+      constraint: typeof candidate.constraint === "string" ? candidate.constraint : undefined,
+      table: typeof candidate.table === "string" ? candidate.table : undefined,
+      message: typeof candidate.message === "string" ? candidate.message : "Unexpected error",
+    });
+    return;
+  }
+
+  console.error("[admin-reset-user] Unexpected reset failure.", { message: "Unexpected error" });
+}
 
 export async function handle(request: Request) {
   try {
@@ -17,10 +41,15 @@ export async function handle(request: Request) {
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
 
+    const safety = validateAdminResetEnvironment();
+    if (safety.ok === false) {
+      throw new BusinessRuleError(safety.reason, 409);
+    }
+
     // 2. Verify target user exists and is NOT an admin
     const targetUser = await db
       .selectFrom("users")
-      .select(["email", "role"])
+      .select(["id", "email", "role"])
       .where("id", "=", input.userId)
       .executeTakeFirst();
 
@@ -34,6 +63,12 @@ export async function handle(request: Request) {
 
     if (input.userId === adminUser.id) {
       throw new BusinessRuleError("Cannot reset the current admin account", 400);
+    }
+
+    const normalizedTargetEmail = targetUser.email.trim().toLowerCase();
+    const normalizedConfirmEmail = input.confirmEmail.trim().toLowerCase();
+    if (normalizedTargetEmail !== normalizedConfirmEmail) {
+      throw new BusinessRuleError("Confirmation email does not match the target user's email", 400);
     }
 
     // 3. Delete report artifacts, tradelines, and all downstream report-derived data.
@@ -77,6 +112,7 @@ export async function handle(request: Request) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    logResetFailure(error);
     return handleEndpointError(error);
   }
 }

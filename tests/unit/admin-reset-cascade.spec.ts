@@ -22,11 +22,27 @@ describe("admin reset cascade", () => {
     const schema = source("endpoints/admin/reset-user_POST.schema.ts");
 
     expect(endpoint).toContain("deleteUserReportDataCascade");
+    expect(endpoint).toContain("validateAdminResetEnvironment");
+    expect(endpoint).toContain("normalizedTargetEmail");
     expect(endpoint).toContain("...resetCounts");
     expect(endpoint).toContain('action: "UPDATE"');
     expect(endpoint).toContain('action: "ACCOUNT_DATA_RESET"');
+    expect(schema).toContain("confirmEmail");
     expect(schema).toContain("deletedTradelines: number");
     expect(schema).toContain("deletedPackets: number");
+  });
+
+  it("cleans ingest processing queue rows before deleting a report artifact", () => {
+    const helper = source("helpers/deleteReportArtifactCascade.tsx");
+    const eventDeleteIndex = helper.indexOf("delete from public.ingest_processing_job_event");
+    const jobDeleteIndex = helper.indexOf("delete from public.ingest_processing_job\n        where id");
+    const artifactDeleteIndex = helper.indexOf('.deleteFrom("reportArtifact")');
+
+    expect(helper).toContain("ingest processing queue cleanup (artifact)");
+    expect(helper).toContain("from public.ingest_processing_job");
+    expect(eventDeleteIndex).toBeGreaterThan(-1);
+    expect(jobDeleteIndex).toBeGreaterThan(eventDeleteIndex);
+    expect(artifactDeleteIndex).toBeGreaterThan(jobDeleteIndex);
   });
 
   it("keeps expired admin purge on the report artifact cascade path", () => {

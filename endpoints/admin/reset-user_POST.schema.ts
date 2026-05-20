@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const schema = z.object({
   userId: z.coerce.number().int().positive(),
+  confirmEmail: z.string().email("Enter the user's email to confirm reset"),
 });
 
 export type InputType = z.infer<typeof schema>;

@@ -108,7 +108,7 @@ export default function AdminUserManagementPage() {
   const handleReset = () => {
     if (!resetTarget) return;
     resetUserMutation.mutate(
-      { userId: resetTarget.id },
+      { userId: resetTarget.id, confirmEmail: confirmEmail.trim() },
       {
         onSuccess: (data) => {
           showSuccess(

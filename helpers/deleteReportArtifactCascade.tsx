@@ -2,6 +2,7 @@ import { db } from "./db";
 import { Transaction } from "kysely";
 import { DB } from "./schema";
 import { logDelete, logAudit } from "./auditLogger";
+import { sql } from "kysely";
 
 function isOptionalSchemaError(error: unknown): boolean {
   return (
@@ -221,6 +222,27 @@ export async function deleteReportArtifactCascade(
         .deleteFrom("obligationChallengeLog")
         .where("reportArtifactId", "=", reportArtifactId)
         .executeTakeFirst();
+    });
+
+    await runOptionalStep("ingest processing queue cleanup (artifact)", async () => {
+      const jobIdsResult = await sql<{ id: number }>`
+        select id
+        from public.ingest_processing_job
+        where report_artifact_id = ${reportArtifactId}
+      `.execute(trx);
+      const jobIds = jobIdsResult.rows.map((row) => Number(row.id)).filter(Number.isFinite);
+      if (jobIds.length === 0) {
+        return;
+      }
+
+      await sql`
+        delete from public.ingest_processing_job_event
+        where job_id in (${sql.join(jobIds)})
+      `.execute(trx);
+      await sql`
+        delete from public.ingest_processing_job
+        where id in (${sql.join(jobIds)})
+      `.execute(trx);
     });
 
     // Step 3: Delete the report artifact itself
