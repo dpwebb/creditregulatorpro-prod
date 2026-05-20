@@ -60,6 +60,7 @@
     "operator:dashboard": "tsx scripts/operator-regression-dashboard.ts",
     "task:scope": "tsx scripts/task-scope-report.ts",
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
+    "baseline:production-scale-local": "node scripts/production-scale-harness.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
     "check:staging-observability": "node scripts/staging-observability-check.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",

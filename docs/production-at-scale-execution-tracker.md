@@ -44,7 +44,7 @@ Use only these status values in the execution table:
 - High-growth list endpoints now have explicit default/max bounds. Remaining inventory notes: `hidden-risk/list` still computes aggregate/stale-suppression semantics over the full matching risk set and should get a separate pagination/UX split before it is treated as production-scale; `parser-test-case/list` is bounded but still returns `rawExtractedText` for the current admin parser UI; `consumer-signature/list` is bounded but still returns `signatureData` for the existing delivery wizard compatibility path.
 - Ingest/PDF/storage/auth/DB observability is now surfaced through sanitized dashboard metrics and thresholds; external alert delivery remains future work.
 - Disaster recovery proof is incomplete.
-- Production-scale load and concurrency tests are missing.
+- A local/staging-safe production-scale load/concurrency dry-run harness now exists and refuses production mutation. Repeated operator-run local/staging capacity evidence still needs to be collected before any production-at-scale claim.
 - Bureau communication attachments are stored as base64 in database fields.
 - Support role boundaries are now first-class in route/auth and API privacy tests for report artifacts, packets/PDFs, evidence, response documents, and support tickets.
 - Response processing is strong but not fully production-operational.
@@ -75,7 +75,7 @@ Do not combine tasks. Each numbered row is a separate Codex task with its own im
 | 15 | Observability expansion | Complete | `helpers/productionObservabilityMetrics.ts` aggregates sanitized ingest, OCR/parser, packet PDF, storage, auth/rate-limit, and DB config/pool signals with `OK`/`Warning`/`Critical` thresholds. `helpers/packetPdfCache.ts` records `PACKET_PDF_CACHE_HIT` events in addition to render attempts/success/failure. `helpers/documentStorage.ts` and `helpers/gcsStorage.ts` record sanitized storage read/write/delete failure metrics through `auditLog` with object-reference hashes only. `scripts/ingest-processing-worker.ts` adds sanitized duration/page-count/parser-summary fields to ingest job result summaries. `scripts/operator-regression-dashboard.ts` adds the `Production Observability` category. `docs/production-observability-metrics.md` documents signals, sensitivity boundaries, and thresholds. | Metric/dashboard unit tests; packet PDF cache tests; `pnpm run test:regression-dashboard`; `pnpm run operator:dashboard`; `pnpm run typecheck`; `pnpm run build`; relevant API tests; `git diff --check`. |
 | 16 | Additional list endpoint limits | Complete | High-growth list routes now apply default/max bounds while preserving existing ownership/admin filters and sorting. Changed routes: bankruptcy, consumer-signature, creditor-validation, discrimination, evidence, evidence-attachment, fraud-freeze, metro2-validation-log, obligation-instance, parser-known-entity, parser-mapping, parser-test-case, regulatory-notification, regulatory-update, scanning-rule, tradeline, and version. Default is 50 and max is 100 except tradeline max 250 to preserve existing lifecycle script compatibility. Oversized limits are rejected by schema validation. | `pnpm exec vitest run tests/api/high-growth-list-limits.spec.ts tests/api/evidence-privacy-endpoint.spec.ts`; `pnpm run test:api`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 17 | Support-role and production-safe privacy smokes | Complete | `tests/api/support-role-privacy-matrix.spec.ts` proves support is non-admin for report artifacts, packets/PDFs, evidence, and response documents, and proves support-ticket access is limited to assigned or open unassigned tickets. `tests/contracts/route-auth-classification.spec.ts` now treats support-role privacy boundaries as a first-class route contract. `scripts/production-readiness-gate.mjs` and `.github/workflows/deploy-production.yml` include production-safe unauthenticated and invalid-session read-only denial probes for auth session, report-artifact list, packet list, evidence list, response-document list, and support-ticket list without requiring production fixture data. | `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts tests/unit/production-readiness-gate.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/contracts/route-auth-classification.spec.ts`; `pnpm run test:contracts`; privacy/auth API tests; `pnpm run test:api`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
-| 18 | Load/concurrency harness | Not started | Blocker 16: no production-scale load/concurrency proof exists. | Local-only upload/process/PDF concurrency harness; DB pool latency report; failure-mode evidence; no production mutation. |
+| 18 | Load/concurrency harness | Complete | `scripts/production-scale-harness.mjs` and `baseline:production-scale-local` add a dry-run, non-mutating load/concurrency evidence harness that allows local/staging targets, refuses production and unknown hosts, rejects mutation execution flags, reports upload/process enqueue, ingest worker, OCR fallback, packet build/PDF cache, response queue, dashboard latency, DB pool config, and failure/dead-letter domains, and proves its internal concurrency cap. `docs/production-scale-load-harness.md` documents the safety gates and production-mutation refusal. | Harness production-host refusal tests; dry-run default tests; bounded concurrency tests; required-section report tests; package-script test; no-external-provider-call test; `pnpm run baseline:production-scale-local -- --dry-run`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 19 | Restore drill evidence | Not started | Blocker 15: no completed human-observed restore drill evidence was found. | Restore checklist; date/operator/source SHA evidence; golden path after restore; RPO/RTO artifact review. |
 | 20 | Response operations completion | Not started | Blocker 22: response processing is strong but not fully production-operational. | Soak checks; alert delivery simulation or accepted exclusion; scheduler bounded-run test; lifecycle apply confirmation; dashboard evidence. |
 | 21 | Frontend/operator UX alignment | Not started | Readiness constraints are policy-heavy and not fully surfaced in product/operator UX. | UI unit tests; relevant API checks; operator dashboard checks; no parser/packet business logic changes. |
@@ -136,6 +136,39 @@ Staging/local-only privacy checks:
 - Ordinary non-owner denial and support-role access matrix tests that need seeded report artifacts, packets, evidence, response documents, or support tickets remain in local/staging API tests.
 - Support ticket positive access checks for assigned or open unassigned tickets remain local/staging-only because production may not contain safe fixture tickets.
 - Admin positive access checks remain local/staging-only unless an existing production-safe read-only admin session is explicitly provided by an operator-run procedure.
+
+## Production Scale Load Harness Inventory
+
+Inventory date: 2026-05-20.
+
+Harness:
+
+- `scripts/production-scale-harness.mjs`
+- `pnpm run baseline:production-scale-local -- --dry-run`
+
+Safety behavior:
+
+- Dry-run and non-mutating by default.
+- Local targets and `https://staging.creditregulatorpro.com` are allowed.
+- Production hosts are refused.
+- Unknown hosts fail closed.
+- `--apply`, `--execute`, and `--run` are rejected.
+- External provider calls are denied and not made.
+- The harness reports zero runtime mutation requests, zero external provider calls, no raw report bytes sent, and no raw extracted text stored.
+
+Reported evidence domains:
+
+- Concurrent authenticated upload/process enqueue behavior.
+- Ingest worker bounded concurrency.
+- OCR fallback path.
+- Packet creation/build under bounded load.
+- Packet PDF cache repeated download behavior.
+- Response queue operations.
+- Operator dashboard read latency.
+- DB pool config visibility.
+- Failure/dead-letter behavior.
+
+This is local/staging-safe harness evidence. It does not authorize production mutation and does not claim production-at-scale readiness.
 
 ## Non-Regression Guardrails
 
