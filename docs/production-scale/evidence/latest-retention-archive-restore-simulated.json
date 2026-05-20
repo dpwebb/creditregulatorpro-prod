@@ -1,0 +1,190 @@
+{
+  "reportName": "retention-archive-restore-simulated",
+  "evidenceType": "SIMULATED",
+  "generatedAt": "2026-05-20T19:40:20.478Z",
+  "branch": "staging",
+  "commit": "184297cb7fe6ed57ef6791ac49b45b693a403eea",
+  "simulationId": "sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379",
+  "status": "passed",
+  "readinessClaim": "No production, broad-production, or production-at-scale readiness claim is made.",
+  "humanObservedPhysicalArchiveRestoreStillRequired": true,
+  "relationToDisasterRecovery": "SIMULATED retention archive/restore proof is lifecycle recoverability evidence only. It is not a substitute for human-observed disaster recovery restore-drill evidence.",
+  "syntheticRecords": [
+    {
+      "id": "SIMULATED-RETENTION-REPORT-001",
+      "table": "reportArtifact",
+      "ownerKey": "SIMULATED-OWNER-A",
+      "createdAt": "2025-04-05T19:40:20.478Z",
+      "payloadHash": "74dae170cbcad2a57528c3927b16a1a7068b77e259a2d637e3ec0f8ae81f55da"
+    },
+    {
+      "id": "SIMULATED-RETENTION-TRADELINE-001",
+      "table": "tradeline",
+      "ownerKey": "SIMULATED-OWNER-A",
+      "createdAt": "2025-04-05T19:40:20.478Z",
+      "payloadHash": "813c8effed2279391682b458a02df0ff923c994fe25e5c05d62cc688a0d0973e"
+    },
+    {
+      "id": "SIMULATED-RETENTION-EVIDENCE-001",
+      "table": "evidenceEvent",
+      "ownerKey": "SIMULATED-OWNER-A",
+      "createdAt": "2025-04-05T19:40:20.478Z",
+      "payloadHash": "65cdaf9d57dde672bf934a2c2d61421da633d8018575cab174a04b3ca0a00306"
+    },
+    {
+      "id": "SIMULATED-RETENTION-RECENT-001",
+      "table": "reportArtifact",
+      "ownerKey": "SIMULATED-OWNER-B",
+      "createdAt": "2026-04-20T19:40:20.478Z",
+      "payloadHash": "ad6b5a5caadfe1a8b914b138dc2795b08d9dac7b4d2f8f78b3a08b23b60796d5"
+    }
+  ],
+  "preview": {
+    "marker": "SIMULATED_RETENTION_PREVIEW_COMPLETED",
+    "status": "passed",
+    "retentionWindowDays": 365,
+    "cutoffIso": "2025-05-20T19:40:20.478Z",
+    "eligibleRecordCount": 3,
+    "totalRecordCount": 4,
+    "eligibleRecordIds": [
+      "SIMULATED-RETENTION-REPORT-001",
+      "SIMULATED-RETENTION-TRADELINE-001",
+      "SIMULATED-RETENTION-EVIDENCE-001"
+    ],
+    "destructiveMutationPerformed": false
+  },
+  "archive": {
+    "marker": "SIMULATED_RETENTION_ARCHIVE_WRITE_COMPLETED",
+    "status": "passed",
+    "archiveId": "SIMULATED-RETENTION-ARCHIVE-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379",
+    "archiveCreatedAt": "2026-05-20T19:40:20.478Z",
+    "archivedRecordCount": 3,
+    "archivedRecords": [
+      {
+        "syntheticArchiveRecordId": "SIMULATED-ARCHIVE-ENTRY-SIMULATED-RETENTION-REPORT-001",
+        "sourceRecordId": "SIMULATED-RETENTION-REPORT-001",
+        "table": "reportArtifact",
+        "payloadHash": "74dae170cbcad2a57528c3927b16a1a7068b77e259a2d637e3ec0f8ae81f55da"
+      },
+      {
+        "syntheticArchiveRecordId": "SIMULATED-ARCHIVE-ENTRY-SIMULATED-RETENTION-TRADELINE-001",
+        "sourceRecordId": "SIMULATED-RETENTION-TRADELINE-001",
+        "table": "tradeline",
+        "payloadHash": "813c8effed2279391682b458a02df0ff923c994fe25e5c05d62cc688a0d0973e"
+      },
+      {
+        "syntheticArchiveRecordId": "SIMULATED-ARCHIVE-ENTRY-SIMULATED-RETENTION-EVIDENCE-001",
+        "sourceRecordId": "SIMULATED-RETENTION-EVIDENCE-001",
+        "table": "evidenceEvent",
+        "payloadHash": "65cdaf9d57dde672bf934a2c2d61421da633d8018575cab174a04b3ca0a00306"
+      }
+    ],
+    "archiveManifestHash": "78f31a73a6817ece2e21a7133f8c5fdbb38f6319a76935f6aab12abd8c170fc2",
+    "syntheticOnly": true,
+    "physicalArchiveWritten": false
+  },
+  "restoreVerification": {
+    "marker": "SIMULATED_RETENTION_RESTORE_VERIFY_COMPLETED",
+    "status": "passed",
+    "restoreVerificationId": "SIMULATED-RETENTION-RESTORE-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379",
+    "verifiedRecordCount": 3,
+    "expectedRecordCount": 3,
+    "verifiedRecords": [
+      {
+        "sourceRecordId": "SIMULATED-RETENTION-REPORT-001",
+        "restoredPayloadHash": "74dae170cbcad2a57528c3927b16a1a7068b77e259a2d637e3ec0f8ae81f55da",
+        "sourcePayloadHash": "74dae170cbcad2a57528c3927b16a1a7068b77e259a2d637e3ec0f8ae81f55da",
+        "verified": true
+      },
+      {
+        "sourceRecordId": "SIMULATED-RETENTION-TRADELINE-001",
+        "restoredPayloadHash": "813c8effed2279391682b458a02df0ff923c994fe25e5c05d62cc688a0d0973e",
+        "sourcePayloadHash": "813c8effed2279391682b458a02df0ff923c994fe25e5c05d62cc688a0d0973e",
+        "verified": true
+      },
+      {
+        "sourceRecordId": "SIMULATED-RETENTION-EVIDENCE-001",
+        "restoredPayloadHash": "65cdaf9d57dde672bf934a2c2d61421da633d8018575cab174a04b3ca0a00306",
+        "sourcePayloadHash": "65cdaf9d57dde672bf934a2c2d61421da633d8018575cab174a04b3ca0a00306",
+        "verified": true
+      }
+    ],
+    "humanObservedPhysicalRestoreStillRequired": true
+  },
+  "auditEvidence": {
+    "marker": "SIMULATED_RETENTION_AUDIT_EVENTS_EMITTED",
+    "status": "passed",
+    "eventCount": 4,
+    "events": [
+      {
+        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-PREVIEW",
+        "action": "RETENTION_PREVIEW_SIMULATED",
+        "marker": "SIMULATED_RETENTION_PREVIEW_COMPLETED",
+        "at": "2026-05-20T19:40:20.478Z",
+        "status": "SUCCESS"
+      },
+      {
+        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-ARCHIVE",
+        "action": "RETENTION_ARCHIVE_WRITE_SIMULATED",
+        "marker": "SIMULATED_RETENTION_ARCHIVE_WRITE_COMPLETED",
+        "at": "2026-05-20T19:40:20.478Z",
+        "status": "SUCCESS"
+      },
+      {
+        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-RESTORE",
+        "action": "RETENTION_RESTORE_VERIFY_SIMULATED",
+        "marker": "SIMULATED_RETENTION_RESTORE_VERIFY_COMPLETED",
+        "at": "2026-05-20T19:40:20.478Z",
+        "status": "SUCCESS"
+      },
+      {
+        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-APPLY-GUARD",
+        "action": "RETENTION_APPLY_GUARD_SIMULATED",
+        "marker": "SIMULATED_RETENTION_APPLY_GUARD_VERIFIED",
+        "at": "2026-05-20T19:40:20.478Z",
+        "status": "SUCCESS"
+      }
+    ]
+  },
+  "applyGuard": {
+    "marker": "SIMULATED_RETENTION_APPLY_GUARD_VERIFIED",
+    "status": "passed",
+    "destructivePathRequiresConfirmation": true,
+    "previewDefaultPresent": true,
+    "confirmDeleteGuardPresent": true,
+    "retentionWindowDays": 365,
+    "retentionWindowChangedByThisCommand": false
+  },
+  "validationRules": {
+    "evidenceMustIdentifySimulatedOrHumanObserved": true,
+    "simulatedEvidenceRequiresSyntheticArchiveAndRestoreIds": true,
+    "noRawPiiOrSecretsAllowed": true,
+    "productionRestoreClaimsRequireHumanProof": true
+  },
+  "safety": {
+    "evidenceType": "SIMULATED",
+    "syntheticFixturesOnly": true,
+    "productionDataMutated": false,
+    "productionDataPurged": false,
+    "destructiveRetentionEnabled": false,
+    "existingPreviewConfirmationGuardsWeakened": false,
+    "retentionWindowsChanged": false,
+    "liveExternalProvidersConnected": false,
+    "realConsumerPiiUsed": false,
+    "realCreditReportsUsed": false,
+    "productionDatabaseDumpsUsed": false,
+    "changesParserBehavior": false,
+    "changesOcrBehavior": false,
+    "changesPacketWording": false,
+    "changesViolationLogic": false,
+    "changesStorageBehavior": false,
+    "changesPacketPdfBehavior": false,
+    "changesResponseQueueSemantics": false,
+    "changesDbPoolBehavior": false,
+    "changesDeploymentActivation": false
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

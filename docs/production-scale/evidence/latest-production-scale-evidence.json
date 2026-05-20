@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T19:28:40.339Z",
+  "generatedAt": "2026-05-20T19:40:39.364Z",
   "branch": "staging",
-  "commit": "9ed44078183d5ff5ad04720e4d5b83426d78b880",
+  "commit": "184297cb7fe6ed57ef6791ac49b45b693a403eea",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -849,27 +849,32 @@
           "severity": "Medium",
           "area": "Retention archive/restore proof",
           "currentStatus": "partial",
-          "proofTypeRequired": "Retention guard proof plus human-observed archive/restore lifecycle evidence.",
+          "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
           "allowedProofCommands": [
+            "pnpm run retention:archive-restore:simulated",
             "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
             "pnpm run check:restore-drill-evidence",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
+            "SIMULATED retention proof represented as physical archive/restore completion",
             "physical purge represented as recoverable without proof",
             "production retention apply",
             "audit mutation outside tests",
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
-          "simulatedProofAcceptable": false,
+          "simulatedProofAcceptable": true,
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+            "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Add retention archive/restore evidence and keep destructive apply human-approved."
+          "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim."
         },
         {
           "number": 23,
@@ -1231,6 +1236,39 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
           "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic."
+        },
+        {
+          "number": 22,
+          "title": "Retention archive/restore proof",
+          "severity": "Medium",
+          "area": "Retention archive/restore proof",
+          "currentStatus": "partial",
+          "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+          "allowedProofCommands": [
+            "pnpm run retention:archive-restore:simulated",
+            "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
+            "pnpm run check:restore-drill-evidence",
+            "pnpm run operator:dashboard"
+          ],
+          "forbiddenProofTypes": [
+            "SIMULATED retention proof represented as physical archive/restore completion",
+            "physical purge represented as recoverable without proof",
+            "production retention apply",
+            "audit mutation outside tests",
+            "dashboard PASS alone"
+          ],
+          "productionMutationForbidden": true,
+          "simulatedProofAcceptable": true,
+          "humanProofRequired": true,
+          "relatedEvidenceOutputPaths": [
+            "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+            "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+            "docs/production-scale/evidence/latest-production-scale-evidence.md",
+            "docs/production-scale/evidence/latest-production-scale-evidence.json"
+          ],
+          "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim."
         }
       ],
       "label": "SIMULATED",
@@ -1828,27 +1866,32 @@
           "severity": "Medium",
           "area": "Retention archive/restore proof",
           "currentStatus": "partial",
-          "proofTypeRequired": "Retention guard proof plus human-observed archive/restore lifecycle evidence.",
+          "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
           "allowedProofCommands": [
+            "pnpm run retention:archive-restore:simulated",
             "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
             "pnpm run check:restore-drill-evidence",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
+            "SIMULATED retention proof represented as physical archive/restore completion",
             "physical purge represented as recoverable without proof",
             "production retention apply",
             "audit mutation outside tests",
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
-          "simulatedProofAcceptable": false,
+          "simulatedProofAcceptable": true,
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+            "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Add retention archive/restore evidence and keep destructive apply human-approved."
+          "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim."
         }
       ]
     }
@@ -2383,27 +2426,32 @@
       "severity": "Medium",
       "area": "Retention archive/restore proof",
       "currentStatus": "partial",
-      "proofTypeRequired": "Retention guard proof plus human-observed archive/restore lifecycle evidence.",
+      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
       "allowedProofCommands": [
+        "pnpm run retention:archive-restore:simulated",
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
+        "SIMULATED retention proof represented as physical archive/restore completion",
         "physical purge represented as recoverable without proof",
         "production retention apply",
         "audit mutation outside tests",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
-      "simulatedProofAcceptable": false,
+      "simulatedProofAcceptable": true,
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+        "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Add retention archive/restore evidence and keep destructive apply human-approved."
+      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim."
     },
     {
       "number": 23,

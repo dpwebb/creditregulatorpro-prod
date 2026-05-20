@@ -86,6 +86,23 @@ These files are `SIMULATED` evidence only. They use synthetic backup metadata, s
 
 The disaster recovery blocker remains open until a human-observed restore drill produces signed, sanitized evidence with RPO/RTO, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, and operator acknowledgement results.
 
+## SIMULATED Retention Archive/Restore
+
+Run:
+
+```bash
+pnpm run retention:archive-restore:simulated
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-retention-archive-restore-simulated.md`
+- `docs/production-scale/evidence/latest-retention-archive-restore-simulated.json`
+
+These files are `SIMULATED` evidence only. They use synthetic retention records, simulate retention preview, simulate archive marker/write, simulate restore verification, and verify synthetic audit events and apply-guard markers. They do not purge production data, do not write a physical archive, do not restore production data, do not change retention windows, and do not enable destructive retention.
+
+Destructive retention apply remains guarded by existing preview defaults and explicit confirmation. Physical archive/restore lifecycle evidence remains required for production recoverability. Disaster recovery restore-drill proof is separate and still requires human-observed, signed, sanitized evidence.
+
 ## Simulated Ingest Worker Queue Drain
 
 Run:

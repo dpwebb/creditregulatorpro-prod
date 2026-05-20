@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   previewRetention: vi.fn(),
   enforceRetention: vi.fn(),
   logAudit: vi.fn(),
+  deriveCronSecret: vi.fn(() => "synthetic-cron-token"),
   queryQueue: [] as QueryResult[],
   selectTables: [] as string[],
   db: {
@@ -30,12 +31,17 @@ vi.mock("../../helpers/auditLogger", () => ({
   logAudit: mocks.logAudit,
 }));
 
+vi.mock("../../helpers/cronSecret", () => ({
+  deriveCronSecret: mocks.deriveCronSecret,
+}));
+
 vi.mock("../../helpers/db", () => ({
   db: mocks.db,
 }));
 
 import { handle as retentionAdmin } from "../../endpoints/admin/retention_POST";
 import { handle as retentionStats } from "../../endpoints/admin/retention/stats_GET";
+import { handle as retentionCron } from "../../endpoints/retention/auto-purge_POST";
 
 function retentionSummary(message: string) {
   return {
@@ -70,6 +76,16 @@ function postAdminRetention(body: unknown = {}) {
 function getAdminStats() {
   return new Request("http://localhost/_api/admin/retention/stats", {
     method: "GET",
+  });
+}
+
+function postCronRetention(body: unknown = {}) {
+  return new Request("http://localhost/_api/retention/auto-purge", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: {
+      Authorization: "Bearer synthetic-cron-token",
+    },
   });
 }
 
@@ -152,6 +168,31 @@ describe("retention preview/apply guard", () => {
         }),
       }),
     );
+  });
+
+  it("defaults cron retention requests to preview without deleting", async () => {
+    const response = await retentionCron(postCronRetention());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      message: "Synthetic retention preview completed.",
+    });
+    expect(mocks.previewRetention).toHaveBeenCalledTimes(1);
+    expect(mocks.enforceRetention).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects destructive cron apply without explicit confirmation", async () => {
+    const response = await retentionCron(postCronRetention({ mode: "apply" }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("Retention apply requires confirmation"),
+    });
+    expect(mocks.previewRetention).not.toHaveBeenCalled();
+    expect(mocks.enforceRetention).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
   });
 
   it("keeps retention stats available for admins", async () => {
