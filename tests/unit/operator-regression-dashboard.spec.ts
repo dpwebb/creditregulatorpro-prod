@@ -58,7 +58,102 @@ function fakePacketPdfMetrics(
     renderAttemptEvents: 4,
     renderSucceededEvents: 3,
     renderFailedEvents: 1,
+    cacheHitEvents: 2,
     latestFailureAt: "2026-05-20T00:02:00.000Z",
+    ...overrides,
+  };
+}
+
+function fakeProductionObservabilityMetrics(
+  overrides: Partial<NonNullable<Parameters<typeof buildOperatorDashboard>[0]["productionObservabilityMetrics"]>> = {},
+) {
+  const metrics = {
+    generatedAt: "2026-05-20T00:00:00.000Z",
+    lookbackHours: 24,
+    ingest: {
+      available: true,
+      queuedJobs: 20,
+      runningJobs: 1,
+      succeededJobs: 30,
+      failedJobs: 3,
+      deadLetteredJobs: 1,
+      staleRunningJobs: 0,
+      retryBacklogJobs: 2,
+      oldestQueuedAgeSeconds: 1200,
+      ocrParsingStartedEvents: 10,
+      complianceScanStartedEvents: 9,
+      averageOcrParsingDurationMs: 2000,
+      totalOcrPageCount: 45,
+    },
+    ocrParser: {
+      artifactsObserved: 40,
+      ocrSucceededArtifacts: 6,
+      ocrFailureCount: 1,
+      parserFailureCount: 0,
+      parserUncertaintyCount: 6,
+      parserIssueCount: 8,
+    },
+    packetPdf: {
+      renderAttemptEvents: 5,
+      renderSucceededEvents: 4,
+      renderFailedEvents: 1,
+      cacheHitEvents: 7,
+    },
+    storage: {
+      failureEvents: 1,
+      readFailures: 1,
+      writeFailures: 0,
+      deleteFailures: 0,
+      latestFailureAt: "2026-05-20T00:03:00.000Z",
+    },
+    auth: {
+      loginSuccessEvents: 12,
+      loginFailureEvents: 8,
+      loginAttemptFailures: 3,
+    },
+    db: {
+      poolMax: 3,
+      idleTimeoutSeconds: 10,
+      latencyMs: 300,
+      activeConnections: 4,
+    },
+    rateLimit: {
+      activeEntries: 51,
+      maxObservedCount: 120,
+    },
+    boundaries: {
+      noRawPdfBytes: true,
+      noRawExtractedText: true,
+      noFullConsumerPii: true,
+      noSecretsTokensOrCookies: true,
+      aggregateCountsOnly: true,
+      storageObjectNamesHashed: true,
+      businessLogicMutated: false,
+      parserOutputMutated: false,
+      violationTruthMutated: false,
+      packetReadinessMutated: false,
+      responseQueueSemanticsMutated: false,
+    },
+  };
+  return {
+    ...metrics,
+    thresholds: [
+      { key: "ingest_queued_jobs", label: "Ingest queued jobs", status: "OK" as const, value: 20, warning: 25, critical: 100 },
+      { key: "ingest_failed_jobs", label: "Ingest failed jobs", status: "Warning" as const, value: 3, warning: 3, critical: 10 },
+      { key: "ingest_dead_letters", label: "Ingest dead letters", status: "Critical" as const, value: 1, warning: 1, critical: 1 },
+      { key: "ingest_stale_running", label: "Ingest stale running jobs", status: "OK" as const, value: 0, warning: 1, critical: 1 },
+      { key: "ingest_oldest_queued_age", label: "Oldest queued ingest age seconds", status: "OK" as const, value: 1200, warning: 3600, critical: 14400 },
+      { key: "ocr_failures", label: "OCR failures", status: "Warning" as const, value: 1, warning: 1, critical: 3 },
+      { key: "parser_failures", label: "Parser failures", status: "OK" as const, value: 0, warning: 1, critical: 3 },
+      { key: "parser_uncertainty", label: "Parser uncertainty/manual review", status: "Warning" as const, value: 6, warning: 5, critical: 20 },
+      { key: "packet_pdf_failures", label: "Packet PDF failures", status: "Warning" as const, value: 1, warning: 1, critical: 3 },
+      { key: "storage_failures", label: "Storage failures", status: "Warning" as const, value: 1, warning: 1, critical: 3 },
+      { key: "auth_failures", label: "Auth failures", status: "Warning" as const, value: 11, warning: 10, critical: 25 },
+      { key: "rate_limit_active_entries", label: "Rate-limit active entries", status: "Warning" as const, value: 51, warning: 50, critical: 200 },
+      { key: "rate_limit_max_count", label: "Rate-limit max observed count", status: "Warning" as const, value: 120, warning: 100, critical: 500 },
+      { key: "db_latency_ms", label: "DB latency proxy ms", status: "Warning" as const, value: 300, warning: 250, critical: 1000 },
+      { key: "db_active_connections", label: "DB active connections", status: "OK" as const, value: 4, warning: 20, critical: 50 },
+    ],
     ...overrides,
   };
 }
@@ -73,6 +168,7 @@ describe("operator regression dashboard", () => {
     expect(output).toContain("Core Logical Regression");
     expect(output).toContain("Auth / Session Lifecycle");
     expect(output).toContain("Admin Audit / Activity Logs");
+    expect(output).toContain("Production Observability");
     expect(output).toContain("Packet Reliability");
     expect(output).toContain("Outcome Tracking");
     expect(output).toContain("Report Ingest / Retrieval");
@@ -122,6 +218,11 @@ describe("operator regression dashboard", () => {
         expect.objectContaining({
           category: "Packet Reliability",
           name: "Packet PDF render health",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Production Observability",
+          name: "Production observability metrics",
           runByDefault: false,
         }),
         expect.objectContaining({
@@ -353,7 +454,33 @@ describe("operator regression dashboard", () => {
     expect(rendered).toContain("render attempts: 4");
     expect(rendered).toContain("render successes: 3");
     expect(rendered).toContain("render failures: 1");
+    expect(rendered).toContain("cache hits: 2");
     expect(rendered).toContain("latest failure: 2026-05-20T00:02:00.000Z");
+  });
+
+  it("surfaces production observability thresholds without sensitive payloads", () => {
+    const report = buildOperatorDashboard({
+      runGit: fakeGit(),
+      fileExists: () => true,
+      productionObservabilityMetrics: fakeProductionObservabilityMetrics(),
+    });
+    const rendered = renderDashboard(report);
+
+    expect(rendered).toContain("Production Observability");
+    expect(rendered).toContain("[FAIL] Ingest health threshold");
+    expect(rendered).toContain("Ingest dead letters: 1 (threshold status: Critical; warning 1; critical 1)");
+    expect(rendered).toContain("[OPEN] OCR/parser health threshold");
+    expect(rendered).toContain("raw extracted text stored in metrics: false");
+    expect(rendered).toContain("[OPEN] Packet PDF health threshold");
+    expect(rendered).toContain("cache hits: 7");
+    expect(rendered).toContain("[OPEN] Storage health threshold");
+    expect(rendered).toContain("object names stored as hashes only");
+    expect(rendered).toContain("[OPEN] Auth/rate-limit threshold");
+    expect(rendered).toContain("emails, IP addresses, cookies, and session IDs are not emitted");
+    expect(rendered).toContain("[OPEN] DB config/pool threshold");
+    expect(rendered).toContain("configured pool max: 3");
+
+    expect(rendered).not.toMatch(/%PDF|JVBERi0|raw report text|full credit report|Bearer|session=|cookie=|@example\.test/i);
   });
 
   it("lists gated smoke checks as manual and credential-gated", () => {

@@ -22,6 +22,7 @@ vi.mock("../../helpers/documentStorage", () => ({
 
 import {
   getOrRenderPacketPdfBase64,
+  PACKET_PDF_CACHE_HIT_EVENT,
   PACKET_PDF_RENDER_ATTEMPT_EVENT,
   PACKET_PDF_RENDER_FAILED_EVENT,
   PACKET_PDF_RENDER_SUCCEEDED_EVENT,
@@ -158,7 +159,11 @@ describe("packet PDF cache", () => {
     expect(result.base64Pdf).toBe(base64Pdf);
     expect(renderBase64).not.toHaveBeenCalled();
     expect(mocks.uploadPdf).toHaveBeenCalledTimes(1);
-    expect(mocks.events).toHaveLength(2);
+    expect(mocks.events.map((event) => event.eventType)).toEqual([
+      PACKET_PDF_RENDER_ATTEMPT_EVENT,
+      PACKET_PDF_RENDER_SUCCEEDED_EVENT,
+      PACKET_PDF_CACHE_HIT_EVENT,
+    ]);
   });
 
   it("invalidates by content-derived cache key when packet content changes", async () => {

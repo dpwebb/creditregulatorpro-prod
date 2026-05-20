@@ -4,7 +4,7 @@ Updated May 19, 2026.
 
 This policy allows only a controlled limited beta. It does not claim production-at-scale readiness.
 
-The hardened response-processing subsystem does not make report ingest, OCR, packet PDF generation, or report storage scale-ready. Response processing has durable queueing, dry-run tooling, drift detection, and append-only protections. Report ingest/OCR/compliance has since moved behind queued worker execution and new report PDF uploads store file references instead of inline database bytes, but historical inline records remain compatible, packet PDFs are still generated synchronously, and ingest/PDF/storage observability is still incomplete.
+The hardened response-processing subsystem does not make report ingest, OCR, packet PDF generation, or report storage scale-ready. Response processing has durable queueing, dry-run tooling, drift detection, and append-only protections. Report ingest/OCR/compliance has since moved behind queued worker execution and new report PDF uploads store file references instead of inline database bytes, but historical inline records remain compatible, packet PDF cache misses still render synchronously, and production observability is limited to sanitized internal dashboard metrics and thresholds without external alert delivery or repeated production-scale evidence.
 
 ## Current Scale Blockers
 
@@ -14,13 +14,13 @@ Limited beta remains constrained because these blockers are unresolved:
 - Report upload, OCR, parser, compliance scan, storage, and cleanup work still require strict operator limits until repeated load/concurrency and restore evidence exists.
 - New report PDF uploads store storage references instead of raw inline bytes, and retention apply is guarded by preview-first confirmation, but storage lifecycle, purge/archive, growth monitoring, and restore proof remain incomplete.
 - Packet PDF download/send paths still generate PDFs synchronously.
-- Ingest, packet PDF, storage growth, and auth failure observability is incomplete.
+- Ingest, OCR/parser, packet PDF, storage, auth/rate-limit, and DB observability is visible through sanitized internal dashboard metrics and documented thresholds, but external alert delivery and repeated production-scale evidence are not complete.
 - A production restore drill is not recorded as completed in the scale audit.
 - External alert delivery is not implemented; internal/operator dashboard visibility is the current limit.
 
 ## Temporary Beta Limits
 
-These limits apply until the unresolved scale blockers are replaced by durable queueing, storage lifecycle controls, and production-scale observability.
+These limits apply until the unresolved scale blockers are replaced by durable queueing, storage lifecycle controls, repeated production-scale observability evidence, and external alert delivery or a formally accepted alerting exclusion.
 
 | Area | Temporary limit |
 | --- | --- |
@@ -38,7 +38,7 @@ These limits apply until the unresolved scale blockers are replaced by durable q
 | Response-worker dry-run | Run before each beta operating window, after each operating window, and immediately after any failed response event. |
 | Response-worker apply/non-dry use | Operator-supervised only. Use bounded runs only, maximum 10 jobs per supervised window, with explicit confirmation and review of output before and after. |
 | Response replay/lifecycle apply use | Operator-supervised only, explicit confirmation required, maximum 10 records per supervised window. |
-| Operator dashboard review | At least daily during beta, before promotion, after promotion, and immediately after any failed ingest, packet, PDF, storage, auth, or response event. |
+| Operator dashboard review | At least daily during beta, before promotion, after promotion, and immediately after any failed ingest, packet, PDF, storage, auth, DB, rate-limit, or response event. Review the production observability thresholds documented in `docs/production-observability-metrics.md`. |
 | Staging promotion | Staging must be deployed at the intended commit, health checks must pass, contracts/API/typecheck/build must pass, and rollback SHA must be recorded. |
 | Production promotion | Production root, `/login`, and unauthenticated `/_api/auth/session` checks must pass after deploy; no staging-only synthetic admin smokes may run against production unless separately approved as production-safe. |
 
@@ -89,7 +89,7 @@ Rollback or disable beta entry points if any of these occur:
 - Report PDFs are moved out of database-backed inline storage for new uploads, historical inline compatibility is controlled, and storage lifecycle/growth/restore behavior is proven.
 - Report artifact retention preview, purge/archive, and restore behavior are proven.
 - Packet PDF generation is cached or queued with idempotent invalidation.
-- Ingest, OCR, packet PDF, storage, auth, and DB-pressure metrics are visible to operators with documented thresholds.
+- Ingest, OCR, packet PDF, storage, auth, and DB-pressure metrics have repeated production-scale evidence, external alert delivery, or a formally accepted alerting exclusion.
 - A human-observed production restore drill is completed and recorded.
 - Production-scale repeated smoke/load coverage exists for upload, OCR fallback, packet build/PDF, response worker operation, and dashboard reads.
 - External alert delivery is implemented or formally accepted as out of scope for the production tier being claimed.

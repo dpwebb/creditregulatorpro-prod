@@ -11,6 +11,7 @@ export const PACKET_PDF_CACHE_VERSION = "packet-pdf-cache-v1";
 export const PACKET_PDF_RENDER_ATTEMPT_EVENT = "PACKET_PDF_RENDER_ATTEMPT";
 export const PACKET_PDF_RENDER_SUCCEEDED_EVENT = "PACKET_PDF_RENDER_SUCCEEDED";
 export const PACKET_PDF_RENDER_FAILED_EVENT = "PACKET_PDF_RENDER_FAILED";
+export const PACKET_PDF_CACHE_HIT_EVENT = "PACKET_PDF_CACHE_HIT";
 
 export type PacketPdfCacheKey = {
   cacheKey: string;
@@ -91,7 +92,8 @@ async function recordPacketPdfRenderEvent(input: {
   eventType:
     | typeof PACKET_PDF_RENDER_ATTEMPT_EVENT
     | typeof PACKET_PDF_RENDER_SUCCEEDED_EVENT
-    | typeof PACKET_PDF_RENDER_FAILED_EVENT;
+    | typeof PACKET_PDF_RENDER_FAILED_EVENT
+    | typeof PACKET_PDF_CACHE_HIT_EVENT;
   purpose: PacketPdfCachePurpose;
   cacheKey: string;
 }): Promise<void> {
@@ -117,7 +119,9 @@ async function recordPacketPdfRenderEvent(input: {
       ? `Packet PDF render attempted for ${input.purpose} cache ${input.cacheKey}.`
       : input.eventType === PACKET_PDF_RENDER_SUCCEEDED_EVENT
         ? `Packet PDF render succeeded for ${input.purpose} cache ${input.cacheKey}.`
-        : `Packet PDF render failed for ${input.purpose} cache ${input.cacheKey}.`;
+        : input.eventType === PACKET_PDF_RENDER_FAILED_EVENT
+          ? `Packet PDF render failed for ${input.purpose} cache ${input.cacheKey}.`
+          : `Packet PDF cache hit for ${input.purpose} cache ${input.cacheKey}.`;
 
   await db
     .insertInto("evidenceEvent")
@@ -138,6 +142,12 @@ export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): P
   const cachedBase64 = await readCachedPdfBase64(cacheKey.storageUrl);
 
   if (cachedBase64) {
+    await recordPacketPdfRenderEvent({
+      packetId: Number(input.packetId),
+      eventType: PACKET_PDF_CACHE_HIT_EVENT,
+      purpose: input.purpose,
+      cacheKey: cacheKey.cacheKey,
+    }).catch(() => undefined);
     return {
       ...cacheKey,
       base64Pdf: cachedBase64,

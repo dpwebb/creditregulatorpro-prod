@@ -1,7 +1,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { recordStorageFailureMetric } from "./productionObservabilityMetrics";
 
 const LOCAL_STORAGE_PREFIX = "local:";
+
+async function recordStorageFailureMetricBestEffort(input: Parameters<typeof recordStorageFailureMetric>[0]): Promise<void> {
+  const isTestRun = process.env.NODE_ENV === "test" || process.env.VITEST === "true" || process.env.VITEST_WORKER_ID;
+  if (isTestRun && process.env.CRP_RECORD_TEST_STORAGE_FAILURE_METRICS !== "true") {
+    return;
+  }
+  await recordStorageFailureMetric(input).catch(() => undefined);
+}
 
 function getStorageRoot(): string {
   const configuredPath =
@@ -43,21 +52,53 @@ function decodeBase64File(base64File: string): Buffer {
 }
 
 export async function uploadPdf(base64Pdf: string, objectName: string): Promise<string> {
-  const filePath = getSafeObjectPath(objectName);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, decodeBase64File(base64Pdf));
+  try {
+    const filePath = getSafeObjectPath(objectName);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, decodeBase64File(base64Pdf));
 
-  return `${LOCAL_STORAGE_PREFIX}${objectName}`;
+    return `${LOCAL_STORAGE_PREFIX}${objectName}`;
+  } catch (error) {
+    await recordStorageFailureMetricBestEffort({
+      operation: "write",
+      provider: "local_document_storage",
+      storageArea: "packet_pdf",
+      objectName,
+      error,
+    });
+    throw error;
+  }
 }
 
 export async function readStoredPdf(pdfStorageUrl: string): Promise<Buffer> {
   if (pdfStorageUrl.startsWith(LOCAL_STORAGE_PREFIX)) {
     const objectName = pdfStorageUrl.substring(LOCAL_STORAGE_PREFIX.length);
-    return readFile(getSafeObjectPath(objectName));
+    try {
+      return await readFile(getSafeObjectPath(objectName));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        await recordStorageFailureMetricBestEffort({
+          operation: "read",
+          provider: "local_document_storage",
+          storageArea: "packet_pdf",
+          objectName,
+          error,
+        });
+      }
+      throw error;
+    }
   }
 
   if (pdfStorageUrl.startsWith("gcs:")) {
-    throw new Error("GCS packet PDF storage is no longer supported");
+    const error = new Error("GCS packet PDF storage is no longer supported");
+    await recordStorageFailureMetricBestEffort({
+      operation: "read",
+      provider: "gcs_document_storage",
+      storageArea: "packet_pdf",
+      storageUrl: pdfStorageUrl,
+      error,
+    });
+    throw error;
   }
 
   return decodeBase64File(pdfStorageUrl);

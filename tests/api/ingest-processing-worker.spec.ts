@@ -116,6 +116,15 @@ async function createArtifact(userId: number, markerValue: string, storageUrl = 
         fileName: "synthetic-credit-report.pdf",
         mimeType: "application/pdf",
         extractionStatus: "ready",
+        extractionSource: "ocr_text",
+        ocrProvenance: {
+          pageCount: 4,
+        },
+        parserQuality: {
+          requiresManualReview: true,
+          confidenceScore: 0.72,
+          issues: [{ code: "low_confidence" }],
+        },
       },
       createdAt: new Date(),
     })
@@ -173,7 +182,9 @@ function successfulPipeline(): (input: PipelineParams) => Promise<void> {
     input.context.tradelineIds.push(101, 102);
     input.context.createdTradelineIds.push(101);
     input.send({ type: "progress", stage: "unified_extraction", percent: 35 });
+    input.send({ type: "progress", stage: "unified_extraction_completed", percent: 75 });
     input.send({ type: "progress", stage: "compliance_scanning", percent: 93 });
+    input.send({ type: "progress", stage: "finalizing", percent: 98 });
     input.send({
       type: "complete",
       data: {
@@ -240,11 +251,19 @@ describeIfLocalDb("ingest processing worker", () => {
       endpointCutoverEnabled: true,
       tradelineCount: 2,
       createdTradelineCount: 1,
+      extractionSource: "ocr_text",
+      ocrPageCount: 4,
+      parserRequiresManualReview: true,
+      parserIssueCount: 1,
+      parserConfidenceScore: 0.72,
       rawReportBytesLogged: false,
       extractedReportTextLogged: false,
       parserOutputMutated: false,
       violationTruthMutated: false,
     });
+    expect(result.job?.resultSummary.pipelineDurationMs).toEqual(expect.any(Number));
+    expect(result.job?.resultSummary.ocrParsingDurationMs).toEqual(expect.any(Number));
+    expect(result.job?.resultSummary.complianceScanDurationMs).toEqual(expect.any(Number));
 
     const events = await listIngestProcessingJobEvents(jobId);
     expect(events.map((event) => event.eventType)).toEqual([

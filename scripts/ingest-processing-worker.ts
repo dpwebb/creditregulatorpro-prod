@@ -32,6 +32,11 @@ type PipelineSignalSummary = {
   progressStages: string[];
   completeEvents: number;
   errorEvents: number;
+  startedAtMs: number;
+  ocrParsingStartedAtMs: number | null;
+  unifiedExtractionCompletedAtMs: number | null;
+  complianceScanStartedAtMs: number | null;
+  finalizingStartedAtMs: number | null;
 };
 
 type QueuedIngestPipelineInput = Pick<
@@ -220,6 +225,15 @@ function jsonRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function jsonArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function optionalNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export async function loadQueuedIngestPipelineInput(job: IngestProcessingJobRecord): Promise<QueuedIngestPipelineInput> {
   const artifact = await db
     .selectFrom("reportArtifact")
@@ -289,6 +303,16 @@ function summarizePipelineEvent(event: SSEEvent, signals: PipelineSignalSummary)
   const record = event as unknown as Record<string, unknown>;
   if (record.type === "progress" && typeof record.stage === "string") {
     if (!signals.progressStages.includes(record.stage)) signals.progressStages.push(record.stage);
+    const now = Date.now();
+    if (record.stage === "unified_extraction" && signals.ocrParsingStartedAtMs === null) {
+      signals.ocrParsingStartedAtMs = now;
+    } else if (record.stage === "unified_extraction_completed" && signals.unifiedExtractionCompletedAtMs === null) {
+      signals.unifiedExtractionCompletedAtMs = now;
+    } else if (record.stage === "compliance_scanning" && signals.complianceScanStartedAtMs === null) {
+      signals.complianceScanStartedAtMs = now;
+    } else if (record.stage === "finalizing" && signals.finalizingStartedAtMs === null) {
+      signals.finalizingStartedAtMs = now;
+    }
   } else if (record.type === "complete") {
     signals.completeEvents += 1;
   } else if (record.type === "error") {
@@ -314,6 +338,15 @@ function resultSummary(job: IngestProcessingJobRecord, signals: PipelineSignalSu
     progressStages: signals.progressStages.slice(0, 30),
     completeEvents: signals.completeEvents,
     errorEvents: signals.errorEvents,
+    pipelineDurationMs: Math.max(0, Date.now() - signals.startedAtMs),
+    ocrParsingDurationMs:
+      signals.ocrParsingStartedAtMs !== null && signals.unifiedExtractionCompletedAtMs !== null
+        ? Math.max(0, signals.unifiedExtractionCompletedAtMs - signals.ocrParsingStartedAtMs)
+        : null,
+    complianceScanDurationMs:
+      signals.complianceScanStartedAtMs !== null && signals.finalizingStartedAtMs !== null
+        ? Math.max(0, signals.finalizingStartedAtMs - signals.complianceScanStartedAtMs)
+        : null,
     parserOutputMutated: false,
     ocrBehaviorMutated: false,
     violationTruthMutated: false,
@@ -322,6 +355,40 @@ function resultSummary(job: IngestProcessingJobRecord, signals: PipelineSignalSu
     rawReportBytesLogged: false,
     extractedReportTextLogged: false,
     ...extra,
+  };
+}
+
+async function loadArtifactObservabilitySummary(artifactId: number): Promise<Record<string, Json>> {
+  const artifact = await db
+    .selectFrom("reportArtifact")
+    .select(["data", "processingStatus"])
+    .where("id", "=", artifactId)
+    .executeTakeFirst();
+  const data = jsonRecord(artifact?.data);
+  const parserQuality = jsonRecord(data.parserQuality);
+  const deterministicPipeline = jsonRecord(data.deterministicPipeline);
+  const ocrProvenance = jsonRecord(deterministicPipeline.ocrProvenance ?? data.ocrProvenance);
+  const ocrDiagnostics = jsonRecord(deterministicPipeline.ocrDiagnostics ?? data.ocrDiagnostics);
+  const parserIssues = jsonArray(parserQuality.issues);
+  const ocrPageCount = optionalNumber(ocrProvenance.pageCount);
+  const ocrFailureCategory = typeof ocrDiagnostics.reason === "string" && ocrDiagnostics.reason.trim()
+    ? "ocr_not_usable"
+    : null;
+
+  return {
+    processingStatus: typeof artifact?.processingStatus === "string" ? artifact.processingStatus : "unknown",
+    extractionSource: typeof data.extractionSource === "string" ? data.extractionSource : "unknown",
+    ocrPageCount,
+    ocrFailureCategory,
+    parserRequiresManualReview: parserQuality.requiresManualReview === true,
+    parserIssueCount: parserIssues.length,
+    parserConfidenceScore: optionalNumber(parserQuality.confidenceScore),
+    parserFailureCategory:
+      artifact?.processingStatus === "failed" || data.extractionStatus === "failed"
+        ? "extraction_failed"
+        : null,
+    rawReportBytesLogged: false,
+    extractedReportTextLogged: false,
   };
 }
 
@@ -369,6 +436,11 @@ export async function processNextIngestProcessingJob(
     progressStages: [],
     completeEvents: 0,
     errorEvents: 0,
+    startedAtMs: Date.now(),
+    ocrParsingStartedAtMs: null,
+    unifiedExtractionCompletedAtMs: null,
+    complianceScanStartedAtMs: null,
+    finalizingStartedAtMs: null,
   };
 
   try {
@@ -411,6 +483,12 @@ export async function processNextIngestProcessingJob(
       });
     }
 
+    const observabilitySummary = await loadArtifactObservabilitySummary(job.reportArtifactId).catch(() => ({
+      observabilitySummaryUnavailable: true,
+      rawReportBytesLogged: false,
+      extractedReportTextLogged: false,
+    }) as Record<string, Json>);
+
     const succeeded = await deps.markSucceeded({
       job,
       workerId,
@@ -418,6 +496,7 @@ export async function processNextIngestProcessingJob(
         tradelineCount: context.tradelineIds.length,
         createdTradelineCount: context.createdTradelineIds.length,
         updatedTradelineCount: context.updatedTradelineIds.length,
+        ...observabilitySummary,
       }),
     });
     return { status: "succeeded", workerId, dryRun: false, job: succeeded, signals };

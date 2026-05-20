@@ -3,6 +3,7 @@ import "../loadEnv.js";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { ProductionObservabilityMetrics, ThresholdStatus } from "../helpers/productionObservabilityMetrics";
 
 export type DashboardStatus = "PASS" | "FAIL" | "SKIP" | "MANUAL" | "OPEN" | "INFO";
 
@@ -31,6 +32,7 @@ type BuildDashboardOptions = {
   fileExists?: FileExists;
   ingestQueueMetrics?: IngestQueueDashboardMetrics | null;
   packetPdfMetrics?: PacketPdfDashboardMetrics | null;
+  productionObservabilityMetrics?: ProductionObservabilityMetrics | null;
 };
 
 export type IngestQueueDashboardMetrics = {
@@ -59,6 +61,7 @@ export type PacketPdfDashboardMetrics = {
   renderAttemptEvents: number;
   renderSucceededEvents: number;
   renderFailedEvents: number;
+  cacheHitEvents: number;
   latestFailureAt: string | null;
 };
 
@@ -271,7 +274,7 @@ function packetPdfHealthCheck(metrics: PacketPdfDashboardMetrics | null | undefi
     return check(
       "Packet PDF render health",
       "INFO",
-      "Runtime packet PDF render metrics were not available in this invocation. Run in an environment with FLOOT_DATABASE_URL to surface render attempts, successes, and failures.",
+      "Runtime packet PDF render metrics were not available in this invocation. Run in an environment with FLOOT_DATABASE_URL to surface render attempts, successes, failures, and cache hits.",
       { kind: "info" },
     );
   }
@@ -283,10 +286,137 @@ function packetPdfHealthCheck(metrics: PacketPdfDashboardMetrics | null | undefi
       `render attempts: ${metrics.renderAttemptEvents}`,
       `render successes: ${metrics.renderSucceededEvents}`,
       `render failures: ${metrics.renderFailedEvents}`,
+      `cache hits: ${metrics.cacheHitEvents}`,
       `latest failure: ${metrics.latestFailureAt ?? "none"}`,
     ].join("; "),
     { kind: "smoke" },
   );
+}
+
+function dashboardStatusForThreshold(status: ThresholdStatus): DashboardStatus {
+  if (status === "Critical") return "FAIL";
+  if (status === "Warning") return "OPEN";
+  return "PASS";
+}
+
+function thresholdSummary(metrics: ProductionObservabilityMetrics, keys: string[]): { status: ThresholdStatus; notes: string } {
+  const selected = metrics.thresholds.filter((item) => keys.includes(item.key));
+  const status: ThresholdStatus = selected.some((item) => item.status === "Critical")
+    ? "Critical"
+    : selected.some((item) => item.status === "Warning")
+      ? "Warning"
+      : "OK";
+  return {
+    status,
+    notes: selected
+      .map((item) => `${item.label}: ${item.value} (threshold status: ${item.status}; warning ${item.warning}; critical ${item.critical})`)
+      .join("; "),
+  };
+}
+
+function productionObservabilityChecks(
+  metrics: ProductionObservabilityMetrics | null | undefined,
+): DashboardCheck[] {
+  if (!metrics) {
+    return [
+      check(
+        "Production observability metrics",
+        "INFO",
+        "Runtime production observability metrics were not available in this invocation. Run in an environment with FLOOT_DATABASE_URL to surface ingest, OCR/parser, packet PDF, storage, auth/rate-limit, and DB threshold status.",
+        { kind: "info" },
+      ),
+    ];
+  }
+
+  const ingest = thresholdSummary(metrics, [
+    "ingest_queued_jobs",
+    "ingest_failed_jobs",
+    "ingest_dead_letters",
+    "ingest_stale_running",
+    "ingest_oldest_queued_age",
+  ]);
+  const ocrParser = thresholdSummary(metrics, ["ocr_failures", "parser_failures", "parser_uncertainty"]);
+  const packetPdf = thresholdSummary(metrics, ["packet_pdf_failures"]);
+  const storage = thresholdSummary(metrics, ["storage_failures"]);
+  const authRateLimit = thresholdSummary(metrics, ["auth_failures", "rate_limit_active_entries", "rate_limit_max_count"]);
+  const dbSignal = thresholdSummary(metrics, ["db_latency_ms", "db_active_connections"]);
+
+  return [
+    check(
+      "Ingest health threshold",
+      dashboardStatusForThreshold(ingest.status),
+      [
+        ingest.notes,
+        `running: ${metrics.ingest.runningJobs}`,
+        `succeeded: ${metrics.ingest.succeededJobs}`,
+        `retry backlog: ${metrics.ingest.retryBacklogJobs}`,
+        `OCR/parsing started events: ${metrics.ingest.ocrParsingStartedEvents}`,
+        `compliance scan started events: ${metrics.ingest.complianceScanStartedEvents}`,
+        `average OCR/parsing duration ms: ${metrics.ingest.averageOcrParsingDurationMs ?? "n/a"}`,
+        `total OCR page count: ${metrics.ingest.totalOcrPageCount}`,
+      ].join("; "),
+      { kind: "smoke" },
+    ),
+    check(
+      "OCR/parser health threshold",
+      dashboardStatusForThreshold(ocrParser.status),
+      [
+        ocrParser.notes,
+        `artifacts observed: ${metrics.ocrParser.artifactsObserved}`,
+        `OCR succeeded artifacts: ${metrics.ocrParser.ocrSucceededArtifacts}`,
+        `parser issue count: ${metrics.ocrParser.parserIssueCount}`,
+        "raw extracted text stored in metrics: false",
+      ].join("; "),
+      { kind: "smoke" },
+    ),
+    check(
+      "Packet PDF health threshold",
+      dashboardStatusForThreshold(packetPdf.status),
+      [
+        packetPdf.notes,
+        `render attempts: ${metrics.packetPdf.renderAttemptEvents}`,
+        `render successes: ${metrics.packetPdf.renderSucceededEvents}`,
+        `render failures: ${metrics.packetPdf.renderFailedEvents}`,
+        `cache hits: ${metrics.packetPdf.cacheHitEvents}`,
+      ].join("; "),
+      { kind: "smoke" },
+    ),
+    check(
+      "Storage health threshold",
+      dashboardStatusForThreshold(storage.status),
+      [
+        storage.notes,
+        `read failures: ${metrics.storage.readFailures}`,
+        `write failures: ${metrics.storage.writeFailures}`,
+        `delete failures: ${metrics.storage.deleteFailures}`,
+        `latest failure: ${metrics.storage.latestFailureAt ?? "none"}`,
+        "object names stored as hashes only",
+      ].join("; "),
+      { kind: "smoke" },
+    ),
+    check(
+      "Auth/rate-limit threshold",
+      dashboardStatusForThreshold(authRateLimit.status),
+      [
+        authRateLimit.notes,
+        `login successes: ${metrics.auth.loginSuccessEvents}`,
+        "emails, IP addresses, cookies, and session IDs are not emitted in dashboard metrics",
+      ].join("; "),
+      { kind: "smoke" },
+    ),
+    check(
+      "DB config/pool threshold",
+      dashboardStatusForThreshold(dbSignal.status),
+      [
+        dbSignal.notes,
+        `configured pool max: ${metrics.db.poolMax}`,
+        `idle timeout seconds: ${metrics.db.idleTimeoutSeconds}`,
+        `latency proxy ms: ${metrics.db.latencyMs ?? "n/a"}`,
+        `active connections: ${metrics.db.activeConnections ?? "n/a"}`,
+      ].join("; "),
+      { kind: "smoke" },
+    ),
+  ];
 }
 
 export function parseArgs(argv: string[]) {
@@ -408,6 +538,10 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
           },
         ),
       ],
+    },
+    {
+      name: "Production Observability",
+      checks: productionObservabilityChecks(options.productionObservabilityMetrics),
     },
     {
       name: "Packet Reliability",
@@ -984,6 +1118,7 @@ async function loadPacketPdfMetricsForDashboard(): Promise<PacketPdfDashboardMet
       renderAttemptEvents: await countEvent(cache.PACKET_PDF_RENDER_ATTEMPT_EVENT),
       renderSucceededEvents: await countEvent(cache.PACKET_PDF_RENDER_SUCCEEDED_EVENT),
       renderFailedEvents: await countEvent(cache.PACKET_PDF_RENDER_FAILED_EVENT),
+      cacheHitEvents: await countEvent(cache.PACKET_PDF_CACHE_HIT_EVENT),
       latestFailureAt: latestFailure?.at ? new Date(latestFailure.at).toISOString() : null,
     };
   } catch {
@@ -991,13 +1126,28 @@ async function loadPacketPdfMetricsForDashboard(): Promise<PacketPdfDashboardMet
   }
 }
 
+async function loadProductionObservabilityMetricsForDashboard(): Promise<ProductionObservabilityMetrics | null> {
+  if (!process.env.FLOOT_DATABASE_URL) return null;
+  try {
+    const service = await import("../helpers/productionObservabilityMetrics");
+    return await service.getProductionObservabilityMetrics({ lookbackHours: 24 });
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const [ingestQueueMetrics, packetPdfMetrics] = await Promise.all([
+  const [ingestQueueMetrics, packetPdfMetrics, productionObservabilityMetrics] = await Promise.all([
     loadIngestQueueMetricsForDashboard(),
     loadPacketPdfMetricsForDashboard(),
+    loadProductionObservabilityMetricsForDashboard(),
   ]);
-  let report = filterDashboard(buildOperatorDashboard({ ingestQueueMetrics, packetPdfMetrics }), options.category);
+  let report = filterDashboard(buildOperatorDashboard({
+    ingestQueueMetrics,
+    packetPdfMetrics,
+    productionObservabilityMetrics,
+  }), options.category);
 
   if (options.runChecks) {
     report = applyRunResults(report);

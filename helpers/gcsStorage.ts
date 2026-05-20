@@ -1,7 +1,16 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { recordStorageFailureMetric } from "./productionObservabilityMetrics";
 
 const STORAGE_PREFIX = "local:";
+
+async function recordStorageFailureMetricBestEffort(input: Parameters<typeof recordStorageFailureMetric>[0]): Promise<void> {
+  const isTestRun = process.env.NODE_ENV === "test" || process.env.VITEST === "true" || process.env.VITEST_WORKER_ID;
+  if (isTestRun && process.env.CRP_RECORD_TEST_STORAGE_FAILURE_METRICS !== "true") {
+    return;
+  }
+  await recordStorageFailureMetric(input).catch(() => undefined);
+}
 
 function getStorageRoot(): string {
   return path.resolve(
@@ -55,18 +64,40 @@ export async function uploadFile(
   objectName: string,
   _mimeType: string
 ): Promise<string> {
-  const filePath = getSafeObjectPath(objectName);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, decodeBase64File(base64File));
+  try {
+    const filePath = getSafeObjectPath(objectName);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, decodeBase64File(base64File));
 
-  return `${STORAGE_PREFIX}${objectName}`;
+    return `${STORAGE_PREFIX}${objectName}`;
+  } catch (error) {
+    await recordStorageFailureMetricBestEffort({
+      operation: "write",
+      provider: "local_file_storage",
+      storageArea: "report_artifact",
+      objectName,
+      error,
+    });
+    throw error;
+  }
 }
 
 export async function readStoredFile(storageUrl: string): Promise<Buffer> {
   const objectName = getObjectNameFromStorageUrl(storageUrl);
 
   if (objectName) {
-    return readFile(getSafeObjectPath(objectName));
+    try {
+      return await readFile(getSafeObjectPath(objectName));
+    } catch (error) {
+      await recordStorageFailureMetricBestEffort({
+        operation: "read",
+        provider: "local_file_storage",
+        storageArea: "report_artifact",
+        objectName,
+        error,
+      });
+      throw error;
+    }
   }
 
   return decodeBase64File(storageUrl);
@@ -80,6 +111,13 @@ export async function deleteStoredFile(storageUrl: string): Promise<void> {
     await unlink(getSafeObjectPath(objectName));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      await recordStorageFailureMetricBestEffort({
+        operation: "delete",
+        provider: "local_file_storage",
+        storageArea: "report_artifact",
+        objectName,
+        error,
+      });
       throw error;
     }
   }
