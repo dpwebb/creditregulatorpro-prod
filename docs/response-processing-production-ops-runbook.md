@@ -48,6 +48,8 @@ Run these checks before any supervised non-dry response-processing operation:
 | Lifecycle tests | `pnpm exec vitest run --config vitest.config.ts tests/api/response-processing-lifecycle.spec.ts tests/unit/response-processing-lifecycle-script.spec.ts` | Pass |
 | Soak check | `pnpm run response:soak-check` | Pass |
 | Operator dashboard | `pnpm run operator:dashboard` | Pass with expected known gaps only |
+| Response ops readiness evidence | `pnpm run response:ops-readiness-evidence` | Pass; scheduler remains default-off, backfill/lifecycle remain guarded, and alerting status is explicit |
+| Alert exclusion validation, if no provider is used | `pnpm run alerts:exclusion:validate` | Accepted only with signed sanitized operator exclusion evidence |
 | Regression dashboard | `pnpm run test:regression-dashboard` | Pass |
 
 Stop if any required check fails.
@@ -59,6 +61,8 @@ Stop if any required check fails.
 | Scheduler/live daemon activation conditions | `pnpm run response:worker-orchestrate -- --dry-run` | Dry-run proof exists. Live scheduler is not automatically enabled. | Dashboard row, dry-run output, operator signoff, target commit, max-job bound, lock scope, and stop conditions. |
 | Bounded worker execution | `pnpm run response:worker -- --dry-run` | Dry-run preview exists. Non-dry worker use is explicit and bounded. | Preview output before each supervised worker run and summary output after each run. |
 | External alert delivery dry-run/mock | `pnpm run alerts:dry-run` | SIMULATED dry-run payload evidence exists. Real external alert delivery is not implemented or enabled. | Sanitized SIMULATED alert payloads for ingest backlog, response dead-letter backlog, stale-running response job, packet PDF/cache warning, storage/raw report warning, DB/pool pressure warning, restore evidence missing warning, and dashboard SKIP warning. Output must show zero live external calls. |
+| Formal alert exclusion | `pnpm run alerts:exclusion:validate` | Not accepted unless a filled sanitized operator artifact is submitted. | Signed acknowledgement that no external provider will be used, human monitoring cadence, manual escalation path, dashboard/soak references, alert dry-run evidence, and no PII/secrets/raw data. |
+| Response ops readiness pack | `pnpm run response:ops-readiness-evidence` | Operator-ready evidence command exists. | Live scheduler status, backfill readiness, purge/archive readiness, alerting status, monitoring cadence, manual fallback, dashboard references, soak references, and unresolved risks. |
 | Purge/archive readiness | `pnpm run response:lifecycle -- --dry-run` | Retention preview and append-only marker tooling exists. Physical purge/archive remains deferred. | Retention preview, drift report, protected stale/dead-letter counts, and explicit no-delete confirmation in output. |
 | Historical backfill plan | `pnpm run response:replay -- --dry-run` | Replay dry-run exists. Production backfill execution remains operator-controlled. | Scanned/replayable/non-replayable counts, reason counts, stale metadata counts, filters, and no raw response text evidence. |
 | Replay apply confirmation | `pnpm run response:replay -- --apply --confirm-apply --actor-user-id <operator-user-id> --limit <n>` | Apply is available only with explicit confirmation and actor attribution. | Operator approval, actor ID, tight filters, bounded limit, appended event counts, and no source-truth mutation evidence. |

@@ -238,6 +238,26 @@ This command creates `SIMULATED` and `DRY RUN` alert evidence for critical inges
 
 Live external alerting remains disabled unless separately configured and proven. If no external alert provider is used, release evidence must document the accepted exclusion, this dry-run result, operator dashboard/soak evidence, and the human monitoring path. The dry-run is not live alert delivery proof.
 
+## Response Operations Readiness
+
+Run:
+
+```bash
+pnpm run alerts:exclusion:validate
+pnpm run response:ops-readiness-evidence
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-alerting-exclusion-validation.md`
+- `docs/production-scale/evidence/latest-alerting-exclusion-validation.json`
+- `docs/production-scale/evidence/latest-response-ops-readiness.md`
+- `docs/production-scale/evidence/latest-response-ops-readiness.json`
+
+`response:ops-readiness-evidence` is reporting-only. It verifies that the live scheduler remains default-off, backfill is dry-run first with guarded apply, purge/archive is dry-run first with append-only lifecycle controls, dashboard SKIP semantics remain visible, response soak evidence is referenced, and alert dry-run evidence is not treated as live alert proof.
+
+`alerts:exclusion:validate` accepts only a filled, sanitized operator artifact at `docs/production-scale/evidence/alerting-exclusion-evidence.md` or `.json`. If no artifact is submitted, it reports `not-submitted` and closes no alerting blocker. The validator rejects placeholders, PII, secrets, raw report/response data, signed URLs, database URLs, and any exclusion that lacks signed operator acknowledgement that no external alert provider will be used.
+
 ## Storage Raw Report Inventory
 
 Run:

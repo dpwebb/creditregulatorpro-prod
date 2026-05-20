@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T21:15:53.560Z",
+  "generatedAt": "2026-05-20T21:29:55.331Z",
   "currentBranch": "staging",
-  "currentCommitHash": "7f2229341f3693b1caba5471b17a2a88d9e87782",
+  "currentCommitHash": "0bfcd7c47069874b454143f951c90c5199b26d8c",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -39,6 +39,9 @@
     "pnpm run test:deterministic-ingestion-report",
     "pnpm run response:soak-check",
     "pnpm run operator:dashboard",
+    "pnpm run alerts:dry-run",
+    "pnpm run alerts:exclusion:validate",
+    "pnpm run response:ops-readiness-evidence",
     "pnpm run production-worker:readiness-evidence",
     "pnpm run storage:raw-report-remediation-plan",
     "pnpm run storage:raw-report-remediation-acceptance",
@@ -51,7 +54,6 @@
     "pnpm run restore:drill:simulated",
     "pnpm run ingest:worker:simulated-proof",
     "pnpm run baseline:production-scale-local -- --simulated",
-    "pnpm run alerts:dry-run",
     "pnpm run storage:raw-report-inventory",
     "pnpm run retention:archive-restore:simulated",
     "pnpm run packet-pdf:cache-miss-proof",
@@ -160,6 +162,93 @@
       "evidenceFiles": [],
       "latestGeneratedAt": null,
       "status": null
+    },
+    {
+      "command": "pnpm run alerts:dry-run",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+          "exists": true,
+          "reportName": "alerts-dry-run-evidence",
+          "evidenceType": "SIMULATED",
+          "generatedAt": "2026-05-20T21:29:26.368Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:29:26.368Z",
+      "status": null
+    },
+    {
+      "command": "pnpm run alerts:exclusion:validate",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+          "exists": true,
+          "reportName": "alerting-exclusion-validation",
+          "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
+          "generatedAt": "2026-05-20T21:29:26.401Z",
+          "status": "not-submitted",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:29:26.401Z",
+      "status": "not-submitted"
+    },
+    {
+      "command": "pnpm run response:ops-readiness-evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.json",
+          "exists": true,
+          "reportName": "response-ops-readiness-evidence",
+          "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+          "generatedAt": "2026-05-20T21:29:30.894Z",
+          "status": "operator-ready-with-deferred-controls",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:29:30.894Z",
+      "status": "operator-ready-with-deferred-controls"
     },
     {
       "command": "pnpm run production-worker:readiness-evidence",
@@ -357,12 +446,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T21:00:39.169Z",
+          "generatedAt": "2026-05-20T21:15:53.717Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:00:39.169Z",
+      "latestGeneratedAt": "2026-05-20T21:15:53.717Z",
       "status": null
     },
     {
@@ -451,35 +540,6 @@
       ],
       "latestGeneratedAt": "2026-05-20T18:30:24.005Z",
       "status": "passed"
-    },
-    {
-      "command": "pnpm run alerts:dry-run",
-      "availableInRepository": true,
-      "executedByPromotionPack": false,
-      "result": "evidence-file-present",
-      "resultSource": "generated evidence file",
-      "evidenceFiles": [
-        {
-          "path": "docs/production-scale/evidence/latest-alerts-dry-run.md",
-          "exists": true,
-          "reportName": null,
-          "evidenceType": null,
-          "generatedAt": null,
-          "status": null,
-          "productionProof": false
-        },
-        {
-          "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
-          "exists": true,
-          "reportName": "alerts-dry-run-evidence",
-          "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-20T18:38:30.557Z",
-          "status": null,
-          "productionProof": false
-        }
-      ],
-      "latestGeneratedAt": "2026-05-20T18:38:30.557Z",
-      "status": null
     },
     {
       "command": "pnpm run storage:raw-report-inventory",
@@ -838,7 +898,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:00:39.169Z",
+      "generatedAt": "2026-05-20T21:15:53.717Z",
       "status": null,
       "productionProof": false
     },
@@ -928,8 +988,44 @@
       "exists": true,
       "reportName": "alerts-dry-run-evidence",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-20T18:38:30.557Z",
+      "generatedAt": "2026-05-20T21:29:26.368Z",
       "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+      "exists": true,
+      "reportName": "alerting-exclusion-validation",
+      "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
+      "generatedAt": "2026-05-20T21:29:26.401Z",
+      "status": "not-submitted",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-response-ops-readiness.json",
+      "exists": true,
+      "reportName": "response-ops-readiness-evidence",
+      "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+      "generatedAt": "2026-05-20T21:29:30.894Z",
+      "status": "operator-ready-with-deferred-controls",
       "productionProof": false
     },
     {
@@ -1203,6 +1299,42 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/live-alert-proof.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/live-alert-proof.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
       "path": "docs/restore-drill-evidence-template.md",
       "exists": true,
       "reportName": null,
@@ -1293,6 +1425,15 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/alerting-exclusion-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
       "path": "docs/database-migration-policy.md",
       "exists": true,
       "reportName": null,
@@ -1360,7 +1501,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:01:52.130Z",
+      "generatedAt": "2026-05-20T21:15:53.560Z",
       "status": null,
       "productionProof": false
     },
@@ -1385,7 +1526,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T21:15:53.560Z",
+    "generatedAt": "2026-05-20T21:29:55.331Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1405,7 +1546,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T21:15:53.560Z",
+    "generatedAt": "2026-05-20T21:29:55.331Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -1426,7 +1567,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T21:15:53.560Z",
+    "generatedAt": "2026-05-20T21:29:55.331Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1445,6 +1586,37 @@
       "productionDataMutatedByCodex": false,
       "codexPerformedRemediation": false,
       "rawSensitiveValuesAccepted": false
+    }
+  },
+  "responseOpsReadinessEvidence": {
+    "reportName": "response-ops-readiness-evidence",
+    "generatedAt": "2026-05-20T21:29:55.331Z",
+    "status": "operator-ready-with-deferred-controls",
+    "productionProof": false,
+    "liveSchedulerStatus": "disabled",
+    "backfillReadinessStatus": "operator-controlled-deferred",
+    "purgeArchiveReadinessStatus": "operator-controlled-deferred",
+    "alertingStatus": "dry-run-only",
+    "alertingExclusionAccepted": false,
+    "liveAlertProofAccepted": false,
+    "blockerCoverage": {
+      "responseOperationsMaturity": true,
+      "observabilityAlerting": false,
+      "releaseEvidenceExactCommands": true
+    },
+    "unresolvedRisks": [
+      "External alerting remains dry-run-only until live proof or accepted formal exclusion exists.",
+      "Production live scheduler operation is not enabled by default and is not production-evidenced by this command.",
+      "Physical purge/archive remains deferred; lifecycle tooling appends markers only.",
+      "Historical backfill remains dry-run/apply-guarded and cannot rehydrate records without sanitized summaries."
+    ],
+    "safety": {
+      "liveSchedulerEnabledByCodex": false,
+      "liveAlertsSentByCodex": false,
+      "productionDataMutated": false,
+      "productionRecordsPurgedOrArchived": false,
+      "responseQueueSemanticsChanged": false,
+      "dryRunAlertsAreLiveProof": false
     }
   },
   "blockerClassifications": [
@@ -1754,8 +1926,8 @@
       "severity": "High",
       "area": "Response operations maturity",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
       "proofCategories": [
         "automated-local",
         "staging",
@@ -1764,28 +1936,34 @@
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run response:ops-readiness-evidence",
         "pnpm run response:soak-check",
         "pnpm run response:orchestration-check",
         "pnpm run response:worker-orchestrate -- --dry-run",
         "pnpm run response:lifecycle -- --dry-run",
         "pnpm run response:replay -- --dry-run",
         "pnpm run operator:dashboard",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts"
       ],
       "forbiddenProofTypes": [
         "live mailbox integration",
         "external alert delivery without approval",
+        "live scheduler enabled by default",
+        "production purge/archive or backfill",
         "queue semantic changes",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/response-processing-production-ops-runbook.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.",
+      "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
@@ -1806,22 +1984,35 @@
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence",
         "pnpm run operator:dashboard",
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
         "real external delivery",
+        "formal exclusion without operator acknowledgement",
         "PII alert payloads",
         "provider credentials",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/production-observability-metrics.md",
+        "docs/production-scale/alerting-exclusion-template.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -2276,6 +2467,9 @@
       "allowedProofCommands": [
         "pnpm run production-scale:evidence",
         "pnpm run production-worker:readiness-evidence",
+        "pnpm run response:ops-readiness-evidence",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run alerts:dry-run",
         "pnpm run production-scale:promotion-pack",
         "pnpm run operator:dashboard",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
@@ -2290,12 +2484,18 @@
         "docs/production-observability-metrics.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
         "docs/production-scale/evidence/latest-production-promotion-pack.md",
         "docs/production-scale/evidence/latest-production-promotion-pack.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
+      "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
@@ -2607,49 +2807,6 @@
       "waiverReason": null
     },
     {
-      "number": 8,
-      "title": "Response operations maturity",
-      "severity": "High",
-      "area": "Response operations maturity",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.",
-      "proofCategories": [
-        "automated-local",
-        "staging",
-        "human-observed",
-        "simulated"
-      ],
-      "allowedProofCommands": [
-        "pnpm run alerts:dry-run",
-        "pnpm run response:soak-check",
-        "pnpm run response:orchestration-check",
-        "pnpm run response:worker-orchestrate -- --dry-run",
-        "pnpm run response:lifecycle -- --dry-run",
-        "pnpm run response:replay -- --dry-run",
-        "pnpm run operator:dashboard",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "live mailbox integration",
-        "external alert delivery without approval",
-        "queue semantic changes",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/response-processing-production-ops-runbook.md",
-        "docs/production-scale/evidence/latest-alerts-dry-run.md",
-        "docs/production-scale/evidence/latest-alerts-dry-run.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.",
-      "humanProofRequired": false,
-      "simulatedProofAcceptable": true,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
       "number": 9,
       "title": "Observability/alerting",
       "severity": "High",
@@ -2664,22 +2821,35 @@
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence",
         "pnpm run operator:dashboard",
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
         "real external delivery",
+        "formal exclusion without operator acknowledgement",
         "PII alert payloads",
         "provider credentials",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/production-observability-metrics.md",
+        "docs/production-scale/alerting-exclusion-template.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -3093,22 +3263,35 @@
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response:ops-readiness-evidence",
         "pnpm run operator:dashboard",
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
         "real external delivery",
+        "formal exclusion without operator acknowledgement",
         "PII alert payloads",
         "provider credentials",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/production-observability-metrics.md",
+        "docs/production-scale/alerting-exclusion-template.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -3406,6 +3589,7 @@
     "Dashboard PASS alone is not complete release evidence when checks are skipped.",
     "Production activation requires operator approval.",
     "Historical raw report remediation requires accepted sanitized operator evidence.",
+    "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "Codex must not promote readiness classification beyond the evidence in this pack."
   ]
 }

@@ -41,6 +41,8 @@
     "response:orchestration-check": "tsx scripts/response-processing-orchestration-check.ts",
     "response:soak-check": "tsx scripts/response-processing-soak-check.ts",
     "alerts:dry-run": "node scripts/alerts-dry-run.mjs",
+    "alerts:exclusion:validate": "node scripts/response-ops-readiness-evidence.mjs --validate-alert-exclusion",
+    "response:ops-readiness-evidence": "node scripts/response-ops-readiness-evidence.mjs",
     "ingest:worker": "tsx scripts/ingest-processing-worker.ts",
     "ingest:worker:simulated-proof": "tsx scripts/ingest-worker-simulated-proof.ts",
     "production-worker:activation-plan": "node scripts/production-worker-activation-plan.mjs",

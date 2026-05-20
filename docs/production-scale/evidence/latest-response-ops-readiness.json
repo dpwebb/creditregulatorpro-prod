@@ -1,0 +1,177 @@
+{
+  "reportName": "response-ops-readiness-evidence",
+  "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+  "generatedAt": "2026-05-20T21:29:30.894Z",
+  "branch": "staging",
+  "commit": "0bfcd7c47069874b454143f951c90c5199b26d8c",
+  "status": "operator-ready-with-deferred-controls",
+  "productionProof": false,
+  "staticValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "live scheduler default disabled",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "backfill dry-run/apply guarded",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "purge/archive deferred and append-only",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "soak evidence command available",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "dashboard skip semantics visible",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "alert dry-run remains non-live proof",
+        "status": "passed",
+        "passed": true,
+        "alertDryRunEvidence": {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+          "exists": true,
+          "status": "present",
+          "evidenceType": "SIMULATED",
+          "deliveryMode": "DRY RUN",
+          "liveProof": false,
+          "liveExternalAlertsSent": 0,
+          "liveExternalProviderCallsMade": 0
+        }
+      }
+    ],
+    "failedChecks": []
+  },
+  "liveScheduler": {
+    "status": "disabled",
+    "defaultEnabled": false,
+    "productionEvidenceAccepted": false,
+    "command": "pnpm run response:worker-orchestrate -- --dry-run",
+    "operatorControls": [
+      "live scheduler is not enabled by default",
+      "--run is bounded and operator-supervised",
+      "--scheduled requires --run",
+      "--max-jobs must be explicit before a supervised run",
+      "overlap skips and stale-lock skips require operator review"
+    ]
+  },
+  "backfillReadiness": {
+    "status": "operator-controlled-deferred",
+    "dryRunCommand": "pnpm run response:replay -- --dry-run",
+    "applyRequires": [
+      "--apply",
+      "--confirm-apply",
+      "--actor-user-id <operator-user-id>",
+      "--limit <n>"
+    ],
+    "noRawResponseTextRequired": true
+  },
+  "purgeArchiveReadiness": {
+    "status": "operator-controlled-deferred",
+    "dryRunCommand": "pnpm run response:lifecycle -- --dry-run",
+    "applyRequires": [
+      "--apply",
+      "--confirm-cleanup",
+      "--actor-user-id <operator-user-id>",
+      "--limit <n>"
+    ],
+    "physicalPurgeArchiveDeferred": true,
+    "appendOnlyLifecycleMarkersOnly": true
+  },
+  "alerting": {
+    "status": "dry-run-only",
+    "dryRunEvidence": {
+      "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+      "exists": true,
+      "status": "present",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "liveProof": false,
+      "liveExternalAlertsSent": 0,
+      "liveExternalProviderCallsMade": 0
+    },
+    "liveAlertProof": {
+      "status": "not-submitted",
+      "accepted": false,
+      "evidencePath": null,
+      "validation": {
+        "accepted": false,
+        "status": "not-submitted",
+        "errors": [
+          "No live alert proof evidence has been submitted."
+        ],
+        "sensitiveFindings": []
+      }
+    },
+    "exclusionValidation": {
+      "status": "not-submitted",
+      "accepted": false,
+      "evidencePath": null
+    },
+    "dryRunOnlyIsLiveProof": false
+  },
+  "operatorMonitoringCadence": [
+    "Run pnpm run operator:dashboard before and after any supervised response operations window.",
+    "Run pnpm run response:soak-check before promotion decisions and after response-queue changes.",
+    "During limited beta, review dashboard response operations rows at least daily and immediately after any worker/replay/lifecycle operation.",
+    "Escalate any dead-letter, stale-running, lifecycle drift, or dashboard SKIP regression before continuing operations."
+  ],
+  "manualFallbackSteps": [
+    "Leave live scheduler disabled.",
+    "Use dry-run commands first for worker orchestration, replay/backfill, and lifecycle retention.",
+    "Use admin remediation endpoints for failed, dead-lettered, or stale-running jobs.",
+    "Stop on sensitive-output detection, unexpected dashboard FAIL, stale-running auto-reclaim, physical delete, or live alert delivery attempt.",
+    "Capture sanitized evidence and operator signoff before any non-dry response operation."
+  ],
+  "dashboardCommandReferences": [
+    "pnpm run operator:dashboard",
+    "pnpm run response:orchestration-check",
+    "pnpm run response:lifecycle -- --dry-run",
+    "pnpm run response:replay -- --dry-run"
+  ],
+  "responseSoakResultReferences": [
+    "pnpm run response:soak-check",
+    "docs/response-processing-production-ops-runbook.md"
+  ],
+  "unresolvedRisks": [
+    "External alerting remains dry-run-only until live proof or accepted formal exclusion exists.",
+    "Production live scheduler operation is not enabled by default and is not production-evidenced by this command.",
+    "Physical purge/archive remains deferred; lifecycle tooling appends markers only.",
+    "Historical backfill remains dry-run/apply-guarded and cannot rehydrate records without sanitized summaries."
+  ],
+  "blockerCoverage": {
+    "responseOperationsMaturity": true,
+    "observabilityAlerting": false,
+    "releaseEvidenceExactCommands": true
+  },
+  "safety": {
+    "liveSchedulerEnabledByCodex": false,
+    "liveAlertsSentByCodex": false,
+    "productionDataMutated": false,
+    "productionRecordsPurgedOrArchived": false,
+    "responseQueueSemanticsChanged": false,
+    "rawSensitiveValuesIncluded": false,
+    "dryRunAlertsAreLiveProof": false
+  },
+  "requiredStatements": [
+    "Live scheduler remains disabled by default.",
+    "Dry-run alert evidence is not live external alert proof.",
+    "No production data was mutated, purged, archived, or backfilled by Codex.",
+    "Response queue semantics were not changed.",
+    "Blocker 9 requires live alert proof or accepted formal alert exclusion."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+    "json": "docs/production-scale/evidence/latest-response-ops-readiness.json"
+  }
+}

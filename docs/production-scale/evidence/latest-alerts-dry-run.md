@@ -2,9 +2,9 @@
 
 SIMULATED DRY RUN evidence only. No live external alerts were sent, no live external providers were called, and this is not production alert-delivery proof.
 
-Generated at: 2026-05-20T18:38:30.557Z
+Generated at: 2026-05-20T21:29:26.368Z
 Branch: `staging`
-Commit: `019b1394ef194cbd32aab3ad351618879d49fa70`
+Commit: `0bfcd7c47069874b454143f951c90c5199b26d8c`
 Validation: passed
 
 ## Required Warning

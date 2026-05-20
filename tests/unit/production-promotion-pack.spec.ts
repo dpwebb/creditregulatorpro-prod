@@ -8,6 +8,10 @@ import {
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
+import {
+  buildAlertingExclusionValidationReport,
+  buildResponseOpsReadinessEvidenceReport,
+} from "../../scripts/response-ops-readiness-evidence.mjs";
 import { buildHumanRestoreDrillEvidenceAcceptanceReport } from "../../scripts/staging-backup-restore-checklist.mjs";
 import { buildRawReportRemediationAcceptanceReport } from "../../scripts/storage-raw-report-remediation-plan.mjs";
 
@@ -65,6 +69,41 @@ function acceptedRawReportRemediationEvidence() {
         possibleInlineBase64Rows: 0,
       },
     },
+  };
+}
+
+function dryRunAlertEvidence() {
+  return {
+    path: "docs/production-scale/evidence/latest-alerts-dry-run.json",
+    exists: true,
+    status: "present",
+    evidenceType: "SIMULATED",
+    deliveryMode: "DRY RUN",
+    liveProof: false,
+    liveExternalAlertsSent: 0,
+    liveExternalProviderCallsMade: 0,
+  };
+}
+
+function acceptedAlertingExclusionEvidence() {
+  return {
+    evidenceType: "FORMAL_ALERTING_EXCLUSION",
+    operatorNameOrRole: "Compliance operations lead",
+    acknowledgedAt: "2026-05-20T12:00:00.000Z",
+    environment: "limited beta production operations",
+    exclusionScope: "External alert provider delivery for response operations",
+    noExternalAlertProviderUsed: true,
+    exclusionReason: "Human monitoring is the approved operating path for this limited beta release.",
+    humanMonitoringCadence: "Daily dashboard review and immediate review after supervised response operations.",
+    manualEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
+    dashboardCommand: "pnpm run operator:dashboard",
+    soakCommand: "pnpm run response:soak-check",
+    alertsDryRunCommand: "pnpm run alerts:dry-run",
+    alertsDryRunEvidencePath: "docs/production-scale/evidence/latest-alerts-dry-run.json",
+    operatorAcknowledgementSigned: true,
+    liveAlertsSent: false,
+    productionDataMutatedByCodex: false,
+    sanitizedEvidenceStatement: "This evidence is sanitized and contains no PII, secrets, raw data, signed URLs, or credential URLs.",
   };
 }
 
@@ -132,6 +171,9 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-plan");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-acceptance");
+    expect(report.commandList).toContain("pnpm run alerts:dry-run");
+    expect(report.commandList).toContain("pnpm run alerts:exclusion:validate");
+    expect(report.commandList).toContain("pnpm run response:ops-readiness-evidence");
   });
 
   it("does not claim production-at-scale readiness while unresolved or human-required blockers remain", () => {
@@ -273,6 +315,85 @@ describe("production promotion evidence pack", () => {
     expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).not.toContain(11);
   });
 
+  it("closes blocker 8 only through non-mutating response ops readiness controls", () => {
+    const responseOpsReadinessEvidence = buildResponseOpsReadinessEvidenceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      responseOpsReadinessEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker8 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 8);
+
+    expect(blocker8?.classification).toBe("fixed with automated evidence");
+    expect(report.responseOpsReadinessEvidence).toMatchObject({
+      liveSchedulerStatus: "disabled",
+      backfillReadinessStatus: "operator-controlled-deferred",
+      purgeArchiveReadinessStatus: "operator-controlled-deferred",
+      safety: {
+        productionDataMutated: false,
+        productionRecordsPurgedOrArchived: false,
+        responseQueueSemanticsChanged: false,
+      },
+    });
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("does not close blocker 9 with dry-run-only alert evidence", () => {
+    const responseOpsReadinessEvidence = buildResponseOpsReadinessEvidenceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      responseOpsReadinessEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker9 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 9);
+
+    expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("dry-run-only");
+    expect(report.responseOpsReadinessEvidence.blockerCoverage.observabilityAlerting).toBe(false);
+    expect(blocker9?.classification).toBe("simulated proof only");
+  });
+
+  it("classifies blocker 9 as fixed only with accepted formal alert exclusion", () => {
+    const alertingExclusionValidation = buildAlertingExclusionValidationReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      alertingExclusionEvidence: acceptedAlertingExclusionEvidence(),
+    });
+    const responseOpsReadinessEvidence = buildResponseOpsReadinessEvidenceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+      alertingExclusionValidation,
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      responseOpsReadinessEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker9 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 9);
+
+    expect(alertingExclusionValidation.accepted).toBe(true);
+    expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("formally-excluded");
+    expect(blocker9?.classification).toBe("fixed with human-observed evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
   it("classifies blocker 21 with exact release evidence commands, not dashboard PASS alone", () => {
     const report = buildPack();
     const blocker21 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 21);
@@ -282,6 +403,9 @@ describe("production promotion evidence pack", () => {
       expect.arrayContaining([
         "pnpm run production-scale:evidence",
         "pnpm run production-worker:readiness-evidence",
+        "pnpm run response:ops-readiness-evidence",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run alerts:dry-run",
         "pnpm run production-scale:promotion-pack",
         "pnpm run operator:dashboard",
       ]),

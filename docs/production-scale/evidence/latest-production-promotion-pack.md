@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T21:15:53.560Z
+Generated at: 2026-05-20T21:29:55.331Z
 Current branch: `staging`
-Current commit hash: `7f2229341f3693b1caba5471b17a2a88d9e87782`
+Current commit hash: `0bfcd7c47069874b454143f951c90c5199b26d8c`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -14,6 +14,7 @@ Recommended readiness classification: **limited beta**
 - Codex must not promote readiness classification beyond evidence.
 - Production activation requires operator approval.
 - Historical raw report remediation requires accepted sanitized operator evidence.
+- Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.
 
 ## Command Result Summary
 
@@ -26,6 +27,9 @@ Recommended readiness classification: **limited beta**
 - `pnpm run test:deterministic-ingestion-report` - reference-required; evidence: none
 - `pnpm run response:soak-check` - reference-required; evidence: none
 - `pnpm run operator:dashboard` - reference-required; evidence: none
+- `pnpm run alerts:dry-run` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerts-dry-run.md, docs/production-scale/evidence/latest-alerts-dry-run.json
+- `pnpm run alerts:exclusion:validate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-exclusion-validation.md, docs/production-scale/evidence/latest-alerting-exclusion-validation.json
+- `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
 - `pnpm run storage:raw-report-remediation-plan` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json
 - `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
@@ -38,7 +42,6 @@ Recommended readiness classification: **limited beta**
 - `pnpm run restore:drill:simulated` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-drill-simulated.md, docs/production-scale/evidence/latest-restore-drill-simulated.json
 - `pnpm run ingest:worker:simulated-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-ingest-worker-simulated.md, docs/production-scale/evidence/latest-ingest-worker-simulated.json
 - `pnpm run baseline:production-scale-local -- --simulated` - evidence-file-present; evidence: docs/production-scale/evidence/latest-load-simulated.md, docs/production-scale/evidence/latest-load-simulated.json
-- `pnpm run alerts:dry-run` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerts-dry-run.md, docs/production-scale/evidence/latest-alerts-dry-run.json
 - `pnpm run storage:raw-report-inventory` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-inventory.md, docs/production-scale/evidence/latest-storage-raw-report-inventory.json
 - `pnpm run retention:archive-restore:simulated` - evidence-file-present; evidence: docs/production-scale/evidence/latest-retention-archive-restore-simulated.md, docs/production-scale/evidence/latest-retention-archive-restore-simulated.json
 - `pnpm run packet-pdf:cache-miss-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md, docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json
@@ -92,6 +95,19 @@ Recommended readiness classification: **limited beta**
 - Blocker 6 coverage: not accepted
 - Sensitive findings: 0
 
+## Response Ops Readiness Evidence
+
+- Status: operator-ready-with-deferred-controls
+- Live scheduler status: disabled
+- Backfill readiness status: operator-controlled-deferred
+- Purge/archive readiness status: operator-controlled-deferred
+- Alerting status: dry-run-only
+- Alerting exclusion accepted: no
+- Live alert proof accepted: no
+- Blocker 8 coverage: accepted
+- Blocker 9 coverage: not accepted
+- Response queue semantics changed: no
+
 ## Human-Required Proof
 
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
@@ -119,7 +135,6 @@ Recommended readiness classification: **limited beta**
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
-- #8 Response operations maturity (High; partial) - Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial) - Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
@@ -147,6 +162,10 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-load-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-alerts-dry-run.md` - present
 - `docs/production-scale/evidence/latest-alerts-dry-run.json` - present; evidenceType=SIMULATED
+- `docs/production-scale/evidence/latest-alerting-exclusion-validation.md` - present
+- `docs/production-scale/evidence/latest-alerting-exclusion-validation.json` - present; evidenceType=ALERTING_EXCLUSION_VALIDATION
+- `docs/production-scale/evidence/latest-response-ops-readiness.md` - present
+- `docs/production-scale/evidence/latest-response-ops-readiness.json` - present; evidenceType=RESPONSE_OPS_READINESS_EVIDENCE
 - `docs/production-scale/evidence/latest-storage-raw-report-inventory.md` - present
 - `docs/production-scale/evidence/latest-storage-raw-report-inventory.json` - present; evidenceType=SANITIZED_READ_ONLY_INVENTORY
 - `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md` - present
@@ -177,6 +196,10 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.md` - missing
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json` - missing
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md` - missing
+- `docs/production-scale/evidence/alerting-exclusion-evidence.json` - missing
+- `docs/production-scale/evidence/alerting-exclusion-evidence.md` - missing
+- `docs/production-scale/evidence/live-alert-proof.json` - missing
+- `docs/production-scale/evidence/live-alert-proof.md` - missing
 - `docs/restore-drill-evidence-template.md` - present
 - `docs/staging-ingest-worker-operation.md` - present
 - `docs/production-ingest-worker-activation.md` - present
@@ -187,6 +210,7 @@ Recommended readiness classification: **limited beta**
 - `docs/report-artifact-storage.md` - present
 - `docs/response-processing-production-ops-runbook.md` - present
 - `docs/production-observability-metrics.md` - present
+- `docs/production-scale/alerting-exclusion-template.md` - present
 - `docs/database-migration-policy.md` - present
 - `migrations/0000-runtime-schema-inventory.md` - present
 - `docs/production-at-scale-execution-tracker.md` - present

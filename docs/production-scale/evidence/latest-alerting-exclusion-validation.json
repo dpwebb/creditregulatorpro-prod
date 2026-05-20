@@ -1,0 +1,31 @@
+{
+  "reportName": "alerting-exclusion-validation",
+  "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
+  "generatedAt": "2026-05-20T21:29:26.401Z",
+  "status": "not-submitted",
+  "accepted": false,
+  "evidencePath": null,
+  "defaultEvidencePaths": [
+    "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+    "docs/production-scale/evidence/alerting-exclusion-evidence.md"
+  ],
+  "validation": {
+    "accepted": false,
+    "status": "not-submitted",
+    "errors": [
+      "No formal alerting exclusion evidence has been submitted."
+    ],
+    "sensitiveFindings": [],
+    "blockerCoverage": {
+      "observabilityAlerting": false
+    }
+  },
+  "blockerCoverage": {
+    "observabilityAlerting": false
+  },
+  "safety": {
+    "liveAlertsSent": false,
+    "productionDataMutatedByCodex": false,
+    "rawSensitiveValuesAccepted": false
+  }
+}
