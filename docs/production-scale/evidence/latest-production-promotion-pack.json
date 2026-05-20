@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T23:44:51.719Z",
+  "generatedAt": "2026-05-20T23:51:38.736Z",
   "currentBranch": "staging",
-  "currentCommitHash": "78fdc663304cc1d0fe907400f20324c41ba9175c",
+  "currentCommitHash": "222cb7ac35442c7a0854f121d9201bddcbd7218a",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -531,12 +531,12 @@
           "exists": true,
           "reportName": "migration-governance-release-gate",
           "evidenceType": "MIGRATION_GATE_EVIDENCE",
-          "generatedAt": "2026-05-20T21:43:27.356Z",
+          "generatedAt": "2026-05-20T23:50:45.949Z",
           "status": "accepted-formal-waiver",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:43:27.356Z",
+      "latestGeneratedAt": "2026-05-20T23:50:45.949Z",
       "status": "accepted-formal-waiver"
     },
     {
@@ -686,12 +686,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T23:44:35.589Z",
+          "generatedAt": "2026-05-20T23:51:22.391Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:44:35.589Z",
+      "latestGeneratedAt": "2026-05-20T23:51:22.391Z",
       "status": null
     },
     {
@@ -918,12 +918,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T21:43:23.256Z",
+          "generatedAt": "2026-05-20T23:50:41.855Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:43:23.256Z",
+      "latestGeneratedAt": "2026-05-20T23:50:41.855Z",
       "status": null
     },
     {
@@ -1138,7 +1138,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T23:44:35.589Z",
+      "generatedAt": "2026-05-20T23:51:22.391Z",
       "status": null,
       "productionProof": false
     },
@@ -1498,7 +1498,7 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:43:23.256Z",
+      "generatedAt": "2026-05-20T23:50:41.855Z",
       "status": null,
       "productionProof": false
     },
@@ -1516,7 +1516,7 @@
       "exists": true,
       "reportName": "migration-governance-release-gate",
       "evidenceType": "MIGRATION_GATE_EVIDENCE",
-      "generatedAt": "2026-05-20T21:43:27.356Z",
+      "generatedAt": "2026-05-20T23:50:45.949Z",
       "status": "accepted-formal-waiver",
       "productionProof": false
     },
@@ -1885,7 +1885,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T23:40:50.475Z",
+      "generatedAt": "2026-05-20T23:44:51.719Z",
       "status": null,
       "productionProof": false
     },
@@ -1910,7 +1910,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1930,7 +1930,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -2056,7 +2056,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2077,7 +2077,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2171,7 +2171,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2194,7 +2194,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2254,7 +2254,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2421,7 +2421,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "accepted-formal-waiver",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "waived",
@@ -2455,7 +2455,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-20T23:44:51.719Z",
+    "generatedAt": "2026-05-20T23:51:38.736Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",

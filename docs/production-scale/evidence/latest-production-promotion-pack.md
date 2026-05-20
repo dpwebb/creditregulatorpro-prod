@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T23:44:51.719Z
+Generated at: 2026-05-20T23:51:38.736Z
 Current branch: `staging`
-Current commit hash: `78fdc663304cc1d0fe907400f20324c41ba9175c`
+Current commit hash: `222cb7ac35442c7a0854f121d9201bddcbd7218a`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
