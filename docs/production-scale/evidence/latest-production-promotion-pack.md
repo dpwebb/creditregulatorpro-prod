@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T22:42:06.837Z
+Generated at: 2026-05-20T22:56:00.113Z
 Current branch: `staging`
-Current commit hash: `44d51b245646efd84a87a016912b9630dc95f1f2`
+Current commit hash: `e894a628935b2ae11a83eecfebd6b9de00a3606c`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -43,6 +43,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
 - `pnpm run migrations:gate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-gate.md, docs/production-scale/evidence/latest-migration-gate.json
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
+- `pnpm run restore:evidence:current-check` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-readiness-check.md, docs/production-scale/evidence/latest-restore-readiness-check.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
 - `pnpm run runtime-size:policy-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md, docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json
 - `git diff --check` - reference-required; evidence: none
@@ -84,6 +85,19 @@ Recommended readiness classification: **limited beta**
 - Blocker 1 coverage: not accepted
 - Blocker 22 coverage: not accepted
 - SIMULATED-only submitted as human proof: no
+
+## Restore Evidence Current Readiness
+
+- Status: simulated-only
+- Current operational proof: no
+- Evidence type: SIMULATED
+- Human-observed: no
+- SIMULATED-only: yes
+- Stale: no
+- Restore date/time: not available
+- Evidence age days: not available
+- Blocker 1 current coverage: not accepted
+- Missing fields: human-observed evidence type, operator name or role, date/time, environment, backup source, restore target, RPO result, RTO result, auth/session post-restore result, packet PDF post-restore result, response queue post-restore result, cleanup/lifecycle post-restore result, retention archive/restore result or explicit retention exclusion, rollback/cleanup result, signed operator acknowledgement, explicit sanitized evidence statement
 
 ## Production Worker Readiness Evidence
 
@@ -219,6 +233,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-restore-drill-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md` - present
 - `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json` - present
+- `docs/production-scale/evidence/latest-restore-readiness-check.md` - present
+- `docs/production-scale/evidence/latest-restore-readiness-check.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.md` - present
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md` - present

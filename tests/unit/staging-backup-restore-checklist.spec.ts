@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import {
   assertChecklistDoesNotTargetProduction,
@@ -8,9 +9,12 @@ import {
   BACKUP_RESTORE_DRILL_STEPS,
   buildBackupRestoreChecklistReport,
   buildHumanRestoreDrillEvidenceAcceptanceReport,
+  buildRestoreEvidenceCurrentCheckReport,
   buildRestoreDrillEvidenceValidationReport,
   HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
   HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
+  RESTORE_READINESS_CHECK_JSON_PATH,
+  RESTORE_READINESS_CHECK_MD_PATH,
   REQUIRED_REFRESH_SAFETY_ANCHORS,
   REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS,
   scanRestoreDrillEvidenceSensitiveContent,
@@ -61,6 +65,14 @@ function completeSyntheticFilledEvidence(overrides: Record<string, string> = {})
     "| --- | --- | --- |",
     ...REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS.map((field) => `| ${field} | ${values[field] ?? "missing"} | synthetic |`),
   ].join("\n");
+}
+
+function writeTempEvidenceFile(contents: string, relativePath = "docs/production-scale/evidence/human-restore-drill-evidence.md") {
+  const root = mkdtempSync(join(tmpdir(), "crp-restore-evidence-"));
+  const absolutePath = join(root, ...relativePath.split("/"));
+  mkdirSync(join(root, "docs/production-scale/evidence"), { recursive: true });
+  writeFileSync(absolutePath, contents, "utf8");
+  return { root, relativePath };
 }
 
 describe("staging backup/restore checklist", () => {
@@ -273,6 +285,61 @@ describe("staging backup/restore checklist", () => {
     });
   });
 
+  it("marks valid human restore evidence as current operational proof", () => {
+    const report = buildRestoreEvidenceCurrentCheckReport({
+      evidencePath: "tests/fixtures/human-restore-drill-evidence.valid.md",
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+
+    expect(report).toMatchObject({
+      status: "current-human-observed",
+      currentOperationalProof: true,
+      stale: false,
+      evidenceType: "HUMAN-OBSERVED",
+      humanObserved: true,
+      simulatedOnly: false,
+      blockerCoverage: {
+        disasterRecoveryRestoreDrill: true,
+        retentionArchiveRestore: true,
+      },
+    });
+    expect(report.requiredFields).toMatchObject({
+      missing: [],
+      placeholders: [],
+      invalidValues: [],
+      sensitiveFindings: [],
+    });
+  });
+
+  it("keeps simulated restore evidence simulated-only in the current check", () => {
+    const root = mkdtempSync(join(tmpdir(), "crp-restore-simulated-only-"));
+    mkdirSync(join(root, "docs/production-scale/evidence"), { recursive: true });
+    writeFileSync(
+      join(root, "docs/production-scale/evidence/latest-restore-drill-simulated.json"),
+      JSON.stringify({
+        reportName: "restore-drill-simulated",
+        evidenceType: "SIMULATED",
+        generatedAt: "2026-05-20T12:00:00.000Z",
+        status: "passed",
+        validation: { ok: true },
+        productionProof: false,
+      }, null, 2),
+      "utf8",
+    );
+
+    const report = buildRestoreEvidenceCurrentCheckReport({
+      rootDir: root,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+
+    expect(report.status).toBe("simulated-only");
+    expect(report.currentOperationalProof).toBe(false);
+    expect(report.evidenceType).toBe("SIMULATED");
+    expect(report.simulatedOnly).toBe(true);
+    expect(report.blockerCoverage.disasterRecoveryRestoreDrill).toBe(false);
+    expect(report.validation.unresolvedReasons.join("\n")).toMatch(/SIMULATED-only/i);
+  });
+
   it("fails human acceptance when no default artifact has been submitted", () => {
     const report = buildHumanRestoreDrillEvidenceAcceptanceReport({
       rootDir: process.cwd(),
@@ -297,6 +364,36 @@ describe("staging backup/restore checklist", () => {
 
     expect(report.ok).toBe(false);
     expect(report.missingRequirements).toEqual(expect.arrayContaining(["RPO result", "RTO result"]));
+
+    const { root, relativePath } = writeTempEvidenceFile(invalid);
+    const current = buildRestoreEvidenceCurrentCheckReport({
+      rootDir: root,
+      evidencePath: relativePath,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+    expect(current.currentOperationalProof).toBe(false);
+    expect(current.requiredFields.missing).toEqual(expect.arrayContaining(["RPO result", "RTO result"]));
+  });
+
+  it("rejects human evidence with a missing auth/session post-restore check", () => {
+    const valid = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8");
+    const invalid = valid.replace(
+      "| Post-restore auth/session result | passed - auth/session lifecycle check verified | No cookies or tokens. |",
+      "",
+    );
+
+    const report = validateHumanRestoreDrillEvidenceText(invalid);
+    expect(report.ok).toBe(false);
+    expect(report.missingRequirements).toContain("auth/session post-restore result");
+
+    const { root, relativePath } = writeTempEvidenceFile(invalid);
+    const current = buildRestoreEvidenceCurrentCheckReport({
+      rootDir: root,
+      evidencePath: relativePath,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+    expect(current.currentOperationalProof).toBe(false);
+    expect(current.requiredFields.missing).toContain("auth/session post-restore result");
   });
 
   it("rejects human evidence with a missing packet PDF post-restore check", () => {
@@ -310,6 +407,15 @@ describe("staging backup/restore checklist", () => {
 
     expect(report.ok).toBe(false);
     expect(report.missingRequirements).toContain("packet PDF post-restore result");
+
+    const { root, relativePath } = writeTempEvidenceFile(invalid);
+    const current = buildRestoreEvidenceCurrentCheckReport({
+      rootDir: root,
+      evidencePath: relativePath,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+    expect(current.currentOperationalProof).toBe(false);
+    expect(current.requiredFields.missing).toContain("packet PDF post-restore result");
   });
 
   it("rejects human evidence with a missing response queue post-restore check", () => {
@@ -353,6 +459,18 @@ describe("staging backup/restore checklist", () => {
         "obvious-ssn-or-sin",
       ]),
     );
+
+    const { root, relativePath } = writeTempEvidenceFile(unsafe);
+    const current = buildRestoreEvidenceCurrentCheckReport({
+      rootDir: root,
+      evidencePath: relativePath,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+    expect(current.status).toBe("failed");
+    expect(current.currentOperationalProof).toBe(false);
+    expect(current.requiredFields.sensitiveFindings).toEqual(
+      expect.arrayContaining(["database-url", "obvious-email-pii", "obvious-ssn-or-sin"]),
+    );
   });
 
   it("rejects simulated-only evidence submitted as human proof", () => {
@@ -363,6 +481,28 @@ describe("staging backup/restore checklist", () => {
     expect(report.evidenceType).toBe("SIMULATED");
     expect(report.simulatedOnlySubmission).toBe(true);
     expect(report.errors.join("\n")).toMatch(/SIMULATED-only evidence cannot be accepted/i);
+  });
+
+  it("marks otherwise accepted human restore evidence as stale when outside the max age window", () => {
+    const stale = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8")
+      .replace("| Drill date | 2026-05-20 | Synthetic date. |", "| Drill date | 2025-01-01 | Synthetic date. |")
+      .replace(
+        "| Drill timestamp | 2026-05-20T12:00:00-03:00 | Synthetic observed start time. |",
+        "| Drill timestamp | 2025-01-01T12:00:00-03:00 | Synthetic observed start time. |",
+      );
+
+    const { root, relativePath } = writeTempEvidenceFile(stale);
+    const report = buildRestoreEvidenceCurrentCheckReport({
+      rootDir: root,
+      evidencePath: relativePath,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      maxAgeDays: 90,
+    });
+
+    expect(report.status).toBe("stale-human-observed");
+    expect(report.currentOperationalProof).toBe(false);
+    expect(report.stale).toBe(true);
+    expect(report.validation.unresolvedReasons.join("\n")).toMatch(/stale/i);
   });
 
   it("keeps restore drill docs free of secret-like values", () => {
@@ -388,11 +528,20 @@ describe("staging backup/restore checklist", () => {
     expect(packageJson.scripts["restore:accept-human-evidence"]).toBe(
       "node scripts/staging-backup-restore-checklist.mjs --accept-human-evidence",
     );
+    expect(packageJson.scripts["restore:evidence:current-check"]).toBe(
+      "node scripts/staging-backup-restore-checklist.mjs --current-check",
+    );
     expect(HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH).toBe(
       "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
     );
     expect(HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH).toBe(
       "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+    );
+    expect(RESTORE_READINESS_CHECK_MD_PATH).toBe(
+      "docs/production-scale/evidence/latest-restore-readiness-check.md",
+    );
+    expect(RESTORE_READINESS_CHECK_JSON_PATH).toBe(
+      "docs/production-scale/evidence/latest-restore-readiness-check.json",
     );
   });
 });

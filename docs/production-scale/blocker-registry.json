@@ -35,6 +35,7 @@
     "pnpm run operator:dashboard",
     "pnpm run check:restore-drill-evidence",
     "pnpm run restore:accept-human-evidence",
+    "pnpm run restore:evidence:current-check",
     "pnpm run retention:archive-restore:simulated",
     "pnpm run check:migrations",
     "pnpm run migrations:evidence",
@@ -126,6 +127,7 @@
         "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
+        "pnpm run restore:evidence:current-check",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -146,6 +148,8 @@
         "docs/production-scale/evidence/human-restore-drill-evidence.json",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+        "docs/production-scale/evidence/latest-restore-readiness-check.md",
+        "docs/production-scale/evidence/latest-restore-readiness-check.json",
         "docs/production-scale/evidence/latest-restore-drill-simulated.md",
         "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1124,6 +1128,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
+        "pnpm run restore:evidence:current-check",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -1142,6 +1147,8 @@
         "docs/production-scale/evidence/human-restore-drill-evidence.json",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+        "docs/production-scale/evidence/latest-restore-readiness-check.md",
+        "docs/production-scale/evidence/latest-restore-readiness-check.json",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",

@@ -55,10 +55,13 @@ import {
 
 import {
   buildHumanRestoreDrillEvidenceAcceptanceReport,
+  buildRestoreEvidenceCurrentCheckReport,
   HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
   HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
   HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
   HUMAN_RESTORE_DRILL_EVIDENCE_MD_PATH,
+  RESTORE_READINESS_CHECK_JSON_PATH,
+  RESTORE_READINESS_CHECK_MD_PATH,
 } from "./staging-backup-restore-checklist.mjs";
 
 import {
@@ -101,6 +104,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run check:restore-drill-evidence",
   "pnpm run migrations:gate",
   "pnpm run restore:accept-human-evidence",
+  "pnpm run restore:evidence:current-check",
   "pnpm run report:runtime-size",
   "pnpm run runtime-size:policy-acceptance",
   "git diff --check",
@@ -109,6 +113,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
 export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run production-scale:evidence",
   "pnpm run restore:drill:simulated",
+  "pnpm run restore:evidence:current-check",
   "pnpm run ingest:worker:simulated-proof",
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run baseline:production-scale-local -- --simulated",
@@ -140,6 +145,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run restore:accept-human-evidence": [
     HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
     HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
+  ],
+  "pnpm run restore:evidence:current-check": [
+    RESTORE_READINESS_CHECK_MD_PATH,
+    RESTORE_READINESS_CHECK_JSON_PATH,
   ],
   "pnpm run ingest:worker:simulated-proof": [
     "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
@@ -432,6 +441,7 @@ function unique(values) {
 function classifyBlocker(
   blocker,
   humanRestoreEvidenceAcceptance = null,
+  restoreReadinessCheck = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
@@ -473,8 +483,11 @@ function classifyBlocker(
   }
   if (
     blocker.number === 1 &&
-    humanRestoreEvidenceAcceptance?.accepted === true &&
-    humanRestoreEvidenceAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill === true
+    restoreReadinessCheck?.currentOperationalProof === true &&
+    restoreReadinessCheck?.blockerCoverage?.disasterRecoveryRestoreDrill === true &&
+    restoreReadinessCheck?.evidenceType === "HUMAN-OBSERVED" &&
+    restoreReadinessCheck?.simulatedOnly !== true &&
+    restoreReadinessCheck?.stale !== true
   ) {
     return "fixed with human-observed evidence";
   }
@@ -548,8 +561,11 @@ function classifyBlocker(
   }
   if (
     blocker.number === 22 &&
-    humanRestoreEvidenceAcceptance?.accepted === true &&
-    humanRestoreEvidenceAcceptance?.blockerCoverage?.retentionArchiveRestore === true
+    restoreReadinessCheck?.currentOperationalProof === true &&
+    restoreReadinessCheck?.blockerCoverage?.retentionArchiveRestore === true &&
+    restoreReadinessCheck?.evidenceType === "HUMAN-OBSERVED" &&
+    restoreReadinessCheck?.simulatedOnly !== true &&
+    restoreReadinessCheck?.stale !== true
   ) {
     return "fixed with human-observed evidence";
   }
@@ -652,6 +668,7 @@ export function buildProductionPromotionPackReport({
   auditPath = DEFAULT_AUDIT_PATH,
   dashboardReport = null,
   humanRestoreEvidenceAcceptance = null,
+  restoreReadinessCheck = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
@@ -690,6 +707,13 @@ export function buildProductionPromotionPackReport({
     : "";
   const acceptedHumanRestoreEvidence =
     humanRestoreEvidenceAcceptance ?? buildHumanRestoreDrillEvidenceAcceptanceReport({ rootDir, generatedAt });
+  const currentRestoreReadiness =
+    restoreReadinessCheck ??
+    buildRestoreEvidenceCurrentCheckReport({
+      rootDir,
+      evidencePath: acceptedHumanRestoreEvidence.evidencePath,
+      generatedAt,
+    });
   const workerReadinessEvidence =
     productionWorkerReadinessEvidence ?? buildProductionWorkerReadinessEvidenceReport({ rootDir, generatedAt });
   const stagingIngestEvidence =
@@ -709,6 +733,7 @@ export function buildProductionPromotionPackReport({
     const classification = classifyBlocker(
       blocker,
       acceptedHumanRestoreEvidence,
+      currentRestoreReadiness,
       workerReadinessEvidence,
       stagingIngestEvidence,
       rawReportRemediationEvidence,
@@ -820,6 +845,36 @@ export function buildProductionPromotionPackReport({
         simulatedOnlySubmission: acceptedHumanRestoreEvidence.validation?.simulatedOnlySubmission === true,
         sensitiveFindings: acceptedHumanRestoreEvidence.validation?.sensitiveFindings ?? [],
         errors: acceptedHumanRestoreEvidence.validation?.errors ?? [],
+      },
+    },
+    restoreReadinessCheck: {
+      reportName: currentRestoreReadiness.reportName,
+      generatedAt: currentRestoreReadiness.generatedAt,
+      status: currentRestoreReadiness.status,
+      currentOperationalProof: currentRestoreReadiness.currentOperationalProof === true,
+      stale: currentRestoreReadiness.stale === true,
+      maxAgeDays: currentRestoreReadiness.maxAgeDays,
+      evidencePath: currentRestoreReadiness.evidencePath,
+      evidenceType: currentRestoreReadiness.evidenceType,
+      humanObserved: currentRestoreReadiness.humanObserved === true,
+      simulatedOnly: currentRestoreReadiness.simulatedOnly === true,
+      restoreDateTime: currentRestoreReadiness.restoreDateTime,
+      ageDays: currentRestoreReadiness.ageDays,
+      requiredFields: currentRestoreReadiness.requiredFields,
+      blockerCoverage: currentRestoreReadiness.blockerCoverage,
+      validation: {
+        ok: currentRestoreReadiness.validation?.ok === true,
+        humanAcceptanceOk: currentRestoreReadiness.validation?.humanAcceptanceOk === true,
+        errors: currentRestoreReadiness.validation?.errors ?? [],
+        unresolvedReasons: currentRestoreReadiness.validation?.unresolvedReasons ?? [],
+      },
+      safety: {
+        runsDump: currentRestoreReadiness.safety?.runsDump === true,
+        runsRestore: currentRestoreReadiness.safety?.runsRestore === true,
+        accessesProductionBackups: currentRestoreReadiness.safety?.accessesProductionBackups === true,
+        modifiesProduction: currentRestoreReadiness.safety?.modifiesProduction === true,
+        acceptsSimulatedEvidenceAsProductionProof:
+          currentRestoreReadiness.safety?.acceptsSimulatedEvidenceAsProductionProof === true,
       },
     },
     productionWorkerReadinessEvidence: {
@@ -1095,6 +1150,7 @@ export function validatePromotionPackReport(report) {
     }
   }
   const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
+  const restoreReadiness = report.restoreReadinessCheck;
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const stagingIngest = report.stagingIngestWorkerEvidence;
   const responseOpsReadiness = report.responseOpsReadinessEvidence;
@@ -1320,18 +1376,42 @@ export function validatePromotionPackReport(report) {
     if (
       humanAcceptance?.accepted !== true ||
       humanAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
-      humanAcceptance?.validation?.simulatedOnlySubmission === true
+      humanAcceptance?.validation?.simulatedOnlySubmission === true ||
+      restoreReadiness?.currentOperationalProof !== true ||
+      restoreReadiness?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
+      restoreReadiness?.evidenceType !== "HUMAN-OBSERVED" ||
+      restoreReadiness?.simulatedOnly === true ||
+      restoreReadiness?.stale === true
     ) {
-      errors.push("Blocker 1 cannot be classified fixed without accepted non-simulated human restore evidence.");
+      errors.push("Blocker 1 cannot be classified fixed without current accepted non-simulated human restore evidence.");
     }
   }
   if (blocker22?.classification === "fixed with human-observed evidence") {
     if (
       humanAcceptance?.accepted !== true ||
       humanAcceptance?.blockerCoverage?.retentionArchiveRestore !== true ||
-      humanAcceptance?.validation?.simulatedOnlySubmission === true
+      humanAcceptance?.validation?.simulatedOnlySubmission === true ||
+      restoreReadiness?.currentOperationalProof !== true ||
+      restoreReadiness?.blockerCoverage?.retentionArchiveRestore !== true ||
+      restoreReadiness?.evidenceType !== "HUMAN-OBSERVED" ||
+      restoreReadiness?.simulatedOnly === true ||
+      restoreReadiness?.stale === true
     ) {
-      errors.push("Blocker 22 cannot be classified fixed without accepted non-simulated human retention recoverability evidence.");
+      errors.push("Blocker 22 cannot be classified fixed without current accepted non-simulated human retention recoverability evidence.");
+    }
+  }
+  if (restoreReadiness?.currentOperationalProof === true) {
+    if (
+      restoreReadiness?.stale === true ||
+      restoreReadiness?.simulatedOnly === true ||
+      restoreReadiness?.evidenceType !== "HUMAN-OBSERVED" ||
+      restoreReadiness?.safety?.runsDump === true ||
+      restoreReadiness?.safety?.runsRestore === true ||
+      restoreReadiness?.safety?.accessesProductionBackups === true ||
+      restoreReadiness?.safety?.modifiesProduction === true ||
+      restoreReadiness?.safety?.acceptsSimulatedEvidenceAsProductionProof === true
+    ) {
+      errors.push("Restore readiness current proof is unsafe or not human-observed.");
     }
   }
   if (humanAcceptance?.validation?.simulatedOnlySubmission === true && humanAcceptance?.accepted === true) {
@@ -1414,6 +1494,25 @@ export function renderPromotionPackMarkdown(report) {
     }`,
     `- SIMULATED-only submitted as human proof: ${
       report.humanRestoreDrillEvidenceAcceptance.validation?.simulatedOnlySubmission ? "yes" : "no"
+    }`,
+    "",
+    "## Restore Evidence Current Readiness",
+    "",
+    `- Status: ${report.restoreReadinessCheck.status}`,
+    `- Current operational proof: ${report.restoreReadinessCheck.currentOperationalProof ? "yes" : "no"}`,
+    `- Evidence type: ${report.restoreReadinessCheck.evidenceType}`,
+    `- Human-observed: ${report.restoreReadinessCheck.humanObserved ? "yes" : "no"}`,
+    `- SIMULATED-only: ${report.restoreReadinessCheck.simulatedOnly ? "yes" : "no"}`,
+    `- Stale: ${report.restoreReadinessCheck.stale ? "yes" : "no"}`,
+    `- Restore date/time: ${report.restoreReadinessCheck.restoreDateTime ?? "not available"}`,
+    `- Evidence age days: ${report.restoreReadinessCheck.ageDays ?? "not available"}`,
+    `- Blocker 1 current coverage: ${
+      report.restoreReadinessCheck.blockerCoverage?.disasterRecoveryRestoreDrill ? "accepted" : "not accepted"
+    }`,
+    `- Missing fields: ${
+      report.restoreReadinessCheck.requiredFields?.missing?.length
+        ? report.restoreReadinessCheck.requiredFields.missing.join(", ")
+        : "none"
     }`,
     "",
     "## Production Worker Readiness Evidence",

@@ -1,0 +1,83 @@
+{
+  "reportName": "restore-evidence-current-readiness-check",
+  "generatedAt": "2026-05-20T22:54:49.841Z",
+  "status": "simulated-only",
+  "currentOperationalProof": false,
+  "stale": false,
+  "maxAgeDays": 90,
+  "evidencePath": null,
+  "evidenceType": "SIMULATED",
+  "humanObserved": false,
+  "simulatedOnly": true,
+  "restoreDateTime": null,
+  "ageDays": null,
+  "humanAcceptance": {
+    "status": "not-submitted",
+    "accepted": false,
+    "evidencePath": null,
+    "validationOk": false
+  },
+  "simulatedEvidence": {
+    "exists": true,
+    "path": "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+    "evidenceType": "SIMULATED",
+    "status": "passed",
+    "generatedAt": "2026-05-20T17:51:17.812Z",
+    "validationOk": true,
+    "sensitiveFindings": [],
+    "productionProof": false
+  },
+  "requiredFields": {
+    "complete": false,
+    "missing": [
+      "human-observed evidence type",
+      "operator name or role",
+      "date/time",
+      "environment",
+      "backup source",
+      "restore target",
+      "RPO result",
+      "RTO result",
+      "auth/session post-restore result",
+      "packet PDF post-restore result",
+      "response queue post-restore result",
+      "cleanup/lifecycle post-restore result",
+      "retention archive/restore result or explicit retention exclusion",
+      "rollback/cleanup result",
+      "signed operator acknowledgement",
+      "explicit sanitized evidence statement"
+    ],
+    "placeholders": [],
+    "invalidValues": [],
+    "sensitiveFindings": []
+  },
+  "blockerCoverage": {
+    "disasterRecoveryRestoreDrill": false,
+    "retentionArchiveRestore": false
+  },
+  "validation": {
+    "ok": false,
+    "humanAcceptanceOk": false,
+    "errors": [
+      "No human restore evidence artifact has been submitted."
+    ],
+    "unresolvedReasons": [
+      "No accepted sanitized human-observed restore evidence is available.",
+      "Available restore evidence is SIMULATED-only and cannot be production proof.",
+      "Missing required fields: human-observed evidence type, operator name or role, date/time, environment, backup source, restore target, RPO result, RTO result, auth/session post-restore result, packet PDF post-restore result, response queue post-restore result, cleanup/lifecycle post-restore result, retention archive/restore result or explicit retention exclusion, rollback/cleanup result, signed operator acknowledgement, explicit sanitized evidence statement."
+    ]
+  },
+  "safety": {
+    "readsSecrets": false,
+    "printsSecrets": false,
+    "runsDump": false,
+    "runsRestore": false,
+    "accessesProductionBackups": false,
+    "modifiesProduction": false,
+    "acceptsSimulatedEvidenceAsProductionProof": false,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "packetBehaviorChanged": false,
+    "queueBehaviorChanged": false
+  }
+}

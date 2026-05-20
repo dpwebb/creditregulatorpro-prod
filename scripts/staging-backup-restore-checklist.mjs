@@ -14,6 +14,10 @@ export const HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH =
   "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md";
 export const HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH =
   "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json";
+export const RESTORE_READINESS_CHECK_MD_PATH = "docs/production-scale/evidence/latest-restore-readiness-check.md";
+export const RESTORE_READINESS_CHECK_JSON_PATH = "docs/production-scale/evidence/latest-restore-readiness-check.json";
+export const RESTORE_DRILL_SIMULATED_JSON_PATH = "docs/production-scale/evidence/latest-restore-drill-simulated.json";
+export const DEFAULT_RESTORE_EVIDENCE_MAX_AGE_DAYS = 90;
 
 export const REQUIRED_REFRESH_SAFETY_ANCHORS = [
   "Refusing to refresh local DB unless CRP_LOCAL_DEV=true",
@@ -326,6 +330,16 @@ function repoPath(rootDir, relativePath) {
 
 function readRootText(rootDir, relativePath) {
   return readText(repoPath(rootDir, relativePath));
+}
+
+function readRootJsonIfPresent(rootDir, relativePath) {
+  const absolutePath = repoPath(rootDir, relativePath);
+  if (!existsSync(absolutePath)) return null;
+  try {
+    return JSON.parse(readFileSync(absolutePath, "utf8"));
+  } catch {
+    return null;
+  }
 }
 
 function writeRootText(rootDir, relativePath, text) {
@@ -708,6 +722,176 @@ export function buildHumanRestoreDrillEvidenceAcceptanceReport({
   };
 }
 
+function parseRestoreEvidenceDateTime(value) {
+  const normalized = normalizeEvidenceValue(value);
+  if (!normalized) return null;
+  const parsed = Date.parse(normalized);
+  if (!Number.isFinite(parsed)) return null;
+  return new Date(parsed).toISOString();
+}
+
+function evidenceAgeDays(restoreDateTime, generatedAt) {
+  const restoreTime = Date.parse(restoreDateTime);
+  const generatedTime = Date.parse(generatedAt);
+  if (!Number.isFinite(restoreTime) || !Number.isFinite(generatedTime)) return null;
+  return Math.round(((generatedTime - restoreTime) / 86_400_000) * 100) / 100;
+}
+
+function allHumanRestoreRequirementLabels() {
+  return HUMAN_RESTORE_DRILL_REQUIRED_FIELD_GROUPS.map((fieldGroup) => fieldGroup.label);
+}
+
+function summarizeSimulatedRestoreEvidence(rootDir) {
+  const exists = existsSync(repoPath(rootDir, RESTORE_DRILL_SIMULATED_JSON_PATH));
+  if (!exists) {
+    return {
+      exists: false,
+      path: RESTORE_DRILL_SIMULATED_JSON_PATH,
+      evidenceType: "none",
+      status: "not-submitted",
+      generatedAt: null,
+      validationOk: false,
+      sensitiveFindings: [],
+      productionProof: false,
+    };
+  }
+
+  const text = readRootText(rootDir, RESTORE_DRILL_SIMULATED_JSON_PATH);
+  const parsed = readRootJsonIfPresent(rootDir, RESTORE_DRILL_SIMULATED_JSON_PATH);
+  const sensitiveFindings = scanRestoreDrillEvidenceSensitiveContent(text);
+  return {
+    exists: true,
+    path: RESTORE_DRILL_SIMULATED_JSON_PATH,
+    evidenceType: parsed?.evidenceType ?? "unknown",
+    status: parsed?.status ?? "unknown",
+    generatedAt: parsed?.generatedAt ?? null,
+    validationOk: parsed?.validation?.ok === true,
+    sensitiveFindings,
+    productionProof: parsed?.productionProof === true,
+  };
+}
+
+export function buildRestoreEvidenceCurrentCheckReport({
+  rootDir = process.cwd(),
+  evidencePath = null,
+  generatedAt = new Date().toISOString(),
+  maxAgeDays = DEFAULT_RESTORE_EVIDENCE_MAX_AGE_DAYS,
+} = {}) {
+  const humanAcceptance = buildHumanRestoreDrillEvidenceAcceptanceReport({ rootDir, evidencePath, generatedAt });
+  const simulatedEvidence = summarizeSimulatedRestoreEvidence(rootDir);
+  const restoreDateTime = parseRestoreEvidenceDateTime(humanAcceptance.validation?.matchedFields?.dateTime?.value);
+  const ageDays = restoreDateTime ? evidenceAgeDays(restoreDateTime, generatedAt) : null;
+  const futureDated = ageDays != null && ageDays < -1;
+  const stale = humanAcceptance.accepted === true && ageDays != null && ageDays > maxAgeDays;
+  const missingFields =
+    humanAcceptance.status === "not-submitted"
+      ? allHumanRestoreRequirementLabels()
+      : humanAcceptance.validation?.missingRequirements ?? [];
+  const sensitiveFindings = [
+    ...(humanAcceptance.validation?.sensitiveFindings ?? []),
+    ...(simulatedEvidence.sensitiveFindings ?? []),
+  ];
+  const validationErrors = [
+    ...(humanAcceptance.validation?.errors ?? []),
+  ];
+  if (humanAcceptance.accepted === true && !restoreDateTime) {
+    validationErrors.push("Restore date/time could not be parsed from human-observed evidence.");
+  }
+  if (futureDated) {
+    validationErrors.push("Restore evidence date/time is future-dated relative to this readiness check.");
+  }
+  if (sensitiveFindings.length > 0) {
+    validationErrors.push(`Sensitive content detected in restore evidence: ${Array.from(new Set(sensitiveFindings)).join(", ")}.`);
+  }
+
+  const humanObserved = humanAcceptance.validation?.evidenceType === "HUMAN-OBSERVED";
+  const simulatedOnly =
+    humanAcceptance.validation?.simulatedOnlySubmission === true ||
+    (humanAcceptance.status === "not-submitted" && simulatedEvidence.exists === true);
+  const currentOperationalProof =
+    humanAcceptance.accepted === true &&
+    humanObserved &&
+    !simulatedOnly &&
+    !stale &&
+    !futureDated &&
+    restoreDateTime != null &&
+    sensitiveFindings.length === 0;
+
+  let status = "not-submitted";
+  if (currentOperationalProof) status = "current-human-observed";
+  else if (humanAcceptance.accepted === true && stale) status = "stale-human-observed";
+  else if (humanAcceptance.status === "failed" || sensitiveFindings.length > 0 || futureDated) status = "failed";
+  else if (simulatedOnly) status = "simulated-only";
+
+  const unresolvedReasons = [];
+  if (!humanAcceptance.accepted) unresolvedReasons.push("No accepted sanitized human-observed restore evidence is available.");
+  if (simulatedOnly) unresolvedReasons.push("Available restore evidence is SIMULATED-only and cannot be production proof.");
+  if (stale) unresolvedReasons.push(`Human-observed restore evidence is stale: ${ageDays} days old; maximum allowed is ${maxAgeDays} days.`);
+  if (missingFields.length > 0) unresolvedReasons.push(`Missing required fields: ${missingFields.join(", ")}.`);
+  if ((humanAcceptance.validation?.placeholderFields ?? []).length > 0) {
+    unresolvedReasons.push(`Placeholder-only fields: ${humanAcceptance.validation.placeholderFields.join(", ")}.`);
+  }
+  if ((humanAcceptance.validation?.invalidValueFields ?? []).length > 0) {
+    unresolvedReasons.push(`Incomplete result fields: ${humanAcceptance.validation.invalidValueFields.join(", ")}.`);
+  }
+  if (sensitiveFindings.length > 0) unresolvedReasons.push(`Sensitive findings: ${Array.from(new Set(sensitiveFindings)).join(", ")}.`);
+  if (futureDated) unresolvedReasons.push("Human-observed restore evidence is future-dated.");
+
+  return {
+    reportName: "restore-evidence-current-readiness-check",
+    generatedAt,
+    status,
+    currentOperationalProof,
+    stale,
+    maxAgeDays,
+    evidencePath: humanAcceptance.evidencePath,
+    evidenceType: humanAcceptance.validation?.evidenceType ?? (simulatedEvidence.exists ? "SIMULATED" : "none"),
+    humanObserved,
+    simulatedOnly,
+    restoreDateTime,
+    ageDays,
+    humanAcceptance: {
+      status: humanAcceptance.status,
+      accepted: humanAcceptance.accepted === true,
+      evidencePath: humanAcceptance.evidencePath,
+      validationOk: humanAcceptance.validation?.ok === true,
+    },
+    simulatedEvidence,
+    requiredFields: {
+      complete: humanAcceptance.validation?.ok === true,
+      missing: missingFields,
+      placeholders: humanAcceptance.validation?.placeholderFields ?? [],
+      invalidValues: humanAcceptance.validation?.invalidValueFields ?? [],
+      sensitiveFindings: Array.from(new Set(sensitiveFindings)),
+    },
+    blockerCoverage: {
+      disasterRecoveryRestoreDrill:
+        currentOperationalProof && humanAcceptance.blockerCoverage?.disasterRecoveryRestoreDrill === true,
+      retentionArchiveRestore:
+        currentOperationalProof && humanAcceptance.blockerCoverage?.retentionArchiveRestore === true,
+    },
+    validation: {
+      ok: currentOperationalProof,
+      humanAcceptanceOk: humanAcceptance.validation?.ok === true,
+      errors: validationErrors,
+      unresolvedReasons,
+    },
+    safety: {
+      readsSecrets: false,
+      printsSecrets: false,
+      runsDump: false,
+      runsRestore: false,
+      accessesProductionBackups: false,
+      modifiesProduction: false,
+      acceptsSimulatedEvidenceAsProductionProof: false,
+      parserBehaviorChanged: false,
+      ocrBehaviorChanged: false,
+      packetBehaviorChanged: false,
+      queueBehaviorChanged: false,
+    },
+  };
+}
+
 export function buildBackupRestoreChecklistReport(env = process.env) {
   const gate = shouldRunBackupRestoreCheck(env);
   if (!gate.ok) {
@@ -849,6 +1033,83 @@ export function writeHumanRestoreDrillEvidenceAcceptanceReport(report, { rootDir
   };
 }
 
+export function renderRestoreEvidenceCurrentCheckMarkdown(report) {
+  const lines = [
+    "# Restore Evidence Current Readiness Check",
+    "",
+    `Generated at: ${report.generatedAt}`,
+    `Status: ${report.status}`,
+    `Current operational proof: ${report.currentOperationalProof ? "yes" : "no"}`,
+    `Evidence type: ${report.evidenceType}`,
+    `Human-observed: ${report.humanObserved ? "yes" : "no"}`,
+    `SIMULATED-only: ${report.simulatedOnly ? "yes" : "no"}`,
+    `Stale: ${report.stale ? "yes" : "no"}`,
+    `Restore date/time: ${report.restoreDateTime ?? "not available"}`,
+    `Evidence age days: ${report.ageDays ?? "not available"}`,
+    `Maximum accepted age days: ${report.maxAgeDays}`,
+    `Human evidence path: ${report.evidencePath ?? "not submitted"}`,
+    "",
+    "## Required Field Status",
+    "",
+    `- Complete: ${report.requiredFields?.complete ? "yes" : "no"}`,
+    `- Missing: ${report.requiredFields?.missing?.length ? report.requiredFields.missing.join(", ") : "none"}`,
+    `- Placeholder-only: ${report.requiredFields?.placeholders?.length ? report.requiredFields.placeholders.join(", ") : "none"}`,
+    `- Invalid/incomplete values: ${
+      report.requiredFields?.invalidValues?.length ? report.requiredFields.invalidValues.join(", ") : "none"
+    }`,
+    `- Sensitive findings: ${
+      report.requiredFields?.sensitiveFindings?.length ? report.requiredFields.sensitiveFindings.join(", ") : "none"
+    }`,
+    "",
+    "## Blocker Coverage",
+    "",
+    `- Blocker 1 disaster recovery restore drill: ${
+      report.blockerCoverage?.disasterRecoveryRestoreDrill ? "current accepted" : "not accepted"
+    }`,
+    `- Blocker 22 retention archive/restore recoverability: ${
+      report.blockerCoverage?.retentionArchiveRestore ? "current accepted" : "not accepted"
+    }`,
+    "",
+    "## Unresolved Reasons",
+    "",
+  ];
+
+  if (report.validation?.unresolvedReasons?.length) {
+    lines.push(...report.validation.unresolvedReasons.map((reason) => `- ${reason}`));
+  } else {
+    lines.push("- Current sanitized human-observed restore evidence is accepted.");
+  }
+
+  lines.push(
+    "",
+    "## Simulated Evidence",
+    "",
+    `- Exists: ${report.simulatedEvidence?.exists ? "yes" : "no"}`,
+    `- Path: ${report.simulatedEvidence?.path ?? RESTORE_DRILL_SIMULATED_JSON_PATH}`,
+    `- Status: ${report.simulatedEvidence?.status ?? "unknown"}`,
+    `- Production proof: ${report.simulatedEvidence?.productionProof ? "yes" : "no"}`,
+    "",
+    "## Safety",
+    "",
+    "- This command does not dump or restore data.",
+    "- This command does not access production backups.",
+    "- This command does not mutate production.",
+    "- This command does not change parser, OCR, packet, or queue behavior.",
+    "- SIMULATED restore evidence is never accepted as production proof.",
+  );
+
+  return `${lines.join("\n")}\n`;
+}
+
+export function writeRestoreEvidenceCurrentCheckReport(report, { rootDir = process.cwd() } = {}) {
+  writeRootText(rootDir, RESTORE_READINESS_CHECK_JSON_PATH, `${JSON.stringify(report, null, 2)}\n`);
+  writeRootText(rootDir, RESTORE_READINESS_CHECK_MD_PATH, renderRestoreEvidenceCurrentCheckMarkdown(report));
+  return {
+    markdownPath: RESTORE_READINESS_CHECK_MD_PATH,
+    jsonPath: RESTORE_READINESS_CHECK_JSON_PATH,
+  };
+}
+
 function printHumanEvidenceAcceptanceReport(report, outputs = null) {
   if (report.status === "not-submitted") {
     console.log("No human restore drill evidence artifact submitted.");
@@ -868,6 +1129,23 @@ function printHumanEvidenceAcceptanceReport(report, outputs = null) {
   }
 }
 
+function printRestoreEvidenceCurrentCheckReport(report, outputs = null) {
+  console.log("Restore evidence current readiness check generated.");
+  console.log(`Status: ${report.status}`);
+  console.log(`Current operational proof: ${report.currentOperationalProof ? "yes" : "no"}`);
+  console.log(`Evidence type: ${report.evidenceType}`);
+  console.log(`Human-observed: ${report.humanObserved ? "yes" : "no"}`);
+  console.log(`SIMULATED-only: ${report.simulatedOnly ? "yes" : "no"}`);
+  console.log(`Stale: ${report.stale ? "yes" : "no"}`);
+  if (report.validation?.unresolvedReasons?.length) {
+    for (const reason of report.validation.unresolvedReasons) console.log(`[UNRESOLVED] ${reason}`);
+  }
+  if (outputs) {
+    console.log(`Markdown: ${outputs.markdownPath}`);
+    console.log(`JSON: ${outputs.jsonPath}`);
+  }
+}
+
 function valueAfter(args, flag) {
   const index = args.indexOf(flag);
   if (index === -1) return null;
@@ -879,6 +1157,28 @@ function valueAfter(args, flag) {
 function main() {
   const args = process.argv.slice(2);
   const json = args.includes("--json") || normalizeBoolean(process.env.STAGING_BACKUP_RESTORE_CHECK_JSON);
+  if (args.includes("--current-check")) {
+    const evidencePath = valueAfter(args, "--evidence");
+    const rootDir = path.resolve(valueAfter(args, "--root") ?? process.cwd());
+    const maxAgeValue = valueAfter(args, "--max-age-days");
+    const maxAgeDays = maxAgeValue ? Number(maxAgeValue) : DEFAULT_RESTORE_EVIDENCE_MAX_AGE_DAYS;
+    if (!Number.isFinite(maxAgeDays) || maxAgeDays < 1) {
+      console.error("Restore evidence current check failed.");
+      console.error("[FAIL] --max-age-days must be a positive number.");
+      process.exit(1);
+    }
+    const report = buildRestoreEvidenceCurrentCheckReport({ rootDir, evidencePath, maxAgeDays });
+    const outputs = args.includes("--no-write")
+      ? null
+      : writeRestoreEvidenceCurrentCheckReport(report, { rootDir });
+    if (json) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      printRestoreEvidenceCurrentCheckReport(report, outputs);
+    }
+    if (report.status === "failed") process.exit(1);
+    return;
+  }
   if (args.includes("--accept-human-evidence")) {
     const evidencePath = valueAfter(args, "--accept-human-evidence");
     const rootDir = path.resolve(valueAfter(args, "--root") ?? process.cwd());

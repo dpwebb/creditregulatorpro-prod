@@ -1,5 +1,6 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -487,6 +488,7 @@ describe("production promotion evidence pack", () => {
     }
     expect(report.commandList).toContain("pnpm run production-scale:evidence");
     expect(report.commandList).toContain("pnpm run restore:accept-human-evidence");
+    expect(report.commandList).toContain("pnpm run restore:evidence:current-check");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
@@ -524,6 +526,13 @@ describe("production promotion evidence pack", () => {
         retentionArchiveRestore: false,
       },
     });
+    expect(report.restoreReadinessCheck).toMatchObject({
+      currentOperationalProof: false,
+      simulatedOnly: true,
+      blockerCoverage: {
+        disasterRecoveryRestoreDrill: false,
+      },
+    });
     expect(blocker1?.classification).toBe("human proof required");
     expect(blocker22?.classification).toBe("human proof required");
     expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).toEqual(
@@ -547,8 +556,84 @@ describe("production promotion evidence pack", () => {
     const blocker22 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 22);
 
     expect(humanRestoreEvidenceAcceptance.accepted).toBe(true);
+    expect(report.restoreReadinessCheck).toMatchObject({
+      status: "current-human-observed",
+      currentOperationalProof: true,
+      stale: false,
+      evidenceType: "HUMAN-OBSERVED",
+      simulatedOnly: false,
+    });
     expect(blocker1?.classification).toBe("fixed with human-observed evidence");
     expect(blocker22?.classification).toBe("fixed with human-observed evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 1 human-required when accepted human evidence is stale", () => {
+    const root = mkdtempSync(join(tmpdir(), "crp-stale-restore-pack-"));
+    const evidencePath = "docs/production-scale/evidence/human-restore-drill-evidence.md";
+    mkdirSync(join(root, "docs/production-scale/evidence"), { recursive: true });
+    writeFileSync(
+      join(root, evidencePath),
+      readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8")
+        .replace("2026-05-20", "2025-01-01")
+        .replace("2026-05-20T12:00:00-03:00", "2025-01-01T12:00:00-03:00"),
+      "utf8",
+    );
+
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      humanRestoreEvidenceAcceptance: buildHumanRestoreDrillEvidenceAcceptanceReport({
+        rootDir: root,
+        evidencePath,
+        generatedAt: "2026-05-20T12:00:00.000Z",
+      }),
+      restoreReadinessCheck: {
+        reportName: "restore-evidence-current-readiness-check",
+        generatedAt: "2026-05-20T12:00:00.000Z",
+        status: "stale-human-observed",
+        currentOperationalProof: false,
+        stale: true,
+        maxAgeDays: 90,
+        evidencePath,
+        evidenceType: "HUMAN-OBSERVED",
+        humanObserved: true,
+        simulatedOnly: false,
+        restoreDateTime: "2025-01-01T15:00:00.000Z",
+        ageDays: 504.88,
+        requiredFields: {
+          complete: true,
+          missing: [],
+          placeholders: [],
+          invalidValues: [],
+          sensitiveFindings: [],
+        },
+        blockerCoverage: {
+          disasterRecoveryRestoreDrill: false,
+          retentionArchiveRestore: false,
+        },
+        validation: {
+          ok: false,
+          humanAcceptanceOk: true,
+          errors: [],
+          unresolvedReasons: ["Human-observed restore evidence is stale."],
+        },
+        safety: {
+          runsDump: false,
+          runsRestore: false,
+          accessesProductionBackups: false,
+          modifiesProduction: false,
+          acceptsSimulatedEvidenceAsProductionProof: false,
+        },
+      },
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
+
+    expect(report.humanRestoreDrillEvidenceAcceptance.accepted).toBe(true);
+    expect(report.restoreReadinessCheck.stale).toBe(true);
+    expect(blocker1?.classification).toBe("human proof required");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 

@@ -89,6 +89,7 @@
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
     "check:restore-drill-evidence": "node scripts/staging-backup-restore-checklist.mjs --validate-evidence docs/restore-drill-evidence-template.md",
     "restore:accept-human-evidence": "node scripts/staging-backup-restore-checklist.mjs --accept-human-evidence",
+    "restore:evidence:current-check": "node scripts/staging-backup-restore-checklist.mjs --current-check",
     "check:staging-observability": "node scripts/staging-observability-check.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",
     "promote:production": "node scripts/promote-production.mjs"

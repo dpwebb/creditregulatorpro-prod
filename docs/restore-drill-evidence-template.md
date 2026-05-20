@@ -66,5 +66,6 @@ pnpm run operator:dashboard
 - This template must be copied and filled by a human operator after an actual external restore drill.
 - The filled artifact must pass `node scripts/staging-backup-restore-checklist.mjs --validate-evidence <path>`.
 - Human acceptance for promotion-pack gating must pass `pnpm run restore:accept-human-evidence` against `docs/production-scale/evidence/human-restore-drill-evidence.md` or `.json`.
+- Current operational readiness must also pass `pnpm run restore:evidence:current-check`; stale or SIMULATED-only evidence cannot close blocker 1.
 - Filled evidence must replace every `TBD`, `TODO`, and `N/A` placeholder with a concrete sanitized value.
 - Do not mark the disaster recovery blocker complete until filled, signed evidence exists and required post-restore checks pass.

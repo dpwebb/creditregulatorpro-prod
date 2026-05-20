@@ -93,6 +93,14 @@ pnpm run operator:dashboard
 pnpm run restore:accept-human-evidence
 ```
 
+13. Record the current operational readiness state:
+
+```sh
+pnpm run restore:evidence:current-check
+```
+
+This writes `docs/production-scale/evidence/latest-restore-readiness-check.md` and `.json`. A current readiness claim requires accepted, sanitized, human-observed evidence that is not stale. SIMULATED evidence remains evidence of guard coverage only.
+
 ## Evidence Acceptance Criteria
 
 A restore drill is not complete until a filled evidence artifact records:
@@ -131,6 +139,7 @@ The evidence artifact must be sanitized and pass:
 ```sh
 node scripts/staging-backup-restore-checklist.mjs --validate-evidence <path-to-filled-evidence>
 pnpm run restore:accept-human-evidence
+pnpm run restore:evidence:current-check
 ```
 
 ## Stop Conditions
