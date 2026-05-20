@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T17:51:22.678Z
+Generated at: 2026-05-20T17:59:15.042Z
 Current branch: `staging`
-Current commit hash: `b7e5c15be19c677541a4965f951af451151d8670`
+Current commit hash: `8eca089cd4aa2c2ce5624941b10353fc64d4f797`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -23,7 +23,7 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, partial=15, simulated-proof-only=1, open=8
+- Status counts: requires-human-proof=1, simulated-proof-only=2, partial=14, open=8
 
 ## Automated Local Evidence
 
@@ -31,10 +31,10 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #2 Production ingest runtime (Critical; partial)
-  Proof required: Staging-safe worker operating evidence before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Record bounded staging worker queue-drain proof without production activation.
+- #2 Production ingest runtime (Critical; simulated-proof-only)
+  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
   Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -136,6 +136,10 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
+- SIMULATED - #2 Production ingest runtime (Critical; simulated-proof-only)
+  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - SIMULATED - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
   Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -159,10 +163,10 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
 
 ## Staging Evidence
 
-- #2 Production ingest runtime (Critical; partial)
-  Proof required: Staging-safe worker operating evidence before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Record bounded staging worker queue-drain proof without production activation.
+- #2 Production ingest runtime (Critical; simulated-proof-only)
+  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
   Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -250,10 +254,10 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #2 Production ingest runtime (Critical; partial)
-  Proof required: Staging-safe worker operating evidence before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Record bounded staging worker queue-drain proof without production activation.
+- #2 Production ingest runtime (Critical; simulated-proof-only)
+  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
   Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`

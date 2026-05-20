@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T17:51:22.678Z",
+  "generatedAt": "2026-05-20T17:59:15.042Z",
   "branch": "staging",
-  "commit": "b7e5c15be19c677541a4965f951af451151d8670",
+  "commit": "8eca089cd4aa2c2ce5624941b10353fc64d4f797",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -17,8 +17,8 @@
     "allAuditBlockersRepresented": true,
     "statusCounts": {
       "requires-human-proof": 1,
-      "partial": 15,
-      "simulated-proof-only": 1,
+      "simulated-proof-only": 2,
+      "partial": 14,
       "open": 8
     },
     "validation": {
@@ -102,9 +102,10 @@
           "title": "Production ingest runtime",
           "severity": "Critical",
           "area": "Production ingest runtime",
-          "currentStatus": "partial",
-          "proofTypeRequired": "Staging-safe worker operating evidence before any production-scoped activation.",
+          "currentStatus": "simulated-proof-only",
+          "proofTypeRequired": "SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.",
           "allowedProofCommands": [
+            "pnpm run ingest:worker:simulated-proof",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
             "pnpm run staging:ingest-worker -- --dry-run",
             "pnpm run operator:dashboard",
@@ -117,14 +118,16 @@
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
-          "simulatedProofAcceptable": false,
+          "simulatedProofAcceptable": true,
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/staging-ingest-worker-operation.md",
+            "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+            "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Record bounded staging worker queue-drain proof without production activation."
+          "recommendedNextAction": "Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation."
         },
         {
           "number": 3,
@@ -809,6 +812,38 @@
           "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence."
         },
         {
+          "number": 2,
+          "title": "Production ingest runtime",
+          "severity": "Critical",
+          "area": "Production ingest runtime",
+          "currentStatus": "simulated-proof-only",
+          "proofTypeRequired": "SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.",
+          "allowedProofCommands": [
+            "pnpm run ingest:worker:simulated-proof",
+            "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+            "pnpm run staging:ingest-worker -- --dry-run",
+            "pnpm run operator:dashboard",
+            "pnpm run test:api"
+          ],
+          "forbiddenProofTypes": [
+            "production worker activation",
+            "production queue mutation",
+            "live provider calls",
+            "dashboard PASS alone"
+          ],
+          "productionMutationForbidden": true,
+          "simulatedProofAcceptable": true,
+          "humanProofRequired": false,
+          "relatedEvidenceOutputPaths": [
+            "docs/staging-ingest-worker-operation.md",
+            "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+            "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+            "docs/production-scale/evidence/latest-production-scale-evidence.md",
+            "docs/production-scale/evidence/latest-production-scale-evidence.json"
+          ],
+          "recommendedNextAction": "Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation."
+        },
+        {
           "number": 3,
           "title": "Load/concurrency proof",
           "severity": "High",
@@ -965,9 +1000,10 @@
           "title": "Production ingest runtime",
           "severity": "Critical",
           "area": "Production ingest runtime",
-          "currentStatus": "partial",
-          "proofTypeRequired": "Staging-safe worker operating evidence before any production-scoped activation.",
+          "currentStatus": "simulated-proof-only",
+          "proofTypeRequired": "SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.",
           "allowedProofCommands": [
+            "pnpm run ingest:worker:simulated-proof",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
             "pnpm run staging:ingest-worker -- --dry-run",
             "pnpm run operator:dashboard",
@@ -980,14 +1016,16 @@
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
-          "simulatedProofAcceptable": false,
+          "simulatedProofAcceptable": true,
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/staging-ingest-worker-operation.md",
+            "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+            "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Record bounded staging worker queue-drain proof without production activation."
+          "recommendedNextAction": "Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation."
         },
         {
           "number": 3,
@@ -1533,9 +1571,10 @@
       "title": "Production ingest runtime",
       "severity": "Critical",
       "area": "Production ingest runtime",
-      "currentStatus": "partial",
-      "proofTypeRequired": "Staging-safe worker operating evidence before any production-scoped activation.",
+      "currentStatus": "simulated-proof-only",
+      "proofTypeRequired": "SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.",
       "allowedProofCommands": [
+        "pnpm run ingest:worker:simulated-proof",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
         "pnpm run operator:dashboard",
@@ -1548,14 +1587,16 @@
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
-      "simulatedProofAcceptable": false,
+      "simulatedProofAcceptable": true,
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/staging-ingest-worker-operation.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Record bounded staging worker queue-drain proof without production activation."
+      "recommendedNextAction": "Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation."
     },
     {
       "number": 3,

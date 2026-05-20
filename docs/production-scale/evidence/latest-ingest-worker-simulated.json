@@ -1,0 +1,263 @@
+{
+  "reportName": "ingest-worker-simulated-queue-drain-proof",
+  "evidenceType": "SIMULATED",
+  "generatedAt": "2026-05-20T17:59:00.836Z",
+  "branch": "staging",
+  "commit": "8eca089cd4aa2c2ce5624941b10353fc64d4f797",
+  "simulationId": "SIMULATED-INGEST-WORKER-QUEUE-DRAIN",
+  "status": "passed",
+  "workerCommand": "pnpm run ingest:worker:simulated-proof",
+  "simulatedWorkerLogic": "runIngestProcessingWorker with in-memory synthetic queue dependencies",
+  "productionWorkerActivationChanged": false,
+  "productionDeploymentChanged": false,
+  "productionMutationOccurred": false,
+  "humanOrStagingProductionProofStillRequired": true,
+  "queueScope": {
+    "source": "SIMULATED_INGEST_WORKER_PROOF",
+    "syntheticScopedJobs": 3,
+    "outOfScopeGuardJobs": 1
+  },
+  "queueDepth": {
+    "before": {
+      "total": 3,
+      "queued": 3,
+      "running": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "deadLettered": 0,
+      "canceled": 0,
+      "staleQueuedOrRunning": 3
+    },
+    "after": {
+      "total": 3,
+      "queued": 0,
+      "running": 0,
+      "succeeded": 2,
+      "failed": 0,
+      "deadLettered": 1,
+      "canceled": 0,
+      "staleQueuedOrRunning": 0
+    }
+  },
+  "dryRun": {
+    "marker": "SIMULATED_INGEST_WORKER_DRY_RUN_NO_MUTATION",
+    "exitCode": 0,
+    "mutatedQueueState": false,
+    "workerLogs": [
+      "{\"event\":\"worker_iteration\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"status\":\"dry_run_preview\",\"dryRun\":true,\"workerId\":\"simulated-ingest-worker-proof\",\"jobId\":101,\"jobType\":\"report_ingest_process\",\"jobStatus\":\"queued\",\"attemptCount\":0,\"maxAttempts\":2}",
+      "{\"event\":\"worker_summary\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"dryRun\":true,\"apply\":false,\"maxJobs\":1,\"concurrency\":1,\"processed\":0,\"failureCount\":0}"
+    ]
+  },
+  "boundedApply": {
+    "marker": "SIMULATED_INGEST_WORKER_BOUNDED_APPLY_SCOPED",
+    "exitCode": 2,
+    "expectedExitCode": 2,
+    "expectedExitCodeReason": "The bounded worker returns 2 when the intentionally malformed SIMULATED job dead-letters.",
+    "touchedOutOfScopeJobs": false,
+    "workerLogs": [
+      "{\"event\":\"worker_iteration\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"status\":\"succeeded\",\"dryRun\":false,\"workerId\":\"simulated-ingest-worker-proof\",\"jobId\":101,\"jobType\":\"report_ingest_process\",\"jobStatus\":\"succeeded\",\"attemptCount\":1,\"maxAttempts\":2}",
+      "{\"event\":\"worker_iteration\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"status\":\"succeeded\",\"dryRun\":false,\"workerId\":\"simulated-ingest-worker-proof\",\"jobId\":102,\"jobType\":\"report_ingest_process\",\"jobStatus\":\"succeeded\",\"attemptCount\":1,\"maxAttempts\":2}",
+      "{\"event\":\"worker_iteration\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"status\":\"dead_lettered\",\"dryRun\":false,\"workerId\":\"simulated-ingest-worker-proof\",\"jobId\":103,\"jobType\":\"report_ingest_process\",\"jobStatus\":\"dead_lettered\",\"attemptCount\":1,\"maxAttempts\":1}",
+      "{\"event\":\"worker_summary\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"dryRun\":false,\"apply\":true,\"maxJobs\":3,\"concurrency\":1,\"processed\":3,\"failureCount\":1}"
+    ]
+  },
+  "deadLetter": {
+    "marker": "SIMULATED_INGEST_WORKER_DEAD_LETTER_VISIBLE",
+    "visible": true,
+    "jobId": 103,
+    "status": "dead_lettered",
+    "errorCode": "SIMULATED_MALFORMED_SYNTHETIC_JOB",
+    "eventTypes": [
+      "queued",
+      "claimed",
+      "dead_lettered"
+    ]
+  },
+  "emptyQueue": {
+    "marker": "SIMULATED_INGEST_WORKER_EMPTY_QUEUE_CLEAN_EXIT",
+    "exitCode": 0,
+    "cleanExit": true,
+    "workerLogs": [
+      "{\"event\":\"worker_iteration\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"status\":\"idle\",\"dryRun\":false,\"workerId\":\"simulated-ingest-worker-proof\",\"jobId\":null,\"jobType\":null,\"jobStatus\":null,\"attemptCount\":null,\"maxAttempts\":null}",
+      "{\"event\":\"worker_summary\",\"component\":\"ingest_processing_worker\",\"rawReportBytesLogged\":false,\"extractedReportTextLogged\":false,\"dryRun\":false,\"apply\":true,\"maxJobs\":1,\"concurrency\":1,\"processed\":0,\"failureCount\":0}"
+    ]
+  },
+  "lifecycleEvidence": {
+    "marker": "SIMULATED_INGEST_WORKER_QUEUE_DEPTH_BEFORE_AFTER_VISIBLE",
+    "staleQueuedJobsRemainInSyntheticScope": 0,
+    "artifactStatusUpdates": [
+      {
+        "artifactId": 7101,
+        "status": "processing"
+      },
+      {
+        "artifactId": 7102,
+        "status": "processing"
+      },
+      {
+        "artifactId": 7103,
+        "status": "failed"
+      }
+    ],
+    "jobs": [
+      {
+        "id": 101,
+        "source": "SIMULATED_INGEST_WORKER_PROOF",
+        "status": "succeeded",
+        "attemptCount": 1,
+        "maxAttempts": 2,
+        "lastErrorCode": null,
+        "eventTypes": [
+          "queued",
+          "claimed",
+          "ocr_parsing_started",
+          "compliance_scan_started",
+          "succeeded"
+        ],
+        "resultSummary": {
+          "artifactId": 7101,
+          "deterministicPipelineCalledByWorker": true,
+          "endpointCutoverEnabled": true,
+          "progressStages": [
+            "unified_extraction",
+            "unified_extraction_completed",
+            "compliance_scanning",
+            "finalizing"
+          ],
+          "completeEvents": 1,
+          "errorEvents": 0,
+          "pipelineDurationMs": 43,
+          "ocrParsingDurationMs": 0,
+          "complianceScanDurationMs": 0,
+          "parserOutputMutated": false,
+          "ocrBehaviorMutated": false,
+          "violationTruthMutated": false,
+          "evidenceBindingMutated": false,
+          "packetReadinessMutated": false,
+          "rawReportBytesLogged": false,
+          "extractedReportTextLogged": false,
+          "tradelineCount": 1,
+          "createdTradelineCount": 1,
+          "updatedTradelineCount": 0,
+          "processingStatus": "unknown",
+          "extractionSource": "unknown",
+          "ocrPageCount": null,
+          "ocrFailureCategory": null,
+          "parserRequiresManualReview": false,
+          "parserIssueCount": 0,
+          "parserConfidenceScore": null,
+          "parserFailureCategory": null,
+          "evidenceType": "SIMULATED",
+          "simulatedQueueDrainProof": true
+        }
+      },
+      {
+        "id": 102,
+        "source": "SIMULATED_INGEST_WORKER_PROOF",
+        "status": "succeeded",
+        "attemptCount": 1,
+        "maxAttempts": 2,
+        "lastErrorCode": null,
+        "eventTypes": [
+          "queued",
+          "claimed",
+          "ocr_parsing_started",
+          "compliance_scan_started",
+          "succeeded"
+        ],
+        "resultSummary": {
+          "artifactId": 7102,
+          "deterministicPipelineCalledByWorker": true,
+          "endpointCutoverEnabled": true,
+          "progressStages": [
+            "unified_extraction",
+            "unified_extraction_completed",
+            "compliance_scanning",
+            "finalizing"
+          ],
+          "completeEvents": 1,
+          "errorEvents": 0,
+          "pipelineDurationMs": 3,
+          "ocrParsingDurationMs": 0,
+          "complianceScanDurationMs": 0,
+          "parserOutputMutated": false,
+          "ocrBehaviorMutated": false,
+          "violationTruthMutated": false,
+          "evidenceBindingMutated": false,
+          "packetReadinessMutated": false,
+          "rawReportBytesLogged": false,
+          "extractedReportTextLogged": false,
+          "tradelineCount": 1,
+          "createdTradelineCount": 1,
+          "updatedTradelineCount": 0,
+          "processingStatus": "unknown",
+          "extractionSource": "unknown",
+          "ocrPageCount": null,
+          "ocrFailureCategory": null,
+          "parserRequiresManualReview": false,
+          "parserIssueCount": 0,
+          "parserConfidenceScore": null,
+          "parserFailureCategory": null,
+          "evidenceType": "SIMULATED",
+          "simulatedQueueDrainProof": true
+        }
+      },
+      {
+        "id": 103,
+        "source": "SIMULATED_INGEST_WORKER_PROOF",
+        "status": "dead_lettered",
+        "attemptCount": 1,
+        "maxAttempts": 1,
+        "lastErrorCode": "SIMULATED_MALFORMED_SYNTHETIC_JOB",
+        "eventTypes": [
+          "queued",
+          "claimed",
+          "dead_lettered"
+        ],
+        "resultSummary": {
+          "errorCode": "SIMULATED_MALFORMED_SYNTHETIC_JOB",
+          "permanent": true,
+          "evidenceType": "SIMULATED",
+          "rawReportBytesLogged": false,
+          "extractedReportTextLogged": false
+        }
+      }
+    ]
+  },
+  "safety": {
+    "evidenceType": "SIMULATED",
+    "syntheticFixturesOnly": true,
+    "localInMemoryQueueOnly": true,
+    "productionEnvironmentTargeted": false,
+    "productionDataMutated": false,
+    "realConsumerPiiUsed": false,
+    "realCreditReportsProcessed": false,
+    "productionBackupsOrDumpsAccessed": false,
+    "liveExternalProvidersConnected": false,
+    "externalProviderCallsMade": 0,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "violationBehaviorChanged": false,
+    "evidenceBindingChanged": false,
+    "storageBehaviorChanged": false,
+    "packetReadinessChanged": false,
+    "packetPdfBehaviorChanged": false,
+    "dbPoolBehaviorChanged": false,
+    "retentionBehaviorChanged": false,
+    "productionDeploymentActivationChanged": false,
+    "simulatedEvidenceIsProductionProof": false
+  },
+  "markers": [
+    "SIMULATED_INGEST_WORKER_DRY_RUN_NO_MUTATION",
+    "SIMULATED_INGEST_WORKER_BOUNDED_APPLY_SCOPED",
+    "SIMULATED_INGEST_WORKER_QUEUE_DEPTH_BEFORE_AFTER_VISIBLE",
+    "SIMULATED_INGEST_WORKER_DEAD_LETTER_VISIBLE",
+    "SIMULATED_INGEST_WORKER_EMPTY_QUEUE_CLEAN_EXIT",
+    "SIMULATED_INGEST_WORKER_EXTERNAL_PROVIDER_ISOLATION",
+    "SIMULATED_INGEST_WORKER_PROTECTED_BEHAVIOR_UNCHANGED"
+  ],
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

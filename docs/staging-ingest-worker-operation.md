@@ -65,6 +65,51 @@ pnpm run operator:dashboard
 
 Confirm that the dry-run reports idle or only expected queued work, and that the operator dashboard does not show unexpected stale-running, failed-cleanup, or dead-letter ingest jobs.
 
+## Autonomous Simulated Proof
+
+Run this only as local/staging-safe synthetic evidence. It does not use the staging database queue and it is not production proof.
+
+```bash
+pnpm run ingest:worker:simulated-proof
+```
+
+Expected outputs:
+
+- `docs/production-scale/evidence/latest-ingest-worker-simulated.md`
+- `docs/production-scale/evidence/latest-ingest-worker-simulated.json`
+
+The simulated proof should show 3 scoped synthetic jobs before apply, 0 queued/running scoped synthetic jobs after apply, 2 succeeded synthetic jobs, 1 intentionally malformed synthetic dead-lettered job, and no live provider calls. A nonzero bounded-apply worker exit code is expected inside this proof because the malformed synthetic job dead-letters visibly.
+
+## Manual Staging Evidence Capture
+
+For actual staging operator evidence, run a dry-run first, record the queue status, then run one bounded apply only if the queued work is expected and staging-safe:
+
+```bash
+pnpm run staging:ingest-worker -- --dry-run
+pnpm run operator:dashboard
+pnpm run staging:ingest-worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-ingest-manual
+pnpm run staging:ingest-worker -- --dry-run
+pnpm run operator:dashboard
+```
+
+Expected bounded count: at most 5 jobs, concurrency 1, using only the staging container with `CRP_ENV=staging`.
+
+Record the following in the operator evidence note:
+
+- timestamp and operator identity
+- exact commands run
+- queue depth/status before the bounded apply
+- bounded apply result count and any retry/dead-letter status
+- queue depth/status after the bounded apply
+- confirmation that the target was `creditregulatorpro-staging`
+- confirmation that no production queue, production data, real consumer reports, live providers, or production worker activation were used
+
+Interpretation:
+
+- Pass for staging evidence only when queued/running depth recovers for the reviewed staging-safe scope and any failed/dead-letter jobs have visible lifecycle status.
+- Fail or stop when the target is not clearly staging, the queue contains unexpected real records, commands would touch production, provider delivery would occur, or queue depth does not recover.
+- Do not treat simulated proof, dry-run output, or dashboard PASS alone as production ingest runtime proof.
+
 ## Stop Or Disable
 
 This is not a daemon service. To keep it disabled, do not pass `run_ingest_worker=true` to the manual staging deploy workflow and do not run the operator apply command.

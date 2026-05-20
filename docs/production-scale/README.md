@@ -51,3 +51,20 @@ Outputs:
 These files are `SIMULATED` evidence only. They use synthetic backup metadata, synthetic restore target metadata, and local temp-state labels. They do not access production backups, do not restore production dumps, do not mutate production data, and do not connect to live providers.
 
 The disaster recovery blocker remains open until a human-observed restore drill produces signed, sanitized evidence with RPO/RTO, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, and operator acknowledgement results.
+
+## Simulated Ingest Worker Queue Drain
+
+Run:
+
+```bash
+pnpm run ingest:worker:simulated-proof
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-ingest-worker-simulated.md`
+- `docs/production-scale/evidence/latest-ingest-worker-simulated.json`
+
+These files are `SIMULATED` evidence only. They use synthetic in-memory queue jobs, mocked worker dependencies, and no real reports or production queue records. They do not activate a production worker, do not change production deployment, do not mutate production data, and do not connect to live providers.
+
+The production ingest runtime blocker remains unresolved for production use until bounded staging-safe queue-depth recovery evidence is recorded and reviewed. Simulated proof cannot be promoted to production proof.
