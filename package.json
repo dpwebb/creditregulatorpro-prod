@@ -62,6 +62,7 @@
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
     "baseline:production-scale-local": "node scripts/production-scale-harness.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
+    "check:restore-drill-evidence": "node scripts/staging-backup-restore-checklist.mjs --validate-evidence docs/restore-drill-evidence-template.md",
     "check:staging-observability": "node scripts/staging-observability-check.mjs",
     "check:staging-services": "bash scripts/check-staging-services.sh",
     "promote:production": "node scripts/promote-production.mjs"

@@ -6,6 +6,7 @@ export const SKIPPED_EXIT_CODE = 2;
 
 export const REFRESH_SCRIPT_PATH = "scripts/refresh-local-from-staging.mjs";
 export const GITIGNORE_PATH = ".gitignore";
+export const RESTORE_DRILL_EVIDENCE_TEMPLATE_PATH = "docs/restore-drill-evidence-template.md";
 
 export const REQUIRED_REFRESH_SAFETY_ANCHORS = [
   "Refusing to refresh local DB unless CRP_LOCAL_DEV=true",
@@ -54,6 +55,53 @@ export const BACKUP_RESTORE_DRILL_STEPS = [
   },
 ];
 
+export const REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS = [
+  "Drill date",
+  "Operator",
+  "Source environment",
+  "Source commit/SHA",
+  "Source backup/dump identifier without secrets",
+  "Target environment",
+  "Target DB guard confirmation",
+  "RPO target",
+  "RTO target",
+  "Actual restore duration",
+  "Post-restore checks run",
+  "Golden path result",
+  "Auth/session check result",
+  "Packet PDF check result",
+  "Response queue/dashboard check result",
+  "Cleanup of local sensitive dump",
+  "Signoff",
+];
+
+export const RESTORE_DRILL_SENSITIVE_PATTERNS = [
+  {
+    name: "database-url-with-credentials",
+    pattern: /\b(?:postgres|postgresql|mysql|mongodb):\/\/[^\s:@/]+:[^\s@/]+@[^\s]+/i,
+  },
+  {
+    name: "private-key-block",
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/i,
+  },
+  {
+    name: "api-token",
+    pattern: /\b(?:sk|ghp|github_pat|xox[baprs])_[A-Za-z0-9_-]{12,}\b/i,
+  },
+  {
+    name: "bearer-token-value",
+    pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{20,}\b/i,
+  },
+  {
+    name: "session-cookie",
+    pattern: /\bfloot_built_app_session=[A-Za-z0-9._~+/=-]{12,}\b/i,
+  },
+  {
+    name: "raw-pdf-bytes",
+    pattern: /(?:%PDF-|JVBERi0)/i,
+  },
+];
+
 function normalizeBoolean(value) {
   return String(value ?? "").trim().toLowerCase() === "true";
 }
@@ -73,6 +121,10 @@ function readText(path) {
     throw new Error(`Required file is missing: ${path}`);
   }
   return readFileSync(path, "utf8");
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function validateRefreshScriptSafety(scriptText) {
@@ -100,6 +152,48 @@ export function assertChecklistDoesNotTargetProduction(steps = BACKUP_RESTORE_DR
   if (offenders.length > 0) {
     throw new Error(`Backup/restore checklist references production in: ${offenders.map((step) => step.name).join(", ")}.`);
   }
+}
+
+export function scanRestoreDrillEvidenceSensitiveContent(text) {
+  return RESTORE_DRILL_SENSITIVE_PATTERNS
+    .filter((item) => item.pattern.test(text))
+    .map((item) => item.name);
+}
+
+export function validateRestoreDrillEvidenceText(text, options = {}) {
+  const requiredFields = options.requiredFields ?? REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS;
+  const missingFields = requiredFields.filter((field) => {
+    const fieldPattern = new RegExp(`(^|[|#\\-:*\\s])${escapeRegExp(field)}([|#\\-:*\\s]|$)`, "im");
+    return !fieldPattern.test(text);
+  });
+  const sensitiveFindings = scanRestoreDrillEvidenceSensitiveContent(text);
+
+  return {
+    ok: missingFields.length === 0 && sensitiveFindings.length === 0,
+    missingFields,
+    sensitiveFindings,
+    requiredFieldCount: requiredFields.length,
+  };
+}
+
+export function buildRestoreDrillEvidenceValidationReport(path = RESTORE_DRILL_EVIDENCE_TEMPLATE_PATH) {
+  const evidenceText = readText(path);
+  const validation = validateRestoreDrillEvidenceText(evidenceText);
+  return {
+    status: validation.ok ? "passed" : "failed",
+    generatedAt: new Date().toISOString(),
+    evidencePath: path,
+    validation,
+    safety: {
+      readsSecrets: false,
+      printsSecrets: false,
+      runsDump: false,
+      runsRestore: false,
+      modifiesStaging: false,
+      modifiesProduction: false,
+      claimsRestoreCompleted: false,
+    },
+  };
 }
 
 export function buildBackupRestoreChecklistReport(env = process.env) {
@@ -168,8 +262,46 @@ function printHumanReport(report) {
   }
 }
 
+function printEvidenceValidationReport(report) {
+  if (report.status === "failed") {
+    console.error("Restore drill evidence validation failed.");
+    if (report.validation.missingFields.length > 0) {
+      console.error(`[FAIL] Missing fields: ${report.validation.missingFields.join(", ")}`);
+    }
+    if (report.validation.sensitiveFindings.length > 0) {
+      console.error(`[FAIL] Sensitive patterns found: ${report.validation.sensitiveFindings.join(", ")}`);
+    }
+    return;
+  }
+
+  console.log("Restore drill evidence validation passed.");
+  console.log(`Evidence path: ${report.evidencePath}`);
+  console.log("This validation does not dump or restore data and does not claim a completed restore drill.");
+}
+
+function valueAfter(args, flag) {
+  const index = args.indexOf(flag);
+  if (index === -1) return null;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) return null;
+  return value;
+}
+
 function main() {
-  const json = process.argv.includes("--json") || normalizeBoolean(process.env.STAGING_BACKUP_RESTORE_CHECK_JSON);
+  const args = process.argv.slice(2);
+  const json = args.includes("--json") || normalizeBoolean(process.env.STAGING_BACKUP_RESTORE_CHECK_JSON);
+  if (args.includes("--validate-evidence")) {
+    const evidencePath = valueAfter(args, "--validate-evidence") ?? RESTORE_DRILL_EVIDENCE_TEMPLATE_PATH;
+    const report = buildRestoreDrillEvidenceValidationReport(evidencePath);
+    if (json) {
+      console.log(JSON.stringify(report, null, 2));
+    } else {
+      printEvidenceValidationReport(report);
+    }
+    if (report.status === "failed") process.exit(1);
+    return;
+  }
+
   const report = buildBackupRestoreChecklistReport();
   if (json) {
     console.log(JSON.stringify(report, null, 2));
