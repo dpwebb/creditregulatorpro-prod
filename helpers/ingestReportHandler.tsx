@@ -206,15 +206,6 @@ export async function handleIngestProcess(
 
     await updateArtifactProcessingStatus(artifactId, "failed");
 
-    try {
-      await db
-        .deleteFrom("evidenceEvent")
-        .where("description", "like", `%artifact ${artifactId}%`)
-        .execute();
-    } catch (cleanupErr) {
-      console.error(`[Ingest] Failed to cleanup evidence events for artifact ${artifactId}:`, cleanupErr);
-    }
-
     await cleanupFailedIngest(artifactId, context.createdTradelineIds);
 
     send({

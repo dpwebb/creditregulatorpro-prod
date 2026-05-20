@@ -2,23 +2,25 @@
 
 Updated: 2026-05-20
 
-## Current Cleanup Paths
+## Default Failed-Ingest Cleanup
 
-The current cleanup helper is still destructive and best-effort. This task adds visibility and bounded remediation around that behavior; it does not replace cleanup with a new storage or lifecycle architecture.
+Default failed-ingest cleanup is non-destructive. Failed ingest artifacts and any created tradelines are preserved for operator review instead of being deleted automatically.
 
 `helpers/ingestReportHandler.tsx` calls `cleanupFailedIngest(artifactId, [])` when an artifact has a prior failed extraction state or no stored PDF bytes. In the queued architecture this path should be rare, but it remains as a compatibility guard.
 
-`helpers/ingestReportHandler.tsx` also calls `cleanupFailedIngest(artifactId, context.createdTradelineIds)` when `executeIngestPipeline` throws. Before that call it marks the artifact failed and best-effort deletes evidence events whose description mentions the artifact.
+`helpers/ingestReportHandler.tsx` also calls `cleanupFailedIngest(artifactId, context.createdTradelineIds)` when `executeIngestPipeline` throws. Before that call it marks the artifact failed. It no longer deletes evidence events by default.
 
-`helpers/ingestCleanup.tsx` deletes packet, evidence event, packet impact, packet compliance, obligation, validation, snapshot, payment-history, tradeline, pass-extraction, report-subtable, edit-log, and report-artifact rows in dependency order. Cleanup errors are caught and logged so the original ingest failure is not masked.
+`helpers/ingestCleanup.tsx` now updates `reportArtifact.processingStatus` to `failed` and stores a metadata-only `failedIngestCleanup` marker in `reportArtifact.data`. The marker records `state: remediation_required`, `cleanupRequired: true`, `remediationRequired: true`, `preservedForOperatorReview: true`, the cleanup mode, tradeline count, and timestamps. Repeated marking updates the same marker instead of appending unbounded data.
 
-`cleanupArtifactOnly(artifactId)` deletes pass extraction and report-artifact direct subtable rows before deleting the report artifact itself. It also catches and logs cleanup errors.
+`cleanupArtifactOnly(artifactId)` follows the same non-destructive default path. It marks the artifact failed/remediation-required and preserves report artifact direct subtable rows for review.
 
-## Added Visibility
+## Lifecycle Visibility
 
-Queued ingest jobs now retain append-only job events for cleanup attempts and cleanup failures when a related job exists for the report artifact. Event payloads must stay metadata-only: no raw report bytes, extracted report text, storage URLs, account numbers, full SINs, credentials, or session material.
+Queued ingest jobs retain append-only `cleanup_attempted` events when a related job exists for the report artifact. Non-destructive remediation events include `cleanupDisposition: non_destructive_remediation`, `destructiveCleanupPath: false`, `cleanupRequired: true`, and `preservedForOperatorReview: true`.
 
-The operator dashboard surfaces ingest queue health counts for dead-lettered jobs, stale running jobs, retry backlog, cleanup attempts, failed cleanup events, cleanup-failed jobs, and remediation events.
+Cleanup event payloads must stay metadata-only: no raw report bytes, extracted report text, storage URLs, account numbers, full SINs, credentials, or session material.
+
+The operator dashboard surfaces ingest queue health counts for dead-lettered jobs, stale running jobs, retry backlog, cleanup attempts, failed cleanup events, cleanup-failed jobs, and remediation events. Operators can also inspect the artifact's `failedIngestCleanup` marker through safe admin/database review procedures.
 
 ## Admin Remediation
 
@@ -30,8 +32,14 @@ Admin-only remediation is bounded to metadata/status controls:
 
 The remediation endpoint does not delete jobs, events, report artifacts, raw PDFs, parsed text, tradelines, evidence, violations, or packets.
 
+## Explicit Destructive Cleanup
+
+Automatic destructive cleanup is no longer the default path.
+
+The legacy deletion sequence remains only as an explicit helper path for test or reviewed operator procedures. It requires `destructive: true` and `confirmDestructive: true`, records lifecycle evidence, and refuses production-like environments unless an explicit safe admin procedure separately authorizes it. It is not invoked by the normal ingest failure path.
+
 ## Stop Conditions
 
-Stop and escalate if remediation would require parser, OCR, violation, evidence, packet, storage, response lifecycle, DB pool, retention, external alerting, or endpoint cutover changes.
+Stop and escalate if remediation would require parser, OCR, violation, evidence, packet, storage, response lifecycle, DB pool, retention, external alerting, production worker activation, or endpoint cutover changes.
 
 Stop and preserve all evidence if cleanup-failure counts increase, a stale-running job persists after lease expiry, or a dead-letter retry repeatedly creates failed replacements.

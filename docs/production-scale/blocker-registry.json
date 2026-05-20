@@ -124,17 +124,17 @@
       "title": "Ingest cleanup/data safety",
       "severity": "High",
       "area": "Ingest cleanup/data safety",
-      "affectedFilesRoutesFunctions": ["helpers/ingestCleanup.tsx:79", "helpers/ingestCleanup.tsx:158"],
-      "currentStatus": "partial",
-      "proofTypeRequired": "Proof that failure cleanup is visible and default destructive cleanup is replaced by remediation in a future task.",
+      "affectedFilesRoutesFunctions": ["helpers/ingestCleanup.tsx", "helpers/ingestReportHandler.tsx", "docs/operator-ingest-remediation.md"],
+      "currentStatus": "fixed",
+      "proofTypeRequired": "Automated proof that default failed-ingest cleanup is non-destructive, marks remediation-required state, preserves artifacts/tradelines/evidence, and keeps any retained destructive path explicitly confirmed and production-refusing.",
       "proofCategories": ["automated-local"],
       "allowedProofCommands": ["pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts", "pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts", "pnpm run operator:dashboard"],
-      "forbiddenProofTypes": ["silent destructive deletion", "production cleanup", "parser or canonical output changes", "dashboard PASS alone"],
+      "forbiddenProofTypes": ["silent destructive deletion", "default destructive deletion", "unconfirmed destructive cleanup", "production cleanup", "parser or canonical output changes", "dashboard PASS alone"],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": false,
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": ["docs/operator-ingest-remediation.md", "docs/production-scale/evidence/latest-production-scale-evidence.md", "docs/production-scale/evidence/latest-production-scale-evidence.json"],
-      "recommendedNextAction": "Add non-destructive failed-state/remediation proof in a bounded cleanup task."
+      "recommendedNextAction": "Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments."
     },
     {
       "number": 6,

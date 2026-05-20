@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T17:59:15.042Z
+Generated at: 2026-05-20T18:07:24.857Z
 Current branch: `staging`
-Current commit hash: `8eca089cd4aa2c2ce5624941b10353fc64d4f797`
+Current commit hash: `dce75c4dab378c7ca3c7f8230cfa7e6e24fd76a9`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -23,7 +23,7 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=2, partial=14, open=8
+- Status counts: requires-human-proof=1, simulated-proof-only=2, partial=13, fixed=1, open=8
 
 ## Automated Local Evidence
 
@@ -43,10 +43,10 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Proof required: Packet PDF cache proof plus staging-safe cache-miss envelope evidence or a bounded render queue.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
   Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
-- #5 Ingest cleanup/data safety (High; partial)
-  Proof required: Proof that failure cleanup is visible and default destructive cleanup is replaced by remediation in a future task.
+- #5 Ingest cleanup/data safety (High; fixed)
+  Proof required: Automated proof that default failed-ingest cleanup is non-destructive, marks remediation-required state, preserves artifacts/tradelines/evidence, and keeps any retained destructive path explicitly confirmed and production-refusing.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts`, `pnpm run operator:dashboard`
-  Next action: Add non-destructive failed-state/remediation proof in a bounded cleanup task.
+  Next action: Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
@@ -266,10 +266,6 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Packet PDF cache proof plus staging-safe cache-miss envelope evidence or a bounded render queue.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
   Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
-- #5 Ingest cleanup/data safety (High; partial)
-  Proof required: Proof that failure cleanup is visible and default destructive cleanup is replaced by remediation in a future task.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts`, `pnpm run operator:dashboard`
-  Next action: Add non-destructive failed-state/remediation proof in a bounded cleanup task.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
