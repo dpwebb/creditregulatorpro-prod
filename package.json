@@ -72,6 +72,7 @@
     "sensitive-list-endpoints:evidence": "node scripts/sensitive-list-endpoints-evidence.mjs",
     "restore:drill:simulated": "node scripts/restore-drill-simulated.mjs",
     "report:runtime-size": "node scripts/runtime-size-report.mjs",
+    "check:runtime-size": "node scripts/runtime-size-report.mjs --check",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
     "check:restore-drill-evidence": "node scripts/staging-backup-restore-checklist.mjs --validate-evidence docs/restore-drill-evidence-template.md",
     "check:staging-observability": "node scripts/staging-observability-check.mjs",

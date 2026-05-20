@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T19:11:15.362Z
+Generated at: 2026-05-20T19:28:40.339Z
 Current branch: `staging`
-Current commit hash: `0dffe029864319abd5f4f6c37718c5294143112d`
+Current commit hash: `9ed44078183d5ff5ad04720e4d5b83426d78b880`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -98,13 +98,13 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #18 Runtime-size gates (Medium; partial)
-  Proof required: Runtime-size report plus accepted warning-only or hard-threshold policy.
-  Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
-  Next action: Capture warning-only runtime-size artifacts and decide thresholds separately.
+  Proof required: Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.
+  Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
+  Next action: Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.
 - #19 Heavy PDF/OCR dependencies (Medium; partial)
-  Proof required: Pinned package and Docker baseline evidence plus OCR deterministic regression proof for changes.
-  Allowed commands: `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
-  Next action: Document package baselines and require OCR/parser regressions for future runtime package changes.
+  Proof required: Policy-bound WARN/WAIVED baseline for heavy PDF/OCR dependencies plus OCR deterministic regression proof for any future dependency or Docker package change.
+  Allowed commands: `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
+  Next action: Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task.
 - #20 Production-safe privacy probe depth (Medium; partial)
   Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -238,9 +238,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
   Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
 - #18 Runtime-size gates (Medium; partial)
-  Proof required: Runtime-size report plus accepted warning-only or hard-threshold policy.
-  Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
-  Next action: Capture warning-only runtime-size artifacts and decide thresholds separately.
+  Proof required: Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.
+  Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
+  Next action: Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.
 - #20 Production-safe privacy probe depth (Medium; partial)
   Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -305,13 +305,13 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #18 Runtime-size gates (Medium; partial)
-  Proof required: Runtime-size report plus accepted warning-only or hard-threshold policy.
-  Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
-  Next action: Capture warning-only runtime-size artifacts and decide thresholds separately.
+  Proof required: Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.
+  Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
+  Next action: Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.
 - #19 Heavy PDF/OCR dependencies (Medium; partial)
-  Proof required: Pinned package and Docker baseline evidence plus OCR deterministic regression proof for changes.
-  Allowed commands: `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
-  Next action: Document package baselines and require OCR/parser regressions for future runtime package changes.
+  Proof required: Policy-bound WARN/WAIVED baseline for heavy PDF/OCR dependencies plus OCR deterministic regression proof for any future dependency or Docker package change.
+  Allowed commands: `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
+  Next action: Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task.
 - #20 Production-safe privacy probe depth (Medium; partial)
   Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`

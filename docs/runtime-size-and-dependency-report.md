@@ -11,9 +11,32 @@ Run after a production build:
 ```bash
 pnpm run build
 pnpm run report:runtime-size
+pnpm run check:runtime-size
 ```
 
 The report script is `scripts/runtime-size-report.mjs`. It uses Node built-ins only and does not change dependency versions, Vite chunking, PDF/OCR behavior, Docker runtime packages, or production build behavior.
+
+`pnpm run report:runtime-size` writes visible evidence to:
+
+- `docs/production-scale/evidence/latest-runtime-size.md`
+- `docs/production-scale/evidence/latest-runtime-size.json`
+
+`pnpm run check:runtime-size` uses the same policy and exits non-zero only for explicit hard-gate `FAIL` rows. The current policy is warning-only, so accepted threshold pressure is reported as `WARN` or `WAIVED`, not as a deploy blocker.
+
+## Threshold Policy
+
+The machine-readable policy lives at:
+
+- `docs/production-scale/runtime-size-threshold-policy.json`
+
+Statuses are:
+
+- `PASS`: metric is present and within the warning threshold.
+- `WARN`: metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size.
+- `FAIL`: only possible when the policy is explicitly changed to `hard-gate` and the row enables `failOnExceed`.
+- `WAIVED`: a threshold is exceeded or not directly measurable, but the policy includes an explicit waiver reason.
+
+Current configured rows cover largest JS raw/gzip size, largest CSS raw/gzip size, `pdfjs-dist`, `pdf-parse`, `pdfmake`, and Docker OCR/PDF runtime package inventory. The Docker row is waived because source-only reporting can inventory Poppler/Tesseract package names but cannot measure their installed byte size without building an image.
 
 ## Current Findings
 
@@ -88,9 +111,15 @@ Source usage inventory currently finds:
 
 This task does not modify Docker packages.
 
+## Current Accepted Warnings And Waivers
+
+The policy is warning-only. Current expected warning pressure includes the main Vite JavaScript asset, CSS size if above the configured row threshold, and large PDF/OCR dependencies where installed size exceeds the warning threshold. The Docker OCR runtime row is an explicit waiver with a reason, not a hidden pass.
+
+Dependency or chunking refactors are deferred. Any future threshold change must update `docs/production-scale/runtime-size-threshold-policy.json`, include a reason in review notes, regenerate `latest-runtime-size` evidence, and run the relevant OCR/PDF/parser or UI regression tests for the changed surface.
+
 ## Non-Blocking Threshold Recommendations
 
-These thresholds are recommendations only. The build does not fail on them yet.
+These thresholds are policy-bound warnings unless a later audited task explicitly turns them into hard gates.
 
 | Area | Warning recommendation | Critical review recommendation |
 | --- | --- | --- |

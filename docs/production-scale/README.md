@@ -158,6 +158,25 @@ New bureau communication attachments use storage references; old inline evidence
 
 Historical raw report bytes remain a partial blocker until an approved remediation plan handles old inline rows. The inventory command is evidence, not remediation and not production-at-scale proof.
 
+## Runtime Size And Heavy Dependency Policy
+
+Run after a build:
+
+```bash
+pnpm run build
+pnpm run report:runtime-size
+pnpm run check:runtime-size
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-runtime-size.md`
+- `docs/production-scale/evidence/latest-runtime-size.json`
+
+The policy file is `docs/production-scale/runtime-size-threshold-policy.json`. It classifies configured rows as `PASS`, `WARN`, `FAIL`, or `WAIVED`. The current mode is warning-only, so `WARN` and `WAIVED` rows are visible release evidence but do not hard-fail builds or deploys. `FAIL` is available only if a future reviewed policy explicitly switches to `hard-gate` and enables `failOnExceed` for a threshold.
+
+The policy tracks main JS raw/gzip, CSS raw/gzip, `pdfjs-dist`, `pdf-parse`, `pdfmake`, and Docker OCR/PDF runtime inventory. This evidence does not refactor dependencies, change chunks, alter Docker packages, or change OCR/PDF behavior. Dependency isolation, replacement, or chunking work remains deferred until a separately tested task.
+
 ## Sensitive List Endpoint Evidence
 
 Run:

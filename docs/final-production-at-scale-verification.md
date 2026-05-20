@@ -42,7 +42,7 @@ Rationale: The required verification suite passed and most production-scale impl
 | Restore drill evidence process | Process complete, evidence incomplete | Runbook/template/checker exist. | `pnpm run check:restore-drill-evidence` passed. | No filled, signed restore drill evidence; no RPO/RTO proof. | Blocks broad production and scale. |
 | Response operations proof | Partial | `docs/response-processing-production-ops-runbook.md`, response soak, dashboard proof rows. | `pnpm run response:soak-check` passed; dashboard passed after retry. | No live scheduler evidence, no external alert delivery, no physical purge/archive, no completed production backfill. | Blocks production-operational claim. |
 | Frontend/operator UX alignment | Complete | Tracker row 21 and UI tests. | Build/typecheck/API passed. | UI does not enforce runtime capacity limits; operator limits remain policy-based. | Closed for messaging. |
-| Runtime size reporting | Complete, non-blocking | `scripts/runtime-size-report.mjs`, `docs/runtime-size-and-dependency-report.md`. | `pnpm run report:runtime-size` passed. | Main JS chunk and heavy PDF/OCR dependencies are tracked but not gated. | Partial for scale. |
+| Runtime size reporting | Complete, warning-only policy | `scripts/runtime-size-report.mjs`, `docs/runtime-size-and-dependency-report.md`, `docs/production-scale/runtime-size-threshold-policy.json`. | `pnpm run report:runtime-size` and `pnpm run check:runtime-size` passed. | Main JS chunk and heavy PDF/OCR dependencies are policy-bound as visible warnings/waivers, but not hard-gated. | Partial for scale. |
 | Readiness docs aligned | Complete for this audit | This document plus tracker/policy docs. | `git diff --check` passed. | Must be updated after future blockers close. | Closed for this task. |
 
 ## C. Non-Regression Table
@@ -81,7 +81,7 @@ Rationale: The required verification suite passed and most production-scale impl
 | Disaster recovery | Fail for production scale | Runbook/template/checker exist only. | Perform human-observed restore drill, record sanitized signed evidence, and verify RPO/RTO. | production |
 | Tests/regression protection | Pass | Required local command suite passed. | Keep full suite mandatory for future runtime changes. | none |
 | Frontend operational UX | Pass | UX alignment complete; build passed. | Add runtime-enforced capacity throttling only in a separate scoped task if needed. | none |
-| Dependency/build/runtime | Partial | Runtime-size report passed; current main JS asset is 3.12 MiB raw and heavy PDF/OCR deps are inventoried. | Decide and enforce warning or hard thresholds after baselines are accepted. | scale |
+| Dependency/build/runtime | Partial | Runtime-size report/check passed with warning-only threshold policy; main JS, CSS, `pdfjs-dist`, `pdf-parse`, `pdfmake`, and Docker OCR inventory are classified in visible evidence. | Decide whether any warning-only row should become an explicit hard gate after baselines are accepted. | scale |
 | Documentation/runbooks | Partial | Policy, migration, restore, response ops, load harness, runtime-size docs exist. | Keep tracker aligned and complete filled operational evidence artifacts. | production |
 
 ## E. Remaining Gaps
@@ -98,8 +98,8 @@ Rationale: The required verification suite passed and most production-scale impl
    - Smallest next Codex task: add non-destructive cleanup state/remediation proof without changing parser or ingest output.
 6. Establish migration hard-gate readiness.
    - Smallest next Codex task: turn the non-mutating migration inventory into reviewed additive migrations or a safe warning-only CI artifact before considering hard deploy gates.
-7. Decide runtime-size threshold policy.
-   - Smallest next Codex task: add warning-only CI artifact capture for `pnpm run report:runtime-size` without changing chunking or dependency versions.
+7. Decide whether runtime-size warnings should become hard gates.
+   - Smallest next Codex task: review `latest-runtime-size` evidence and update `docs/production-scale/runtime-size-threshold-policy.json` only if a hard gate is explicitly accepted.
 
 ## F. Final Promotion Checklist
 
@@ -155,7 +155,8 @@ The app is safe for limited beta only under the current operator policy. It is n
 | `pnpm run check:migrations` | Pass | Non-mutating inventory; no unknown, unledgered, or missing expected sources. |
 | `pnpm run check:restore-drill-evidence` | Pass | Template validation passed; no restore performed and no completion claimed. |
 | `pnpm run baseline:production-scale-local -- --dry-run` | Pass | Production mutation refused; external provider calls made: 0; bounded concurrency self-check passed. |
-| `pnpm run report:runtime-size` | Pass | Non-blocking runtime-size report generated. |
+| `pnpm run report:runtime-size` | Pass | Warning-only runtime-size evidence generated. |
+| `pnpm run check:runtime-size` | Pass | No explicit hard-gate runtime-size failures. |
 | `git diff --check` | Pass | No whitespace errors. |
 
 No requested command was unavailable or unsafe.

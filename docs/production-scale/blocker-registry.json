@@ -37,6 +37,7 @@
     "pnpm run baseline:production-scale-local -- --dry-run",
     "pnpm run baseline:production-scale-local -- --simulated",
     "pnpm run report:runtime-size",
+    "pnpm run check:runtime-size",
     "pnpm run alerts:dry-run",
     "pnpm run response:soak-check",
     "pnpm run response:orchestration-check",
@@ -788,10 +789,11 @@
       "area": "Runtime-size gates",
       "affectedFilesRoutesFunctions": [
         "scripts/runtime-size-report.mjs",
+        "docs/production-scale/runtime-size-threshold-policy.json",
         "build output"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Runtime-size report plus accepted warning-only or hard-threshold policy.",
+      "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
       "proofCategories": [
         "automated-local",
         "human-observed"
@@ -799,6 +801,7 @@
       "allowedProofCommands": [
         "pnpm run build",
         "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
       ],
       "forbiddenProofTypes": [
@@ -812,10 +815,13 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/runtime-size-and-dependency-report.md",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "docs/production-scale/evidence/latest-runtime-size.md",
+        "docs/production-scale/evidence/latest-runtime-size.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Capture warning-only runtime-size artifacts and decide thresholds separately."
+      "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change."
     },
     {
       "number": 19,
@@ -825,15 +831,17 @@
       "affectedFilesRoutesFunctions": [
         "Dockerfile",
         "package.json",
+        "docs/production-scale/runtime-size-threshold-policy.json",
         "scripts/runtime-size-report.mjs"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Pinned package and Docker baseline evidence plus OCR deterministic regression proof for changes.",
+      "proofTypeRequired": "Policy-bound WARN/WAIVED baseline for heavy PDF/OCR dependencies plus OCR deterministic regression proof for any future dependency or Docker package change.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts"
       ],
@@ -848,10 +856,13 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/runtime-size-and-dependency-report.md",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "docs/production-scale/evidence/latest-runtime-size.md",
+        "docs/production-scale/evidence/latest-runtime-size.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Document package baselines and require OCR/parser regressions for future runtime package changes."
+      "recommendedNextAction": "Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task."
     },
     {
       "number": 20,

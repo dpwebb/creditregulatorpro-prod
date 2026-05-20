@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "policyName": "runtime-size-and-heavy-dependency-threshold-policy",
+  "policyMode": "warning-only",
+  "evidenceMode": "reporting-only",
+  "statusValues": ["PASS", "WARN", "FAIL", "WAIVED"],
+  "semantics": {
+    "pass": "Metric is present and at or below the warning threshold.",
+    "warn": "Metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size. WARN is visible evidence but not a hard gate.",
+    "fail": "Only emitted when policyMode is hard-gate and a threshold explicitly enables failOnExceed.",
+    "waived": "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present."
+  },
+  "thresholds": [
+    {
+      "id": "main-js-raw",
+      "area": "frontend-js",
+      "label": "Largest JavaScript asset raw size",
+      "metric": { "kind": "largestBuildAsset", "assetType": "js", "field": "rawBytes" },
+      "warnBytes": 1572864,
+      "failBytes": 3145728,
+      "failOnExceed": false,
+      "recommendation": "Review route-level chunking or lazy-loading in a separate audited task before any production-scale claim."
+    },
+    {
+      "id": "main-js-gzip",
+      "area": "frontend-js",
+      "label": "Largest JavaScript asset gzip size",
+      "metric": { "kind": "largestBuildAsset", "assetType": "js", "field": "gzipBytes" },
+      "warnBytes": 512000,
+      "failBytes": 921600,
+      "failOnExceed": false,
+      "recommendation": "Track gzip size as release evidence; do not refactor chunks in this reporting task."
+    },
+    {
+      "id": "main-css-raw",
+      "area": "frontend-css",
+      "label": "Largest CSS asset raw size",
+      "metric": { "kind": "largestBuildAsset", "assetType": "css", "field": "rawBytes" },
+      "warnBytes": 512000,
+      "failBytes": 1048576,
+      "failOnExceed": false,
+      "recommendation": "Review CSS ownership and unused rules in a separate UI regression task."
+    },
+    {
+      "id": "main-css-gzip",
+      "area": "frontend-css",
+      "label": "Largest CSS asset gzip size",
+      "metric": { "kind": "largestBuildAsset", "assetType": "css", "field": "gzipBytes" },
+      "warnBytes": 102400,
+      "failBytes": 204800,
+      "failOnExceed": false,
+      "recommendation": "Track compressed CSS size without changing build behavior."
+    },
+    {
+      "id": "dependency-pdfjs-dist",
+      "area": "runtime-dependency",
+      "label": "pdfjs-dist installed size",
+      "metric": { "kind": "dependencyInstalledSize", "packageName": "pdfjs-dist" },
+      "warnBytes": 20971520,
+      "failBytes": 52428800,
+      "failOnExceed": false,
+      "recommendation": "Keep pdfjs-dist risk visible; replacement or isolation requires OCR/PDF regression evidence."
+    },
+    {
+      "id": "dependency-pdf-parse",
+      "area": "runtime-dependency",
+      "label": "pdf-parse installed size",
+      "metric": { "kind": "dependencyInstalledSize", "packageName": "pdf-parse" },
+      "warnBytes": 20971520,
+      "failBytes": 52428800,
+      "failOnExceed": false,
+      "recommendation": "Keep pdf-parse risk visible; do not replace without deterministic parser regression evidence."
+    },
+    {
+      "id": "dependency-pdfmake",
+      "area": "runtime-dependency",
+      "label": "pdfmake installed size",
+      "metric": { "kind": "dependencyInstalledSize", "packageName": "pdfmake" },
+      "warnBytes": 10485760,
+      "failBytes": 31457280,
+      "failOnExceed": false,
+      "recommendation": "Keep packet PDF generation dependency risk visible without changing packet output."
+    },
+    {
+      "id": "docker-ocr-runtime-inventory",
+      "area": "docker-runtime",
+      "label": "Docker OCR/PDF runtime package inventory",
+      "metric": { "kind": "dockerOcrRuntimePackageInventory" },
+      "failOnExceed": false,
+      "waiver": {
+        "accepted": true,
+        "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence."
+      },
+      "recommendation": "Treat Docker OCR package changes as review-required; this task does not change Docker packages."
+    }
+  ]
+}

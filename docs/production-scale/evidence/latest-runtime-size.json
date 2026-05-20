@@ -1,0 +1,696 @@
+{
+  "report": "runtime-size-and-dependency-report",
+  "script": "scripts/runtime-size-report.mjs",
+  "generatedAt": "2026-05-20T19:28:09.012Z",
+  "branch": "staging",
+  "commit": "9ed44078183d5ff5ad04720e4d5b83426d78b880",
+  "workingTreeClean": false,
+  "safety": {
+    "reportingOnly": true,
+    "nonBlocking": true,
+    "changesDependencyVersions": false,
+    "changesBuildChunking": false,
+    "changesPdfOcrBehavior": false,
+    "changesDockerRuntimePackages": false,
+    "buildFailsOnThresholds": false
+  },
+  "buildAssets": {
+    "distDir": "dist",
+    "distPresent": true,
+    "totalBytes": 4384499,
+    "assetCount": 19,
+    "topAssets": [
+      {
+        "path": "dist/_assets/index-UN-opMmL.js",
+        "extension": ".js",
+        "rawBytes": 3281834,
+        "gzipBytes": 898477,
+        "brotliBytes": 702985
+      },
+      {
+        "path": "dist/_assets/index-CYJKQrWs.css",
+        "extension": ".css",
+        "rawBytes": 690152,
+        "gzipBytes": 103908,
+        "brotliBytes": 78604
+      },
+      {
+        "path": "dist/_assets/react-big-calendar-BZR_JgFc.js",
+        "extension": ".js",
+        "rawBytes": 139895,
+        "gzipBytes": 43947,
+        "brotliBytes": 38821
+      },
+      {
+        "path": "dist/_assets/index-DE_IzuZA.js",
+        "extension": ".js",
+        "rawBytes": 135805,
+        "gzipBytes": 32820,
+        "brotliBytes": 26402
+      },
+      {
+        "path": "dist/_assets/OnboardingTour-BL3b6gH8.js",
+        "extension": ".js",
+        "rawBytes": 59684,
+        "gzipBytes": 19884,
+        "brotliBytes": 17765
+      },
+      {
+        "path": "dist/_assets/index-sk2ek4N-.css",
+        "extension": ".css",
+        "rawBytes": 29198,
+        "gzipBytes": 4487,
+        "brotliBytes": 3938
+      },
+      {
+        "path": "dist/_assets/react-big-calendar-Dm-SzPQi.css",
+        "extension": ".css",
+        "rawBytes": 14347,
+        "gzipBytes": 2717,
+        "brotliBytes": 2351
+      },
+      {
+        "path": "dist/_assets/PacketViewer-CLvwtrVE.js",
+        "extension": ".js",
+        "rawBytes": 7907,
+        "gzipBytes": 2889,
+        "brotliBytes": 2514
+      },
+      {
+        "path": "dist/_assets/index-B9fWrEk-.js",
+        "extension": ".js",
+        "rawBytes": 6117,
+        "gzipBytes": 2288,
+        "brotliBytes": 2043
+      },
+      {
+        "path": "dist/_assets/DeadlineCalendarView-D8G5hs0_.js",
+        "extension": ".js",
+        "rawBytes": 3860,
+        "gzipBytes": 1499,
+        "brotliBytes": 1345
+      },
+      {
+        "path": "dist/_assets/PacketViewer-DYFOtPtS.css",
+        "extension": ".css",
+        "rawBytes": 3573,
+        "gzipBytes": 1117,
+        "brotliBytes": 941
+      },
+      {
+        "path": "dist/_assets/DeadlineCalendarView-DRrVFbAL.css",
+        "extension": ".css",
+        "rawBytes": 3170,
+        "gzipBytes": 865,
+        "brotliBytes": 719
+      },
+      {
+        "path": "dist/_assets/ComplianceCalendarContent-CdY8Afz5.css",
+        "extension": ".css",
+        "rawBytes": 2477,
+        "gzipBytes": 747,
+        "brotliBytes": 603
+      },
+      {
+        "path": "dist/_assets/SourceReportPdfView-Dd36mduW.css",
+        "extension": ".css",
+        "rawBytes": 1979,
+        "gzipBytes": 627,
+        "brotliBytes": 496
+      },
+      {
+        "path": "dist/_assets/ComplianceCalendarContent-DRt3y-pq.js",
+        "extension": ".js",
+        "rawBytes": 1951,
+        "gzipBytes": 893,
+        "brotliBytes": 793
+      }
+    ],
+    "largestJsAsset": {
+      "path": "dist/_assets/index-UN-opMmL.js",
+      "extension": ".js",
+      "rawBytes": 3281834,
+      "gzipBytes": 898477,
+      "brotliBytes": 702985
+    },
+    "largestCssAsset": {
+      "path": "dist/_assets/index-CYJKQrWs.css",
+      "extension": ".css",
+      "rawBytes": 690152,
+      "gzipBytes": 103908,
+      "brotliBytes": 78604
+    }
+  },
+  "dependencies": {
+    "nodeModulesPresent": true,
+    "directRuntimeDependencyCount": 67,
+    "directDevDependencyCount": 12,
+    "largestInstalled": [
+      {
+        "name": "pdfjs-dist",
+        "version": "4.2.67",
+        "group": "dependency",
+        "installedBytes": 36254862
+      },
+      {
+        "name": "lucide-react",
+        "version": "^0.477.0",
+        "group": "dependency",
+        "installedBytes": 32795623
+      },
+      {
+        "name": "pdf-parse",
+        "version": "1.1.4",
+        "group": "dependency",
+        "installedBytes": 28345398
+      },
+      {
+        "name": "typescript",
+        "version": "^6.0.3",
+        "group": "devDependency",
+        "installedBytes": 24346827
+      },
+      {
+        "name": "date-fns",
+        "version": "^4.1.0",
+        "group": "dependency",
+        "installedBytes": 22601076
+      },
+      {
+        "name": "pdfmake",
+        "version": "0.2.21",
+        "group": "dependency",
+        "installedBytes": 13568520
+      },
+      {
+        "name": "react-dom",
+        "version": "^19.2.1",
+        "group": "dependency",
+        "installedBytes": 7319413
+      },
+      {
+        "name": "jsdom",
+        "version": "^29.1.1",
+        "group": "devDependency",
+        "installedBytes": 7033222
+      },
+      {
+        "name": "stripe",
+        "version": "16.12.0",
+        "group": "dependency",
+        "installedBytes": 5012263
+      },
+      {
+        "name": "recharts",
+        "version": "^2.15.1",
+        "group": "dependency",
+        "installedBytes": 4650058
+      },
+      {
+        "name": "zod",
+        "version": "^3.25.76",
+        "group": "dependency",
+        "installedBytes": 3594196
+      },
+      {
+        "name": "kysely",
+        "version": "0.28.16",
+        "group": "dependency",
+        "installedBytes": 3288018
+      },
+      {
+        "name": "vite",
+        "version": "^6.2.0",
+        "group": "devDependency",
+        "installedBytes": 2654115
+      },
+      {
+        "name": "react-big-calendar",
+        "version": "^1.19.4",
+        "group": "dependency",
+        "installedBytes": 2599461
+      },
+      {
+        "name": "@types/node",
+        "version": "^25.6.0",
+        "group": "devDependency",
+        "installedBytes": 2349988
+      },
+      {
+        "name": "vitest",
+        "version": "^4.1.5",
+        "group": "devDependency",
+        "installedBytes": 1904586
+      },
+      {
+        "name": "hono",
+        "version": "^4.7.5",
+        "group": "dependency",
+        "installedBytes": 1381759
+      },
+      {
+        "name": "react-day-picker",
+        "version": "^9.5.1",
+        "group": "dependency",
+        "installedBytes": 1293075
+      },
+      {
+        "name": "react-hook-form",
+        "version": "^7.54.2",
+        "group": "dependency",
+        "installedBytes": 1274760
+      },
+      {
+        "name": "react-resizable-panels",
+        "version": "^2.1.7",
+        "group": "dependency",
+        "installedBytes": 1028536
+      }
+    ],
+    "pdfOcrDependencies": [
+      {
+        "name": "pdf-parse",
+        "version": "1.1.4",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 28345398
+      },
+      {
+        "name": "pdfjs-dist",
+        "version": "4.2.67",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 36254862
+      },
+      {
+        "name": "pdfmake",
+        "version": "0.2.21",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 13568520
+      },
+      {
+        "name": "pngjs",
+        "version": "7.0.0",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 650101
+      },
+      {
+        "name": "jpeg-js",
+        "version": "0.4.4",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 76029
+      },
+      {
+        "name": "@react-pdf-viewer/core",
+        "version": "3.12.0",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 344808
+      },
+      {
+        "name": "@react-pdf-viewer/default-layout",
+        "version": "3.12.0",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 57600
+      },
+      {
+        "name": "@react-pdf-viewer/search",
+        "version": "3.12.0",
+        "group": "dependency",
+        "declared": true,
+        "installedBytes": 63386
+      }
+    ]
+  },
+  "dockerRuntime": {
+    "dockerfileCount": 1,
+    "dockerfiles": [
+      {
+        "path": "Dockerfile",
+        "packages": [
+          "apt-utils",
+          "poppler-utils",
+          "tesseract-ocr",
+          "tesseract-ocr-eng"
+        ],
+        "relevantLines": [
+          {
+            "lineNumber": 6,
+            "text": "&& (DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-utils >/tmp/apt-utils-install.log 2>&1 \\"
+          },
+          {
+            "lineNumber": 7,
+            "text": "|| { cat /tmp/apt-utils-install.log; exit 1; }) \\"
+          },
+          {
+            "lineNumber": 8,
+            "text": "&& DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \\"
+          },
+          {
+            "lineNumber": 9,
+            "text": "poppler-utils \\"
+          },
+          {
+            "lineNumber": 10,
+            "text": "tesseract-ocr \\"
+          },
+          {
+            "lineNumber": 11,
+            "text": "tesseract-ocr-eng \\"
+          },
+          {
+            "lineNumber": 12,
+            "text": "&& rm -f /tmp/apt-utils-install.log \\"
+          },
+          {
+            "lineNumber": 26,
+            "text": "ENV CRP_DETERMINISTIC_OCR_ENABLED=true"
+          }
+        ]
+      }
+    ],
+    "packages": [
+      "apt-utils",
+      "poppler-utils",
+      "tesseract-ocr",
+      "tesseract-ocr-eng"
+    ]
+  },
+  "pdfOcrSourceUsage": {
+    "scannedRoots": [
+      "helpers",
+      "endpoints",
+      "scripts",
+      "pages",
+      "components"
+    ],
+    "usage": [
+      {
+        "token": "pdf-parse",
+        "fileCount": 2,
+        "samplePaths": [
+          "helpers/pdfTextExtractor.tsx",
+          "helpers/transunionTextParsing.tsx"
+        ]
+      },
+      {
+        "token": "pdfjs-dist",
+        "fileCount": 2,
+        "samplePaths": [
+          "helpers/pdfWorker.ts",
+          "helpers/pdfjsEvidenceCoordinates.ts"
+        ]
+      },
+      {
+        "token": "pdfmake",
+        "fileCount": 14,
+        "samplePaths": [
+          "helpers/adminKbPdfContentSections.tsx",
+          "helpers/contentMarker.tsx",
+          "helpers/disputePacketPdf.ts",
+          "helpers/evidenceManager.tsx",
+          "helpers/evidencePackageSections.tsx",
+          "helpers/pdfGenerator.tsx",
+          "helpers/pdfServerUtils.tsx",
+          "endpoints/pdf/admin-knowledge-base_GET.ts"
+        ]
+      },
+      {
+        "token": "tesseract",
+        "fileCount": 6,
+        "samplePaths": [
+          "helpers/deterministicOcr.ts",
+          "helpers/disputePacketService.ts",
+          "helpers/evidenceLocationIndex.ts",
+          "helpers/ocrEvidenceCoordinates.ts",
+          "scripts/operator-regression-dashboard.ts",
+          "scripts/staging-observability-check.mjs"
+        ]
+      },
+      {
+        "token": "pdftoppm",
+        "fileCount": 2,
+        "samplePaths": [
+          "helpers/deterministicOcr.ts",
+          "scripts/staging-observability-check.mjs"
+        ]
+      },
+      {
+        "token": "poppler",
+        "fileCount": 1,
+        "samplePaths": [
+          "scripts/operator-regression-dashboard.ts"
+        ]
+      },
+      {
+        "token": "deterministicOcr",
+        "fileCount": 10,
+        "samplePaths": [
+          "helpers/canonicalCreditReportExtractor.tsx",
+          "helpers/creditReportPdfEligibility.ts",
+          "helpers/creditReportUploadRejectionAudit.ts",
+          "helpers/deterministicCreditReportPipeline.ts",
+          "helpers/deterministicOcr.ts",
+          "helpers/evidenceLocationIndex.ts",
+          "helpers/ingestCorePipeline.tsx",
+          "helpers/ingestReportHandler.tsx"
+        ]
+      }
+    ]
+  },
+  "thresholdRecommendations": [
+    {
+      "area": "frontend-js",
+      "warning": "Review any single JS asset above 1.5 MiB raw or 500 KiB gzip.",
+      "critical": "Prioritize chunking or lazy-loading review above 3 MiB raw or 900 KiB gzip."
+    },
+    {
+      "area": "frontend-css",
+      "warning": "Review any single CSS asset above 500 KiB raw or 100 KiB gzip.",
+      "critical": "Prioritize CSS ownership review above 1 MiB raw or 200 KiB gzip."
+    },
+    {
+      "area": "runtime-dependency",
+      "warning": "Review direct runtime packages above 20 MiB installed size.",
+      "critical": "Plan dependency isolation or replacement evidence above 50 MiB installed size."
+    },
+    {
+      "area": "docker-runtime",
+      "warning": "Record Poppler/Tesseract package changes whenever OCR/PDF runtime packages change.",
+      "critical": "Do not make runtime package changes without OCR/parser regression evidence."
+    }
+  ],
+  "knownRisks": [
+    "The main Vite JS asset is large enough to need tracking before any production-at-scale claim.",
+    "PDF/OCR packages and Docker OCR runtimes remain necessary for deterministic report extraction and should be inventoried before dependency or image changes.",
+    "Thresholds are recommendations only until a later audited task explicitly turns them into build gates."
+  ],
+  "thresholdPolicy": {
+    "schemaVersion": 1,
+    "policyName": "runtime-size-and-heavy-dependency-threshold-policy",
+    "source": "docs/production-scale/runtime-size-threshold-policy.json",
+    "policyMode": "warning-only",
+    "evidenceMode": "reporting-only",
+    "statusValues": [
+      "PASS",
+      "WARN",
+      "FAIL",
+      "WAIVED"
+    ],
+    "semantics": {
+      "pass": "Metric is present and at or below the warning threshold.",
+      "warn": "Metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size. WARN is visible evidence but not a hard gate.",
+      "fail": "Only emitted when policyMode is hard-gate and a threshold explicitly enables failOnExceed.",
+      "waived": "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present."
+    }
+  },
+  "thresholdEvaluation": {
+    "policyName": "runtime-size-and-heavy-dependency-threshold-policy",
+    "policySource": "docs/production-scale/runtime-size-threshold-policy.json",
+    "policyMode": "warning-only",
+    "evidenceMode": "reporting-only",
+    "overallStatus": "WARN",
+    "hasBlockingFailures": false,
+    "statusCounts": {
+      "WARN": 7,
+      "WAIVED": 1
+    },
+    "evaluations": [
+      {
+        "id": "main-js-raw",
+        "area": "frontend-js",
+        "label": "Largest JavaScript asset raw size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "js",
+          "field": "rawBytes"
+        },
+        "measuredBytes": 3281834,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-UN-opMmL.js",
+        "detail": "dist/_assets/index-UN-opMmL.js rawBytes",
+        "warnBytes": 1572864,
+        "failBytes": 3145728,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured failBytes value, but this policy is warning-only for this threshold.",
+        "recommendation": "Review route-level chunking or lazy-loading in a separate audited task before any production-scale claim."
+      },
+      {
+        "id": "main-js-gzip",
+        "area": "frontend-js",
+        "label": "Largest JavaScript asset gzip size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "js",
+          "field": "gzipBytes"
+        },
+        "measuredBytes": 898477,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-UN-opMmL.js",
+        "detail": "dist/_assets/index-UN-opMmL.js gzipBytes",
+        "warnBytes": 512000,
+        "failBytes": 921600,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Track gzip size as release evidence; do not refactor chunks in this reporting task."
+      },
+      {
+        "id": "main-css-raw",
+        "area": "frontend-css",
+        "label": "Largest CSS asset raw size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "css",
+          "field": "rawBytes"
+        },
+        "measuredBytes": 690152,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-CYJKQrWs.css",
+        "detail": "dist/_assets/index-CYJKQrWs.css rawBytes",
+        "warnBytes": 512000,
+        "failBytes": 1048576,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Review CSS ownership and unused rules in a separate UI regression task."
+      },
+      {
+        "id": "main-css-gzip",
+        "area": "frontend-css",
+        "label": "Largest CSS asset gzip size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "css",
+          "field": "gzipBytes"
+        },
+        "measuredBytes": 103908,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-CYJKQrWs.css",
+        "detail": "dist/_assets/index-CYJKQrWs.css gzipBytes",
+        "warnBytes": 102400,
+        "failBytes": 204800,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Track compressed CSS size without changing build behavior."
+      },
+      {
+        "id": "dependency-pdfjs-dist",
+        "area": "runtime-dependency",
+        "label": "pdfjs-dist installed size",
+        "status": "WARN",
+        "metric": {
+          "kind": "dependencyInstalledSize",
+          "packageName": "pdfjs-dist"
+        },
+        "measuredBytes": 36254862,
+        "measuredValueAvailable": true,
+        "source": "pdfjs-dist",
+        "detail": "pdfjs-dist dependency 4.2.67",
+        "warnBytes": 20971520,
+        "failBytes": 52428800,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Keep pdfjs-dist risk visible; replacement or isolation requires OCR/PDF regression evidence."
+      },
+      {
+        "id": "dependency-pdf-parse",
+        "area": "runtime-dependency",
+        "label": "pdf-parse installed size",
+        "status": "WARN",
+        "metric": {
+          "kind": "dependencyInstalledSize",
+          "packageName": "pdf-parse"
+        },
+        "measuredBytes": 28345398,
+        "measuredValueAvailable": true,
+        "source": "pdf-parse",
+        "detail": "pdf-parse dependency 1.1.4",
+        "warnBytes": 20971520,
+        "failBytes": 52428800,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Keep pdf-parse risk visible; do not replace without deterministic parser regression evidence."
+      },
+      {
+        "id": "dependency-pdfmake",
+        "area": "runtime-dependency",
+        "label": "pdfmake installed size",
+        "status": "WARN",
+        "metric": {
+          "kind": "dependencyInstalledSize",
+          "packageName": "pdfmake"
+        },
+        "measuredBytes": 13568520,
+        "measuredValueAvailable": true,
+        "source": "pdfmake",
+        "detail": "pdfmake dependency 0.2.21",
+        "warnBytes": 10485760,
+        "failBytes": 31457280,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Keep packet PDF generation dependency risk visible without changing packet output."
+      },
+      {
+        "id": "docker-ocr-runtime-inventory",
+        "area": "docker-runtime",
+        "label": "Docker OCR/PDF runtime package inventory",
+        "status": "WAIVED",
+        "metric": {
+          "kind": "dockerOcrRuntimePackageInventory"
+        },
+        "measuredBytes": null,
+        "measuredValueAvailable": true,
+        "source": "Dockerfile",
+        "detail": "Inventoried packages: apt-utils, poppler-utils, tesseract-ocr, tesseract-ocr-eng. Byte size is not measurable from Dockerfile source.",
+        "warnBytes": null,
+        "failBytes": null,
+        "failOnExceed": false,
+        "waiverReason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+        "breached": true,
+        "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+        "recommendation": "Treat Docker OCR package changes as review-required; this task does not change Docker packages."
+      }
+    ]
+  }
+}
