@@ -2,6 +2,8 @@
 
 Audit date: 2026-05-19
 
+Current-status note (2026-05-20): `docs/production-at-scale-maximum-audit.md` supersedes this file for current readiness classification, blocker priority, and task sequencing. Where this file conflicts with the maximum audit, the maximum audit controls: limited beta ready with strict constraints, not safe for broad production, and not safe for production at scale.
+
 Audited repository state: `06861e9 Scope Playwright apt frontend in staging smokes`
 
 Scope inspected: code, routes, helper services, deployment workflows, Docker image, operator scripts, tests, response-processing queue/lifecycle tooling, ingestion/OCR, packet generation, auth/tenant boundaries, observability, rollback, and backup/restore posture.
@@ -10,7 +12,7 @@ This audit is documentation-only. It does not change runtime behavior, parser ou
 
 ## A. Executive Verdict
 
-**Verdict: Limited beta ready with constraints.**
+**Verdict: Limited beta ready with strict constraints.**
 
 The response-processing subsystem is comparatively strong: manual/admin intake, deterministic classification, replay/backfill, DB-backed queueing, remediation, bounded orchestration, retention marking, drift detection, and soak checks are implemented with append-only events and privacy guardrails in `helpers/responseDocumentSchema.ts`, `helpers/responseProcessingQueueService.ts`, `helpers/responseWorkerOrchestrationService.ts`, `helpers/responseProcessingLifecycleService.ts`, and related tests.
 
@@ -106,20 +108,20 @@ Inspected representative files and functions:
 - Recommended fix: canonicalize packet statuses, update `clock/scan_POST.ts` to cover the canonical value, add an index/batch window, remove query-token use in favor of bearer-only secrets, and add a regression test that a newly created packet can be picked up by the clock scanner.
 - Blocks: **Production** if response clocks/silence-window handling are part of the launch scope.
 
-### 6. Production deployment workflow is thinner than staging
+### 6. Production deployment workflow was thinner than staging before Phase 1 hardening
 
 - Severity: **High**
 - Implementation status: **Implemented 2026-05-19**. `.github/workflows/deploy-production.yml` now runs `pnpm run check` as production preflight, preserves the remote `pnpm run build`, verifies the selected checkout SHA before container build, and performs production-safe post-deploy checks for `/`, `/login`, and unauthenticated `/_api/auth/session` denial. Staging-only synthetic admin response-auth smokes remain staging-only.
 - Regression evidence: `tests/unit/deploy-production-workflow.spec.ts` covers production preflight, rollback SHA selection, selected checkout SHA verification, public route checks, login route checks, auth-session denial, and absence of staging-only synthetic admin smokes.
 - Affected area: Deployment, rollback, smoke confidence
-- Original finding files/routes/functions:
+- Historical original finding files/routes/functions before Phase 1 hardening:
   - `.github/workflows/deploy-staging.yml` - runs `pnpm run check`, deploys, waits for `/login`, and scope-gates autonomous response-auth smokes.
-  - `.github/workflows/deploy-production.yml` - check job runs only `pnpm run build`; deploy job does not run post-deploy health checks or response-auth smokes.
+  - `.github/workflows/deploy-production.yml` - before Phase 1 hardening, the check job ran only `pnpm run build` and the deploy job did not run post-deploy health checks or response-auth smokes.
   - `scripts/promote-production.mjs` - safer path runs `scripts/check-staging-gate.mjs` and `pnpm run check` before pushing staging to production, unless `--skip-staging-gate` is used.
   - `scripts/production-readiness-gate.mjs` - refuses production hosts and verifies staging deploy/local checks, not production post-deploy health.
-- Why it matters: the normal promotion script is protective, but the production GitHub workflow itself has less regression and post-deploy verification than staging. A manual production workflow dispatch with `rollback_sha` gets build-only preflight and no automated production login/session health assertion.
-- Recommended fix: bring production workflow closer to staging while preserving production safety: run `pnpm run check` or a documented production-safe subset, add post-deploy root/login/auth-session denial checks, verify deployed SHA, and document when response-auth smokes are intentionally staging-only.
-- Blocks: **Production** until operator policy requires the promotion gate and production post-deploy health is added.
+- Remaining risk: production now has `pnpm run check`, SHA verification, and root/login/auth-session checks, but still intentionally avoids staging-only synthetic admin response-auth smokes.
+- Recommended next action: add production-safe read-only privacy probes without synthetic admin mutation.
+- Blocks: **Broad production** until deeper production-safe post-deploy evidence exists.
 
 ### 7. Database pool and session writes are fragile for concurrency
 
@@ -176,10 +178,10 @@ Inspected representative files and functions:
 | --- | --- | --- | --- |
 | Load/concurrency | Fail | High-cost upload/process path is synchronous in `endpoints/ingest/process_POST.ts` -> `helpers/ingestReportHandler.tsx` -> `helpers/ingestCorePipeline.tsx`. Response queue is durable, but main ingest/PDF paths are not. | Add ingest/PDF job queues with idempotency, leases, bounded retries, dead letters, and dashboard metrics. |
 | Database | Partial | Response tables have advisory-lock additive DDL and indexes in `helpers/responseDocumentSchema.ts`; core local bootstrap has indexes in `scripts/bootstrap-local-app-fixtures.ts`; global pool is `max: 3` in `helpers/db.tsx`; raw PDFs are stored in `reportArtifact.storageUrl`. | Add forward migration runner, tune pool, add hot-query indexes after query plan review, move large blobs out of DB. |
-| File/PDF/OCR | Fail | `endpoints/ocr/extract_POST.ts` enforces 15 MB, but `helpers/schemas.tsx`, `anonymous-report_POST.schema.ts`, and evidence upload schemas do not. OCR is deterministic and bounded per command in `helpers/deterministicOcr.ts`, but not queued. | Add server-side file limits everywhere, queue OCR, track page/time metrics, object-store PDFs, add malformed/large PDF tests. |
+| File/PDF/OCR | Partial | Phase 1 report, anonymous report, evidence attachment, and bureau communication upload routes now enforce server-side decoded-byte and MIME limits. Legacy/admin/review/parser-test/report-artifact base64 surfaces remain weak, and OCR is deterministic and bounded per command in `helpers/deterministicOcr.ts` but not queued. | Extend shared validation to remaining base64 routes, queue OCR, track page/time metrics, object-store PDFs, add malformed/large PDF tests. |
 | Auth/tenant isolation | Partial | Many critical routes call `getServerUserSession()`. Ownership is enforced in packet, evidence, artifact, and response routes (`helpers/accessControl.ts`, `helpers/disputePacketService.ts`, `helpers/responseDocumentService.ts`). Tests cover non-owner denial in `tests/api/*`. Route-wide auth classification now covers all endpoint handlers. Cron endpoints use derived secrets; clock scan is bearer-only, while scheduled registry scan and retention still support query tokens. | Continue removing legacy query-token cron auth where deployment callers permit it; keep public/cron/session/admin/webhook endpoint inventory tests current. |
 | Observability | Partial | Operator dashboard and response metrics include queue/dead-letter/stale/drift/soak status. `scripts/staging-observability-check.mjs` analyzes bounded staging logs. | Add durable ingest/PDF/storage/auth metrics and alert surfacing; run observability gate in release evidence, not only opt-in. |
-| Deployment/rollback | Partial | Staging workflow runs `pnpm run check`, deploy health, and scoped response-auth smokes. `scripts/promote-production.mjs` gates promotion. Production workflow runs build-only preflight and no post-deploy health checks. Rollback SHA input exists. | Add production post-deploy checks and stronger workflow preflight; require recorded rollback SHA and latest staging deploy match. |
+| Deployment/rollback | Partial | Staging workflow runs `pnpm run check`, deploy health, and scoped response-auth smokes. `scripts/promote-production.mjs` gates promotion. Production workflow now runs `pnpm run check`, verifies the selected SHA, preserves remote build, and checks root/login/auth-session denial after deploy. Rollback SHA input exists. | Add production-safe read-only privacy probes; require recorded rollback SHA and latest staging deploy match. |
 | Disaster recovery | Partial | `scripts/refresh-local-from-staging.mjs` supports guarded local restore. `scripts/staging-backup-restore-checklist.mjs` verifies checklist safety but does not run dump/restore unless explicitly gated. | Run and record human-observed restore drill; define production backup RPO/RTO, restore owner, and sensitive dump retention procedure. |
 | Test coverage | Partial | Golden path, API, contracts, response queue/remediation/orchestration/lifecycle, packet lifecycle, evidence privacy, auth lifecycle, OCR readiness, and classifier tests exist. Missing scale/concurrency coverage for ingest, large PDFs, packet PDF repeated downloads, route-wide tenant isolation, and DB pool pressure. | Add focused tests listed below before broad feature work. |
 | Operator/admin tooling | Partial | Response operations have queue inspection/remediation, lifecycle dry-run, drift checks, soak checks, and internal alert surfacing. Ingest/PDF/storage do not have comparable operator remediation. | Extend operator tooling to ingest/PDF/storage lifecycle and failures. |

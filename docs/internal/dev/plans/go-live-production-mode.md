@@ -5,6 +5,8 @@ updated: 2026-04-14T13:59:07.810Z
 
 # Go Live — Production Mode
 
+Current-status note (2026-05-20): This April plan is not current launch authorization. `docs/production-at-scale-maximum-audit.md` controls current readiness: limited beta only under strict constraints, not broad-production ready, and not production-at-scale ready. Do not use this plan to justify runtime changes or promotion without a fresh, bounded task.
+
 ## Summary
 Switch XAPP-CA from beta to production live. This involves flipping the `production_mode` system setting to `true`, changing new-user registration from creating "beta" subscriptions (100-year trial) to "trialing" subscriptions (30-day trial), and updating all related endpoints and UI messaging.
 

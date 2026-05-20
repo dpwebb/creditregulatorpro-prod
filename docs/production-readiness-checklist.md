@@ -2,9 +2,11 @@
 
 This checklist is for the operator deciding whether Credit Regulator Pro is ready to promote, keep operating, or roll back. It does not replace engineering review, but it gives the release decision a consistent shape.
 
-## Production Scope
+Current-status note (2026-05-20): `docs/production-at-scale-maximum-audit.md` is the controlling readiness source. The current classification is limited beta ready with strict constraints only. The app is not broad-production ready and is not production-at-scale ready.
 
-Controlled production means all of the following are true:
+## Limited Beta Scope Boundary
+
+The current limited-beta scope remains bounded by all of the following:
 
 - Canadian credit reports only.
 - Supported TransUnion and Equifax credit-report layouts only.
@@ -18,7 +20,7 @@ Controlled production means all of the following are true:
 
 ## Not Yet In Scope
 
-The current controlled production scope does not include:
+The current limited-beta scope does not include:
 
 - A guarantee that all scanned PDFs will parse.
 - A guarantee that all bureau layouts are supported.
@@ -121,19 +123,19 @@ If rollback is required:
 - Confirm safe logs show no relevant unhandled errors.
 - Remember that additive lazy tables may remain present but inert after rollback. Do not mutate them during rollback verification.
 
-## Production-Ready Status Levels
+## Future Production Readiness Targets
 
-### Controlled Production Ready
+### Controlled Production Target
 
-The system is safe for bounded production operation within the stated scope. Core deterministic extraction, evidence, violation, and packet checks pass; unsupported or uncertain cases fail closed; production can be rolled back.
+Future controlled production would require evidence that the system is safe for bounded operation within the stated scope. Core deterministic extraction, evidence, violation, and packet checks must pass; unsupported or uncertain cases must fail closed; production must be rollback-ready.
 
-### General Production Ready
+### General Production Target
 
-Controlled production remains green and broader endpoint-backed user flows, admin correction candidate classification, backup/restore verification, monitoring, and repeated staging smoke runs are in place.
+Future general production would require the controlled-production target to remain green and broader endpoint-backed user flows, admin correction candidate classification, backup/restore verification, monitoring, and repeated staging smoke runs to be in place.
 
-### Scale Production Ready
+### Production-At-Scale Target
 
-General production remains green and sustained operational monitoring, alert delivery, restore drills, broader anonymized fixture coverage, outcome tracking, and production-scale workflow coverage are proven.
+Future production-at-scale readiness would require the general-production target to remain green and sustained operational monitoring, alert delivery, restore drills, broader anonymized fixture coverage, outcome tracking, and production-scale workflow coverage to be proven.
 
 ## Operator Regression Dashboard
 

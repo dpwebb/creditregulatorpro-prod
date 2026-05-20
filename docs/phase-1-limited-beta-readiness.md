@@ -4,7 +4,7 @@ Verification date: 2026-05-19
 
 ## Executive Verdict
 
-**Verdict: Limited beta ready with constraints.**
+**Verdict: Limited beta ready with strict constraints.**
 
 The six Phase 1 blockers from `docs/production-scale-readiness-audit.md` have code, test, workflow, or operator-policy evidence in the current repository. This verdict allows only a controlled limited beta under `docs/limited-beta-operator-launch-policy.md`.
 
@@ -156,4 +156,4 @@ Additional scale blockers remain: production-scale smoke/load coverage, durable 
 
 ## Final Readiness Statement
 
-CreditRegulatorPro is **limited beta ready with constraints** if operators enforce `docs/limited-beta-operator-launch-policy.md` and rollback gates. CreditRegulatorPro is **not production-at-scale ready**, and this verification does not claim general or scale production readiness.
+CreditRegulatorPro is **limited beta ready with strict constraints** if operators enforce `docs/limited-beta-operator-launch-policy.md` and rollback gates. CreditRegulatorPro is **not broad-production ready** and **not production-at-scale ready**, and this verification does not claim general or scale production readiness.
