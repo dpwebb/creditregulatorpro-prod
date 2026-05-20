@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+  addBase64UploadValidationIssues,
+  CREDIT_REPORT_UPLOAD_MIME_TYPES,
+  REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES,
+  uploadBase64PayloadSchema,
+  uploadFileNameSchema,
+  uploadMimeTypeSchema,
+} from "../../helpers/uploadPayloadValidation";
 
 
 const TradelineSchema = z.object({
@@ -23,11 +31,25 @@ const TradelineSchema = z.object({
 export const schema = z.object({
   reviewSessionId: z.string().uuid(),
   region: z.string().length(2),
-  fileName: z.string(),
-  mimeType: z.string(),
-  bytesBase64: z.string(),
+  fileName: uploadFileNameSchema("File name"),
+  mimeType: uploadMimeTypeSchema(
+    CREDIT_REPORT_UPLOAD_MIME_TYPES,
+    "Review approval upload must be a PDF"
+  ),
+  bytesBase64: uploadBase64PayloadSchema(
+    REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES,
+    "Review approval report"
+  ),
   tradelines: z.array(TradelineSchema),
-}).strict();
+}).strict().superRefine((data, ctx) => {
+  addBase64UploadValidationIssues(data, ctx, {
+    base64Field: "bytesBase64",
+    mimeTypeField: "mimeType",
+    maxBytes: REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES,
+    allowedMimeTypes: CREDIT_REPORT_UPLOAD_MIME_TYPES,
+    fileLabel: "Review approval report",
+  });
+});
 
 export type InputType = z.infer<typeof schema>;
 

@@ -70,6 +70,12 @@ import { handle as getReportArtifact } from "../../endpoints/report-artifact/get
 import { handle as listReportArtifacts } from "../../endpoints/report-artifact/list_GET";
 import { handle as updateReportArtifact } from "../../endpoints/report-artifact/update_POST";
 import { storeReportArtifactPdf } from "../../helpers/reportArtifactStorage";
+import { NotAuthenticatedError } from "../../helpers/getSetServerSession";
+import {
+  getUploadRequestBodyMaxBytes,
+  REPORT_ARTIFACT_UPLOAD_MAX_BYTES,
+  REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES,
+} from "../../helpers/uploadPayloadValidation";
 
 const pdfBase64 = Buffer.from("%PDF-1.4\nsynthetic report artifact bytes\n%%EOF", "utf8").toString("base64");
 
@@ -151,6 +157,17 @@ function postRequest(pathname: string, body: unknown): Request {
   });
 }
 
+function oversizedRawPostRequest(pathname: string, maxDecodedBytes: number): Request {
+  return new Request(`http://localhost${pathname}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-length": String(getUploadRequestBodyMaxBytes(maxDecodedBytes) + 1),
+    },
+    body: "{",
+  });
+}
+
 function getRequest(pathname: string): Request {
   return new Request(`http://localhost${pathname}`, { method: "GET" });
 }
@@ -161,6 +178,44 @@ function insertedReportArtifactStorageUrl(): string | null {
   );
   const values = operation?.args[0] as Record<string, unknown> | undefined;
   return typeof values?.storageUrl === "string" ? values.storageUrl : null;
+}
+
+function oversizedBase64For(limitBytes: number): string {
+  return "A".repeat(Math.ceil((limitBytes + 1) / 3) * 4);
+}
+
+function createArtifactBody(overrides: Record<string, unknown> = {}) {
+  return {
+    reportDate: "2026-05-20T00:00:00.000Z",
+    artifactType: "application/pdf",
+    data: { fileName: "manual-report.pdf", mimeType: "application/pdf" },
+    storageUrl: pdfBase64,
+    sha256: null,
+    expiresAt: null,
+    ...overrides,
+  };
+}
+
+function updateArtifactBody(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 9901,
+    artifactType: "application/pdf",
+    data: { fileName: "updated-report.pdf", mimeType: "application/pdf" },
+    storageUrl: pdfBase64,
+    ...overrides,
+  };
+}
+
+function reviewApproveBody(overrides: Record<string, unknown> = {}) {
+  return {
+    reviewSessionId: randomUUID(),
+    region: "CA",
+    fileName: "review-report.pdf",
+    mimeType: "application/pdf",
+    bytesBase64: pdfBase64,
+    tradelines: [],
+    ...overrides,
+  };
 }
 
 function updatedReportArtifactStorageUrl(): string | null {
@@ -210,14 +265,7 @@ describe("report artifact raw PDF storage references", () => {
   });
 
   it("stores direct report-artifact create PDF bytes as a storage reference", async () => {
-    const response = await createReportArtifact(postRequest("/_api/report-artifact/create", {
-      reportDate: "2026-05-20T00:00:00.000Z",
-      artifactType: "application/pdf",
-      data: { fileName: "manual-report.pdf", mimeType: "application/pdf" },
-      storageUrl: pdfBase64,
-      sha256: null,
-      expiresAt: null,
-    }));
+    const response = await createReportArtifact(postRequest("/_api/report-artifact/create", createArtifactBody()));
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -226,21 +274,112 @@ describe("report artifact raw PDF storage references", () => {
     expect(insertedReportArtifactStorageUrl()).toBe(body.artifact.storageUrl);
   });
 
+  it("rejects oversized report-artifact create bodies before persistence or storage work", async () => {
+    const rawOversized = await createReportArtifact(
+      oversizedRawPostRequest("/_api/report-artifact/create", REPORT_ARTIFACT_UPLOAD_MAX_BYTES),
+    );
+
+    expect(rawOversized.status).toBe(413);
+    await expect(rawOversized.json()).resolves.toEqual({
+      error: "Report artifact request body exceeds the 15 MB upload limit",
+    });
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+
+    const oversizedPayload = await createReportArtifact(postRequest("/_api/report-artifact/create", createArtifactBody({
+      storageUrl: oversizedBase64For(REPORT_ARTIFACT_UPLOAD_MAX_BYTES),
+    })));
+
+    expect(oversizedPayload.status).toBe(400);
+    await expect(oversizedPayload.json()).resolves.toEqual({
+      error: "Report artifact exceeds the 15 MB upload limit",
+    });
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed or invalid-MIME report-artifact create uploads before persistence", async () => {
+    const malformed = await createReportArtifact(postRequest("/_api/report-artifact/create", createArtifactBody({
+      storageUrl: "data:application/pdf;base64,not-valid-base64!",
+    })));
+
+    expect(malformed.status).toBe(400);
+    await expect(malformed.json()).resolves.toEqual({
+      error: "Report artifact data must be valid base64",
+    });
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+
+    const invalidMime = await createReportArtifact(postRequest("/_api/report-artifact/create", createArtifactBody({
+      artifactType: "text/plain",
+      data: { fileName: "manual-report.txt", mimeType: "text/plain" },
+      storageUrl: `data:text/plain;base64,${Buffer.from("not a pdf", "utf8").toString("base64")}`,
+    })));
+
+    expect(invalidMime.status).toBe(400);
+    await expect(invalidMime.json()).resolves.toEqual({
+      error: "Report artifact upload must be a PDF",
+    });
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+  });
+
   it("stores direct report-artifact update PDF bytes as a storage reference", async () => {
     queueResults({ first: { id: 9901, userId: 42 } });
 
-    const response = await updateReportArtifact(postRequest("/_api/report-artifact/update", {
-      id: 9901,
-      artifactType: "application/pdf",
-      data: { fileName: "updated-report.pdf", mimeType: "application/pdf" },
-      storageUrl: pdfBase64,
-    }));
+    const response = await updateReportArtifact(postRequest("/_api/report-artifact/update", updateArtifactBody()));
 
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.artifact.storageUrl).toMatch(/^local:report-artifacts\/42\//);
     expect(body.artifact.storageUrl).not.toContain(pdfBase64);
     expect(updatedReportArtifactStorageUrl()).toBe(body.artifact.storageUrl);
+  });
+
+  it("rejects oversized report-artifact update bodies before ownership, persistence, or storage work", async () => {
+    const rawOversized = await updateReportArtifact(
+      oversizedRawPostRequest("/_api/report-artifact/update", REPORT_ARTIFACT_UPLOAD_MAX_BYTES),
+    );
+
+    expect(rawOversized.status).toBe(413);
+    await expect(rawOversized.json()).resolves.toEqual({
+      error: "Report artifact request body exceeds the 15 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.updateTable).not.toHaveBeenCalled();
+
+    const oversizedPayload = await updateReportArtifact(postRequest("/_api/report-artifact/update", updateArtifactBody({
+      storageUrl: oversizedBase64For(REPORT_ARTIFACT_UPLOAD_MAX_BYTES),
+    })));
+
+    expect(oversizedPayload.status).toBe(400);
+    await expect(oversizedPayload.json()).resolves.toEqual({
+      error: "Report artifact exceeds the 15 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.updateTable).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed or invalid-MIME report-artifact update uploads before ownership work", async () => {
+    const malformed = await updateReportArtifact(postRequest("/_api/report-artifact/update", updateArtifactBody({
+      storageUrl: "data:application/pdf;base64,not-valid-base64!",
+    })));
+
+    expect(malformed.status).toBe(400);
+    await expect(malformed.json()).resolves.toEqual({
+      error: "Report artifact data must be valid base64",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.updateTable).not.toHaveBeenCalled();
+
+    const invalidMime = await updateReportArtifact(postRequest("/_api/report-artifact/update", updateArtifactBody({
+      artifactType: "text/plain",
+      data: { fileName: "updated-report.txt", mimeType: "text/plain" },
+      storageUrl: `data:text/plain;base64,${Buffer.from("not a pdf", "utf8").toString("base64")}`,
+    })));
+
+    expect(invalidMime.status).toBe(400);
+    await expect(invalidMime.json()).resolves.toEqual({
+      error: "Report artifact upload must be a PDF",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.updateTable).not.toHaveBeenCalled();
   });
 
   it("stores review approval report PDF bytes as a storage reference", async () => {
@@ -253,14 +392,7 @@ describe("report artifact raw PDF storage references", () => {
       },
     });
 
-    const response = await approveReview(postRequest("/_api/review/approve", {
-      reviewSessionId: randomUUID(),
-      region: "CA",
-      fileName: "review-report.pdf",
-      mimeType: "application/pdf",
-      bytesBase64: pdfBase64,
-      tradelines: [],
-    }));
+    const response = await approveReview(postRequest("/_api/review/approve", reviewApproveBody()));
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -268,6 +400,70 @@ describe("report artifact raw PDF storage references", () => {
     const storageUrl = insertedReportArtifactStorageUrl();
     expect(storageUrl).toMatch(/^local:report-artifacts\/42\//);
     expect(storageUrl).not.toContain(pdfBase64);
+  });
+
+  it("rejects unauthenticated review approval before reading or validating the request body", async () => {
+    mocks.getServerUserSession.mockRejectedValueOnce(new NotAuthenticatedError());
+    const request = postRequest("/_api/review/approve", "{");
+    const textSpy = vi.spyOn(request, "text");
+
+    const response = await approveReview(request);
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Not authenticated" });
+    expect(textSpy).not.toHaveBeenCalled();
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized review approval payloads before persistence or storage work", async () => {
+    const rawOversized = await approveReview(
+      oversizedRawPostRequest("/_api/review/approve", REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES),
+    );
+
+    expect(rawOversized.status).toBe(413);
+    await expect(rawOversized.json()).resolves.toEqual({
+      error: "Review approval report request body exceeds the 15 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+
+    const oversizedPayload = await approveReview(postRequest("/_api/review/approve", reviewApproveBody({
+      bytesBase64: oversizedBase64For(REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES),
+    })));
+
+    expect(oversizedPayload.status).toBe(400);
+    await expect(oversizedPayload.json()).resolves.toEqual({
+      error: "Review approval report exceeds the 15 MB upload limit",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed or invalid-MIME review approval payloads before persistence", async () => {
+    const malformed = await approveReview(postRequest("/_api/review/approve", reviewApproveBody({
+      bytesBase64: "data:application/pdf;base64,not-valid-base64!",
+    })));
+
+    expect(malformed.status).toBe(400);
+    await expect(malformed.json()).resolves.toEqual({
+      error: "Review approval report data must be valid base64",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
+
+    const invalidMime = await approveReview(postRequest("/_api/review/approve", reviewApproveBody({
+      fileName: "review-report.txt",
+      mimeType: "text/plain",
+      bytesBase64: `data:text/plain;base64,${Buffer.from("not a pdf", "utf8").toString("base64")}`,
+    })));
+
+    expect(invalidMime.status).toBe(400);
+    await expect(invalidMime.json()).resolves.toEqual({
+      error: "Review approval upload must be a PDF",
+    });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.db.insertInto).not.toHaveBeenCalled();
   });
 
   it("resolves stored report artifact references for owner/admin get while preserving legacy inline records", async () => {

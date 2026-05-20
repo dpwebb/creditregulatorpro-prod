@@ -4,6 +4,12 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { normalizeReportArtifactStorageUrlForWrite } from "../../helpers/reportArtifactStorage";
+import {
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  REPORT_ARTIFACT_UPLOAD_MAX_BYTES,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 function jsonRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -14,8 +20,17 @@ function jsonRecord(value: unknown): Record<string, unknown> {
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
-    
-    const json = JSON.parse(await request.text());
+
+    if (isUploadRequestContentLengthTooLarge(request, REPORT_ARTIFACT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Report artifact", REPORT_ARTIFACT_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, REPORT_ARTIFACT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Report artifact", REPORT_ARTIFACT_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     const input = schema.parse(json);
     const data = jsonRecord(input.data);
     const storageUrl = await normalizeReportArtifactStorageUrlForWrite({

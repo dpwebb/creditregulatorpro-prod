@@ -12,6 +12,12 @@ import { logAudit, logUpload } from "../../helpers/auditLogger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { normalizeCreditReportAmount } from "../../helpers/creditReportNumberSanitizer";
 import { buildReportArtifactStorageMetadata, storeReportArtifactPdf } from "../../helpers/reportArtifactStorage";
+import {
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 function normalizeAccountNumberForLookup(accountNumber: string | null | undefined): string | null {
   const normalized = (accountNumber || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -28,13 +34,22 @@ function normalizeAccountNumberForLookup(accountNumber: string | null | undefine
 
 export async function handle(request: Request) {
   try {
-    const json = JSON.parse(await request.text());
-    const input = schema.parse(json);
-
     const sessionData = await getServerUserSession(request);
     const user = sessionData.user;
     const isAuthenticatedUpload = true;
     console.log(`[Review/Approve] Authenticated approval from user ${user.id} (${user.email})`);
+
+    if (isUploadRequestContentLengthTooLarge(request, REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Review approval report", REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Review approval report", REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
+    const input = schema.parse(json);
 
     // Create or find userAccount (profile table) - prefer lookup by userId, fall back to email
     let userAccount = await db

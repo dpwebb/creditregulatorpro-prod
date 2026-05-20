@@ -4,9 +4,13 @@ export const AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES = 15 * 1024 * 1024;
 export const ANONYMOUS_REPORT_UPLOAD_MAX_BYTES = 20 * 1024 * 1024;
 export const EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 export const BUREAU_COMMUNICATION_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+export const REPORT_ARTIFACT_UPLOAD_MAX_BYTES = AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES;
+export const REVIEW_APPROVE_REPORT_UPLOAD_MAX_BYTES = AUTHENTICATED_REPORT_UPLOAD_MAX_BYTES;
+export const CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
 
 export const CREDIT_REPORT_UPLOAD_MIME_TYPES = ["application/pdf"] as const;
 export const EVIDENCE_UPLOAD_MIME_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"] as const;
+export const CONSUMER_IDENTIFICATION_UPLOAD_MIME_TYPES = ["image/jpeg", "image/png"] as const;
 
 export const MAX_UPLOAD_FILE_NAME_LENGTH = 180;
 export const MAX_UPLOAD_DESCRIPTION_LENGTH = 1000;
@@ -24,6 +28,10 @@ type Base64UploadIssueConfig = {
   allowedMimeTypes: readonly string[];
   fileLabel: string;
 };
+
+type Base64PayloadValidationResult =
+  | { ok: true; payload: string; decodedByteLength: number }
+  | { ok: false; message: string };
 
 export function formatUploadLimit(maxBytes: number): string {
   const mb = maxBytes / (1024 * 1024);
@@ -82,6 +90,30 @@ export function getBase64DecodedByteLength(base64Data: string): number {
   return getPayloadDecodedByteLength(cleanUploadBase64Payload(base64Data));
 }
 
+export function validateBase64UploadPayload(
+  base64Data: string,
+  maxBytes: number,
+  fileLabel: string
+): Base64PayloadValidationResult {
+  const limitLabel = formatUploadLimit(maxBytes);
+  const payload = cleanUploadBase64Payload(base64Data);
+
+  if (payload.length === 0) {
+    return { ok: false, message: `${fileLabel} data is required` };
+  }
+
+  if (payload.length % 4 === 1 || !BASE64_PAYLOAD_PATTERN.test(payload)) {
+    return { ok: false, message: `${fileLabel} data must be valid base64` };
+  }
+
+  const decodedByteLength = getPayloadDecodedByteLength(payload);
+  if (decodedByteLength > maxBytes) {
+    return { ok: false, message: `${fileLabel} exceeds the ${limitLabel} upload limit` };
+  }
+
+  return { ok: true, payload, decodedByteLength };
+}
+
 export function uploadFileNameSchema(label = "File name") {
   return z
     .string()
@@ -132,7 +164,6 @@ export function addBase64UploadValidationIssues(
     return;
   }
 
-  const limitLabel = formatUploadLimit(config.maxBytes);
   const dataUrlMatch = base64Data.trim().match(DATA_URL_PREFIX_PATTERN);
   const dataUrlMimeType = dataUrlMatch ? normalizeUploadMimeType(dataUrlMatch[1]) : null;
   const mimeType = normalizeUploadMimeType(declaredMimeType);
@@ -153,31 +184,12 @@ export function addBase64UploadValidationIssues(
     });
   }
 
-  const payload = cleanUploadBase64Payload(base64Data);
-  if (payload.length === 0) {
+  const validation = validateBase64UploadPayload(base64Data, config.maxBytes, config.fileLabel);
+  if (validation.ok === false) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: [config.base64Field],
-      message: `${config.fileLabel} data is required`,
-    });
-    return;
-  }
-
-  if (payload.length % 4 === 1 || !BASE64_PAYLOAD_PATTERN.test(payload)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: [config.base64Field],
-      message: `${config.fileLabel} data must be valid base64`,
-    });
-    return;
-  }
-
-  const decodedByteLength = getPayloadDecodedByteLength(payload);
-  if (decodedByteLength > config.maxBytes) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: [config.base64Field],
-      message: `${config.fileLabel} exceeds the ${limitLabel} upload limit`,
+      message: validation.message,
     });
   }
 }

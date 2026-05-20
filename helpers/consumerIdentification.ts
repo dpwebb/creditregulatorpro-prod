@@ -6,9 +6,15 @@ import { sql } from "kysely";
 import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
 import { deleteStoredFile, readStoredFile, uploadFile } from "./gcsStorage";
+import {
+  CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES,
+  CONSUMER_IDENTIFICATION_UPLOAD_MIME_TYPES,
+  cleanUploadBase64Payload,
+  normalizeUploadMimeType,
+  validateBase64UploadPayload,
+} from "./uploadPayloadValidation";
 
-const ACCEPTED_ID_FILE_TYPES = new Set(["image/jpeg", "image/png"]);
-const MAX_ID_FILE_SIZE_BYTES = 8 * 1024 * 1024;
+const ACCEPTED_ID_FILE_TYPES: ReadonlySet<string> = new Set(CONSUMER_IDENTIFICATION_UPLOAD_MIME_TYPES);
 
 let ensurePromise: Promise<void> | null = null;
 
@@ -56,9 +62,7 @@ function toMetadata(row: IdentificationRecord): ConsumerIdentificationMetadata {
 }
 
 function decodeBase64File(base64File: string): Buffer {
-  const base64Data = base64File.includes(",")
-    ? base64File.split(",")[1]
-    : base64File;
+  const base64Data = cleanUploadBase64Payload(base64File);
 
   if (!base64Data.trim()) {
     throw new BusinessRuleError("Identification image is empty");
@@ -80,17 +84,22 @@ function sanitizeFileName(fileName: string): string {
 }
 
 function validateIdentificationUpload(input: ConsumerIdentificationUploadInput) {
-  const fileType = input.fileType.toLowerCase();
+  const fileType = normalizeUploadMimeType(input.fileType);
   if (!ACCEPTED_ID_FILE_TYPES.has(fileType)) {
     throw new BusinessRuleError("Upload a PNG or JPEG image of your identification");
   }
 
   assertDataUrlMimeMatches(input);
-  const bytes = decodeBase64File(input.fileDataBase64);
-
-  if (bytes.length > MAX_ID_FILE_SIZE_BYTES) {
-    throw new BusinessRuleError("Identification image must be 8 MB or smaller");
+  const payloadValidation = validateBase64UploadPayload(
+    input.fileDataBase64,
+    CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES,
+    "Identification image"
+  );
+  if (payloadValidation.ok === false) {
+    throw new BusinessRuleError(payloadValidation.message);
   }
+
+  const bytes = decodeBase64File(input.fileDataBase64);
 
   return {
     fileType,
@@ -168,9 +177,8 @@ export async function hasConsumerIdentification(userId: number): Promise<boolean
 export async function saveConsumerIdentificationDocument(
   input: ConsumerIdentificationUploadInput
 ): Promise<ConsumerIdentificationMetadata> {
-  await ensureConsumerIdentificationSchema();
-
   const validated = validateIdentificationUpload(input);
+  await ensureConsumerIdentificationSchema();
   const timestamp = Date.now();
   const objectName = `identification/${input.userId}/${timestamp}-${randomUUID()}-${validated.safeFileName}`;
   const storageUrl = await uploadFile(input.fileDataBase64, objectName, validated.fileType);

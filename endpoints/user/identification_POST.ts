@@ -4,11 +4,27 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { saveConsumerIdentificationDocument } from "../../helpers/consumerIdentification";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { logAudit } from "../../helpers/auditLogger";
+import {
+  CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES,
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
-    const input = schema.parse(JSON.parse(await request.text()));
+
+    if (isUploadRequestContentLengthTooLarge(request, CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Identification image", CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Identification image", CONSUMER_IDENTIFICATION_UPLOAD_MAX_BYTES);
+    }
+
+    const input = schema.parse(JSON.parse(text));
 
     const identification = await saveConsumerIdentificationDocument({
       userId: user.id,
