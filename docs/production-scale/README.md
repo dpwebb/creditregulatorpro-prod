@@ -137,6 +137,23 @@ This command creates SIMULATED local evidence for bounded throughput, latency, s
 
 SIMULATED load evidence is not repeated target-environment production-scale proof. Blockers for load/concurrency, packet PDF scaling, DB pool pressure, and rate-limit write pressure remain incomplete for broader production until reviewed local/staging evidence or design fixes close the remaining gaps.
 
+## Packet PDF Cache-Miss Envelope
+
+Run:
+
+```bash
+pnpm run packet-pdf:cache-miss-proof
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md`
+- `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json`
+
+This command creates `SIMULATED` local evidence for the bounded synchronous packet PDF cache-miss envelope. It measures synthetic cache misses, duplicate in-flight collapse, bounded concurrency, cache hits after warmup, visible failure behavior, and confirms zero live provider calls. It is not production-at-scale proof.
+
+The selected strategy is documented in `docs/packet-pdf-cache-miss-scaling-decision.md`. The residual risk is that cache misses still wait for a bounded synchronous slot instead of moving to an async render queue; overload and timeout paths fail safely before mail-provider calls.
+
 ## SIMULATED Alert Dry Run
 
 Run:

@@ -37,6 +37,7 @@
     "pnpm run migrations:evidence",
     "pnpm run baseline:production-scale-local -- --dry-run",
     "pnpm run baseline:production-scale-local -- --simulated",
+    "pnpm run packet-pdf:cache-miss-proof",
     "pnpm run report:runtime-size",
     "pnpm run check:runtime-size",
     "pnpm run alerts:dry-run",
@@ -50,6 +51,7 @@
     "pnpm run staging:ingest-worker -- --dry-run",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
@@ -214,27 +216,30 @@
       "severity": "High",
       "area": "Packet PDF scaling",
       "affectedFilesRoutesFunctions": [
-        "helpers/packetPdfCache.ts:140",
+        "helpers/packetPdfCache.ts",
+        "helpers/packetPdfCacheMissEnvelope.ts",
         "endpoints/packet/pdf_GET.ts:142",
         "endpoints/packet/send-first-class_POST.ts",
         "endpoints/packet/send-registered_POST.ts"
       ],
-      "currentStatus": "partial",
-      "proofTypeRequired": "SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.",
+      "currentStatus": "fixed",
+      "proofTypeRequired": "Automated proof that packet PDF cache misses are bounded by a synchronous envelope with duplicate collapse, timeout, overload failure evidence, send-route provider-free failure, cache hit behavior, invalidation behavior, and non-owner denial.",
       "proofCategories": [
         "automated-local",
         "staging",
         "simulated"
       ],
       "allowedProofCommands": [
+        "pnpm run packet-pdf:cache-miss-proof",
         "pnpm run baseline:production-scale-local -- --simulated",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
-        "SIMULATED cache-miss timing represented as a fix",
+        "SIMULATED cache-miss proof represented as production-at-scale proof",
         "mail provider sends",
         "packet wording changes",
         "production cache-miss load",
@@ -245,13 +250,16 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/packet-pdf-cache.md",
+        "docs/packet-pdf-cache-miss-scaling-decision.md",
         "docs/production-scale-load-harness.md",
         "docs/production-scale/evidence/latest-load-simulated.md",
         "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+        "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed."
+      "recommendedNextAction": "Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim."
     },
     {
       "number": 5,

@@ -51,6 +51,17 @@ The operator dashboard surfaces packet PDF render attempt, success, failure, and
 
 `getOrRenderPacketPdfBase64` returns additive timing fields for cache access and cache-miss render duration. These fields are instrumentation only and do not alter packet PDF bytes, packet wording, cache keys, storage behavior, or route semantics.
 
+Cache misses now run inside a bounded synchronous envelope:
+
+- cache hits still return cached bytes without entering the render envelope;
+- duplicate concurrent misses for the same content-derived cache key collapse to one render;
+- distinct cache misses are bounded by `CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY`, defaulting to `2`;
+- queued cache misses are bounded by `CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT`, defaulting to `16`;
+- cache-miss renders are bounded by `CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS`, defaulting to `15000`;
+- overload and timeout failures record packet PDF failure lifecycle evidence and fail before mail-provider calls.
+
+The selected strategy is documented in `docs/packet-pdf-cache-miss-scaling-decision.md`. It is a bounded synchronous envelope, not an async render queue.
+
 The simulated load harness records packet PDF cache hit count, miss count, and cache-miss render timing:
 
 ```sh
@@ -58,3 +69,16 @@ pnpm run baseline:production-scale-local -- --simulated
 ```
 
 That output is capacity evidence only. It is not a packet PDF queue, not a cache-miss envelope fix, and not production-scale proof.
+
+The cache-miss envelope proof command records synthetic local evidence:
+
+```sh
+pnpm run packet-pdf:cache-miss-proof
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md`
+- `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json`
+
+This evidence is labeled `SIMULATED`. It is not production-at-scale proof and does not call live mail or external providers.

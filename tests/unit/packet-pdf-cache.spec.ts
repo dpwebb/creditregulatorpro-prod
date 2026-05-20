@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   events: [] as Record<string, unknown>[],
@@ -22,10 +22,14 @@ vi.mock("../../helpers/documentStorage", () => ({
 
 import {
   getOrRenderPacketPdfBase64,
+  getPacketPdfCacheMissEnvelopeMetrics,
   PACKET_PDF_CACHE_HIT_EVENT,
+  PacketPdfCacheMissOverloadedError,
+  PacketPdfCacheMissTimeoutError,
   PACKET_PDF_RENDER_ATTEMPT_EVENT,
   PACKET_PDF_RENDER_FAILED_EVENT,
   PACKET_PDF_RENDER_SUCCEEDED_EVENT,
+  resetPacketPdfCacheMissEnvelopeForTests,
 } from "../../helpers/packetPdfCache";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
@@ -93,8 +97,33 @@ function packetContent(note = "Synthetic compact evidence reference.") {
   });
 }
 
+function clearEnvelopeEnv() {
+  delete process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY;
+  delete process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS;
+  delete process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT;
+  delete process.env.PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY;
+  delete process.env.PACKET_PDF_CACHE_MISS_TIMEOUT_MS;
+  delete process.env.PACKET_PDF_CACHE_MISS_PENDING_LIMIT;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  clearEnvelopeEnv();
+  resetPacketPdfCacheMissEnvelopeForTests();
   mocks.events.length = 0;
   mocks.storage.clear();
   installDbHarness();
@@ -108,6 +137,11 @@ beforeEach(() => {
     mocks.storage.set(storageUrl, Buffer.from(base64Pdf, "base64"));
     return storageUrl;
   });
+});
+
+afterEach(() => {
+  clearEnvelopeEnv();
+  resetPacketPdfCacheMissEnvelopeForTests();
 });
 
 describe("packet PDF cache", () => {
@@ -220,5 +254,145 @@ describe("packet PDF cache", () => {
     expect(persistedEventText).not.toContain("SYNTHETIC_RAW_PACKET_BODY_SHOULD_NOT_APPEAR");
     expect(persistedEventText).not.toContain("SYNTHETIC_RAW_TEXT_SHOULD_NOT_APPEAR");
     expect(persistedEventText).not.toMatch(/data:application\/pdf;base64/i);
+  });
+
+  it("collapses duplicate concurrent cache misses for the same packet content", async () => {
+    process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY = "2";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT = "4";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS = "1000";
+    const base64Pdf = Buffer.from("%PDF-collapsed").toString("base64");
+    const render = deferred<string>();
+    const renderBase64 = vi.fn(() => render.promise);
+
+    const first = getOrRenderPacketPdfBase64({
+      packetId: 602,
+      userId: 10,
+      purpose: "download",
+      packetContent: packetContent("Collapsed duplicate proof."),
+      renderBase64,
+    });
+    const second = getOrRenderPacketPdfBase64({
+      packetId: 602,
+      userId: 10,
+      purpose: "download",
+      packetContent: packetContent("Collapsed duplicate proof."),
+      renderBase64,
+    });
+
+    await vi.waitFor(() => expect(renderBase64).toHaveBeenCalledTimes(1));
+    render.resolve(base64Pdf);
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+
+    expect(firstResult.base64Pdf).toBe(base64Pdf);
+    expect(secondResult.base64Pdf).toBe(base64Pdf);
+    expect(firstResult.cacheKey).toBe(secondResult.cacheKey);
+    expect(mocks.uploadPdf).toHaveBeenCalledTimes(1);
+    expect(mocks.events.map((event) => event.eventType)).toEqual([
+      PACKET_PDF_RENDER_ATTEMPT_EVENT,
+      PACKET_PDF_RENDER_SUCCEEDED_EVENT,
+    ]);
+    expect(getPacketPdfCacheMissEnvelopeMetrics().collapsedCount).toBe(1);
+  });
+
+  it("bounds distinct cache-miss renders by configured synchronous envelope concurrency", async () => {
+    process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT = "4";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS = "1000";
+    let activeRenders = 0;
+    let maxActiveRenders = 0;
+
+    await Promise.all(
+      [603, 604, 605].map((packetId) =>
+        getOrRenderPacketPdfBase64({
+          packetId,
+          userId: 10,
+          purpose: "mail",
+          packetContent: packetContent(`Bounded concurrency packet ${packetId}.`),
+          renderBase64: vi.fn(async () => {
+            activeRenders += 1;
+            maxActiveRenders = Math.max(maxActiveRenders, activeRenders);
+            await delay(5);
+            activeRenders -= 1;
+            return Buffer.from(`%PDF-bounded-${packetId}`).toString("base64");
+          }),
+        }),
+      ),
+    );
+
+    const metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(maxActiveRenders).toBe(1);
+    expect(metrics.maxActiveObserved).toBe(1);
+    expect(metrics.startedCount).toBe(3);
+    expect(metrics.completedCount).toBe(3);
+    expect(mocks.uploadPdf).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails safely and records lifecycle evidence when the cache-miss envelope is overloaded", async () => {
+    process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS = "1000";
+    const blockedRender = deferred<string>();
+    const renderBase64 = vi.fn(() => blockedRender.promise);
+
+    const first = getOrRenderPacketPdfBase64({
+      packetId: 606,
+      userId: 10,
+      purpose: "download",
+      packetContent: packetContent("Overload first render."),
+      renderBase64,
+    });
+    await vi.waitFor(() => expect(renderBase64).toHaveBeenCalledTimes(1));
+
+    await expect(
+      getOrRenderPacketPdfBase64({
+        packetId: 607,
+        userId: 10,
+        purpose: "download",
+        packetContent: packetContent("Overload rejected render."),
+        renderBase64: vi.fn(async () => Buffer.from("%PDF-should-not-render").toString("base64")),
+      }),
+    ).rejects.toThrow(PacketPdfCacheMissOverloadedError);
+
+    blockedRender.resolve(Buffer.from("%PDF-overload-first").toString("base64"));
+    await first;
+
+    const metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(metrics.overloadRejectedCount).toBe(1);
+    expect(mocks.uploadPdf).toHaveBeenCalledTimes(1);
+    expect(mocks.events.map((event) => event.eventType)).toEqual([
+      PACKET_PDF_RENDER_ATTEMPT_EVENT,
+      PACKET_PDF_RENDER_ATTEMPT_EVENT,
+      PACKET_PDF_RENDER_FAILED_EVENT,
+      PACKET_PDF_RENDER_SUCCEEDED_EVENT,
+    ]);
+  });
+
+  it("times out cache-miss renders before upload and records failure evidence", async () => {
+    process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT = "2";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS = "100";
+
+    await expect(
+      getOrRenderPacketPdfBase64({
+        packetId: 608,
+        userId: 10,
+        purpose: "download",
+        packetContent: packetContent("Timeout proof."),
+        renderBase64: vi.fn(async () => {
+          await delay(150);
+          return Buffer.from("%PDF-too-late").toString("base64");
+        }),
+      }),
+    ).rejects.toThrow(PacketPdfCacheMissTimeoutError);
+
+    await delay(75);
+    const metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(metrics.timeoutCount).toBe(1);
+    expect(metrics.failedCount).toBe(1);
+    expect(mocks.uploadPdf).not.toHaveBeenCalled();
+    expect(mocks.events.map((event) => event.eventType)).toEqual([
+      PACKET_PDF_RENDER_ATTEMPT_EVENT,
+      PACKET_PDF_RENDER_FAILED_EVENT,
+    ]);
   });
 });

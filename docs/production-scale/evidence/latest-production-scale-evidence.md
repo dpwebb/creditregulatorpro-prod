@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T19:40:39.364Z
+Generated at: 2026-05-20T19:54:08.903Z
 Current branch: `staging`
-Current commit hash: `184297cb7fe6ed57ef6791ac49b45b693a403eea`
+Current commit hash: `f2c3d3f72e5be795ffba94f62ba82ac2e99f4c2f`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -25,7 +25,7 @@ Dashboard exact commands recorded: yes
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=5, partial=13, fixed=5, open=1
+- Status counts: requires-human-proof=1, simulated-proof-only=5, fixed=6, partial=12, open=1
 
 ## Automated Local Evidence
 
@@ -41,10 +41,10 @@ Dashboard exact commands recorded: yes
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
   Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
-- #4 Packet PDF scaling (High; partial)
-  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
+- #4 Packet PDF scaling (High; fixed)
+  Proof required: Automated proof that packet PDF cache misses are bounded by a synchronous envelope with duplicate collapse, timeout, overload failure evidence, send-route provider-free failure, cache hit behavior, invalidation behavior, and non-owner denial.
+  Allowed commands: `pnpm run packet-pdf:cache-miss-proof`, `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.
 - #5 Ingest cleanup/data safety (High; fixed)
   Proof required: Automated proof that default failed-ingest cleanup is non-destructive, marks remediation-required state, preserves artifacts/tradelines/evidence, and keeps any retained destructive path explicitly confirmed and production-refusing.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts`, `pnpm run operator:dashboard`
@@ -146,10 +146,10 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
   Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
-- SIMULATED - #4 Packet PDF scaling (High; partial)
-  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
+- SIMULATED - #4 Packet PDF scaling (High; fixed)
+  Proof required: Automated proof that packet PDF cache misses are bounded by a synchronous envelope with duplicate collapse, timeout, overload failure evidence, send-route provider-free failure, cache hit behavior, invalidation behavior, and non-owner denial.
+  Allowed commands: `pnpm run packet-pdf:cache-miss-proof`, `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.
 - SIMULATED - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
@@ -181,10 +181,10 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
   Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
-- #4 Packet PDF scaling (High; partial)
-  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
+- #4 Packet PDF scaling (High; fixed)
+  Proof required: Automated proof that packet PDF cache misses are bounded by a synchronous envelope with duplicate collapse, timeout, overload failure evidence, send-route provider-free failure, cache hit behavior, invalidation behavior, and non-owner denial.
+  Allowed commands: `pnpm run packet-pdf:cache-miss-proof`, `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
   Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
@@ -272,10 +272,6 @@ No read-only production command is executed by this report. Any production evide
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
   Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
-- #4 Packet PDF scaling (High; partial)
-  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
   Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`

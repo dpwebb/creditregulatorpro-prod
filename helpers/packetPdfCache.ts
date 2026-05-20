@@ -5,6 +5,25 @@ import { db } from "./db";
 import { readStoredPdf, uploadPdf } from "./documentStorage";
 import { chain } from "./hashChain";
 import type { ParsedPacketContent } from "./packetPdfContent";
+import {
+  getPacketPdfCacheMissEnvelopeConfig,
+  isPacketPdfCacheMissOverloadedError,
+  runBoundedPacketPdfCacheMiss,
+  withPacketPdfCacheMissTimeout,
+} from "./packetPdfCacheMissEnvelope";
+
+export {
+  DEFAULT_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY,
+  DEFAULT_PACKET_PDF_CACHE_MISS_PENDING_LIMIT,
+  DEFAULT_PACKET_PDF_CACHE_MISS_TIMEOUT_MS,
+  getPacketPdfCacheMissEnvelopeConfig,
+  getPacketPdfCacheMissEnvelopeMetrics,
+  isPacketPdfCacheMissOverloadedError,
+  isPacketPdfCacheMissTimeoutError,
+  PacketPdfCacheMissOverloadedError,
+  PacketPdfCacheMissTimeoutError,
+  resetPacketPdfCacheMissEnvelopeForTests,
+} from "./packetPdfCacheMissEnvelope";
 
 export type PacketPdfCachePurpose = "download" | "mail";
 
@@ -144,6 +163,7 @@ export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): P
   const accessStartedAt = performance.now();
   const cacheKey = buildPacketPdfCacheKey(input);
   const cachedBase64 = await readCachedPdfBase64(cacheKey.storageUrl);
+  const packetId = Number(input.packetId);
 
   if (cachedBase64) {
     await recordPacketPdfRenderEvent({
@@ -161,40 +181,65 @@ export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): P
     };
   }
 
-  const packetId = Number(input.packetId);
-  await recordPacketPdfRenderEvent({
-    packetId,
-    eventType: PACKET_PDF_RENDER_ATTEMPT_EVENT,
-    purpose: input.purpose,
-    cacheKey: cacheKey.cacheKey,
-  });
+  const envelopeConfig = getPacketPdfCacheMissEnvelopeConfig();
 
   try {
-    const renderStartedAt = performance.now();
-    const base64Pdf = await input.renderBase64();
-    const renderDurationMs = Math.max(0, performance.now() - renderStartedAt);
-    await uploadPdf(base64Pdf, cacheKey.objectName);
-    await recordPacketPdfRenderEvent({
-      packetId,
-      eventType: PACKET_PDF_RENDER_SUCCEEDED_EVENT,
-      purpose: input.purpose,
-      cacheKey: cacheKey.cacheKey,
-    });
+    return await runBoundedPacketPdfCacheMiss(
+      cacheKey.cacheKey,
+      async () => {
+        await recordPacketPdfRenderEvent({
+          packetId,
+          eventType: PACKET_PDF_RENDER_ATTEMPT_EVENT,
+          purpose: input.purpose,
+          cacheKey: cacheKey.cacheKey,
+        });
 
-    return {
-      ...cacheKey,
-      base64Pdf,
-      cacheHit: false,
-      cacheAccessDurationMs: Math.max(0, performance.now() - accessStartedAt),
-      renderDurationMs,
-    };
+        try {
+          const renderStartedAt = performance.now();
+          const base64Pdf = await withPacketPdfCacheMissTimeout(input.renderBase64(), envelopeConfig.timeoutMs);
+          const renderDurationMs = Math.max(0, performance.now() - renderStartedAt);
+          await uploadPdf(base64Pdf, cacheKey.objectName);
+          await recordPacketPdfRenderEvent({
+            packetId,
+            eventType: PACKET_PDF_RENDER_SUCCEEDED_EVENT,
+            purpose: input.purpose,
+            cacheKey: cacheKey.cacheKey,
+          });
+
+          return {
+            ...cacheKey,
+            base64Pdf,
+            cacheHit: false,
+            cacheAccessDurationMs: Math.max(0, performance.now() - accessStartedAt),
+            renderDurationMs,
+          };
+        } catch (error) {
+          await recordPacketPdfRenderEvent({
+            packetId,
+            eventType: PACKET_PDF_RENDER_FAILED_EVENT,
+            purpose: input.purpose,
+            cacheKey: cacheKey.cacheKey,
+          });
+          throw error;
+        }
+      },
+      envelopeConfig,
+    );
   } catch (error) {
-    await recordPacketPdfRenderEvent({
-      packetId,
-      eventType: PACKET_PDF_RENDER_FAILED_EVENT,
-      purpose: input.purpose,
-      cacheKey: cacheKey.cacheKey,
-    });
+    if (isPacketPdfCacheMissOverloadedError(error)) {
+      await recordPacketPdfRenderEvent({
+        packetId,
+        eventType: PACKET_PDF_RENDER_ATTEMPT_EVENT,
+        purpose: input.purpose,
+        cacheKey: cacheKey.cacheKey,
+      }).catch(() => undefined);
+      await recordPacketPdfRenderEvent({
+        packetId,
+        eventType: PACKET_PDF_RENDER_FAILED_EVENT,
+        purpose: input.purpose,
+        cacheKey: cacheKey.cacheKey,
+      }).catch(() => undefined);
+    }
     throw error;
   }
 }

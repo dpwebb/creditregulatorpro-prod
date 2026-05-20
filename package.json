@@ -67,6 +67,7 @@
     "task:scope": "tsx scripts/task-scope-report.ts",
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
     "baseline:production-scale-local": "node scripts/production-scale-harness.mjs",
+    "packet-pdf:cache-miss-proof": "tsx scripts/packet-pdf-cache-miss-proof.ts",
     "production-scale:evidence": "node scripts/production-scale-evidence.mjs",
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",
     "sensitive-list-endpoints:evidence": "node scripts/sensitive-list-endpoints-evidence.mjs",

@@ -1,0 +1,66 @@
+{
+  "reportName": "packet-pdf-cache-miss-proof",
+  "evidenceType": "SIMULATED",
+  "strategy": "bounded synchronous cache-miss envelope",
+  "generatedAt": "2026-05-20T19:53:42.158Z",
+  "branch": "staging",
+  "commit": "f2c3d3f72e5be795ffba94f62ba82ac2e99f4c2f",
+  "priorLoadEvidence": {
+    "path": "docs/production-scale/evidence/latest-load-simulated.json",
+    "exists": true,
+    "queueOrEnvelopeImplemented": false,
+    "note": "Prior SIMULATED load/cache-miss capacity evidence was found."
+  },
+  "safety": {
+    "simulated": true,
+    "productionDataMutated": false,
+    "liveMailProviderCalls": false,
+    "liveExternalProviderCalls": false,
+    "externalProviderCallCount": 0,
+    "realConsumerPiiUsed": false,
+    "realCreditReportsUsed": false
+  },
+  "compatibility": {
+    "packetWordingChanged": false,
+    "packetReadinessChanged": false,
+    "violationEvidenceRegulationLogicChanged": false,
+    "sendRouteProviderBehaviorChanged": false,
+    "parserOrOcrChanged": false
+  },
+  "simulation": {
+    "elapsedMs": 135,
+    "totalSyntheticRequests": 10,
+    "syntheticCacheMissRequests": 8,
+    "syntheticCacheHitsAfterWarmup": 2,
+    "uniqueSyntheticCacheKeys": 6,
+    "renderTimingsMs": {
+      "p50": 41.85,
+      "p95": 50.48,
+      "max": 50.48
+    },
+    "maxSyntheticActiveRenders": 2,
+    "failureBehaviorVisible": true
+  },
+  "envelope": {
+    "maxConcurrency": 2,
+    "pendingLimit": 10,
+    "timeoutMs": 1000,
+    "activeRenders": 0,
+    "queuedWaiters": 0,
+    "inFlightKeys": 0,
+    "startedCount": 7,
+    "completedCount": 6,
+    "failedCount": 1,
+    "timeoutCount": 0,
+    "overloadRejectedCount": 0,
+    "collapsedCount": 2,
+    "maxActiveObserved": 2,
+    "totalWaitMs": 251.34,
+    "maxWaitMs": 82.95
+  },
+  "warning": "SIMULATED packet PDF cache-miss proof is local capacity evidence. It is not production-at-scale proof and did not send mail or call live providers.",
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+    "json": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json"
+  }
+}

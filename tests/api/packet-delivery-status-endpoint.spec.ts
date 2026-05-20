@@ -768,6 +768,32 @@ describe("packet delivery, status, and send endpoint coverage", () => {
     );
   });
 
+  it("keeps send routes provider-free when packet PDF cache-miss envelope fails", async () => {
+    queueSendHappyPath();
+    mocks.getOrRenderPacketPdfBase64.mockRejectedValueOnce(
+      new Error("Packet PDF cache-miss render exceeded 100ms."),
+    );
+
+    const response = await sendFirstClass(postRequest("/_api/packet/send-first-class", sendBody()));
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toEqual({ error: "Packet PDF cache-miss render exceeded 100ms." });
+    expect(mocks.getOrRenderPacketPdfBase64).toHaveBeenCalledWith(
+      expect.objectContaining({
+        packetId: 601,
+        userId: "10",
+        purpose: "mail",
+        packetContent: expect.any(Object),
+      }),
+    );
+    expect(mocks.sendRegisteredMail).not.toHaveBeenCalled();
+    expect(setFor("packet")).toEqual([]);
+    expect(valuesFor("evidenceEvent")).toEqual([]);
+    expect(valuesFor("postalTransaction")).toEqual([]);
+    expectNoSensitiveLeak(body);
+  });
+
   it("blocks duplicate send attempts for already-sent packets before provider calls or duplicate delivery records", async () => {
     queueSendHappyPath("sent");
 
