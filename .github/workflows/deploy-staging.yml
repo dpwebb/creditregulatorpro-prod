@@ -10,6 +10,11 @@ on:
         description: "Commit SHA to deploy for rollback. Leave blank to deploy the current staging branch."
         required: false
         type: string
+      run_ingest_worker:
+        description: "Run one bounded staging ingest worker apply pass after deploy verification."
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: staging-deploy
@@ -168,8 +173,9 @@ jobs:
           TARGET_SHA: ${{ steps.target.outputs.sha }}
           PUSH_BEFORE_SHA: ${{ github.event.before || '' }}
           WORKFLOW_EVENT_NAME: ${{ github.event_name }}
+          RUN_INGEST_WORKER: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker || false }}
         run: |
-          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' PUSH_BEFORE_SHA='$PUSH_BEFORE_SHA' WORKFLOW_EVENT_NAME='$WORKFLOW_EVENT_NAME' bash -s" <<'REMOTE'
+          ssh -i ~/.ssh/staging_deploy_key -p "$STAGING_SSH_PORT" "$STAGING_USER@$STAGING_HOST" "TARGET_SHA='$TARGET_SHA' PUSH_BEFORE_SHA='$PUSH_BEFORE_SHA' WORKFLOW_EVENT_NAME='$WORKFLOW_EVENT_NAME' RUN_INGEST_WORKER='$RUN_INGEST_WORKER' bash -s" <<'REMOTE'
             set -euo pipefail
 
             cd /opt/creditregulatorpro-staging/app
@@ -608,6 +614,29 @@ jobs:
             fi
 
             wait_for_staging_health "after"
+
+            run_staging_ingest_worker_orchestration() {
+              if [ "${RUN_INGEST_WORKER:-false}" != "true" ]; then
+                echo "Skipping bounded staging ingest worker orchestration. Manual workflow_dispatch run_ingest_worker=true is required."
+                return 0
+              fi
+
+              echo "Running bounded staging ingest worker orchestration."
+              docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc '
+                set -euo pipefail
+                if [ "${CRP_ENV:-}" != "staging" ]; then
+                  echo "Refusing staging ingest worker: CRP_ENV must be staging."
+                  exit 1
+                fi
+                if [ -z "${FLOOT_DATABASE_URL:-${STAGING_DATABASE_URL:-${DATABASE_URL:-}}}" ]; then
+                  echo "Refusing staging ingest worker: database environment is missing."
+                  exit 1
+                fi
+                pnpm run ingest:worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-deploy-ingest-worker
+              '
+            }
+
+            run_staging_ingest_worker_orchestration
 
             git log -1 --oneline
           REMOTE

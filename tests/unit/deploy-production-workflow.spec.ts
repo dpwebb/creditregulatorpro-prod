@@ -77,4 +77,14 @@ describe("production deploy workflow verification", () => {
     expect(source).not.toContain("smoke:response-document");
     expect(source).not.toContain("response-auth-smoke");
   });
+
+  it("does not activate the staging ingest worker in production deploys", () => {
+    const source = workflowSource();
+
+    expect(source).not.toContain("run_ingest_worker");
+    expect(source).not.toContain("RUN_INGEST_WORKER");
+    expect(source).not.toContain("ingest:worker");
+    expect(source).not.toContain("CRP_ENV=staging");
+    expect(source).not.toContain("creditregulatorpro-staging");
+  });
 });

@@ -41,6 +41,7 @@
     "response:orchestration-check": "tsx scripts/response-processing-orchestration-check.ts",
     "response:soak-check": "tsx scripts/response-processing-soak-check.ts",
     "ingest:worker": "tsx scripts/ingest-processing-worker.ts",
+    "staging:ingest-worker": "node scripts/staging-ingest-worker-orchestrator.mjs",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",
     "test:violation-corrections:db": "tsx scripts/violation-correction-integration.ts",

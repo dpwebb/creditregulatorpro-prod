@@ -34,4 +34,22 @@ describe("staging deploy workflow health gate", () => {
     expect(source).not.toMatch(/wait_for_staging_health\s+"(?:before|after)"\s+\|\|\s+true/);
     expect(source).not.toContain("curl -k -fsS -o /dev/null https://staging.creditregulatorpro.com/login");
   });
+
+  it("provides an opt-in bounded staging ingest worker orchestration path", () => {
+    const source = workflowSource();
+
+    expect(source).toContain("run_ingest_worker:");
+    expect(source).toContain("RUN_INGEST_WORKER");
+    expect(source).toContain("run_staging_ingest_worker_orchestration() {");
+    expect(source).toContain(
+      "Skipping bounded staging ingest worker orchestration. Manual workflow_dispatch run_ingest_worker=true is required.",
+    );
+    expect(source).toContain("docker exec -e CRP_ENV=staging creditregulatorpro-staging bash -lc");
+    expect(source).toContain('if [ "${CRP_ENV:-}" != "staging" ]; then');
+    expect(source).toContain("database environment is missing");
+    expect(source).toContain(
+      "pnpm run ingest:worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-deploy-ingest-worker",
+    );
+    expect(source).not.toContain("--max-jobs 100 --concurrency 1 --worker-id staging-deploy-ingest-worker");
+  });
 });
