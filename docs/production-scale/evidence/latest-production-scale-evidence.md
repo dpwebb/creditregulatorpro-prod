@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T20:14:43.724Z
+Generated at: 2026-05-20T20:47:27.265Z
 Current branch: `staging`
-Current commit hash: `5d72d1c51ca1cdf91a24e6418ebed91cd97e89f6`
+Current commit hash: `f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -31,7 +31,7 @@ Dashboard exact commands recorded: yes
 
 - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
@@ -115,7 +115,7 @@ Dashboard exact commands recorded: yes
   Next action: Use the evidence command to capture exact release evidence before deciding hard gates.
 - #22 Retention archive/restore proof (Medium; partial)
   Proof required: SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.
-  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
+  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run operator:dashboard`
   Next action: Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 - #23 Public routes inventory risk (Medium; partial)
   Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
@@ -136,7 +136,7 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
 
 - SIMULATED - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - SIMULATED - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
@@ -168,7 +168,7 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - SIMULATED - #22 Retention archive/restore proof (Medium; partial)
   Proof required: SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.
-  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
+  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run operator:dashboard`
   Next action: Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
 ## Staging Evidence
@@ -227,7 +227,7 @@ No read-only production command is executed by this report. Any production evide
 
 - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
@@ -251,7 +251,7 @@ No read-only production command is executed by this report. Any production evide
   Next action: Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; partial)
   Proof required: SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.
-  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
+  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run operator:dashboard`
   Next action: Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
 ## Waived Blockers
@@ -262,7 +262,7 @@ No read-only production command is executed by this report. Any production evide
 
 - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial)
   Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
@@ -322,7 +322,7 @@ No read-only production command is executed by this report. Any production evide
   Next action: Use the evidence command to capture exact release evidence before deciding hard gates.
 - #22 Retention archive/restore proof (Medium; partial)
   Proof required: SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.
-  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run operator:dashboard`
+  Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run operator:dashboard`
   Next action: Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 - #23 Public routes inventory risk (Medium; partial)
   Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.

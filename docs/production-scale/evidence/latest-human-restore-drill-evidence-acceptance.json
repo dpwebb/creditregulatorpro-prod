@@ -1,0 +1,35 @@
+{
+  "reportName": "human-restore-drill-evidence-acceptance",
+  "generatedAt": "2026-05-20T20:46:25.561Z",
+  "status": "not-submitted",
+  "accepted": false,
+  "evidencePath": null,
+  "defaultEvidencePaths": [
+    "docs/production-scale/evidence/human-restore-drill-evidence.md",
+    "docs/production-scale/evidence/human-restore-drill-evidence.json"
+  ],
+  "validation": {
+    "ok": false,
+    "accepted": false,
+    "errors": [
+      "No human restore evidence artifact has been submitted."
+    ],
+    "blockerCoverage": {
+      "disasterRecoveryRestoreDrill": false,
+      "retentionArchiveRestore": false
+    }
+  },
+  "blockerCoverage": {
+    "disasterRecoveryRestoreDrill": false,
+    "retentionArchiveRestore": false
+  },
+  "safety": {
+    "readsSecrets": false,
+    "printsSecrets": false,
+    "runsDump": false,
+    "runsRestore": false,
+    "modifiesProduction": false,
+    "productionBackupsAccessedByCodex": false,
+    "simulatedEvidenceAcceptedAsHumanProof": false
+  }
+}

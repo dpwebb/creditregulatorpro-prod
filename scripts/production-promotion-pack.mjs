@@ -4,6 +4,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  buildHumanRestoreDrillEvidenceAcceptanceReport,
+  HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
+  HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
+  HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
+  HUMAN_RESTORE_DRILL_EVIDENCE_MD_PATH,
+} from "./staging-backup-restore-checklist.mjs";
+
+import {
   collectDashboardEvidence,
   detectProductionEnvironment,
   loadBlockerRegistry,
@@ -29,6 +37,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run operator:dashboard",
   "pnpm run check:migrations",
   "pnpm run check:restore-drill-evidence",
+  "pnpm run restore:accept-human-evidence",
   "pnpm run report:runtime-size",
   "git diff --check",
 ];
@@ -58,6 +67,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run restore:drill:simulated": [
     "docs/production-scale/evidence/latest-restore-drill-simulated.md",
     "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+  ],
+  "pnpm run restore:accept-human-evidence": [
+    HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
+    HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
   ],
   "pnpm run ingest:worker:simulated-proof": [
     "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
@@ -116,6 +129,7 @@ const OUTPUT_BY_COMMAND = {
 const CLASSIFICATIONS = new Set([
   "fixed with automated evidence",
   "fixed with staging evidence",
+  "fixed with human-observed evidence",
   "simulated proof only",
   "human proof required",
   "waived with explicit reason",
@@ -207,7 +221,21 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function classifyBlocker(blocker) {
+function classifyBlocker(blocker, humanRestoreEvidenceAcceptance = null) {
+  if (
+    blocker.number === 1 &&
+    humanRestoreEvidenceAcceptance?.accepted === true &&
+    humanRestoreEvidenceAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill === true
+  ) {
+    return "fixed with human-observed evidence";
+  }
+  if (
+    blocker.number === 22 &&
+    humanRestoreEvidenceAcceptance?.accepted === true &&
+    humanRestoreEvidenceAcceptance?.blockerCoverage?.retentionArchiveRestore === true
+  ) {
+    return "fixed with human-observed evidence";
+  }
   if (blocker.currentStatus === "waived") return "waived with explicit reason";
   if (blocker.currentStatus === "open") return "open";
   if (blocker.currentStatus === "requires-human-proof" || blocker.humanProofRequired === true) {
@@ -306,6 +334,7 @@ export function buildProductionPromotionPackReport({
   auditText = null,
   auditPath = DEFAULT_AUDIT_PATH,
   dashboardReport = null,
+  humanRestoreEvidenceAcceptance = null,
   generatedAt = new Date().toISOString(),
   env = process.env,
 } = {}) {
@@ -335,9 +364,11 @@ export function buildProductionPromotionPackReport({
   const finalVerificationText = existsSync(repoPath(rootDir, "docs/final-production-at-scale-verification.md"))
     ? readText(rootDir, "docs/final-production-at-scale-verification.md")
     : "";
+  const acceptedHumanRestoreEvidence =
+    humanRestoreEvidenceAcceptance ?? buildHumanRestoreDrillEvidenceAcceptanceReport({ rootDir, generatedAt });
 
   const classifiedBlockers = loadedRegistry.blockers.map((blocker) => {
-    const classification = classifyBlocker(blocker);
+    const classification = classifyBlocker(blocker, acceptedHumanRestoreEvidence);
     return {
       number: blocker.number,
       title: blocker.title,
@@ -353,6 +384,13 @@ export function buildProductionPromotionPackReport({
       recommendedNextAction: blocker.recommendedNextAction,
       humanProofRequired: blocker.humanProofRequired === true,
       simulatedProofAcceptable: blocker.simulatedProofAcceptable === true,
+      acceptedHumanEvidence:
+        classification === "fixed with human-observed evidence"
+          ? {
+              evidencePath: acceptedHumanRestoreEvidence.evidencePath,
+              acceptedAt: acceptedHumanRestoreEvidence.generatedAt,
+            }
+          : null,
       waiverReason: waiverReason(blocker),
     };
   });
@@ -360,6 +398,8 @@ export function buildProductionPromotionPackReport({
   const unresolvedBlockers = classifiedBlockers.filter((blocker) => isUnresolvedClassification(blocker.classification));
   const generatedEvidenceFileReferences = unique([
     ...Object.values(OUTPUT_BY_COMMAND).flat(),
+    HUMAN_RESTORE_DRILL_EVIDENCE_MD_PATH,
+    HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
     ...classifiedBlockers.flatMap((blocker) => blocker.relatedEvidenceOutputPaths),
   ]).map((filePath) => summarizeEvidenceFile(rootDir, filePath));
   const commandResults = buildCommandList(rootDir, loadedRegistry, packageJson);
@@ -389,6 +429,21 @@ export function buildProductionPromotionPackReport({
     commandList: commandResults.map((item) => item.command),
     commandResultSummary: commandResults,
     generatedEvidenceFileReferences,
+    humanRestoreDrillEvidenceAcceptance: {
+      reportName: acceptedHumanRestoreEvidence.reportName,
+      generatedAt: acceptedHumanRestoreEvidence.generatedAt,
+      status: acceptedHumanRestoreEvidence.status,
+      accepted: acceptedHumanRestoreEvidence.accepted,
+      evidencePath: acceptedHumanRestoreEvidence.evidencePath,
+      blockerCoverage: acceptedHumanRestoreEvidence.blockerCoverage,
+      validation: {
+        ok: acceptedHumanRestoreEvidence.validation?.ok === true,
+        evidenceType: acceptedHumanRestoreEvidence.validation?.evidenceType ?? "unknown",
+        simulatedOnlySubmission: acceptedHumanRestoreEvidence.validation?.simulatedOnlySubmission === true,
+        sensitiveFindings: acceptedHumanRestoreEvidence.validation?.sensitiveFindings ?? [],
+        errors: acceptedHumanRestoreEvidence.validation?.errors ?? [],
+      },
+    },
     blockerClassifications: classifiedBlockers,
     unresolvedProductionBlockers: unresolvedBlockers.filter(isProductionConcern),
     unresolvedScaleBlockers: unresolvedBlockers.filter(isScaleConcern),
@@ -458,6 +513,30 @@ export function validatePromotionPackReport(report) {
       errors.push(`SIMULATED evidence is mislabeled as production proof: ${evidence.path}.`);
     }
   }
+  const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
+  const blocker1 = blockers.find((blocker) => blocker.number === 1);
+  const blocker22 = blockers.find((blocker) => blocker.number === 22);
+  if (blocker1?.classification === "fixed with human-observed evidence") {
+    if (
+      humanAcceptance?.accepted !== true ||
+      humanAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
+      humanAcceptance?.validation?.simulatedOnlySubmission === true
+    ) {
+      errors.push("Blocker 1 cannot be classified fixed without accepted non-simulated human restore evidence.");
+    }
+  }
+  if (blocker22?.classification === "fixed with human-observed evidence") {
+    if (
+      humanAcceptance?.accepted !== true ||
+      humanAcceptance?.blockerCoverage?.retentionArchiveRestore !== true ||
+      humanAcceptance?.validation?.simulatedOnlySubmission === true
+    ) {
+      errors.push("Blocker 22 cannot be classified fixed without accepted non-simulated human retention recoverability evidence.");
+    }
+  }
+  if (humanAcceptance?.validation?.simulatedOnlySubmission === true && humanAcceptance?.accepted === true) {
+    errors.push("SIMULATED-only human evidence submission was accepted.");
+  }
   if (report.safety?.simulatedProofIsProductionProof === true) {
     errors.push("Promotion pack misclassifies simulated proof as production proof.");
   }
@@ -515,6 +594,21 @@ export function renderPromotionPackMarkdown(report) {
     `- Checks skipped: ${report.skippedChecks.checksSkipped}`,
     `- Skip count: ${report.skippedChecks.skipCount ?? "unknown"}`,
     `- SKIP treated as PASS: ${report.skippedChecks.treatsSkipAsPass ? "yes" : "no"}`,
+    "",
+    "## Human Restore Drill Evidence Acceptance",
+    "",
+    `- Status: ${report.humanRestoreDrillEvidenceAcceptance.status}`,
+    `- Accepted: ${report.humanRestoreDrillEvidenceAcceptance.accepted ? "yes" : "no"}`,
+    `- Evidence path: \`${report.humanRestoreDrillEvidenceAcceptance.evidencePath ?? "not submitted"}\``,
+    `- Blocker 1 coverage: ${
+      report.humanRestoreDrillEvidenceAcceptance.blockerCoverage?.disasterRecoveryRestoreDrill ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 22 coverage: ${
+      report.humanRestoreDrillEvidenceAcceptance.blockerCoverage?.retentionArchiveRestore ? "accepted" : "not accepted"
+    }`,
+    `- SIMULATED-only submitted as human proof: ${
+      report.humanRestoreDrillEvidenceAcceptance.validation?.simulatedOnlySubmission ? "yes" : "no"
+    }`,
     "",
     "## Human-Required Proof",
     "",

@@ -7,6 +7,7 @@ import {
   REQUIRED_PROMOTION_COMMANDS,
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
+import { buildHumanRestoreDrillEvidenceAcceptanceReport } from "../../scripts/staging-backup-restore-checklist.mjs";
 
 function dashboardWithSkips(skip = 2) {
   return {
@@ -92,6 +93,7 @@ describe("production promotion evidence pack", () => {
       expect(report.commandList).toContain(command);
     }
     expect(report.commandList).toContain("pnpm run production-scale:evidence");
+    expect(report.commandList).toContain("pnpm run restore:accept-human-evidence");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
   });
@@ -104,5 +106,46 @@ describe("production promotion evidence pack", () => {
     expect(report.readinessClassification.value).toBe("limited beta");
     expect(report.readinessClassification.canPromoteProductionAtScale).toBe(false);
     expect(report.safety.productionAtScaleClaimed).toBe(false);
+  });
+
+  it("keeps blocker 1 and 22 unresolved unless accepted human evidence exists", () => {
+    const report = buildPack();
+    const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
+    const blocker22 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 22);
+
+    expect(report.humanRestoreDrillEvidenceAcceptance).toMatchObject({
+      status: "not-submitted",
+      accepted: false,
+      blockerCoverage: {
+        disasterRecoveryRestoreDrill: false,
+        retentionArchiveRestore: false,
+      },
+    });
+    expect(blocker1?.classification).toBe("human proof required");
+    expect(blocker22?.classification).toBe("human proof required");
+    expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).toEqual(
+      expect.arrayContaining([1, 22]),
+    );
+  });
+
+  it("classifies blocker 1 and 22 as fixed only with accepted human-observed evidence", () => {
+    const humanRestoreEvidenceAcceptance = buildHumanRestoreDrillEvidenceAcceptanceReport({
+      evidencePath: "tests/fixtures/human-restore-drill-evidence.valid.md",
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      humanRestoreEvidenceAcceptance,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
+    const blocker22 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 22);
+
+    expect(humanRestoreEvidenceAcceptance.accepted).toBe(true);
+    expect(blocker1?.classification).toBe("fixed with human-observed evidence");
+    expect(blocker22?.classification).toBe("fixed with human-observed evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 });

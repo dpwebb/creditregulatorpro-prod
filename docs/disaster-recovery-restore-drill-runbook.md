@@ -86,11 +86,18 @@ pnpm run operator:dashboard
 8. Remove local sensitive dump files unless the operator has a documented retention reason.
 9. Confirm no dump, secret, raw PDF, raw extracted text, or session artifact is staged in git.
 10. Operator, observer, and reviewer sign off.
+11. Copy the sanitized, signed artifact to `docs/production-scale/evidence/human-restore-drill-evidence.md` or `.json`.
+12. Run strict human-evidence acceptance:
+
+```sh
+pnpm run restore:accept-human-evidence
+```
 
 ## Evidence Acceptance Criteria
 
 A restore drill is not complete until a filled evidence artifact records:
 
+- Evidence type as `HUMAN-OBSERVED`.
 - Drill date.
 - Drill timestamp.
 - Operator identity.
@@ -113,12 +120,17 @@ A restore drill is not complete until a filled evidence artifact records:
 - Post-restore packet PDF result.
 - Post-restore response queue result.
 - Cleanup/lifecycle result.
+- Retention archive/restore result or an approved explicit retention exclusion.
+- Rollback/cleanup result.
+- Signed operator acknowledgement.
+- Sanitized evidence statement.
 - Signoff.
 
 The evidence artifact must be sanitized and pass:
 
 ```sh
 node scripts/staging-backup-restore-checklist.mjs --validate-evidence <path-to-filled-evidence>
+pnpm run restore:accept-human-evidence
 ```
 
 ## Stop Conditions

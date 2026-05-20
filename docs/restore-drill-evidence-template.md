@@ -8,6 +8,7 @@ Do not store secrets, private keys, database URLs with credentials, raw PDF byte
 
 | Field | Value | Notes |
 | --- | --- | --- |
+| Evidence type | TBD | Must be HUMAN-OBSERVED for acceptance. SIMULATED-only evidence is not accepted as human proof. |
 | Drill date | TBD | Use ISO date and time with timezone. |
 | Drill timestamp | TBD | ISO timestamp when the drill started. |
 | Operator identity | TBD | Human operator who ran the drill outside Codex. |
@@ -30,6 +31,10 @@ Do not store secrets, private keys, database URLs with credentials, raw PDF byte
 | Post-restore packet PDF result | TBD | Record pass/fail and command. |
 | Post-restore response queue result | TBD | Record pass/fail and commands. |
 | Cleanup/lifecycle result | TBD | Confirm dump cleanup and lifecycle/queue cleanup checks without secrets. |
+| Retention archive/restore result or explicit retention exclusion | TBD | Record physical retention archive/restore result, or an approved explicit exclusion. |
+| Rollback/cleanup result | TBD | Record local restored-target rollback or cleanup result without dump paths containing credentials. |
+| Signed operator acknowledgement | TBD | Operator signed acknowledgement that evidence is accurate, sanitized, and human-observed. |
+| Sanitized evidence statement | TBD | Explicitly state that evidence is sanitized and contains no secrets, PII, raw report text, raw PDFs, raw base64, tokens, database URLs, access keys, or signed URLs. |
 | Signoff | TBD | Operator, observer, and reviewer signoff. |
 
 ## Required Commands
@@ -60,5 +65,6 @@ pnpm run operator:dashboard
 
 - This template must be copied and filled by a human operator after an actual external restore drill.
 - The filled artifact must pass `node scripts/staging-backup-restore-checklist.mjs --validate-evidence <path>`.
+- Human acceptance for promotion-pack gating must pass `pnpm run restore:accept-human-evidence` against `docs/production-scale/evidence/human-restore-drill-evidence.md` or `.json`.
 - Filled evidence must replace every `TBD`, `TODO`, and `N/A` placeholder with a concrete sanitized value.
 - Do not mark the disaster recovery blocker complete until filled, signed evidence exists and required post-restore checks pass.

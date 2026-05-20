@@ -32,6 +32,7 @@
     "pnpm run test:deterministic-ingestion-report",
     "pnpm run operator:dashboard",
     "pnpm run check:restore-drill-evidence",
+    "pnpm run restore:accept-human-evidence",
     "pnpm run retention:archive-restore:simulated",
     "pnpm run check:migrations",
     "pnpm run migrations:evidence",
@@ -109,6 +110,7 @@
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -125,6 +127,10 @@
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-restore-drill-simulated.md",
         "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -990,6 +996,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -1004,6 +1011,10 @@
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",

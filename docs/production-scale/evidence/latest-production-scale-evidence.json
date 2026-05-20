@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T20:14:43.724Z",
+  "generatedAt": "2026-05-20T20:47:27.265Z",
   "branch": "staging",
-  "commit": "5d72d1c51ca1cdf91a24e6418ebed91cd97e89f6",
+  "commit": "f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -175,6 +175,7 @@
           "allowedProofCommands": [
             "pnpm run restore:drill:simulated",
             "pnpm run check:restore-drill-evidence",
+            "pnpm run restore:accept-human-evidence",
             "pnpm run test:golden-path",
             "pnpm run operator:dashboard",
             "pnpm run response:soak-check"
@@ -191,6 +192,10 @@
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.json",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
             "docs/production-scale/evidence/latest-restore-drill-simulated.md",
             "docs/production-scale/evidence/latest-restore-drill-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -868,6 +873,7 @@
             "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
             "pnpm run check:restore-drill-evidence",
+            "pnpm run restore:accept-human-evidence",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
@@ -882,6 +888,10 @@
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.json",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
             "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
             "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1004,6 +1014,7 @@
           "allowedProofCommands": [
             "pnpm run restore:drill:simulated",
             "pnpm run check:restore-drill-evidence",
+            "pnpm run restore:accept-human-evidence",
             "pnpm run test:golden-path",
             "pnpm run operator:dashboard",
             "pnpm run response:soak-check"
@@ -1020,6 +1031,10 @@
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.json",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
             "docs/production-scale/evidence/latest-restore-drill-simulated.md",
             "docs/production-scale/evidence/latest-restore-drill-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1281,6 +1296,7 @@
             "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
             "pnpm run check:restore-drill-evidence",
+            "pnpm run restore:accept-human-evidence",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
@@ -1295,6 +1311,10 @@
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.json",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
             "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
             "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1714,6 +1734,7 @@
           "allowedProofCommands": [
             "pnpm run restore:drill:simulated",
             "pnpm run check:restore-drill-evidence",
+            "pnpm run restore:accept-human-evidence",
             "pnpm run test:golden-path",
             "pnpm run operator:dashboard",
             "pnpm run response:soak-check"
@@ -1730,6 +1751,10 @@
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.json",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
             "docs/production-scale/evidence/latest-restore-drill-simulated.md",
             "docs/production-scale/evidence/latest-restore-drill-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1921,6 +1946,7 @@
             "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
             "pnpm run check:restore-drill-evidence",
+            "pnpm run restore:accept-human-evidence",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
@@ -1935,6 +1961,10 @@
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.md",
+            "docs/production-scale/evidence/human-restore-drill-evidence.json",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+            "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
             "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
             "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1957,6 +1987,7 @@
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -1973,6 +2004,10 @@
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-restore-drill-simulated.md",
         "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -2456,6 +2491,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -2470,6 +2506,10 @@
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",

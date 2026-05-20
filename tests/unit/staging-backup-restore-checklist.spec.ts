@@ -7,18 +7,23 @@ import {
   BACKUP_RESTORE_CHECK_ENV,
   BACKUP_RESTORE_DRILL_STEPS,
   buildBackupRestoreChecklistReport,
+  buildHumanRestoreDrillEvidenceAcceptanceReport,
   buildRestoreDrillEvidenceValidationReport,
+  HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
+  HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
   REQUIRED_REFRESH_SAFETY_ANCHORS,
   REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS,
   scanRestoreDrillEvidenceSensitiveContent,
   shouldRunBackupRestoreCheck,
   validateGitignoreForDumpArtifacts,
+  validateHumanRestoreDrillEvidenceText,
   validateRefreshScriptSafety,
   validateRestoreDrillEvidenceText,
 } from "../../scripts/staging-backup-restore-checklist.mjs";
 
 function completeSyntheticFilledEvidence(overrides: Record<string, string> = {}) {
   const values: Record<string, string> = {
+    "Evidence type": "HUMAN-OBSERVED",
     "Drill date": "2026-05-20",
     "Drill timestamp": "2026-05-20T12:00:00-03:00",
     "Operator identity": "Synthetic Operator",
@@ -41,6 +46,10 @@ function completeSyntheticFilledEvidence(overrides: Record<string, string> = {})
     "Post-restore packet PDF result": "pass - packet PDF synthetic marker",
     "Post-restore response queue result": "pass - response queue synthetic marker",
     "Cleanup/lifecycle result": "pass - local dump cleanup confirmed",
+    "Retention archive/restore result or explicit retention exclusion": "pass - retention archive/restore recoverability marker",
+    "Rollback/cleanup result": "pass - local target cleanup completed",
+    "Signed operator acknowledgement": "signed - synthetic operator acknowledged sanitized evidence",
+    "Sanitized evidence statement": "sanitized - no secrets, PII, raw report text, raw PDFs, raw base64, tokens, database URLs, access keys, or signed URLs",
     "Signoff": "Synthetic operator, observer, and reviewer signed off",
     ...overrides,
   };
@@ -244,6 +253,118 @@ describe("staging backup/restore checklist", () => {
     );
   });
 
+  it("accepts a valid sanitized human-observed fixture for blocker 1 and 22 coverage", () => {
+    const report = buildHumanRestoreDrillEvidenceAcceptanceReport({
+      evidencePath: "tests/fixtures/human-restore-drill-evidence.valid.md",
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+
+    expect(report.status).toBe("accepted");
+    expect(report.accepted).toBe(true);
+    expect(report.validation).toMatchObject({
+      ok: true,
+      evidenceType: "HUMAN-OBSERVED",
+      sensitiveFindings: [],
+      simulatedOnlySubmission: false,
+    });
+    expect(report.blockerCoverage).toEqual({
+      disasterRecoveryRestoreDrill: true,
+      retentionArchiveRestore: true,
+    });
+  });
+
+  it("fails human acceptance when no default artifact has been submitted", () => {
+    const report = buildHumanRestoreDrillEvidenceAcceptanceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+    });
+
+    expect(report.status).toBe("not-submitted");
+    expect(report.accepted).toBe(false);
+    expect(report.blockerCoverage).toEqual({
+      disasterRecoveryRestoreDrill: false,
+      retentionArchiveRestore: false,
+    });
+  });
+
+  it("rejects human evidence with missing RPO/RTO results", () => {
+    const valid = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8");
+    const invalid = valid
+      .replace("| RPO actual | passed - observed 5 minutes, within target | Synthetic result. |", "")
+      .replace("| RTO actual | passed - observed 12 minutes, within target | Synthetic result. |", "");
+
+    const report = validateHumanRestoreDrillEvidenceText(invalid);
+
+    expect(report.ok).toBe(false);
+    expect(report.missingRequirements).toEqual(expect.arrayContaining(["RPO result", "RTO result"]));
+  });
+
+  it("rejects human evidence with a missing packet PDF post-restore check", () => {
+    const valid = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8");
+    const invalid = valid.replace(
+      "| Post-restore packet PDF result | passed - packet PDF download check verified | No raw PDF bytes. |",
+      "",
+    );
+
+    const report = validateHumanRestoreDrillEvidenceText(invalid);
+
+    expect(report.ok).toBe(false);
+    expect(report.missingRequirements).toContain("packet PDF post-restore result");
+  });
+
+  it("rejects human evidence with a missing response queue post-restore check", () => {
+    const valid = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8");
+    const invalid = valid.replace(
+      "| Post-restore response queue result | passed - response queue drain and dead-letter visibility verified | No provider calls. |",
+      "",
+    );
+
+    const report = validateHumanRestoreDrillEvidenceText(invalid);
+
+    expect(report.ok).toBe(false);
+    expect(report.missingRequirements).toContain("response queue post-restore result");
+  });
+
+  it("rejects secrets, access keys, signed URLs, raw report text, raw base64, and PII in human evidence", () => {
+    const valid = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8");
+    const unsafe = [
+      valid,
+      "postgres://user:password@example.invalid:5432/app",
+      "AKIA1234567890ABCDEF",
+      "https://example.invalid/object?X-Amz-Signature=abc123",
+      "rawExtractedText: full report body",
+      "fileDataBase64=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "consumer@example.org",
+      "123-45-6789",
+    ].join("\n");
+
+    const report = validateHumanRestoreDrillEvidenceText(unsafe);
+
+    expect(report.ok).toBe(false);
+    expect(report.sensitiveFindings).toEqual(
+      expect.arrayContaining([
+        "database-url",
+        "database-url-with-credentials",
+        "aws-access-key",
+        "signed-url",
+        "raw-report-text-field",
+        "raw-base64-block",
+        "obvious-email-pii",
+        "obvious-ssn-or-sin",
+      ]),
+    );
+  });
+
+  it("rejects simulated-only evidence submitted as human proof", () => {
+    const invalid = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.invalid.md"), "utf8");
+    const report = validateHumanRestoreDrillEvidenceText(invalid);
+
+    expect(report.ok).toBe(false);
+    expect(report.evidenceType).toBe("SIMULATED");
+    expect(report.simulatedOnlySubmission).toBe(true);
+    expect(report.errors.join("\n")).toMatch(/SIMULATED-only evidence cannot be accepted/i);
+  });
+
   it("keeps restore drill docs free of secret-like values", () => {
     const docs = [
       "docs/disaster-recovery-restore-drill-runbook.md",
@@ -263,6 +384,15 @@ describe("staging backup/restore checklist", () => {
     expect(packageJson.scripts["restore:drill:simulated"]).toBe("node scripts/restore-drill-simulated.mjs");
     expect(packageJson.scripts["retention:archive-restore:simulated"]).toBe(
       "node scripts/retention-archive-restore-simulated.mjs",
+    );
+    expect(packageJson.scripts["restore:accept-human-evidence"]).toBe(
+      "node scripts/staging-backup-restore-checklist.mjs --accept-human-evidence",
+    );
+    expect(HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH).toBe(
+      "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+    );
+    expect(HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH).toBe(
+      "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
     );
   });
 });

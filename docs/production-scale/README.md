@@ -109,6 +109,28 @@ These files are `SIMULATED` evidence only. They use synthetic backup metadata, s
 
 The disaster recovery blocker remains open until a human-observed restore drill produces signed, sanitized evidence with RPO/RTO, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, and operator acknowledgement results.
 
+## Human Restore Evidence Acceptance
+
+Run:
+
+```bash
+pnpm run restore:accept-human-evidence
+```
+
+The command looks for a filled, sanitized human-observed evidence artifact at:
+
+- `docs/production-scale/evidence/human-restore-drill-evidence.md`
+- `docs/production-scale/evidence/human-restore-drill-evidence.json`
+
+It writes:
+
+- `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md`
+- `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json`
+
+If no human evidence artifact has been submitted, the command reports `not-submitted`, accepts no proof, and closes no blockers. If an artifact is present, it must include operator identity or role, date/time, environment, backup source, restore target, RPO/RTO results, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, retention archive/restore or explicit retention exclusion, rollback/cleanup, signed operator acknowledgement, and an explicit sanitized-evidence statement.
+
+The validator rejects placeholders, SIMULATED-only evidence submitted as human proof, secrets, tokens, private keys, database URLs, raw PII, raw report text, raw base64, access keys, signed URLs, and production completion claims without signed operator acknowledgement. Promotion-pack logic may classify blocker 1 or blocker 22 as evidence-closed only when this strict acceptance result is present and accepted.
+
 ## SIMULATED Retention Archive/Restore
 
 Run:

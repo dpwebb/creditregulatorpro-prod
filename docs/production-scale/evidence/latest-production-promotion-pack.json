@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T20:16:14.890Z",
+  "generatedAt": "2026-05-20T20:47:44.452Z",
   "currentBranch": "staging",
-  "currentCommitHash": "5d72d1c51ca1cdf91a24e6418ebed91cd97e89f6",
+  "currentCommitHash": "f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -41,6 +41,7 @@
     "pnpm run operator:dashboard",
     "pnpm run check:migrations",
     "pnpm run check:restore-drill-evidence",
+    "pnpm run restore:accept-human-evidence",
     "pnpm run report:runtime-size",
     "git diff --check",
     "pnpm run production-scale:evidence",
@@ -178,6 +179,35 @@
       "status": null
     },
     {
+      "command": "pnpm run restore:accept-human-evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+          "exists": true,
+          "reportName": "human-restore-drill-evidence-acceptance",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T20:46:25.561Z",
+          "status": "not-submitted",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T20:46:25.561Z",
+      "status": "not-submitted"
+    },
+    {
       "command": "pnpm run report:runtime-size",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -237,12 +267,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T20:14:43.724Z",
+          "generatedAt": "2026-05-20T20:47:27.265Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T20:14:43.724Z",
+      "latestGeneratedAt": "2026-05-20T20:47:27.265Z",
       "status": null
     },
     {
@@ -718,7 +748,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T20:14:43.724Z",
+      "generatedAt": "2026-05-20T20:47:27.265Z",
       "status": null,
       "productionProof": false
     },
@@ -738,6 +768,24 @@
       "evidenceType": "SIMULATED",
       "generatedAt": "2026-05-20T17:51:17.812Z",
       "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+      "exists": true,
+      "reportName": "human-restore-drill-evidence-acceptance",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T20:46:25.561Z",
+      "status": "not-submitted",
       "productionProof": false
     },
     {
@@ -957,6 +1005,24 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/human-restore-drill-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/human-restore-drill-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
       "path": "docs/restore-drill-evidence-template.md",
       "exists": true,
       "reportName": null,
@@ -1132,11 +1198,31 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T20:13:38.672Z",
+      "generatedAt": "2026-05-20T20:16:14.890Z",
       "status": null,
       "productionProof": false
     }
   ],
+  "humanRestoreDrillEvidenceAcceptance": {
+    "reportName": "human-restore-drill-evidence-acceptance",
+    "generatedAt": "2026-05-20T20:47:44.452Z",
+    "status": "not-submitted",
+    "accepted": false,
+    "evidencePath": null,
+    "blockerCoverage": {
+      "disasterRecoveryRestoreDrill": false,
+      "retentionArchiveRestore": false
+    },
+    "validation": {
+      "ok": false,
+      "evidenceType": "unknown",
+      "simulatedOnlySubmission": false,
+      "sensitiveFindings": [],
+      "errors": [
+        "No human restore evidence artifact has been submitted."
+      ]
+    }
+  },
   "blockerClassifications": [
     {
       "number": 1,
@@ -1154,6 +1240,7 @@
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -1167,6 +1254,10 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-restore-drill-simulated.md",
         "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1175,6 +1266,7 @@
       "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1219,6 +1311,7 @@
       "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1257,6 +1350,7 @@
       "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1302,6 +1396,7 @@
       "recommendedNextAction": "Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1336,6 +1431,7 @@
       "recommendedNextAction": "Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1373,6 +1469,7 @@
       "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1406,6 +1503,7 @@
       "recommendedNextAction": "Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1448,6 +1546,7 @@
       "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1487,6 +1586,7 @@
       "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1523,6 +1623,7 @@
       "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1566,6 +1667,7 @@
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1598,6 +1700,7 @@
       "recommendedNextAction": "Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1637,6 +1740,7 @@
       "recommendedNextAction": "Keep parser-test list metadata-only; use admin-only get/export paths for raw extracted text workflows and keep UI detail hydration covered by tests.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1674,6 +1778,7 @@
       "recommendedNextAction": "Keep signature list metadata-only; use owner/admin get-by-id detail when signature image data is required.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1711,6 +1816,7 @@
       "recommendedNextAction": "Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1749,6 +1855,7 @@
       "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1788,6 +1895,7 @@
       "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1825,6 +1933,7 @@
       "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1861,6 +1970,7 @@
       "recommendedNextAction": "Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1903,6 +2013,7 @@
       "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1936,6 +2047,7 @@
       "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -1956,6 +2068,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -1967,6 +2080,10 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1975,6 +2092,7 @@
       "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2009,6 +2127,7 @@
       "recommendedNextAction": "Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2045,6 +2164,7 @@
       "recommendedNextAction": "Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2084,6 +2204,7 @@
       "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     }
   ],
@@ -2104,6 +2225,7 @@
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -2117,6 +2239,10 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-restore-drill-simulated.md",
         "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -2125,6 +2251,7 @@
       "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2169,6 +2296,7 @@
       "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2206,6 +2334,7 @@
       "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2248,6 +2377,7 @@
       "recommendedNextAction": "Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2287,6 +2417,7 @@
       "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2323,6 +2454,7 @@
       "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2366,6 +2498,7 @@
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2408,6 +2541,7 @@
       "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2441,6 +2575,7 @@
       "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2461,6 +2596,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -2472,6 +2608,10 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -2480,6 +2620,7 @@
       "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     }
   ],
@@ -2520,6 +2661,7 @@
       "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2558,6 +2700,7 @@
       "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2597,6 +2740,7 @@
       "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2634,6 +2778,7 @@
       "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     }
   ],
@@ -2692,6 +2837,7 @@
       "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2731,6 +2877,7 @@
       "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2769,6 +2916,7 @@
       "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2808,6 +2956,7 @@
       "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     }
   ],
@@ -2829,6 +2978,7 @@
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -2842,6 +2992,10 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-restore-drill-simulated.md",
         "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -2850,6 +3004,7 @@
       "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2893,6 +3048,7 @@
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2935,6 +3091,7 @@
       "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     },
     {
@@ -2955,6 +3112,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
         "pnpm run check:restore-drill-evidence",
+        "pnpm run restore:accept-human-evidence",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -2966,6 +3124,10 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.md",
+        "docs/production-scale/evidence/human-restore-drill-evidence.json",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
         "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -2974,6 +3136,7 @@
       "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
       "waiverReason": null
     }
   ],

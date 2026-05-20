@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T20:16:14.890Z
+Generated at: 2026-05-20T20:47:44.452Z
 Current branch: `staging`
-Current commit hash: `5d72d1c51ca1cdf91a24e6418ebed91cd97e89f6`
+Current commit hash: `f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -27,6 +27,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run operator:dashboard` - reference-required; evidence: none
 - `pnpm run check:migrations` - reference-required; evidence: none
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
+- `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
 - `git diff --check` - reference-required; evidence: none
 - `pnpm run production-scale:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-scale-evidence.md, docs/production-scale/evidence/latest-production-scale-evidence.json
@@ -59,6 +60,15 @@ Recommended readiness classification: **limited beta**
 - Checks skipped: true
 - Skip count: 54
 - SKIP treated as PASS: no
+
+## Human Restore Drill Evidence Acceptance
+
+- Status: not-submitted
+- Accepted: no
+- Evidence path: `not submitted`
+- Blocker 1 coverage: not accepted
+- Blocker 22 coverage: not accepted
+- SIMULATED-only submitted as human proof: no
 
 ## Human-Required Proof
 
@@ -108,6 +118,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-production-scale-evidence.json` - present
 - `docs/production-scale/evidence/latest-restore-drill-simulated.md` - present
 - `docs/production-scale/evidence/latest-restore-drill-simulated.json` - present; evidenceType=SIMULATED
+- `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md` - present
+- `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json` - present
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.md` - present
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-load-simulated.md` - present
@@ -132,6 +144,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-sensitive-list-endpoints.json` - present
 - `docs/production-scale/evidence/latest-runtime-size.md` - present
 - `docs/production-scale/evidence/latest-runtime-size.json` - present
+- `docs/production-scale/evidence/human-restore-drill-evidence.md` - missing
+- `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
 - `docs/restore-drill-evidence-template.md` - present
 - `docs/staging-ingest-worker-operation.md` - present
 - `docs/production-ingest-worker-activation.md` - present
