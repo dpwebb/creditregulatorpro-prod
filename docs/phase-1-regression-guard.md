@@ -9,7 +9,7 @@ This guard verifies that the Phase 1 protections described in `docs/production-a
 | Field | Value |
 | --- | --- |
 | Branch | `staging` |
-| Commit audited | `12f8b15c53cd3f9a2ab2a8bfca797ef06eb22211` |
+| Commit audited | `6ac420ef5893a06bc224759a17a10a0e497f6d5c` |
 | Working tree before checks | Clean |
 | Working tree after checks | Clean |
 | Readiness classification | Limited beta ready with strict constraints |
@@ -29,7 +29,7 @@ This guard verifies that the Phase 1 protections described in `docs/production-a
 | `pnpm run test:regression-dashboard` | PASS | Human-readable golden path dashboard result was `PASS`. |
 | `pnpm run test:deterministic-ingestion-report` | PASS | 11 fixtures passed; replay stable; required evidence coverage 100%; `violationSearchPreserved: true`. |
 | `pnpm run response:soak-check` | PASS | 3 cycles; duplicate collapse, retry backlog, dead letter, stale running, overlap, replay dry-run, retention preview, drift detection, and cleanup complete. Idempotent schema notices were emitted for existing tables/indexes/columns. |
-| `pnpm run operator:dashboard` | PASS | Dashboard generated for branch `staging`, commit `12f8b15c53cd3f9a2ab2a8bfca797ef06eb22211`; working tree clean; limited beta operator policy exists. |
+| `pnpm run operator:dashboard` | PASS | Dashboard generated for branch `staging`, commit `6ac420ef5893a06bc224759a17a10a0e497f6d5c`; working tree clean; limited beta operator policy exists. |
 | `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/operator-regression-dashboard.spec.ts tests/unit/production-readiness-report.spec.ts` | PASS | 3 test files passed, 20 tests passed. |
 | `git diff --check` | PASS | No whitespace errors. |
 
