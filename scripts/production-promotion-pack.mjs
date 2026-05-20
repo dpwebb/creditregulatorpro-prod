@@ -19,6 +19,13 @@ import {
 } from "./migration-gate.mjs";
 
 import {
+  buildMeasuredLoadEvidenceAcceptance,
+  LOAD_MEASURED_JSON_PATH,
+  LOAD_MEASURED_MD_PATH,
+  LOAD_THRESHOLD_POLICY_PATH,
+} from "./production-scale-measured.mjs";
+
+import {
   ALERTING_EXCLUSION_EVIDENCE_JSON_PATH,
   ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
   ALERTING_EXCLUSION_VALIDATION_JSON_PATH,
@@ -70,6 +77,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run test:golden-path",
   "pnpm run test:regression-dashboard",
   "pnpm run test:deterministic-ingestion-report",
+  "pnpm run baseline:production-scale-measured -- --local",
   "pnpm run response:soak-check",
   "pnpm run operator:dashboard",
   "pnpm run alerts:dry-run",
@@ -126,6 +134,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run baseline:production-scale-local -- --simulated": [
     "docs/production-scale/evidence/latest-load-simulated.md",
     "docs/production-scale/evidence/latest-load-simulated.json",
+  ],
+  "pnpm run baseline:production-scale-measured -- --local": [
+    LOAD_MEASURED_MD_PATH,
+    LOAD_MEASURED_JSON_PATH,
   ],
   "pnpm run alerts:dry-run": [
     "docs/production-scale/evidence/latest-alerts-dry-run.md",
@@ -299,7 +311,15 @@ function classifyBlocker(
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
+  measuredLoadEvidenceAcceptance = null,
 ) {
+  if (
+    blocker.number === 3 &&
+    measuredLoadEvidenceAcceptance?.accepted === true &&
+    measuredLoadEvidenceAcceptance?.blockerCoverage?.loadConcurrency === true
+  ) {
+    return "fixed with automated evidence";
+  }
   if (
     blocker.number === 2 &&
     productionWorkerReadinessEvidence?.blockerCoverage?.productionIngestRuntime === true &&
@@ -362,6 +382,20 @@ function classifyBlocker(
     migrationGateEvidence?.formalWaiver?.accepted === true
   ) {
     return "waived with explicit reason";
+  }
+  if (
+    blocker.number === 16 &&
+    measuredLoadEvidenceAcceptance?.accepted === true &&
+    measuredLoadEvidenceAcceptance?.blockerCoverage?.dbPoolPressure === true
+  ) {
+    return "fixed with automated evidence";
+  }
+  if (
+    blocker.number === 17 &&
+    measuredLoadEvidenceAcceptance?.accepted === true &&
+    measuredLoadEvidenceAcceptance?.blockerCoverage?.rateLimiterWritePressure === true
+  ) {
+    return "fixed with automated evidence";
   }
   if (
     blocker.number === 22 &&
@@ -473,6 +507,7 @@ export function buildProductionPromotionPackReport({
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
+  measuredLoadEvidenceAcceptance = null,
   generatedAt = new Date().toISOString(),
   env = process.env,
 } = {}) {
@@ -512,6 +547,8 @@ export function buildProductionPromotionPackReport({
     responseOpsReadinessEvidence ?? buildResponseOpsReadinessEvidenceReport({ rootDir, generatedAt, env });
   const migrationGate =
     migrationGateEvidence ?? buildMigrationGateReport({ rootDir, generatedAt });
+  const measuredLoadAcceptance =
+    measuredLoadEvidenceAcceptance ?? buildMeasuredLoadEvidenceAcceptance({ rootDir, generatedAt });
 
   const classifiedBlockers = loadedRegistry.blockers.map((blocker) => {
     const classification = classifyBlocker(
@@ -521,6 +558,7 @@ export function buildProductionPromotionPackReport({
       rawReportRemediationEvidence,
       responseOpsEvidence,
       migrationGate,
+      measuredLoadAcceptance,
     );
     return {
       number: blocker.number,
@@ -580,6 +618,7 @@ export function buildProductionPromotionPackReport({
     LIVE_ALERT_PROOF_JSON_PATH,
     LIVE_ALERT_PROOF_MD_PATH,
     MIGRATION_GATE_POLICY_PATH,
+    LOAD_THRESHOLD_POLICY_PATH,
     ...classifiedBlockers.flatMap((blocker) => blocker.relatedEvidenceOutputPaths),
   ]).map((filePath) => summarizeEvidenceFile(rootDir, filePath));
   const commandResults = buildCommandList(rootDir, loadedRegistry, packageJson);
@@ -659,6 +698,54 @@ export function buildProductionPromotionPackReport({
         productionDataMutatedByCodex: rawReportRemediationEvidence.safety?.productionDataMutatedByCodex === true,
         codexPerformedRemediation: rawReportRemediationEvidence.safety?.codexPerformedRemediation === true,
         rawSensitiveValuesAccepted: rawReportRemediationEvidence.safety?.rawSensitiveValuesAccepted === true,
+      },
+    },
+    measuredLoadEvidenceAcceptance: {
+      reportName: measuredLoadAcceptance.reportName,
+      generatedAt: measuredLoadAcceptance.generatedAt,
+      status: measuredLoadAcceptance.status,
+      accepted: measuredLoadAcceptance.accepted === true,
+      evidencePath: measuredLoadAcceptance.evidencePath,
+      evidenceType: measuredLoadAcceptance.evidenceType ?? null,
+      mode: measuredLoadAcceptance.mode ?? null,
+      thresholdMode: measuredLoadAcceptance.thresholdMode ?? null,
+      thresholdStatus: measuredLoadAcceptance.thresholdStatus ?? null,
+      summary: measuredLoadAcceptance.summary ?? null,
+      dbPool: measuredLoadAcceptance.dbPool
+        ? {
+            configuredMax: measuredLoadAcceptance.dbPool.configuredMax ?? null,
+            observedSignalAvailable: measuredLoadAcceptance.dbPool.observedSignalAvailable === true,
+            observedActiveConnections: measuredLoadAcceptance.dbPool.observedActiveConnections ?? null,
+            observedBorrowedConnections: measuredLoadAcceptance.dbPool.observedBorrowedConnections ?? null,
+            unavailableReason: measuredLoadAcceptance.dbPool.unavailableReason ?? null,
+          }
+        : null,
+      rateLimiter: measuredLoadAcceptance.rateLimiter
+        ? {
+            attempts: measuredLoadAcceptance.rateLimiter.attempts ?? null,
+            acceptedCount: measuredLoadAcceptance.rateLimiter.acceptedCount ?? null,
+            rejectedCount: measuredLoadAcceptance.rateLimiter.rejectedCount ?? null,
+            bounded: measuredLoadAcceptance.rateLimiter.bounded === true,
+          }
+        : null,
+      packetPdfCache: measuredLoadAcceptance.packetPdfCache
+        ? {
+            cacheHitCount: measuredLoadAcceptance.packetPdfCache.cacheHitCount ?? null,
+            cacheMissCount: measuredLoadAcceptance.packetPdfCache.cacheMissCount ?? null,
+          }
+        : null,
+      blockerCoverage: measuredLoadAcceptance.blockerCoverage,
+      validation: {
+        ok: measuredLoadAcceptance.validation?.ok === true,
+        errors: measuredLoadAcceptance.validation?.errors ?? [],
+      },
+      safety: {
+        productionDataMutated: measuredLoadAcceptance.safety?.productionDataMutated === true,
+        productionDatabaseTargeted: measuredLoadAcceptance.safety?.productionDatabaseTargeted === true,
+        externalProviderCallsMade: Number(measuredLoadAcceptance.safety?.externalProviderCallsMade ?? -1),
+        liveExternalProvidersConnected: measuredLoadAcceptance.safety?.liveExternalProvidersConnected === true,
+        realConsumerPiiUsed: measuredLoadAcceptance.safety?.realConsumerPiiUsed === true,
+        rawReportBytesSent: measuredLoadAcceptance.safety?.rawReportBytesSent === true,
       },
     },
     migrationGateEvidence: {
@@ -743,6 +830,7 @@ export function buildProductionPromotionPackReport({
       "Dashboard PASS alone is not complete release evidence when checks are skipped.",
       "Production activation requires operator approval.",
       "Historical raw report remediation requires accepted sanitized operator evidence.",
+      "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
       "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
       "Codex must not promote readiness classification beyond the evidence in this pack.",
@@ -789,13 +877,17 @@ export function validatePromotionPackReport(report) {
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const responseOpsReadiness = report.responseOpsReadinessEvidence;
   const migrationGate = report.migrationGateEvidence;
+  const measuredLoad = report.measuredLoadEvidenceAcceptance;
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
   const blocker2 = blockers.find((blocker) => blocker.number === 2);
+  const blocker3 = blockers.find((blocker) => blocker.number === 3);
   const blocker6 = blockers.find((blocker) => blocker.number === 6);
   const blocker8 = blockers.find((blocker) => blocker.number === 8);
   const blocker9 = blockers.find((blocker) => blocker.number === 9);
   const blocker10 = blockers.find((blocker) => blocker.number === 10);
   const blocker11 = blockers.find((blocker) => blocker.number === 11);
+  const blocker16 = blockers.find((blocker) => blocker.number === 16);
+  const blocker17 = blockers.find((blocker) => blocker.number === 17);
   const blocker21 = blockers.find((blocker) => blocker.number === 21);
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
   if (blocker2?.classification === "fixed with human-observed evidence") {
@@ -805,6 +897,23 @@ export function validatePromotionPackReport(report) {
       workerReadiness?.safety?.productionJobsProcessedByCodex === true
     ) {
       errors.push("Blocker 2 cannot be production-ready without accepted production queue-depth evidence.");
+    }
+  }
+  if (blocker3?.classification === "fixed with automated evidence") {
+    if (
+      measuredLoad?.accepted !== true ||
+      measuredLoad?.blockerCoverage?.loadConcurrency !== true ||
+      !["MEASURED_LOCAL", "MEASURED_STAGING_SAFE"].includes(measuredLoad?.evidenceType) ||
+      measuredLoad?.thresholdMode !== "release-blocking" ||
+      measuredLoad?.thresholdStatus !== "passed" ||
+      measuredLoad?.safety?.productionDataMutated === true ||
+      measuredLoad?.safety?.productionDatabaseTargeted === true ||
+      measuredLoad?.safety?.externalProviderCallsMade !== 0 ||
+      measuredLoad?.safety?.liveExternalProvidersConnected === true ||
+      measuredLoad?.safety?.realConsumerPiiUsed === true ||
+      measuredLoad?.safety?.rawReportBytesSent === true
+    ) {
+      errors.push("Blocker 3 cannot be fixed without accepted measured local/staging-safe load evidence.");
     }
   }
   if (blocker11?.classification === "fixed with human-observed evidence") {
@@ -887,6 +996,36 @@ export function validatePromotionPackReport(report) {
       errors.push("Blocker 10 cannot be policy-closed without an accepted formal migration gate waiver and non-mutating evidence.");
     }
   }
+  if (blocker16?.classification === "fixed with automated evidence") {
+    if (
+      measuredLoad?.accepted !== true ||
+      measuredLoad?.blockerCoverage?.dbPoolPressure !== true ||
+      measuredLoad?.dbPool?.configuredMax < 1 ||
+      (
+        measuredLoad?.dbPool?.observedSignalAvailable !== true &&
+        !measuredLoad?.dbPool?.unavailableReason
+      ) ||
+      measuredLoad?.thresholdMode !== "release-blocking" ||
+      measuredLoad?.thresholdStatus !== "passed" ||
+      measuredLoad?.safety?.productionDatabaseTargeted === true
+    ) {
+      errors.push("Blocker 16 cannot be fixed without accepted measured DB pool pressure evidence.");
+    }
+  }
+  if (blocker17?.classification === "fixed with automated evidence") {
+    if (
+      measuredLoad?.accepted !== true ||
+      measuredLoad?.blockerCoverage?.rateLimiterWritePressure !== true ||
+      measuredLoad?.rateLimiter?.bounded !== true ||
+      measuredLoad?.rateLimiter?.acceptedCount < 1 ||
+      measuredLoad?.rateLimiter?.rejectedCount < 1 ||
+      measuredLoad?.thresholdMode !== "release-blocking" ||
+      measuredLoad?.thresholdStatus !== "passed" ||
+      measuredLoad?.safety?.productionDataMutated === true
+    ) {
+      errors.push("Blocker 17 cannot be fixed without accepted bounded measured rate limiter write-pressure evidence.");
+    }
+  }
   if (blocker21?.classification === "fixed with automated evidence") {
     const commandList = new Set(report.commandList ?? []);
     for (const command of [
@@ -895,6 +1034,7 @@ export function validatePromotionPackReport(report) {
       "pnpm run response:ops-readiness-evidence",
       "pnpm run alerts:exclusion:validate",
       "pnpm run alerts:dry-run",
+      "pnpm run baseline:production-scale-measured -- --local",
       "pnpm run production-scale:promotion-pack",
       "pnpm run operator:dashboard",
     ]) {
@@ -973,6 +1113,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Codex must not promote readiness classification beyond evidence.",
     "- Production activation requires operator approval.",
     "- Historical raw report remediation requires accepted sanitized operator evidence.",
+    "- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
     "- Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "",
@@ -1030,6 +1171,45 @@ export function renderPromotionPackMarkdown(report) {
       report.rawReportRemediationAcceptance.blockerCoverage?.historicalRawReportBytes ? "accepted" : "not accepted"
     }`,
     `- Sensitive findings: ${report.rawReportRemediationAcceptance.validation?.sensitiveFindings?.length ?? 0}`,
+    "",
+    "## Measured Load Evidence Acceptance",
+    "",
+    `- Status: ${report.measuredLoadEvidenceAcceptance.status}`,
+    `- Accepted: ${report.measuredLoadEvidenceAcceptance.accepted ? "yes" : "no"}`,
+    `- Evidence path: \`${report.measuredLoadEvidenceAcceptance.evidencePath ?? "not submitted"}\``,
+    `- Evidence type: ${report.measuredLoadEvidenceAcceptance.evidenceType ?? "not submitted"}`,
+    `- Threshold mode: ${report.measuredLoadEvidenceAcceptance.thresholdMode ?? "unknown"}`,
+    `- Threshold status: ${report.measuredLoadEvidenceAcceptance.thresholdStatus ?? "unknown"}`,
+    `- Request count: ${report.measuredLoadEvidenceAcceptance.summary?.requestCount ?? "unknown"}`,
+    `- Latency p50/p95/max ms: ${
+      report.measuredLoadEvidenceAcceptance.summary?.latency
+        ? `${report.measuredLoadEvidenceAcceptance.summary.latency.p50Ms}/${report.measuredLoadEvidenceAcceptance.summary.latency.p95Ms}/${report.measuredLoadEvidenceAcceptance.summary.latency.maxMs}`
+        : "unknown"
+    }`,
+    `- DB pool configured max: ${report.measuredLoadEvidenceAcceptance.dbPool?.configuredMax ?? "unknown"}`,
+    `- DB pool observed signal: ${
+      report.measuredLoadEvidenceAcceptance.dbPool?.observedSignalAvailable ? "available" : "unavailable"
+    }`,
+    `- Rate limiter accepted/rejected: ${
+      report.measuredLoadEvidenceAcceptance.rateLimiter
+        ? `${report.measuredLoadEvidenceAcceptance.rateLimiter.acceptedCount}/${report.measuredLoadEvidenceAcceptance.rateLimiter.rejectedCount}`
+        : "unknown"
+    }`,
+    `- Packet PDF cache hit/miss: ${
+      report.measuredLoadEvidenceAcceptance.packetPdfCache
+        ? `${report.measuredLoadEvidenceAcceptance.packetPdfCache.cacheHitCount}/${report.measuredLoadEvidenceAcceptance.packetPdfCache.cacheMissCount}`
+        : "unknown"
+    }`,
+    `- External provider calls made: ${report.measuredLoadEvidenceAcceptance.safety?.externalProviderCallsMade ?? "unknown"}`,
+    `- Blocker 3 coverage: ${
+      report.measuredLoadEvidenceAcceptance.blockerCoverage?.loadConcurrency ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 16 coverage: ${
+      report.measuredLoadEvidenceAcceptance.blockerCoverage?.dbPoolPressure ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 17 coverage: ${
+      report.measuredLoadEvidenceAcceptance.blockerCoverage?.rateLimiterWritePressure ? "accepted" : "not accepted"
+    }`,
     "",
     "## Migration Gate Evidence",
     "",

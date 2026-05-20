@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "policyName": "production-scale-measured-load-threshold-policy",
+  "currentMode": "release-blocking",
+  "modeDescription": "Measured local/staging-safe load evidence is accepted only when all release-blocking thresholds pass. The harness remains bounded, synthetic, non-production, and zero-provider-call only.",
+  "thresholds": {
+    "minRequestCount": 8,
+    "minQueueJobCount": 4,
+    "maxConcurrency": 4,
+    "maxLatencyP95Ms": 250,
+    "maxLatencyMaxMs": 1000,
+    "maxQueueDepthAfter": 0,
+    "minRateLimiterAccepted": 1,
+    "minRateLimiterRejected": 1,
+    "maxRateLimiterWritePressureEvents": 100,
+    "minPacketPdfCacheHitCount": 1,
+    "minPacketPdfCacheMissCount": 1,
+    "minDbPoolConfiguredMax": 1,
+    "requireDbPoolSignalOrExplicitUnavailable": true,
+    "requireZeroExternalProviderCalls": true
+  },
+  "requiredSafety": [
+    "Production hosts are refused.",
+    "Exactly one of --local or --staging-safe is required.",
+    "Synthetic fixtures must contain no PII, raw reports, raw PDF bytes, or raw report text.",
+    "Live provider flags are refused.",
+    "External provider calls must remain zero.",
+    "Parser, OCR, packet, packet PDF, violation, and deployment behavior must not change."
+  ],
+  "warningOnlyMode": {
+    "allowed": true,
+    "effect": "Threshold failures remain visible but do not close blockers 3, 16, or 17."
+  },
+  "releaseBlockingMode": {
+    "allowed": true,
+    "effect": "Any failed threshold fails the measured load command and prevents blocker closure."
+  }
+}

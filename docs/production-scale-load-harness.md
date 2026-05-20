@@ -29,6 +29,14 @@ The command requires an explicit safe mode. It does not submit report PDFs, crea
 
 SIMULATED evidence is not production proof and is not repeated target-environment production-scale evidence.
 
+For repeatable measured local/staging-safe release evidence, use the separate measured harness:
+
+```sh
+pnpm run baseline:production-scale-measured -- --local
+```
+
+It writes `latest-load-measured.md/json`, requires either `--local` or `--staging-safe`, refuses production hosts and live provider flags, uses synthetic fixtures only, and evaluates results against `docs/production-scale/load-threshold-policy.json`.
+
 ## Safety Gates
 
 - Default target is `http://localhost:3333`.
@@ -96,6 +104,7 @@ Primary harness check:
 
 ```sh
 pnpm run baseline:production-scale-local -- --simulated
+pnpm run baseline:production-scale-measured -- --local
 ```
 
 Related fixture-backed local/staging evidence remains in existing checks:
@@ -116,7 +125,7 @@ Do not run mutation-capable load tests against production from Codex. If target 
 
 ## Remaining Blockers
 
-- Blocker 3 remains SIMULATED/local evidence only until repeated local or staging throughput/latency/queue/DB observations are reviewed.
+- Blocker 3 can be evidence-closed only by accepted release-blocking measured local or staging-safe throughput/latency/queue evidence.
 - Blocker 4 has cache-miss timing evidence, but packet PDF queueing or cache-miss envelope work is not implemented here.
-- Blocker 16 remains incomplete for production until staging-safe DB pool pressure evidence records real active/open/latency signals.
-- Blocker 17 remains incomplete for production until rate-limit write pressure is proven with bounded staging-safe aggregate metrics.
+- Blocker 16 can be evidence-closed only when measured evidence records DB pool configured max plus observed signal or explicit unavailable reason.
+- Blocker 17 can be evidence-closed only when measured evidence records bounded synthetic rate-limit accepted/rejected and write-pressure metrics.

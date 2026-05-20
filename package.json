@@ -72,6 +72,7 @@
     "task:scope": "tsx scripts/task-scope-report.ts",
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
     "baseline:production-scale-local": "node scripts/production-scale-harness.mjs",
+    "baseline:production-scale-measured": "node scripts/production-scale-measured.mjs",
     "packet-pdf:cache-miss-proof": "tsx scripts/packet-pdf-cache-miss-proof.ts",
     "production-scale:evidence": "node scripts/production-scale-evidence.mjs",
     "production-scale:promotion-pack": "node scripts/production-promotion-pack.mjs",

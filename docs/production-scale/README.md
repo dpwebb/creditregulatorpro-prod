@@ -204,6 +204,27 @@ This command creates SIMULATED local evidence for bounded throughput, latency, s
 
 SIMULATED load evidence is not repeated target-environment production-scale proof. Blockers for load/concurrency, packet PDF scaling, DB pool pressure, and rate-limit write pressure remain incomplete for broader production until reviewed local/staging evidence or design fixes close the remaining gaps.
 
+## Measured Local/Staging-Safe Load Evidence
+
+Run:
+
+```bash
+pnpm run baseline:production-scale-measured -- --local
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-load-measured.md`
+- `docs/production-scale/evidence/latest-load-measured.json`
+
+Threshold policy:
+
+- `docs/production-scale/load-threshold-policy.json`
+
+This command requires exactly one explicit target flag: `--local` or `--staging-safe`. It refuses production hosts, production-like environments, live provider flags, real reports, PII, and mutation flags. The default local run uses synthetic fixtures only and records request/job count, concurrency, latency p50/p95/max, queue depth before/after, DB pool configured max plus observed signal or explicit unavailable reason, rate limiter accepted/rejected counts, packet PDF cache hit/miss metrics, operator dashboard before/after command references, and zero external provider calls.
+
+Promotion-pack logic may close blockers 3, 16, and 17 only when the latest measured evidence is accepted under a release-blocking threshold policy. SIMULATED load evidence, dry-run evidence, warning-only threshold results, or production-targeted evidence cannot close those blockers.
+
 ## Packet PDF Cache-Miss Envelope
 
 Run:

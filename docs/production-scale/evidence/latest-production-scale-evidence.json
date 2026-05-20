@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T21:43:34.889Z",
+  "generatedAt": "2026-05-20T21:57:21.740Z",
   "branch": "staging",
-  "commit": "6c0f772662c7be75e7a51a51b100fb7f07d10680",
+  "commit": "1dcc63f804a9850ff016d085f2ac17613e1ad6d7",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -251,15 +251,19 @@
           "severity": "High",
           "area": "Load/concurrency proof",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
             "pnpm run baseline:production-scale-local -- --dry-run",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts"
           ],
           "forbiddenProofTypes": [
             "SIMULATED load represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "measured evidence against a production host",
             "dry-run represented as production proof",
             "production load execution",
             "real PII or credentials",
@@ -270,12 +274,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim."
+          "recommendedNextAction": "Run the bounded measured local or staging-safe baseline with synthetic fixtures and release-blocking thresholds; keep production load forbidden."
         },
         {
           "number": 4,
@@ -721,15 +728,19 @@
           "severity": "Medium",
           "area": "DB pool pressure evidence",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record DB pool configured max, observed active/borrowed signal or explicit unavailable reason, latency, queue depth, dashboard references, and zero production DB targeting.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
             "pnpm run baseline:production-scale-local -- --dry-run",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
             "SIMULATED DB pool signal represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "production database target in measured evidence",
             "production DB stress",
             "credentials in evidence",
             "dry-run as measured staging proof",
@@ -740,12 +751,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations."
+          "recommendedNextAction": "Run bounded measured local or staging-safe load and record sanitized DB pool configured/observed signals or an explicit unavailable reason."
         },
         {
           "number": 17,
@@ -753,16 +767,20 @@
           "severity": "Medium",
           "area": "Rate limiter write pressure",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record bounded synthetic rate limiter accepted/rejected counts, write-pressure events, latency, zero real identifiers, and zero production mutation.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
             "pnpm run baseline:production-scale-local -- --dry-run",
             "pnpm run operator:dashboard",
             "pnpm run test:api"
           ],
           "forbiddenProofTypes": [
             "SIMULATED pressure represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "unbounded synthetic rate limiter pressure",
             "production hostile-traffic simulation",
             "real IPs or identifiers",
             "rate-limit behavior change without tests",
@@ -773,12 +791,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic."
+          "recommendedNextAction": "Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic."
         },
         {
           "number": 18,
@@ -1150,15 +1171,19 @@
           "severity": "High",
           "area": "Load/concurrency proof",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
             "pnpm run baseline:production-scale-local -- --dry-run",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts"
           ],
           "forbiddenProofTypes": [
             "SIMULATED load represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "measured evidence against a production host",
             "dry-run represented as production proof",
             "production load execution",
             "real PII or credentials",
@@ -1169,12 +1194,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim."
+          "recommendedNextAction": "Run the bounded measured local or staging-safe baseline with synthetic fixtures and release-blocking thresholds; keep production load forbidden."
         },
         {
           "number": 4,
@@ -1308,15 +1336,19 @@
           "severity": "Medium",
           "area": "DB pool pressure evidence",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record DB pool configured max, observed active/borrowed signal or explicit unavailable reason, latency, queue depth, dashboard references, and zero production DB targeting.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
             "pnpm run baseline:production-scale-local -- --dry-run",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
             "SIMULATED DB pool signal represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "production database target in measured evidence",
             "production DB stress",
             "credentials in evidence",
             "dry-run as measured staging proof",
@@ -1327,12 +1359,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations."
+          "recommendedNextAction": "Run bounded measured local or staging-safe load and record sanitized DB pool configured/observed signals or an explicit unavailable reason."
         },
         {
           "number": 17,
@@ -1340,16 +1375,20 @@
           "severity": "Medium",
           "area": "Rate limiter write pressure",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record bounded synthetic rate limiter accepted/rejected counts, write-pressure events, latency, zero real identifiers, and zero production mutation.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
             "pnpm run baseline:production-scale-local -- --dry-run",
             "pnpm run operator:dashboard",
             "pnpm run test:api"
           ],
           "forbiddenProofTypes": [
             "SIMULATED pressure represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "unbounded synthetic rate limiter pressure",
             "production hostile-traffic simulation",
             "real IPs or identifiers",
             "rate-limit behavior change without tests",
@@ -1360,12 +1399,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic."
+          "recommendedNextAction": "Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic."
         },
         {
           "number": 22,
@@ -1462,15 +1504,19 @@
           "severity": "High",
           "area": "Load/concurrency proof",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
             "pnpm run baseline:production-scale-local -- --dry-run",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm run operator:dashboard",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts"
           ],
           "forbiddenProofTypes": [
             "SIMULATED load represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "measured evidence against a production host",
             "dry-run represented as production proof",
             "production load execution",
             "real PII or credentials",
@@ -1481,12 +1527,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim."
+          "recommendedNextAction": "Run the bounded measured local or staging-safe baseline with synthetic fixtures and release-blocking thresholds; keep production load forbidden."
         },
         {
           "number": 4,
@@ -1620,15 +1669,19 @@
           "severity": "Medium",
           "area": "DB pool pressure evidence",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record DB pool configured max, observed active/borrowed signal or explicit unavailable reason, latency, queue depth, dashboard references, and zero production DB targeting.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
             "pnpm run baseline:production-scale-local -- --dry-run",
             "pnpm run operator:dashboard"
           ],
           "forbiddenProofTypes": [
             "SIMULATED DB pool signal represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "production database target in measured evidence",
             "production DB stress",
             "credentials in evidence",
             "dry-run as measured staging proof",
@@ -1639,12 +1692,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations."
+          "recommendedNextAction": "Run bounded measured local or staging-safe load and record sanitized DB pool configured/observed signals or an explicit unavailable reason."
         },
         {
           "number": 17,
@@ -1652,16 +1708,20 @@
           "severity": "Medium",
           "area": "Rate limiter write pressure",
           "currentStatus": "simulated-proof-only",
-          "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+          "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record bounded synthetic rate limiter accepted/rejected counts, write-pressure events, latency, zero real identifiers, and zero production mutation.",
           "allowedProofCommands": [
             "pnpm run baseline:production-scale-local -- --simulated",
+            "pnpm run baseline:production-scale-measured -- --local",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
             "pnpm run baseline:production-scale-local -- --dry-run",
             "pnpm run operator:dashboard",
             "pnpm run test:api"
           ],
           "forbiddenProofTypes": [
             "SIMULATED pressure represented as production proof",
+            "measured evidence with failed or warning-only release thresholds represented as closure",
+            "unbounded synthetic rate limiter pressure",
             "production hostile-traffic simulation",
             "real IPs or identifiers",
             "rate-limit behavior change without tests",
@@ -1672,12 +1732,15 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-scale-load-harness.md",
+            "docs/production-scale/load-threshold-policy.json",
             "docs/production-scale/evidence/latest-load-simulated.md",
             "docs/production-scale/evidence/latest-load-simulated.json",
+            "docs/production-scale/evidence/latest-load-measured.md",
+            "docs/production-scale/evidence/latest-load-measured.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic."
+          "recommendedNextAction": "Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic."
         },
         {
           "number": 20,
@@ -2254,15 +2317,19 @@
       "severity": "High",
       "area": "Load/concurrency proof",
       "currentStatus": "simulated-proof-only",
-      "proofTypeRequired": "SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.",
+      "proofTypeRequired": "Accepted release-blocking measured local or staging-safe load evidence with synthetic fixtures, throughput, latency, queue depth, packet PDF cache, DB pool, rate limiter, dashboard references, and zero provider calls.",
       "allowedProofCommands": [
         "pnpm run baseline:production-scale-local -- --simulated",
         "pnpm run baseline:production-scale-local -- --dry-run",
+        "pnpm run baseline:production-scale-measured -- --local",
         "pnpm run operator:dashboard",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts"
       ],
       "forbiddenProofTypes": [
         "SIMULATED load represented as production proof",
+        "measured evidence with failed or warning-only release thresholds represented as closure",
+        "measured evidence against a production host",
         "dry-run represented as production proof",
         "production load execution",
         "real PII or credentials",
@@ -2273,12 +2340,15 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-scale-load-harness.md",
+        "docs/production-scale/load-threshold-policy.json",
         "docs/production-scale/evidence/latest-load-simulated.md",
         "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-load-measured.md",
+        "docs/production-scale/evidence/latest-load-measured.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim."
+      "recommendedNextAction": "Run the bounded measured local or staging-safe baseline with synthetic fixtures and release-blocking thresholds; keep production load forbidden."
     },
     {
       "number": 6,
@@ -2530,15 +2600,19 @@
       "severity": "Medium",
       "area": "DB pool pressure evidence",
       "currentStatus": "simulated-proof-only",
-      "proofTypeRequired": "SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.",
+      "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record DB pool configured max, observed active/borrowed signal or explicit unavailable reason, latency, queue depth, dashboard references, and zero production DB targeting.",
       "allowedProofCommands": [
         "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm run baseline:production-scale-measured -- --local",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
         "pnpm run baseline:production-scale-local -- --dry-run",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
         "SIMULATED DB pool signal represented as production proof",
+        "measured evidence with failed or warning-only release thresholds represented as closure",
+        "production database target in measured evidence",
         "production DB stress",
         "credentials in evidence",
         "dry-run as measured staging proof",
@@ -2549,12 +2623,15 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-scale-load-harness.md",
+        "docs/production-scale/load-threshold-policy.json",
         "docs/production-scale/evidence/latest-load-simulated.md",
         "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-load-measured.md",
+        "docs/production-scale/evidence/latest-load-measured.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Run bounded staging load and record sanitized real DB pool active/open/latency observations."
+      "recommendedNextAction": "Run bounded measured local or staging-safe load and record sanitized DB pool configured/observed signals or an explicit unavailable reason."
     },
     {
       "number": 17,
@@ -2562,16 +2639,20 @@
       "severity": "Medium",
       "area": "Rate limiter write pressure",
       "currentStatus": "simulated-proof-only",
-      "proofTypeRequired": "SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.",
+      "proofTypeRequired": "Accepted release-blocking measured local or staging-safe evidence must record bounded synthetic rate limiter accepted/rejected counts, write-pressure events, latency, zero real identifiers, and zero production mutation.",
       "allowedProofCommands": [
         "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm run baseline:production-scale-measured -- --local",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts",
         "pnpm run baseline:production-scale-local -- --dry-run",
         "pnpm run operator:dashboard",
         "pnpm run test:api"
       ],
       "forbiddenProofTypes": [
         "SIMULATED pressure represented as production proof",
+        "measured evidence with failed or warning-only release thresholds represented as closure",
+        "unbounded synthetic rate limiter pressure",
         "production hostile-traffic simulation",
         "real IPs or identifiers",
         "rate-limit behavior change without tests",
@@ -2582,12 +2663,15 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-scale-load-harness.md",
+        "docs/production-scale/load-threshold-policy.json",
         "docs/production-scale/evidence/latest-load-simulated.md",
         "docs/production-scale/evidence/latest-load-simulated.json",
+        "docs/production-scale/evidence/latest-load-measured.md",
+        "docs/production-scale/evidence/latest-load-measured.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic."
+      "recommendedNextAction": "Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic."
     },
     {
       "number": 18,

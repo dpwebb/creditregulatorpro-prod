@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T21:43:34.905Z
+Generated at: 2026-05-20T21:58:44.428Z
 Current branch: `staging`
-Current commit hash: `6c0f772662c7be75e7a51a51b100fb7f07d10680`
+Current commit hash: `1dcc63f804a9850ff016d085f2ac17613e1ad6d7`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -14,6 +14,7 @@ Recommended readiness classification: **limited beta**
 - Codex must not promote readiness classification beyond evidence.
 - Production activation requires operator approval.
 - Historical raw report remediation requires accepted sanitized operator evidence.
+- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.
 - Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
 - Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.
 
@@ -26,6 +27,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run test:golden-path` - reference-required; evidence: none
 - `pnpm run test:regression-dashboard` - reference-required; evidence: none
 - `pnpm run test:deterministic-ingestion-report` - reference-required; evidence: none
+- `pnpm run baseline:production-scale-measured -- --local` - evidence-file-present; evidence: docs/production-scale/evidence/latest-load-measured.md, docs/production-scale/evidence/latest-load-measured.json
 - `pnpm run response:soak-check` - reference-required; evidence: none
 - `pnpm run operator:dashboard` - reference-required; evidence: none
 - `pnpm run alerts:dry-run` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerts-dry-run.md, docs/production-scale/evidence/latest-alerts-dry-run.json
@@ -97,6 +99,25 @@ Recommended readiness classification: **limited beta**
 - Blocker 6 coverage: not accepted
 - Sensitive findings: 0
 
+## Measured Load Evidence Acceptance
+
+- Status: accepted
+- Accepted: yes
+- Evidence path: `docs/production-scale/evidence/latest-load-measured.json`
+- Evidence type: MEASURED_LOCAL
+- Threshold mode: release-blocking
+- Threshold status: passed
+- Request count: 32
+- Latency p50/p95/max ms: 17.95/37.04/37.14
+- DB pool configured max: 3
+- DB pool observed signal: available
+- Rate limiter accepted/rejected: 2/22
+- Packet PDF cache hit/miss: 4/2
+- External provider calls made: 0
+- Blocker 3 coverage: accepted
+- Blocker 16 coverage: accepted
+- Blocker 17 coverage: accepted
+
 ## Migration Gate Evidence
 
 - Status: accepted-formal-waiver
@@ -132,10 +153,7 @@ Recommended readiness classification: **limited beta**
 
 ## Simulated Proof-Only Checks
 
-- #3 Load/concurrency proof (High; simulated proof only) - Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
-- #16 DB pool pressure evidence (Medium; simulated proof only) - Run bounded staging load and record sanitized real DB pool active/open/latency observations.
-- #17 Rate limiter write pressure (Medium; simulated proof only) - Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 
 ## Staging Proof-Only Checks
 
@@ -157,9 +175,6 @@ Recommended readiness classification: **limited beta**
 
 ## Unresolved Scale Blockers
 
-- #3 Load/concurrency proof (High; simulated proof only) - Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
-- #16 DB pool pressure evidence (Medium; simulated proof only) - Run bounded staging load and record sanitized real DB pool active/open/latency observations.
-- #17 Rate limiter write pressure (Medium; simulated proof only) - Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #18 Runtime-size gates (Medium; partial) - Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.
 
 ## Generated Evidence File References
@@ -174,6 +189,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-load-simulated.md` - present
 - `docs/production-scale/evidence/latest-load-simulated.json` - present; evidenceType=SIMULATED
+- `docs/production-scale/evidence/latest-load-measured.md` - present
+- `docs/production-scale/evidence/latest-load-measured.json` - present; evidenceType=MEASURED_LOCAL
 - `docs/production-scale/evidence/latest-alerts-dry-run.md` - present
 - `docs/production-scale/evidence/latest-alerts-dry-run.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-alerting-exclusion-validation.md` - present
@@ -217,6 +234,7 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/live-alert-proof.json` - missing
 - `docs/production-scale/evidence/live-alert-proof.md` - missing
 - `docs/production-scale/migration-governance-policy.json` - present
+- `docs/production-scale/load-threshold-policy.json` - present
 - `docs/restore-drill-evidence-template.md` - present
 - `docs/staging-ingest-worker-operation.md` - present
 - `docs/production-ingest-worker-activation.md` - present

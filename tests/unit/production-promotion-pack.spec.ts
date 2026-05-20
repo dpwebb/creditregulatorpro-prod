@@ -37,6 +37,7 @@ function buildPack() {
   return buildProductionPromotionPackReport({
     rootDir: process.cwd(),
     dashboardReport: dashboardWithSkips(),
+    measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
     generatedAt: "2026-05-20T12:00:00.000Z",
     env: {},
   });
@@ -158,6 +159,94 @@ function acceptedReleaseBlockingMigrationGateEvidence() {
   };
 }
 
+function notSubmittedMeasuredLoadEvidenceAcceptance() {
+  return {
+    reportName: "production-scale-load-measured-acceptance",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "not-submitted",
+    accepted: false,
+    evidencePath: "docs/production-scale/evidence/latest-load-measured.json",
+    blockerCoverage: {
+      loadConcurrency: false,
+      dbPoolPressure: false,
+      rateLimiterWritePressure: false,
+    },
+    validation: {
+      ok: false,
+      errors: ["No measured load evidence has been submitted."],
+    },
+    safety: {
+      productionDataMutated: false,
+      productionDatabaseTargeted: false,
+      externalProviderCallsMade: 0,
+      liveExternalProvidersConnected: false,
+      realConsumerPiiUsed: false,
+      rawReportBytesSent: false,
+    },
+  };
+}
+
+function acceptedMeasuredLoadEvidenceAcceptance() {
+  return {
+    reportName: "production-scale-load-measured-acceptance",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "accepted",
+    accepted: true,
+    evidencePath: "docs/production-scale/evidence/latest-load-measured.json",
+    evidenceType: "MEASURED_LOCAL",
+    mode: "measured-local",
+    thresholdMode: "release-blocking",
+    thresholdStatus: "passed",
+    summary: {
+      totalRequestsOrJobs: 62,
+      requestCount: 32,
+      queueJobCount: 16,
+      concurrency: 2,
+      observedMaxConcurrency: 2,
+      iterations: 2,
+      latency: {
+        p50Ms: 12,
+        p95Ms: 34,
+        maxMs: 35,
+      },
+    },
+    dbPool: {
+      configuredMax: 5,
+      observedSignalAvailable: true,
+      observedActiveConnections: 2,
+      observedBorrowedConnections: 2,
+      unavailableReason: null,
+    },
+    rateLimiter: {
+      attempts: 24,
+      acceptedCount: 2,
+      rejectedCount: 22,
+      bounded: true,
+    },
+    packetPdfCache: {
+      cacheHitCount: 4,
+      cacheMissCount: 2,
+    },
+    blockerCoverage: {
+      loadConcurrency: true,
+      dbPoolPressure: true,
+      rateLimiterWritePressure: true,
+    },
+    validation: {
+      ok: true,
+      errors: [],
+    },
+    safety: {
+      productionDataMutated: false,
+      productionDatabaseTargeted: false,
+      externalProviderCallsMade: 0,
+      liveExternalProvidersConnected: false,
+      realConsumerPiiUsed: false,
+      rawReportBytesSent: false,
+    },
+  };
+}
+
 describe("production promotion evidence pack", () => {
   it("fails if a required blocker is missing", () => {
     const registry = JSON.parse(readFileSync(resolve("docs/production-scale/blocker-registry.json"), "utf8"));
@@ -226,6 +315,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run alerts:exclusion:validate");
     expect(report.commandList).toContain("pnpm run response:ops-readiness-evidence");
     expect(report.commandList).toContain("pnpm run migrations:gate");
+    expect(report.commandList).toContain("pnpm run baseline:production-scale-measured -- --local");
   });
 
   it("does not claim production-at-scale readiness while unresolved or human-required blockers remain", () => {
@@ -293,6 +383,71 @@ describe("production promotion evidence pack", () => {
       },
     });
     expect(blocker2?.classification).toBe("partial");
+  });
+
+  it("keeps blockers 3, 16, and 17 simulated-proof-only without accepted measured evidence", () => {
+    const report = buildPack();
+    const byNumber = new Map(report.blockerClassifications.map((blocker: { number: number }) => [blocker.number, blocker]));
+
+    expect(report.measuredLoadEvidenceAcceptance).toMatchObject({
+      status: "not-submitted",
+      accepted: false,
+      blockerCoverage: {
+        loadConcurrency: false,
+        dbPoolPressure: false,
+        rateLimiterWritePressure: false,
+      },
+    });
+    expect(byNumber.get(3)?.classification).toBe("simulated proof only");
+    expect(byNumber.get(16)?.classification).toBe("simulated proof only");
+    expect(byNumber.get(17)?.classification).toBe("simulated proof only");
+  });
+
+  it("classifies blockers 3, 16, and 17 as fixed only with accepted measured release-blocking evidence", () => {
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      measuredLoadEvidenceAcceptance: acceptedMeasuredLoadEvidenceAcceptance(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const byNumber = new Map(report.blockerClassifications.map((blocker: { number: number }) => [blocker.number, blocker]));
+
+    expect(byNumber.get(3)?.classification).toBe("fixed with automated evidence");
+    expect(byNumber.get(16)?.classification).toBe("fixed with automated evidence");
+    expect(byNumber.get(17)?.classification).toBe("fixed with automated evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("does not close blockers 3, 16, or 17 with warning-only or failed measured thresholds", () => {
+    const measuredLoadEvidenceAcceptance = {
+      ...acceptedMeasuredLoadEvidenceAcceptance(),
+      status: "failed",
+      accepted: false,
+      thresholdMode: "warning-only",
+      thresholdStatus: "warning-only",
+      blockerCoverage: {
+        loadConcurrency: false,
+        dbPoolPressure: false,
+        rateLimiterWritePressure: false,
+      },
+      validation: {
+        ok: false,
+        errors: ["Measured load threshold policy is warning-only and cannot close release evidence."],
+      },
+    };
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      measuredLoadEvidenceAcceptance,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const classifications = new Map(report.blockerClassifications.map((blocker: { number: number }) => [blocker.number, blocker.classification]));
+
+    expect(classifications.get(3)).toBe("simulated proof only");
+    expect(classifications.get(16)).toBe("simulated proof only");
+    expect(classifications.get(17)).toBe("simulated proof only");
   });
 
   it("keeps blocker 6 remediation-required unless accepted operator evidence exists", () => {
@@ -521,6 +676,7 @@ describe("production promotion evidence pack", () => {
         "pnpm run response:ops-readiness-evidence",
         "pnpm run alerts:exclusion:validate",
         "pnpm run alerts:dry-run",
+        "pnpm run baseline:production-scale-measured -- --local",
         "pnpm run production-scale:promotion-pack",
         "pnpm run operator:dashboard",
       ]),
