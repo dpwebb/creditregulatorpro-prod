@@ -28,15 +28,23 @@ describe("ingest processing queue boundaries", () => {
     expect(processEndpoint).not.toContain("claimNextIngestProcessingJob");
   });
 
-  it("documents the current request-bound pipeline path while queue execution remains deferred", () => {
+  it("documents the current request-bound pipeline path while worker execution is isolated", () => {
     const handler = source("helpers/ingestReportHandler.tsx");
     const core = source("helpers/ingestCorePipeline.tsx");
     const service = source("helpers/ingestProcessingQueueService.ts");
+    const worker = source("scripts/ingest-processing-worker.ts");
+    const reportEndpoint = source("endpoints/ingest/report_POST.ts");
+    const processEndpoint = source("endpoints/ingest/process_POST.ts");
 
     expect(handler).toContain("handleIngestProcess");
     expect(handler).toContain("executeIngestPipeline");
     expect(core).toContain("extractCanonicalCreditReport");
     expect(core).toContain("scanAndPersistViolations");
+    expect(worker).toContain("executeIngestPipeline");
+    expect(worker).toContain("claimNextIngestProcessingJob");
+    expect(worker).toContain("endpointCutoverEnabled: false");
+    expect(reportEndpoint).not.toContain("enqueueIngestProcessingJob");
+    expect(processEndpoint).not.toContain("processNextIngestProcessingJob");
 
     expect(service).toContain("endpointCutoverEnabled: false");
     expect(service).toContain("parserOutputMutated: false");

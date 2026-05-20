@@ -40,6 +40,7 @@
     "response:queue-load-check": "tsx scripts/response-processing-queue-load-check.ts",
     "response:orchestration-check": "tsx scripts/response-processing-orchestration-check.ts",
     "response:soak-check": "tsx scripts/response-processing-soak-check.ts",
+    "ingest:worker": "tsx scripts/ingest-processing-worker.ts",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",
     "test:violation-corrections:db": "tsx scripts/violation-correction-integration.ts",
