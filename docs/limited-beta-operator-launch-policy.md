@@ -4,15 +4,15 @@ Updated May 19, 2026.
 
 This policy allows only a controlled limited beta. It does not claim production-at-scale readiness.
 
-The hardened response-processing subsystem does not make report ingest, OCR, packet PDF generation, or report storage scale-ready. Response processing has durable queueing, dry-run tooling, drift detection, and append-only protections. Report ingest/OCR/compliance is still synchronous and request-bound, raw report PDF bytes are still stored through `reportArtifact.storageUrl`, packet PDFs are still generated synchronously, and ingest/PDF/storage observability is still incomplete.
+The hardened response-processing subsystem does not make report ingest, OCR, packet PDF generation, or report storage scale-ready. Response processing has durable queueing, dry-run tooling, drift detection, and append-only protections. Report ingest/OCR/compliance has since moved behind queued worker execution and new report PDF uploads store file references instead of inline database bytes, but historical inline records remain compatible, packet PDFs are still generated synchronously, and ingest/PDF/storage observability is still incomplete.
 
 ## Current Scale Blockers
 
 Limited beta remains constrained because these blockers are unresolved:
 
-- No durable ingest/OCR/compliance queue exists yet.
-- Report upload, OCR, parser, compliance scan, storage, and cleanup work can still run inside request paths.
-- Raw report PDF bytes are still stored in `reportArtifact.storageUrl`.
+- Historical inline `reportArtifact.storageUrl` records remain readable and are not destructively migrated.
+- Report upload, OCR, parser, compliance scan, storage, and cleanup work still require strict operator limits until repeated load/concurrency and restore evidence exists.
+- New report PDF uploads store storage references instead of raw inline bytes, but storage lifecycle, purge/archive, growth monitoring, and full metadata-only list hardening remain incomplete.
 - Packet PDF download/send paths still generate PDFs synchronously.
 - Ingest, packet PDF, storage growth, and auth failure observability is incomplete.
 - A production restore drill is not recorded as completed in the scale audit.
@@ -85,8 +85,8 @@ Rollback or disable beta entry points if any of these occur:
 
 ## Do Not Claim Production-At-Scale Readiness Until
 
-- A durable ingest/OCR/compliance queue exists with leases, retries, dead letters, idempotency, and operator remediation.
-- Report PDFs are moved out of database-backed `reportArtifact.storageUrl` storage into an encrypted object/file storage path with hash-only DB metadata where appropriate.
+- A durable ingest/OCR/compliance queue exists with leases, retries, dead letters, idempotency, and operator remediation and has repeated production-safe operating evidence.
+- Report PDFs are moved out of database-backed inline storage for new uploads, historical inline compatibility is controlled, and storage lifecycle/growth/restore behavior is proven.
 - Report artifact retention preview, purge/archive, and restore behavior are proven.
 - Packet PDF generation is cached or queued with idempotent invalidation.
 - Ingest, OCR, packet PDF, storage, auth, and DB-pressure metrics are visible to operators with documented thresholds.

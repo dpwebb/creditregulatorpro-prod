@@ -14,6 +14,7 @@ import {
   peekNextIngestProcessingJob,
   recordIngestProcessingJobEvent,
 } from "../helpers/ingestProcessingQueueService";
+import { resolveReportArtifactPdfBase64 } from "../helpers/reportArtifactStorage";
 import type { Json } from "../helpers/schema";
 import type { SSEEvent } from "../helpers/sseStreamBuilder";
 
@@ -237,7 +238,8 @@ export async function loadQueuedIngestPipelineInput(job: IngestProcessingJobReco
   if (artifactData.extractionStatus === "failed") {
     throw new IngestProcessingQueueError("INGEST_ARTIFACT_EXTRACTION_FAILED", "Queued report artifact extraction had previously failed.", true);
   }
-  if (!artifact.storageUrl) {
+  const bytesBase64 = await resolveReportArtifactPdfBase64(artifact.storageUrl);
+  if (!bytesBase64) {
     throw new IngestProcessingQueueError("INGEST_ARTIFACT_BYTES_MISSING", "Queued report artifact has no stored PDF bytes.", true);
   }
 
@@ -276,7 +278,7 @@ export async function loadQueuedIngestPipelineInput(job: IngestProcessingJobReco
     fileName: typeof artifactData.fileName === "string" && artifactData.fileName.trim()
       ? artifactData.fileName.trim()
       : "credit-report.pdf",
-    bytesBase64: artifact.storageUrl,
+    bytesBase64,
     mimeType: typeof artifactData.mimeType === "string" && artifactData.mimeType.trim()
       ? artifactData.mimeType.trim()
       : "application/pdf",

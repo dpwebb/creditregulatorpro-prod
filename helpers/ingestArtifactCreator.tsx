@@ -2,6 +2,7 @@ import { db } from "./db";
 import { Json } from "./schema";
 import { SSEEvent, createHeartbeat } from "./sseStreamBuilder";
 import { sha256HexOfBase64Payload } from "./reportBinaryUtils";
+import { buildReportArtifactStorageMetadata, storeReportArtifactPdf } from "./reportArtifactStorage";
 
 export interface CreateArtifactInput {
   userId: number;
@@ -30,7 +31,7 @@ export async function createReportArtifact(
   input: CreateArtifactInput,
   sendSSE?: (event: SSEEvent) => void
 ): Promise<CreateArtifactResult> {
-    const sha256 = sha256HexOfBase64Payload(input.bytesBase64);
+  const sha256 = sha256HexOfBase64Payload(input.bytesBase64);
 
   if (sendSSE) {
     sendSSE({
@@ -55,6 +56,14 @@ export async function createReportArtifact(
   }
 
   try {
+    const storedPdf = await storeReportArtifactPdf({
+      bytesBase64: input.bytesBase64,
+      userId: input.userId,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      sha256,
+    });
+
     // Create the artifact record with initial data
     const artifactRecord = await db
       .insertInto("reportArtifact")
@@ -62,7 +71,7 @@ export async function createReportArtifact(
         userId: input.userId,
         organizationId: input.organizationId,
         artifactType: "credit_report",
-        storageUrl: input.bytesBase64, // Store base64 directly
+        storageUrl: storedPdf.storageUrl,
         sha256: sha256,
         reportDate: now,
         expiresAt: expiresAt,
@@ -71,6 +80,7 @@ export async function createReportArtifact(
         data: JSON.parse(JSON.stringify({
           fileName: input.fileName,
           mimeType: input.mimeType,
+          ...buildReportArtifactStorageMetadata(storedPdf),
         })) as Json,
       })
       .returning(['id'])

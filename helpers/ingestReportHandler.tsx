@@ -14,6 +14,7 @@ import {
   isScannedPdfUnsupportedError,
 } from "./creditReportPdfEligibility";
 import { logRejectedScannedPdfUpload } from "./creditReportUploadRejectionAudit";
+import { resolveReportArtifactPdfBase64 } from "./reportArtifactStorage";
 
 type IngestInput = z.infer<typeof UploadReportInput>;
 
@@ -174,7 +175,9 @@ export async function handleIngestProcess(
     return;
   }
 
-  if (!artifact.storageUrl) {
+  const bytesBase64 = await resolveReportArtifactPdfBase64(artifact.storageUrl);
+
+  if (!bytesBase64) {
     await cleanupFailedIngest(artifactId, []);
     send({ type: "error", error: "No report PDF data found.", code: "EXTRACTION_FAILED" });
     return;
@@ -193,7 +196,7 @@ export async function handleIngestProcess(
       artifactId,
       region,
       fileName,
-      bytesBase64: artifact.storageUrl,
+      bytesBase64,
       mimeType,
       send,
       context,

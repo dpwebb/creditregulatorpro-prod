@@ -46,7 +46,6 @@ export async function handle(request: Request) {
       "reportArtifact.expiresAt",
       "reportArtifact.validationRulesApplied",
       "reportArtifact.data",
-      "reportArtifact.storageUrl",
       "reportArtifact.processingStatus",
       "tradeline.accountNumber as tradelineAccountNumber",
       "tradeline.accountType as tradelineAccountType",
@@ -82,14 +81,17 @@ export async function handle(request: Request) {
     const rawArtifacts = await dataQuery.execute();
 
     // linkedAccountCount comes back as a string from pg COUNT aggregate; coerce to number
-    const artifacts = rawArtifacts.map((row) => ({
-      ...row,
-      linkedAccountCount:
-        row.linkedAccountCount != null
-          ? parseInt(row.linkedAccountCount as unknown as string, 10)
-          : null,
-      bureauName: row.bureauName ?? null,
-    }));
+    const artifacts = rawArtifacts.map((row) => {
+      const { storageUrl: _storageUrl, ...safeRow } = row as typeof row & { storageUrl?: unknown };
+      return {
+        ...safeRow,
+        linkedAccountCount:
+          row.linkedAccountCount != null
+            ? parseInt(row.linkedAccountCount as unknown as string, 10)
+            : null,
+        bureauName: row.bureauName ?? null,
+      };
+    });
 
     return new Response(JSON.stringify({ artifacts, total } satisfies OutputType));
   } catch (error) {

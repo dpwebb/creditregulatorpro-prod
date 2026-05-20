@@ -733,7 +733,7 @@ describe("report ingest lifecycle endpoints", () => {
   });
 
   it("lists report artifacts using current user scoping and compact synthetic metadata", async () => {
-    queueResults({ firstOrThrow: { total: "1" } }, { execute: [artifactRow()] });
+    queueResults({ firstOrThrow: { total: "1" } }, { execute: [artifactRow({ storageUrl: "SHOULD_NOT_SELECT" })] });
 
     const response = await listReportArtifacts(getRequest("/_api/report-artifact/list?limit=10&offset=0"));
 
@@ -752,6 +752,8 @@ describe("report ingest lifecycle endpoints", () => {
         }),
       ],
     });
+    expect(body.artifacts[0]).not.toHaveProperty("storageUrl");
+    expect(JSON.stringify(body)).not.toContain("SHOULD_NOT_SELECT");
     expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
     expect(whereValues("reportArtifact.processingStatus")).toContainEqual([
       "reportArtifact.processingStatus",

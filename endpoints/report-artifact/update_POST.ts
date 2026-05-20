@@ -3,6 +3,13 @@ import { schema, OutputType } from "./update_POST.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { normalizeReportArtifactStorageUrlForWrite } from "../../helpers/reportArtifactStorage";
+
+function jsonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
 
 export async function handle(request: Request) {
   try {
@@ -14,7 +21,7 @@ export async function handle(request: Request) {
     // Verify the report artifact exists and belongs to the user (non-admins are scoped to their own)
     let ownershipQuery = db
       .selectFrom("reportArtifact")
-      .select("id")
+      .select(["id", "userId"])
       .where("id", "=", input.id);
 
     if (user.role !== "admin") {
@@ -36,11 +43,20 @@ export async function handle(request: Request) {
     // align exactly (e.g. Json vs Record<string, unknown>).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: Record<string, any> = {};
+    const data = jsonRecord(input.data);
 
     if (input.reportDate !== undefined) updateData.reportDate = input.reportDate;
     if (input.artifactType !== undefined) updateData.artifactType = input.artifactType;
     if (input.data !== undefined) updateData.data = input.data;
-    if (input.storageUrl !== undefined) updateData.storageUrl = input.storageUrl;
+    if (input.storageUrl !== undefined) {
+      updateData.storageUrl = await normalizeReportArtifactStorageUrlForWrite({
+        storageUrl: input.storageUrl,
+        userId: existing.userId ?? user.id,
+        fileName: typeof data.fileName === "string" ? data.fileName : undefined,
+        mimeType: typeof data.mimeType === "string" ? data.mimeType : input.artifactType,
+        sha256: input.sha256,
+      });
+    }
     if (input.sha256 !== undefined) updateData.sha256 = input.sha256;
     if (input.expiresAt !== undefined) updateData.expiresAt = input.expiresAt;
 

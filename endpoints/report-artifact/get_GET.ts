@@ -3,6 +3,7 @@ import { schema, OutputType } from "./get_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { resolveReportArtifactPdfBase64 } from "../../helpers/reportArtifactStorage";
 
 export async function handle(request: Request) {
   try {
@@ -50,7 +51,14 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Report artifact not found or access denied" }), { status: 404 });
     }
 
-    return new Response(JSON.stringify({ reportArtifact } satisfies OutputType));
+    const resolvedStorageUrl = await resolveReportArtifactPdfBase64(reportArtifact.storageUrl);
+
+    return new Response(JSON.stringify({
+      reportArtifact: {
+        ...reportArtifact,
+        storageUrl: resolvedStorageUrl,
+      },
+    } satisfies OutputType));
   } catch (error) {
     console.error("Error fetching report artifact:", error);
     return handleEndpointError(error);

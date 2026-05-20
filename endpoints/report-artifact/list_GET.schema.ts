@@ -29,7 +29,6 @@ export type ReportArtifactListItem = Pick<
   | "expiresAt"
   | "validationRulesApplied"
   | "data"
-  | "storageUrl"
   | "processingStatus"
 >;
 

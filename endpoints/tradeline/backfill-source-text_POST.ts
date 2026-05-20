@@ -4,6 +4,7 @@ import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
+import { resolveReportArtifactPdfBase64 } from "../../helpers/reportArtifactStorage";
 
 export async function handle(request: Request) {
   try {
@@ -17,7 +18,7 @@ export async function handle(request: Request) {
     const input = schema.parse(json);
 
     // 1. Query tradelines that need backfill
-    // We join with reportArtifact to get the storageUrl (PDF content)
+    // We join with reportArtifact to get the storageUrl (storage reference or legacy PDF content)
     // We join with creditor to get the name for matching
     let query = db
       .selectFrom('tradeline')
@@ -69,18 +70,17 @@ export async function handle(request: Request) {
     // Process each artifact group
     for (const [artifactId, tradelines] of tradelinesByArtifact.entries()) {
       try {
-        // All tradelines in this group share the same artifact storageUrl
-        const storageUrl = tradelines[0].storageUrl;
+        // All tradelines in this group share the same artifact storageUrl.
+        const bytesBase64 = await resolveReportArtifactPdfBase64(tradelines[0].storageUrl);
         
-        if (!storageUrl) {
+        if (!bytesBase64) {
           errors.push(`Artifact ${artifactId} has no storageUrl`);
           continue;
         }
 
         // Parse the report through the same canonical deterministic path used by ingest.
-        // storageUrl contains the base64 PDF content.
         const extraction = await extractCanonicalCreditReport({
-          bytesBase64: storageUrl,
+          bytesBase64,
           mimeType: "application/pdf",
           allowAiFallback: false,
         });

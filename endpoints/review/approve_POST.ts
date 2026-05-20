@@ -11,6 +11,7 @@ import { getRulesByYear } from "../../helpers/metro2ValidationRules";
 import { logAudit, logUpload } from "../../helpers/auditLogger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { normalizeCreditReportAmount } from "../../helpers/creditReportNumberSanitizer";
+import { buildReportArtifactStorageMetadata, storeReportArtifactPdf } from "../../helpers/reportArtifactStorage";
 
 function normalizeAccountNumberForLookup(accountNumber: string | null | undefined): string | null {
   const normalized = (accountNumber || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -158,12 +159,18 @@ export async function handle(request: Request) {
     const crrgYear = new Date().getFullYear();
     const ruleSet = getRulesByYear(crrgYear);
     const validationRulesApplied = ruleSet.rules.map(rule => rule.ruleName);
+    const storedPdf = await storeReportArtifactPdf({
+      bytesBase64: input.bytesBase64,
+      userId: user.id,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+    });
 
     const artifactRecord = await db
       .insertInto("reportArtifact")
       .values({
         userId: user.id,
-        storageUrl: input.bytesBase64,
+        storageUrl: storedPdf.storageUrl,
         sha256: sha256,
         expiresAt: expiresAt,
         region: input.region,
@@ -174,7 +181,8 @@ export async function handle(request: Request) {
           parsedTradelines: parsedTradelines,
           tradelineIds: tradelineIds,
           reviewSessionId: input.reviewSessionId,
-          isAuthenticatedUpload: isAuthenticatedUpload
+          isAuthenticatedUpload: isAuthenticatedUpload,
+          ...buildReportArtifactStorageMetadata(storedPdf),
         })) as Json,
         artifactType: input.mimeType,
         validationRulesApplied: JSON.stringify(validationRulesApplied),

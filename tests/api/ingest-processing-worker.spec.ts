@@ -1,5 +1,9 @@
 import "../../loadEnv.js";
 
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
 import { sql, type Kysely } from "kysely";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +14,7 @@ import {
   listIngestProcessingJobEvents,
 } from "../../helpers/ingestProcessingQueueService";
 import type { DB, UserRole } from "../../helpers/schema";
+import { storeReportArtifactPdf } from "../../helpers/reportArtifactStorage";
 import {
   processNextIngestProcessingJob,
   runIngestProcessingWorker,
@@ -96,7 +101,7 @@ async function createUser(name: string, role: UserRole = "admin"): Promise<numbe
   return userId;
 }
 
-async function createArtifact(userId: number, markerValue: string): Promise<number> {
+async function createArtifact(userId: number, markerValue: string, storageUrl = "JVBERi0SHOULD_NOT_STORE_RAW_PDF_BYTES"): Promise<number> {
   const row = await db
     .insertInto("reportArtifact")
     .values({
@@ -105,7 +110,7 @@ async function createArtifact(userId: number, markerValue: string): Promise<numb
       processingStatus: "pending",
       region: "CA",
       sha256: "d".repeat(64),
-      storageUrl: "JVBERi0SHOULD_NOT_STORE_RAW_PDF_BYTES",
+      storageUrl,
       data: {
         marker: markerValue,
         fileName: "synthetic-credit-report.pdf",
@@ -250,6 +255,59 @@ describeIfLocalDb("ingest processing worker", () => {
       "succeeded",
     ]);
     assertNoSensitiveLeak([result, events]);
+  });
+
+  it("resolves new report artifact storage references before calling the deterministic pipeline", async () => {
+    const source = trackSource(marker());
+    const storageDir = await mkdtemp(path.join(os.tmpdir(), "crp-ingest-worker-storage-"));
+    const previousLocalStoragePath = process.env.LOCAL_DOCUMENT_STORAGE_PATH;
+    const previousDocumentStoragePath = process.env.DOCUMENT_STORAGE_PATH;
+    const storedPdfBase64 = Buffer.from("%PDF-1.4\nworker storage reference\n%%EOF", "utf8").toString("base64");
+
+    try {
+      process.env.LOCAL_DOCUMENT_STORAGE_PATH = storageDir;
+      delete process.env.DOCUMENT_STORAGE_PATH;
+
+      const userId = await createUser(`${source}-${created.userIds.length + 1}`);
+      const stored = await storeReportArtifactPdf({
+        bytesBase64: storedPdfBase64,
+        userId,
+        fileName: "worker-reference.pdf",
+        mimeType: "application/pdf",
+      });
+      const artifactId = await createArtifact(userId, source, stored.storageUrl);
+      const queued = await enqueueIngestProcessingJob({
+        reportArtifactId: artifactId,
+        userId,
+        source,
+        payload: { region: "CA", mimeType: "application/pdf", artifactSha256: "d".repeat(64) },
+      });
+      const executePipeline = vi.fn(async (input: PipelineParams) => {
+        expect(input.bytesBase64).toBe(storedPdfBase64);
+        input.send({ type: "progress", stage: "unified_extraction", percent: 35 });
+      });
+
+      const result = await processNextIngestProcessingJob({ workerId: `${source}-worker`, dryRun: false, source }, {
+        executePipeline,
+      });
+
+      expect(result.status).toBe("succeeded");
+      expect(result.job?.id).toBe(queued.job.id);
+      expect(executePipeline).toHaveBeenCalledTimes(1);
+      assertNoSensitiveLeak([result, await listIngestProcessingJobEvents(queued.job.id)]);
+    } finally {
+      if (previousLocalStoragePath === undefined) {
+        delete process.env.LOCAL_DOCUMENT_STORAGE_PATH;
+      } else {
+        process.env.LOCAL_DOCUMENT_STORAGE_PATH = previousLocalStoragePath;
+      }
+      if (previousDocumentStoragePath === undefined) {
+        delete process.env.DOCUMENT_STORAGE_PATH;
+      } else {
+        process.env.DOCUMENT_STORAGE_PATH = previousDocumentStoragePath;
+      }
+      await rm(storageDir, { recursive: true, force: true });
+    }
   });
 
   it("records retry and dead-letter events when pipeline processing fails", async () => {

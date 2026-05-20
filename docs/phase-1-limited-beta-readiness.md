@@ -8,7 +8,7 @@ Verification date: 2026-05-19
 
 The six Phase 1 blockers from `docs/production-scale-readiness-audit.md` have code, test, workflow, or operator-policy evidence in the current repository. This verdict allows only a controlled limited beta under `docs/limited-beta-operator-launch-policy.md`.
 
-This is not a production-at-scale readiness claim. Report ingest/OCR/compliance remains synchronous and request-bound, raw report PDF bytes are still stored through `reportArtifact.storageUrl`, packet PDF generation remains synchronous, ingest/PDF/storage observability is incomplete, and restore/load proof remains incomplete.
+This is not a production-at-scale readiness claim. Later production-scale tasks have moved report processing behind the ingest queue and moved new report PDF uploads to file-backed storage references, but historical inline records remain compatible, packet PDF generation remains synchronous, ingest/PDF/storage observability is incomplete, and restore/load proof remains incomplete.
 
 ## Phase 1 Completion Table
 
@@ -146,8 +146,8 @@ This verification pass did not implement runtime behavior changes. The Phase 1 e
 These blockers remain before broader production or production-at-scale readiness:
 
 1. Build a durable ingest/OCR/compliance job queue with leases, retries, dead letters, idempotency, and operator remediation.
-2. Move raw report PDFs out of `reportArtifact.storageUrl` into encrypted object/file storage with hash-only DB metadata where appropriate.
-3. Add ingest lifecycle events, dead letters, operator remediation, and dashboard alerts.
+2. Complete storage lifecycle/growth/restore controls for new file-backed report PDFs and historical inline compatibility.
+3. Replace destructive ingest cleanup with non-destructive lifecycle state where feasible.
 4. Add packet PDF caching or queued rendering with idempotent invalidation.
 5. Run and record a human-observed restore drill.
 6. Make DB pool configuration environment-driven and add DB latency/pool metrics.
