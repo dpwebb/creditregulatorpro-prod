@@ -8,9 +8,19 @@ import {
   NotAuthenticatedError,
   SessionExpirationSeconds,
 } from "./getSetServerSession";
+import { shouldTouchSessionLastAccessed } from "./runtimeTuningConfig";
+
+function coerceLastAccessedDate(value: unknown): Date {
+  if (value instanceof Date) return value;
+  if (typeof value === "number" || typeof value === "string") {
+    return new Date(value);
+  }
+  return new Date(0);
+}
 
 export async function getServerUserSession(request: Request) {
   const session = await getServerSessionOrThrow(request);
+  const now = new Date();
 
   // Query the sessions and users tables in a single join query, also LEFT JOIN subscriptions and userAccount
   const results = await db
@@ -84,13 +94,17 @@ export async function getServerUserSession(request: Request) {
     currentTermsVersion,
   };
 
-  // Update the session's lastAccessed timestamp
-  const now = new Date();
-  await db
-    .updateTable("sessions")
-    .set({ lastAccessed: now })
-    .where("id", "=", session.id)
-    .execute();
+  const dbLastAccessed = coerceLastAccessedDate(result.sessionLastAccessed);
+  const shouldTouchSession = shouldTouchSessionLastAccessed(dbLastAccessed, now);
+  const returnedLastAccessed = shouldTouchSession ? now : dbLastAccessed;
+
+  if (shouldTouchSession) {
+    await db
+      .updateTable("sessions")
+      .set({ lastAccessed: now })
+      .where("id", "=", session.id)
+      .execute();
+  }
 
   // Occasionally clean up expired sessions (fire-and-forget)
   if (Math.random() < CleanupProbability) {
@@ -111,7 +125,7 @@ export async function getServerUserSession(request: Request) {
     // make sure to update the session in cookie
     session: {
       ...session,
-      lastAccessed: now,
+      lastAccessed: returnedLastAccessed,
     },
   };
 }

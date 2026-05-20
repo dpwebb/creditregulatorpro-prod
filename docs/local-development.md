@@ -44,6 +44,14 @@ The app expects `FLOOT_DATABASE_URL`. In local-dev bootstrap mode, if
 as the base connection string. If `LOCAL_DATABASE_NAME` is set, only the database
 name is replaced.
 
+Optional database/session tuning variables:
+
+- `CRP_DB_POOL_MAX`: Postgres pool max. Defaults to `3`.
+- `CRP_DB_IDLE_TIMEOUT_SECONDS`: Postgres idle timeout in seconds. Defaults to `10`.
+- `CRP_SESSION_TOUCH_INTERVAL_SECONDS`: minimum age before an authenticated request writes `sessions.lastAccessed`. Defaults to `300`.
+
+Invalid values fall back to the safe defaults and emit a sanitized warning.
+
 This allows one local Postgres service on `127.0.0.1:5432` to host separate
 databases for separate projects. For this repo, use:
 
