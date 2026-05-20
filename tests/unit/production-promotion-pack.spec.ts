@@ -38,6 +38,7 @@ function buildPack() {
     rootDir: process.cwd(),
     dashboardReport: dashboardWithSkips(),
     measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
+    runtimeSizePolicyAcceptance: notSubmittedRuntimeSizePolicyAcceptance(),
     generatedAt: "2026-05-20T12:00:00.000Z",
     env: {},
   });
@@ -247,6 +248,121 @@ function acceptedMeasuredLoadEvidenceAcceptance() {
   };
 }
 
+function notSubmittedRuntimeSizePolicyAcceptance() {
+  return {
+    reportName: "runtime-size-policy-acceptance",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "not-submitted",
+    accepted: false,
+    acceptanceKind: "not-accepted",
+    policyPath: "docs/production-scale/runtime-size-threshold-policy.json",
+    evidencePath: "docs/production-scale/evidence/latest-runtime-size.json",
+    policyMode: "unknown",
+    formalWaiver: {
+      accepted: false,
+      reason: null,
+    },
+    runtimeEvidence: null,
+    warningRows: [],
+    waivedRows: [],
+    blockerCoverage: {
+      runtimeSizeGovernance: false,
+      acceptedHardGate: false,
+      acceptedWarningOnlyWaiver: false,
+    },
+    validation: {
+      ok: false,
+      errors: ["Runtime-size policy acceptance has not been submitted."],
+    },
+    safety: {
+      nonMutating: true,
+      productionDataMutated: false,
+      dependencyVersionsChanged: false,
+      buildChunkingChanged: false,
+      buildBehaviorChanged: false,
+      pdfOcrBehaviorChanged: false,
+      hardGateClaimedWhenWarningOnly: false,
+    },
+  };
+}
+
+function acceptedWarningOnlyRuntimeSizePolicyAcceptance() {
+  return {
+    reportName: "runtime-size-policy-acceptance",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "accepted-warning-only-waiver",
+    accepted: true,
+    acceptanceKind: "warning-only-waiver",
+    policyPath: "docs/production-scale/runtime-size-threshold-policy.json",
+    evidencePath: "docs/production-scale/evidence/latest-runtime-size.json",
+    policyMode: "warning-only",
+    formalWaiver: {
+      accepted: true,
+      reason: "Runtime-size warning-only policy accepted for limited beta with governed WARN rows.",
+      approvedByRole: "Release governance owner",
+      acceptedAt: "2026-05-20T12:00:00.000Z",
+      expiresOn: "2026-08-20",
+    },
+    runtimeEvidence: {
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      overallStatus: "WARN",
+      hasBlockingFailures: false,
+      statusCounts: {
+        WARN: 7,
+        WAIVED: 1,
+      },
+    },
+    warningRows: [{ id: "main-js-raw", accepted: true }],
+    waivedRows: [{ id: "docker-ocr-runtime-inventory", accepted: true, reason: "Fixture waiver." }],
+    blockerCoverage: {
+      runtimeSizeGovernance: true,
+      acceptedHardGate: false,
+      acceptedWarningOnlyWaiver: true,
+    },
+    validation: {
+      ok: true,
+      errors: [],
+    },
+    safety: {
+      nonMutating: true,
+      productionDataMutated: false,
+      dependencyVersionsChanged: false,
+      buildChunkingChanged: false,
+      buildBehaviorChanged: false,
+      pdfOcrBehaviorChanged: false,
+      hardGateClaimedWhenWarningOnly: false,
+    },
+  };
+}
+
+function acceptedHardGateRuntimeSizePolicyAcceptance() {
+  return {
+    ...acceptedWarningOnlyRuntimeSizePolicyAcceptance(),
+    status: "accepted-hard-gate",
+    acceptanceKind: "hard-gate",
+    policyMode: "hard-gate",
+    formalWaiver: {
+      accepted: false,
+      reason: null,
+    },
+    runtimeEvidence: {
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      overallStatus: "PASS",
+      hasBlockingFailures: false,
+      statusCounts: {
+        PASS: 8,
+      },
+    },
+    warningRows: [],
+    waivedRows: [],
+    blockerCoverage: {
+      runtimeSizeGovernance: true,
+      acceptedHardGate: true,
+      acceptedWarningOnlyWaiver: false,
+    },
+  };
+}
+
 describe("production promotion evidence pack", () => {
   it("fails if a required blocker is missing", () => {
     const registry = JSON.parse(readFileSync(resolve("docs/production-scale/blocker-registry.json"), "utf8"));
@@ -316,6 +432,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run response:ops-readiness-evidence");
     expect(report.commandList).toContain("pnpm run migrations:gate");
     expect(report.commandList).toContain("pnpm run baseline:production-scale-measured -- --local");
+    expect(report.commandList).toContain("pnpm run runtime-size:policy-acceptance");
   });
 
   it("does not claim production-at-scale readiness while unresolved or human-required blockers remain", () => {
@@ -448,6 +565,50 @@ describe("production promotion evidence pack", () => {
     expect(classifications.get(3)).toBe("simulated proof only");
     expect(classifications.get(16)).toBe("simulated proof only");
     expect(classifications.get(17)).toBe("simulated proof only");
+  });
+
+  it("keeps blocker 18 partial without accepted runtime-size policy acceptance", () => {
+    const report = buildPack();
+    const blocker18 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 18);
+
+    expect(report.runtimeSizePolicyAcceptance).toMatchObject({
+      accepted: false,
+      blockerCoverage: {
+        runtimeSizeGovernance: false,
+      },
+    });
+    expect(blocker18?.classification).toBe("partial");
+  });
+
+  it("classifies blocker 18 as waived for accepted warning-only runtime-size policy", () => {
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
+      runtimeSizePolicyAcceptance: acceptedWarningOnlyRuntimeSizePolicyAcceptance(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker18 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 18);
+
+    expect(blocker18?.classification).toBe("waived with explicit reason");
+    expect(report.runtimeSizePolicyAcceptance.blockerCoverage.acceptedHardGate).toBe(false);
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("classifies blocker 18 fixed only for accepted hard-gate runtime-size policy", () => {
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
+      runtimeSizePolicyAcceptance: acceptedHardGateRuntimeSizePolicyAcceptance(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker18 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 18);
+
+    expect(blocker18?.classification).toBe("fixed with automated evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
   it("keeps blocker 6 remediation-required unless accepted operator evidence exists", () => {
@@ -677,6 +838,7 @@ describe("production promotion evidence pack", () => {
         "pnpm run alerts:exclusion:validate",
         "pnpm run alerts:dry-run",
         "pnpm run baseline:production-scale-measured -- --local",
+        "pnpm run runtime-size:policy-acceptance",
         "pnpm run production-scale:promotion-pack",
         "pnpm run operator:dashboard",
       ]),

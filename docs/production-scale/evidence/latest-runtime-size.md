@@ -1,6 +1,6 @@
 # Runtime Size And Dependency Report
 
-Generated at: 2026-05-20T19:28:09.012Z
+Generated at: 2026-05-20T22:10:10.817Z
 Script: `scripts/runtime-size-report.mjs`
 
 ## Safety

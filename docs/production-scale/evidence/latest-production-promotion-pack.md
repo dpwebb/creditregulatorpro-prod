@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T21:58:44.428Z
+Generated at: 2026-05-20T22:11:50.670Z
 Current branch: `staging`
-Current commit hash: `1dcc63f804a9850ff016d085f2ac17613e1ad6d7`
+Current commit hash: `be3bfcb4b545020e2bd676ae5e073b1b09789541`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -16,6 +16,7 @@ Recommended readiness classification: **limited beta**
 - Historical raw report remediation requires accepted sanitized operator evidence.
 - Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.
 - Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
+- Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.
 - Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.
 
 ## Command Result Summary
@@ -41,6 +42,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run migrations:gate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-gate.md, docs/production-scale/evidence/latest-migration-gate.json
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
+- `pnpm run runtime-size:policy-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md, docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json
 - `git diff --check` - reference-required; evidence: none
 - `pnpm run production-scale:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-scale-evidence.md, docs/production-scale/evidence/latest-production-scale-evidence.json
 - `pnpm run restore:drill:simulated` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-drill-simulated.md, docs/production-scale/evidence/latest-restore-drill-simulated.json
@@ -118,6 +120,25 @@ Recommended readiness classification: **limited beta**
 - Blocker 16 coverage: accepted
 - Blocker 17 coverage: accepted
 
+## Runtime Size Policy Acceptance
+
+- Status: accepted-warning-only-waiver
+- Accepted: yes
+- Acceptance kind: warning-only-waiver
+- Policy mode: warning-only
+- Policy path: `docs/production-scale/runtime-size-threshold-policy.json`
+- Evidence path: `docs/production-scale/evidence/latest-runtime-size.json`
+- Runtime overall status: WARN
+- Runtime blocking failures: no
+- WARN rows governed: 7/7
+- WAIVED rows with reasons: 1/1
+- Formal waiver accepted: yes
+- Blocker 18 hard-gate coverage: not accepted
+- Blocker 18 warning-only waiver coverage: accepted
+- Dependency versions changed: no
+- Build chunking changed: no
+- PDF/OCR behavior changed: no
+
 ## Migration Gate Evidence
 
 - Status: accepted-formal-waiver
@@ -162,6 +183,7 @@ Recommended readiness classification: **limited beta**
 ## Waivers
 
 - #10 Migration governance (High; waived with explicit reason) - Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.
+- #18 Runtime-size gates (Medium; waived with explicit reason) - Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.
 
 ## Unresolved Production Blockers
 
@@ -175,7 +197,7 @@ Recommended readiness classification: **limited beta**
 
 ## Unresolved Scale Blockers
 
-- #18 Runtime-size gates (Medium; partial) - Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.
+- None.
 
 ## Generated Evidence File References
 
@@ -223,6 +245,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-sensitive-list-endpoints.json` - present
 - `docs/production-scale/evidence/latest-runtime-size.md` - present
 - `docs/production-scale/evidence/latest-runtime-size.json` - present
+- `docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md` - present
+- `docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json` - present
 - `docs/production-scale/evidence/human-restore-drill-evidence.md` - missing
 - `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.json` - missing

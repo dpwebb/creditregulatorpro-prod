@@ -328,14 +328,19 @@ Run after a build:
 pnpm run build
 pnpm run report:runtime-size
 pnpm run check:runtime-size
+pnpm run runtime-size:policy-acceptance
 ```
 
 Outputs:
 
 - `docs/production-scale/evidence/latest-runtime-size.md`
 - `docs/production-scale/evidence/latest-runtime-size.json`
+- `docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md`
+- `docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json`
 
 The policy file is `docs/production-scale/runtime-size-threshold-policy.json`. It classifies configured rows as `PASS`, `WARN`, `FAIL`, or `WAIVED`. The current mode is warning-only, so `WARN` and `WAIVED` rows are visible release evidence but do not hard-fail builds or deploys. `FAIL` is available only if a future reviewed policy explicitly switches to `hard-gate` and enables `failOnExceed` for a threshold.
+
+The policy acceptance command validates that the threshold policy exists, warning-only mode has an accepted formal waiver, every `WARN` row has either remediation owner/date/plan or an explicit waiver reason, every `WAIVED` row has an explicit reason, recent build output has been captured when determinable, and warning-only evidence does not claim hard-gate behavior. Promotion-pack logic classifies blocker 18 as waived with explicit reason when warning-only acceptance passes; it classifies blocker 18 as fixed by automated evidence only for a reviewed hard-gate mode with no exceeded thresholds.
 
 The policy tracks main JS raw/gzip, CSS raw/gzip, `pdfjs-dist`, `pdf-parse`, `pdfmake`, and Docker OCR/PDF runtime inventory. This evidence does not refactor dependencies, change chunks, alter Docker packages, or change OCR/PDF behavior. Dependency isolation, replacement, or chunking work remains deferred until a separately tested task.
 

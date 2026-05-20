@@ -19,6 +19,12 @@ import {
 } from "./migration-gate.mjs";
 
 import {
+  buildRuntimeSizePolicyAcceptanceReport,
+  RUNTIME_SIZE_POLICY_ACCEPTANCE_JSON_PATH,
+  RUNTIME_SIZE_POLICY_ACCEPTANCE_MD_PATH,
+} from "./runtime-size-policy-acceptance.mjs";
+
+import {
   buildMeasuredLoadEvidenceAcceptance,
   LOAD_MEASURED_JSON_PATH,
   LOAD_MEASURED_MD_PATH,
@@ -91,6 +97,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run migrations:gate",
   "pnpm run restore:accept-human-evidence",
   "pnpm run report:runtime-size",
+  "pnpm run runtime-size:policy-acceptance",
   "git diff --check",
 ];
 
@@ -112,6 +119,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run staging-owner-denial-smoke:evidence",
   "pnpm run sensitive-list-endpoints:evidence",
   "pnpm run check:runtime-size",
+  "pnpm run runtime-size:policy-acceptance",
 ];
 
 const OUTPUT_BY_COMMAND = {
@@ -206,6 +214,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run check:runtime-size": [
     "docs/production-scale/evidence/latest-runtime-size.md",
     "docs/production-scale/evidence/latest-runtime-size.json",
+  ],
+  "pnpm run runtime-size:policy-acceptance": [
+    RUNTIME_SIZE_POLICY_ACCEPTANCE_MD_PATH,
+    RUNTIME_SIZE_POLICY_ACCEPTANCE_JSON_PATH,
   ],
 };
 
@@ -312,6 +324,7 @@ function classifyBlocker(
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
   measuredLoadEvidenceAcceptance = null,
+  runtimeSizePolicyAcceptance = null,
 ) {
   if (
     blocker.number === 3 &&
@@ -396,6 +409,20 @@ function classifyBlocker(
     measuredLoadEvidenceAcceptance?.blockerCoverage?.rateLimiterWritePressure === true
   ) {
     return "fixed with automated evidence";
+  }
+  if (
+    blocker.number === 18 &&
+    runtimeSizePolicyAcceptance?.accepted === true &&
+    runtimeSizePolicyAcceptance?.blockerCoverage?.acceptedHardGate === true
+  ) {
+    return "fixed with automated evidence";
+  }
+  if (
+    blocker.number === 18 &&
+    runtimeSizePolicyAcceptance?.accepted === true &&
+    runtimeSizePolicyAcceptance?.blockerCoverage?.acceptedWarningOnlyWaiver === true
+  ) {
+    return "waived with explicit reason";
   }
   if (
     blocker.number === 22 &&
@@ -508,6 +535,7 @@ export function buildProductionPromotionPackReport({
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
   measuredLoadEvidenceAcceptance = null,
+  runtimeSizePolicyAcceptance = null,
   generatedAt = new Date().toISOString(),
   env = process.env,
 } = {}) {
@@ -549,6 +577,8 @@ export function buildProductionPromotionPackReport({
     migrationGateEvidence ?? buildMigrationGateReport({ rootDir, generatedAt });
   const measuredLoadAcceptance =
     measuredLoadEvidenceAcceptance ?? buildMeasuredLoadEvidenceAcceptance({ rootDir, generatedAt });
+  const runtimeSizeAcceptance =
+    runtimeSizePolicyAcceptance ?? buildRuntimeSizePolicyAcceptanceReport({ rootDir, generatedAt });
 
   const classifiedBlockers = loadedRegistry.blockers.map((blocker) => {
     const classification = classifyBlocker(
@@ -559,6 +589,7 @@ export function buildProductionPromotionPackReport({
       responseOpsEvidence,
       migrationGate,
       measuredLoadAcceptance,
+      runtimeSizeAcceptance,
     );
     return {
       number: blocker.number,
@@ -619,6 +650,8 @@ export function buildProductionPromotionPackReport({
     LIVE_ALERT_PROOF_MD_PATH,
     MIGRATION_GATE_POLICY_PATH,
     LOAD_THRESHOLD_POLICY_PATH,
+    RUNTIME_SIZE_POLICY_ACCEPTANCE_MD_PATH,
+    RUNTIME_SIZE_POLICY_ACCEPTANCE_JSON_PATH,
     ...classifiedBlockers.flatMap((blocker) => blocker.relatedEvidenceOutputPaths),
   ]).map((filePath) => summarizeEvidenceFile(rootDir, filePath));
   const commandResults = buildCommandList(rootDir, loadedRegistry, packageJson);
@@ -748,6 +781,40 @@ export function buildProductionPromotionPackReport({
         rawReportBytesSent: measuredLoadAcceptance.safety?.rawReportBytesSent === true,
       },
     },
+    runtimeSizePolicyAcceptance: {
+      reportName: runtimeSizeAcceptance.reportName,
+      generatedAt: runtimeSizeAcceptance.generatedAt,
+      status: runtimeSizeAcceptance.status,
+      accepted: runtimeSizeAcceptance.accepted === true,
+      acceptanceKind: runtimeSizeAcceptance.acceptanceKind ?? null,
+      policyPath: runtimeSizeAcceptance.policyPath,
+      evidencePath: runtimeSizeAcceptance.evidencePath,
+      policyMode: runtimeSizeAcceptance.policyMode,
+      formalWaiver: {
+        accepted: runtimeSizeAcceptance.formalWaiver?.accepted === true,
+        reason: runtimeSizeAcceptance.formalWaiver?.reason ?? null,
+        approvedByRole: runtimeSizeAcceptance.formalWaiver?.approvedByRole ?? null,
+        acceptedAt: runtimeSizeAcceptance.formalWaiver?.acceptedAt ?? null,
+        expiresOn: runtimeSizeAcceptance.formalWaiver?.expiresOn ?? null,
+      },
+      runtimeEvidence: runtimeSizeAcceptance.runtimeEvidence ?? null,
+      warningRows: runtimeSizeAcceptance.warningRows ?? [],
+      waivedRows: runtimeSizeAcceptance.waivedRows ?? [],
+      blockerCoverage: runtimeSizeAcceptance.blockerCoverage,
+      validation: {
+        ok: runtimeSizeAcceptance.validation?.ok === true,
+        errors: runtimeSizeAcceptance.validation?.errors ?? [],
+      },
+      safety: {
+        nonMutating: runtimeSizeAcceptance.safety?.nonMutating === true,
+        productionDataMutated: runtimeSizeAcceptance.safety?.productionDataMutated === true,
+        dependencyVersionsChanged: runtimeSizeAcceptance.safety?.dependencyVersionsChanged === true,
+        buildChunkingChanged: runtimeSizeAcceptance.safety?.buildChunkingChanged === true,
+        buildBehaviorChanged: runtimeSizeAcceptance.safety?.buildBehaviorChanged === true,
+        pdfOcrBehaviorChanged: runtimeSizeAcceptance.safety?.pdfOcrBehaviorChanged === true,
+        hardGateClaimedWhenWarningOnly: runtimeSizeAcceptance.safety?.hardGateClaimedWhenWarningOnly === true,
+      },
+    },
     migrationGateEvidence: {
       reportName: migrationGate.reportName,
       generatedAt: migrationGate.generatedAt,
@@ -832,6 +899,7 @@ export function buildProductionPromotionPackReport({
       "Historical raw report remediation requires accepted sanitized operator evidence.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
+      "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
       "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
       "Codex must not promote readiness classification beyond the evidence in this pack.",
     ],
@@ -878,6 +946,7 @@ export function validatePromotionPackReport(report) {
   const responseOpsReadiness = report.responseOpsReadinessEvidence;
   const migrationGate = report.migrationGateEvidence;
   const measuredLoad = report.measuredLoadEvidenceAcceptance;
+  const runtimeSize = report.runtimeSizePolicyAcceptance;
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
   const blocker2 = blockers.find((blocker) => blocker.number === 2);
   const blocker3 = blockers.find((blocker) => blocker.number === 3);
@@ -888,6 +957,7 @@ export function validatePromotionPackReport(report) {
   const blocker11 = blockers.find((blocker) => blocker.number === 11);
   const blocker16 = blockers.find((blocker) => blocker.number === 16);
   const blocker17 = blockers.find((blocker) => blocker.number === 17);
+  const blocker18 = blockers.find((blocker) => blocker.number === 18);
   const blocker21 = blockers.find((blocker) => blocker.number === 21);
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
   if (blocker2?.classification === "fixed with human-observed evidence") {
@@ -1026,6 +1096,38 @@ export function validatePromotionPackReport(report) {
       errors.push("Blocker 17 cannot be fixed without accepted bounded measured rate limiter write-pressure evidence.");
     }
   }
+  if (blocker18?.classification === "fixed with automated evidence") {
+    if (
+      runtimeSize?.accepted !== true ||
+      runtimeSize?.blockerCoverage?.acceptedHardGate !== true ||
+      runtimeSize?.policyMode !== "hard-gate" ||
+      runtimeSize?.runtimeEvidence?.hasBlockingFailures === true ||
+      runtimeSize?.validation?.ok !== true ||
+      runtimeSize?.safety?.nonMutating !== true ||
+      runtimeSize?.safety?.dependencyVersionsChanged === true ||
+      runtimeSize?.safety?.buildChunkingChanged === true ||
+      runtimeSize?.safety?.buildBehaviorChanged === true ||
+      runtimeSize?.safety?.pdfOcrBehaviorChanged === true
+    ) {
+      errors.push("Blocker 18 cannot be fixed by gate without accepted non-mutating hard-gate runtime-size policy evidence.");
+    }
+  }
+  if (blocker18?.classification === "waived with explicit reason") {
+    if (
+      runtimeSize?.accepted !== true ||
+      runtimeSize?.blockerCoverage?.acceptedWarningOnlyWaiver !== true ||
+      runtimeSize?.policyMode !== "warning-only" ||
+      runtimeSize?.formalWaiver?.accepted !== true ||
+      !runtimeSize?.formalWaiver?.reason ||
+      runtimeSize?.safety?.hardGateClaimedWhenWarningOnly === true ||
+      runtimeSize?.safety?.dependencyVersionsChanged === true ||
+      runtimeSize?.safety?.buildChunkingChanged === true ||
+      runtimeSize?.safety?.buildBehaviorChanged === true ||
+      runtimeSize?.safety?.pdfOcrBehaviorChanged === true
+    ) {
+      errors.push("Blocker 18 cannot be waived without accepted warning-only runtime-size waiver evidence.");
+    }
+  }
   if (blocker21?.classification === "fixed with automated evidence") {
     const commandList = new Set(report.commandList ?? []);
     for (const command of [
@@ -1035,6 +1137,7 @@ export function validatePromotionPackReport(report) {
       "pnpm run alerts:exclusion:validate",
       "pnpm run alerts:dry-run",
       "pnpm run baseline:production-scale-measured -- --local",
+      "pnpm run runtime-size:policy-acceptance",
       "pnpm run production-scale:promotion-pack",
       "pnpm run operator:dashboard",
     ]) {
@@ -1115,6 +1218,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Historical raw report remediation requires accepted sanitized operator evidence.",
     "- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
+    "- Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "- Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "",
     "## Command Result Summary",
@@ -1210,6 +1314,37 @@ export function renderPromotionPackMarkdown(report) {
     `- Blocker 17 coverage: ${
       report.measuredLoadEvidenceAcceptance.blockerCoverage?.rateLimiterWritePressure ? "accepted" : "not accepted"
     }`,
+    "",
+    "## Runtime Size Policy Acceptance",
+    "",
+    `- Status: ${report.runtimeSizePolicyAcceptance.status}`,
+    `- Accepted: ${report.runtimeSizePolicyAcceptance.accepted ? "yes" : "no"}`,
+    `- Acceptance kind: ${report.runtimeSizePolicyAcceptance.acceptanceKind ?? "unknown"}`,
+    `- Policy mode: ${report.runtimeSizePolicyAcceptance.policyMode ?? "unknown"}`,
+    `- Policy path: \`${report.runtimeSizePolicyAcceptance.policyPath ?? "not submitted"}\``,
+    `- Evidence path: \`${report.runtimeSizePolicyAcceptance.evidencePath ?? "not submitted"}\``,
+    `- Runtime overall status: ${report.runtimeSizePolicyAcceptance.runtimeEvidence?.overallStatus ?? "unknown"}`,
+    `- Runtime blocking failures: ${
+      report.runtimeSizePolicyAcceptance.runtimeEvidence?.hasBlockingFailures ? "yes" : "no"
+    }`,
+    `- WARN rows governed: ${
+      report.runtimeSizePolicyAcceptance.warningRows?.filter((row) => row.accepted).length ?? 0
+    }/${report.runtimeSizePolicyAcceptance.warningRows?.length ?? 0}`,
+    `- WAIVED rows with reasons: ${
+      report.runtimeSizePolicyAcceptance.waivedRows?.filter((row) => row.accepted).length ?? 0
+    }/${report.runtimeSizePolicyAcceptance.waivedRows?.length ?? 0}`,
+    `- Formal waiver accepted: ${report.runtimeSizePolicyAcceptance.formalWaiver?.accepted ? "yes" : "no"}`,
+    `- Blocker 18 hard-gate coverage: ${
+      report.runtimeSizePolicyAcceptance.blockerCoverage?.acceptedHardGate ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 18 warning-only waiver coverage: ${
+      report.runtimeSizePolicyAcceptance.blockerCoverage?.acceptedWarningOnlyWaiver ? "accepted" : "not accepted"
+    }`,
+    `- Dependency versions changed: ${
+      report.runtimeSizePolicyAcceptance.safety?.dependencyVersionsChanged ? "yes" : "no"
+    }`,
+    `- Build chunking changed: ${report.runtimeSizePolicyAcceptance.safety?.buildChunkingChanged ? "yes" : "no"}`,
+    `- PDF/OCR behavior changed: ${report.runtimeSizePolicyAcceptance.safety?.pdfOcrBehaviorChanged ? "yes" : "no"}`,
     "",
     "## Migration Gate Evidence",
     "",

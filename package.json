@@ -84,6 +84,7 @@
     "retention:archive-restore:simulated": "node scripts/retention-archive-restore-simulated.mjs",
     "report:runtime-size": "node scripts/runtime-size-report.mjs",
     "check:runtime-size": "node scripts/runtime-size-report.mjs --check",
+    "runtime-size:policy-acceptance": "node scripts/runtime-size-policy-acceptance.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",
     "check:restore-drill-evidence": "node scripts/staging-backup-restore-checklist.mjs --validate-evidence docs/restore-drill-evidence-template.md",
     "restore:accept-human-evidence": "node scripts/staging-backup-restore-checklist.mjs --accept-human-evidence",

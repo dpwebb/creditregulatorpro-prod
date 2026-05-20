@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T21:58:44.428Z",
+  "generatedAt": "2026-05-20T22:11:50.670Z",
   "currentBranch": "staging",
-  "currentCommitHash": "1dcc63f804a9850ff016d085f2ac17613e1ad6d7",
+  "currentCommitHash": "be3bfcb4b545020e2bd676ae5e073b1b09789541",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -51,6 +51,7 @@
     "pnpm run migrations:gate",
     "pnpm run restore:accept-human-evidence",
     "pnpm run report:runtime-size",
+    "pnpm run runtime-size:policy-acceptance",
     "git diff --check",
     "pnpm run production-scale:evidence",
     "pnpm run restore:drill:simulated",
@@ -467,13 +468,42 @@
           "exists": true,
           "reportName": null,
           "evidenceType": null,
-          "generatedAt": "2026-05-20T19:28:09.012Z",
+          "generatedAt": "2026-05-20T22:10:10.817Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T19:28:09.012Z",
+      "latestGeneratedAt": "2026-05-20T22:10:10.817Z",
       "status": null
+    },
+    {
+      "command": "pnpm run runtime-size:policy-acceptance",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
+          "exists": true,
+          "reportName": "runtime-size-policy-acceptance",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T22:10:26.344Z",
+          "status": "accepted-warning-only-waiver",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T22:10:26.344Z",
+      "status": "accepted-warning-only-waiver"
     },
     {
       "command": "git diff --check",
@@ -506,12 +536,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T21:57:21.740Z",
+          "generatedAt": "2026-05-20T22:11:31.242Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:57:21.740Z",
+      "latestGeneratedAt": "2026-05-20T22:11:31.242Z",
       "status": null
     },
     {
@@ -854,12 +884,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": null,
-          "generatedAt": "2026-05-20T19:28:09.012Z",
+          "generatedAt": "2026-05-20T22:10:10.817Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T19:28:09.012Z",
+      "latestGeneratedAt": "2026-05-20T22:10:10.817Z",
       "status": null
     },
     {
@@ -958,7 +988,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:57:21.740Z",
+      "generatedAt": "2026-05-20T22:11:31.242Z",
       "status": null,
       "productionProof": false
     },
@@ -1336,8 +1366,26 @@
       "exists": true,
       "reportName": null,
       "evidenceType": null,
-      "generatedAt": "2026-05-20T19:28:09.012Z",
+      "generatedAt": "2026-05-20T22:10:10.817Z",
       "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
+      "exists": true,
+      "reportName": "runtime-size-policy-acceptance",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T22:10:26.344Z",
+      "status": "accepted-warning-only-waiver",
       "productionProof": false
     },
     {
@@ -1615,7 +1663,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:57:03.365Z",
+      "generatedAt": "2026-05-20T22:10:32.134Z",
       "status": null,
       "productionProof": false
     },
@@ -1640,7 +1688,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T21:58:44.428Z",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1660,7 +1708,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T21:58:44.428Z",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -1681,7 +1729,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T21:58:44.428Z",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1704,7 +1752,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-20T21:58:44.428Z",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -1762,9 +1810,176 @@
       "rawReportBytesSent": false
     }
   },
+  "runtimeSizePolicyAcceptance": {
+    "reportName": "runtime-size-policy-acceptance",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
+    "status": "accepted-warning-only-waiver",
+    "accepted": true,
+    "acceptanceKind": "warning-only-waiver",
+    "policyPath": "docs/production-scale/runtime-size-threshold-policy.json",
+    "evidencePath": "docs/production-scale/evidence/latest-runtime-size.json",
+    "policyMode": "warning-only",
+    "formalWaiver": {
+      "accepted": true,
+      "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future hard-gate activation requires reviewed threshold policy change.",
+      "approvedByRole": "Release governance owner",
+      "acceptedAt": "2026-05-20T12:00:00.000Z",
+      "expiresOn": "2026-08-20"
+    },
+    "runtimeEvidence": {
+      "generatedAt": "2026-05-20T22:10:10.817Z",
+      "commit": "be3bfcb4b545020e2bd676ae5e073b1b09789541",
+      "workingTreeClean": false,
+      "overallStatus": "WARN",
+      "hasBlockingFailures": false,
+      "statusCounts": {
+        "WARN": 7,
+        "WAIVED": 1
+      },
+      "largestJsRawBytes": 3281834,
+      "largestJsGzipBytes": 898477,
+      "largestCssRawBytes": 690152,
+      "largestCssGzipBytes": 103908
+    },
+    "warningRows": [
+      {
+        "id": "main-js-raw",
+        "label": "Largest JavaScript asset raw size",
+        "measuredBytes": 3281834,
+        "source": "dist/_assets/index-UN-opMmL.js",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "Frontend platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Review route-level chunking or lazy-loading in a separate audited task before any hard-gate activation."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      },
+      {
+        "id": "main-js-gzip",
+        "label": "Largest JavaScript asset gzip size",
+        "measuredBytes": 898477,
+        "source": "dist/_assets/index-UN-opMmL.js",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "Frontend platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Track compressed JS trend and propose chunk ownership changes in a separate reviewed task."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      },
+      {
+        "id": "main-css-raw",
+        "label": "Largest CSS asset raw size",
+        "measuredBytes": 690152,
+        "source": "dist/_assets/index-CYJKQrWs.css",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "UI platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Review CSS ownership and unused rules separately with UI regression coverage."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      },
+      {
+        "id": "main-css-gzip",
+        "label": "Largest CSS asset gzip size",
+        "measuredBytes": 103908,
+        "source": "dist/_assets/index-CYJKQrWs.css",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "UI platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Track compressed CSS trend and defer style optimization to a separate reviewed UI task."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      },
+      {
+        "id": "dependency-pdfjs-dist",
+        "label": "pdfjs-dist installed size",
+        "measuredBytes": 36254862,
+        "source": "pdfjs-dist",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "PDF/OCR platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Review pdfjs-dist isolation only in a dedicated OCR/PDF regression task."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      },
+      {
+        "id": "dependency-pdf-parse",
+        "label": "pdf-parse installed size",
+        "measuredBytes": 28345398,
+        "source": "pdf-parse",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "PDF/OCR platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Review pdf-parse replacement only with deterministic parser and OCR regression evidence."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      },
+      {
+        "id": "dependency-pdfmake",
+        "label": "pdfmake installed size",
+        "measuredBytes": 13568520,
+        "source": "pdfmake",
+        "remediationAccepted": true,
+        "remediation": {
+          "ownerRole": "Packet PDF platform owner",
+          "targetDate": "2026-08-20",
+          "plan": "Review packet PDF dependency isolation only with packet/PDF regression evidence."
+        },
+        "waiverAccepted": false,
+        "waiverReason": null,
+        "accepted": true
+      }
+    ],
+    "waivedRows": [
+      {
+        "id": "docker-ocr-runtime-inventory",
+        "label": "Docker OCR/PDF runtime package inventory",
+        "measuredBytes": null,
+        "source": "Dockerfile",
+        "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+        "accepted": true
+      }
+    ],
+    "blockerCoverage": {
+      "runtimeSizeGovernance": true,
+      "acceptedHardGate": false,
+      "acceptedWarningOnlyWaiver": true
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "safety": {
+      "nonMutating": true,
+      "productionDataMutated": false,
+      "dependencyVersionsChanged": false,
+      "buildChunkingChanged": false,
+      "buildBehaviorChanged": false,
+      "pdfOcrBehaviorChanged": false,
+      "hardGateClaimedWhenWarningOnly": false
+    }
+  },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-20T21:58:44.428Z",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
     "status": "accepted-formal-waiver",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "waived",
@@ -1798,7 +2013,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-20T21:58:44.428Z",
+    "generatedAt": "2026-05-20T22:11:50.670Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -2575,8 +2790,8 @@
       "severity": "Medium",
       "area": "Runtime-size gates",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
+      "classification": "waived with explicit reason",
+      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
       "proofCategories": [
         "automated-local",
         "human-observed"
@@ -2585,10 +2800,15 @@
         "pnpm run build",
         "pnpm run report:runtime-size",
         "pnpm run check:runtime-size",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
+        "pnpm run runtime-size:policy-acceptance",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts"
       ],
       "forbiddenProofTypes": [
         "non-blocking threshold represented as blocking",
+        "warning-only policy represented as fixed-by-gate",
+        "WARN rows without remediation owner/date or waiver reason",
+        "WAIVED rows without explicit reason",
         "dependency upgrades",
         "chunking changes without tests",
         "dashboard PASS alone"
@@ -2598,14 +2818,16 @@
         "docs/production-scale/runtime-size-threshold-policy.json",
         "docs/production-scale/evidence/latest-runtime-size.md",
         "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.",
+      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
-      "waiverReason": null
+      "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made."
     },
     {
       "number": 19,
@@ -2705,6 +2927,7 @@
         "pnpm run response:ops-readiness-evidence",
         "pnpm run alerts:exclusion:validate",
         "pnpm run alerts:dry-run",
+        "pnpm run runtime-size:policy-acceptance",
         "pnpm run production-scale:promotion-pack",
         "pnpm run operator:dashboard",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
@@ -2725,6 +2948,8 @@
         "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
         "docs/production-scale/evidence/latest-alerts-dry-run.md",
         "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
         "docs/production-scale/evidence/latest-production-promotion-pack.md",
         "docs/production-scale/evidence/latest-production-promotion-pack.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -3230,46 +3455,7 @@
       "waiverReason": null
     }
   ],
-  "unresolvedScaleBlockers": [
-    {
-      "number": 18,
-      "title": "Runtime-size gates",
-      "severity": "Medium",
-      "area": "Runtime-size gates",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
-      "proofCategories": [
-        "automated-local",
-        "human-observed"
-      ],
-      "allowedProofCommands": [
-        "pnpm run build",
-        "pnpm run report:runtime-size",
-        "pnpm run check:runtime-size",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "non-blocking threshold represented as blocking",
-        "dependency upgrades",
-        "chunking changes without tests",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/runtime-size-and-dependency-report.md",
-        "docs/production-scale/runtime-size-threshold-policy.json",
-        "docs/production-scale/evidence/latest-runtime-size.md",
-        "docs/production-scale/evidence/latest-runtime-size.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change.",
-      "humanProofRequired": false,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    }
-  ],
+  "unresolvedScaleBlockers": [],
   "skippedChecks": {
     "dashboardAvailable": true,
     "dashboardCommand": "pnpm run operator:dashboard -- --json",
@@ -3575,6 +3761,51 @@
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources."
+    },
+    {
+      "number": 18,
+      "title": "Runtime-size gates",
+      "severity": "Medium",
+      "area": "Runtime-size gates",
+      "currentStatus": "partial",
+      "classification": "waived with explicit reason",
+      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
+      "proofCategories": [
+        "automated-local",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run build",
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm run runtime-size:policy-acceptance",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts"
+      ],
+      "forbiddenProofTypes": [
+        "non-blocking threshold represented as blocking",
+        "warning-only policy represented as fixed-by-gate",
+        "WARN rows without remediation owner/date or waiver reason",
+        "WAIVED rows without explicit reason",
+        "dependency upgrades",
+        "chunking changes without tests",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/runtime-size-and-dependency-report.md",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "docs/production-scale/evidence/latest-runtime-size.md",
+        "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
+      "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made."
     }
   ],
   "readinessClassification": {
@@ -3597,6 +3828,7 @@
     "Historical raw report remediation requires accepted sanitized operator evidence.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
+    "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "Codex must not promote readiness classification beyond the evidence in this pack."
   ]

@@ -1,9 +1,9 @@
 {
   "report": "runtime-size-and-dependency-report",
   "script": "scripts/runtime-size-report.mjs",
-  "generatedAt": "2026-05-20T19:28:09.012Z",
+  "generatedAt": "2026-05-20T22:10:10.817Z",
   "branch": "staging",
-  "commit": "9ed44078183d5ff5ad04720e4d5b83426d78b880",
+  "commit": "be3bfcb4b545020e2bd676ae5e073b1b09789541",
   "workingTreeClean": false,
   "safety": {
     "reportingOnly": true,

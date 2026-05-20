@@ -1,0 +1,173 @@
+{
+  "reportName": "runtime-size-policy-acceptance",
+  "generatedAt": "2026-05-20T22:10:26.344Z",
+  "status": "accepted-warning-only-waiver",
+  "accepted": true,
+  "acceptanceKind": "warning-only-waiver",
+  "policyPath": "docs/production-scale/runtime-size-threshold-policy.json",
+  "evidencePath": "docs/production-scale/evidence/latest-runtime-size.json",
+  "policyMode": "warning-only",
+  "formalWaiver": {
+    "accepted": true,
+    "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future hard-gate activation requires reviewed threshold policy change.",
+    "approvedByRole": "Release governance owner",
+    "acceptedAt": "2026-05-20T12:00:00.000Z",
+    "expiresOn": "2026-08-20"
+  },
+  "runtimeEvidence": {
+    "generatedAt": "2026-05-20T22:10:10.817Z",
+    "commit": "be3bfcb4b545020e2bd676ae5e073b1b09789541",
+    "workingTreeClean": false,
+    "overallStatus": "WARN",
+    "hasBlockingFailures": false,
+    "statusCounts": {
+      "WARN": 7,
+      "WAIVED": 1
+    },
+    "largestJsRawBytes": 3281834,
+    "largestJsGzipBytes": 898477,
+    "largestCssRawBytes": 690152,
+    "largestCssGzipBytes": 103908
+  },
+  "warningRows": [
+    {
+      "id": "main-js-raw",
+      "label": "Largest JavaScript asset raw size",
+      "measuredBytes": 3281834,
+      "source": "dist/_assets/index-UN-opMmL.js",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "Frontend platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review route-level chunking or lazy-loading in a separate audited task before any hard-gate activation."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    },
+    {
+      "id": "main-js-gzip",
+      "label": "Largest JavaScript asset gzip size",
+      "measuredBytes": 898477,
+      "source": "dist/_assets/index-UN-opMmL.js",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "Frontend platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Track compressed JS trend and propose chunk ownership changes in a separate reviewed task."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    },
+    {
+      "id": "main-css-raw",
+      "label": "Largest CSS asset raw size",
+      "measuredBytes": 690152,
+      "source": "dist/_assets/index-CYJKQrWs.css",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "UI platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review CSS ownership and unused rules separately with UI regression coverage."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    },
+    {
+      "id": "main-css-gzip",
+      "label": "Largest CSS asset gzip size",
+      "measuredBytes": 103908,
+      "source": "dist/_assets/index-CYJKQrWs.css",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "UI platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Track compressed CSS trend and defer style optimization to a separate reviewed UI task."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    },
+    {
+      "id": "dependency-pdfjs-dist",
+      "label": "pdfjs-dist installed size",
+      "measuredBytes": 36254862,
+      "source": "pdfjs-dist",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "PDF/OCR platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review pdfjs-dist isolation only in a dedicated OCR/PDF regression task."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    },
+    {
+      "id": "dependency-pdf-parse",
+      "label": "pdf-parse installed size",
+      "measuredBytes": 28345398,
+      "source": "pdf-parse",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "PDF/OCR platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review pdf-parse replacement only with deterministic parser and OCR regression evidence."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    },
+    {
+      "id": "dependency-pdfmake",
+      "label": "pdfmake installed size",
+      "measuredBytes": 13568520,
+      "source": "pdfmake",
+      "remediationAccepted": true,
+      "remediation": {
+        "ownerRole": "Packet PDF platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review packet PDF dependency isolation only with packet/PDF regression evidence."
+      },
+      "waiverAccepted": false,
+      "waiverReason": null,
+      "accepted": true
+    }
+  ],
+  "waivedRows": [
+    {
+      "id": "docker-ocr-runtime-inventory",
+      "label": "Docker OCR/PDF runtime package inventory",
+      "measuredBytes": null,
+      "source": "Dockerfile",
+      "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+      "accepted": true
+    }
+  ],
+  "evidenceAge": {
+    "determinable": true,
+    "ageHours": 0,
+    "recentEnough": true,
+    "reason": null
+  },
+  "blockerCoverage": {
+    "runtimeSizeGovernance": true,
+    "acceptedHardGate": false,
+    "acceptedWarningOnlyWaiver": true
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  },
+  "safety": {
+    "nonMutating": true,
+    "productionDataMutated": false,
+    "dependencyVersionsChanged": false,
+    "buildChunkingChanged": false,
+    "buildBehaviorChanged": false,
+    "pdfOcrBehaviorChanged": false,
+    "hardGateClaimedWhenWarningOnly": false
+  }
+}

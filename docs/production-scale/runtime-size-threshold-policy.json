@@ -10,6 +10,13 @@
     "fail": "Only emitted when policyMode is hard-gate and a threshold explicitly enables failOnExceed.",
     "waived": "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present."
   },
+  "formalWaiver": {
+    "accepted": true,
+    "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future hard-gate activation requires reviewed threshold policy change.",
+    "approvedByRole": "Release governance owner",
+    "acceptedAt": "2026-05-20T12:00:00.000Z",
+    "expiresOn": "2026-08-20"
+  },
   "thresholds": [
     {
       "id": "main-js-raw",
@@ -19,6 +26,11 @@
       "warnBytes": 1572864,
       "failBytes": 3145728,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "Frontend platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review route-level chunking or lazy-loading in a separate audited task before any hard-gate activation."
+      },
       "recommendation": "Review route-level chunking or lazy-loading in a separate audited task before any production-scale claim."
     },
     {
@@ -29,6 +41,11 @@
       "warnBytes": 512000,
       "failBytes": 921600,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "Frontend platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Track compressed JS trend and propose chunk ownership changes in a separate reviewed task."
+      },
       "recommendation": "Track gzip size as release evidence; do not refactor chunks in this reporting task."
     },
     {
@@ -39,6 +56,11 @@
       "warnBytes": 512000,
       "failBytes": 1048576,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "UI platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review CSS ownership and unused rules separately with UI regression coverage."
+      },
       "recommendation": "Review CSS ownership and unused rules in a separate UI regression task."
     },
     {
@@ -49,6 +71,11 @@
       "warnBytes": 102400,
       "failBytes": 204800,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "UI platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Track compressed CSS trend and defer style optimization to a separate reviewed UI task."
+      },
       "recommendation": "Track compressed CSS size without changing build behavior."
     },
     {
@@ -59,6 +86,11 @@
       "warnBytes": 20971520,
       "failBytes": 52428800,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "PDF/OCR platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review pdfjs-dist isolation only in a dedicated OCR/PDF regression task."
+      },
       "recommendation": "Keep pdfjs-dist risk visible; replacement or isolation requires OCR/PDF regression evidence."
     },
     {
@@ -69,6 +101,11 @@
       "warnBytes": 20971520,
       "failBytes": 52428800,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "PDF/OCR platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review pdf-parse replacement only with deterministic parser and OCR regression evidence."
+      },
       "recommendation": "Keep pdf-parse risk visible; do not replace without deterministic parser regression evidence."
     },
     {
@@ -79,6 +116,11 @@
       "warnBytes": 10485760,
       "failBytes": 31457280,
       "failOnExceed": false,
+      "remediation": {
+        "ownerRole": "Packet PDF platform owner",
+        "targetDate": "2026-08-20",
+        "plan": "Review packet PDF dependency isolation only with packet/PDF regression evidence."
+      },
       "recommendation": "Keep packet PDF generation dependency risk visible without changing packet output."
     },
     {

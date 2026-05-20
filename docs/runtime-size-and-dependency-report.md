@@ -12,6 +12,7 @@ Run after a production build:
 pnpm run build
 pnpm run report:runtime-size
 pnpm run check:runtime-size
+pnpm run runtime-size:policy-acceptance
 ```
 
 The report script is `scripts/runtime-size-report.mjs`. It uses Node built-ins only and does not change dependency versions, Vite chunking, PDF/OCR behavior, Docker runtime packages, or production build behavior.
@@ -22,6 +23,8 @@ The report script is `scripts/runtime-size-report.mjs`. It uses Node built-ins o
 - `docs/production-scale/evidence/latest-runtime-size.json`
 
 `pnpm run check:runtime-size` uses the same policy and exits non-zero only for explicit hard-gate `FAIL` rows. The current policy is warning-only, so accepted threshold pressure is reported as `WARN` or `WAIVED`, not as a deploy blocker.
+
+`pnpm run runtime-size:policy-acceptance` validates the formal warning-only waiver and row-level WARN/WAIVED governance. In warning-only mode it is waiver evidence only, not fixed-by-gate evidence. A fixed-by-gate classification requires a future reviewed `hard-gate` policy with no exceeded thresholds.
 
 ## Threshold Policy
 
@@ -115,7 +118,7 @@ This task does not modify Docker packages.
 
 The policy is warning-only. Current expected warning pressure includes the main Vite JavaScript asset, CSS size if above the configured row threshold, and large PDF/OCR dependencies where installed size exceeds the warning threshold. The Docker OCR runtime row is an explicit waiver with a reason, not a hidden pass.
 
-Dependency or chunking refactors are deferred. Any future threshold change must update `docs/production-scale/runtime-size-threshold-policy.json`, include a reason in review notes, regenerate `latest-runtime-size` evidence, and run the relevant OCR/PDF/parser or UI regression tests for the changed surface.
+Dependency or chunking refactors are deferred. Any future threshold change must update `docs/production-scale/runtime-size-threshold-policy.json`, include a reason in review notes, regenerate `latest-runtime-size` and `latest-runtime-size-policy-acceptance` evidence, and run the relevant OCR/PDF/parser or UI regression tests for the changed surface.
 
 ## Non-Blocking Threshold Recommendations
 

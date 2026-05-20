@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T21:57:21.740Z",
+  "generatedAt": "2026-05-20T22:11:31.242Z",
   "branch": "staging",
-  "commit": "1dcc63f804a9850ff016d085f2ac17613e1ad6d7",
+  "commit": "be3bfcb4b545020e2bd676ae5e073b1b09789541",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -807,15 +807,20 @@
           "severity": "Medium",
           "area": "Runtime-size gates",
           "currentStatus": "partial",
-          "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
+          "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
           "allowedProofCommands": [
             "pnpm run build",
             "pnpm run report:runtime-size",
             "pnpm run check:runtime-size",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
+            "pnpm run runtime-size:policy-acceptance",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts"
           ],
           "forbiddenProofTypes": [
             "non-blocking threshold represented as blocking",
+            "warning-only policy represented as fixed-by-gate",
+            "WARN rows without remediation owner/date or waiver reason",
+            "WAIVED rows without explicit reason",
             "dependency upgrades",
             "chunking changes without tests",
             "dashboard PASS alone"
@@ -828,10 +833,12 @@
             "docs/production-scale/runtime-size-threshold-policy.json",
             "docs/production-scale/evidence/latest-runtime-size.md",
             "docs/production-scale/evidence/latest-runtime-size.json",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change."
+          "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
         },
         {
           "number": 19,
@@ -913,6 +920,7 @@
             "pnpm run response:ops-readiness-evidence",
             "pnpm run alerts:exclusion:validate",
             "pnpm run alerts:dry-run",
+            "pnpm run runtime-size:policy-acceptance",
             "pnpm run production-scale:promotion-pack",
             "pnpm run operator:dashboard",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
@@ -936,6 +944,8 @@
             "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
             "docs/production-scale/evidence/latest-production-promotion-pack.md",
             "docs/production-scale/evidence/latest-production-promotion-pack.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1790,6 +1800,7 @@
             "pnpm run response:ops-readiness-evidence",
             "pnpm run alerts:exclusion:validate",
             "pnpm run alerts:dry-run",
+            "pnpm run runtime-size:policy-acceptance",
             "pnpm run production-scale:promotion-pack",
             "pnpm run operator:dashboard",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
@@ -1813,6 +1824,8 @@
             "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
             "docs/production-scale/evidence/latest-alerts-dry-run.md",
             "docs/production-scale/evidence/latest-alerts-dry-run.json",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
             "docs/production-scale/evidence/latest-production-promotion-pack.md",
             "docs/production-scale/evidence/latest-production-promotion-pack.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -2128,15 +2141,20 @@
           "severity": "Medium",
           "area": "Runtime-size gates",
           "currentStatus": "partial",
-          "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
+          "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
           "allowedProofCommands": [
             "pnpm run build",
             "pnpm run report:runtime-size",
             "pnpm run check:runtime-size",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
+            "pnpm run runtime-size:policy-acceptance",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts"
           ],
           "forbiddenProofTypes": [
             "non-blocking threshold represented as blocking",
+            "warning-only policy represented as fixed-by-gate",
+            "WARN rows without remediation owner/date or waiver reason",
+            "WAIVED rows without explicit reason",
             "dependency upgrades",
             "chunking changes without tests",
             "dashboard PASS alone"
@@ -2149,10 +2167,12 @@
             "docs/production-scale/runtime-size-threshold-policy.json",
             "docs/production-scale/evidence/latest-runtime-size.md",
             "docs/production-scale/evidence/latest-runtime-size.json",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+            "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change."
+          "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
         },
         {
           "number": 20,
@@ -2679,15 +2699,20 @@
       "severity": "Medium",
       "area": "Runtime-size gates",
       "currentStatus": "partial",
-      "proofTypeRequired": "Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.",
+      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
       "allowedProofCommands": [
         "pnpm run build",
         "pnpm run report:runtime-size",
         "pnpm run check:runtime-size",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts"
+        "pnpm run runtime-size:policy-acceptance",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts"
       ],
       "forbiddenProofTypes": [
         "non-blocking threshold represented as blocking",
+        "warning-only policy represented as fixed-by-gate",
+        "WARN rows without remediation owner/date or waiver reason",
+        "WAIVED rows without explicit reason",
         "dependency upgrades",
         "chunking changes without tests",
         "dashboard PASS alone"
@@ -2700,10 +2725,12 @@
         "docs/production-scale/runtime-size-threshold-policy.json",
         "docs/production-scale/evidence/latest-runtime-size.md",
         "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+        "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep WARN/WAIVED runtime-size artifacts visible; only enable hard gates through a later reviewed threshold-policy change."
+      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
     },
     {
       "number": 19,
