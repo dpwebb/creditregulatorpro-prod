@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T21:01:52.130Z
+Generated at: 2026-05-20T21:15:53.560Z
 Current branch: `staging`
-Current commit hash: `def2a024b30aaa811cd354a3bb3f1d78b8efe789`
+Current commit hash: `7f2229341f3693b1caba5471b17a2a88d9e87782`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -13,6 +13,7 @@ Recommended readiness classification: **limited beta**
 - Dashboard PASS alone is not complete release evidence when checks are skipped.
 - Codex must not promote readiness classification beyond evidence.
 - Production activation requires operator approval.
+- Historical raw report remediation requires accepted sanitized operator evidence.
 
 ## Command Result Summary
 
@@ -26,6 +27,8 @@ Recommended readiness classification: **limited beta**
 - `pnpm run response:soak-check` - reference-required; evidence: none
 - `pnpm run operator:dashboard` - reference-required; evidence: none
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
+- `pnpm run storage:raw-report-remediation-plan` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json
+- `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
 - `pnpm run check:migrations` - reference-required; evidence: none
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
@@ -81,9 +84,18 @@ Recommended readiness classification: **limited beta**
 - Blocker 11 coverage: not accepted
 - Codex processed production jobs: no
 
+## Raw Report Remediation Acceptance
+
+- Status: not-submitted
+- Accepted: no
+- Evidence path: `not submitted`
+- Blocker 6 coverage: not accepted
+- Sensitive findings: 0
+
 ## Human-Required Proof
 
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
+- #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #20 Production-safe privacy probe depth (Medium; human proof required) - Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
@@ -106,7 +118,7 @@ Recommended readiness classification: **limited beta**
 
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
-- #6 Historical raw report bytes (High; partial) - Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
+- #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #8 Response operations maturity (High; partial) - Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial) - Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
@@ -137,6 +149,10 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-alerts-dry-run.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-storage-raw-report-inventory.md` - present
 - `docs/production-scale/evidence/latest-storage-raw-report-inventory.json` - present; evidenceType=SANITIZED_READ_ONLY_INVENTORY
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md` - present
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json` - present; evidenceType=SANITIZED_DRY_RUN_REMEDIATION_PLAN
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md` - present
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json` - present
 - `docs/production-scale/evidence/latest-retention-archive-restore-simulated.md` - present
 - `docs/production-scale/evidence/latest-retention-archive-restore-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md` - present
@@ -159,6 +175,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.md` - missing
+- `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json` - missing
+- `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md` - missing
 - `docs/restore-drill-evidence-template.md` - present
 - `docs/staging-ingest-worker-operation.md` - present
 - `docs/production-ingest-worker-activation.md` - present

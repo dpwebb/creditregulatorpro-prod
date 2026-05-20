@@ -61,6 +61,30 @@ It counts possible inline `reportArtifact.storageUrl` and `evidenceAttachment.st
 
 If no staging-safe local database connection is available, the command still writes sanitized evidence marked `database-unavailable`; those unavailable counts must not be treated as zero inline rows.
 
+## Historical Raw Report Remediation Plan
+
+Run:
+
+```bash
+pnpm run storage:raw-report-remediation-plan
+pnpm run storage:raw-report-remediation-acceptance
+```
+
+The plan command is dry-run only. It reads the sanitized inventory evidence when present, classifies aggregate row categories for `report_artifact.storage_url` and `evidence_attachment.storage_url`, and writes:
+
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md`
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json`
+
+It does not delete rows, rewrite historical storage values, access production backups, print raw bytes, print raw base64, expose signed URLs, or include storage/database secrets.
+
+The acceptance command writes latest validation output and does not close blocker 6 unless a separate sanitized operator artifact exists at:
+
+- `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json`
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md`
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json`
+
+That artifact must show inventory execution, approved remediation plan, operator or approved-process remediation, old inline compatibility testing, post-remediation counts, backup/restore prerequisite acknowledgement, signed operator acknowledgement, and no raw sensitive values in evidence.
+
 ## OCR Upload Validation
 
 The OCR extraction route now uses the shared upload validation helpers for filename, MIME, base64, decoded-size, and raw request-body bounds while preserving the existing 15 MB PDF limit. Valid PDF extraction still calls the same OCR/canonical extraction path and returns the same response shape.

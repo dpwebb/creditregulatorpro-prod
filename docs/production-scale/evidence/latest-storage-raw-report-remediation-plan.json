@@ -1,0 +1,154 @@
+{
+  "reportName": "storage-raw-report-remediation-plan",
+  "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
+  "generatedAt": "2026-05-20T21:15:43.804Z",
+  "branch": "staging",
+  "commit": "7f2229341f3693b1caba5471b17a2a88d9e87782",
+  "status": "inventory-unreliable",
+  "productionProof": false,
+  "dryRunOnly": true,
+  "productionMutationRefused": true,
+  "rawValuesPrinted": false,
+  "rawBytesPrinted": false,
+  "signedUrlsPrinted": false,
+  "storageSecretsPrinted": false,
+  "realConsumerPiiUsed": false,
+  "historicalRowsDeleted": false,
+  "historicalRowsMigratedByCodex": false,
+  "inventoryEvidence": {
+    "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+    "exists": true,
+    "status": "database-unavailable",
+    "countsReliable": false,
+    "generatedAt": "2026-05-20T21:15:37.971Z",
+    "sensitiveFindings": []
+  },
+  "affectedTables": [
+    "report_artifact",
+    "evidence_attachment"
+  ],
+  "estimatedCounts": {
+    "reportArtifact": {
+      "totalRows": null,
+      "storageUrlRows": null,
+      "localReferenceRows": null,
+      "possibleInlineBase64Rows": null,
+      "dataUrlBase64Rows": null,
+      "nonLocalReferenceRows": null,
+      "nullStorageRows": null
+    },
+    "evidenceAttachment": {
+      "totalRows": null,
+      "storageUrlRows": null,
+      "localReferenceRows": null,
+      "possibleInlineBase64Rows": null,
+      "dataUrlBase64Rows": null,
+      "nonLocalReferenceRows": null,
+      "nullStorageRows": null
+    }
+  },
+  "remediationCategories": [
+    {
+      "table": "report_artifact",
+      "field": "storage_url",
+      "category": "legacy-inline-pdf-candidates",
+      "estimatedRows": null,
+      "remediationAction": "Operator-approved copy to report-artifact storage reference after checksum verification; keep legacy resolver compatibility during rollout."
+    },
+    {
+      "table": "report_artifact",
+      "field": "storage_url",
+      "category": "data-url-inline-pdf-candidates",
+      "estimatedRows": null,
+      "remediationAction": "Operator-approved normalize data URL payload to storage reference after validation; preserve rollback snapshot."
+    },
+    {
+      "table": "report_artifact",
+      "field": "storage_url",
+      "category": "already-reference-or-null",
+      "estimatedRows": null,
+      "remediationAction": "No byte migration planned; validate compatibility and metadata visibility only."
+    },
+    {
+      "table": "evidence_attachment",
+      "field": "storage_url",
+      "category": "legacy-inline-attachment-candidates",
+      "estimatedRows": null,
+      "remediationAction": "Operator-approved copy to evidence attachment storage reference after checksum verification; keep legacy resolver compatibility during rollout."
+    },
+    {
+      "table": "evidence_attachment",
+      "field": "storage_url",
+      "category": "data-url-inline-attachment-candidates",
+      "estimatedRows": null,
+      "remediationAction": "Operator-approved normalize data URL payload to storage reference after validation; preserve rollback snapshot."
+    },
+    {
+      "table": "evidence_attachment",
+      "field": "storage_url",
+      "category": "already-reference-or-null",
+      "estimatedRows": null,
+      "remediationAction": "No byte migration planned; validate compatibility and metadata visibility only."
+    }
+  ],
+  "remediationPlan": {
+    "dryRunOnly": true,
+    "mutationCommandAvailable": false,
+    "productionMutationAllowed": false,
+    "steps": [
+      "Confirm a current staging-safe sanitized inventory exists and counts are reliable.",
+      "Take a fresh backup before any operator-approved remediation.",
+      "Use an approved process to copy inline bytes to storage references in bounded batches with checksum verification.",
+      "Retain old inline compatibility until post-remediation read-path checks pass.",
+      "Record pre/post aggregate counts only; do not record raw storageUrl values or raw bytes.",
+      "Submit sanitized operator acceptance evidence for blocker 6 review."
+    ]
+  },
+  "rollbackStrategy": [
+    "Do not delete historical rows during remediation.",
+    "Capture a pre-remediation backup and row-count snapshot before any operator-run process.",
+    "Use transaction-bounded batches so failed batches can be rolled back independently.",
+    "Preserve legacy inline resolver compatibility until post-remediation validation is complete.",
+    "If validation fails, restore affected storage_url values from the approved backup/snapshot and rerun compatibility checks."
+  ],
+  "operatorApprovalRequirements": [
+    "Named operator or role approves the plan before execution.",
+    "Approval references the sanitized inventory and this dry-run plan evidence.",
+    "Approval confirms no raw PII, raw report bytes, signed URLs, storage secrets, or database URLs are included in evidence.",
+    "Approval confirms Codex will not run production mutation.",
+    "Approval records bounded batch size, rollback owner, and validation owner."
+  ],
+  "backupPrerequisite": "A fresh backup and restore-readiness acknowledgement are required before any operator-approved remediation process runs.",
+  "postRemediationValidationSteps": [
+    "Rerun pnpm run storage:raw-report-inventory and compare aggregate counts only.",
+    "Verify legacy inline reportArtifact records remain readable through resolveReportArtifactPdfBase64 compatibility tests.",
+    "Verify legacy inline evidenceAttachment records remain readable through resolveEvidenceAttachmentBase64 compatibility tests.",
+    "Run pnpm run test:api and focused storage compatibility tests.",
+    "Submit sanitized acceptance evidence with post-remediation counts and signed acknowledgement."
+  ],
+  "blockerCoverage": {
+    "blocker6GovernedWorkflowPrepared": false,
+    "blocker6AcceptedClosed": false
+  },
+  "safety": {
+    "productionDataMutated": false,
+    "productionBackupsAccessedByCodex": false,
+    "rawSensitiveValuesExposed": false,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "packetBehaviorChanged": false,
+    "violationBehaviorChanged": false,
+    "storageCompatibilityWeakened": false
+  },
+  "requiredStatements": [
+    "This is a dry-run-only remediation plan.",
+    "This command does not delete historical rows.",
+    "This command does not migrate production data.",
+    "This command does not print raw base64, raw PDFs, raw report text, PII, storage secrets, signed URLs, or database URLs.",
+    "Blocker 6 remains remediation-required until sanitized operator acceptance evidence is submitted and accepted."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+    "json": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json"
+  }
+}

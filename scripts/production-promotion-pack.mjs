@@ -12,6 +12,16 @@ import {
 } from "./production-worker-readiness-evidence.mjs";
 
 import {
+  buildRawReportRemediationAcceptanceReport,
+  RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
+  RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
+  RAW_REPORT_REMEDIATION_ACCEPTANCE_JSON_PATH,
+  RAW_REPORT_REMEDIATION_ACCEPTANCE_MD_PATH,
+  RAW_REPORT_REMEDIATION_PLAN_JSON_PATH,
+  RAW_REPORT_REMEDIATION_PLAN_MD_PATH,
+} from "./storage-raw-report-remediation-plan.mjs";
+
+import {
   buildHumanRestoreDrillEvidenceAcceptanceReport,
   HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
   HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
@@ -44,6 +54,8 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run response:soak-check",
   "pnpm run operator:dashboard",
   "pnpm run production-worker:readiness-evidence",
+  "pnpm run storage:raw-report-remediation-plan",
+  "pnpm run storage:raw-report-remediation-acceptance",
   "pnpm run check:migrations",
   "pnpm run check:restore-drill-evidence",
   "pnpm run restore:accept-human-evidence",
@@ -58,6 +70,8 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run baseline:production-scale-local -- --simulated",
   "pnpm run alerts:dry-run",
   "pnpm run storage:raw-report-inventory",
+  "pnpm run storage:raw-report-remediation-plan",
+  "pnpm run storage:raw-report-remediation-acceptance",
   "pnpm run retention:archive-restore:simulated",
   "pnpm run packet-pdf:cache-miss-proof",
   "pnpm run production-worker:activation-plan",
@@ -97,6 +111,14 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run storage:raw-report-inventory": [
     "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
     "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+  ],
+  "pnpm run storage:raw-report-remediation-plan": [
+    RAW_REPORT_REMEDIATION_PLAN_MD_PATH,
+    RAW_REPORT_REMEDIATION_PLAN_JSON_PATH,
+  ],
+  "pnpm run storage:raw-report-remediation-acceptance": [
+    RAW_REPORT_REMEDIATION_ACCEPTANCE_MD_PATH,
+    RAW_REPORT_REMEDIATION_ACCEPTANCE_JSON_PATH,
   ],
   "pnpm run retention:archive-restore:simulated": [
     "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
@@ -235,7 +257,12 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function classifyBlocker(blocker, humanRestoreEvidenceAcceptance = null, productionWorkerReadinessEvidence = null) {
+function classifyBlocker(
+  blocker,
+  humanRestoreEvidenceAcceptance = null,
+  productionWorkerReadinessEvidence = null,
+  rawReportRemediationAcceptance = null,
+) {
   if (
     blocker.number === 2 &&
     productionWorkerReadinessEvidence?.blockerCoverage?.productionIngestRuntime === true &&
@@ -256,6 +283,13 @@ function classifyBlocker(blocker, humanRestoreEvidenceAcceptance = null, product
     blocker.number === 1 &&
     humanRestoreEvidenceAcceptance?.accepted === true &&
     humanRestoreEvidenceAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill === true
+  ) {
+    return "fixed with human-observed evidence";
+  }
+  if (
+    blocker.number === 6 &&
+    rawReportRemediationAcceptance?.accepted === true &&
+    rawReportRemediationAcceptance?.blockerCoverage?.historicalRawReportBytes === true
   ) {
     return "fixed with human-observed evidence";
   }
@@ -366,6 +400,7 @@ export function buildProductionPromotionPackReport({
   dashboardReport = null,
   humanRestoreEvidenceAcceptance = null,
   productionWorkerReadinessEvidence = null,
+  rawReportRemediationAcceptance = null,
   generatedAt = new Date().toISOString(),
   env = process.env,
 } = {}) {
@@ -399,9 +434,16 @@ export function buildProductionPromotionPackReport({
     humanRestoreEvidenceAcceptance ?? buildHumanRestoreDrillEvidenceAcceptanceReport({ rootDir, generatedAt });
   const workerReadinessEvidence =
     productionWorkerReadinessEvidence ?? buildProductionWorkerReadinessEvidenceReport({ rootDir, generatedAt });
+  const rawReportRemediationEvidence =
+    rawReportRemediationAcceptance ?? buildRawReportRemediationAcceptanceReport({ rootDir, generatedAt });
 
   const classifiedBlockers = loadedRegistry.blockers.map((blocker) => {
-    const classification = classifyBlocker(blocker, acceptedHumanRestoreEvidence, workerReadinessEvidence);
+    const classification = classifyBlocker(
+      blocker,
+      acceptedHumanRestoreEvidence,
+      workerReadinessEvidence,
+      rawReportRemediationEvidence,
+    );
     return {
       number: blocker.number,
       title: blocker.title,
@@ -423,10 +465,14 @@ export function buildProductionPromotionPackReport({
               evidencePath:
                 blocker.number === 2 || blocker.number === 11
                   ? workerReadinessEvidence.acceptedProductionRunEvidence?.evidencePath
+                  : blocker.number === 6
+                    ? rawReportRemediationEvidence.evidencePath
                   : acceptedHumanRestoreEvidence.evidencePath,
               acceptedAt:
                 blocker.number === 2 || blocker.number === 11
                   ? workerReadinessEvidence.generatedAt
+                  : blocker.number === 6
+                    ? rawReportRemediationEvidence.generatedAt
                   : acceptedHumanRestoreEvidence.generatedAt,
             }
           : null,
@@ -441,6 +487,8 @@ export function buildProductionPromotionPackReport({
     HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_MD_PATH,
+    RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
+    RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
     ...classifiedBlockers.flatMap((blocker) => blocker.relatedEvidenceOutputPaths),
   ]).map((filePath) => summarizeEvidenceFile(rootDir, filePath));
   const commandResults = buildCommandList(rootDir, loadedRegistry, packageJson);
@@ -502,6 +550,26 @@ export function buildProductionPromotionPackReport({
         dashboardPassAloneIsReleaseEvidence: workerReadinessEvidence.safety?.dashboardPassAloneIsReleaseEvidence === true,
       },
     },
+    rawReportRemediationAcceptance: {
+      reportName: rawReportRemediationEvidence.reportName,
+      generatedAt: rawReportRemediationEvidence.generatedAt,
+      status: rawReportRemediationEvidence.status,
+      accepted: rawReportRemediationEvidence.accepted === true,
+      evidencePath: rawReportRemediationEvidence.evidencePath,
+      blockerCoverage: rawReportRemediationEvidence.blockerCoverage,
+      validation: {
+        accepted: rawReportRemediationEvidence.validation?.accepted === true,
+        sensitiveFindings: rawReportRemediationEvidence.validation?.sensitiveFindings ?? [],
+        remainingPossibleInlineBase64Rows:
+          rawReportRemediationEvidence.validation?.remainingPossibleInlineBase64Rows ?? null,
+        errors: rawReportRemediationEvidence.validation?.errors ?? [],
+      },
+      safety: {
+        productionDataMutatedByCodex: rawReportRemediationEvidence.safety?.productionDataMutatedByCodex === true,
+        codexPerformedRemediation: rawReportRemediationEvidence.safety?.codexPerformedRemediation === true,
+        rawSensitiveValuesAccepted: rawReportRemediationEvidence.safety?.rawSensitiveValuesAccepted === true,
+      },
+    },
     blockerClassifications: classifiedBlockers,
     unresolvedProductionBlockers: unresolvedBlockers.filter(isProductionConcern),
     unresolvedScaleBlockers: unresolvedBlockers.filter(isScaleConcern),
@@ -531,6 +599,7 @@ export function buildProductionPromotionPackReport({
       "SIMULATED proof is not production proof.",
       "Dashboard PASS alone is not complete release evidence when checks are skipped.",
       "Production activation requires operator approval.",
+      "Historical raw report remediation requires accepted sanitized operator evidence.",
       "Codex must not promote readiness classification beyond the evidence in this pack.",
     ],
   };
@@ -575,6 +644,7 @@ export function validatePromotionPackReport(report) {
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
   const blocker2 = blockers.find((blocker) => blocker.number === 2);
+  const blocker6 = blockers.find((blocker) => blocker.number === 6);
   const blocker11 = blockers.find((blocker) => blocker.number === 11);
   const blocker21 = blockers.find((blocker) => blocker.number === 21);
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
@@ -597,6 +667,18 @@ export function validatePromotionPackReport(report) {
   }
   if (blocker11?.classification === "human proof required") {
     errors.push("Blocker 11 must remain partial until production workflow parity and rollback evidence are present.");
+  }
+  if (blocker6?.classification === "fixed with human-observed evidence") {
+    const rawReportAcceptance = report.rawReportRemediationAcceptance;
+    if (
+      rawReportAcceptance?.accepted !== true ||
+      rawReportAcceptance?.blockerCoverage?.historicalRawReportBytes !== true ||
+      rawReportAcceptance?.validation?.sensitiveFindings?.length > 0 ||
+      rawReportAcceptance?.safety?.productionDataMutatedByCodex === true ||
+      rawReportAcceptance?.safety?.codexPerformedRemediation === true
+    ) {
+      errors.push("Blocker 6 cannot be classified fixed without accepted sanitized operator raw-report remediation evidence.");
+    }
   }
   if (blocker21?.classification === "fixed with automated evidence") {
     const commandList = new Set(report.commandList ?? []);
@@ -680,6 +762,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Dashboard PASS alone is not complete release evidence when checks are skipped.",
     "- Codex must not promote readiness classification beyond evidence.",
     "- Production activation requires operator approval.",
+    "- Historical raw report remediation requires accepted sanitized operator evidence.",
     "",
     "## Command Result Summary",
     "",
@@ -725,6 +808,16 @@ export function renderPromotionPackMarkdown(report) {
     `- Codex processed production jobs: ${
       report.productionWorkerReadinessEvidence.safety?.productionJobsProcessedByCodex ? "yes" : "no"
     }`,
+    "",
+    "## Raw Report Remediation Acceptance",
+    "",
+    `- Status: ${report.rawReportRemediationAcceptance.status}`,
+    `- Accepted: ${report.rawReportRemediationAcceptance.accepted ? "yes" : "no"}`,
+    `- Evidence path: \`${report.rawReportRemediationAcceptance.evidencePath ?? "not submitted"}\``,
+    `- Blocker 6 coverage: ${
+      report.rawReportRemediationAcceptance.blockerCoverage?.historicalRawReportBytes ? "accepted" : "not accepted"
+    }`,
+    `- Sensitive findings: ${report.rawReportRemediationAcceptance.validation?.sensitiveFindings?.length ?? 0}`,
     "",
     "## Human-Required Proof",
     "",

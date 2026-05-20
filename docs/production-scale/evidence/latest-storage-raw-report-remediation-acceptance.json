@@ -1,0 +1,31 @@
+{
+  "reportName": "storage-raw-report-remediation-acceptance",
+  "generatedAt": "2026-05-20T21:15:47.869Z",
+  "status": "not-submitted",
+  "accepted": false,
+  "evidencePath": null,
+  "defaultEvidencePaths": [
+    "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+    "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md"
+  ],
+  "validation": {
+    "accepted": false,
+    "status": "not-submitted",
+    "errors": [
+      "No raw report remediation acceptance evidence has been submitted."
+    ],
+    "sensitiveFindings": [],
+    "remainingPossibleInlineBase64Rows": null,
+    "blockerCoverage": {
+      "historicalRawReportBytes": false
+    }
+  },
+  "blockerCoverage": {
+    "historicalRawReportBytes": false
+  },
+  "safety": {
+    "productionDataMutatedByCodex": false,
+    "codexPerformedRemediation": false,
+    "rawSensitiveValuesAccepted": false
+  }
+}

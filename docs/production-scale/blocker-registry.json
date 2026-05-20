@@ -22,6 +22,8 @@
   "recognizedEvidenceCommands": [
     "pnpm run production-scale:evidence",
     "pnpm run storage:raw-report-inventory",
+    "pnpm run storage:raw-report-remediation-plan",
+    "pnpm run storage:raw-report-remediation-acceptance",
     "pnpm run restore:drill:simulated",
     "pnpm run build",
     "pnpm run typecheck",
@@ -60,8 +62,10 @@
     "pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts",
@@ -328,17 +332,25 @@
       "affectedFilesRoutesFunctions": [
         "reportArtifact.storageUrl",
         "helpers/reportArtifactStorage.ts",
-        "old rows"
+        "old rows",
+        "scripts/storage-raw-report-inventory.ts",
+        "scripts/storage-raw-report-remediation-plan.mjs"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
+      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
       "proofCategories": [
         "automated-local",
-        "staging"
+        "staging",
+        "human-observed"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
+        "pnpm run storage:raw-report-remediation-plan",
+        "pnpm run storage:raw-report-remediation-acceptance",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
         "pnpm run operator:dashboard"
@@ -347,19 +359,28 @@
         "silent historical migration",
         "production dump inspection",
         "raw report bytes in evidence",
+        "raw base64, raw report text, PII, secrets, signed URLs, or database URLs in evidence",
+        "dry-run plan represented as completed remediation",
+        "operator acceptance without approval, backup acknowledgement, compatibility checks, and post-remediation counts",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": false,
-      "humanProofRequired": false,
+      "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/report-artifact-storage.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently."
+      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed."
     },
     {
       "number": 7,

@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T21:01:52.130Z",
+  "generatedAt": "2026-05-20T21:15:53.560Z",
   "currentBranch": "staging",
-  "currentCommitHash": "def2a024b30aaa811cd354a3bb3f1d78b8efe789",
+  "currentCommitHash": "7f2229341f3693b1caba5471b17a2a88d9e87782",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -40,6 +40,8 @@
     "pnpm run response:soak-check",
     "pnpm run operator:dashboard",
     "pnpm run production-worker:readiness-evidence",
+    "pnpm run storage:raw-report-remediation-plan",
+    "pnpm run storage:raw-report-remediation-acceptance",
     "pnpm run check:migrations",
     "pnpm run check:restore-drill-evidence",
     "pnpm run restore:accept-human-evidence",
@@ -187,6 +189,64 @@
       ],
       "latestGeneratedAt": "2026-05-20T21:00:33.882Z",
       "status": "prepared-awaiting-human-production-evidence"
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-plan",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+          "exists": true,
+          "reportName": "storage-raw-report-remediation-plan",
+          "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
+          "generatedAt": "2026-05-20T21:15:43.804Z",
+          "status": "inventory-unreliable",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:15:43.804Z",
+      "status": "inventory-unreliable"
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-acceptance",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
+          "exists": true,
+          "reportName": "storage-raw-report-remediation-acceptance",
+          "evidenceType": null,
+          "generatedAt": "2026-05-20T21:15:47.869Z",
+          "status": "not-submitted",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:15:47.869Z",
+      "status": "not-submitted"
     },
     {
       "command": "pnpm run check:migrations",
@@ -442,12 +502,12 @@
           "exists": true,
           "reportName": "storage-raw-report-inventory",
           "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
-          "generatedAt": "2026-05-20T18:22:49.350Z",
+          "generatedAt": "2026-05-20T21:15:37.971Z",
           "status": "database-unavailable",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T18:22:49.350Z",
+      "latestGeneratedAt": "2026-05-20T21:15:37.971Z",
       "status": "database-unavailable"
     },
     {
@@ -886,8 +946,44 @@
       "exists": true,
       "reportName": "storage-raw-report-inventory",
       "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
-      "generatedAt": "2026-05-20T18:22:49.350Z",
+      "generatedAt": "2026-05-20T21:15:37.971Z",
       "status": "database-unavailable",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+      "exists": true,
+      "reportName": "storage-raw-report-remediation-plan",
+      "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
+      "generatedAt": "2026-05-20T21:15:43.804Z",
+      "status": "inventory-unreliable",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
+      "exists": true,
+      "reportName": "storage-raw-report-remediation-acceptance",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T21:15:47.869Z",
+      "status": "not-submitted",
       "productionProof": false
     },
     {
@@ -1089,6 +1185,24 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
       "path": "docs/restore-drill-evidence-template.md",
       "exists": true,
       "reportName": null,
@@ -1246,7 +1360,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:00:39.169Z",
+      "generatedAt": "2026-05-20T21:01:52.130Z",
       "status": null,
       "productionProof": false
     },
@@ -1271,7 +1385,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T21:01:52.130Z",
+    "generatedAt": "2026-05-20T21:15:53.560Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1291,7 +1405,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T21:01:52.130Z",
+    "generatedAt": "2026-05-20T21:15:53.560Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -1308,6 +1422,29 @@
       "productionJobsProcessedByCodex": false,
       "productionWorkerActivatedByDefault": false,
       "dashboardPassAloneIsReleaseEvidence": false
+    }
+  },
+  "rawReportRemediationAcceptance": {
+    "reportName": "storage-raw-report-remediation-acceptance",
+    "generatedAt": "2026-05-20T21:15:53.560Z",
+    "status": "not-submitted",
+    "accepted": false,
+    "evidencePath": null,
+    "blockerCoverage": {
+      "historicalRawReportBytes": false
+    },
+    "validation": {
+      "accepted": false,
+      "sensitiveFindings": [],
+      "remainingPossibleInlineBase64Rows": null,
+      "errors": [
+        "No raw report remediation acceptance evidence has been submitted."
+      ]
+    },
+    "safety": {
+      "productionDataMutatedByCodex": false,
+      "codexPerformedRemediation": false,
+      "rawSensitiveValuesAccepted": false
     }
   },
   "blockerClassifications": [
@@ -1530,15 +1667,21 @@
       "severity": "High",
       "area": "Historical raw report bytes",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
+      "classification": "human proof required",
+      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
       "proofCategories": [
         "automated-local",
-        "staging"
+        "staging",
+        "human-observed"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
+        "pnpm run storage:raw-report-remediation-plan",
+        "pnpm run storage:raw-report-remediation-acceptance",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
         "pnpm run operator:dashboard"
@@ -1547,17 +1690,26 @@
         "silent historical migration",
         "production dump inspection",
         "raw report bytes in evidence",
+        "raw base64, raw report text, PII, secrets, signed URLs, or database URLs in evidence",
+        "dry-run plan represented as completed remediation",
+        "operator acceptance without approval, backup acknowledgement, compatibility checks, and post-remediation counts",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/report-artifact-storage.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently.",
-      "humanProofRequired": false,
+      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
+      "humanProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -2407,15 +2559,21 @@
       "severity": "High",
       "area": "Historical raw report bytes",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
+      "classification": "human proof required",
+      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
       "proofCategories": [
         "automated-local",
-        "staging"
+        "staging",
+        "human-observed"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
+        "pnpm run storage:raw-report-remediation-plan",
+        "pnpm run storage:raw-report-remediation-acceptance",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
         "pnpm run operator:dashboard"
@@ -2424,17 +2582,26 @@
         "silent historical migration",
         "production dump inspection",
         "raw report bytes in evidence",
+        "raw base64, raw report text, PII, secrets, signed URLs, or database URLs in evidence",
+        "dry-run plan represented as completed remediation",
+        "operator acceptance without approval, backup acknowledgement, compatibility checks, and post-remediation counts",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
         "docs/report-artifact-storage.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently.",
-      "humanProofRequired": false,
+      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
+      "humanProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3079,6 +3246,59 @@
       "waiverReason": null
     },
     {
+      "number": 6,
+      "title": "Historical raw report bytes",
+      "severity": "High",
+      "area": "Historical raw report bytes",
+      "currentStatus": "partial",
+      "classification": "human proof required",
+      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed"
+      ],
+      "allowedProofCommands": [
+        "pnpm run storage:raw-report-inventory",
+        "pnpm run storage:raw-report-remediation-plan",
+        "pnpm run storage:raw-report-remediation-acceptance",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
+        "pnpm run test:api",
+        "pnpm run operator:dashboard"
+      ],
+      "forbiddenProofTypes": [
+        "silent historical migration",
+        "production dump inspection",
+        "raw report bytes in evidence",
+        "raw base64, raw report text, PII, secrets, signed URLs, or database URLs in evidence",
+        "dry-run plan represented as completed remediation",
+        "operator acceptance without approval, backup acknowledgement, compatibility checks, and post-remediation counts",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/report-artifact-storage.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
+      "humanProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
+      "waiverReason": null
+    },
+    {
       "number": 20,
       "title": "Production-safe privacy probe depth",
       "severity": "Medium",
@@ -3185,6 +3405,7 @@
     "SIMULATED proof is not production proof.",
     "Dashboard PASS alone is not complete release evidence when checks are skipped.",
     "Production activation requires operator approval.",
+    "Historical raw report remediation requires accepted sanitized operator evidence.",
     "Codex must not promote readiness classification beyond the evidence in this pack."
   ]
 }

@@ -9,6 +9,7 @@ import {
 } from "../../scripts/production-promotion-pack.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
 import { buildHumanRestoreDrillEvidenceAcceptanceReport } from "../../scripts/staging-backup-restore-checklist.mjs";
+import { buildRawReportRemediationAcceptanceReport } from "../../scripts/storage-raw-report-remediation-plan.mjs";
 
 function dashboardWithSkips(skip = 2) {
   return {
@@ -34,6 +35,37 @@ function buildPack() {
     generatedAt: "2026-05-20T12:00:00.000Z",
     env: {},
   });
+}
+
+function acceptedRawReportRemediationEvidence() {
+  return {
+    evidenceType: "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
+    operatorNameOrRole: "Compliance operations lead",
+    approvedAt: "2026-05-20T14:00:00.000Z",
+    performedAt: "2026-05-20T15:00:00.000Z",
+    inventoryEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+    remediationPlanEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+    inventoryRun: true,
+    remediationPlanApproved: true,
+    remediationPerformedByOperatorOrApprovedProcess: true,
+    oldInlineCompatibilityTested: true,
+    sanitizedEvidence: true,
+    postRemediationCountsRecorded: true,
+    backupRestorePrerequisiteAcknowledged: true,
+    operatorAcknowledgementSigned: true,
+    historicalInlineRowsResolved: true,
+    noRawSensitiveValuesAppearInEvidence: true,
+    productionDataMutatedByCodex: false,
+    codexPerformedRemediation: false,
+    postRemediationCounts: {
+      reportArtifact: {
+        possibleInlineBase64Rows: 0,
+      },
+      evidenceAttachment: {
+        possibleInlineBase64Rows: 0,
+      },
+    },
+  };
 }
 
 describe("production promotion evidence pack", () => {
@@ -98,6 +130,8 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
+    expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-plan");
+    expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-acceptance");
   });
 
   it("does not claim production-at-scale readiness while unresolved or human-required blockers remain", () => {
@@ -165,6 +199,41 @@ describe("production promotion evidence pack", () => {
       },
     });
     expect(blocker2?.classification).toBe("partial");
+  });
+
+  it("keeps blocker 6 remediation-required unless accepted operator evidence exists", () => {
+    const report = buildPack();
+    const blocker6 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 6);
+
+    expect(report.rawReportRemediationAcceptance).toMatchObject({
+      status: "not-submitted",
+      accepted: false,
+      blockerCoverage: {
+        historicalRawReportBytes: false,
+      },
+    });
+    expect(blocker6?.classification).toBe("human proof required");
+    expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).toContain(6);
+  });
+
+  it("classifies blocker 6 as fixed only with accepted sanitized operator remediation evidence", () => {
+    const rawReportRemediationAcceptance = buildRawReportRemediationAcceptanceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      rawReportRemediationEvidence: acceptedRawReportRemediationEvidence(),
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      rawReportRemediationAcceptance,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker6 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 6);
+
+    expect(rawReportRemediationAcceptance.accepted).toBe(true);
+    expect(blocker6?.classification).toBe("fixed with human-observed evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
   it("allows blocker 2 production-ready only with accepted production queue-depth evidence", () => {

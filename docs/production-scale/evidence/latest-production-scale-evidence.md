@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T21:00:39.169Z
+Generated at: 2026-05-20T21:15:53.717Z
 Current branch: `staging`
-Current commit hash: `def2a024b30aaa811cd354a3bb3f1d78b8efe789`
+Current commit hash: `7f2229341f3693b1caba5471b17a2a88d9e87782`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -50,9 +50,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts`, `pnpm run operator:dashboard`
   Next action: Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.
 - #6 Historical raw report bytes (High; partial)
-  Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
-  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
-  Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
+  Proof required: Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm run storage:raw-report-remediation-plan`, `pnpm run storage:raw-report-remediation-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #7 Bureau communication storage (High; fixed)
   Proof required: Automated storage adapter proof for new bureau attachments plus compatibility proof for old inline records.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
@@ -186,9 +186,9 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run packet-pdf:cache-miss-proof`, `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
   Next action: Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.
 - #6 Historical raw report bytes (High; partial)
-  Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
-  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
-  Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
+  Proof required: Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm run storage:raw-report-remediation-plan`, `pnpm run storage:raw-report-remediation-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
@@ -229,6 +229,10 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run restore:accept-human-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
+- #6 Historical raw report bytes (High; partial)
+  Proof required: Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm run storage:raw-report-remediation-plan`, `pnpm run storage:raw-report-remediation-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
@@ -273,9 +277,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
   Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
 - #6 Historical raw report bytes (High; partial)
-  Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
-  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
-  Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
+  Proof required: Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm run storage:raw-report-remediation-plan`, `pnpm run storage:raw-report-remediation-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`

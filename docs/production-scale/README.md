@@ -259,6 +259,26 @@ New bureau communication attachments use storage references; old inline evidence
 
 Historical raw report bytes remain a partial blocker until an approved remediation plan handles old inline rows. The inventory command is evidence, not remediation and not production-at-scale proof.
 
+### Raw Report Remediation Plan And Acceptance
+
+Run:
+
+```bash
+pnpm run storage:raw-report-remediation-plan
+pnpm run storage:raw-report-remediation-acceptance
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md`
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json`
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md`
+- `docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json`
+
+The remediation plan is dry-run only. It reads sanitized inventory evidence when present, classifies aggregate row categories, records affected tables and estimated counts, and documents rollback, backup, operator approval, and post-remediation validation requirements. It rejects production-like execution and mutation flags such as `--apply`, `--execute`, `--run`, and `--mutate`.
+
+Blocker 6 can be evidence-closed only after a sanitized operator acceptance artifact is submitted at `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json`. Acceptance requires proof that inventory was run, the plan was approved, remediation was performed by an operator or approved process, old inline compatibility was tested, post-remediation counts were recorded, backup/restore prerequisite was acknowledged, the operator acknowledgement was signed, and no raw sensitive values appear in the evidence. A dry-run plan or dashboard PASS alone is not accepted remediation proof.
+
 ## Runtime Size And Heavy Dependency Policy
 
 Run after a build:
