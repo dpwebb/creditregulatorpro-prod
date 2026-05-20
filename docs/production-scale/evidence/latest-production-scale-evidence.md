@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T19:54:08.903Z
+Generated at: 2026-05-20T20:08:09.537Z
 Current branch: `staging`
-Current commit hash: `f2c3d3f72e5be795ffba94f62ba82ac2e99f4c2f`
+Current commit hash: `dab749d9cef5457fb0fb411bdd9f6aaa8f3b9ca7`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -25,7 +25,7 @@ Dashboard exact commands recorded: yes
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=5, fixed=6, partial=12, open=1
+- Status counts: requires-human-proof=1, partial=13, simulated-proof-only=4, fixed=6, open=1
 
 ## Automated Local Evidence
 
@@ -33,10 +33,10 @@ Dashboard exact commands recorded: yes
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #2 Production ingest runtime (Critical; simulated-proof-only)
-  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
+- #2 Production ingest runtime (Critical; partial)
+  Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -70,9 +70,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
   Next action: Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
-  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #12 OCR route-local validation shape (Medium; fixed)
   Proof required: OCR shared upload-validation proof plus valid-fixture output-stability evidence.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`, `pnpm run test:deterministic-ingestion-report`, `pnpm run typecheck`
@@ -138,10 +138,10 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- SIMULATED - #2 Production ingest runtime (Critical; simulated-proof-only)
-  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
+- SIMULATED - #2 Production ingest runtime (Critical; partial)
+  Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - SIMULATED - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -173,10 +173,10 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
 
 ## Staging Evidence
 
-- #2 Production ingest runtime (Critical; simulated-proof-only)
-  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
+- #2 Production ingest runtime (Critical; partial)
+  Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -215,9 +215,9 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
 No read-only production command is executed by this report. Any production evidence must be human-observed, sanitized, and non-mutating.
 
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
-  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #20 Production-safe privacy probe depth (Medium; partial)
   Proof required: Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -238,9 +238,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
-  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #18 Runtime-size gates (Medium; partial)
   Proof required: Runtime-size report with machine-readable warning-only thresholds, visible WARN/WAIVED evidence, and explicit hard-gate semantics before any FAIL can block.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
@@ -264,10 +264,10 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #2 Production ingest runtime (Critical; simulated-proof-only)
-  Proof required: SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.
-  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
+- #2 Production ingest runtime (Critical; partial)
+  Proof required: SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.
+  Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run production-worker:activation-plan`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -289,9 +289,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
   Next action: Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
-  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
-  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
+  Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
+  Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #15 Hidden-risk list semantics (Medium; partial)
   Proof required: Design/evidence artifact for hidden-risk aggregate and stale-suppression semantics; full bounded pagination remains a separate UI/query task.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`, `pnpm run sensitive-list-endpoints:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts`

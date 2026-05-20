@@ -1,0 +1,67 @@
+{
+  "reportName": "production-worker-activation-plan",
+  "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
+  "generatedAt": "2026-05-20T20:08:08.761Z",
+  "branch": "staging",
+  "commit": "dab749d9cef5457fb0fb411bdd9f6aaa8f3b9ca7",
+  "prerequisite": {
+    "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+    "exists": true,
+    "status": "passed",
+    "generatedAt": "2026-05-20T17:59:00.836Z",
+    "commit": "8eca089cd4aa2c2ce5624941b10353fc64d4f797",
+    "productionWorkerActivationChanged": false,
+    "productionDeploymentChanged": false,
+    "humanOrStagingProductionProofStillRequired": true,
+    "satisfiedForPlanning": true
+  },
+  "productionWorkerDefault": {
+    "alwaysOnWorkerEnabled": false,
+    "defaultDeployStartsWorker": false,
+    "dockerComposeWorkerServiceAdded": false,
+    "ingestEndpointBehaviorChanged": false
+  },
+  "dryRunProcedure": {
+    "mutatesQueue": false,
+    "command": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+    "workflowInput": "run_ingest_worker_dry_run=true"
+  },
+  "applyProcedure": {
+    "defaultEnabled": false,
+    "boundedOneShot": true,
+    "maxJobs": "1-5",
+    "source": "authenticated_ingest_process",
+    "requiredGuards": [
+      "workflow_dispatch input run_ingest_worker_apply=true",
+      "ingest_worker_apply_ack=explicit-bounded-production-ingest-worker-apply",
+      "ingest_worker_operator=<safe-token>",
+      "CRP_ENV=production",
+      "CRP_PRODUCTION_INGEST_WORKER_APPLY=explicit-bounded-production-ingest-worker-apply",
+      "CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT=true",
+      "CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS=<matching max jobs>",
+      "CRP_PRODUCTION_INGEST_WORKER_OPERATOR=<safe-token>"
+    ],
+    "command": "pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+  },
+  "rollbackStopProcedure": [
+    "Do not rerun workflow_dispatch with worker inputs.",
+    "Use rollback_sha production deployment for application rollback.",
+    "If a one-shot worker is running, stop the application container or wait for the bounded command to exit; no daemon service is added.",
+    "Inspect queue depth and dead-letter rows before any further apply run."
+  ],
+  "safety": {
+    "productionDataMutatedByThisPlan": false,
+    "productionJobsProcessedByThisPlan": false,
+    "liveExternalProvidersCalled": false,
+    "realPiiUsed": false,
+    "productionAtScaleClaimed": false
+  },
+  "blockers": {
+    "blocker2": "partial; production worker activation is prepared but not activated or evidenced as production-fixed",
+    "blocker11": "partial; production parity still requires rollback and human-observed production evidence"
+  },
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+    "json": "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+  }
+}

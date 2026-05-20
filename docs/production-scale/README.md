@@ -120,6 +120,23 @@ These files are `SIMULATED` evidence only. They use synthetic in-memory queue jo
 
 The production ingest runtime blocker remains unresolved for production use until bounded staging-safe queue-depth recovery evidence is recorded and reviewed. Simulated proof cannot be promoted to production proof.
 
+## Production Worker Activation Plan
+
+Run:
+
+```bash
+pnpm run production-worker:activation-plan
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-production-worker-activation-plan.md`
+- `docs/production-scale/evidence/latest-production-worker-activation-plan.json`
+
+This is design and guard evidence only. It documents the default-off production workflow path, dry-run procedure, bounded apply guards, queue-depth evidence expectations, and rollback/stop procedure. It does not activate a production worker, process production jobs, mutate production data, or claim production-at-scale readiness.
+
+Production apply remains fail-closed unless every explicit workflow input and runtime guard in `docs/production-ingest-worker-activation.md` is present. Blocker 2 remains not fully production-fixed until an approved production run is actually activated and evidenced. Blocker 11 remains partial until production parity and rollback evidence are complete.
+
 ## Simulated Load Evidence
 
 Run:

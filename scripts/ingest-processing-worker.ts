@@ -28,6 +28,11 @@ export type WorkerCliOptions = {
   source: string | null;
 };
 
+export const PRODUCTION_INGEST_WORKER_MAX_JOBS = 5;
+export const PRODUCTION_INGEST_WORKER_SOURCE = "authenticated_ingest_process";
+export const PRODUCTION_INGEST_WORKER_APPLY_GUARD = "explicit-bounded-production-ingest-worker-apply";
+export const PRODUCTION_INGEST_WORKER_ONE_SHOT_GUARD = "true";
+
 type PipelineSignalSummary = {
   progressStages: string[];
   completeEvents: number;
@@ -108,6 +113,83 @@ function safeToken(value: string, fieldName: string): string {
   return trimmed;
 }
 
+export function detectIngestWorkerProductionEnvironment(env: NodeJS.ProcessEnv = process.env): {
+  productionLike: boolean;
+  reasons: string[];
+} {
+  const reasons: string[] = [];
+  const environmentFields = [
+    ["CRP_ENV", env.CRP_ENV],
+    ["APP_ENV", env.APP_ENV],
+    ["NODE_ENV", env.NODE_ENV],
+    ["VERCEL_ENV", env.VERCEL_ENV],
+  ];
+
+  for (const [name, value] of environmentFields) {
+    if (typeof value === "string" && /\bprod(?:uction)?\b/i.test(value)) {
+      reasons.push(`${name}=production-like`);
+    }
+  }
+
+  const databaseUrl = env.FLOOT_DATABASE_URL ?? env.DATABASE_URL ?? "";
+  if (databaseUrl && /prod|creditregulatorpro-prod|creditregulatorpro\.com/i.test(databaseUrl) && !/staging|localhost|127\.0\.0\.1|\.test/i.test(databaseUrl)) {
+    reasons.push("database_url=production-like");
+  }
+
+  return {
+    productionLike: reasons.length > 0,
+    reasons,
+  };
+}
+
+export function validateIngestWorkerRuntimeSafety(
+  options: WorkerCliOptions,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (!options.dryRun && !options.apply) {
+    fail("Ingest worker must run as --dry-run or explicit --apply.");
+  }
+
+  const productionEnvironment = detectIngestWorkerProductionEnvironment(env);
+  if (!productionEnvironment.productionLike) return;
+
+  if (options.dryRun && !options.apply) return;
+
+  if (!options.apply) {
+    fail("Production-like ingest worker execution refused because the command is not an explicit dry-run or guarded apply.");
+  }
+
+  const missingGuards: string[] = [];
+  if (env.CRP_ENV !== "production") missingGuards.push("CRP_ENV=production");
+  if (env.CRP_PRODUCTION_INGEST_WORKER_APPLY !== PRODUCTION_INGEST_WORKER_APPLY_GUARD) {
+    missingGuards.push("CRP_PRODUCTION_INGEST_WORKER_APPLY");
+  }
+  if (env.CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT !== PRODUCTION_INGEST_WORKER_ONE_SHOT_GUARD) {
+    missingGuards.push("CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT");
+  }
+  if (env.CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS !== String(options.maxJobs)) {
+    missingGuards.push("CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS");
+  }
+  if (!env.CRP_PRODUCTION_INGEST_WORKER_OPERATOR || !SAFE_TOKEN_PATTERN.test(env.CRP_PRODUCTION_INGEST_WORKER_OPERATOR)) {
+    missingGuards.push("CRP_PRODUCTION_INGEST_WORKER_OPERATOR");
+  }
+  if (options.maxJobs > PRODUCTION_INGEST_WORKER_MAX_JOBS) {
+    missingGuards.push(`--max-jobs<=${PRODUCTION_INGEST_WORKER_MAX_JOBS}`);
+  }
+  if (options.concurrency !== 1) missingGuards.push("--concurrency=1");
+  if (options.source !== PRODUCTION_INGEST_WORKER_SOURCE) {
+    missingGuards.push(`--source=${PRODUCTION_INGEST_WORKER_SOURCE}`);
+  }
+  if (!options.workerId) missingGuards.push("--worker-id");
+
+  if (missingGuards.length > 0) {
+    fail(
+      `Production ingest worker apply refused. Missing or invalid explicit guards: ${missingGuards.join(", ")}. ` +
+        `Detected production-like environment: ${productionEnvironment.reasons.join(", ")}.`,
+    );
+  }
+}
+
 function printHelp(): void {
   console.log([
     "Usage: pnpm run ingest:worker -- [options]",
@@ -127,6 +209,7 @@ function printHelp(): void {
     "  - Ingest endpoint cutover enqueues jobs; this worker owns deterministic processing execution.",
     "  - The worker calls executeIngestPipeline with the same artifact/user/account/context shape used by request-bound ingest.",
     "  - Raw report bytes and extracted text are not logged or stored in worker events.",
+    "  - Production-like --apply refuses unless CRP production one-shot guard environment variables are explicitly present.",
   ].join("\n"));
 }
 
@@ -519,7 +602,10 @@ export async function processNextIngestProcessingJob(
 export async function runIngestProcessingWorker(
   options: WorkerCliOptions,
   dependencies?: IngestWorkerDependencies,
+  env: NodeJS.ProcessEnv = process.env,
 ): Promise<number> {
+  validateIngestWorkerRuntimeSafety(options, env);
+
   if (options.concurrency !== 1) {
     throw new Error("Ingest worker concurrency greater than 1 is not supported in this bounded task.");
   }

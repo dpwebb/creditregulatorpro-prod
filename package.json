@@ -43,6 +43,7 @@
     "alerts:dry-run": "node scripts/alerts-dry-run.mjs",
     "ingest:worker": "tsx scripts/ingest-processing-worker.ts",
     "ingest:worker:simulated-proof": "tsx scripts/ingest-worker-simulated-proof.ts",
+    "production-worker:activation-plan": "node scripts/production-worker-activation-plan.mjs",
     "staging:ingest-worker": "node scripts/staging-ingest-worker-orchestrator.mjs",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",

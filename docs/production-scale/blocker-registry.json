@@ -48,10 +48,13 @@
     "pnpm run response:replay -- --dry-run",
     "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
     "pnpm run ingest:worker:simulated-proof",
+    "pnpm run production-worker:activation-plan",
     "pnpm run staging:ingest-worker -- --dry-run",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/packet-delivery-status-endpoint.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-worker.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
@@ -137,8 +140,8 @@
         ".github/workflows/deploy-staging.yml:620",
         ".github/workflows/deploy-production.yml"
       ],
-      "currentStatus": "simulated-proof-only",
-      "proofTypeRequired": "SIMULATED worker queue-drain proof now exists; bounded staging-safe queue-depth evidence is still required before any production-scoped activation.",
+      "currentStatus": "partial",
+      "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
       "proofCategories": [
         "simulated",
         "staging",
@@ -146,14 +149,17 @@
       ],
       "allowedProofCommands": [
         "pnpm run ingest:worker:simulated-proof",
+        "pnpm run production-worker:activation-plan",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run operator:dashboard",
         "pnpm run test:api"
       ],
       "forbiddenProofTypes": [
-        "production worker activation",
-        "production queue mutation",
+        "unapproved production worker activation",
+        "production queue mutation without explicit production apply guards",
         "live provider calls",
         "dashboard PASS alone"
       ],
@@ -162,12 +168,15 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/staging-ingest-worker-operation.md",
+        "docs/production-ingest-worker-activation.md",
         "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
         "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation."
+      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence."
     },
     {
       "number": 3,
@@ -515,7 +524,7 @@
         ".github/workflows/deploy-staging.yml"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.",
+      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
       "proofCategories": [
         "automated-local",
         "read-only-production",
@@ -524,6 +533,7 @@
       "allowedProofCommands": [
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run production-worker:activation-plan",
         "pnpm run test:contracts",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
@@ -544,9 +554,11 @@
         "docs/production-scale/evidence/latest-production-safe-probes.md",
         "docs/production-scale/evidence/latest-production-safe-probes.json",
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
       ],
-      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete."
+      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
     },
     {
       "number": 12,

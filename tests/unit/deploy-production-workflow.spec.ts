@@ -78,13 +78,48 @@ describe("production deploy workflow verification", () => {
     expect(source).not.toContain("response-auth-smoke");
   });
 
-  it("does not activate the staging ingest worker in production deploys", () => {
+  it("keeps production ingest worker execution default-off and manual only", () => {
     const source = workflowSource();
 
-    expect(source).not.toContain("run_ingest_worker");
-    expect(source).not.toContain("RUN_INGEST_WORKER");
-    expect(source).not.toContain("ingest:worker");
+    expect(source).toContain("run_ingest_worker_dry_run:");
+    expect(source).toContain("run_ingest_worker_apply:");
+    expect(source).toContain("default: false");
+    expect(source).toContain("Skipping production ingest worker. Manual workflow_dispatch input is required.");
+    expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_DRY_RUN: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_dry_run || false }}');
+    expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_APPLY: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_apply || false }}');
+    expect(source).not.toContain("docker compose up -d --build ingest");
+    expect(source).not.toContain("restart: unless-stopped ingest");
+  });
+
+  it("supports only read-only dry-run or guarded bounded one-shot production worker apply", () => {
+    const source = workflowSource();
+
+    expect(source).toContain("run_production_ingest_worker_plan() {");
+    expect(source).toContain("choose dry-run or apply, not both");
+    expect(source).toContain("Refusing production ingest worker input: ingest_worker_max_jobs must be 1-5.");
+    expect(source).toContain("Refusing production ingest worker input: ingest_worker_operator must be a safe token.");
+    expect(source).toContain("Refusing production ingest worker input: ingest_worker_apply_ack is invalid.");
+    expect(source).toContain("ingest_worker_max_jobs must be 1-5");
+    expect(source).toContain("Running read-only bounded production ingest worker dry-run.");
+    expect(source).toContain(
+      "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+    );
+    expect(source).toContain("explicit-bounded-production-ingest-worker-apply");
+    expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT=true");
+    expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS=\"$PRODUCTION_INGEST_WORKER_MAX_JOBS\"");
+    expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_OPERATOR=\"$PRODUCTION_INGEST_WORKER_OPERATOR\"");
+    expect(source).toContain(
+      "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+    );
+    expect(source).not.toContain("--max-jobs 100");
+    expect(source).not.toContain("--concurrency 2");
+  });
+
+  it("does not run staging-only ingest worker commands in production deploys", () => {
+    const source = workflowSource();
+
     expect(source).not.toContain("CRP_ENV=staging");
     expect(source).not.toContain("creditregulatorpro-staging");
+    expect(source).not.toContain("staging-deploy-ingest-worker");
   });
 });

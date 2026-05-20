@@ -132,13 +132,16 @@ describe("simulated ingest worker queue-drain proof", () => {
     expect(markdown).toContain("Production deployment or worker activation changed: no");
   });
 
-  it("keeps production deployment workflow free of ingest worker activation", () => {
+  it("keeps production deployment workflow free of default worker activation", () => {
     const productionWorkflow = readFileSync(resolve(".github/workflows/deploy-production.yml"), "utf8");
 
-    expect(productionWorkflow).not.toContain("ingest:worker");
+    expect(productionWorkflow).toContain("run_ingest_worker_dry_run:");
+    expect(productionWorkflow).toContain("run_ingest_worker_apply:");
+    expect(productionWorkflow).toContain("Skipping production ingest worker. Manual workflow_dispatch input is required.");
+    expect(productionWorkflow).toContain("explicit-bounded-production-ingest-worker-apply");
     expect(productionWorkflow).not.toContain("staging:ingest-worker");
-    expect(productionWorkflow).not.toContain("run_ingest_worker");
-    expect(productionWorkflow).not.toContain("ingest-processing-worker");
+    expect(productionWorkflow).not.toContain("creditregulatorpro-staging");
+    expect(productionWorkflow).not.toContain("staging-deploy-ingest-worker");
   });
 
   it("exposes the package simulated proof command", () => {
