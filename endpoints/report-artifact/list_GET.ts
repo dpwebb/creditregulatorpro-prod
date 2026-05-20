@@ -3,6 +3,7 @@ import { OutputType, schema } from "./list_GET.schema";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
+import { maskAccountNumber } from "../../helpers/disputePacketTemplate";
 
 export async function handle(request: Request) {
   try {
@@ -45,7 +46,6 @@ export async function handle(request: Request) {
       "reportArtifact.crrgYear",
       "reportArtifact.expiresAt",
       "reportArtifact.validationRulesApplied",
-      "reportArtifact.data",
       "reportArtifact.processingStatus",
       "tradeline.accountNumber as tradelineAccountNumber",
       "tradeline.accountType as tradelineAccountType",
@@ -82,9 +82,21 @@ export async function handle(request: Request) {
 
     // linkedAccountCount comes back as a string from pg COUNT aggregate; coerce to number
     const artifacts = rawArtifacts.map((row) => {
-      const { storageUrl: _storageUrl, ...safeRow } = row as typeof row & { storageUrl?: unknown };
+      const {
+        storageUrl: _storageUrl,
+        data: _data,
+        tradelineAccountNumber,
+        ...safeRow
+      } = row as typeof row & {
+        storageUrl?: unknown;
+        data?: unknown;
+        tradelineAccountNumber?: string | null;
+      };
       return {
         ...safeRow,
+        tradelineAccountNumber: tradelineAccountNumber
+          ? maskAccountNumber(tradelineAccountNumber)
+          : null,
         linkedAccountCount:
           row.linkedAccountCount != null
             ? parseInt(row.linkedAccountCount as unknown as string, 10)

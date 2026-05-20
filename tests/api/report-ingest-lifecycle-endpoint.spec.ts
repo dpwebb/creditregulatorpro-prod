@@ -733,7 +733,22 @@ describe("report ingest lifecycle endpoints", () => {
   });
 
   it("lists report artifacts using current user scoping and compact synthetic metadata", async () => {
-    queueResults({ firstOrThrow: { total: "1" } }, { execute: [artifactRow({ storageUrl: "SHOULD_NOT_SELECT" })] });
+    queueResults(
+      { firstOrThrow: { total: "1" } },
+      {
+        execute: [
+          artifactRow({
+            storageUrl: "SHOULD_NOT_SELECT",
+            tradelineAccountNumber: "1234567890123456",
+            data: {
+              fileName: "synthetic-credit-report.pdf",
+              parsedTradelines: [{ accountNumber: "1234567890123456", rawText: "RAW_PARSED_REPORT_TEXT" }],
+              evidenceLocationIndex: { rawSpan: "RAW_EVIDENCE_SPAN" },
+            },
+          }),
+        ],
+      },
+    );
 
     const response = await listReportArtifacts(getRequest("/_api/report-artifact/list?limit=10&offset=0"));
 
@@ -747,13 +762,21 @@ describe("report ingest lifecycle endpoints", () => {
           userId: 10,
           artifactType: "credit_report",
           processingStatus: "completed",
+          tradelineAccountNumber: "Account ending 3456",
           linkedAccountCount: 1,
           bureauName: "Synthetic Bureau",
         }),
       ],
     });
     expect(body.artifacts[0]).not.toHaveProperty("storageUrl");
+    expect(body.artifacts[0]).not.toHaveProperty("data");
     expect(JSON.stringify(body)).not.toContain("SHOULD_NOT_SELECT");
+    expect(JSON.stringify(body)).not.toContain("RAW_PARSED_REPORT_TEXT");
+    expect(JSON.stringify(body)).not.toContain("RAW_EVIDENCE_SPAN");
+    expect(JSON.stringify(body)).not.toContain("1234567890123456");
+    const endpointSource = readFileSync(resolve("endpoints/report-artifact/list_GET.ts"), "utf8");
+    expect(endpointSource).not.toContain('"reportArtifact.storageUrl"');
+    expect(endpointSource).not.toContain('"reportArtifact.data"');
     expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
     expect(whereValues("reportArtifact.processingStatus")).toContainEqual([
       "reportArtifact.processingStatus",

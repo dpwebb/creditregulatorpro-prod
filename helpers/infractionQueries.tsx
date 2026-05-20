@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getReportArtifactList } from "../endpoints/report-artifact/list_GET.schema";
 import { createCreditorValidation } from "../endpoints/creditor-validation/create_POST.schema";
 import { InfractionFinding } from "./regulationInfractionScanner";
-import { ParsedTradeline } from "./reportParser";
 import { CraObligationType } from "./schema";
 import { DisputeVectorType } from "./obligationVectors";
 
@@ -48,10 +47,8 @@ function mapVectorToObligationType(vector: DisputeVectorType): CraObligationType
 // --- Hooks ---
 
 /**
- * Fetches a specific report artifact and extracts its parsed tradelines if available.
- * Note: Since we don't have a specific GET by ID endpoint for artifacts yet,
- * we fetch the list and find the matching one. In a real app with pagination,
- * we would need a dedicated endpoint.
+ * Fetches a specific report artifact from the metadata-only list. Parsed report
+ * payloads are intentionally not returned by list responses.
  */
 export const useReportArtifactWithTradelines = (artifactId: number) => {
   const query = useQuery({
@@ -64,14 +61,9 @@ export const useReportArtifactWithTradelines = (artifactId: number) => {
         throw new Error(`Artifact with ID ${artifactId} not found`);
       }
 
-      // Safely extract tradelines from the JSON data column
-      // The structure depends on how it was saved in the upload page
-      const data = artifact.data as Record<string, any> | null;
-      const tradelines = (data?.parsedTradelines as ParsedTradeline[]) || [];
-
       return {
         artifact,
-        tradelines,
+        tradelines: [],
       };
     },
     enabled: !!artifactId,

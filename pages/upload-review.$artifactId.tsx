@@ -66,7 +66,6 @@ export default function UploadReviewPage() {
   // 1. Fetch artifact details (only in Artifact Review Mode)
   const { 
     artifact, 
-    tradelines: jsonTradelines, 
     isLoading: isArtifactLoading, 
     error: artifactError 
   } = useReportArtifactWithTradelines(isOCRReviewMode ? 0 : parsedArtifactId);
@@ -83,14 +82,10 @@ export default function UploadReviewPage() {
     if (isOCRReviewMode) return [];
     if (!artifact) return [];
 
-    // Check for IDs in artifact data
-    const data = artifact.data as Record<string, any> | null;
-    const tradelineIds = (data?.tradelineIds as number[]) || [];
-
-    // If we have IDs and the DB list is loaded, filter and map DB records
-    if (tradelineIds.length > 0 && tradelineList?.tradelines) {
+    if (tradelineList?.tradelines) {
       const dbTradelines = tradelineList.tradelines.filter(tl => 
-        tradelineIds.includes(tl.id)
+        tl.reportArtifactId === artifact.id ||
+        (artifact.tradelineId != null && tl.id === artifact.tradelineId)
       );
 
       return dbTradelines.map((tl: TradelineWithDetails) => {
@@ -121,9 +116,8 @@ export default function UploadReviewPage() {
       });
     }
 
-    // Fallback to JSON tradelines if no IDs found in artifact (legacy support)
-    return jsonTradelines as ScannableTradeline[];
-  }, [isOCRReviewMode, artifact, tradelineList, jsonTradelines]);
+    return [];
+  }, [isOCRReviewMode, artifact, tradelineList]);
 
   // Run infraction scanner (only in Artifact Review Mode)
   useEffect(() => {

@@ -539,10 +539,13 @@ describe("report artifact raw PDF storage references", () => {
           crrgYear: null,
           expiresAt: null,
           validationRulesApplied: null,
-          data: { fileName: "owned-report.pdf" },
+          data: {
+            fileName: "owned-report.pdf",
+            parsedTradelines: [{ accountNumber: "1234567890123456", rawText: "RAW_REPORT_TEXT" }],
+          },
           storageUrl: pdfBase64,
           processingStatus: "completed",
-          tradelineAccountNumber: null,
+          tradelineAccountNumber: "1234567890123456",
           tradelineAccountType: null,
           linkedAccountCount: "0",
           bureauName: null,
@@ -554,7 +557,11 @@ describe("report artifact raw PDF storage references", () => {
     expect(list.status).toBe(200);
     const listBody = await list.json();
     expect(listBody.artifacts[0]).not.toHaveProperty("storageUrl");
+    expect(listBody.artifacts[0]).not.toHaveProperty("data");
+    expect(listBody.artifacts[0].tradelineAccountNumber).toBe("Account ending 3456");
     expect(JSON.stringify(listBody)).not.toContain(pdfBase64);
+    expect(JSON.stringify(listBody)).not.toContain("RAW_REPORT_TEXT");
+    expect(JSON.stringify(listBody)).not.toContain("1234567890123456");
 
     queueResults({ first: null });
     const denied = await getReportArtifact(getRequest("/_api/report-artifact/get?id=9901"));

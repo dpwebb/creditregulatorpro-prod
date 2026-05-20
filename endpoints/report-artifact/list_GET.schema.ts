@@ -28,7 +28,6 @@ export type ReportArtifactListItem = Pick<
   | "crrgYear"
   | "expiresAt"
   | "validationRulesApplied"
-  | "data"
   | "processingStatus"
 >;
 
