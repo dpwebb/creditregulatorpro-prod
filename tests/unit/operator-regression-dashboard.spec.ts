@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyRunResults,
+  buildDashboardReleaseEvidenceSemantics,
   buildOperatorDashboard,
   DASHBOARD_SAFETY_BOUNDARIES,
   filterDashboard,
@@ -306,7 +307,7 @@ describe("operator regression dashboard", () => {
         expect.objectContaining({
           category: "Outcome Tracking",
           name: "Response external alert dry-run boundary",
-          command: "pnpm run response:orchestration-check",
+          command: "pnpm run alerts:dry-run",
           runByDefault: false,
         }),
         expect.objectContaining({
@@ -564,6 +565,7 @@ describe("operator regression dashboard", () => {
     expect(rendered).toContain("Response processing soak check");
     expect(rendered).toContain("not live mailbox integration or production-load proof");
     expect(rendered).toContain("live daemon activation is not automatic");
+    expect(rendered).toContain("SIMULATED DRY RUN alert payload proof exists with zero live external delivery");
     expect(rendered).toContain("Real email, Slack, webhook, SMS, push, or pager delivery remains intentionally absent");
     expect(rendered).toContain("does not physically purge or archive response-processing history");
     expect(rendered).toContain("records without sanitized stored summaries remain non-replayable");
@@ -594,6 +596,34 @@ describe("operator regression dashboard", () => {
       ]),
     );
     expect(report.summary.manual).toBeGreaterThan(0);
+  });
+
+  it("keeps dashboard SKIP, SIMULATED, and HUMAN_REQUIRED evidence states visible", () => {
+    const report = buildOperatorDashboard({ runGit: fakeGit(), fileExists: () => true });
+    const rendered = renderDashboard(report);
+
+    expect(report.summary.skip).toBeGreaterThan(0);
+    expect(report.summary.simulated).toBeGreaterThan(0);
+    expect(report.summary.humanRequired).toBeGreaterThan(0);
+    expect(rendered).toContain("[SKIP] Golden Path");
+    expect(rendered).toContain("[SIMULATED] Response external alert dry-run boundary");
+    expect(rendered).toContain("[HUMAN_REQUIRED] Response scheduler activation conditions");
+    expect(rendered).toContain("- SIMULATED: synthetic or dry-run proof exists, but it is not production proof");
+    expect(rendered).toContain("- HUMAN_REQUIRED: operator-observed or signed proof is required outside this dashboard");
+  });
+
+  it("does not allow dashboard PASS semantics to hide skipped critical proof", () => {
+    const report = buildOperatorDashboard({ runGit: fakeGit(), fileExists: () => true });
+    const semantics = buildDashboardReleaseEvidenceSemantics(report.categories);
+
+    expect(report.releaseEvidenceSemantics).toMatchObject(semantics);
+    expect(semantics.dashboardPassAloneIsReleaseEvidence).toBe(false);
+    expect(semantics.passImpliesSkippedChecksPassed).toBe(false);
+    expect(semantics.exactCommandsRequired).toBe(true);
+    expect(semantics.skippedChecksVisible).toBe(true);
+    expect(semantics.simulatedProofVisible).toBe(true);
+    expect(semantics.humanRequiredProofVisible).toBe(true);
+    expect(semantics.exactCommands).toContain("pnpm run alerts:dry-run");
   });
 
   it("supports run-checks through bounded command result mapping", () => {

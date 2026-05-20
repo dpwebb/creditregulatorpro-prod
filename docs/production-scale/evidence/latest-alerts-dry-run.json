@@ -1,0 +1,295 @@
+{
+  "reportName": "alerts-dry-run-evidence",
+  "evidenceType": "SIMULATED",
+  "deliveryMode": "DRY RUN",
+  "generatedAt": "2026-05-20T18:38:30.557Z",
+  "branch": "staging",
+  "commit": "019b1394ef194cbd32aab3ad351618879d49fa70",
+  "warning": "SIMULATED DRY RUN alert evidence is not live external alert delivery proof and does not claim production-at-scale readiness.",
+  "requiredCategories": [
+    "critical_ingest_queue_backlog",
+    "dead_letter_response_backlog",
+    "stale_running_response_job",
+    "packet_pdf_cache_warning",
+    "storage_raw_report_warning",
+    "db_pool_pressure_warning",
+    "restore_evidence_missing_warning",
+    "dashboard_skip_warning"
+  ],
+  "alerts": [
+    {
+      "category": "critical_ingest_queue_backlog",
+      "severity": "critical",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "critical_ingest_queue_backlog",
+        "severity": "critical",
+        "title": "Critical ingest queue backlog",
+        "summary": "SIMULATED ingest queue backlog crossed the critical operator threshold.",
+        "metric": {
+          "name": "ingest_queued_jobs",
+          "value": 125,
+          "threshold": 100,
+          "unit": "jobs"
+        },
+        "runbookAction": "Inspect ingest worker status, queue drain evidence, and remediation queue before any release claim.",
+        "dedupeKey": "SIMULATED_critical_ingest_queue_backlog",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "dead_letter_response_backlog",
+      "severity": "critical",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "dead_letter_response_backlog",
+        "severity": "critical",
+        "title": "Dead-letter response backlog",
+        "summary": "SIMULATED response-processing dead-letter backlog requires operator review.",
+        "metric": {
+          "name": "response_dead_letter_jobs",
+          "value": 3,
+          "threshold": 1,
+          "unit": "jobs"
+        },
+        "runbookAction": "Use admin remediation review; do not delete queue history or mutate terminal records silently.",
+        "dedupeKey": "SIMULATED_dead_letter_response_backlog",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "stale_running_response_job",
+      "severity": "critical",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "stale_running_response_job",
+        "severity": "critical",
+        "title": "Stale-running response job",
+        "summary": "SIMULATED stale-running response job is visible for explicit operator review.",
+        "metric": {
+          "name": "response_stale_running_jobs",
+          "value": 1,
+          "threshold": 1,
+          "unit": "jobs"
+        },
+        "runbookAction": "Review stale-running job evidence without auto-reclaiming or changing queue semantics.",
+        "dedupeKey": "SIMULATED_stale_running_response_job",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "packet_pdf_cache_warning",
+      "severity": "warning",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "packet_pdf_cache_warning",
+        "severity": "warning",
+        "title": "Packet PDF/cache warning",
+        "summary": "SIMULATED packet PDF cache-miss/render warning is capacity evidence only, not a queue fix.",
+        "metric": {
+          "name": "packet_pdf_cache_misses",
+          "value": 4,
+          "threshold": 1,
+          "unit": "misses"
+        },
+        "runbookAction": "Record cache-miss timing evidence and keep packet wording and PDF behavior unchanged.",
+        "dedupeKey": "SIMULATED_packet_pdf_cache_warning",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "storage_raw_report_warning",
+      "severity": "warning",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "storage_raw_report_warning",
+        "severity": "warning",
+        "title": "Storage/raw report warning",
+        "summary": "SIMULATED storage inventory warning indicates possible historical inline raw-report rows.",
+        "metric": {
+          "name": "possible_inline_raw_report_rows",
+          "value": 2,
+          "threshold": 1,
+          "unit": "rows"
+        },
+        "runbookAction": "Run sanitized raw-report inventory; do not print raw bytes or silently migrate historical rows.",
+        "dedupeKey": "SIMULATED_storage_raw_report_warning",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "db_pool_pressure_warning",
+      "severity": "warning",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "db_pool_pressure_warning",
+        "severity": "warning",
+        "title": "DB/pool pressure warning",
+        "summary": "SIMULATED DB pool pressure signal crossed the warning threshold.",
+        "metric": {
+          "name": "db_active_connection_signal",
+          "value": 24,
+          "threshold": 20,
+          "unit": "connections"
+        },
+        "runbookAction": "Capture bounded local or staging-safe pool evidence without stressing production.",
+        "dedupeKey": "SIMULATED_db_pool_pressure_warning",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "restore_evidence_missing_warning",
+      "severity": "critical",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "restore_evidence_missing_warning",
+        "severity": "critical",
+        "title": "Restore evidence missing",
+        "summary": "SIMULATED restore evidence warning indicates human-observed restore proof remains required.",
+        "metric": {
+          "name": "human_restore_evidence_records",
+          "value": 0,
+          "threshold": 1,
+          "unit": "records"
+        },
+        "runbookAction": "Complete a human-observed restore drill with sanitized signed RPO/RTO evidence.",
+        "dedupeKey": "SIMULATED_restore_evidence_missing_warning",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    },
+    {
+      "category": "dashboard_skip_warning",
+      "severity": "warning",
+      "evidenceType": "SIMULATED",
+      "deliveryMode": "DRY RUN",
+      "payloadSanitized": true,
+      "liveExternalCallMade": false,
+      "payload": {
+        "service": "creditregulatorpro",
+        "environment": "SIMULATED_LOCAL",
+        "category": "dashboard_skip_warning",
+        "severity": "warning",
+        "title": "Dashboard skip warning",
+        "summary": "SIMULATED dashboard warning states SKIP rows cannot be treated as PASS evidence.",
+        "metric": {
+          "name": "dashboard_skip_rows",
+          "value": 12,
+          "threshold": 1,
+          "unit": "rows"
+        },
+        "runbookAction": "Record exact commands and skipped rows; dashboard PASS alone is not sufficient release evidence.",
+        "dedupeKey": "SIMULATED_dashboard_skip_warning",
+        "containsPii": false,
+        "containsSecrets": false,
+        "containsRawReportData": false,
+        "containsSignedUrls": false,
+        "externalDeliveryAttempted": false
+      }
+    }
+  ],
+  "sanitization": {
+    "payloadsSanitized": true,
+    "sensitiveFindings": [],
+    "piiSecretsRawReportScanner": "passed-if-sensitiveFindings-empty"
+  },
+  "safety": {
+    "productionMutationForbidden": true,
+    "productionDataMutated": false,
+    "productionEnvironmentDetected": false,
+    "syntheticFixturesOnly": true,
+    "liveExternalAlertsSent": 0,
+    "liveExternalProviderCallsMade": 0,
+    "alertProviderConfiguredOrRequired": false,
+    "liveScheduledDaemonEnabled": false,
+    "responseQueueSemanticsChanged": false,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "packetWordingChanged": false,
+    "packetPdfBehaviorChanged": false,
+    "storageBehaviorChanged": false,
+    "retentionBehaviorChanged": false,
+    "deploymentActivationChanged": false,
+    "realConsumerPiiUsed": false,
+    "rawReportsUsed": false,
+    "secretsOrCredentialsUsed": false
+  },
+  "statements": [
+    "DRY RUN and SIMULATED: no live external alerts were sent.",
+    "Payloads are synthetic and sanitized; no PII, secrets, raw reports, signed URLs, or credential URLs are allowed.",
+    "Live external alerting remains disabled unless separately configured, reviewed, and proven.",
+    "If no external alert provider is used, an accepted exclusion must cite this dry-run plus operator-monitoring coverage.",
+    "Dashboard PASS alone is not sufficient release evidence; SKIP rows must remain visible."
+  ],
+  "blockers": {
+    "blocker8ResponseOperations": "Partial/SIMULATED evidence only; live scheduler, physical purge/archive, and historical backfill are not proven complete.",
+    "blocker9Alerting": "SIMULATED dry-run/mock alert proof only; live external alert delivery remains disabled.",
+    "blocker25DashboardSkipSemantics": "Dry-run includes dashboard skip warning; dashboard reporting must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED."
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

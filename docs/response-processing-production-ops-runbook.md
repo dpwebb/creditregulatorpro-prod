@@ -58,7 +58,7 @@ Stop if any required check fails.
 | --- | --- | --- | --- |
 | Scheduler/live daemon activation conditions | `pnpm run response:worker-orchestrate -- --dry-run` | Dry-run proof exists. Live scheduler is not automatically enabled. | Dashboard row, dry-run output, operator signoff, target commit, max-job bound, lock scope, and stop conditions. |
 | Bounded worker execution | `pnpm run response:worker -- --dry-run` | Dry-run preview exists. Non-dry worker use is explicit and bounded. | Preview output before each supervised worker run and summary output after each run. |
-| External alert delivery dry-run/mock | `pnpm run response:orchestration-check` | Internal dashboard alert surfacing exists. Real external alert delivery is not implemented. | Synthetic orchestration output proving internal alert visibility and `externalAlertDeliveryUsed: false`; future external providers require mocked tests before live delivery. |
+| External alert delivery dry-run/mock | `pnpm run alerts:dry-run` | SIMULATED dry-run payload evidence exists. Real external alert delivery is not implemented or enabled. | Sanitized SIMULATED alert payloads for ingest backlog, response dead-letter backlog, stale-running response job, packet PDF/cache warning, storage/raw report warning, DB/pool pressure warning, restore evidence missing warning, and dashboard SKIP warning. Output must show zero live external calls. |
 | Purge/archive readiness | `pnpm run response:lifecycle -- --dry-run` | Retention preview and append-only marker tooling exists. Physical purge/archive remains deferred. | Retention preview, drift report, protected stale/dead-letter counts, and explicit no-delete confirmation in output. |
 | Historical backfill plan | `pnpm run response:replay -- --dry-run` | Replay dry-run exists. Production backfill execution remains operator-controlled. | Scanned/replayable/non-replayable counts, reason counts, stale metadata counts, filters, and no raw response text evidence. |
 | Replay apply confirmation | `pnpm run response:replay -- --apply --confirm-apply --actor-user-id <operator-user-id> --limit <n>` | Apply is available only with explicit confirmation and actor attribution. | Operator approval, actor ID, tight filters, bounded limit, appended event counts, and no source-truth mutation evidence. |
@@ -91,6 +91,28 @@ pnpm run operator:dashboard
 ## External Alert Delivery Boundary
 
 Current response operations support internal operator alert surfacing through metrics, lifecycle drift reports, orchestration events, soak-check evidence, and dashboard rows. They do not send email, Slack, webhook, SMS, push, or pager alerts.
+
+Run the external alert dry-run/mock proof with:
+
+```bash
+pnpm run alerts:dry-run
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-alerts-dry-run.md`
+- `docs/production-scale/evidence/latest-alerts-dry-run.json`
+
+The output is labeled `SIMULATED` and `DRY RUN`. It proves that sanitized synthetic alert payloads can be rendered for the required categories while sending zero live external alerts and making zero live external provider calls. It must not be represented as live alert delivery proof, production proof, or production-at-scale readiness.
+
+Interpretation:
+
+- `SIMULATED` means local/staging-safe synthetic proof only.
+- `DRY RUN` means no delivery provider is invoked.
+- A clean sanitization result means the rendered payloads did not contain detected PII, secrets, raw report data, credential URLs, signed URLs, or signature data.
+- Dashboard `SKIP`, `SIMULATED`, and `HUMAN_REQUIRED` rows remain release-evidence qualifiers, not hidden PASS conditions.
+
+If the product intentionally uses no external alert provider, the accepted exclusion path is to record the exclusion, cite `pnpm run alerts:dry-run`, cite operator dashboard/soak evidence, and name the human monitoring path. The exclusion must not be described as live external alert proof.
 
 Before any external alert provider is introduced, a separate task must add:
 
@@ -202,7 +224,7 @@ Use this template for each supervised response operations window:
 ## Current Remaining Gaps
 
 - Live scheduled daemon operation is not enabled automatically and still needs repeated operator-run evidence before a production-operational claim.
-- External alert delivery is not implemented; internal dashboard alert surfacing is the current boundary.
+- External alert delivery is not implemented; internal dashboard alert surfacing plus SIMULATED dry-run payload proof is the current boundary.
 - Physical purge/archive remains deferred.
 - Historical production backfill execution remains operator-controlled and cannot replay records that lack stored sanitized summaries.
 - Repeated production-scale smoke/load evidence remains outside this response-operations documentation task.

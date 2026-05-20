@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ProductionObservabilityMetrics, ThresholdStatus } from "../helpers/productionObservabilityMetrics";
 
-export type DashboardStatus = "PASS" | "FAIL" | "SKIP" | "MANUAL" | "OPEN" | "INFO";
+export type DashboardStatus = "PASS" | "FAIL" | "SKIP" | "SIMULATED" | "HUMAN_REQUIRED" | "MANUAL" | "OPEN" | "INFO";
 
 export type DashboardCheck = {
   name: string;
@@ -75,6 +75,17 @@ export const DASHBOARD_SAFETY_BOUNDARIES = {
   generatesPackets: false,
   usesRealConsumerData: false,
   runsAuthenticatedSmokeByDefault: false,
+};
+
+export const DASHBOARD_RELEASE_EVIDENCE_STATUS_MEANINGS: Record<DashboardStatus, string> = {
+  PASS: "check passed",
+  FAIL: "check failed or required release state is unsafe",
+  SKIP: "available local check was not run in this dashboard invocation",
+  SIMULATED: "synthetic or dry-run proof exists, but it is not production proof",
+  HUMAN_REQUIRED: "operator-observed or signed proof is required outside this dashboard",
+  MANUAL: "gated smoke or operator step requiring explicit context",
+  OPEN: "known scale-readiness gap",
+  INFO: "release context or non-runtime safety note",
 };
 
 export const SAFE_RUN_CHECK_COMMANDS = [
@@ -665,18 +676,18 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         ),
         check(
           "Response scheduler activation conditions",
-          "SKIP",
-          "Runbook-backed scheduler proof: live daemon activation is not automatic; operators must first pass dry-run orchestration, response soak, dashboard, and response tests, then use only an explicit bounded --run invocation with max-job and lock-scope evidence.",
+          "HUMAN_REQUIRED",
+          "Runbook-backed scheduler proof: live daemon activation is not automatic; operators must first pass dry-run orchestration, response soak, dashboard, and response tests, then use only an explicit bounded --run invocation with max-job and lock-scope evidence. Human-observed scheduler evidence is still required for a live-operations claim.",
           {
             command: "pnpm run response:worker-orchestrate -- --dry-run",
           },
         ),
         check(
           "Response external alert dry-run boundary",
-          "SKIP",
-          "Synthetic orchestration proof for internal alert surfacing only. Real email, Slack, webhook, SMS, push, or pager delivery remains intentionally absent; future external providers require mocked dry-run tests before live delivery.",
+          "SIMULATED",
+          "SIMULATED DRY RUN alert payload proof exists with zero live external delivery. Real email, Slack, webhook, SMS, push, or pager delivery remains intentionally absent; future external providers require mocked dry-run tests before live delivery.",
           {
-            command: "pnpm run response:orchestration-check",
+            command: "pnpm run alerts:dry-run",
           },
         ),
         check(
@@ -763,16 +774,16 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         ),
         check(
           "Response purge/archive readiness",
-          "SKIP",
-          "Runbook-backed lifecycle proof: retention dry-run identifies eligible terminal records and protected stale/dead-letter records, while apply remains explicit, actor-attributed, append-only, and does not physically purge or archive response-processing history.",
+          "HUMAN_REQUIRED",
+          "Runbook-backed lifecycle proof: retention dry-run identifies eligible terminal records and protected stale/dead-letter records, while apply remains explicit, actor-attributed, append-only, and does not physically purge or archive response-processing history. Physical purge/archive remains unproven and human-governed.",
           {
             command: "pnpm run response:lifecycle -- --dry-run",
           },
         ),
         check(
           "Response historical backfill plan",
-          "SKIP",
-          "Runbook-backed replay proof: dry-run reports replayable and non-replayable records with reason counts; apply requires explicit confirmation and actor attribution, and records without sanitized stored summaries remain non-replayable without rehydrating raw response text.",
+          "HUMAN_REQUIRED",
+          "Runbook-backed replay proof: dry-run reports replayable and non-replayable records with reason counts; apply requires explicit confirmation and actor attribution, and records without sanitized stored summaries remain non-replayable without rehydrating raw response text. Historical backfill execution remains operator-proof required.",
           {
             command: "pnpm run response:replay -- --dry-run",
           },
@@ -991,12 +1002,37 @@ function flattenChecks(categories: DashboardCategory[]): DashboardCheck[] {
 }
 
 function buildSummary(categories: DashboardCategory[]) {
-  const summary = { pass: 0, fail: 0, skip: 0, manual: 0, open: 0, info: 0 };
+  const summary = { pass: 0, fail: 0, skip: 0, simulated: 0, humanRequired: 0, manual: 0, open: 0, info: 0 };
   for (const item of flattenChecks(categories)) {
-    const key = item.status.toLowerCase() as keyof typeof summary;
+    const key = item.status === "HUMAN_REQUIRED"
+      ? "humanRequired"
+      : item.status.toLowerCase() as keyof typeof summary;
     summary[key] += 1;
   }
   return summary;
+}
+
+export function buildDashboardReleaseEvidenceSemantics(categories: DashboardCategory[]) {
+  const summary = buildSummary(categories);
+  const exactCommands = Array.from(new Set(
+    flattenChecks(categories)
+      .map((item) => item.command)
+      .filter((command): command is string => Boolean(command)),
+  )).sort();
+  return {
+    statusValues: Object.keys(DASHBOARD_RELEASE_EVIDENCE_STATUS_MEANINGS) as DashboardStatus[],
+    statusMeanings: DASHBOARD_RELEASE_EVIDENCE_STATUS_MEANINGS,
+    dashboardPassAloneIsReleaseEvidence: false,
+    passImpliesSkippedChecksPassed: false,
+    exactCommandsRequired: true,
+    exactCommands,
+    skipCount: summary.skip,
+    simulatedCount: summary.simulated,
+    humanRequiredCount: summary.humanRequired,
+    skippedChecksVisible: summary.skip > 0,
+    simulatedProofVisible: summary.simulated > 0,
+    humanRequiredProofVisible: summary.humanRequired > 0,
+  };
 }
 
 function finalizeDashboard(report: {
@@ -1011,6 +1047,7 @@ function finalizeDashboard(report: {
   return {
     ...report,
     summary: buildSummary(report.categories),
+    releaseEvidenceSemantics: buildDashboardReleaseEvidenceSemantics(report.categories),
   };
 }
 
@@ -1099,12 +1136,14 @@ export function renderDashboard(report: ReturnType<typeof buildOperatorDashboard
 
   lines.push(
     "Status values:",
-    "- PASS: check passed",
-    "- FAIL: check failed or required release state is unsafe",
-    "- SKIP: available local check was not run in this dashboard invocation",
-    "- MANUAL: gated smoke or operator step requiring explicit context",
-    "- OPEN: known scale-readiness gap",
-    "- INFO: release context or non-runtime safety note",
+    ...Object.entries(DASHBOARD_RELEASE_EVIDENCE_STATUS_MEANINGS).map(([status, meaning]) => `- ${status}: ${meaning}`),
+    "",
+    "Release evidence semantics:",
+    "- Dashboard PASS alone is not sufficient release evidence.",
+    "- SKIP rows remain visible and are not treated as PASS.",
+    "- SIMULATED rows are not production proof.",
+    "- HUMAN_REQUIRED rows require operator-observed or signed proof outside this dashboard.",
+    "- Exact commands must be recorded for release evidence.",
   );
 
   return lines.join("\n");

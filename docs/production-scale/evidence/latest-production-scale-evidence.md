@@ -1,19 +1,21 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T18:30:30.942Z
+Generated at: 2026-05-20T18:38:30.520Z
 Current branch: `staging`
-Current commit hash: `b5a2ee3505e6faa836d857d980c7f708304ff211`
+Current commit hash: `019b1394ef194cbd32aab3ad351618879d49fa70`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
 All 25 blockers represented: yes
-Any checks skipped: yes (58 dashboard SKIP row(s))
+Any checks skipped: yes (54 dashboard SKIP row(s))
+Dashboard exact commands recorded: yes
 
 ## Required Warnings
 
 - SIMULATED evidence is not production proof.
 - Dashboard PASS alone is not sufficient release evidence.
 - Dashboard SKIP rows are not treated as PASS.
+- Release evidence must record exact commands, not dashboard headline status alone.
 - This report does not claim production-at-scale readiness.
 - Production mutation, real consumer PII, production database dumps, live provider delivery, and credentials are forbidden for this framework.
 
@@ -23,7 +25,7 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=4, partial=13, fixed=3, open=4
+- Status counts: requires-human-proof=1, simulated-proof-only=5, partial=12, fixed=3, open=4
 
 ## Automated Local Evidence
 
@@ -56,13 +58,13 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
   Next action: Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan.
 - #8 Response operations maturity (High; partial)
-  Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
-  Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Close one response-ops proof row at a time with deterministic synthetic or staging-safe evidence.
-- #9 Observability/alerting (High; partial)
-  Proof required: Sanitized dashboard metrics plus external alert dry-run/mock proof or accepted exclusion.
-  Allowed commands: `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Add a mock alert dry-run or document a formal operator-monitoring exclusion.
+  Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
+- #9 Observability/alerting (High; simulated-proof-only)
+  Proof required: Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
+  Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial)
   Proof required: Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.
   Allowed commands: `pnpm run check:migrations`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
@@ -124,9 +126,9 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Allowed commands: `pnpm run production-scale:evidence`, `git diff --check`
   Next action: Run the evidence command after each scoped blocker task and keep docs aligned.
 - #25 Dashboard default SKIP semantics (Low; partial)
-  Proof required: Evidence report that records exact commands, skipped dashboard checks, and dashboard PASS limitation.
-  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Label release evidence by exact commands and skipped checks, not dashboard headline status.
+  Proof required: Dashboard report must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.
+  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm run alerts:dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status.
 
 ## Simulated Evidence
 
@@ -149,13 +151,13 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
   Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
 - SIMULATED - #8 Response operations maturity (High; partial)
-  Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
-  Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Close one response-ops proof row at a time with deterministic synthetic or staging-safe evidence.
-- SIMULATED - #9 Observability/alerting (High; partial)
-  Proof required: Sanitized dashboard metrics plus external alert dry-run/mock proof or accepted exclusion.
-  Allowed commands: `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Add a mock alert dry-run or document a formal operator-monitoring exclusion.
+  Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
+- SIMULATED - #9 Observability/alerting (High; simulated-proof-only)
+  Proof required: Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
+  Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - SIMULATED - #16 DB pool pressure evidence (Medium; simulated-proof-only)
   Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
@@ -184,9 +186,9 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
   Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
 - #8 Response operations maturity (High; partial)
-  Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
-  Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Close one response-ops proof row at a time with deterministic synthetic or staging-safe evidence.
+  Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
 - #16 DB pool pressure evidence (Medium; simulated-proof-only)
   Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
@@ -224,13 +226,13 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
   Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #8 Response operations maturity (High; partial)
-  Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
-  Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Close one response-ops proof row at a time with deterministic synthetic or staging-safe evidence.
-- #9 Observability/alerting (High; partial)
-  Proof required: Sanitized dashboard metrics plus external alert dry-run/mock proof or accepted exclusion.
-  Allowed commands: `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Add a mock alert dry-run or document a formal operator-monitoring exclusion.
+  Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
+- #9 Observability/alerting (High; simulated-proof-only)
+  Proof required: Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
+  Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
@@ -275,13 +277,13 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
   Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
 - #8 Response operations maturity (High; partial)
-  Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
-  Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Close one response-ops proof row at a time with deterministic synthetic or staging-safe evidence.
-- #9 Observability/alerting (High; partial)
-  Proof required: Sanitized dashboard metrics plus external alert dry-run/mock proof or accepted exclusion.
-  Allowed commands: `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Add a mock alert dry-run or document a formal operator-monitoring exclusion.
+  Proof required: Soak, scheduler boundary, SIMULATED alert dry-run, purge/archive, backfill, and remediation evidence. Live scheduler, purge/archive, and historical backfill remain unproven.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
+- #9 Observability/alerting (High; simulated-proof-only)
+  Proof required: Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
+  Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial)
   Proof required: Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.
   Allowed commands: `pnpm run check:migrations`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
@@ -339,7 +341,7 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run production-scale:evidence`, `git diff --check`
   Next action: Run the evidence command after each scoped blocker task and keep docs aligned.
 - #25 Dashboard default SKIP semantics (Low; partial)
-  Proof required: Evidence report that records exact commands, skipped dashboard checks, and dashboard PASS limitation.
-  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Label release evidence by exact commands and skipped checks, not dashboard headline status.
+  Proof required: Dashboard report must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.
+  Allowed commands: `pnpm run production-scale:evidence`, `pnpm run operator:dashboard`, `pnpm run alerts:dry-run`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`
+  Next action: Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status.
 

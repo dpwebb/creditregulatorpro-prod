@@ -35,6 +35,8 @@ The command is evidence/reporting only. It fails closed in production-like envir
 
 Dashboard PASS alone is not release evidence. Dashboard `SKIP` rows remain visible in the generated report and cannot be treated as PASS.
 
+The operator dashboard distinguishes `PASS`, `FAIL`, `SKIP`, `SIMULATED`, and `HUMAN_REQUIRED`. Release evidence must record exact commands and cannot promote `SIMULATED` or `HUMAN_REQUIRED` rows to production proof.
+
 ## Simulated Restore Drill
 
 Run:
@@ -85,6 +87,23 @@ Outputs:
 This command creates SIMULATED local evidence for bounded throughput, latency, synthetic ingest queue depth, packet PDF cache hit/miss and cache-miss timing, DB pool configured/borrowed signal, rate-limit accepted/rejected counts, and external provider call count. It does not process real reports, create real packets, call live providers, or mutate production.
 
 SIMULATED load evidence is not repeated target-environment production-scale proof. Blockers for load/concurrency, packet PDF scaling, DB pool pressure, and rate-limit write pressure remain incomplete for broader production until reviewed local/staging evidence or design fixes close the remaining gaps.
+
+## SIMULATED Alert Dry Run
+
+Run:
+
+```bash
+pnpm run alerts:dry-run
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-alerts-dry-run.md`
+- `docs/production-scale/evidence/latest-alerts-dry-run.json`
+
+This command creates `SIMULATED` and `DRY RUN` alert evidence for critical ingest backlog, response dead-letter backlog, stale-running response jobs, packet PDF/cache warnings, storage/raw-report warnings, DB/pool pressure, missing restore evidence, and dashboard skip warnings. It sends zero live external alerts, calls zero live external providers, and scans rendered payloads for PII, secrets, raw report data, credential URLs, signed URLs, and signature data.
+
+Live external alerting remains disabled unless separately configured and proven. If no external alert provider is used, release evidence must document the accepted exclusion, this dry-run result, operator dashboard/soak evidence, and the human monitoring path. The dry-run is not live alert delivery proof.
 
 ## Storage Raw Report Inventory
 

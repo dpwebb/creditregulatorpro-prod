@@ -220,6 +220,7 @@ export function collectDashboardEvidence({ rootDir = process.cwd(), dashboardRep
       checksSkipped: skipCount > 0,
       treatsSkipAsPass: false,
       summary: dashboardReport.summary ?? null,
+      releaseEvidenceSemantics: dashboardReport.releaseEvidenceSemantics ?? null,
     };
   }
 
@@ -247,6 +248,7 @@ export function collectDashboardEvidence({ rootDir = process.cwd(), dashboardRep
     checksSkipped: skipCount > 0,
     treatsSkipAsPass: false,
     summary: parsed.summary ?? null,
+    releaseEvidenceSemantics: parsed.releaseEvidenceSemantics ?? null,
   };
 }
 
@@ -372,12 +374,14 @@ export function renderProductionScaleEvidenceMarkdown(report) {
     `Audit date from file: ${report.audit.auditDate ?? "not parseable"}`,
     `All 25 blockers represented: ${report.registry.actualBlockerCount === 25 && report.registry.allAuditBlockersRepresented ? "yes" : "no"}`,
     `Any checks skipped: ${skippedText}`,
+    `Dashboard exact commands recorded: ${report.dashboard.releaseEvidenceSemantics?.exactCommandsRequired ? "yes" : "not available"}`,
     "",
     "## Required Warnings",
     "",
     "- SIMULATED evidence is not production proof.",
     "- Dashboard PASS alone is not sufficient release evidence.",
     "- Dashboard SKIP rows are not treated as PASS.",
+    "- Release evidence must record exact commands, not dashboard headline status alone.",
     "- This report does not claim production-at-scale readiness.",
     "- Production mutation, real consumer PII, production database dumps, live provider delivery, and credentials are forbidden for this framework.",
     "",
