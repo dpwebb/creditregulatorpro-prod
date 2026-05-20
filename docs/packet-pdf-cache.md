@@ -46,3 +46,15 @@ Cache misses record append-only `evidenceEvent` rows:
 Event descriptions include only the render purpose and cache key. They do not store raw PDF bytes, identification images, signatures, packet body text, or extracted report text.
 
 The operator dashboard surfaces packet PDF render attempt, success, failure, and latest-failure counts when runtime database metrics are available.
+
+## Capacity Evidence
+
+`getOrRenderPacketPdfBase64` returns additive timing fields for cache access and cache-miss render duration. These fields are instrumentation only and do not alter packet PDF bytes, packet wording, cache keys, storage behavior, or route semantics.
+
+The simulated load harness records packet PDF cache hit count, miss count, and cache-miss render timing:
+
+```sh
+pnpm run baseline:production-scale-local -- --simulated
+```
+
+That output is capacity evidence only. It is not a packet PDF queue, not a cache-miss envelope fix, and not production-scale proof.

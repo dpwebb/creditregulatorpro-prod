@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T18:20:58.290Z
+Generated at: 2026-05-20T18:30:30.942Z
 Current branch: `staging`
-Current commit hash: `06a358b6df7729287a7cebdd4cd9c8e84ad5557a`
+Current commit hash: `b5a2ee3505e6faa836d857d980c7f708304ff211`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -23,7 +23,7 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=2, partial=13, fixed=3, open=6
+- Status counts: requires-human-proof=1, simulated-proof-only=4, partial=13, fixed=3, open=4
 
 ## Automated Local Evidence
 
@@ -36,13 +36,13 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - #3 Load/concurrency proof (High; simulated-proof-only)
-  Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
-  Next action: Collect bounded local or staging capacity evidence and label dry-run output SIMULATED.
+  Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
+  Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
 - #4 Packet PDF scaling (High; partial)
-  Proof required: Packet PDF cache proof plus staging-safe cache-miss envelope evidence or a bounded render queue.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
+  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
 - #5 Ingest cleanup/data safety (High; fixed)
   Proof required: Automated proof that default failed-ingest cleanup is non-destructive, marks remediation-required state, preserves artifacts/tradelines/evidence, and keeps any retained destructive path explicitly confirmed and production-refusing.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-cleanup-lifecycle.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts`, `pnpm run operator:dashboard`
@@ -87,14 +87,14 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Proof required: Endpoint contract and dashboard UI proof for pagination and aggregate semantics.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
   Next action: Split hidden-risk pagination and aggregate semantics in a separate design task.
-- #16 DB pool pressure evidence (Medium; open)
-  Proof required: Staging-safe load evidence for pool max, latency, active connections, and dashboard observations.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Run bounded staging load and record sanitized DB pool observations.
-- #17 Rate limiter write pressure (Medium; open)
-  Proof required: Non-mutating or bounded synthetic rate-limit pressure proof with DB write metrics.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Add bounded synthetic pressure evidence with sanitized aggregate write-pressure signals.
+- #16 DB pool pressure evidence (Medium; simulated-proof-only)
+  Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
+  Next action: Run bounded staging load and record sanitized real DB pool active/open/latency observations.
+- #17 Rate limiter write pressure (Medium; simulated-proof-only)
+  Proof required: SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #18 Runtime-size gates (Medium; partial)
   Proof required: Runtime-size report plus accepted warning-only or hard-threshold policy.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`
@@ -141,9 +141,13 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - SIMULATED - #3 Load/concurrency proof (High; simulated-proof-only)
-  Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
-  Next action: Collect bounded local or staging capacity evidence and label dry-run output SIMULATED.
+  Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
+  Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
+- SIMULATED - #4 Packet PDF scaling (High; partial)
+  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
 - SIMULATED - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
   Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
@@ -152,14 +156,14 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Proof required: Sanitized dashboard metrics plus external alert dry-run/mock proof or accepted exclusion.
   Allowed commands: `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Add a mock alert dry-run or document a formal operator-monitoring exclusion.
-- SIMULATED - #16 DB pool pressure evidence (Medium; open)
-  Proof required: Staging-safe load evidence for pool max, latency, active connections, and dashboard observations.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Run bounded staging load and record sanitized DB pool observations.
-- SIMULATED - #17 Rate limiter write pressure (Medium; open)
-  Proof required: Non-mutating or bounded synthetic rate-limit pressure proof with DB write metrics.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Add bounded synthetic pressure evidence with sanitized aggregate write-pressure signals.
+- SIMULATED - #16 DB pool pressure evidence (Medium; simulated-proof-only)
+  Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
+  Next action: Run bounded staging load and record sanitized real DB pool active/open/latency observations.
+- SIMULATED - #17 Rate limiter write pressure (Medium; simulated-proof-only)
+  Proof required: SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 
 ## Staging Evidence
 
@@ -168,13 +172,13 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - #3 Load/concurrency proof (High; simulated-proof-only)
-  Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
-  Next action: Collect bounded local or staging capacity evidence and label dry-run output SIMULATED.
+  Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
+  Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
 - #4 Packet PDF scaling (High; partial)
-  Proof required: Packet PDF cache proof plus staging-safe cache-miss envelope evidence or a bounded render queue.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
+  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
   Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
@@ -183,14 +187,14 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
   Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
   Next action: Close one response-ops proof row at a time with deterministic synthetic or staging-safe evidence.
-- #16 DB pool pressure evidence (Medium; open)
-  Proof required: Staging-safe load evidence for pool max, latency, active connections, and dashboard observations.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Run bounded staging load and record sanitized DB pool observations.
-- #17 Rate limiter write pressure (Medium; open)
-  Proof required: Non-mutating or bounded synthetic rate-limit pressure proof with DB write metrics.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Add bounded synthetic pressure evidence with sanitized aggregate write-pressure signals.
+- #16 DB pool pressure evidence (Medium; simulated-proof-only)
+  Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
+  Next action: Run bounded staging load and record sanitized real DB pool active/open/latency observations.
+- #17 Rate limiter write pressure (Medium; simulated-proof-only)
+  Proof required: SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #20 Production-safe privacy probe depth (Medium; partial)
   Proof required: Local/staging owner-denial proof plus human-observed read-only production probe evidence.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`
@@ -259,13 +263,13 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run ingest:worker:simulated-proof`, `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Use SIMULATED proof only for autonomous queue-drain guard coverage; record bounded staging worker queue-depth recovery evidence without production activation.
 - #3 Load/concurrency proof (High; simulated-proof-only)
-  Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
-  Next action: Collect bounded local or staging capacity evidence and label dry-run output SIMULATED.
+  Proof required: SIMULATED local load evidence now exists; repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
+  Next action: Use SIMULATED output only as local capacity evidence; collect repeated bounded local or staging capacity evidence before any scale claim.
 - #4 Packet PDF scaling (High; partial)
-  Proof required: Packet PDF cache proof plus staging-safe cache-miss envelope evidence or a bounded render queue.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
-  Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
+  Proof required: SIMULATED cache-miss timing evidence now exists, but staging-safe cache-miss envelope evidence or a bounded render queue is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`
+  Next action: Use cache-miss timing as capacity evidence only; add a bounded render queue or staging-safe cache-miss envelope before calling this fixed.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
   Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
@@ -298,14 +302,14 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Endpoint contract and dashboard UI proof for pagination and aggregate semantics.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
   Next action: Split hidden-risk pagination and aggregate semantics in a separate design task.
-- #16 DB pool pressure evidence (Medium; open)
-  Proof required: Staging-safe load evidence for pool max, latency, active connections, and dashboard observations.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
-  Next action: Run bounded staging load and record sanitized DB pool observations.
-- #17 Rate limiter write pressure (Medium; open)
-  Proof required: Non-mutating or bounded synthetic rate-limit pressure proof with DB write metrics.
-  Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
-  Next action: Add bounded synthetic pressure evidence with sanitized aggregate write-pressure signals.
+- #16 DB pool pressure evidence (Medium; simulated-proof-only)
+  Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
+  Next action: Run bounded staging load and record sanitized real DB pool active/open/latency observations.
+- #17 Rate limiter write pressure (Medium; simulated-proof-only)
+  Proof required: SIMULATED rate-limit pressure proof exists; bounded staging-safe aggregate DB write metrics are still required.
+  Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
+  Next action: Collect bounded staging-safe aggregate rate-limit write-pressure signals without real abusive traffic.
 - #18 Runtime-size gates (Medium; partial)
   Proof required: Runtime-size report plus accepted warning-only or hard-threshold policy.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`

@@ -1,0 +1,183 @@
+{
+  "reportName": "production-scale-load-simulated",
+  "evidenceType": "SIMULATED",
+  "generatedAt": "2026-05-20T18:30:24.005Z",
+  "branch": "staging",
+  "commit": "b5a2ee3505e6faa836d857d980c7f708304ff211",
+  "mode": "simulated-local",
+  "target": {
+    "url": "http://localhost:3333",
+    "host": "localhost",
+    "environment": "local",
+    "networkRequestsMade": 0
+  },
+  "warning": "SIMULATED local load evidence is not repeated target-environment production-scale proof.",
+  "status": "passed",
+  "summary": {
+    "totalSyntheticRequestsOrJobs": 23,
+    "syntheticRequestCount": 8,
+    "syntheticQueueJobCount": 4,
+    "concurrencyLevel": 2,
+    "iterations": 1,
+    "elapsedMs": 81.46,
+    "throughputPerSecond": 98.21,
+    "latency": {
+      "p50Ms": 15.12,
+      "p95Ms": 31.93,
+      "maxMs": 31.93
+    }
+  },
+  "ingestQueueDepth": {
+    "evidenceType": "SIMULATED",
+    "available": true,
+    "source": "synthetic in-memory queue scope",
+    "before": {
+      "total": 4,
+      "queued": 4,
+      "running": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "deadLettered": 0
+    },
+    "after": {
+      "total": 4,
+      "queued": 0,
+      "running": 0,
+      "succeeded": 4,
+      "failed": 0,
+      "deadLettered": 0
+    },
+    "staleQueuedJobsRemaining": 0
+  },
+  "packetPdfCache": {
+    "evidenceType": "SIMULATED",
+    "label": "Packet PDF cache-miss capacity evidence only; this is not a queue/envelope fix.",
+    "totalPdfRequests": 3,
+    "uniquePacketCount": 1,
+    "downloadsPerPacket": 3,
+    "cacheHitCount": 2,
+    "cacheMissCount": 1,
+    "cacheMissRenderTiming": {
+      "p50Ms": 14.73,
+      "p95Ms": 14.73,
+      "maxMs": 14.73
+    },
+    "queueOrEnvelopeImplemented": false,
+    "packetPdfBehaviorChanged": false,
+    "liveDeliveryRoutesCalled": false
+  },
+  "dbPool": {
+    "evidenceType": "SIMULATED",
+    "configuredMax": 3,
+    "idleTimeoutSeconds": 10,
+    "sessionTouchIntervalSeconds": 300,
+    "observedActiveConnections": null,
+    "observedOpenConnections": null,
+    "observedBorrowedConnections": 2,
+    "observedSignalAvailable": true,
+    "signalSource": "SIMULATED in-process bounded worker borrowing; no database was stressed."
+  },
+  "rateLimiter": {
+    "evidenceType": "SIMULATED",
+    "identifier": "SIMULATED_RATE_LIMIT_SUBJECT",
+    "action": "SIMULATED_PRODUCTION_SCALE_RATE_LIMIT",
+    "attempts": 8,
+    "maxAttempts": 2,
+    "acceptedCount": 2,
+    "rejectedCount": 6,
+    "simulatedWritePressureEvents": 8,
+    "realTrafficSent": false,
+    "databaseMutated": false,
+    "decisions": [
+      {
+        "attempt": 1,
+        "allowed": true,
+        "remaining": 1
+      },
+      {
+        "attempt": 2,
+        "allowed": true,
+        "remaining": 0
+      },
+      {
+        "attempt": 3,
+        "allowed": false,
+        "remaining": 0
+      },
+      {
+        "attempt": 4,
+        "allowed": false,
+        "remaining": 0
+      },
+      {
+        "attempt": 5,
+        "allowed": false,
+        "remaining": 0
+      },
+      {
+        "attempt": 6,
+        "allowed": false,
+        "remaining": 0
+      },
+      {
+        "attempt": 7,
+        "allowed": false,
+        "remaining": 0
+      },
+      {
+        "attempt": 8,
+        "allowed": false,
+        "remaining": 0
+      }
+    ]
+  },
+  "dashboardWarnings": {
+    "before": {
+      "available": false,
+      "warningCount": null,
+      "openCount": null,
+      "failCount": null,
+      "skipCount": null
+    },
+    "after": {
+      "available": false,
+      "warningCount": null,
+      "openCount": null,
+      "failCount": null,
+      "skipCount": null
+    },
+    "source": "not collected by harness; run pnpm run operator:dashboard for live dashboard state"
+  },
+  "safety": {
+    "productionMutationForbidden": true,
+    "productionDataMutated": false,
+    "productionDatabaseTargeted": false,
+    "realConsumerPiiUsed": false,
+    "realCreditReportsProcessed": false,
+    "rawReportBytesSent": false,
+    "liveExternalProvidersConnected": false,
+    "externalProviderCallsMade": 0,
+    "mailDeliveryRoutesCalled": false,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "packetWordingChanged": false,
+    "packetPdfBehaviorChanged": false,
+    "packetPdfQueueingImplemented": false,
+    "violationLogicChanged": false,
+    "storageBehaviorChanged": false,
+    "responseQueueSemanticsChanged": false,
+    "retentionBehaviorChanged": false,
+    "deploymentActivationChanged": false,
+    "productionScaleReadinessClaimed": false
+  },
+  "blockers": {
+    "blocker3LoadConcurrency": "SIMULATED evidence only; repeated local/staging measured proof remains required.",
+    "blocker4PacketPdfScaling": "Cache-miss timing evidence captured; packet PDF queue/envelope fix is not implemented.",
+    "blocker16DbPoolPressure": "SIMULATED pool signal only; staging DB pool pressure evidence remains required.",
+    "blocker17RateLimiterWritePressure": "SIMULATED pressure only; no real abusive traffic or production DB writes."
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

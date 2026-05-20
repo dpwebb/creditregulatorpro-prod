@@ -69,6 +69,23 @@ These files are `SIMULATED` evidence only. They use synthetic in-memory queue jo
 
 The production ingest runtime blocker remains unresolved for production use until bounded staging-safe queue-depth recovery evidence is recorded and reviewed. Simulated proof cannot be promoted to production proof.
 
+## Simulated Load Evidence
+
+Run:
+
+```bash
+pnpm run baseline:production-scale-local -- --simulated
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-load-simulated.md`
+- `docs/production-scale/evidence/latest-load-simulated.json`
+
+This command creates SIMULATED local evidence for bounded throughput, latency, synthetic ingest queue depth, packet PDF cache hit/miss and cache-miss timing, DB pool configured/borrowed signal, rate-limit accepted/rejected counts, and external provider call count. It does not process real reports, create real packets, call live providers, or mutate production.
+
+SIMULATED load evidence is not repeated target-environment production-scale proof. Blockers for load/concurrency, packet PDF scaling, DB pool pressure, and rate-limit write pressure remain incomplete for broader production until reviewed local/staging evidence or design fixes close the remaining gaps.
+
 ## Storage Raw Report Inventory
 
 Run:

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { performance } from "node:perf_hooks";
 
 import { db } from "./db";
 import { readStoredPdf, uploadPdf } from "./documentStorage";
@@ -22,6 +23,8 @@ export type PacketPdfCacheKey = {
 export type PacketPdfCacheResult = PacketPdfCacheKey & {
   base64Pdf: string;
   cacheHit: boolean;
+  cacheAccessDurationMs: number;
+  renderDurationMs: number | null;
 };
 
 type PacketPdfCacheInput = {
@@ -138,6 +141,7 @@ async function recordPacketPdfRenderEvent(input: {
 }
 
 export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): Promise<PacketPdfCacheResult> {
+  const accessStartedAt = performance.now();
   const cacheKey = buildPacketPdfCacheKey(input);
   const cachedBase64 = await readCachedPdfBase64(cacheKey.storageUrl);
 
@@ -152,6 +156,8 @@ export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): P
       ...cacheKey,
       base64Pdf: cachedBase64,
       cacheHit: true,
+      cacheAccessDurationMs: Math.max(0, performance.now() - accessStartedAt),
+      renderDurationMs: null,
     };
   }
 
@@ -164,7 +170,9 @@ export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): P
   });
 
   try {
+    const renderStartedAt = performance.now();
     const base64Pdf = await input.renderBase64();
+    const renderDurationMs = Math.max(0, performance.now() - renderStartedAt);
     await uploadPdf(base64Pdf, cacheKey.objectName);
     await recordPacketPdfRenderEvent({
       packetId,
@@ -177,6 +185,8 @@ export async function getOrRenderPacketPdfBase64(input: PacketPdfRenderInput): P
       ...cacheKey,
       base64Pdf,
       cacheHit: false,
+      cacheAccessDurationMs: Math.max(0, performance.now() - accessStartedAt),
+      renderDurationMs,
     };
   } catch (error) {
     await recordPacketPdfRenderEvent({
