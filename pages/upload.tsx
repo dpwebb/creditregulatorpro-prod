@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadCloud, FileUp, AlertCircle, Info, ChevronDown, ShieldCheck, Phone } from "lucide-react";
 import { Button } from "../components/Button";
 import { Badge } from "../components/Badge";
 import { HelpTooltip } from "../components/HelpTooltip";
 import { Progress } from "../components/Progress";
+import { Spinner } from "../components/Spinner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/Collapsible";
 
 
@@ -17,7 +18,9 @@ import { postUserProfile } from "../endpoints/user/profile_POST.schema";
 import {
   isQueuedProcessingOutput,
   OutputType as UploadReportOutput,
+  QueuedProcessingOutputType,
 } from "../endpoints/ingest/report_POST.schema";
+import { postProcess } from "../endpoints/ingest/process_POST.schema";
 import {
   FRONTEND_LIMITED_BETA_READINESS,
   FRONTEND_UPLOAD_LIMITS,
@@ -26,6 +29,12 @@ import { Helmet } from "react-helmet";
 import styles from "./upload.module.css";
 
 const AUTHENTICATED_UPLOAD_LIMIT = FRONTEND_UPLOAD_LIMITS.authenticatedReport;
+const PROCESSING_POLL_INTERVAL_MS = 3_000;
+
+type UploadProgressState = { stage: string; percent: number; message?: string };
+type ProcessingOutcome =
+  | { type: "success"; artifactId: string }
+  | { type: "failure"; message: string };
 
 const getFriendlyStageName = (stage: string) => {
     if (stage.startsWith("pass_a_")) return "Reading your report...";
@@ -39,12 +48,12 @@ const getFriendlyStageName = (stage: string) => {
     case "docstrange_validating": return "Double-checking...";
     case "docstrange_complete": return "All done reading!";
     case "initializing": return "Getting ready...";
-    case "queued": return "Queued for processing...";
-    case "running": return "Processing in the background...";
-    case "retry_scheduled": return "Queued for retry...";
-    case "dead_lettered": return "Needs operator review...";
-    case "failed": return "Processing failed...";
-    case "canceled": return "Processing canceled...";
+    case "queued": return "Processing your credit file";
+    case "running": return "Processing your credit file";
+    case "retry_scheduled": return "Processing your credit file";
+    case "dead_lettered": return "Processing could not be completed";
+    case "failed": return "Processing your credit file";
+    case "canceled": return "Processing could not be completed";
     case "user_setup": return "Setting up your profile...";
     case "creating_artifact": return "Saving your report...";
     case "extracting_text": return "Reading your file...";
@@ -59,24 +68,114 @@ const getFriendlyStageName = (stage: string) => {
   }
 };
 
-const getQueuedStatusDetail = (stage: string) => {
+const getProcessingStatusDetail = (stage: string) => {
   switch (stage) {
     case "queued":
-      return "Your report is saved and waiting for the ingest worker.";
+      return "Your file has been received. The system is reviewing it now. Please keep this page open until processing completes.";
     case "running":
-      return "The ingest worker is processing OCR, parsing, and compliance checks outside the request path.";
+      return "Your file has been received. The system is reviewing it now. Please keep this page open until processing completes.";
     case "retry_scheduled":
-      return "Processing will retry automatically. No new upload is needed yet.";
-    case "dead_lettered":
-      return "Processing needs operator review before it can continue.";
     case "failed":
-      return "Processing failed before results were finalized. Try again later or contact support.";
+      return "Processing is taking longer than expected. The system will retry automatically. Please keep this page open.";
+    case "dead_lettered":
     case "canceled":
-      return "Processing was canceled before results were finalized.";
+      return "Processing could not be completed. Please retry or contact support.";
     default:
       return null;
   }
 };
+
+const getProcessingStatusNote = (stage: string) => {
+  if (stage === "queued" || stage === "running" || stage === "retry_scheduled" || stage === "failed") {
+    return "This may take a few moments.";
+  }
+  return null;
+};
+
+export function isQueuedProcessingActive(status: string | null | undefined): boolean {
+  return status === "queued" || status === "running" || status === "failed";
+}
+
+function isQueuedProcessingFailure(status: string | null | undefined): boolean {
+  return status === "dead_lettered" || status === "canceled";
+}
+
+export function isUploadActionDisabled(input: {
+  hasFile: boolean;
+  isPending: boolean;
+  isProcessingActive: boolean;
+}): boolean {
+  return !input.hasFile || input.isPending || input.isProcessingActive;
+}
+
+export function CreditFileProcessingStatus({
+  progress,
+  displayedProgress,
+  isCheckingStatus = false,
+  outcome = null,
+  onReviewResults,
+}: {
+  progress: UploadProgressState | null;
+  displayedProgress: number;
+  isCheckingStatus?: boolean;
+  outcome?: ProcessingOutcome | null;
+  onReviewResults?: () => void;
+}) {
+  if (outcome?.type === "success") {
+    return (
+      <div className={styles.success} role="status">
+        <ShieldCheck size={22} className={styles.successIcon} />
+        <div className={styles.successContent}>
+          <h3>Credit file processed.</h3>
+          <p>Review your results.</p>
+          {onReviewResults && (
+            <Button onClick={onReviewResults} className={styles.dashboardButton}>
+              Review your results
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (outcome?.type === "failure") {
+    return (
+      <div className={styles.error} role="alert">
+        <AlertCircle size={16} />
+        <span>{outcome.message}</span>
+      </div>
+    );
+  }
+
+  if (!progress) {
+    return null;
+  }
+
+  const detail = getProcessingStatusDetail(progress.stage);
+  const note = getProcessingStatusNote(progress.stage);
+
+  return (
+    <div className={styles.progressContainer} role="status" aria-live="polite">
+      <div className={styles.processingStatusHeader}>
+        <Spinner size="sm" aria-label="Processing credit file" />
+        <span className={styles.progressStage}>
+          {getFriendlyStageName(progress.stage)}
+        </span>
+        <span>{Math.round(displayedProgress)}%</span>
+      </div>
+      <Progress value={displayedProgress} />
+      {detail && (
+        <div className={styles.progressDetail}>
+          {detail}
+        </div>
+      )}
+      {note && <div className={styles.progressMessage}>{note}</div>}
+      {isCheckingStatus && (
+        <div className={styles.progressMessage}>Checking processing status...</div>
+      )}
+    </div>
+  );
+}
 
 const getEstimatedProgressCap = (_stage: string, actualPercent: number) => {
   if (actualPercent >= 100) return 100;
@@ -103,18 +202,68 @@ export default function UploadPage() {
   const [uploadedArtifactId, setUploadedArtifactId] = useState<string | null>(null);
   
   // Progress state
-  const [uploadProgress, setUploadProgress] = useState<{ stage: string; percent: number; message?: string } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(null);
   const [displayedProgress, setDisplayedProgress] = useState(0);
   const slowProgressTickRef = useRef<number | null>(null);
+  const [queuedProcessing, setQueuedProcessing] = useState<QueuedProcessingOutputType | null>(null);
+  const [isCheckingProcessingStatus, setIsCheckingProcessingStatus] = useState(false);
+  const [processingOutcome, setProcessingOutcome] = useState<ProcessingOutcome | null>(null);
 
   const navigate = useNavigate();
   const { authState } = useAuth();
   const { mutate: uploadReport, isPending, error } = useUploadReport((stage, percent, message) => {
     setUploadProgress({ stage, percent, message });
   });
+  const isProcessingActive =
+    isPending ||
+    isCheckingProcessingStatus ||
+    isQueuedProcessingActive(queuedProcessing?.queueStatus);
+
+  const markProcessingSuccess = useCallback((artifactId: number | string) => {
+    const normalizedArtifactId = String(artifactId);
+    setUploadedArtifactId(normalizedArtifactId);
+    setQueuedProcessing(null);
+    setProcessingOutcome({ type: "success", artifactId: normalizedArtifactId });
+    setUploadProgress({ stage: "complete", percent: 100, message: "Credit file processed. Review your results." });
+    setDisplayedProgress(100);
+    toast.success("Credit file processed.", {
+      description: "Review your results.",
+    });
+  }, []);
+
+  const markProcessingFailure = useCallback(() => {
+    setQueuedProcessing(null);
+    setProcessingOutcome({
+      type: "failure",
+      message: "Processing could not be completed. Please retry or contact support.",
+    });
+    setUploadProgress(null);
+    toast.error("Processing could not be completed. Please retry or contact support.");
+  }, []);
+
+  const applyQueuedProcessingUpdate = useCallback((data: QueuedProcessingOutputType) => {
+    setUploadedArtifactId(String(data.artifactId));
+
+    if (data.queueStatus === "succeeded") {
+      markProcessingSuccess(data.artifactId);
+      return;
+    }
+
+    if (isQueuedProcessingFailure(data.queueStatus)) {
+      markProcessingFailure();
+      return;
+    }
+
+    setProcessingOutcome(null);
+    setQueuedProcessing(data);
+    setUploadProgress({
+      stage: data.queueStatus === "running" ? "running" : data.queueStatus,
+      percent: data.queueStatus === "running" ? 35 : data.queueStatus === "failed" ? 15 : 12,
+    });
+  }, [markProcessingFailure, markProcessingSuccess]);
 
   useEffect(() => {
-    if (!isPending || !uploadProgress) {
+    if (!isProcessingActive || !uploadProgress) {
       setDisplayedProgress(uploadProgress?.percent ?? 0);
       slowProgressTickRef.current = null;
       return;
@@ -154,7 +303,42 @@ export default function UploadPage() {
     }, 700);
 
     return () => window.clearInterval(intervalId);
-  }, [isPending, uploadProgress]);
+  }, [isProcessingActive, uploadProgress]);
+
+  useEffect(() => {
+    if (!queuedProcessing || !isQueuedProcessingActive(queuedProcessing.queueStatus)) {
+      return;
+    }
+
+    let canceled = false;
+    const timeoutId = window.setTimeout(async () => {
+      setIsCheckingProcessingStatus(true);
+      try {
+        const result = await postProcess({ artifactId: queuedProcessing.artifactId });
+        if (canceled) return;
+
+        if (isQueuedProcessingOutput(result)) {
+          applyQueuedProcessingUpdate(result);
+          return;
+        }
+
+        markProcessingSuccess(result.storageUrl);
+      } catch (statusError) {
+        if (canceled) return;
+        console.error("Failed to refresh queued upload processing status:", statusError);
+        markProcessingFailure();
+      } finally {
+        if (!canceled) {
+          setIsCheckingProcessingStatus(false);
+        }
+      }
+    }, PROCESSING_POLL_INTERVAL_MS);
+
+    return () => {
+      canceled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [applyQueuedProcessingUpdate, markProcessingFailure, markProcessingSuccess, queuedProcessing]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -175,11 +359,15 @@ export default function UploadPage() {
       }
 
       setFile(selectedFile);
+      setQueuedProcessing(null);
+      setProcessingOutcome(null);
+      setUploadProgress(null);
+      setDisplayedProgress(0);
     }
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || isProcessingActive) return;
     if (authState.type !== "authenticated") {
       toast.error("You must be logged in to upload reports.");
       return;
@@ -194,6 +382,8 @@ export default function UploadPage() {
       setUploadProgress({ stage: "initializing", percent: 0, message: "Preparing upload..." });
       setDisplayedProgress(0);
       slowProgressTickRef.current = null;
+      setQueuedProcessing(null);
+      setProcessingOutcome(null);
 
       uploadReport(
         {
@@ -205,24 +395,22 @@ export default function UploadPage() {
         {
           onSuccess: (data) => {
             if (isQueuedProcessingOutput(data)) {
-              setUploadedArtifactId(String(data.artifactId));
-              if (data.queueStatus === "succeeded") {
-                setUploadProgress({ stage: "complete", percent: 100, message: data.message });
-                toast.success("Your report processing is complete.", {
-                  description: "Taking you to the results...",
+              applyQueuedProcessingUpdate(data);
+              if (data.queueStatus !== "succeeded" && !isQueuedProcessingFailure(data.queueStatus)) {
+                toast.info("Processing your credit file", {
+                  description: "Your file has been received. The system is reviewing it now. Please keep this page open until processing completes.",
                 });
-                navigate(`/upload-results/${data.artifactId}`);
-                return;
               }
-              setUploadProgress({
-                stage: data.queueStatus === "running" ? "running" : data.queueStatus,
-                percent: data.queueStatus === "running" ? 35 : 12,
-                message: data.message,
-              });
-              toast.success("Your report is queued", {
-                description: "Processing will continue in the background. Results will be available after the ingest worker finishes.",
-              });
+              if (isQueuedProcessingFailure(data.queueStatus)) {
+                markProcessingFailure();
+              }
               return;
+            }
+
+            if (!isQueuedProcessingOutput(data)) {
+              toast.success("Credit file processed.", {
+                description: "Review your results.",
+              });
             }
 
             setUploadProgress({ stage: "complete", percent: 100, message: "Upload complete!" });
@@ -337,6 +525,11 @@ export default function UploadPage() {
           },
           onError: (_err) => {
             setUploadProgress(null);
+            setQueuedProcessing(null);
+            setProcessingOutcome({
+              type: "failure",
+              message: "Processing could not be completed. Please retry or contact support.",
+            });
             // Error toast handled by useUploadReport hook
           },
         }
@@ -534,13 +727,14 @@ export default function UploadPage() {
         <div className={styles.uploadArea}>
           <div className="flex items-center gap-2">
             <label className={styles.fileLabel}>
-              Choose Your File
+              {isProcessingActive ? "Processing in progress" : "Choose Your File"}
               <input
                 ref={fileInputRef}
                 type="file"
                 onChange={handleFileChange}
                 className={styles.fileInput}
                 accept=".pdf,application/pdf"
+                disabled={isProcessingActive}
               />
             </label>
             <HelpTooltip 
@@ -562,32 +756,28 @@ export default function UploadPage() {
           <div className={styles.actions}>
             <Button
               onClick={handleUpload}
-              disabled={!file || isPending}
+              disabled={isUploadActionDisabled({
+                hasFile: Boolean(file),
+                isPending,
+                isProcessingActive,
+              })}
               className={styles.uploadButton}
               size="lg"
             >
-              {isPending ? "Reading your report..." : "Upload My Report"}
+              {isProcessingActive ? "Processing your credit file" : "Upload My Report"}
             </Button>
           </div>
 
-          {isPending && uploadProgress && (
-            <div className={styles.progressContainer}>
-              <div className={styles.progressHeader}>
-                <span className={styles.progressStage}>
-                  {getFriendlyStageName(uploadProgress.stage)}
-                </span>
-                <span>{Math.round(displayedProgress)}%</span>
-              </div>
-              <Progress value={displayedProgress} />
-              {uploadProgress.message && (
-                <div className={styles.progressMessage}>{uploadProgress.message}</div>
-              )}
-              {getQueuedStatusDetail(uploadProgress.stage) && (
-                <div className={styles.progressDetail}>
-                  {getQueuedStatusDetail(uploadProgress.stage)}
-                </div>
-              )}
-            </div>
+          {(isProcessingActive || processingOutcome) && (
+            <CreditFileProcessingStatus
+              progress={uploadProgress}
+              displayedProgress={displayedProgress}
+              isCheckingStatus={isCheckingProcessingStatus}
+              outcome={processingOutcome}
+              onReviewResults={processingOutcome?.type === "success" && uploadedArtifactId
+                ? () => navigate(`/upload-results/${uploadedArtifactId}`)
+                : undefined}
+            />
           )}
 
           {error && (

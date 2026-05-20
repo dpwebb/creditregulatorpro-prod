@@ -387,6 +387,15 @@
   font-family: var(--font-family-monospace);
 }
 
+.processingStatusHeader {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
 .progressStage {
   font-weight: 500;
   color: var(--foreground);

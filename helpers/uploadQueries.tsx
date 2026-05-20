@@ -10,7 +10,7 @@ export function useUploadReport(onProgress?: UploadProgressCallback) {
   return useMutation<UploadReportOutput, Error, UploadReportInput>({
     mutationFn: (data) => postReport(data, onProgress),
     onSuccess: () => {
-      toast.success("Report uploaded successfully");
+      toast.success("Credit file received");
       // Invalidate relevant queries to refresh data
       // We invalidate 'evidence' because uploading a report might trigger evidence creation (conceptually)
       // We invalidate 'artifacts' assuming there's a list of artifacts somewhere
