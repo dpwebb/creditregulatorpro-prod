@@ -1,22 +1,61 @@
 import { z } from "zod";
 
 import { Json } from "../../helpers/schema";
+import {
+  addBase64UploadValidationIssues,
+  CREDIT_REPORT_UPLOAD_MIME_TYPES,
+  PARSER_TEST_CASE_UPLOAD_MAX_BYTES,
+  uploadBase64PayloadSchema,
+  uploadFileNameSchema,
+} from "../../helpers/uploadPayloadValidation";
 
-export const schema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  pdfBase64: z.string().min(1),
-  expectedConsumerInfo: z.any().optional(),
-  expectedTradelines: z.any().optional(),
-  rawExtractedText: z.string().nullable().optional(),
-  bureau: z.string().nullable().optional(),
-  parserMode: z.string().nullable().optional(),
-  allowAiFallback: z.boolean().nullable().optional(),
-  stageVersion: z.string().nullable().optional(),
-  extractionSource: z.string().nullable().optional(),
-  parserContext: z.any().optional(),
-  materializeForViolationCorrections: z.boolean().optional(),
-});
+const SOURCE_FILE_NAME_SCHEMA = uploadFileNameSchema("Source file name");
+
+export const schema = z
+  .object({
+    name: z.string().min(1).max(255),
+    description: z.string().optional(),
+    pdfBase64: uploadBase64PayloadSchema(PARSER_TEST_CASE_UPLOAD_MAX_BYTES, "Parser test PDF"),
+    expectedConsumerInfo: z.any().optional(),
+    expectedTradelines: z.any().optional(),
+    rawExtractedText: z.string().nullable().optional(),
+    bureau: z.string().nullable().optional(),
+    parserMode: z.string().nullable().optional(),
+    allowAiFallback: z.boolean().nullable().optional(),
+    stageVersion: z.string().nullable().optional(),
+    extractionSource: z.string().nullable().optional(),
+    parserContext: z.any().optional(),
+    materializeForViolationCorrections: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    addBase64UploadValidationIssues(
+      { pdfBase64: data.pdfBase64, mimeType: "application/pdf" },
+      ctx,
+      {
+        base64Field: "pdfBase64",
+        mimeTypeField: "mimeType",
+        maxBytes: PARSER_TEST_CASE_UPLOAD_MAX_BYTES,
+        allowedMimeTypes: CREDIT_REPORT_UPLOAD_MIME_TYPES,
+        fileLabel: "Parser test PDF",
+      }
+    );
+
+    const parserContext =
+      data.parserContext && typeof data.parserContext === "object" && !Array.isArray(data.parserContext)
+        ? (data.parserContext as Record<string, unknown>)
+        : null;
+    const sourceFileName = parserContext?.sourceFileName;
+    if (sourceFileName !== undefined) {
+      const result = SOURCE_FILE_NAME_SCHEMA.safeParse(sourceFileName);
+      if (!result.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["parserContext", "sourceFileName"],
+          message: result.error.errors[0]?.message ?? "Source file name is invalid",
+        });
+      }
+    }
+  });
 
 export type InputType = z.infer<typeof schema>;
 

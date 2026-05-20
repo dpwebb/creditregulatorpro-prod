@@ -1,11 +1,35 @@
 import { z } from "zod";
 import type { MockLifecycleJobRecord } from "./types";
+import {
+  addBase64UploadValidationIssues,
+  ADMIN_MOCK_LIFECYCLE_UPLOAD_MAX_BYTES,
+  CREDIT_REPORT_UPLOAD_MIME_TYPES,
+  uploadBase64PayloadSchema,
+  uploadFileNameSchema,
+  uploadMimeTypeSchema,
+} from "../../../helpers/uploadPayloadValidation";
 
-const uploadedPdfSchema = z.object({
-  fileName: z.string().trim().min(1, "Uploaded fileName is required"),
-  mimeType: z.string().trim().optional(),
-  bytesBase64: z.string().min(1, "Uploaded bytesBase64 is required"),
-});
+const uploadedPdfSchema = z
+  .object({
+    fileName: uploadFileNameSchema("Uploaded fileName"),
+    mimeType: uploadMimeTypeSchema(
+      CREDIT_REPORT_UPLOAD_MIME_TYPES,
+      "Uploaded fixture mimeType must be application/pdf."
+    ).default("application/pdf"),
+    bytesBase64: uploadBase64PayloadSchema(
+      ADMIN_MOCK_LIFECYCLE_UPLOAD_MAX_BYTES,
+      "Uploaded fixture"
+    ),
+  })
+  .superRefine((data, ctx) => {
+    addBase64UploadValidationIssues(data, ctx, {
+      base64Field: "bytesBase64",
+      mimeTypeField: "mimeType",
+      maxBytes: ADMIN_MOCK_LIFECYCLE_UPLOAD_MAX_BYTES,
+      allowedMimeTypes: CREDIT_REPORT_UPLOAD_MIME_TYPES,
+      fileLabel: "Uploaded fixture",
+    });
+  });
 
 export const schema = z
   .object({

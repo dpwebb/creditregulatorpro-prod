@@ -3,6 +3,11 @@ import { randomUUID } from "node:crypto";
 import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { BusinessRuleError } from "../../../helpers/endpointErrorHandler";
+import {
+  ADMIN_MOCK_LIFECYCLE_UPLOAD_MAX_BYTES,
+  normalizeUploadMimeType,
+  validateBase64UploadPayload,
+} from "../../../helpers/uploadPayloadValidation";
 import type {
   MockLifecycleCoverageSummary,
   MockLifecycleJobRecord,
@@ -83,16 +88,20 @@ export async function materializeUploadedFixture(
     throw new BusinessRuleError("Uploaded fixture must be a PDF file.", 400);
   }
 
-  if (input.mimeType && !input.mimeType.toLowerCase().includes("pdf")) {
+  if (input.mimeType && normalizeUploadMimeType(input.mimeType) !== "application/pdf") {
     throw new BusinessRuleError("Uploaded fixture mimeType must be application/pdf.", 400);
   }
 
-  let bytes: Buffer;
-  try {
-    bytes = Buffer.from(input.bytesBase64, "base64");
-  } catch {
-    throw new BusinessRuleError("Uploaded fixture has invalid base64 content.", 400);
+  const validation = validateBase64UploadPayload(
+    input.bytesBase64,
+    ADMIN_MOCK_LIFECYCLE_UPLOAD_MAX_BYTES,
+    "Uploaded fixture"
+  );
+  if (validation.ok === false) {
+    throw new BusinessRuleError(validation.message, 400);
   }
+
+  const bytes = Buffer.from(validation.payload, "base64");
 
   if (!bytes.length) {
     throw new BusinessRuleError("Uploaded fixture is empty.", 400);

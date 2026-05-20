@@ -6,6 +6,12 @@ import {
   resolveAndValidatePdfPath,
   startMockLifecycleJob,
 } from "./jobRunner";
+import {
+  ADMIN_MOCK_LIFECYCLE_TOTAL_UPLOAD_MAX_BYTES,
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../../helpers/uploadPayloadValidation";
 
 function firstForwardedHeader(value: string | null): string | null {
   const first = value?.split(",")[0]?.trim();
@@ -46,7 +52,22 @@ export async function handle(request: Request) {
       throw new BusinessRuleError("Unauthorized: Admin access required", 403);
     }
 
-    const raw = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, ADMIN_MOCK_LIFECYCLE_TOTAL_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse(
+        "Mock lifecycle upload",
+        ADMIN_MOCK_LIFECYCLE_TOTAL_UPLOAD_MAX_BYTES
+      );
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, ADMIN_MOCK_LIFECYCLE_TOTAL_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse(
+        "Mock lifecycle upload",
+        ADMIN_MOCK_LIFECYCLE_TOTAL_UPLOAD_MAX_BYTES
+      );
+    }
+
+    const raw = JSON.parse(text);
     const input = schema.parse(raw);
     const inferredUrls = inferLifecycleUrls(request);
 

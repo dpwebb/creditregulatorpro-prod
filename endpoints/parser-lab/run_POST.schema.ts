@@ -1,11 +1,33 @@
 import { z } from "zod";
 
-export const schema = z.object({
-  fileName: z.string().min(1),
-  mimeType: z.string().default("application/pdf"),
-  bytesBase64: z.string().min(1),
-  allowAiFallback: z.boolean().optional(),
-});
+import {
+  addBase64UploadValidationIssues,
+  CREDIT_REPORT_UPLOAD_MIME_TYPES,
+  PARSER_LAB_UPLOAD_MAX_BYTES,
+  uploadBase64PayloadSchema,
+  uploadFileNameSchema,
+  uploadMimeTypeSchema,
+} from "../../helpers/uploadPayloadValidation";
+
+export const schema = z
+  .object({
+    fileName: uploadFileNameSchema("File name"),
+    mimeType: uploadMimeTypeSchema(
+      CREDIT_REPORT_UPLOAD_MIME_TYPES,
+      "Unsupported file type. Please upload a PDF."
+    ).default("application/pdf"),
+    bytesBase64: uploadBase64PayloadSchema(PARSER_LAB_UPLOAD_MAX_BYTES, "Parser lab PDF"),
+    allowAiFallback: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    addBase64UploadValidationIssues(data, ctx, {
+      base64Field: "bytesBase64",
+      mimeTypeField: "mimeType",
+      maxBytes: PARSER_LAB_UPLOAD_MAX_BYTES,
+      allowedMimeTypes: CREDIT_REPORT_UPLOAD_MIME_TYPES,
+      fileLabel: "Parser lab PDF",
+    });
+  });
 
 export type InputType = z.infer<typeof schema>;
 

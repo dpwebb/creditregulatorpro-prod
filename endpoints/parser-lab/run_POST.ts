@@ -7,6 +7,12 @@ import {
   isScannedPdfUnsupportedError,
   SCANNED_PDF_UNSUPPORTED_CODE,
 } from "../../helpers/creditReportPdfEligibility";
+import {
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  PARSER_LAB_UPLOAD_MAX_BYTES,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 const parserLabScannedPdfUnsupportedResponse = () =>
   new Response(
@@ -28,7 +34,16 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
     }
 
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, PARSER_LAB_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Parser lab PDF", PARSER_LAB_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, PARSER_LAB_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Parser lab PDF", PARSER_LAB_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     const input = schema.parse(json);
     const isPdf =
       input.mimeType === "application/pdf" || input.fileName.toLowerCase().endsWith(".pdf");

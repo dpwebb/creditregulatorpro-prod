@@ -6,6 +6,12 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { isAdmin } from "../../helpers/userRoleUtils";
 import { Json } from "../../helpers/schema";
 import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdjudicationSchema";
+import {
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  PARSER_TEST_CASE_IMPORT_TOTAL_UPLOAD_MAX_BYTES,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 export async function handle(request: Request) {
   try {
@@ -17,7 +23,22 @@ export async function handle(request: Request) {
       );
     }
 
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, PARSER_TEST_CASE_IMPORT_TOTAL_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse(
+        "Parser test import",
+        PARSER_TEST_CASE_IMPORT_TOTAL_UPLOAD_MAX_BYTES
+      );
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, PARSER_TEST_CASE_IMPORT_TOTAL_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse(
+        "Parser test import",
+        PARSER_TEST_CASE_IMPORT_TOTAL_UPLOAD_MAX_BYTES
+      );
+    }
+
+    const json = JSON.parse(text);
     const input = schema.parse(json);
     await ensureParserTestAdjudicationSchema();
 

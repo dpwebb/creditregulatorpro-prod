@@ -11,6 +11,12 @@ import { createReportArtifact } from "../../helpers/ingestArtifactCreator";
 import { handleIngestProcess } from "../../helpers/ingestReportHandler";
 import type { ResolvedUserSession } from "../../helpers/ingestSessionResolver";
 import type { SSEEvent } from "../../helpers/sseStreamBuilder";
+import {
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  PARSER_TEST_CASE_UPLOAD_MAX_BYTES,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 async function resolveAdminUserAccount(user: ResolvedUserSession["user"]): Promise<ResolvedUserSession["userAccount"]> {
   let userAccount = await db
@@ -118,7 +124,16 @@ export async function handle(request: Request) {
       );
     }
 
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, PARSER_TEST_CASE_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Parser test PDF", PARSER_TEST_CASE_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, PARSER_TEST_CASE_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("Parser test PDF", PARSER_TEST_CASE_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     const input = schema.parse(json);
     await ensureParserTestAdjudicationSchema();
 
