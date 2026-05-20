@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -167,6 +167,33 @@ describe("packet create dialog routing", () => {
     await waitFor(() => expect(screen.getByLabelText(/Maple Bank Visa/i)).toBeChecked());
     expect(screen.queryByText(/This finding is not packet-ready yet/i)).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId("location-search").textContent).toBe(""));
+  });
+
+  it("allows generating a PDF after selecting a packet-ready finding without forcing a preview first", async () => {
+    mocks.createPacket.mockResolvedValueOnce({
+      packetId: 88,
+      packet: {} as any,
+      status: "generated",
+    });
+
+    renderPacketsPage("/packets?create=true");
+
+    expect(await screen.findByText("Create Dispute Packet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate PDF" })).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText(/Maple Bank Visa/i));
+
+    expect(screen.getByRole("button", { name: "Generate PDF" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Generate PDF" }));
+
+    await waitFor(() => {
+      expect(mocks.createPacket).toHaveBeenCalledWith({
+        packetType: "credit_bureau",
+        selectedIssueIds: [42],
+        recipient: undefined,
+      });
+    });
+    expect(mocks.showSuccess).toHaveBeenCalledWith("Packet generated");
   });
 
   it("does not preselect a missing or ineligible originating finding", async () => {

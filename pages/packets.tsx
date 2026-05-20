@@ -754,8 +754,9 @@ function CreatePacketDialog({
     }
   };
 
-  const canPreview = selectedIssueIds.size > 0 && !buildPreview.isPending;
-  const canCreate = Boolean(preview) && !createPacket.isPending;
+  const packetActionPending = buildPreview.isPending || createPacket.isPending;
+  const canPreview = selectedIssueIds.size > 0 && !packetActionPending;
+  const canCreate = selectedIssueIds.size > 0 && !packetActionPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -763,7 +764,7 @@ function CreatePacketDialog({
         <DialogHeader>
           <DialogTitle>Create Dispute Packet</DialogTitle>
           <DialogDescription>
-            Select packet-ready report findings, review the plain-language packet, then generate the PDF.
+            Select packet-ready report findings, preview the plain-language packet if needed, then generate the PDF.
           </DialogDescription>
         </DialogHeader>
 
@@ -885,7 +886,7 @@ function CreatePacketDialog({
             </div>
             {!preview ? (
               <div className={styles.builderState}>
-                Select one or more items and preview the packet before generating it.
+                Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings.
               </div>
             ) : (
               <div className={styles.previewContent}>
