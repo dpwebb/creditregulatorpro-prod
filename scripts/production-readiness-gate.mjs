@@ -44,7 +44,42 @@ export const PROTECTED_UNAUTHENTICATED_ENDPOINT_CHECKS = [
     path: "/_api/regulation-registry/advisory-bridge/report",
     acceptedStatuses: [401, 403],
   },
+  {
+    name: "report artifact list endpoint",
+    path: "/_api/report-artifact/list?limit=1",
+    acceptedStatuses: [401, 403],
+  },
+  {
+    name: "packet list endpoint",
+    path: "/_api/packet/list?limit=1",
+    acceptedStatuses: [401, 403],
+  },
+  {
+    name: "evidence event list endpoint",
+    path: "/_api/evidence/list?limit=1",
+    acceptedStatuses: [401, 403],
+  },
+  {
+    name: "response document list endpoint",
+    path: "/_api/responses/list?limit=1",
+    acceptedStatuses: [401, 403],
+  },
+  {
+    name: "support ticket list endpoint",
+    path: "/_api/support-ticket/list?limit=1",
+    acceptedStatuses: [401, 403],
+  },
 ];
+
+export const INVALID_SESSION_COOKIE = "floot_built_app_session=invalid-production-readiness-probe";
+
+export const PROTECTED_INVALID_SESSION_ENDPOINT_CHECKS = PROTECTED_UNAUTHENTICATED_ENDPOINT_CHECKS.map((check) => ({
+  ...check,
+  name: `${check.name} invalid session`,
+  headers: {
+    Cookie: INVALID_SESSION_COOKIE,
+  },
+}));
 
 export const PUBLIC_STAGING_CHECKS = [
   { name: "app shell", path: "/", method: "HEAD", acceptedStatuses: [200] },
@@ -149,6 +184,7 @@ async function fetchWithTimeout(url, timeoutMs, init = {}) {
 async function runHttpCheck(baseUrl, timeoutMs, check) {
   const response = await fetchWithTimeout(toAbsoluteUrl(baseUrl, check.path), timeoutMs, {
     method: check.method ?? "GET",
+    headers: check.headers ?? {},
   });
   if (!check.acceptedStatuses.includes(response.status)) {
     throw new Error(`${check.name} returned HTTP ${response.status}; expected ${check.acceptedStatuses.join(", ")}.`);
@@ -215,6 +251,7 @@ export async function runProductionReadinessGate(options) {
     stagingDeploy: null,
     publicChecks: [],
     protectedUnauthenticatedChecks: [],
+    protectedInvalidSessionChecks: [],
   };
 
   if (!options.skipLocalChecks) {
@@ -236,6 +273,10 @@ export async function runProductionReadinessGate(options) {
     results.protectedUnauthenticatedChecks.push(await runHttpCheck(options.stagingUrl, options.timeoutMs, check));
   }
 
+  for (const check of PROTECTED_INVALID_SESSION_ENDPOINT_CHECKS) {
+    results.protectedInvalidSessionChecks.push(await runHttpCheck(options.stagingUrl, options.timeoutMs, check));
+  }
+
   results.completedAt = new Date().toISOString();
   return results;
 }
@@ -253,6 +294,7 @@ async function main() {
       console.log(`Staging deploy: ${options.skipGithubDeployCheck ? "skipped" : result.stagingDeploy?.headSha}`);
       console.log(`Public checks: ${result.publicChecks.length}`);
       console.log(`Protected unauthenticated checks: ${result.protectedUnauthenticatedChecks.length}`);
+      console.log(`Protected invalid-session checks: ${result.protectedInvalidSessionChecks.length}`);
     }
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));

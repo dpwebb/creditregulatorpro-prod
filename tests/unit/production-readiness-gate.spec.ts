@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  INVALID_SESSION_COOKIE,
+  PROTECTED_INVALID_SESSION_ENDPOINT_CHECKS,
   PROTECTED_UNAUTHENTICATED_ENDPOINT_CHECKS,
   PUBLIC_STAGING_CHECKS,
   REQUIRED_LOCAL_CHECKS,
@@ -78,6 +80,54 @@ describe("production readiness gate", () => {
           name: "advisory bridge report endpoint",
           path: "/_api/regulation-registry/advisory-bridge/report",
           acceptedStatuses: [401, 403],
+        },
+        {
+          name: "report artifact list endpoint",
+          path: "/_api/report-artifact/list?limit=1",
+          acceptedStatuses: [401, 403],
+        },
+        {
+          name: "packet list endpoint",
+          path: "/_api/packet/list?limit=1",
+          acceptedStatuses: [401, 403],
+        },
+        {
+          name: "evidence event list endpoint",
+          path: "/_api/evidence/list?limit=1",
+          acceptedStatuses: [401, 403],
+        },
+        {
+          name: "response document list endpoint",
+          path: "/_api/responses/list?limit=1",
+          acceptedStatuses: [401, 403],
+        },
+        {
+          name: "support ticket list endpoint",
+          path: "/_api/support-ticket/list?limit=1",
+          acceptedStatuses: [401, 403],
+        },
+      ]),
+    );
+
+    expect(PROTECTED_INVALID_SESSION_ENDPOINT_CHECKS).toEqual(
+      expect.arrayContaining([
+        {
+          name: "report artifact list endpoint invalid session",
+          path: "/_api/report-artifact/list?limit=1",
+          acceptedStatuses: [401, 403],
+          headers: { Cookie: INVALID_SESSION_COOKIE },
+        },
+        {
+          name: "packet list endpoint invalid session",
+          path: "/_api/packet/list?limit=1",
+          acceptedStatuses: [401, 403],
+          headers: { Cookie: INVALID_SESSION_COOKIE },
+        },
+        {
+          name: "response document list endpoint invalid session",
+          path: "/_api/responses/list?limit=1",
+          acceptedStatuses: [401, 403],
+          headers: { Cookie: INVALID_SESSION_COOKIE },
         },
       ]),
     );

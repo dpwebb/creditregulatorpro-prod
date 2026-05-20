@@ -45,8 +45,26 @@ describe("production deploy workflow verification", () => {
     const source = workflowSource();
 
     expect(source).toContain('wait_for_status "auth session denial" "GET" "/_api/auth/session"');
+    expect(source).toContain('wait_for_status "report artifact list denial" "GET" "/_api/report-artifact/list?limit=1"');
+    expect(source).toContain('wait_for_status "packet list denial" "GET" "/_api/packet/list?limit=1"');
+    expect(source).toContain('wait_for_status "evidence event list denial" "GET" "/_api/evidence/list?limit=1"');
+    expect(source).toContain('wait_for_status "response document list denial" "GET" "/_api/responses/list?limit=1"');
+    expect(source).toContain('wait_for_status "support ticket list denial" "GET" "/_api/support-ticket/list?limit=1"');
     expect(source).toContain("'^(401|403)$'");
     expect(source).not.toContain("/_api/auth/login_with_password");
+  });
+
+  it("checks production-safe invalid-session denial without creating production data", () => {
+    const source = workflowSource();
+
+    expect(source).toContain('invalid_session_cookie="floot_built_app_session=invalid-production-readiness-probe"');
+    expect(source).toContain('wait_for_status "invalid session auth denial" "GET" "/_api/auth/session"');
+    expect(source).toContain('wait_for_status "invalid session report artifact list denial" "GET" "/_api/report-artifact/list?limit=1"');
+    expect(source).toContain('wait_for_status "invalid session packet list denial" "GET" "/_api/packet/list?limit=1"');
+    expect(source).toContain('wait_for_status "invalid session evidence event list denial" "GET" "/_api/evidence/list?limit=1"');
+    expect(source).toContain('wait_for_status "invalid session response document list denial" "GET" "/_api/responses/list?limit=1"');
+    expect(source).toContain('wait_for_status "invalid session support ticket list denial" "GET" "/_api/support-ticket/list?limit=1"');
+    expect(source).toContain('"Cookie: ${invalid_session_cookie}"');
   });
 
   it("does not run staging-only synthetic admin response smokes in production", () => {

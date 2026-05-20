@@ -46,9 +46,9 @@ Use only these status values in the execution table:
 - Disaster recovery proof is incomplete.
 - Production-scale load and concurrency tests are missing.
 - Bureau communication attachments are stored as base64 in database fields.
-- Support role boundaries are not a first-class route classification.
+- Support role boundaries are now first-class in route/auth and API privacy tests for report artifacts, packets/PDFs, evidence, response documents, and support tickets.
 - Response processing is strong but not fully production-operational.
-- Production deployment lacks deep production-safe privacy smokes.
+- Production deployment and the staging readiness gate now include production-safe unauthenticated and invalid-session read-only privacy denial probes. Seeded owner-denial checks remain staging/local-only because they require controlled fixture data.
 - Frontend bundle size and heavy PDF/OCR dependencies are not performance-gated.
 - Readiness documentation must remain aligned to the maximum audit after each blocker phase.
 
@@ -74,7 +74,7 @@ Do not combine tasks. Each numbered row is a separate Codex task with its own im
 | 14 | Migration ledger/checker | Complete | `docs/database-migration-policy.md` establishes the root `migrations/` ledger convention and keeps runtime ensure functions active until a later audited cutover. `migrations/0000-runtime-schema-inventory.md` inventories bootstrap DDL, runtime ensure functions, and migration metadata endpoints. `scripts/check-migrations.mjs` and `check:migrations` provide a non-mutating static report for runtime ensure functions, ledger entries, unknown/unledgered schema mutation points, and non-blocking deploy-gate recommendation. Production deploy behavior was not changed. | `pnpm run check:migrations`; migration checker unit tests; production readiness/deploy unit tests; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 15 | Observability expansion | Complete | `helpers/productionObservabilityMetrics.ts` aggregates sanitized ingest, OCR/parser, packet PDF, storage, auth/rate-limit, and DB config/pool signals with `OK`/`Warning`/`Critical` thresholds. `helpers/packetPdfCache.ts` records `PACKET_PDF_CACHE_HIT` events in addition to render attempts/success/failure. `helpers/documentStorage.ts` and `helpers/gcsStorage.ts` record sanitized storage read/write/delete failure metrics through `auditLog` with object-reference hashes only. `scripts/ingest-processing-worker.ts` adds sanitized duration/page-count/parser-summary fields to ingest job result summaries. `scripts/operator-regression-dashboard.ts` adds the `Production Observability` category. `docs/production-observability-metrics.md` documents signals, sensitivity boundaries, and thresholds. | Metric/dashboard unit tests; packet PDF cache tests; `pnpm run test:regression-dashboard`; `pnpm run operator:dashboard`; `pnpm run typecheck`; `pnpm run build`; relevant API tests; `git diff --check`. |
 | 16 | Additional list endpoint limits | Complete | High-growth list routes now apply default/max bounds while preserving existing ownership/admin filters and sorting. Changed routes: bankruptcy, consumer-signature, creditor-validation, discrimination, evidence, evidence-attachment, fraud-freeze, metro2-validation-log, obligation-instance, parser-known-entity, parser-mapping, parser-test-case, regulatory-notification, regulatory-update, scanning-rule, tradeline, and version. Default is 50 and max is 100 except tradeline max 250 to preserve existing lifecycle script compatibility. Oversized limits are rejected by schema validation. | `pnpm exec vitest run tests/api/high-growth-list-limits.spec.ts tests/api/evidence-privacy-endpoint.spec.ts`; `pnpm run test:api`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
-| 17 | Support-role and production-safe privacy smokes | Not started | Blockers 21 and 23: support boundaries and production-safe privacy probes need stronger proof. | Support-role privacy matrix; unauthenticated/invalid-session protected-route denial; production-safe read-only smoke/gate unit tests. |
+| 17 | Support-role and production-safe privacy smokes | Complete | `tests/api/support-role-privacy-matrix.spec.ts` proves support is non-admin for report artifacts, packets/PDFs, evidence, and response documents, and proves support-ticket access is limited to assigned or open unassigned tickets. `tests/contracts/route-auth-classification.spec.ts` now treats support-role privacy boundaries as a first-class route contract. `scripts/production-readiness-gate.mjs` and `.github/workflows/deploy-production.yml` include production-safe unauthenticated and invalid-session read-only denial probes for auth session, report-artifact list, packet list, evidence list, response-document list, and support-ticket list without requiring production fixture data. | `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts tests/unit/production-readiness-gate.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/contracts/route-auth-classification.spec.ts`; `pnpm run test:contracts`; privacy/auth API tests; `pnpm run test:api`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 18 | Load/concurrency harness | Not started | Blocker 16: no production-scale load/concurrency proof exists. | Local-only upload/process/PDF concurrency harness; DB pool latency report; failure-mode evidence; no production mutation. |
 | 19 | Restore drill evidence | Not started | Blocker 15: no completed human-observed restore drill evidence was found. | Restore checklist; date/operator/source SHA evidence; golden path after restore; RPO/RTO artifact review. |
 | 20 | Response operations completion | Not started | Blocker 22: response processing is strong but not fully production-operational. | Soak checks; alert delivery simulation or accepted exclusion; scheduler bounded-run test; lifecycle apply confirmation; dashboard evidence. |
@@ -115,6 +115,27 @@ Inventoried but not changed in this task:
 
 - Static/reference or low-growth lists: `bureau`, `bureau-detection-config`, `feature-flag`, `migration`, `obligation`, `enforcement-mechanism`, `regulation-registry`, `regulation-registry/reconciliation-candidates`, and `statute`.
 - `endpoints/hidden-risk/list_GET.ts` remains a separate pagination/UX task because it currently returns aggregate counts and stale-suppressed risk rows from a full matching set; force-limiting it here would change dashboard semantics.
+
+## Support Privacy And Production-Safe Smoke Inventory
+
+Inventory date: 2026-05-20.
+
+Production-safe read-only probes:
+
+- `/_api/auth/session`
+- `/_api/report-artifact/list?limit=1`
+- `/_api/packet/list?limit=1`
+- `/_api/evidence/list?limit=1`
+- `/_api/responses/list?limit=1`
+- `/_api/support-ticket/list?limit=1`
+
+These probes run without credentials and with an intentionally invalid `floot_built_app_session` cookie. They are expected to return `401` or `403`, do not create synthetic users, and do not require production test data.
+
+Staging/local-only privacy checks:
+
+- Ordinary non-owner denial and support-role access matrix tests that need seeded report artifacts, packets, evidence, response documents, or support tickets remain in local/staging API tests.
+- Support ticket positive access checks for assigned or open unassigned tickets remain local/staging-only because production may not contain safe fixture tickets.
+- Admin positive access checks remain local/staging-only unless an existing production-safe read-only admin session is explicitly provided by an operator-run procedure.
 
 ## Non-Regression Guardrails
 

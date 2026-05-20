@@ -184,24 +184,31 @@ jobs:
           set -euo pipefail
 
           base_url="${PRODUCTION_APP_URL%/}"
+          invalid_session_cookie="floot_built_app_session=invalid-production-readiness-probe"
 
           wait_for_status() {
             local label="$1"
             local method="$2"
             local path="$3"
             local accepted_regex="$4"
+            local extra_header="${5:-}"
             local url="${base_url}${path}"
             local status_code
+            local curl_headers=(-H "User-Agent: creditregulatorpro-production-deploy-health/1.0")
+
+            if [ -n "$extra_header" ]; then
+              curl_headers+=(-H "$extra_header")
+            fi
 
             for attempt in $(seq 1 30); do
               if [ "$method" = "HEAD" ]; then
-                if status_code="$(curl -sS -L -I -H "User-Agent: creditregulatorpro-production-deploy-health/1.0" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
+                if status_code="$(curl -sS -L -I "${curl_headers[@]}" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
                   :
                 else
                   status_code="curl_error"
                 fi
               else
-                if status_code="$(curl -sS -L -X "$method" -H "User-Agent: creditregulatorpro-production-deploy-health/1.0" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
+                if status_code="$(curl -sS -L -X "$method" "${curl_headers[@]}" -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)"; then
                   :
                 else
                   status_code="curl_error"
@@ -224,3 +231,14 @@ jobs:
           wait_for_status "root route" "HEAD" "/" '^[23][0-9][0-9]$'
           wait_for_status "login route" "GET" "/login" '^[23][0-9][0-9]$'
           wait_for_status "auth session denial" "GET" "/_api/auth/session" '^(401|403)$'
+          wait_for_status "report artifact list denial" "GET" "/_api/report-artifact/list?limit=1" '^(401|403)$'
+          wait_for_status "packet list denial" "GET" "/_api/packet/list?limit=1" '^(401|403)$'
+          wait_for_status "evidence event list denial" "GET" "/_api/evidence/list?limit=1" '^(401|403)$'
+          wait_for_status "response document list denial" "GET" "/_api/responses/list?limit=1" '^(401|403)$'
+          wait_for_status "support ticket list denial" "GET" "/_api/support-ticket/list?limit=1" '^(401|403)$'
+          wait_for_status "invalid session auth denial" "GET" "/_api/auth/session" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          wait_for_status "invalid session report artifact list denial" "GET" "/_api/report-artifact/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          wait_for_status "invalid session packet list denial" "GET" "/_api/packet/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          wait_for_status "invalid session evidence event list denial" "GET" "/_api/evidence/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          wait_for_status "invalid session response document list denial" "GET" "/_api/responses/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          wait_for_status "invalid session support ticket list denial" "GET" "/_api/support-ticket/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"

@@ -349,6 +349,10 @@ function endpointSource(handlerFile: string): string {
   return readFileSync(path.join(projectRoot, handlerFile), "utf8");
 }
 
+function projectSource(filePath: string): string {
+  return readFileSync(path.join(projectRoot, filePath), "utf8");
+}
+
 function classificationEntries(): Array<{ category: AuthCategory; handlerFile: string }> {
   return AUTH_CATEGORIES.flatMap((category) =>
     ROUTE_AUTH_CLASSIFICATIONS[category].map((handlerFile) => ({ category, handlerFile }))
@@ -517,5 +521,41 @@ describe("route auth classification contract", () => {
     for (const handlerFile of ROUTE_AUTH_CLASSIFICATIONS["webhook-signature authenticated"]) {
       expect(hasWebhookGuard(endpointSource(handlerFile))).toBe(true);
     }
+  });
+
+  it("keeps support-role boundaries first-class for privacy-sensitive route domains", () => {
+    const reportArtifactSource = [
+      endpointSource("endpoints/report-artifact/list_GET.ts"),
+      endpointSource("endpoints/report-artifact/get_GET.ts"),
+    ].join("\n");
+    expect(reportArtifactSource).toContain("reportArtifact.userId");
+    expect(reportArtifactSource).toContain("user.role !== 'admin'");
+
+    const packetSource = [
+      endpointSource("endpoints/packet/list_GET.ts"),
+      endpointSource("endpoints/packet/get_GET.ts"),
+      endpointSource("endpoints/packet/pdf_GET.ts"),
+    ].join("\n");
+    expect(packetSource).toContain("packet.userId");
+    expect(packetSource).toMatch(/user\.role !== ['"]admin['"]/);
+
+    const evidenceSource = [
+      endpointSource("endpoints/evidence/list_GET.ts"),
+      endpointSource("endpoints/evidence-attachment/list_GET.ts"),
+    ].join("\n");
+    expect(evidenceSource).toContain("packet.userId");
+    expect(evidenceSource).toContain("ownerCheck.userId !== user.id");
+
+    const responseDocumentSource = projectSource("helpers/responseDocumentService.ts");
+    expect(responseDocumentSource).toContain("Support role cannot list response documents.");
+    expect(responseDocumentSource).toContain("Support role cannot read response documents.");
+
+    const supportTicketSource = [
+      endpointSource("endpoints/support-ticket/list_GET.ts"),
+      endpointSource("endpoints/support-ticket/get_GET.ts"),
+    ].join("\n");
+    expect(supportTicketSource).toContain('user.role === "support"');
+    expect(supportTicketSource).toContain('"supportTicket.assignedAgentId", "=", user.id');
+    expect(supportTicketSource).toContain('"supportTicket.status", "=", "OPEN"');
   });
 });
