@@ -102,6 +102,9 @@ function acceptedAlertingExclusionEvidence() {
     exclusionReason: "Human monitoring is the approved operating path for this limited beta release.",
     humanMonitoringCadence: "Daily dashboard review and immediate review after supervised response operations.",
     manualEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
+    acceptedRiskStatement: "The release governance owner accepts the residual risk of no external alert provider for this limited beta window.",
+    reviewOrExpiryDate: "2026-08-20",
+    dryRunNotLiveProofAcknowledgement: true,
     dashboardCommand: "pnpm run operator:dashboard",
     soakCommand: "pnpm run response:soak-check",
     alertsDryRunCommand: "pnpm run alerts:dry-run",
@@ -642,6 +645,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-acceptance");
     expect(report.commandList).toContain("pnpm run alerts:dry-run");
     expect(report.commandList).toContain("pnpm run alerts:exclusion:validate");
+    expect(report.commandList).toContain("pnpm run response-ops:readiness-evidence");
     expect(report.commandList).toContain("pnpm run response:ops-readiness-evidence");
     expect(report.commandList).toContain("pnpm run migrations:gate");
     expect(report.commandList).toContain("pnpm run baseline:production-scale-measured -- --local");
@@ -1177,6 +1181,7 @@ describe("production promotion evidence pack", () => {
       liveSchedulerStatus: "disabled",
       backfillReadinessStatus: "operator-controlled-deferred",
       purgeArchiveReadinessStatus: "operator-controlled-deferred",
+      responseSoakStatus: "command-available",
       safety: {
         productionDataMutated: false,
         productionRecordsPurgedOrArchived: false,
@@ -1184,6 +1189,33 @@ describe("production promotion evidence pack", () => {
       },
     });
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("does not close blocker 8 without accepted response ops readiness controls", () => {
+    const responseOpsReadinessEvidence = {
+      ...buildResponseOpsReadinessEvidenceReport({
+        rootDir: process.cwd(),
+        generatedAt: "2026-05-20T12:00:00.000Z",
+        env: {},
+        alertsDryRunEvidence: dryRunAlertEvidence(),
+      }),
+      status: "failed",
+      blockerCoverage: {
+        responseOperationsMaturity: false,
+        observabilityAlerting: false,
+        releaseEvidenceExactCommands: true,
+      },
+    };
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      responseOpsReadinessEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker8 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 8);
+
+    expect(blocker8?.classification).toBe("partial");
   });
 
   it("does not close blocker 9 with dry-run-only alert evidence", () => {
@@ -1247,6 +1279,7 @@ describe("production promotion evidence pack", () => {
         "pnpm run production-worker:activation-evidence",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker:staging-evidence",
+        "pnpm run response-ops:readiness-evidence",
         "pnpm run response:ops-readiness-evidence",
         "pnpm run alerts:exclusion:validate",
         "pnpm run alerts:dry-run",
@@ -1257,6 +1290,7 @@ describe("production promotion evidence pack", () => {
       ]),
     );
     expect(report.skippedChecks.dashboardPassAloneIsReleaseEvidence).toBe(false);
+    expect(report.skippedChecks.skipCount).not.toBeNull();
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 });

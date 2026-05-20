@@ -24,6 +24,9 @@ pnpm run alerts:exclusion:validate
 | Exclusion reason | TODO |
 | Human monitoring cadence | TODO |
 | Manual escalation path | TODO |
+| Accepted risk statement | TODO |
+| Review/expiry date | TODO |
+| Dry-run not live proof acknowledgement | TODO |
 | Dashboard command | pnpm run operator:dashboard |
 | Response soak command | pnpm run response:soak-check |
 | Alerts dry-run command | pnpm run alerts:dry-run |
@@ -35,6 +38,6 @@ pnpm run alerts:exclusion:validate
 
 Required acknowledgement:
 
-The operator must explicitly acknowledge that no external alert provider will be used for the scoped window, that dashboard/soak/manual monitoring is the accepted human monitoring path, and that the exclusion does not prove live external alert delivery.
+The operator must explicitly acknowledge that no external alert provider will be used for the scoped window, that dashboard/soak/manual monitoring is the accepted human monitoring path, that the residual alerting risk is accepted for the scoped window, that the exclusion has a review or expiry date, and that dry-run alert evidence is not live external alert delivery proof.
 
 Do not include PII, raw response text, raw report text, raw PDFs, raw base64, secrets, tokens, signed URLs, database URLs, provider credentials, webhook URLs, cookies, or session values.

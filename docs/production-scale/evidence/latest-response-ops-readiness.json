@@ -1,9 +1,9 @@
 {
   "reportName": "response-ops-readiness-evidence",
   "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-  "generatedAt": "2026-05-20T21:29:30.894Z",
+  "generatedAt": "2026-05-20T23:44:30.269Z",
   "branch": "staging",
-  "commit": "0bfcd7c47069874b454143f951c90c5199b26d8c",
+  "commit": "78fdc663304cc1d0fe907400f20324c41ba9175c",
   "status": "operator-ready-with-deferred-controls",
   "productionProof": false,
   "staticValidation": {
@@ -32,7 +32,10 @@
       {
         "name": "dashboard skip semantics visible",
         "status": "passed",
-        "passed": true
+        "passed": true,
+        "dashboardCommand": "pnpm run operator:dashboard -- --json",
+        "skipCount": 55,
+        "skippedChecksVisible": true
       },
       {
         "name": "alert dry-run remains non-live proof",
@@ -87,6 +90,34 @@
     ],
     "physicalPurgeArchiveDeferred": true,
     "appendOnlyLifecycleMarkersOnly": true
+  },
+  "responseSoak": {
+    "status": "command-available",
+    "command": "pnpm run response:soak-check",
+    "productionRunExecutedByThisCommand": false,
+    "syntheticSoakOnly": true,
+    "externalAlertDeliveryUsed": false,
+    "liveMailboxIntegrationUsed": false
+  },
+  "dashboard": {
+    "status": "available",
+    "command": "pnpm run operator:dashboard -- --json",
+    "exitCode": 0,
+    "skipCount": 55,
+    "checksSkipped": true,
+    "skippedChecksVisible": true,
+    "treatsSkipAsPass": false,
+    "dashboardPassAloneIsReleaseEvidence": false,
+    "summary": {
+      "pass": 9,
+      "fail": 2,
+      "skip": 55,
+      "simulated": 1,
+      "humanRequired": 3,
+      "manual": 12,
+      "open": 12,
+      "info": 8
+    }
   },
   "alerting": {
     "status": "dry-run-only",

@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { collectDashboardEvidence } from "./production-scale-evidence.mjs";
+
 export const RESPONSE_OPS_READINESS_MD_PATH =
   "docs/production-scale/evidence/latest-response-ops-readiness.md";
 export const RESPONSE_OPS_READINESS_JSON_PATH =
@@ -160,6 +162,12 @@ function falseEvidence(value) {
   return /^(false|no|0)$/i.test(String(value ?? "").trim());
 }
 
+function acknowledgesDryRunNotLiveProof(value) {
+  if (truthyEvidence(value)) return true;
+  const text = String(value ?? "").trim().toLowerCase();
+  return /dry[- ]?run/.test(text) && /not\s+live|not\s+external|not\s+delivery/.test(text);
+}
+
 export function validateAlertingExclusionEvidence(evidenceInput) {
   const evidence = normalizeEvidenceObject(evidenceInput);
   const serialized = JSON.stringify(evidenceInput ?? {});
@@ -175,6 +183,16 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
     ["exclusionReason", ["exclusionReason", "Exclusion reason"]],
     ["humanMonitoringCadence", ["humanMonitoringCadence", "Human monitoring cadence", "Monitoring cadence"]],
     ["manualEscalationPath", ["manualEscalationPath", "Manual escalation path"]],
+    ["acceptedRiskStatement", ["acceptedRiskStatement", "Accepted risk statement", "Risk acceptance statement"]],
+    ["reviewOrExpiryDate", ["reviewOrExpiryDate", "Review/expiry date", "Review date", "Expiry date"]],
+    [
+      "dryRunNotLiveProofAcknowledgement",
+      [
+        "dryRunNotLiveProofAcknowledgement",
+        "Dry-run not live proof acknowledgement",
+        "Dry-run is not live alert delivery proof",
+      ],
+    ],
     ["dashboardCommand", ["dashboardCommand", "Dashboard command"]],
     ["soakCommand", ["soakCommand", "Response soak command", "Soak command"]],
     ["alertsDryRunCommand", ["alertsDryRunCommand", "Alerts dry-run command"]],
@@ -198,11 +216,23 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
   if (!/sanitiz/i.test(String(normalized.sanitizedEvidenceStatement ?? ""))) {
     errors.push("Evidence must explicitly state that it is sanitized.");
   }
+  if (!/accept/i.test(String(normalized.acceptedRiskStatement ?? "")) || !/risk/i.test(String(normalized.acceptedRiskStatement ?? ""))) {
+    errors.push("acceptedRiskStatement must explicitly accept the operational risk.");
+  }
+  if (Number.isNaN(Date.parse(String(normalized.reviewOrExpiryDate ?? "")))) {
+    errors.push("reviewOrExpiryDate must be a parseable review or expiry date.");
+  }
 
   const noExternalProvider = evidenceValue(evidence, ["noExternalAlertProviderUsed", "No external alert provider used"]);
   const operatorAck = evidenceValue(evidence, ["operatorAcknowledgementSigned", "Operator acknowledgement signed", "Operator acknowledgement"]);
   const productionDataMutatedByCodex = evidenceValue(evidence, ["productionDataMutatedByCodex", "Production data mutated by Codex"]);
   const liveAlertsSent = evidenceValue(evidence, ["liveAlertsSent", "Live alerts sent"]);
+  const dryRunEqualsLiveProof = evidenceValue(evidence, [
+    "dryRunEqualsLiveAlertProof",
+    "dryRunEvidenceIsLiveProof",
+    "dryRunOnlyIsLiveProof",
+    "Dry-run equals live alert proof",
+  ]);
 
   if (!truthyEvidence(noExternalProvider)) {
     errors.push("noExternalAlertProviderUsed must be true for a formal alert exclusion.");
@@ -215,6 +245,15 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
   }
   if (!falseEvidence(liveAlertsSent)) {
     errors.push("liveAlertsSent must be false for an alerting exclusion.");
+  }
+  if (!acknowledgesDryRunNotLiveProof(normalized.dryRunNotLiveProofAcknowledgement)) {
+    errors.push("dryRunNotLiveProofAcknowledgement must acknowledge that dry-run evidence is not live alert delivery proof.");
+  }
+  if (truthyEvidence(dryRunEqualsLiveProof)) {
+    errors.push("Dry-run evidence cannot be claimed as live alert delivery proof.");
+  }
+  if (/dry[- ]?run\s+(?:equals|is)\s+live/i.test(serialized)) {
+    errors.push("Evidence text cannot claim that dry-run evidence equals live alert proof.");
   }
   if (sensitiveFindings.length > 0) {
     errors.push(`Sensitive content detected: ${sensitiveFindings.join(", ")}.`);
@@ -421,6 +460,7 @@ export function buildResponseOpsReadinessEvidenceReport({
   alertingExclusionValidation = null,
   liveAlertProofEvidence = null,
   alertsDryRunEvidence = null,
+  dashboardEvidence = null,
 } = {}) {
   const productionEnvironment = detectResponseOpsProductionEnvironment(env);
   if (productionEnvironment.productionLike) {
@@ -437,6 +477,20 @@ export function buildResponseOpsReadinessEvidenceReport({
   const exclusionValidation = alertingExclusionValidation ?? buildAlertingExclusionValidationReport({ rootDir, generatedAt });
   const liveAlertProof = readLiveAlertProof(rootDir, liveAlertProofEvidence);
   const dryRunAlerts = alertsDryRunEvidence ?? alertsDryRunSummary(rootDir);
+  const dashboard = dashboardEvidence ?? {
+    available: false,
+    command: "pnpm run operator:dashboard -- --json",
+    exitCode: null,
+    skipCount: null,
+    checksSkipped: "not-collected-by-builder",
+    treatsSkipAsPass: false,
+    summary: null,
+    releaseEvidenceSemantics: {
+      skippedChecksVisible: false,
+      passImpliesSkippedChecksPassed: false,
+      dashboardPassAloneIsReleaseEvidence: false,
+    },
+  };
 
   const checks = [
     staticCheck(
@@ -469,7 +523,15 @@ export function buildResponseOpsReadinessEvidenceReport({
       "dashboard skip semantics visible",
       dashboardText.includes("skippedChecksVisible") &&
         dashboardText.includes("passImpliesSkippedChecksPassed: false") &&
-        dashboardText.includes("Dashboard PASS alone is not sufficient release evidence."),
+        dashboardText.includes("Dashboard PASS alone is not sufficient release evidence.") &&
+        dashboard.treatsSkipAsPass !== true,
+      {
+        dashboardCommand: dashboard.command,
+        skipCount: dashboard.skipCount,
+        skippedChecksVisible:
+          dashboard.releaseEvidenceSemantics?.skippedChecksVisible === true ||
+          Number(dashboard.skipCount ?? 0) > 0,
+      },
     ),
     staticCheck(
       "alert dry-run remains non-live proof",
@@ -530,6 +592,28 @@ export function buildResponseOpsReadinessEvidenceReport({
       applyRequires: ["--apply", "--confirm-cleanup", "--actor-user-id <operator-user-id>", "--limit <n>"],
       physicalPurgeArchiveDeferred: true,
       appendOnlyLifecycleMarkersOnly: true,
+    },
+    responseSoak: {
+      status: checks[3].passed ? "command-available" : "missing",
+      command: "pnpm run response:soak-check",
+      productionRunExecutedByThisCommand: false,
+      syntheticSoakOnly: true,
+      externalAlertDeliveryUsed: false,
+      liveMailboxIntegrationUsed: false,
+    },
+    dashboard: {
+      status: dashboard.available ? "available" : "not-collected",
+      command: dashboard.command,
+      exitCode: dashboard.exitCode,
+      skipCount: dashboard.skipCount,
+      checksSkipped: dashboard.checksSkipped,
+      skippedChecksVisible:
+        dashboard.releaseEvidenceSemantics?.skippedChecksVisible === true ||
+        Number(dashboard.skipCount ?? 0) > 0,
+      treatsSkipAsPass: dashboard.treatsSkipAsPass === true,
+      dashboardPassAloneIsReleaseEvidence:
+        dashboard.releaseEvidenceSemantics?.dashboardPassAloneIsReleaseEvidence === true,
+      summary: dashboard.summary,
     },
     alerting: {
       status: alertingStatus,
@@ -652,6 +736,9 @@ export function renderResponseOpsReadinessMarkdown(report) {
     `- Live scheduler status: ${report.liveScheduler.status}`,
     `- Backfill readiness status: ${report.backfillReadiness.status}`,
     `- Purge/archive readiness status: ${report.purgeArchiveReadiness.status}`,
+    `- Response soak status: ${report.responseSoak.status}`,
+    `- Dashboard status: ${report.dashboard.status}`,
+    `- Dashboard SKIP count: ${report.dashboard.skipCount ?? "not collected"}`,
     `- Alerting status: ${report.alerting.status}`,
     `- Dry-run alerts treated as live proof: ${report.alerting.dryRunOnlyIsLiveProof ? "yes" : "no"}`,
     "",
@@ -737,7 +824,8 @@ function parseArgs(args) {
 
 function printHelp() {
   console.log([
-    "Usage: pnpm run response:ops-readiness-evidence -- [options]",
+    "Usage: pnpm run response-ops:readiness-evidence -- [options]",
+    "       pnpm run response:ops-readiness-evidence -- [options]",
     "       pnpm run alerts:exclusion:validate -- [options]",
     "",
     "Writes non-mutating response operations readiness evidence or validates formal alert exclusion evidence.",
@@ -771,6 +859,8 @@ function printReadinessReport(report, outputs) {
   console.log("Response operations readiness evidence generated.");
   console.log(`Live scheduler status: ${report.liveScheduler.status}`);
   console.log(`Alerting status: ${report.alerting.status}`);
+  console.log(`Response soak status: ${report.responseSoak.status}`);
+  console.log(`Dashboard SKIP count: ${report.dashboard.skipCount ?? "not collected"}`);
   console.log("No live scheduler was enabled and no live alerts were sent by Codex.");
   if (outputs) {
     console.log(`Markdown: ${outputs.markdownPath}`);
@@ -798,6 +888,7 @@ async function main() {
 
   const report = buildResponseOpsReadinessEvidenceReport({
     rootDir: options.rootDir,
+    dashboardEvidence: collectDashboardEvidence({ rootDir: options.rootDir }),
   });
   const outputs = options.noWrite ? null : writeResponseOpsReadinessEvidence(report, { rootDir: options.rootDir });
   if (options.json) console.log(JSON.stringify(report, null, 2));

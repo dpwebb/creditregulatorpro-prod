@@ -2,9 +2,9 @@
   "reportName": "alerts-dry-run-evidence",
   "evidenceType": "SIMULATED",
   "deliveryMode": "DRY RUN",
-  "generatedAt": "2026-05-20T21:29:26.368Z",
+  "generatedAt": "2026-05-20T23:37:07.386Z",
   "branch": "staging",
-  "commit": "0bfcd7c47069874b454143f951c90c5199b26d8c",
+  "commit": "78fdc663304cc1d0fe907400f20324c41ba9175c",
   "warning": "SIMULATED DRY RUN alert evidence is not live external alert delivery proof and does not claim production-at-scale readiness.",
   "requiredCategories": [
     "critical_ingest_queue_backlog",

@@ -107,6 +107,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run operator:dashboard",
   "pnpm run alerts:dry-run",
   "pnpm run alerts:exclusion:validate",
+  "pnpm run response-ops:readiness-evidence",
   "pnpm run response:ops-readiness-evidence",
   "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
@@ -132,6 +133,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run baseline:production-scale-local -- --simulated",
   "pnpm run alerts:dry-run",
+  "pnpm run response-ops:readiness-evidence",
   "pnpm run storage:raw-report-inventory",
   "pnpm run storage:raw-report-remediation-plan",
   "pnpm run storage:raw-report-remediation-acceptance",
@@ -191,6 +193,10 @@ const OUTPUT_BY_COMMAND = {
     ALERTING_EXCLUSION_VALIDATION_JSON_PATH,
   ],
   "pnpm run response:ops-readiness-evidence": [
+    RESPONSE_OPS_READINESS_MD_PATH,
+    RESPONSE_OPS_READINESS_JSON_PATH,
+  ],
+  "pnpm run response-ops:readiness-evidence": [
     RESPONSE_OPS_READINESS_MD_PATH,
     RESPONSE_OPS_READINESS_JSON_PATH,
   ],
@@ -1209,6 +1215,10 @@ export function buildProductionPromotionPackReport({
       liveSchedulerStatus: responseOpsEvidence.liveScheduler?.status ?? "unknown",
       backfillReadinessStatus: responseOpsEvidence.backfillReadiness?.status ?? "unknown",
       purgeArchiveReadinessStatus: responseOpsEvidence.purgeArchiveReadiness?.status ?? "unknown",
+      responseSoakStatus: responseOpsEvidence.responseSoak?.status ?? "unknown",
+      dashboardStatus: responseOpsEvidence.dashboard?.status ?? "unknown",
+      dashboardSkipCount: responseOpsEvidence.dashboard?.skipCount ?? null,
+      dashboardSkippedChecksVisible: responseOpsEvidence.dashboard?.skippedChecksVisible === true,
       alertingStatus: responseOpsEvidence.alerting?.status ?? "unknown",
       alertingExclusionAccepted: responseOpsEvidence.alerting?.exclusionValidation?.accepted === true,
       liveAlertProofAccepted: responseOpsEvidence.alerting?.liveAlertProof?.accepted === true,
@@ -1409,6 +1419,9 @@ export function validatePromotionPackReport(report) {
   if (blocker8?.classification === "fixed with automated evidence") {
     if (
       responseOpsReadiness?.blockerCoverage?.responseOperationsMaturity !== true ||
+      responseOpsReadiness?.liveSchedulerStatus !== "disabled" ||
+      !["operator-controlled-deferred", "ready", "staging-evidenced"].includes(responseOpsReadiness?.backfillReadinessStatus) ||
+      !["operator-controlled-deferred", "ready", "staging-evidenced"].includes(responseOpsReadiness?.purgeArchiveReadinessStatus) ||
       responseOpsReadiness?.safety?.liveSchedulerEnabledByCodex === true ||
       responseOpsReadiness?.safety?.productionDataMutated === true ||
       responseOpsReadiness?.safety?.productionRecordsPurgedOrArchived === true ||
@@ -1547,6 +1560,7 @@ export function validatePromotionPackReport(report) {
       "pnpm run production-worker:activation-evidence",
       "pnpm run production-worker:readiness-evidence",
       "pnpm run ingest:worker:staging-evidence",
+      "pnpm run response-ops:readiness-evidence",
       "pnpm run response:ops-readiness-evidence",
       "pnpm run alerts:exclusion:validate",
       "pnpm run alerts:dry-run",
@@ -1561,6 +1575,9 @@ export function validatePromotionPackReport(report) {
     }
     if (report.skippedChecks?.dashboardPassAloneIsReleaseEvidence === true) {
       errors.push("Blocker 21 cannot rely on dashboard PASS alone.");
+    }
+    if (report.skippedChecks?.skipCount === null || report.skippedChecks?.treatsSkipAsPass === true) {
+      errors.push("Blocker 21 fixed status requires visible dashboard SKIP count and must not treat SKIP as PASS.");
     }
   }
   if (blocker1?.classification === "fixed with human-observed evidence") {
@@ -1888,6 +1905,8 @@ export function renderPromotionPackMarkdown(report) {
     `- Live scheduler status: ${report.responseOpsReadinessEvidence.liveSchedulerStatus}`,
     `- Backfill readiness status: ${report.responseOpsReadinessEvidence.backfillReadinessStatus}`,
     `- Purge/archive readiness status: ${report.responseOpsReadinessEvidence.purgeArchiveReadinessStatus}`,
+    `- Response soak status: ${report.responseOpsReadinessEvidence.responseSoakStatus}`,
+    `- Dashboard status/SKIP count: ${report.responseOpsReadinessEvidence.dashboardStatus}/${report.responseOpsReadinessEvidence.dashboardSkipCount ?? "unknown"}`,
     `- Alerting status: ${report.responseOpsReadinessEvidence.alertingStatus}`,
     `- Alerting exclusion accepted: ${report.responseOpsReadinessEvidence.alertingExclusionAccepted ? "yes" : "no"}`,
     `- Live alert proof accepted: ${report.responseOpsReadinessEvidence.liveAlertProofAccepted ? "yes" : "no"}`,

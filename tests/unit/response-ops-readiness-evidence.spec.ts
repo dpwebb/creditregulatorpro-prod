@@ -38,6 +38,9 @@ function acceptedAlertingExclusionEvidence() {
     exclusionReason: "Human monitoring is the approved operating path for this limited beta release.",
     humanMonitoringCadence: "Daily dashboard review and immediate review after supervised response operations.",
     manualEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
+    acceptedRiskStatement: "The release governance owner accepts the residual risk of no external alert provider for this limited beta window.",
+    reviewOrExpiryDate: "2026-08-20",
+    dryRunNotLiveProofAcknowledgement: true,
     dashboardCommand: "pnpm run operator:dashboard",
     soakCommand: "pnpm run response:soak-check",
     alertsDryRunCommand: "pnpm run alerts:dry-run",
@@ -108,6 +111,26 @@ describe("response ops readiness evidence", () => {
     expect(validation.errors.join("\n")).toMatch(/operatorNameOrRole|humanMonitoringCadence|manualEscalationPath/);
   });
 
+  it("rejects incomplete alert exclusion evidence missing review or expiry date", () => {
+    const validation = validateAlertingExclusionEvidence({
+      ...acceptedAlertingExclusionEvidence(),
+      reviewOrExpiryDate: "",
+    });
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.errors.join("\n")).toMatch(/reviewOrExpiryDate/);
+  });
+
+  it("rejects alert exclusion evidence claiming dry-run equals live proof", () => {
+    const validation = validateAlertingExclusionEvidence({
+      ...acceptedAlertingExclusionEvidence(),
+      dryRunEqualsLiveAlertProof: true,
+    });
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.errors.join("\n")).toMatch(/Dry-run evidence cannot be claimed as live alert delivery proof/);
+  });
+
   it("rejects PII, secrets, raw report data, signed URLs, and database URLs in exclusion evidence", () => {
     const evidence = {
       ...acceptedAlertingExclusionEvidence(),
@@ -141,9 +164,33 @@ describe("response ops readiness evidence", () => {
       generatedAt: "2026-05-20T12:00:00.000Z",
       env: {},
       alertsDryRunEvidence: dryRunAlertEvidence(),
+      dashboardEvidence: {
+        available: true,
+        command: "pnpm run operator:dashboard -- --json",
+        exitCode: 0,
+        skipCount: 55,
+        checksSkipped: true,
+        treatsSkipAsPass: false,
+        summary: { skip: 55 },
+        releaseEvidenceSemantics: {
+          skippedChecksVisible: true,
+          passImpliesSkippedChecksPassed: false,
+          dashboardPassAloneIsReleaseEvidence: false,
+        },
+      },
     });
 
     expect(report.blockerCoverage.responseOperationsMaturity).toBe(true);
+    expect(report.liveScheduler.status).toBe("disabled");
+    expect(report.backfillReadiness.status).toBe("operator-controlled-deferred");
+    expect(report.purgeArchiveReadiness.status).toBe("operator-controlled-deferred");
+    expect(report.responseSoak.status).toBe("command-available");
+    expect(report.dashboard).toMatchObject({
+      status: "available",
+      skipCount: 55,
+      skippedChecksVisible: true,
+      treatsSkipAsPass: false,
+    });
     expect(report.safety.responseQueueSemanticsChanged).toBe(false);
     expect(report.safety.productionDataMutated).toBe(false);
     expect(report.safety.productionRecordsPurgedOrArchived).toBe(false);
@@ -156,6 +203,7 @@ describe("response ops readiness evidence", () => {
     expect(packageJson.scripts["alerts:exclusion:validate"]).toBe(
       "node scripts/response-ops-readiness-evidence.mjs --validate-alert-exclusion",
     );
+    expect(packageJson.scripts["response-ops:readiness-evidence"]).toBe("node scripts/response-ops-readiness-evidence.mjs");
     expect(packageJson.scripts["response:ops-readiness-evidence"]).toBe("node scripts/response-ops-readiness-evidence.mjs");
   });
 });

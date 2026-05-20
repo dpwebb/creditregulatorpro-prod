@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T23:22:17.560Z
+Generated at: 2026-05-20T23:44:51.719Z
 Current branch: `staging`
-Current commit hash: `735139f29bcb6e711175f5fc09f4ed6b4a7a557b`
+Current commit hash: `78fdc663304cc1d0fe907400f20324c41ba9175c`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -34,6 +34,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run operator:dashboard` - reference-required; evidence: none
 - `pnpm run alerts:dry-run` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerts-dry-run.md, docs/production-scale/evidence/latest-alerts-dry-run.json
 - `pnpm run alerts:exclusion:validate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-exclusion-validation.md, docs/production-scale/evidence/latest-alerting-exclusion-validation.json
+- `pnpm run response-ops:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
 - `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
 - `pnpm run production-deployment-parity:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-deployment-parity.md, docs/production-scale/evidence/latest-production-deployment-parity.json
 - `pnpm run production-worker:activation-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-activation-evidence.md, docs/production-scale/evidence/latest-production-worker-activation-evidence.json
@@ -213,6 +214,8 @@ Recommended readiness classification: **limited beta**
 - Live scheduler status: disabled
 - Backfill readiness status: operator-controlled-deferred
 - Purge/archive readiness status: operator-controlled-deferred
+- Response soak status: command-available
+- Dashboard status/SKIP count: not-collected/unknown
 - Alerting status: dry-run-only
 - Alerting exclusion accepted: no
 - Live alert proof accepted: no

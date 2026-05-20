@@ -300,7 +300,7 @@ Run:
 
 ```bash
 pnpm run alerts:exclusion:validate
-pnpm run response:ops-readiness-evidence
+pnpm run response-ops:readiness-evidence
 ```
 
 Outputs:
@@ -310,9 +310,9 @@ Outputs:
 - `docs/production-scale/evidence/latest-response-ops-readiness.md`
 - `docs/production-scale/evidence/latest-response-ops-readiness.json`
 
-`response:ops-readiness-evidence` is reporting-only. It verifies that the live scheduler remains default-off, backfill is dry-run first with guarded apply, purge/archive is dry-run first with append-only lifecycle controls, dashboard SKIP semantics remain visible, response soak evidence is referenced, and alert dry-run evidence is not treated as live alert proof.
+`response-ops:readiness-evidence` is reporting-only. It verifies that the live scheduler remains default-off, backfill is dry-run first with guarded apply, purge/archive is dry-run first with append-only lifecycle controls, dashboard SKIP count remains visible, response soak status is classified, and alert dry-run evidence is not treated as live alert proof. The older `response:ops-readiness-evidence` alias is kept for compatibility.
 
-`alerts:exclusion:validate` accepts only a filled, sanitized operator artifact at `docs/production-scale/evidence/alerting-exclusion-evidence.md` or `.json`. If no artifact is submitted, it reports `not-submitted` and closes no alerting blocker. The validator rejects placeholders, PII, secrets, raw report/response data, signed URLs, database URLs, and any exclusion that lacks signed operator acknowledgement that no external alert provider will be used.
+`alerts:exclusion:validate` accepts only a filled, sanitized operator artifact at `docs/production-scale/evidence/alerting-exclusion-evidence.md` or `.json`. If no artifact is submitted, it reports `not-submitted` and closes no alerting blocker. The validator rejects placeholders, PII, secrets, raw report/response data, signed URLs, database URLs, missing review/expiry date, missing accepted-risk statement, missing acknowledgement that dry-run evidence is not live delivery proof, and any exclusion that lacks signed operator acknowledgement that no external alert provider will be used.
 
 ## Storage Raw Report Inventory
 

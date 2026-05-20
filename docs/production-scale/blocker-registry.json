@@ -50,6 +50,7 @@
     "pnpm run alerts:dry-run",
     "pnpm run alerts:exclusion:validate",
     "pnpm run response:ops-readiness-evidence",
+    "pnpm run response-ops:readiness-evidence",
     "pnpm run response:soak-check",
     "pnpm run response:orchestration-check",
     "pnpm run response:worker-orchestrate -- --dry-run",
@@ -473,6 +474,7 @@
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
+        "pnpm run response-ops:readiness-evidence",
         "pnpm run response:ops-readiness-evidence",
         "pnpm run response:soak-check",
         "pnpm run response:orchestration-check",
@@ -526,6 +528,7 @@
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
         "pnpm run alerts:exclusion:validate",
+        "pnpm run response-ops:readiness-evidence",
         "pnpm run response:ops-readiness-evidence",
         "pnpm run operator:dashboard",
         "pnpm run response:orchestration-check",
@@ -1089,6 +1092,7 @@
         "pnpm run production-worker:readiness-evidence",
         "pnpm run production-worker:activation-evidence",
         "pnpm run response:ops-readiness-evidence",
+        "pnpm run response-ops:readiness-evidence",
         "pnpm run alerts:exclusion:validate",
         "pnpm run alerts:dry-run",
         "pnpm run runtime-size:policy-acceptance",

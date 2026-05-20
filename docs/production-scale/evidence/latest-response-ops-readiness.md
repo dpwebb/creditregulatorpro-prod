@@ -1,8 +1,8 @@
 # Response Operations Readiness Evidence
 
-Generated at: 2026-05-20T21:29:30.894Z
+Generated at: 2026-05-20T23:44:30.269Z
 Branch: `staging`
-Commit: `0bfcd7c47069874b454143f951c90c5199b26d8c`
+Commit: `78fdc663304cc1d0fe907400f20324c41ba9175c`
 Status: operator-ready-with-deferred-controls
 Production proof: no
 
@@ -19,6 +19,9 @@ Production proof: no
 - Live scheduler status: disabled
 - Backfill readiness status: operator-controlled-deferred
 - Purge/archive readiness status: operator-controlled-deferred
+- Response soak status: command-available
+- Dashboard status: available
+- Dashboard SKIP count: 55
 - Alerting status: dry-run-only
 - Dry-run alerts treated as live proof: no
 
