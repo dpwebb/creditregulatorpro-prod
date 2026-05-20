@@ -24,6 +24,32 @@ function fakeGit(statusShort = "") {
   };
 }
 
+function fakeIngestMetrics(
+  overrides: Partial<NonNullable<Parameters<typeof buildOperatorDashboard>[0]["ingestQueueMetrics"]>> = {},
+) {
+  return {
+    generatedAt: "2026-05-20T00:00:00.000Z",
+    totalJobs: 5,
+    queuedJobs: 1,
+    runningJobs: 1,
+    failedJobs: 1,
+    deadLetteredJobs: 2,
+    canceledJobs: 0,
+    staleRunningJobs: 1,
+    retryBacklogJobs: 1,
+    oldestQueuedAgeSeconds: 120,
+    cleanupAttemptedEvents: 3,
+    cleanupFailedEvents: 2,
+    cleanupFailedJobs: 2,
+    operatorRemediationEvents: 4,
+    deadLetterReviewedJobs: 1,
+    staleRunningReviewedJobs: 1,
+    lastRemediationStatus: "operator_remediation_action",
+    lastRemediationAt: "2026-05-20T00:01:00.000Z",
+    ...overrides,
+  };
+}
+
 describe("operator regression dashboard", () => {
   it("prints the required dashboard categories", () => {
     const report = buildOperatorDashboard({ runGit: fakeGit(), fileExists: () => true });
@@ -37,6 +63,7 @@ describe("operator regression dashboard", () => {
     expect(output).toContain("Packet Reliability");
     expect(output).toContain("Outcome Tracking");
     expect(output).toContain("Report Ingest / Retrieval");
+    expect(output).toContain("Ingest queue health");
     expect(output).toContain("Violation Search / Status");
     expect(output).toContain("Evidence / Coordinate Coverage");
     expect(output).toContain("Regulation / Governance");
@@ -236,6 +263,18 @@ describe("operator regression dashboard", () => {
           runByDefault: true,
         }),
         expect.objectContaining({
+          category: "Report Ingest / Retrieval",
+          name: "Ingest lifecycle remediation endpoint",
+          command: "pnpm exec vitest run tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
+          category: "Report Ingest / Retrieval",
+          name: "Ingest cleanup lifecycle events",
+          command: "pnpm exec vitest run tests/unit/ingest-cleanup-lifecycle.spec.ts",
+          runByDefault: true,
+        }),
+        expect.objectContaining({
           category: "Evidence / Coordinate Coverage",
           name: "Evidence privacy endpoint",
           command: "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
@@ -260,6 +299,22 @@ describe("operator regression dashboard", () => {
 
     const commands = SAFE_RUN_CHECK_COMMANDS.join("\n");
     expect(commands).not.toMatch(/creditregulatorpro\.com|DATABASE_URL|promote:production|packet\/create|activate/i);
+  });
+
+  it("surfaces ingest dead-letter, stale-running, and failed-cleanup counts", () => {
+    const report = buildOperatorDashboard({
+      runGit: fakeGit(),
+      fileExists: () => true,
+      ingestQueueMetrics: fakeIngestMetrics(),
+    });
+    const rendered = renderDashboard(report);
+
+    expect(rendered).toContain("[OPEN] Ingest queue health");
+    expect(rendered).toContain("dead-letter jobs: 2");
+    expect(rendered).toContain("stale running jobs: 1");
+    expect(rendered).toContain("failed cleanup events: 2");
+    expect(rendered).toContain("cleanup-failed jobs: 2");
+    expect(rendered).toContain("operator remediation events: 4");
   });
 
   it("lists gated smoke checks as manual and credential-gated", () => {

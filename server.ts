@@ -253,6 +253,34 @@ app.post('_api/responses/queue-remediation',async c => {
     return c.json({ error: "Internal server error" }, 500);
   }
 })
+app.get('_api/admin/ingest-queue',async c => {
+  try {
+    const { handle } = await import("./endpoints/admin/ingest-queue_GET.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
+app.post('_api/admin/ingest-queue-remediation',async c => {
+  try {
+    const { handle } = await import("./endpoints/admin/ingest-queue-remediation_POST.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.json(response);
+    }
+    return response;
+  } catch (error) {
+    console.error(error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+})
 app.get('_api/responses/list',async c => {
   try {
     const { handle } = await import("./endpoints/responses/list_GET.js");

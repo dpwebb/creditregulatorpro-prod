@@ -96,6 +96,67 @@ export type EnqueueIngestProcessingJobResult = {
   duplicateOfJobId: number | null;
 };
 
+export type IngestProcessingQueuePayloadSummary = {
+  reportArtifactId: number;
+  region: string | null;
+  mimeType: string | null;
+  artifactSha256Present: boolean;
+  metadataKeys: string[];
+  rawReportBytesStored: false;
+  extractedReportTextStored: false;
+};
+
+export type IngestProcessingJobInspection = Omit<IngestProcessingJobRecord, "payload" | "resultSummary"> & {
+  payloadSummary: IngestProcessingQueuePayloadSummary;
+  resultSummary: Record<string, Json>;
+  staleRunning: boolean;
+  retryEligible: boolean;
+  reviewEligible: boolean;
+  cancelEligible: boolean;
+  remediationStatus: {
+    deadLetterReviewedAt: string | null;
+    staleRunningReviewedAt: string | null;
+    canceledAt: string | null;
+    replacementJobId: number | null;
+  };
+  lastEvent: IngestProcessingQueueEventRecord | null;
+  events?: IngestProcessingQueueEventRecord[];
+};
+
+export type ListIngestProcessingJobsInput = {
+  jobId?: number | null;
+  status?: IngestProcessingJobStatus | null;
+  limit?: number | null;
+  offset?: number | null;
+  includeEvents?: boolean;
+};
+
+export type ListIngestProcessingJobsResult = {
+  jobs: IngestProcessingJobInspection[];
+  total: number;
+};
+
+export type IngestProcessingRemediationAction =
+  | "retry_dead_letter"
+  | "mark_reviewed"
+  | "cancel_job";
+
+export type RemediateIngestProcessingJobInput = {
+  jobId: number;
+  action: IngestProcessingRemediationAction;
+  actorUserId: number;
+  confirmRetry?: boolean | null;
+  confirmReview?: boolean | null;
+  confirmCancel?: boolean | null;
+  reviewNote?: string | null;
+};
+
+export type RemediateIngestProcessingJobResult = {
+  status: "replacement_queued" | "reviewed" | "canceled";
+  job: IngestProcessingJobInspection;
+  replacementJob: IngestProcessingJobInspection | null;
+};
+
 export type IngestProcessingQueueMetrics = {
   generatedAt: string;
   queueVersion: typeof INGEST_PROCESSING_QUEUE_VERSION;
@@ -110,6 +171,14 @@ export type IngestProcessingQueueMetrics = {
   retryBacklogJobs: number;
   oldestQueuedAgeSeconds: number | null;
   duplicateEnqueueAttempts: number;
+  cleanupAttemptedEvents: number;
+  cleanupFailedEvents: number;
+  cleanupFailedJobs: number;
+  operatorRemediationEvents: number;
+  deadLetterReviewedJobs: number;
+  staleRunningReviewedJobs: number;
+  lastRemediationStatus: string | null;
+  lastRemediationAt: string | null;
   boundaries: {
     durableDbBacked: true;
     appendOnlyJobEvents: true;
@@ -541,6 +610,64 @@ function retryDelaySeconds(attemptCount: number): number {
   return Math.min(60 * 2 ** Math.max(0, attemptCount - 1), 3600);
 }
 
+function normalizeStatusFilter(value: IngestProcessingJobStatus | null | undefined): IngestProcessingJobStatus | null {
+  if (value === undefined || value === null) return null;
+  if (!STATUS_SET.has(value)) {
+    throw new IngestProcessingQueueError("INVALID_QUEUE_STATUS", "Unsupported ingest processing job status filter.");
+  }
+  return value;
+}
+
+function normalizeRemediationAction(value: IngestProcessingRemediationAction): IngestProcessingRemediationAction {
+  if (!["retry_dead_letter", "mark_reviewed", "cancel_job"].includes(value)) {
+    throw new IngestProcessingQueueError("UNSUPPORTED_REMEDIATION_ACTION", "Unsupported ingest processing queue remediation action.");
+  }
+  return value;
+}
+
+function normalizeLimit(value: number | null | undefined, fallback: number, max: number): number {
+  if (value === undefined || value === null) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > max) {
+    throw new IngestProcessingQueueError("INVALID_QUEUE_LIMIT", `limit must be an integer from 1 to ${max}.`);
+  }
+  return parsed;
+}
+
+function normalizeOffset(value: number | null | undefined): number {
+  if (value === undefined || value === null) return 0;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new IngestProcessingQueueError("INVALID_QUEUE_OFFSET", "offset must be a non-negative integer.");
+  }
+  return parsed;
+}
+
+function normalizeReviewNote(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) return null;
+  const safe = safeDetailsValue(value, "reviewNote", 0);
+  if (typeof safe !== "string" || safe === "[redacted]") {
+    throw new IngestProcessingQueueError("UNSAFE_REMEDIATION_NOTE", "reviewNote includes unsafe content.");
+  }
+  return safe.slice(0, 500);
+}
+
+function isJobStaleRunning(job: IngestProcessingJobRecord): boolean {
+  return job.status === "running" && Boolean(job.lockedUntil) && new Date(job.lockedUntil as string).getTime() < Date.now();
+}
+
+function summarizePayload(job: IngestProcessingJobRecord): IngestProcessingQueuePayloadSummary {
+  return {
+    reportArtifactId: job.reportArtifactId,
+    region: job.payload.region ?? null,
+    mimeType: job.payload.mimeType ?? null,
+    artifactSha256Present: Boolean(job.payload.artifactSha256),
+    metadataKeys: Object.keys(job.payload.metadata ?? {}).sort(),
+    rawReportBytesStored: false,
+    extractedReportTextStored: false,
+  };
+}
+
 function mapJobRow(row: QueueRow): IngestProcessingJobRecord {
   return {
     id: requiredNumber(rowValue(row, "id"), "id"),
@@ -584,6 +711,101 @@ function mapEventRow(row: QueueEventRow): IngestProcessingQueueEventRecord {
     errorReason: rowValue(row, "error_reason") ? sanitizeErrorString(rowValue(row, "error_reason"), "Ingest processing event error.") : null,
     createdAt: toIso(rowValue(row, "created_at")),
   };
+}
+
+function replacementJobIdFromEvent(event: IngestProcessingQueueEventRecord | null): number | null {
+  const replacementJobId = event?.details.replacementJobId;
+  return typeof replacementJobId === "number" && Number.isInteger(replacementJobId) && replacementJobId > 0
+    ? replacementJobId
+    : null;
+}
+
+function buildInspection(
+  job: IngestProcessingJobRecord,
+  events: IngestProcessingQueueEventRecord[],
+  includeEvents = true,
+): IngestProcessingJobInspection {
+  const sortedEvents = [...events].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id - right.id);
+  const lastEvent = sortedEvents[sortedEvents.length - 1] ?? null;
+  const deadLetterReviewedEvent = [...sortedEvents].reverse().find((event) => event.eventType === "dead_letter_acknowledged") ?? null;
+  const staleReviewedEvent = [...sortedEvents].reverse().find((event) => event.eventType === "stale_running_reviewed") ?? null;
+  const canceledEvent = [...sortedEvents].reverse().find((event) => event.eventType === "canceled") ?? null;
+  const replacementEvent = [...sortedEvents].reverse().find((event) => event.eventType === "operator_retry_requested") ?? null;
+  const staleRunning = isJobStaleRunning(job);
+  const replacementJobId = replacementJobIdFromEvent(replacementEvent);
+  return {
+    id: job.id,
+    jobType: job.jobType,
+    status: job.status,
+    reportArtifactId: job.reportArtifactId,
+    userId: job.userId,
+    organizationId: job.organizationId,
+    idempotencyKey: job.idempotencyKey,
+    actorUserId: job.actorUserId,
+    source: job.source,
+    runAfter: job.runAfter,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
+    lockedBy: job.lockedBy,
+    lockedAt: job.lockedAt,
+    lockedUntil: job.lockedUntil,
+    lastErrorCode: job.lastErrorCode,
+    lastErrorReason: job.lastErrorReason,
+    payloadSummary: summarizePayload(job),
+    resultSummary: safeDetailsRecord(job.resultSummary),
+    staleRunning,
+    retryEligible: job.status === "dead_lettered" && !replacementJobId,
+    reviewEligible: (job.status === "dead_lettered" && !deadLetterReviewedEvent) || (staleRunning && !staleReviewedEvent),
+    cancelEligible: job.status === "queued" || job.status === "failed",
+    remediationStatus: {
+      deadLetterReviewedAt: deadLetterReviewedEvent?.createdAt ?? null,
+      staleRunningReviewedAt: staleReviewedEvent?.createdAt ?? null,
+      canceledAt: canceledEvent?.createdAt ?? null,
+      replacementJobId,
+    },
+    lastEvent,
+    ...(includeEvents ? { events: sortedEvents } : {}),
+  };
+}
+
+async function loadEventsForJobs(
+  jobIds: number[],
+  executor: any = db,
+): Promise<Map<number, IngestProcessingQueueEventRecord[]>> {
+  if (jobIds.length === 0) return new Map();
+  const result = await sql<QueueEventRow>`
+    select *
+    from public.ingest_processing_job_event
+    where job_id in (${sql.join(jobIds)})
+    order by created_at asc, id asc
+  `.execute(executor);
+  const byJobId = new Map<number, IngestProcessingQueueEventRecord[]>();
+  for (const row of result.rows.map(mapEventRow)) {
+    const existing = byJobId.get(row.jobId) ?? [];
+    existing.push(row);
+    byJobId.set(row.jobId, existing);
+  }
+  return byJobId;
+}
+
+async function loadJobInspection(
+  jobId: number,
+  executor: any = db,
+  includeEvents = true,
+): Promise<IngestProcessingJobInspection> {
+  const result = await sql<QueueRow>`
+    select *
+    from public.ingest_processing_job
+    where id = ${jobId}
+  `.execute(executor);
+  const job = result.rows[0] ? mapJobRow(result.rows[0]) : null;
+  if (!job) throw new IngestProcessingQueueError("JOB_NOT_FOUND", "Ingest processing job not found.");
+  const eventMap = await loadEventsForJobs([job.id], executor);
+  return buildInspection(job, eventMap.get(job.id) ?? [], includeEvents);
 }
 
 async function appendJobEvent(
@@ -640,6 +862,23 @@ async function findActiveJobByIdempotencyKey(idempotencyKey: string): Promise<In
   return result.rows[0] ? mapJobRow(result.rows[0]) : null;
 }
 
+async function findActiveReplacementByIdempotencyKey(
+  idempotencyKey: string,
+  originalJobId: number,
+  executor: any,
+): Promise<IngestProcessingJobRecord | null> {
+  const result = await sql<QueueRow>`
+    select *
+    from public.ingest_processing_job
+    where idempotency_key = ${idempotencyKey}
+      and id <> ${originalJobId}
+      and status in ('queued', 'running', 'failed')
+    order by created_at asc, id asc
+    limit 1
+  `.execute(executor);
+  return result.rows[0] ? mapJobRow(result.rows[0]) : null;
+}
+
 export async function getLatestIngestProcessingJobByIdempotencyKey(
   idempotencyKey: string,
 ): Promise<IngestProcessingJobRecord | null> {
@@ -649,6 +888,21 @@ export async function getLatestIngestProcessingJobByIdempotencyKey(
     select *
     from public.ingest_processing_job
     where idempotency_key = ${safeIdempotencyKey}
+    order by created_at desc, id desc
+    limit 1
+  `.execute(db);
+  return result.rows[0] ? mapJobRow(result.rows[0]) : null;
+}
+
+export async function getLatestIngestProcessingJobForArtifact(
+  reportArtifactId: number,
+): Promise<IngestProcessingJobRecord | null> {
+  await ensureIngestProcessingQueueSchema();
+  const safeArtifactId = requiredNumber(reportArtifactId, "reportArtifactId");
+  const result = await sql<QueueRow>`
+    select *
+    from public.ingest_processing_job
+    where report_artifact_id = ${safeArtifactId}
     order by created_at desc, id desc
     limit 1
   `.execute(db);
@@ -1092,8 +1346,299 @@ export async function listIngestProcessingJobEvents(jobId: number): Promise<Inge
   return events.rows.map(mapEventRow);
 }
 
-export async function getIngestProcessingQueueMetrics(): Promise<IngestProcessingQueueMetrics> {
+export async function listIngestProcessingJobsForRemediation(
+  input: ListIngestProcessingJobsInput = {},
+): Promise<ListIngestProcessingJobsResult> {
   await ensureIngestProcessingQueueSchema();
+  const jobId = input.jobId === undefined || input.jobId === null ? null : requiredNumber(input.jobId, "jobId");
+  const status = normalizeStatusFilter(input.status);
+  const limit = normalizeLimit(input.limit, 25, 100);
+  const offset = normalizeOffset(input.offset);
+  const includeEvents = input.includeEvents === true;
+
+  const totalResult = await sql<Record<string, unknown>>`
+    select count(*)::int as total
+    from public.ingest_processing_job
+    where (${jobId}::bigint is null or id = ${jobId})
+      and (${status}::text is null or status = ${status})
+  `.execute(db);
+  const jobsResult = await sql<QueueRow>`
+    select *
+    from public.ingest_processing_job
+    where (${jobId}::bigint is null or id = ${jobId})
+      and (${status}::text is null or status = ${status})
+    order by created_at desc, id desc
+    limit ${limit}
+    offset ${offset}
+  `.execute(db);
+
+  const jobs = jobsResult.rows.map(mapJobRow);
+  const eventMap = await loadEventsForJobs(jobs.map((job) => job.id));
+  return {
+    total: Number(rowValue(totalResult.rows[0] ?? {}, "total") ?? 0),
+    jobs: jobs.map((job) => buildInspection(job, eventMap.get(job.id) ?? [], includeEvents)),
+  };
+}
+
+export async function remediateIngestProcessingJob(
+  input: RemediateIngestProcessingJobInput,
+): Promise<RemediateIngestProcessingJobResult> {
+  await ensureIngestProcessingQueueSchema();
+  const jobId = requiredNumber(input.jobId, "jobId");
+  const actorUserId = requiredNumber(input.actorUserId, "actorUserId");
+  const action = normalizeRemediationAction(input.action);
+  const reviewNote = normalizeReviewNote(input.reviewNote);
+
+  return db.transaction().execute(async (trx) => {
+    const locked = await sql<QueueRow>`
+      select *
+      from public.ingest_processing_job
+      where id = ${jobId}
+      for update
+    `.execute(trx);
+    const previous = locked.rows[0] ? mapJobRow(locked.rows[0]) : null;
+    if (!previous) throw new IngestProcessingQueueError("JOB_NOT_FOUND", "Ingest processing job not found.");
+
+    if (action === "mark_reviewed") {
+      if (input.confirmReview !== true) {
+        throw new IngestProcessingQueueError("REMEDIATION_CONFIRMATION_REQUIRED", "Ingest queue review requires explicit confirmation.");
+      }
+      if (previous.status !== "dead_lettered" && !isJobStaleRunning(previous)) {
+        throw new IngestProcessingQueueError("JOB_REMEDIATION_UNSAFE", "Only dead-lettered or stale running ingest jobs can be marked reviewed.");
+      }
+      const eventType: IngestProcessingJobEventType = previous.status === "dead_lettered"
+        ? "dead_letter_acknowledged"
+        : "stale_running_reviewed";
+      await appendJobEvent(trx as typeof db, {
+        jobId: previous.id,
+        eventType,
+        previousStatus: previous.status,
+        nextStatus: previous.status,
+        attemptCount: previous.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          reviewNotePresent: Boolean(reviewNote),
+          autoReclaimed: false,
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+          destructiveDeletionUsed: false,
+        },
+      });
+      await appendJobEvent(trx as typeof db, {
+        jobId: previous.id,
+        eventType: "operator_remediation_action",
+        previousStatus: previous.status,
+        nextStatus: previous.status,
+        attemptCount: previous.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          lifecycleEventType: eventType,
+          reviewNotePresent: Boolean(reviewNote),
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+          destructiveDeletionUsed: false,
+        },
+      });
+      return {
+        status: "reviewed",
+        job: await loadJobInspection(previous.id, trx as typeof db),
+        replacementJob: null,
+      };
+    }
+
+    if (action === "cancel_job") {
+      if (input.confirmCancel !== true) {
+        throw new IngestProcessingQueueError("REMEDIATION_CONFIRMATION_REQUIRED", "Ingest job cancellation requires explicit confirmation.");
+      }
+      if (previous.status !== "queued" && previous.status !== "failed") {
+        throw new IngestProcessingQueueError("JOB_REMEDIATION_UNSAFE", "Only queued or failed ingest jobs can be canceled.");
+      }
+      const updated = await sql<QueueRow>`
+        update public.ingest_processing_job
+        set
+          status = 'canceled',
+          finished_at = now(),
+          updated_at = now(),
+          locked_by = null,
+          locked_at = null,
+          locked_until = null
+        where id = ${previous.id}
+          and status in ('queued', 'failed')
+        returning *
+      `.execute(trx);
+      const row = updated.rows[0] ? mapJobRow(updated.rows[0]) : null;
+      if (!row) throw new IngestProcessingQueueError("JOB_REMEDIATION_CONFLICT", "Ingest job cancellation was not applied.");
+      await appendJobEvent(trx as typeof db, {
+        jobId: row.id,
+        eventType: "canceled",
+        previousStatus: previous.status,
+        nextStatus: "canceled",
+        attemptCount: row.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          reviewNotePresent: Boolean(reviewNote),
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+          destructiveDeletionUsed: false,
+        },
+      });
+      await appendJobEvent(trx as typeof db, {
+        jobId: row.id,
+        eventType: "operator_remediation_action",
+        previousStatus: previous.status,
+        nextStatus: "canceled",
+        attemptCount: row.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          lifecycleEventType: "canceled",
+          reviewNotePresent: Boolean(reviewNote),
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+          destructiveDeletionUsed: false,
+        },
+      });
+      return {
+        status: "canceled",
+        job: await loadJobInspection(row.id, trx as typeof db),
+        replacementJob: null,
+      };
+    }
+
+    if (input.confirmRetry !== true) {
+      throw new IngestProcessingQueueError("REMEDIATION_CONFIRMATION_REQUIRED", "Dead-letter retry requires explicit confirmation.");
+    }
+    if (previous.status !== "dead_lettered") {
+      throw new IngestProcessingQueueError("JOB_REMEDIATION_UNSAFE", "Only dead-lettered ingest jobs can be retried through this remediation action.");
+    }
+
+    const existingReplacement = await findActiveReplacementByIdempotencyKey(previous.idempotencyKey, previous.id, trx);
+    if (existingReplacement) {
+      await appendJobEvent(trx as typeof db, {
+        jobId: previous.id,
+        eventType: "operator_remediation_action",
+        previousStatus: "dead_lettered",
+        nextStatus: "dead_lettered",
+        attemptCount: previous.attemptCount,
+        actorUserId,
+        details: {
+          remediationAction: action,
+          replacementJobId: existingReplacement.id,
+          duplicateReplacementPrevented: true,
+          terminalJobMutated: false,
+          idempotencyKeyReused: true,
+          reviewNotePresent: Boolean(reviewNote),
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+          destructiveDeletionUsed: false,
+        },
+      });
+      return {
+        status: "replacement_queued",
+        job: await loadJobInspection(previous.id, trx as typeof db),
+        replacementJob: await loadJobInspection(existingReplacement.id, trx as typeof db),
+      };
+    }
+
+    const replacement = await sql<QueueRow>`
+      insert into public.ingest_processing_job (
+        job_type,
+        status,
+        report_artifact_id,
+        user_id,
+        organization_id,
+        payload,
+        idempotency_key,
+        actor_user_id,
+        source,
+        run_after,
+        max_attempts
+      ) values (
+        ${previous.jobType},
+        'queued',
+        ${previous.reportArtifactId},
+        ${previous.userId},
+        ${previous.organizationId},
+        ${JSON.stringify(normalizePayload(previous.payload))}::text::jsonb,
+        ${previous.idempotencyKey},
+        ${actorUserId},
+        'operator_remediation',
+        now(),
+        ${previous.maxAttempts}
+      )
+      returning *
+    `.execute(trx);
+    const replacementJob = mapJobRow(replacement.rows[0]);
+    await appendJobEvent(trx as typeof db, {
+      jobId: replacementJob.id,
+      eventType: "queued",
+      nextStatus: "queued",
+      attemptCount: 0,
+      actorUserId,
+      details: {
+        jobType: replacementJob.jobType,
+        source: replacementJob.source,
+        replacementForJobId: previous.id,
+        queueVersion: INGEST_PROCESSING_QUEUE_VERSION,
+        idempotencyKeyReused: true,
+        rawReportBytesStored: false,
+        extractedReportTextStored: false,
+      },
+    });
+    await appendJobEvent(trx as typeof db, {
+      jobId: previous.id,
+      eventType: "operator_retry_requested",
+      previousStatus: "dead_lettered",
+      nextStatus: "dead_lettered",
+      attemptCount: previous.attemptCount,
+      actorUserId,
+      details: {
+        remediationAction: action,
+        replacementJobId: replacementJob.id,
+        terminalJobMutated: false,
+        idempotencyKeyReused: true,
+        reviewNotePresent: Boolean(reviewNote),
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+        destructiveDeletionUsed: false,
+      },
+    });
+    await appendJobEvent(trx as typeof db, {
+      jobId: previous.id,
+      eventType: "operator_remediation_action",
+      previousStatus: "dead_lettered",
+      nextStatus: "dead_lettered",
+      attemptCount: previous.attemptCount,
+      actorUserId,
+      details: {
+        remediationAction: action,
+        lifecycleEventType: "operator_retry_requested",
+        replacementJobId: replacementJob.id,
+        terminalJobMutated: false,
+        idempotencyKeyReused: true,
+        reviewNotePresent: Boolean(reviewNote),
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+        destructiveDeletionUsed: false,
+      },
+    });
+    return {
+      status: "replacement_queued",
+      job: await loadJobInspection(previous.id, trx as typeof db),
+      replacementJob: await loadJobInspection(replacementJob.id, trx as typeof db),
+    };
+  });
+}
+
+export async function getIngestProcessingQueueMetrics(
+  options: { ensureSchema?: boolean } = {},
+): Promise<IngestProcessingQueueMetrics> {
+  if (options.ensureSchema !== false) {
+    await ensureIngestProcessingQueueSchema();
+  }
   const counts = await sql<Record<string, unknown>>`
     select
       count(*)::int as total_jobs,
@@ -1110,11 +1655,25 @@ export async function getIngestProcessingQueueMetrics(): Promise<IngestProcessin
   `.execute(db);
   const eventCounts = await sql<Record<string, unknown>>`
     select
-      count(*) filter (where event_type = 'duplicate_enqueue')::int as duplicate_enqueue_attempts
+      count(*) filter (where event_type = 'duplicate_enqueue')::int as duplicate_enqueue_attempts,
+      count(*) filter (where event_type = 'cleanup_attempted')::int as cleanup_attempted_events,
+      count(*) filter (where event_type = 'cleanup_failed')::int as cleanup_failed_events,
+      count(distinct job_id) filter (where event_type = 'cleanup_failed')::int as cleanup_failed_jobs,
+      count(*) filter (where event_type = 'operator_remediation_action')::int as operator_remediation_events,
+      count(distinct job_id) filter (where event_type = 'dead_letter_acknowledged')::int as dead_letter_reviewed_jobs,
+      count(distinct job_id) filter (where event_type = 'stale_running_reviewed')::int as stale_running_reviewed_jobs
     from public.ingest_processing_job_event
+  `.execute(db);
+  const recentRemediation = await sql<Record<string, unknown>>`
+    select event_type, created_at
+    from public.ingest_processing_job_event
+    where event_type in ('operator_remediation_action', 'operator_retry_requested', 'dead_letter_acknowledged', 'stale_running_reviewed', 'canceled')
+    order by created_at desc, id desc
+    limit 1
   `.execute(db);
   const row = counts.rows[0] ?? {};
   const events = eventCounts.rows[0] ?? {};
+  const remediation = recentRemediation.rows[0] ?? {};
   return {
     generatedAt: new Date().toISOString(),
     queueVersion: INGEST_PROCESSING_QUEUE_VERSION,
@@ -1129,6 +1688,14 @@ export async function getIngestProcessingQueueMetrics(): Promise<IngestProcessin
     retryBacklogJobs: Number(rowValue(row, "retry_backlog_jobs") ?? 0),
     oldestQueuedAgeSeconds: toNumber(rowValue(row, "oldest_queued_age_seconds")),
     duplicateEnqueueAttempts: Number(rowValue(events, "duplicate_enqueue_attempts") ?? 0),
+    cleanupAttemptedEvents: Number(rowValue(events, "cleanup_attempted_events") ?? 0),
+    cleanupFailedEvents: Number(rowValue(events, "cleanup_failed_events") ?? 0),
+    cleanupFailedJobs: Number(rowValue(events, "cleanup_failed_jobs") ?? 0),
+    operatorRemediationEvents: Number(rowValue(events, "operator_remediation_events") ?? 0),
+    deadLetterReviewedJobs: Number(rowValue(events, "dead_letter_reviewed_jobs") ?? 0),
+    staleRunningReviewedJobs: Number(rowValue(events, "stale_running_reviewed_jobs") ?? 0),
+    lastRemediationStatus: rowValue(remediation, "event_type") ? String(rowValue(remediation, "event_type")) : null,
+    lastRemediationAt: rowValue(remediation, "created_at") ? toIso(rowValue(remediation, "created_at")) : null,
     boundaries: {
       durableDbBacked: true,
       appendOnlyJobEvents: true,

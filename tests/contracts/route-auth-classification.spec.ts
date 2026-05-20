@@ -185,6 +185,8 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
     "endpoints/admin/create-support-agent_POST.ts",
     "endpoints/admin/delete-user_POST.ts",
     "endpoints/admin/diagnostic/semantic-audit_POST.ts",
+    "endpoints/admin/ingest-queue-remediation_POST.ts",
+    "endpoints/admin/ingest-queue_GET.ts",
     "endpoints/admin/mock-lifecycle/list_GET.ts",
     "endpoints/admin/mock-lifecycle/report_GET.ts",
     "endpoints/admin/mock-lifecycle/run_POST.ts",
@@ -405,7 +407,7 @@ describe("route auth classification contract", () => {
     expect(duplicateClassifications()).toEqual([]);
     expect(classifiedHandlers).toEqual(endpointHandlers());
     expect(classifiedHandlers).toEqual(serverRouteHandlers());
-    expect(classifiedHandlers).toHaveLength(281);
+    expect(classifiedHandlers).toHaveLength(283);
   });
 
   it("keeps representative public endpoints explicitly public", () => {

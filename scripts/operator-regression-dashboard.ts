@@ -1,3 +1,5 @@
+import "../loadEnv.js";
+
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -27,6 +29,28 @@ type BuildDashboardOptions = {
   cwd?: string;
   runGit?: GitRunner;
   fileExists?: FileExists;
+  ingestQueueMetrics?: IngestQueueDashboardMetrics | null;
+};
+
+export type IngestQueueDashboardMetrics = {
+  generatedAt: string;
+  totalJobs: number;
+  queuedJobs: number;
+  runningJobs: number;
+  failedJobs: number;
+  deadLetteredJobs: number;
+  canceledJobs: number;
+  staleRunningJobs: number;
+  retryBacklogJobs: number;
+  oldestQueuedAgeSeconds: number | null;
+  cleanupAttemptedEvents: number;
+  cleanupFailedEvents: number;
+  cleanupFailedJobs: number;
+  operatorRemediationEvents: number;
+  deadLetterReviewedJobs: number;
+  staleRunningReviewedJobs: number;
+  lastRemediationStatus: string | null;
+  lastRemediationAt: string | null;
 };
 
 export const DASHBOARD_SAFETY_BOUNDARIES = {
@@ -55,6 +79,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/response-document-admin-review-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/response-processing-queue.spec.ts",
   "pnpm exec vitest run tests/api/response-processing-queue-remediation-endpoint.spec.ts",
+  "pnpm exec vitest run tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/response-worker-orchestration.spec.ts",
   "pnpm exec vitest run tests/api/response-processing-lifecycle.spec.ts",
   "pnpm exec vitest run tests/unit/response-classification-engine.spec.ts",
@@ -63,6 +88,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/unit/response-document-ui.spec.tsx",
   "pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+  "pnpm exec vitest run tests/unit/ingest-cleanup-lifecycle.spec.ts",
   "pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts",
   "pnpm exec vitest run tests/unit/evidence-location-index.spec.ts",
   "pnpm exec vitest run tests/unit/legal-reference-language.spec.ts",
@@ -191,6 +217,43 @@ function check(
     runByDefault: details.runByDefault ?? false,
     requiresCredentials: details.requiresCredentials ?? false,
   };
+}
+
+function ingestQueueHealthCheck(metrics: IngestQueueDashboardMetrics | null | undefined): DashboardCheck {
+  if (!metrics) {
+    return check(
+      "Ingest queue health",
+      "INFO",
+      "Runtime ingest queue metrics were not available in this invocation. Run in an environment with FLOOT_DATABASE_URL to surface dead-letter, stale-running, retry backlog, cleanup-failure, and remediation counts.",
+      { kind: "info" },
+    );
+  }
+
+  const openCount = metrics.deadLetteredJobs + metrics.staleRunningJobs + metrics.cleanupFailedEvents;
+  const oldestQueued = metrics.oldestQueuedAgeSeconds === null ? "n/a" : `${metrics.oldestQueuedAgeSeconds}s`;
+  return check(
+    "Ingest queue health",
+    openCount > 0 ? "OPEN" : "PASS",
+    [
+      `Total jobs: ${metrics.totalJobs}`,
+      `queued: ${metrics.queuedJobs}`,
+      `running: ${metrics.runningJobs}`,
+      `failed: ${metrics.failedJobs}`,
+      `dead-letter jobs: ${metrics.deadLetteredJobs}`,
+      `canceled: ${metrics.canceledJobs}`,
+      `stale running jobs: ${metrics.staleRunningJobs}`,
+      `retry backlog: ${metrics.retryBacklogJobs}`,
+      `oldest queued age: ${oldestQueued}`,
+      `cleanup attempts: ${metrics.cleanupAttemptedEvents}`,
+      `failed cleanup events: ${metrics.cleanupFailedEvents}`,
+      `cleanup-failed jobs: ${metrics.cleanupFailedJobs}`,
+      `operator remediation events: ${metrics.operatorRemediationEvents}`,
+      `dead-letter reviewed jobs: ${metrics.deadLetterReviewedJobs}`,
+      `stale-running reviewed jobs: ${metrics.staleRunningReviewedJobs}`,
+      `last remediation: ${metrics.lastRemediationStatus ?? "none"}${metrics.lastRemediationAt ? ` at ${metrics.lastRemediationAt}` : ""}`,
+    ].join("; "),
+    { kind: "smoke" },
+  );
 }
 
 export function parseArgs(argv: string[]) {
@@ -537,6 +600,26 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
     {
       name: "Report Ingest / Retrieval",
       checks: [
+        ingestQueueHealthCheck(options.ingestQueueMetrics),
+        check(
+          "Ingest lifecycle remediation endpoint",
+          "SKIP",
+          "Admin-only queue inspection and remediation coverage for dead-letter retry, reviewed markers, bounded cancellation, failed-cleanup visibility, append-only events, and no raw report bytes or extracted text exposure.",
+          {
+            kind: "endpoint-test",
+            command: "pnpm exec vitest run tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts",
+            runByDefault: true,
+          },
+        ),
+        check(
+          "Ingest cleanup lifecycle events",
+          "SKIP",
+          "Unit coverage that failed ingest cleanup records cleanup_attempted and cleanup_failed queue events without storing raw report bytes or extracted text.",
+          {
+            command: "pnpm exec vitest run tests/unit/ingest-cleanup-lifecycle.spec.ts",
+            runByDefault: true,
+          },
+        ),
         check(
           "Report ingest lifecycle endpoint",
           "SKIP",
@@ -820,9 +903,20 @@ function renderCheckList(report: ReturnType<typeof buildOperatorDashboard>): str
   return lines.join("\n");
 }
 
-function main() {
+async function loadIngestQueueMetricsForDashboard(): Promise<IngestQueueDashboardMetrics | null> {
+  if (!process.env.FLOOT_DATABASE_URL) return null;
+  try {
+    const service = await import("../helpers/ingestProcessingQueueService");
+    return await service.getIngestProcessingQueueMetrics({ ensureSchema: false });
+  } catch {
+    return null;
+  }
+}
+
+async function main() {
   const options = parseArgs(process.argv.slice(2));
-  let report = filterDashboard(buildOperatorDashboard(), options.category);
+  const ingestQueueMetrics = await loadIngestQueueMetricsForDashboard();
+  let report = filterDashboard(buildOperatorDashboard({ ingestQueueMetrics }), options.category);
 
   if (options.runChecks) {
     report = applyRunResults(report);
@@ -838,10 +932,8 @@ function main() {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  try {
-    main();
-  } catch (error) {
+  main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
-  }
+  });
 }

@@ -312,6 +312,17 @@ describeIfLocalDb("ingest processing queue", () => {
         parserOutputMutated: false,
       },
     });
+    const complianceEvent = await recordIngestProcessingJobEvent({
+      jobId: claimed.id,
+      eventType: "compliance_scan_started",
+      workerId,
+      details: {
+        tradelineCount: 0,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+        violationTruthMutated: false,
+      },
+    });
     const succeeded = await markIngestProcessingJobSucceeded({
       job: claimed,
       workerId,
@@ -321,6 +332,7 @@ describeIfLocalDb("ingest processing queue", () => {
     });
 
     expect(parsingEvent.eventType).toBe("ocr_parsing_started");
+    expect(complianceEvent.eventType).toBe("compliance_scan_started");
     expect(succeeded.status).toBe("succeeded");
     expect(succeeded.resultSummary).toMatchObject({
       deterministicPipelineCalledByWorker: false,
@@ -332,8 +344,68 @@ describeIfLocalDb("ingest processing queue", () => {
     });
 
     const events = await listIngestProcessingJobEvents(queued.job.id);
-    expect(events.map((event) => event.eventType)).toEqual(["queued", "claimed", "ocr_parsing_started", "succeeded"]);
+    expect(events.map((event) => event.eventType)).toEqual(["queued", "claimed", "ocr_parsing_started", "compliance_scan_started", "succeeded"]);
     assertNoSensitiveLeak([succeeded, events]);
+  });
+
+  it("records failed cleanup lifecycle events and exposes cleanup metrics without sensitive payloads", async () => {
+    const source = trackSource(marker());
+    const { userId, artifactId } = await createQueueSubject(source);
+    await enqueueIngestProcessingJob({
+      reportArtifactId: artifactId,
+      userId,
+      source,
+      maxAttempts: 1,
+      payload: { region: "CA", mimeType: "application/pdf" },
+    });
+    const workerId = `${source}-worker`;
+    const claimed = await claimNextIngestProcessingJob({ workerId, source });
+    if (!claimed) throw new Error("Expected failed cleanup job claim.");
+    const dead = await markIngestProcessingJobFailed({
+      job: claimed,
+      workerId,
+      error: new Error("Synthetic permanent cleanup fixture failure."),
+    });
+    expect(dead.status).toBe("dead_lettered");
+
+    await recordIngestProcessingJobEvent({
+      jobId: dead.id,
+      eventType: "cleanup_attempted",
+      details: {
+        artifactId,
+        cleanupMode: "artifact_only_cleanup",
+        destructiveCleanupPath: true,
+        operatorDestructiveDeleteDefault: false,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
+    await recordIngestProcessingJobEvent({
+      jobId: dead.id,
+      eventType: "cleanup_failed",
+      errorCode: "INGEST_CLEANUP_FAILED",
+      errorReason: "SHOULD_NOT_STORE_RAW_REPORT_TEXT raw report text account number 4111111111111111",
+      details: {
+        artifactId,
+        cleanupStep: "artifact_only_cleanup",
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
+
+    const events = await listIngestProcessingJobEvents(dead.id);
+    expect(events.map((event) => event.eventType)).toEqual([
+      "queued",
+      "claimed",
+      "dead_lettered",
+      "cleanup_attempted",
+      "cleanup_failed",
+    ]);
+    const metrics = await getIngestProcessingQueueMetrics();
+    expect(metrics.cleanupAttemptedEvents).toBeGreaterThanOrEqual(1);
+    expect(metrics.cleanupFailedEvents).toBeGreaterThanOrEqual(1);
+    expect(metrics.cleanupFailedJobs).toBeGreaterThanOrEqual(1);
+    assertNoSensitiveLeak([events, metrics]);
   });
 
   it("schedules retry and dead-letters deterministically without storing raw operational details", async () => {
