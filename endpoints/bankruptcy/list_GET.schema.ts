@@ -3,15 +3,18 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { BankruptcyRecord, BankruptcyStatusArrayValues, BankruptcyTypeArrayValues, CanadianProvinceArrayValues } from "../../helpers/schema";
 
+export const BANKRUPTCY_LIST_DEFAULT_LIMIT = 50;
+export const BANKRUPTCY_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
   status: z.enum(BankruptcyStatusArrayValues).optional(),
   province: z.enum(CanadianProvinceArrayValues).optional(),
   type: z.enum(BankruptcyTypeArrayValues).optional(),
-  limit: z.coerce.number().min(1).optional(),
-  offset: z.coerce.number().min(0).optional(),
+  limit: z.coerce.number().int().min(1).max(BANKRUPTCY_LIST_MAX_LIMIT).default(BANKRUPTCY_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 export type BankruptcyRecordWithDetails = Selectable<BankruptcyRecord> & {
   accountNumber: string | null;

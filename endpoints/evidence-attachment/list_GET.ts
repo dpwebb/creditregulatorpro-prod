@@ -23,6 +23,8 @@ export async function handle(request: Request) {
     const validatedInput = schema.parse({
       obligationInstanceId: obligationInstanceIdParam ? parseInt(obligationInstanceIdParam, 10) : undefined,
       packetId: packetIdParam ? parseInt(packetIdParam, 10) : undefined,
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
     });
 
     const isAdmin = user.role === "admin";
@@ -62,6 +64,8 @@ export async function handle(request: Request) {
     const attachments = await getEvidenceAttachments({
       obligationInstanceId: validatedInput.obligationInstanceId,
       packetId: validatedInput.packetId,
+      limit: validatedInput.limit,
+      offset: validatedInput.offset,
     });
 
     // Sanitize output: remove storageUrl (base64 data) to keep response light

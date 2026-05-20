@@ -539,6 +539,8 @@ describe("evidence privacy and ownership endpoints", () => {
     expect(mocks.getEvidenceAttachments).toHaveBeenCalledWith({
       obligationInstanceId: undefined,
       packetId: 601,
+      limit: 50,
+      offset: 0,
     });
     expectNoSensitiveLeak(body);
 

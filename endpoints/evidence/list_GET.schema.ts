@@ -3,14 +3,17 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { EvidenceEvent, Packet, Tradeline } from "../../helpers/schema";
 
+export const EVIDENCE_LIST_DEFAULT_LIMIT = 50;
+export const EVIDENCE_LIST_MAX_LIMIT = 100;
+
 // Optional tradelineId query parameter for filtering
 export const schema = z.object({
   tradelineId: z.coerce.number().optional(),
-  limit: z.coerce.number().min(1).optional(),
-  offset: z.coerce.number().min(0).optional(),
+  limit: z.coerce.number().int().min(1).max(EVIDENCE_LIST_MAX_LIMIT).default(EVIDENCE_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 // We are selecting all evidence_event fields plus some joined fields
 // We need to define the shape of the joined result

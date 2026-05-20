@@ -9,14 +9,19 @@ import {
   RegulatoryUpdateSource
 } from "../../helpers/schema";
 
+export const REGULATORY_UPDATE_LIST_DEFAULT_LIMIT = 50;
+export const REGULATORY_UPDATE_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
   jurisdiction: z.string().optional(),
   status: z.enum(RegulatoryUpdateStatusArrayValues).optional(),
   changeType: z.enum(RegulatoryChangeTypeArrayValues).optional(),
   source: z.enum(RegulatoryUpdateSourceArrayValues).optional(),
+  limit: z.coerce.number().int().min(1).max(REGULATORY_UPDATE_LIST_MAX_LIMIT).default(REGULATORY_UPDATE_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 export type OutputType = {
   updates: {
@@ -48,6 +53,8 @@ export const getRegulatoryUpdateList = async (filters?: InputType, init?: Reques
   if (filters?.status) params.append("status", filters.status);
   if (filters?.changeType) params.append("changeType", filters.changeType);
   if (filters?.source) params.append("source", filters.source);
+  if (filters?.limit !== undefined) params.append("limit", filters.limit.toString());
+  if (filters?.offset !== undefined) params.append("offset", filters.offset.toString());
 
   const queryString = params.toString();
   const url = `/_api/regulatory-update/list${queryString ? `?${queryString}` : ""}`;

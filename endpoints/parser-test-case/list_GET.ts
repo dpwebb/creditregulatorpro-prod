@@ -18,6 +18,11 @@ export async function handle(request: Request) {
       );
     }
     await ensureParserTestAdjudicationSchema();
+    const url = new URL(request.url);
+    const input = schema.parse({
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
+    });
 
     // Fetch test cases with latest run info
     const testCases = await db
@@ -45,21 +50,27 @@ export async function handle(request: Request) {
           .as("totalRuns"),
       ])
       .orderBy("updatedAt", "desc")
+      .limit(input.limit)
+      .offset(input.offset)
       .execute();
 
-    const candidates = await db
-      .selectFrom("parserRuleCandidate")
-      .select([
-        "testCaseId",
-        "decisionId",
-        "status",
-        "activatedRuleId",
-        "validationSummary",
-        "createdBy",
-        "createdAt",
-      ])
-      .where("status", "=", "activated")
-      .execute();
+    const testCaseIds = testCases.map((testCase) => testCase.id);
+    const candidates = testCaseIds.length > 0
+      ? await db
+          .selectFrom("parserRuleCandidate")
+          .select([
+            "testCaseId",
+            "decisionId",
+            "status",
+            "activatedRuleId",
+            "validationSummary",
+            "createdBy",
+            "createdAt",
+          ])
+          .where("status", "=", "activated")
+          .where("testCaseId", "in", testCaseIds)
+          .execute()
+      : [];
     const candidatesByTestCaseId = new Map<number, typeof candidates>();
     candidates.forEach((candidate) => {
       const existing = candidatesByTestCaseId.get(candidate.testCaseId) ?? [];

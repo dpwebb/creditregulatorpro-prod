@@ -16,7 +16,11 @@ export async function handle(request: Request) {
 
     const url = new URL(request.url);
     const statusParam = url.searchParams.get("status") || undefined;
-    const input = schema.parse({ status: statusParam });
+    const input = schema.parse({
+      status: statusParam,
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
+    });
 
     let query = db
       .selectFrom("dynamicScanningRule")
@@ -29,7 +33,10 @@ export async function handle(request: Request) {
       query = query.where("dynamicScanningRule.status", "=", input.status);
     }
 
-    const rules = await query.execute();
+    const rules = await query
+      .limit(input.limit)
+      .offset(input.offset)
+      .execute();
 
     return new Response(
       JSON.stringify({

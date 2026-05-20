@@ -2,12 +2,16 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { RegulatoryNotification } from "../../helpers/schema";
 
+export const REGULATORY_NOTIFICATION_LIST_DEFAULT_LIMIT = 50;
+export const REGULATORY_NOTIFICATION_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
   unreadOnly: z.boolean().optional(),
-  limit: z.number().optional(),
+  limit: z.coerce.number().int().min(1).max(REGULATORY_NOTIFICATION_LIST_MAX_LIMIT).default(REGULATORY_NOTIFICATION_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 export type NotificationWithUpdateTitle = Selectable<RegulatoryNotification> & {
   regulatoryUpdateTitle: string | null;
@@ -28,6 +32,9 @@ export const getRegulatoryNotificationList = async (
   }
   if (input?.limit !== undefined) {
     url.searchParams.set("limit", String(input.limit));
+  }
+  if (input?.offset !== undefined) {
+    url.searchParams.set("offset", String(input.offset));
   }
 
   const result = await fetch(url.toString(), {

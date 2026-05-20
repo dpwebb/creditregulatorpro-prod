@@ -66,12 +66,7 @@ export async function handle(request: Request) {
       ])
     ).orderBy('obligationInstance.createdAt', 'desc');
 
-    if (validatedInput.limit !== undefined) {
-      dataQuery = dataQuery.limit(validatedInput.limit);
-      if (validatedInput.offset !== undefined) {
-        dataQuery = dataQuery.offset(validatedInput.offset);
-      }
-    }
+    dataQuery = dataQuery.limit(validatedInput.limit).offset(validatedInput.offset);
 
     const instances = await dataQuery.execute();
 

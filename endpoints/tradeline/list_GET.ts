@@ -60,12 +60,7 @@ export async function handle(request: Request) {
         .orderBy('tradeline.createdAt', 'desc')
     );
 
-    if (validatedInput.limit !== undefined) {
-      dataQuery = dataQuery.limit(validatedInput.limit);
-      if (validatedInput.offset !== undefined) {
-        dataQuery = dataQuery.offset(validatedInput.offset);
-      }
-    }
+    dataQuery = dataQuery.limit(validatedInput.limit).offset(validatedInput.offset);
 
     const rawTradelines = await dataQuery.execute();
     const allTradelineIds = rawTradelines.map((t) => t.id);

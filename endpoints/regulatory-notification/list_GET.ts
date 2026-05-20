@@ -14,10 +14,9 @@ export async function handle(request: Request) {
     const params = Object.fromEntries(url.searchParams.entries());
     const input = schema.parse({
       unreadOnly: params.unreadOnly === "true",
-      limit: params.limit ? parseInt(params.limit, 10) : undefined,
+      limit: params.limit ?? undefined,
+      offset: params.offset ?? undefined,
     });
-
-    const limit = input.limit ?? 50;
 
     let query = db
       .selectFrom("regulatoryNotification")
@@ -25,7 +24,8 @@ export async function handle(request: Request) {
       .selectAll("regulatoryNotification")
       .select("regulatoryUpdateLog.title as regulatoryUpdateTitle")
       .orderBy("regulatoryNotification.createdAt", "desc")
-      .limit(limit);
+      .limit(input.limit)
+      .offset(input.offset);
 
     if (input.unreadOnly) {
       query = query.where("regulatoryNotification.isRead", "=", false);

@@ -3,12 +3,16 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { ConsumerSignature, SignatureTypeArrayValues, FreezeType, FreezeStatus } from "../../helpers/schema";
 
+export const CONSUMER_SIGNATURE_LIST_DEFAULT_LIMIT = 50;
+export const CONSUMER_SIGNATURE_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
   signatureType: z.enum(SignatureTypeArrayValues).optional(),
-  limit: z.number().default(50),
+  limit: z.coerce.number().int().min(1).max(CONSUMER_SIGNATURE_LIST_MAX_LIMIT).default(CONSUMER_SIGNATURE_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 export type ConsumerSignatureWithDetails = Selectable<ConsumerSignature> & {
   freezeType: FreezeType | null;
@@ -20,10 +24,11 @@ export type OutputType = {
   signatures: ConsumerSignatureWithDetails[];
 };
 
-export const getSignatureList = async (params: InputType = { limit: 50 }, init?: RequestInit): Promise<OutputType> => {
+export const getSignatureList = async (params: InputType = {}, init?: RequestInit): Promise<OutputType> => {
   const searchParams = new URLSearchParams();
   if (params.signatureType) searchParams.set("signatureType", params.signatureType);
-  if (params.limit) searchParams.set("limit", params.limit.toString());
+  if (params.limit !== undefined) searchParams.set("limit", params.limit.toString());
+  if (params.offset !== undefined) searchParams.set("offset", params.offset.toString());
 
   const result = await fetch(`/_api/consumer-signature/list?${searchParams.toString()}`, {
     method: "GET",

@@ -14,7 +14,8 @@ export async function handle(request: Request) {
     
     const input = schema.parse({
       signatureType: searchParams.signatureType || undefined,
-      limit: searchParams.limit ? Number(searchParams.limit) : 50,
+      limit: searchParams.limit ?? undefined,
+      offset: searchParams.offset ?? undefined,
     });
 
     let query = db
@@ -45,6 +46,7 @@ export async function handle(request: Request) {
     const signatures = await query
       .orderBy("consumerSignature.createdAt", "desc")
       .limit(input.limit)
+      .offset(input.offset)
       .execute();
 
     // Log audit

@@ -93,12 +93,7 @@ export async function handle(request: Request) {
         .orderBy('creditorObligationTest.detectedAt', 'desc')
         .orderBy('creditorObligationTest.createdAt', 'desc');
 
-      if (input.limit !== undefined) {
-        dataQuery = dataQuery.limit(input.limit);
-        if (input.offset !== undefined) {
-          dataQuery = dataQuery.offset(input.offset);
-        }
-      }
+      dataQuery = dataQuery.limit(input.limit).offset(input.offset);
 
       const rows = await dataQuery.execute();
       const obligationTests = rows.map((row: any) => ({
@@ -256,12 +251,7 @@ export async function handle(request: Request) {
           .orderBy('creditorObligationTest.detectedAt', 'desc')
           .orderBy('creditorObligationTest.createdAt', 'desc');
 
-        if (input.limit !== undefined) {
-          query = query.limit(input.limit);
-          if (input.offset !== undefined) {
-            query = query.offset(input.offset);
-          }
-        }
+        query = query.limit(input.limit).offset(input.offset);
 
         return query;
       };

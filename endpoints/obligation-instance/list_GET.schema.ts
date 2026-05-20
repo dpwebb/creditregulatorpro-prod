@@ -2,15 +2,18 @@ import { z } from "zod";
 
 import { ObligationStateArrayValues } from "../../helpers/schema";
 
+export const OBLIGATION_INSTANCE_LIST_DEFAULT_LIMIT = 50;
+export const OBLIGATION_INSTANCE_LIST_MAX_LIMIT = 100;
+
 export const schema = z.object({
   tradelineId: z.number().optional(),
   state: z.enum(ObligationStateArrayValues).optional(),
   disputeVector: z.string().optional(),
-  limit: z.coerce.number().min(1).optional(),
-  offset: z.coerce.number().min(0).optional(),
+  limit: z.coerce.number().int().min(1).max(OBLIGATION_INSTANCE_LIST_MAX_LIMIT).default(OBLIGATION_INSTANCE_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 export type ObligationInstanceListItem = {
   id: number;
@@ -31,7 +34,7 @@ export type OutputType = {
 };
 
 export const getObligationInstanceList = async (params?: InputType, init?: RequestInit): Promise<OutputType> => {
-  const validatedInput = params ? schema.parse(params) : {};
+  const validatedInput = schema.parse(params ?? {});
 
   const searchParams = new URLSearchParams();
   if (validatedInput.tradelineId !== undefined) searchParams.append('tradelineId', validatedInput.tradelineId.toString());

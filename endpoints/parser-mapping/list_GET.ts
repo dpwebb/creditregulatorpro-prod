@@ -16,7 +16,12 @@ export async function handle(request: Request) {
     const bureau = url.searchParams.get("bureau") || undefined;
     const section = url.searchParams.get("section") || undefined;
 
-    const input = schema.parse({ bureau, section });
+    const input = schema.parse({
+      bureau,
+      section,
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
+    });
 
     let query = db.selectFrom("parserFieldMapping").selectAll();
     if (input.bureau) {
@@ -26,7 +31,11 @@ export async function handle(request: Request) {
       query = query.where("section", "=", input.section);
     }
 
-    const mappings = await query.orderBy("priority", "desc").execute();
+    const mappings = await query
+      .orderBy("priority", "desc")
+      .limit(input.limit)
+      .offset(input.offset)
+      .execute();
     
     // Add factory defaults for contextual reference based on bureau
     const defaults = getDefaultMappings(input.bureau);

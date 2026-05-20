@@ -15,6 +15,8 @@ export async function handle(request: Request) {
     const input = schema.parse({
       tradelineId: searchParams.tradelineId ? Number(searchParams.tradelineId) : undefined,
       status: searchParams.status || undefined,
+      limit: searchParams.limit ?? undefined,
+      offset: searchParams.offset ?? undefined,
     });
 
     let query = db
@@ -51,7 +53,12 @@ export async function handle(request: Request) {
       query = query.where("discriminationClaim.status", "=", input.status);
     }
 
-    const results = await query.execute();
+    const results = await query
+      .orderBy("discriminationClaim.reportedDate", "desc")
+      .orderBy("discriminationClaim.createdAt", "desc")
+      .limit(input.limit)
+      .offset(input.offset)
+      .execute();
 
     return new Response(JSON.stringify(results satisfies OutputType));
   } catch (error) {

@@ -55,12 +55,7 @@ export async function handle(request: Request) {
 
     dataQuery = dataQuery.orderBy('evidenceEvent.id', 'desc');
 
-    if (params.limit !== undefined) {
-      dataQuery = dataQuery.limit(params.limit);
-      if (params.offset !== undefined) {
-        dataQuery = dataQuery.offset(params.offset);
-      }
-    }
+    dataQuery = dataQuery.limit(params.limit).offset(params.offset);
 
     const events = await dataQuery.execute();
 

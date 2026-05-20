@@ -41,7 +41,7 @@ Use only these status values in the execution table:
 - Ingest cleanup is destructive and best-effort.
 - Retention auto-purge now defaults to preview and destructive apply requires explicit confirmation with append-only audit evidence; broader retention purge/archive/restore proof remains unresolved.
 - Scheduled scan and retention cron routes now require bearer-only derived cron tokens; query-token and legacy JWT substring fallbacks were removed.
-- Additional list endpoints remain unbounded.
+- High-growth list endpoints now have explicit default/max bounds. Remaining inventory notes: `hidden-risk/list` still computes aggregate/stale-suppression semantics over the full matching risk set and should get a separate pagination/UX split before it is treated as production-scale; `parser-test-case/list` is bounded but still returns `rawExtractedText` for the current admin parser UI; `consumer-signature/list` is bounded but still returns `signatureData` for the existing delivery wizard compatibility path.
 - Ingest/PDF/storage/auth/DB observability is now surfaced through sanitized dashboard metrics and thresholds; external alert delivery remains future work.
 - Disaster recovery proof is incomplete.
 - Production-scale load and concurrency tests are missing.
@@ -73,7 +73,7 @@ Do not combine tasks. Each numbered row is a separate Codex task with its own im
 | 13 | DB pool config and session-touch throttling | Complete | `helpers/runtimeTuningConfig.ts` parses `CRP_DB_POOL_MAX`, `CRP_DB_IDLE_TIMEOUT_SECONDS`, and `CRP_SESSION_TOUCH_INTERVAL_SECONDS` with safe defaults and sanitized warnings for invalid values. `helpers/db.tsx` uses the parsed DB pool config. `helpers/getServerUserSession.tsx` preserves auth lookup, roles, cookie/session return shape, and cleanup behavior while writing `sessions.lastAccessed` only when the stored timestamp is stale by the configured interval. DB pressure metrics remain part of the later observability workstream. | `pnpm exec vitest run tests/unit/runtime-tuning-config.spec.ts tests/unit/session-touch-throttle.spec.ts`; `pnpm exec vitest run tests/api/auth-session-lifecycle-endpoint.spec.ts`; `pnpm run test:api`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 14 | Migration ledger/checker | Complete | `docs/database-migration-policy.md` establishes the root `migrations/` ledger convention and keeps runtime ensure functions active until a later audited cutover. `migrations/0000-runtime-schema-inventory.md` inventories bootstrap DDL, runtime ensure functions, and migration metadata endpoints. `scripts/check-migrations.mjs` and `check:migrations` provide a non-mutating static report for runtime ensure functions, ledger entries, unknown/unledgered schema mutation points, and non-blocking deploy-gate recommendation. Production deploy behavior was not changed. | `pnpm run check:migrations`; migration checker unit tests; production readiness/deploy unit tests; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 15 | Observability expansion | Complete | `helpers/productionObservabilityMetrics.ts` aggregates sanitized ingest, OCR/parser, packet PDF, storage, auth/rate-limit, and DB config/pool signals with `OK`/`Warning`/`Critical` thresholds. `helpers/packetPdfCache.ts` records `PACKET_PDF_CACHE_HIT` events in addition to render attempts/success/failure. `helpers/documentStorage.ts` and `helpers/gcsStorage.ts` record sanitized storage read/write/delete failure metrics through `auditLog` with object-reference hashes only. `scripts/ingest-processing-worker.ts` adds sanitized duration/page-count/parser-summary fields to ingest job result summaries. `scripts/operator-regression-dashboard.ts` adds the `Production Observability` category. `docs/production-observability-metrics.md` documents signals, sensitivity boundaries, and thresholds. | Metric/dashboard unit tests; packet PDF cache tests; `pnpm run test:regression-dashboard`; `pnpm run operator:dashboard`; `pnpm run typecheck`; `pnpm run build`; relevant API tests; `git diff --check`. |
-| 16 | Additional list endpoint limits | Not started | Blocker 13: high-growth list endpoints remain unbounded. | Omitted limit defaults; excessive limit rejected or capped by route policy; ownership filters preserved; representative evidence and metro2 list tests first. |
+| 16 | Additional list endpoint limits | Complete | High-growth list routes now apply default/max bounds while preserving existing ownership/admin filters and sorting. Changed routes: bankruptcy, consumer-signature, creditor-validation, discrimination, evidence, evidence-attachment, fraud-freeze, metro2-validation-log, obligation-instance, parser-known-entity, parser-mapping, parser-test-case, regulatory-notification, regulatory-update, scanning-rule, tradeline, and version. Default is 50 and max is 100 except tradeline max 250 to preserve existing lifecycle script compatibility. Oversized limits are rejected by schema validation. | `pnpm exec vitest run tests/api/high-growth-list-limits.spec.ts tests/api/evidence-privacy-endpoint.spec.ts`; `pnpm run test:api`; `pnpm run typecheck`; `pnpm run build`; `git diff --check`. |
 | 17 | Support-role and production-safe privacy smokes | Not started | Blockers 21 and 23: support boundaries and production-safe privacy probes need stronger proof. | Support-role privacy matrix; unauthenticated/invalid-session protected-route denial; production-safe read-only smoke/gate unit tests. |
 | 18 | Load/concurrency harness | Not started | Blocker 16: no production-scale load/concurrency proof exists. | Local-only upload/process/PDF concurrency harness; DB pool latency report; failure-mode evidence; no production mutation. |
 | 19 | Restore drill evidence | Not started | Blocker 15: no completed human-observed restore drill evidence was found. | Restore checklist; date/operator/source SHA evidence; golden path after restore; RPO/RTO artifact review. |
@@ -81,6 +81,40 @@ Do not combine tasks. Each numbered row is a separate Codex task with its own im
 | 21 | Frontend/operator UX alignment | Not started | Readiness constraints are policy-heavy and not fully surfaced in product/operator UX. | UI unit tests; relevant API checks; operator dashboard checks; no parser/packet business logic changes. |
 | 22 | Dependency/runtime report | Not started | Blocker 24: bundle size and heavy PDF/OCR dependencies are not performance-gated. | Build; bundle/runtime report generated; container dependency inventory; non-blocking threshold evidence unless a later task makes it blocking. |
 | 23 | Final production-at-scale verification | Not started | Final verification is blocked until all prior blockers are complete with evidence. | `pnpm run typecheck`; `pnpm run build`; `pnpm run test:contracts`; `pnpm run test:api`; `pnpm run test:golden-path`; `pnpm run test:regression-dashboard`; deterministic ingestion report; response soak; operator dashboard; load/concurrency report; restore drill evidence; production-safe privacy smokes. |
+
+## List Endpoint Inventory
+
+Inventory date: 2026-05-20.
+
+Bounded in the additional list endpoint limits task:
+
+- `endpoints/bankruptcy/list_GET.ts` - default 50, max 100, owner/admin filter preserved, created-desc sorting preserved through endpoint ordering.
+- `endpoints/consumer-signature/list_GET.ts` - default 50, max 100, user-owner filter preserved, created-desc sorting preserved. The response still includes `signatureData` for the current delivery wizard compatibility path.
+- `endpoints/creditor-validation/list_GET.ts` - default 50, max 100, owner/admin `tradeline.userId` filtering preserved, detected/created-desc sorting preserved.
+- `endpoints/discrimination/list_GET.ts` - default 50, max 100, user-owned tradeline filter preserved, reported/created-desc sorting applied for stable bounded pages.
+- `endpoints/evidence/list_GET.ts` - default 50, max 100, packet owner filtering preserved, id-desc sorting preserved.
+- `endpoints/evidence-attachment/list_GET.ts` - default 50, max 100, packet/obligation owner checks and admin bypass preserved; `helpers/evidenceManager.tsx` applies the bound.
+- `endpoints/fraud-freeze/list_GET.ts` - default 50, max 100, current-user/admin target-user filter preserved, request-date-desc sorting preserved.
+- `endpoints/metro2-validation-log/list_GET.ts` - default 50, max 100, existing auth/filter behavior preserved, validated-date-desc sorting preserved.
+- `endpoints/obligation-instance/list_GET.ts` - default 50, max 100, owner/admin filtering preserved, created-desc sorting preserved.
+- `endpoints/parser-known-entity/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.
+- `endpoints/parser-mapping/list_GET.ts` - default 50, max 100, admin-only guard preserved, priority-desc sorting preserved.
+- `endpoints/parser-test-case/list_GET.ts` - default 50, max 100, admin-only guard preserved, updated-desc sorting preserved; activated parser-rule candidates are limited to the returned page's test case IDs. The response still includes `rawExtractedText` for current admin parser UI compatibility.
+- `endpoints/regulatory-notification/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.
+- `endpoints/regulatory-update/list_GET.ts` - default 50, max 100, admin-only guard preserved, detected-desc sorting preserved.
+- `endpoints/scanning-rule/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.
+- `endpoints/tradeline/list_GET.ts` - default 50, max 250, owner/admin filtering preserved, created-desc sorting preserved. The max remains 250 because the local lifecycle script already requests `limit=250`.
+- `endpoints/version/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.
+
+Already bounded before this task:
+
+- `endpoints/packet/list_GET.ts`, `endpoints/report-artifact/list_GET.ts`, `endpoints/support-ticket/list_GET.ts`, `endpoints/admin/mock-lifecycle/list_GET.ts`, `endpoints/licensed-agency/list_GET.ts`, and `endpoints/regulation-registry/runtime-bridge/list_GET.ts`.
+- `endpoints/outcomes/list_GET.ts` and `endpoints/responses/list_GET.ts` are bounded through their service-layer list options.
+
+Inventoried but not changed in this task:
+
+- Static/reference or low-growth lists: `bureau`, `bureau-detection-config`, `feature-flag`, `migration`, `obligation`, `enforcement-mechanism`, `regulation-registry`, `regulation-registry/reconciliation-candidates`, and `statute`.
+- `endpoints/hidden-risk/list_GET.ts` remains a separate pagination/UX task because it currently returns aggregate counts and stale-suppressed risk rows from a full matching set; force-limiting it here would change dashboard semantics.
 
 ## Non-Regression Guardrails
 

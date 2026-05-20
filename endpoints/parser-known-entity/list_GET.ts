@@ -16,21 +16,25 @@ export async function handle(request: Request) {
     }
 
     const url = new URL(request.url);
-    const entityType = url.searchParams.get("entityType");
-
-    // Validate query params using schema (though schema is empty object in GET usually, we can parse params manually or extend schema if needed, but here we just use URL params directly for GET)
-    // Actually, let's stick to the pattern. For GET requests with query params, we usually parse the URL search params.
-    // The schema defined in list_GET.schema.ts is for the client-side helper input, which maps to query params.
+    const input = schema.parse({
+      entityType: url.searchParams.get("entityType") || undefined,
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
+    });
 
     let query = db.selectFrom("parserKnownEntity").selectAll();
 
-    if (entityType) {
+    if (input.entityType) {
       // We cast here because we trust the input or let the query fail if invalid enum, 
       // but better to validate if strict. For now, simple string match is fine for DB.
-      query = query.where("entityType", "=", entityType as any);
+      query = query.where("entityType", "=", input.entityType as any);
     }
 
-    const entities = await query.orderBy("createdAt", "desc").execute();
+    const entities = await query
+      .orderBy("createdAt", "desc")
+      .limit(input.limit)
+      .offset(input.offset)
+      .execute();
 
     return new Response(
       JSON.stringify({ entities } satisfies OutputType)

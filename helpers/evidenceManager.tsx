@@ -56,6 +56,8 @@ export const uploadEvidence = async (params: {
 export const getEvidenceAttachments = async (params: {
   obligationInstanceId?: number;
   packetId?: number;
+  limit?: number;
+  offset?: number;
 }) => {
   let query = db.selectFrom("evidenceAttachment");
 
@@ -66,7 +68,15 @@ export const getEvidenceAttachments = async (params: {
     query = query.where("packetId", "=", params.packetId);
   }
 
-  return await query.selectAll().execute();
+  let dataQuery = query.selectAll();
+  if (params.limit !== undefined) {
+    dataQuery = dataQuery.limit(params.limit);
+  }
+  if (params.offset !== undefined) {
+    dataQuery = dataQuery.offset(params.offset);
+  }
+
+  return await dataQuery.execute();
 };
 
 /**

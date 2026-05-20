@@ -14,6 +14,8 @@ export async function handle(request: Request) {
       tradelineId: url.searchParams.get('tradelineId') ? Number(url.searchParams.get('tradelineId')) : undefined,
       severity: url.searchParams.get('severity') || undefined,
       category: url.searchParams.get('category') || undefined,
+      limit: url.searchParams.get('limit') ?? undefined,
+      offset: url.searchParams.get('offset') ?? undefined,
     };
 
     const input = schema.parse(queryParams);
@@ -38,6 +40,8 @@ export async function handle(request: Request) {
 
     const logs = await query
       .orderBy('validatedAt', 'desc')
+      .limit(input.limit)
+      .offset(input.offset)
       .execute();
 
     return new Response(JSON.stringify({ logs } satisfies OutputType));

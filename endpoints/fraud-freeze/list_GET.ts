@@ -15,6 +15,8 @@ export async function handle(request: Request) {
     const input = schema.parse({
       userId: searchParams.userId ? Number(searchParams.userId) : undefined,
       status: searchParams.status || undefined,
+      limit: searchParams.limit ?? undefined,
+      offset: searchParams.offset ?? undefined,
     });
 
     // Authorization check: Only admin can view other users' freezes
@@ -54,7 +56,11 @@ export async function handle(request: Request) {
       query = query.where("identityTheftFreeze.status", "=", input.status);
     }
 
-    const freezes = await query.orderBy("identityTheftFreeze.requestDate", "desc").execute();
+    const freezes = await query
+      .orderBy("identityTheftFreeze.requestDate", "desc")
+      .limit(input.limit)
+      .offset(input.offset)
+      .execute();
 
     // Log audit
     await logRead(user.id, "USER_ACCOUNT", targetUserId, request);

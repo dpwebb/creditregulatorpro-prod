@@ -3,12 +3,15 @@ import { z } from "zod";
 import { Selectable } from "kysely";
 import { Tradeline } from "../../helpers/schema";
 
+export const TRADELINE_LIST_DEFAULT_LIMIT = 50;
+export const TRADELINE_LIST_MAX_LIMIT = 250;
+
 export const schema = z.object({
-  limit: z.coerce.number().min(1).optional(),
-  offset: z.coerce.number().min(0).optional(),
+  limit: z.coerce.number().int().min(1).max(TRADELINE_LIST_MAX_LIMIT).default(TRADELINE_LIST_DEFAULT_LIMIT),
+  offset: z.coerce.number().int().min(0).default(0),
 });
 
-export type InputType = z.infer<typeof schema>;
+export type InputType = Partial<z.infer<typeof schema>>;
 
 export type TradelineWithDetails = Selectable<Tradeline> & {
   bureauName: string | null;

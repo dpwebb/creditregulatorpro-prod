@@ -19,7 +19,9 @@ export async function handle(request: Request) {
       jurisdiction,
       status,
       changeType,
-      source
+      source,
+      limit: url.searchParams.get("limit") ?? undefined,
+      offset: url.searchParams.get("offset") ?? undefined,
     });
 
     let query = db
@@ -43,7 +45,10 @@ export async function handle(request: Request) {
     }
 
     // Order by detectedAt DESC (newest first)
-    query = query.orderBy("detectedAt", "desc");
+    query = query
+      .orderBy("detectedAt", "desc")
+      .limit(input.limit)
+      .offset(input.offset);
 
     const updates = await query.execute();
 
