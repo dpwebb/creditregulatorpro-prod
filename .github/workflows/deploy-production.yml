@@ -10,6 +10,11 @@ on:
         description: "Commit SHA to deploy for rollback. Leave blank to deploy the current main branch."
         required: false
         type: string
+      run_ingest_worker:
+        description: "Master production ingest worker activation gate. Must be true before dry-run or apply can run."
+        required: false
+        type: boolean
+        default: false
       run_ingest_worker_dry_run:
         description: "Run a read-only bounded production ingest worker dry-run after deploy. Does not claim or process jobs."
         required: false
@@ -174,6 +179,7 @@ jobs:
           PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
           PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
           TARGET_SHA: ${{ steps.target.outputs.sha }}
+          RUN_PRODUCTION_INGEST_WORKER: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker || false }}
           RUN_PRODUCTION_INGEST_WORKER_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker_dry_run || false }}
           RUN_PRODUCTION_INGEST_WORKER_APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker_apply || false }}
           PRODUCTION_INGEST_WORKER_MAX_JOBS: ${{ inputs.ingest_worker_max_jobs || '' }}
@@ -181,12 +187,24 @@ jobs:
           PRODUCTION_INGEST_WORKER_APPLY_ACK: ${{ inputs.ingest_worker_apply_ack || '' }}
         run: |
           production_worker_requested="false"
-          if [ "${RUN_PRODUCTION_INGEST_WORKER_DRY_RUN:-false}" = "true" ] ||
-            [ "${RUN_PRODUCTION_INGEST_WORKER_APPLY:-false}" = "true" ]; then
+          if [ "${RUN_PRODUCTION_INGEST_WORKER:-false}" = "true" ]; then
             production_worker_requested="true"
           fi
 
+          if [ "${RUN_PRODUCTION_INGEST_WORKER:-false}" != "true" ]; then
+            if [ "${RUN_PRODUCTION_INGEST_WORKER_DRY_RUN:-false}" = "true" ] ||
+              [ "${RUN_PRODUCTION_INGEST_WORKER_APPLY:-false}" = "true" ]; then
+              echo "Refusing production ingest worker input: run_ingest_worker=true is required before dry-run or apply."
+              exit 1
+            fi
+          fi
+
           if [ "$production_worker_requested" = "true" ]; then
+            if [ "${RUN_PRODUCTION_INGEST_WORKER_DRY_RUN:-false}" != "true" ] &&
+              [ "${RUN_PRODUCTION_INGEST_WORKER_APPLY:-false}" != "true" ]; then
+              echo "Refusing production ingest worker input: choose dry-run or apply when run_ingest_worker=true."
+              exit 1
+            fi
             case "${PRODUCTION_INGEST_WORKER_MAX_JOBS:-}" in
               1|2|3|4|5) ;;
               *)
@@ -216,7 +234,7 @@ jobs:
             fi
           fi
 
-          ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" "TARGET_SHA='$TARGET_SHA' RUN_PRODUCTION_INGEST_WORKER_DRY_RUN='$RUN_PRODUCTION_INGEST_WORKER_DRY_RUN' RUN_PRODUCTION_INGEST_WORKER_APPLY='$RUN_PRODUCTION_INGEST_WORKER_APPLY' PRODUCTION_INGEST_WORKER_MAX_JOBS='$PRODUCTION_INGEST_WORKER_MAX_JOBS' PRODUCTION_INGEST_WORKER_OPERATOR='$PRODUCTION_INGEST_WORKER_OPERATOR' PRODUCTION_INGEST_WORKER_APPLY_ACK='$PRODUCTION_INGEST_WORKER_APPLY_ACK' bash -s" <<'REMOTE'
+          ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" "TARGET_SHA='$TARGET_SHA' RUN_PRODUCTION_INGEST_WORKER='$RUN_PRODUCTION_INGEST_WORKER' RUN_PRODUCTION_INGEST_WORKER_DRY_RUN='$RUN_PRODUCTION_INGEST_WORKER_DRY_RUN' RUN_PRODUCTION_INGEST_WORKER_APPLY='$RUN_PRODUCTION_INGEST_WORKER_APPLY' PRODUCTION_INGEST_WORKER_MAX_JOBS='$PRODUCTION_INGEST_WORKER_MAX_JOBS' PRODUCTION_INGEST_WORKER_OPERATOR='$PRODUCTION_INGEST_WORKER_OPERATOR' PRODUCTION_INGEST_WORKER_APPLY_ACK='$PRODUCTION_INGEST_WORKER_APPLY_ACK' bash -s" <<'REMOTE'
             set -euo pipefail
 
             cd /opt/creditregulatorpro/app
@@ -239,8 +257,7 @@ jobs:
             docker ps --filter name=creditregulatorpro-app
 
             run_production_ingest_worker_plan() {
-              if [ "${RUN_PRODUCTION_INGEST_WORKER_DRY_RUN:-false}" != "true" ] &&
-                [ "${RUN_PRODUCTION_INGEST_WORKER_APPLY:-false}" != "true" ]; then
+              if [ "${RUN_PRODUCTION_INGEST_WORKER:-false}" != "true" ]; then
                 echo "Skipping production ingest worker. Manual workflow_dispatch input is required."
                 return 0
               fi

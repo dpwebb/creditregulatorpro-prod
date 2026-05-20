@@ -85,6 +85,9 @@ describe("production worker readiness evidence", () => {
       productionWorkflowParityAndRollback: false,
       releaseEvidenceExactCommands: true,
     });
+    expect(report.staticValidation.checks.find((check) => check.name === "exact release evidence commands recorded")?.commands).toEqual(
+      expect.arrayContaining(["pnpm run production-worker:activation-evidence"]),
+    );
     expect(report.safety).toMatchObject({
       productionJobsProcessedByCodex: false,
       productionDataMutatedByCodex: false,
@@ -170,6 +173,9 @@ describe("production worker readiness evidence", () => {
 
   it("exposes the package script", () => {
     const packageJson = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
+    expect(packageJson.scripts["production-worker:activation-evidence"]).toBe(
+      "node scripts/production-worker-activation-evidence.mjs",
+    );
     expect(packageJson.scripts["production-worker:readiness-evidence"]).toBe(
       "node scripts/production-worker-readiness-evidence.mjs",
     );

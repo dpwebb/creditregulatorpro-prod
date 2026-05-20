@@ -1,0 +1,160 @@
+{
+  "reportName": "production-worker-activation-evidence",
+  "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
+  "generatedAt": "2026-05-20T23:06:36.362Z",
+  "branch": "staging",
+  "commit": "6acd011de08d889d16c776e4ace8ca5e0ca1e560",
+  "status": "prepared-default-off",
+  "productionProof": false,
+  "productionWorkerDefaultOff": true,
+  "productionActivationDeferred": true,
+  "explicitActivationInputsRequired": true,
+  "explicitActivationInputs": [
+    "workflow_dispatch input run_ingest_worker=true",
+    "choose exactly one of run_ingest_worker_dry_run=true or run_ingest_worker_apply=true",
+    "ingest_worker_max_jobs explicitly set to 1-5",
+    "ingest_worker_apply_ack required for apply",
+    "ingest_worker_operator safe token required for apply"
+  ],
+  "dryRun": {
+    "command": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+    "mutatesQueue": false,
+    "claimsJobs": false,
+    "processesJobs": false
+  },
+  "applyMode": {
+    "command": "pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+    "defaultEnabled": false,
+    "confirmationString": "explicit-bounded-production-ingest-worker-apply",
+    "maxJobs": {
+      "required": true,
+      "min": 1,
+      "max": 5
+    },
+    "guardList": [
+      "workflow_dispatch input run_ingest_worker_apply=true",
+      "workflow_dispatch input run_ingest_worker_dry_run=false",
+      "ingest_worker_max_jobs explicitly set to 1-5",
+      "ingest_worker_apply_ack=explicit-bounded-production-ingest-worker-apply",
+      "ingest_worker_operator set to a safe token",
+      "CRP_ENV=production",
+      "CRP_PRODUCTION_INGEST_WORKER_APPLY=explicit-bounded-production-ingest-worker-apply",
+      "CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT=true",
+      "CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS matching --max-jobs",
+      "CRP_PRODUCTION_INGEST_WORKER_OPERATOR set to a safe token",
+      "--concurrency=1",
+      "--source=authenticated_ingest_process",
+      "--worker-id present"
+    ]
+  },
+  "rollbackStopProcedure": [
+    "Do not rerun workflow_dispatch with run_ingest_worker=true.",
+    "Use rollback_sha production deployment for application rollback.",
+    "If a one-shot worker is still running, stop the production application container or wait for the bounded command to exit.",
+    "Inspect queue depth and dead-letter rows before any later apply attempt."
+  ],
+  "futureOperatorRunFields": {
+    "queueDepthBefore": null,
+    "queueDepthAfter": null,
+    "processedJobs": null,
+    "failureCount": null,
+    "deadLetterCount": null,
+    "workerExitCode": null,
+    "rollbackStopVerified": null,
+    "operatorAcknowledgementSigned": null,
+    "sanitizedEvidence": null
+  },
+  "stagingWorkerEvidence": {
+    "exists": true,
+    "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+    "accepted": true,
+    "status": "accepted-staging-queue-drain",
+    "generatedAt": "2026-05-20T22:40:14.241Z",
+    "productionProof": false,
+    "queueDepthBeforeRun": 2,
+    "queueDepthAfterRun": 0,
+    "processedCount": 2,
+    "failedCount": 0,
+    "deadLetterCount": 0,
+    "validationOk": true
+  },
+  "staticValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "production worker default-off",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "explicit run_ingest_worker gate required",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "apply refuses without confirmation string",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "apply refuses without max-job bound",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "dry-run cannot mutate queue",
+        "status": "passed",
+        "passed": true,
+        "dryRunCommand": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process"
+      },
+      {
+        "name": "empty queue exits safely",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "failure stops workflow",
+        "status": "passed",
+        "passed": true
+      }
+    ],
+    "failedChecks": []
+  },
+  "blockerCoverage": {
+    "productionIngestRuntime": false,
+    "productionWorkflowParityAndRollback": false,
+    "releaseEvidenceExactCommands": true
+  },
+  "blockerStatus": {
+    "blocker2": "human-operator-production-queue-depth-evidence-required",
+    "blocker11": "partial-production-workflow-parity-and-rollback-evidence-required",
+    "blocker21": "exact-release-evidence-command-references-present"
+  },
+  "safety": {
+    "productionJobsProcessedByCodex": false,
+    "productionDataMutatedByCodex": false,
+    "productionWorkerActivatedByDefault": false,
+    "productionActivationEvidenceProcessesJobs": false,
+    "dryRunIsNonMutating": true,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "canonicalMappingChanged": false,
+    "violationBehaviorChanged": false,
+    "packetGenerationChanged": false,
+    "packetPdfLogicChanged": false,
+    "queueLifecycleSafeguardsWeakened": false,
+    "dashboardPassAloneIsReleaseEvidence": false
+  },
+  "requiredStatements": [
+    "The production worker remains default-off.",
+    "Production activation remains deferred unless an operator explicitly runs the guarded workflow.",
+    "Dry-run is non-mutating and cannot claim or process queue jobs.",
+    "Apply mode requires explicit operator confirmation and a bounded max-job value.",
+    "This activation evidence does not process production jobs and does not close blocker 2.",
+    "Accepted staging worker evidence is prerequisite context only, not production proof."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
+    "json": "docs/production-scale/evidence/latest-production-worker-activation-evidence.json"
+  }
+}

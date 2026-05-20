@@ -39,6 +39,7 @@ export const PRODUCTION_WORKER_APPLY_GUARDS = [
 ];
 
 export const PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS = [
+  "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run production-scale:evidence",
   "pnpm run production-scale:promotion-pack",
@@ -235,6 +236,7 @@ export function buildProductionWorkerReadinessEvidenceReport({
   const checks = [
     staticCheck(
       "production worker default-off",
+      workflowText.includes("run_ingest_worker:") &&
       workflowText.includes("run_ingest_worker_dry_run:") &&
         workflowText.includes("run_ingest_worker_apply:") &&
         workflowText.includes("default: false") &&
@@ -274,6 +276,7 @@ export function buildProductionWorkerReadinessEvidenceReport({
     ),
     staticCheck(
       "exact release evidence commands recorded",
+      PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run production-worker:activation-evidence") &&
       PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run production-worker:readiness-evidence") &&
         PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run operator:dashboard"),
       { commands: PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS },

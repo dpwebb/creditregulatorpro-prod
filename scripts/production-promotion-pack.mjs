@@ -12,6 +12,12 @@ import {
 } from "./production-worker-readiness-evidence.mjs";
 
 import {
+  buildProductionWorkerActivationEvidenceReport,
+  PRODUCTION_WORKER_ACTIVATION_EVIDENCE_JSON_PATH,
+  PRODUCTION_WORKER_ACTIVATION_EVIDENCE_MD_PATH,
+} from "./production-worker-activation-evidence.mjs";
+
+import {
   buildMigrationGateReport,
   MIGRATION_GATE_JSON_PATH,
   MIGRATION_GATE_MD_PATH,
@@ -96,6 +102,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run alerts:dry-run",
   "pnpm run alerts:exclusion:validate",
   "pnpm run response:ops-readiness-evidence",
+  "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run storage:raw-report-remediation-plan",
@@ -124,6 +131,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run retention:archive-restore:simulated",
   "pnpm run packet-pdf:cache-miss-proof",
   "pnpm run production-worker:activation-plan",
+  "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run migrations:evidence",
   "pnpm run production-safe-probes:evidence",
@@ -201,6 +209,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run production-worker:activation-plan": [
     "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
     "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+  ],
+  "pnpm run production-worker:activation-evidence": [
+    PRODUCTION_WORKER_ACTIVATION_EVIDENCE_MD_PATH,
+    PRODUCTION_WORKER_ACTIVATION_EVIDENCE_JSON_PATH,
   ],
   "pnpm run production-worker:readiness-evidence": [
     PRODUCTION_WORKER_READINESS_MD_PATH,
@@ -470,7 +482,7 @@ function classifyBlocker(
     stagingIngestWorkerEvidence?.blockerCoverage?.blocker2StagingQueueDrain === true &&
     stagingIngestWorkerEvidence?.productionProof !== true
   ) {
-    return "fixed with staging evidence";
+    return "partial";
   }
   if (blocker.number === 11) {
     if (
@@ -669,6 +681,7 @@ export function buildProductionPromotionPackReport({
   dashboardReport = null,
   humanRestoreEvidenceAcceptance = null,
   restoreReadinessCheck = null,
+  productionWorkerActivationEvidence = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
@@ -716,6 +729,8 @@ export function buildProductionPromotionPackReport({
     });
   const workerReadinessEvidence =
     productionWorkerReadinessEvidence ?? buildProductionWorkerReadinessEvidenceReport({ rootDir, generatedAt });
+  const workerActivationEvidence =
+    productionWorkerActivationEvidence ?? buildProductionWorkerActivationEvidenceReport({ rootDir, generatedAt });
   const stagingIngestEvidence =
     stagingIngestWorkerEvidence ?? buildStagingIngestWorkerEvidenceAcceptance(rootDir);
   const rawReportRemediationEvidence =
@@ -892,6 +907,42 @@ export function buildProductionPromotionPackReport({
         productionJobsProcessedByCodex: workerReadinessEvidence.safety?.productionJobsProcessedByCodex === true,
         productionWorkerActivatedByDefault: workerReadinessEvidence.safety?.productionWorkerActivatedByDefault === true,
         dashboardPassAloneIsReleaseEvidence: workerReadinessEvidence.safety?.dashboardPassAloneIsReleaseEvidence === true,
+      },
+    },
+    productionWorkerActivationEvidence: {
+      reportName: workerActivationEvidence.reportName,
+      generatedAt: workerActivationEvidence.generatedAt,
+      status: workerActivationEvidence.status,
+      productionProof: workerActivationEvidence.productionProof === true,
+      productionWorkerDefaultOff: workerActivationEvidence.productionWorkerDefaultOff === true,
+      productionActivationDeferred: workerActivationEvidence.productionActivationDeferred === true,
+      explicitActivationInputsRequired: workerActivationEvidence.explicitActivationInputsRequired === true,
+      dryRun: {
+        command: workerActivationEvidence.dryRun?.command,
+        mutatesQueue: workerActivationEvidence.dryRun?.mutatesQueue === true,
+        claimsJobs: workerActivationEvidence.dryRun?.claimsJobs === true,
+        processesJobs: workerActivationEvidence.dryRun?.processesJobs === true,
+      },
+      applyMode: {
+        confirmationString: workerActivationEvidence.applyMode?.confirmationString,
+        maxJobs: workerActivationEvidence.applyMode?.maxJobs,
+      },
+      futureOperatorRunFields: workerActivationEvidence.futureOperatorRunFields,
+      stagingWorkerEvidence: workerActivationEvidence.stagingWorkerEvidence,
+      staticValidation: {
+        status: workerActivationEvidence.staticValidation?.status ?? "unknown",
+        failedChecks: workerActivationEvidence.staticValidation?.failedChecks ?? [],
+      },
+      blockerCoverage: workerActivationEvidence.blockerCoverage,
+      safety: {
+        productionJobsProcessedByCodex: workerActivationEvidence.safety?.productionJobsProcessedByCodex === true,
+        productionDataMutatedByCodex: workerActivationEvidence.safety?.productionDataMutatedByCodex === true,
+        productionWorkerActivatedByDefault: workerActivationEvidence.safety?.productionWorkerActivatedByDefault === true,
+        productionActivationEvidenceProcessesJobs:
+          workerActivationEvidence.safety?.productionActivationEvidenceProcessesJobs === true,
+        dryRunIsNonMutating: workerActivationEvidence.safety?.dryRunIsNonMutating === true,
+        dashboardPassAloneIsReleaseEvidence:
+          workerActivationEvidence.safety?.dashboardPassAloneIsReleaseEvidence === true,
       },
     },
     stagingIngestWorkerEvidence: {
@@ -1152,6 +1203,7 @@ export function validatePromotionPackReport(report) {
   const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
   const restoreReadiness = report.restoreReadinessCheck;
   const workerReadiness = report.productionWorkerReadinessEvidence;
+  const workerActivation = report.productionWorkerActivationEvidence;
   const stagingIngest = report.stagingIngestWorkerEvidence;
   const responseOpsReadiness = report.responseOpsReadinessEvidence;
   const migrationGate = report.migrationGateEvidence;
@@ -1174,7 +1226,10 @@ export function validatePromotionPackReport(report) {
     if (
       workerReadiness?.acceptedProductionRunEvidence?.accepted !== true ||
       workerReadiness?.blockerCoverage?.productionIngestRuntime !== true ||
-      workerReadiness?.safety?.productionJobsProcessedByCodex === true
+      workerReadiness?.safety?.productionJobsProcessedByCodex === true ||
+      workerActivation?.productionWorkerDefaultOff !== true ||
+      workerActivation?.productionActivationDeferred !== true ||
+      workerActivation?.explicitActivationInputsRequired !== true
     ) {
       errors.push("Blocker 2 cannot be production-ready without accepted production queue-depth evidence.");
     }
@@ -1190,6 +1245,17 @@ export function validatePromotionPackReport(report) {
     ) {
       errors.push("Blocker 2 staging evidence requires accepted staging-safe queue-drain proof and cannot be production proof.");
     }
+  }
+  if (
+    workerActivation?.productionProof === true ||
+    workerActivation?.blockerCoverage?.productionIngestRuntime === true ||
+    workerActivation?.safety?.productionJobsProcessedByCodex === true ||
+    workerActivation?.safety?.productionDataMutatedByCodex === true ||
+    workerActivation?.safety?.productionWorkerActivatedByDefault === true ||
+    workerActivation?.safety?.productionActivationEvidenceProcessesJobs === true ||
+    workerActivation?.safety?.dryRunIsNonMutating !== true
+  ) {
+    errors.push("Production worker activation evidence must remain non-mutating, default-off, and non-production-proof.");
   }
   if (blocker3?.classification === "fixed with automated evidence") {
     if (
@@ -1354,6 +1420,7 @@ export function validatePromotionPackReport(report) {
     const commandList = new Set(report.commandList ?? []);
     for (const command of [
       "pnpm run production-scale:evidence",
+      "pnpm run production-worker:activation-evidence",
       "pnpm run production-worker:readiness-evidence",
       "pnpm run ingest:worker:staging-evidence",
       "pnpm run response:ops-readiness-evidence",
@@ -1532,6 +1599,23 @@ export function renderPromotionPackMarkdown(report) {
     `- Codex processed production jobs: ${
       report.productionWorkerReadinessEvidence.safety?.productionJobsProcessedByCodex ? "yes" : "no"
     }`,
+    "",
+    "## Production Worker Activation Evidence",
+    "",
+    `- Status: ${report.productionWorkerActivationEvidence.status}`,
+    `- Production worker default-off: ${report.productionWorkerActivationEvidence.productionWorkerDefaultOff ? "yes" : "no"}`,
+    `- Production activation deferred: ${report.productionWorkerActivationEvidence.productionActivationDeferred ? "yes" : "no"}`,
+    `- Explicit activation inputs required: ${
+      report.productionWorkerActivationEvidence.explicitActivationInputsRequired ? "yes" : "no"
+    }`,
+    `- Staging worker evidence detected: ${
+      report.productionWorkerActivationEvidence.stagingWorkerEvidence?.accepted ? "yes" : "no"
+    }`,
+    `- Dry-run mutates queue: ${report.productionWorkerActivationEvidence.dryRun?.mutatesQueue ? "yes" : "no"}`,
+    `- Future queue depth before/after: ${
+      report.productionWorkerActivationEvidence.futureOperatorRunFields?.queueDepthBefore ?? "required"
+    }/${report.productionWorkerActivationEvidence.futureOperatorRunFields?.queueDepthAfter ?? "required"}`,
+    "- This activation evidence does not close blocker 2 without accepted production queue-depth evidence.",
     "",
     "## Staging Ingest Worker Evidence",
     "",

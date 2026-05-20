@@ -491,6 +491,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run restore:evidence:current-check");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
+    expect(report.commandList).toContain("pnpm run production-worker:activation-evidence");
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
     expect(report.commandList).toContain("pnpm run ingest:worker:staging-evidence");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-plan");
@@ -660,7 +661,7 @@ describe("production promotion evidence pack", () => {
     expect(blocker2?.classification).toBe("partial");
   });
 
-  it("classifies blocker 2 as staging-evidenced only with accepted staging queue-drain evidence", () => {
+  it("records accepted staging queue-drain evidence without closing production blocker 2", () => {
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
@@ -671,7 +672,7 @@ describe("production promotion evidence pack", () => {
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
     const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
 
-    expect(blocker2?.classification).toBe("fixed with staging evidence");
+    expect(blocker2?.classification).toBe("partial");
     expect(blocker11?.classification).toBe("partial");
     expect(report.stagingIngestWorkerEvidence).toMatchObject({
       accepted: true,
@@ -679,6 +680,13 @@ describe("production promotion evidence pack", () => {
       queueDepthBeforeRun: 2,
       queueDepthAfterRun: 0,
       processedCount: 2,
+    });
+    expect(report.productionWorkerActivationEvidence).toMatchObject({
+      productionWorkerDefaultOff: true,
+      productionActivationDeferred: true,
+      blockerCoverage: {
+        productionIngestRuntime: false,
+      },
     });
     expect(report.productionWorkerReadinessEvidence.productionProof).toBe(false);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
@@ -1015,6 +1023,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toEqual(
       expect.arrayContaining([
         "pnpm run production-scale:evidence",
+        "pnpm run production-worker:activation-evidence",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker:staging-evidence",
         "pnpm run response:ops-readiness-evidence",

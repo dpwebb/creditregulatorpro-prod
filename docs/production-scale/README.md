@@ -180,7 +180,7 @@ Outputs:
 
 This command is `STAGING SAFE ONLY` evidence. It refuses production-like environments, creates only scoped synthetic staging-safe jobs, runs the existing bounded ingest worker against that scoped source, records queue depth before and after the run, processed/failed/dead-letter counts, lifecycle event counts, and verifies the scoped batch has no queued eligible jobs remaining. Evidence output is sanitized and must not include raw report text, raw PDF base64, storage secrets, signed URLs, database URLs, or real consumer PII.
 
-Accepted staging queue-drain evidence may classify blocker 2 as staging-evidenced only. It is not production proof, does not enable an always-on worker, and does not close production ingest runtime. Production worker activation remains deferred unless separately approved with production queue-depth evidence.
+Accepted staging queue-drain evidence records staging proof only. It is not production proof, does not enable an always-on worker, and does not close production ingest runtime. Blocker 2 remains production/operator-evidence-required until separately approved production queue-depth evidence exists.
 
 ## Production Worker Activation Plan
 
@@ -188,6 +188,7 @@ Run:
 
 ```bash
 pnpm run production-worker:activation-plan
+pnpm run production-worker:activation-evidence
 pnpm run production-worker:readiness-evidence
 ```
 
@@ -195,6 +196,8 @@ Outputs:
 
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.md`
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.json`
+- `docs/production-scale/evidence/latest-production-worker-activation-evidence.md`
+- `docs/production-scale/evidence/latest-production-worker-activation-evidence.json`
 - `docs/production-scale/evidence/latest-production-worker-readiness.md`
 - `docs/production-scale/evidence/latest-production-worker-readiness.json`
 

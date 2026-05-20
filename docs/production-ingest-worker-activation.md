@@ -31,6 +31,7 @@ pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id pro
 
 In GitHub Actions, use `workflow_dispatch` on production with:
 
+- `run_ingest_worker=true`
 - `run_ingest_worker_dry_run=true`
 - `run_ingest_worker_apply=false`
 - `ingest_worker_max_jobs=1` explicitly set
@@ -43,6 +44,7 @@ Apply remains deferred unless an operator explicitly approves a bounded one-shot
 
 Required workflow inputs:
 
+- `run_ingest_worker=true`
 - `run_ingest_worker_apply=true`
 - `run_ingest_worker_dry_run=false`
 - `ingest_worker_max_jobs` set to `1`, `2`, `3`, `4`, or `5`
@@ -83,10 +85,11 @@ Failure exit code must be treated as blocking evidence. Do not continue silently
 Generate non-mutating readiness evidence before promotion review:
 
 ```sh
+pnpm run production-worker:activation-evidence
 pnpm run production-worker:readiness-evidence
 ```
 
-That command writes `docs/production-scale/evidence/latest-production-worker-readiness.md` and `.json`. It does not run the production worker. It remains unresolved until a human/operator production queue-depth evidence artifact is supplied and accepted.
+The activation evidence writes `docs/production-scale/evidence/latest-production-worker-activation-evidence.md` and `.json`. The readiness command writes `docs/production-scale/evidence/latest-production-worker-readiness.md` and `.json`. Neither command runs the production worker. The production runtime remains unresolved until a human/operator production queue-depth evidence artifact is supplied and accepted.
 
 ## Rollback/Stop
 

@@ -47,6 +47,7 @@
     "ingest:worker:simulated-proof": "tsx scripts/ingest-worker-simulated-proof.ts",
     "ingest:worker:staging-evidence": "tsx scripts/staging-ingest-worker-evidence.ts --apply --max-jobs 2 --confirm-staging-safe",
     "production-worker:activation-plan": "node scripts/production-worker-activation-plan.mjs",
+    "production-worker:activation-evidence": "node scripts/production-worker-activation-evidence.mjs",
     "production-worker:readiness-evidence": "node scripts/production-worker-readiness-evidence.mjs",
     "staging:ingest-worker": "node scripts/staging-ingest-worker-orchestrator.mjs",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",

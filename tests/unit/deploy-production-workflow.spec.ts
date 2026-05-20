@@ -81,11 +81,15 @@ describe("production deploy workflow verification", () => {
   it("keeps production ingest worker execution default-off and manual only", () => {
     const source = workflowSource();
 
+    expect(source).toContain("run_ingest_worker:");
     expect(source).toContain("run_ingest_worker_dry_run:");
     expect(source).toContain("run_ingest_worker_apply:");
     expect(source).toContain("default: false");
+    expect(source).toContain("run_ingest_worker=true is required before dry-run or apply.");
+    expect(source).toContain("choose dry-run or apply when run_ingest_worker=true.");
     expect(source).toContain("ingest_worker_max_jobs must be explicitly set to 1-5 when a worker run is requested.");
     expect(source).toContain("Skipping production ingest worker. Manual workflow_dispatch input is required.");
+    expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker || false }}');
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_DRY_RUN: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_dry_run || false }}');
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_APPLY: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_apply || false }}');
     expect(source).toContain("production_worker_requested=\"false\"");
