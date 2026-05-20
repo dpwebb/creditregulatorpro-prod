@@ -50,7 +50,7 @@ It writes `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` 
 - `endpoints/pdf/platform-functions_GET.ts`
 - `endpoints/planner/select_POST.ts`
 
-## Session-Authenticated (132)
+## Session-Authenticated (133)
 
 - `endpoints/ai-assist/consumer-finding-explanation_POST.ts`
 - `endpoints/auth/request_verification_email_POST.ts`
@@ -65,6 +65,7 @@ It writes `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` 
 - `endpoints/cases/patch_POST.ts`
 - `endpoints/cases/review-data_GET.ts`
 - `endpoints/cases/review_GET.ts`
+- `endpoints/consumer-signature/get_GET.ts`
 - `endpoints/consumer-signature/list_GET.ts`
 - `endpoints/creditor-validation/create_POST.ts`
 - `endpoints/creditor-validation/delete_POST.ts`
@@ -185,7 +186,7 @@ It writes `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` 
 - `endpoints/user/profile_POST.ts`
 - `endpoints/version/current_GET.ts`
 
-## Admin-Only (122)
+## Admin-Only (123)
 
 - `endpoints/admin/ai-assist/findings_GET.ts`
 - `endpoints/admin/ai-assist/runs_GET.ts`
@@ -257,6 +258,7 @@ It writes `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` 
 - `endpoints/parser-test-case/create_POST.ts`
 - `endpoints/parser-test-case/delete_POST.ts`
 - `endpoints/parser-test-case/export_POST.ts`
+- `endpoints/parser-test-case/get_GET.ts`
 - `endpoints/parser-test-case/import_POST.ts`
 - `endpoints/parser-test-case/list_GET.ts`
 - `endpoints/parser-test-case/promote-rule_POST.ts`
@@ -326,4 +328,4 @@ It writes `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` 
 
 - None.
 
-Total classified endpoint handlers: 283.
+Total classified endpoint handlers: 285.

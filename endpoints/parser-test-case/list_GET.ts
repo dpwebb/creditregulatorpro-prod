@@ -27,7 +27,25 @@ export async function handle(request: Request) {
     // Fetch test cases with latest run info
     const testCases = await db
       .selectFrom("parserTestCase")
-      .selectAll("parserTestCase")
+      .select([
+        "parserTestCase.id",
+        "parserTestCase.name",
+        "parserTestCase.description",
+        "parserTestCase.expectedConsumerInfo",
+        "parserTestCase.expectedTradelines",
+        "parserTestCase.bureau",
+        "parserTestCase.parserMode",
+        "parserTestCase.allowAiFallback",
+        "parserTestCase.stageVersion",
+        "parserTestCase.extractionSource",
+        "parserTestCase.parserContext",
+        "parserTestCase.adminReviewStatus",
+        "parserTestCase.approvedConsumerInfo",
+        "parserTestCase.approvedTradelines",
+        "parserTestCase.adjudicationDecisions",
+        "parserTestCase.createdAt",
+        "parserTestCase.updatedAt",
+      ])
       .select((eb) => [
         eb
           .selectFrom("parserTestRun")
@@ -91,7 +109,6 @@ export async function handle(request: Request) {
           description: tc.description,
           expectedConsumerInfo: tc.expectedConsumerInfo,
           expectedTradelines: tc.expectedTradelines,
-          rawExtractedText: tc.rawExtractedText,
           bureau: tc.bureau,
           parserMode: tc.parserMode,
           allowAiFallback: tc.allowAiFallback,

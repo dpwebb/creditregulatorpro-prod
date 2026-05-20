@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T18:56:47.774Z
+Generated at: 2026-05-20T19:11:15.362Z
 Current branch: `staging`
-Current commit hash: `63f8615c4d87703fcb113e5a776821fc2fa76302`
+Current commit hash: `0dffe029864319abd5f4f6c37718c5294143112d`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -25,7 +25,7 @@ Dashboard exact commands recorded: yes
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=5, partial=12, fixed=3, open=4
+- Status counts: requires-human-proof=1, simulated-proof-only=5, partial=13, fixed=5, open=1
 
 ## Automated Local Evidence
 
@@ -77,18 +77,18 @@ Dashboard exact commands recorded: yes
   Proof required: OCR shared upload-validation proof plus valid-fixture output-stability evidence.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`, `pnpm run test:deterministic-ingestion-report`, `pnpm run typecheck`
   Next action: Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests.
-- #13 Parser-test list sensitive field (Medium; open)
-  Proof required: Admin UI compatibility plus metadata-only list proof.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Move raw extracted text out of the list path in a separate admin/parser UI task.
-- #14 Consumer signature list sensitive field (Medium; open)
-  Proof required: Owner-filtered metadata list plus get-by-id signature-data proof.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Create metadata-list and get-by-id signature data split in a separate privacy/UI task.
-- #15 Hidden-risk list semantics (Medium; open)
-  Proof required: Endpoint contract and dashboard UI proof for pagination and aggregate semantics.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Split hidden-risk pagination and aggregate semantics in a separate design task.
+- #13 Parser-test list sensitive field (Medium; fixed)
+  Proof required: Metadata-only parser-test list proof plus admin-only raw text detail/export proof.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx`, `pnpm run test:api`, `pnpm run typecheck`, `pnpm run sensitive-list-endpoints:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts`, `pnpm run test:contracts`, `pnpm run test:golden-path`, `pnpm run test:deterministic-ingestion-report`
+  Next action: Keep parser-test list metadata-only; use admin-only get/export paths for raw extracted text workflows and keep UI detail hydration covered by tests.
+- #14 Consumer signature list sensitive field (Medium; fixed)
+  Proof required: Metadata-only consumer-signature list proof plus owner/admin get-by-id signature data proof.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`, `pnpm run sensitive-list-endpoints:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts`, `pnpm run test:contracts`
+  Next action: Keep signature list metadata-only; use owner/admin get-by-id detail when signature image data is required.
+- #15 Hidden-risk list semantics (Medium; partial)
+  Proof required: Design/evidence artifact for hidden-risk aggregate and stale-suppression semantics; full bounded pagination remains a separate UI/query task.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`, `pnpm run sensitive-list-endpoints:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts`
+  Next action: Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics.
 - #16 DB pool pressure evidence (Medium; simulated-proof-only)
   Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
@@ -292,18 +292,10 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, and human-observed production evidence; production worker path and rollback proof remain incomplete.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
   Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus production worker-path evidence before calling deployment parity complete.
-- #13 Parser-test list sensitive field (Medium; open)
-  Proof required: Admin UI compatibility plus metadata-only list proof.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Move raw extracted text out of the list path in a separate admin/parser UI task.
-- #14 Consumer signature list sensitive field (Medium; open)
-  Proof required: Owner-filtered metadata list plus get-by-id signature-data proof.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Create metadata-list and get-by-id signature data split in a separate privacy/UI task.
-- #15 Hidden-risk list semantics (Medium; open)
-  Proof required: Endpoint contract and dashboard UI proof for pagination and aggregate semantics.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Split hidden-risk pagination and aggregate semantics in a separate design task.
+- #15 Hidden-risk list semantics (Medium; partial)
+  Proof required: Design/evidence artifact for hidden-risk aggregate and stale-suppression semantics; full bounded pagination remains a separate UI/query task.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`, `pnpm run sensitive-list-endpoints:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts`
+  Next action: Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics.
 - #16 DB pool pressure evidence (Medium; simulated-proof-only)
   Proof required: SIMULATED DB pool signal exists; staging-safe load evidence for pool max, latency, active connections, and dashboard observations is still required.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`

@@ -269,4 +269,15 @@ describe("high-growth list endpoint bounds", () => {
       expect(source(adminRoute)).toMatch(/isAdmin|user\.role !== "admin"/);
     }
   });
+
+  it("keeps sensitive large fields out of high-growth list response contracts", () => {
+    expect(source("endpoints/parser-test-case/list_GET.schema.ts")).not.toContain("rawExtractedText");
+    expect(source("endpoints/parser-test-case/list_GET.ts")).not.toContain("rawExtractedText:");
+    expect(source("endpoints/parser-test-case/get_GET.ts")).toContain("rawExtractedText");
+    expect(source("endpoints/parser-test-case/export_POST.ts")).toContain("rawExtractedText");
+
+    expect(source("endpoints/consumer-signature/list_GET.schema.ts")).not.toContain("signatureData");
+    expect(source("endpoints/consumer-signature/list_GET.ts")).not.toContain('"consumerSignature.signatureData"');
+    expect(source("endpoints/consumer-signature/get_GET.ts")).toContain('"consumerSignature.signatureData"');
+  });
 });

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getParserTestCases } from "../endpoints/parser-test-case/list_GET.schema";
 import type { OutputType as ParserTestCasesOutput } from "../endpoints/parser-test-case/list_GET.schema";
+import { getParserTestCase } from "../endpoints/parser-test-case/get_GET.schema";
 import { createParserTestCase } from "../endpoints/parser-test-case/create_POST.schema";
 import { updateParserTestCase } from "../endpoints/parser-test-case/update_POST.schema";
 import { deleteParserTestCase } from "../endpoints/parser-test-case/delete_POST.schema";
@@ -23,6 +24,14 @@ export function useParserTestCases() {
   return useQuery({
     queryKey: PARSER_TEST_KEYS.lists(),
     queryFn: () => getParserTestCases(),
+  });
+}
+
+export function useParserTestCaseDetail(id: number | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: id ? PARSER_TEST_KEYS.detail(id) : [...PARSER_TEST_KEYS.all, "detail", "none"],
+    queryFn: () => getParserTestCase({ id: id as number }),
+    enabled: enabled && typeof id === "number" && id > 0,
   });
 }
 

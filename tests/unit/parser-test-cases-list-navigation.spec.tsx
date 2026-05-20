@@ -1,5 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ParserTestCasesList } from "../../components/ParserTestCasesList";
 
@@ -25,7 +27,6 @@ const testCase = {
       status: "Open",
     },
   ],
-  rawExtractedText: "sample report text",
 };
 
 const runResult = {
@@ -59,23 +60,53 @@ const runResult = {
   ],
 };
 
-function renderList() {
+function renderList(overrides: Partial<ComponentProps<typeof ParserTestCasesList>> = {}) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+  const onEdit = overrides.onEdit ?? vi.fn();
   return render(
-    <ParserTestCasesList
-      testCases={[testCase]}
-      isLoading={false}
-      runResults={{ 42: runResult }}
-      onRun={vi.fn()}
-      onEdit={vi.fn()}
-      onDelete={vi.fn()}
-      onAcceptResults={vi.fn()}
-      onAdjudicate={vi.fn().mockResolvedValue(undefined)}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <ParserTestCasesList
+        testCases={[testCase]}
+        isLoading={false}
+        runResults={{ 42: runResult }}
+        onRun={vi.fn()}
+        onEdit={onEdit}
+        onDelete={vi.fn()}
+        onAcceptResults={vi.fn()}
+        onAdjudicate={vi.fn().mockResolvedValue(undefined)}
+        {...overrides}
+      />
+    </QueryClientProvider>,
   );
 }
 
 describe("ParserTestCasesList", () => {
-  it("can return from latest run results to saved parser output", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            testCase: {
+              ...testCase,
+              rawExtractedText: "sample report text from admin-only detail",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("can return from latest run results to saved parser output and hydrate raw text from detail", async () => {
     renderList();
 
     fireEvent.click(screen.getByText("TransUnion Canada Stage Lab"));
@@ -85,9 +116,28 @@ describe("ParserTestCasesList", () => {
     fireEvent.click(screen.getByRole("button", { name: /saved output/i }));
 
     expect(screen.getByRole("heading", { name: "Saved Parser Output" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/sample report text from admin-only detail/)).toBeInTheDocument(),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /last run results/i }));
 
     expect(screen.getByRole("heading", { name: "Test Results" })).toBeInTheDocument();
+  });
+
+  it("hydrates admin-only detail before edit preview consumers receive a list item", async () => {
+    const onEdit = vi.fn();
+    renderList({ onEdit });
+
+    fireEvent.click(screen.getByTitle("Edit"));
+
+    await waitFor(() =>
+      expect(onEdit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          rawExtractedText: "sample report text from admin-only detail",
+        }),
+      ),
+    );
   });
 });

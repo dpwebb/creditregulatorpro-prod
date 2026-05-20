@@ -73,7 +73,10 @@
     "git diff --check",
     "pnpm run production-safe-probes:evidence",
     "pnpm run staging-owner-denial-smoke:evidence",
-    "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts",
+    "pnpm run sensitive-list-endpoints:evidence",
+    "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts"
   ],
   "blockers": [
     {
@@ -576,17 +579,26 @@
       "area": "Parser-test list sensitive field",
       "affectedFilesRoutesFunctions": [
         "endpoints/parser-test-case/list_GET.schema.ts",
-        "endpoints/parser-test-case/list_GET.ts:94"
+        "endpoints/parser-test-case/list_GET.ts:94",
+        "endpoints/parser-test-case/get_GET.ts",
+        "endpoints/parser-test-case/get_GET.schema.ts",
+        "components/ParserTestCasesList.tsx"
       ],
-      "currentStatus": "open",
-      "proofTypeRequired": "Admin UI compatibility plus metadata-only list proof.",
+      "currentStatus": "fixed",
+      "proofTypeRequired": "Metadata-only parser-test list proof plus admin-only raw text detail/export proof.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx",
         "pnpm run test:api",
-        "pnpm run typecheck"
+        "pnpm run typecheck",
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+        "pnpm run test:contracts",
+        "pnpm run test:golden-path",
+        "pnpm run test:deterministic-ingestion-report"
       ],
       "forbiddenProofTypes": [
         "parser truth changes",
@@ -599,9 +611,11 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
       ],
-      "recommendedNextAction": "Move raw extracted text out of the list path in a separate admin/parser UI task."
+      "recommendedNextAction": "Keep parser-test list metadata-only; use admin-only get/export paths for raw extracted text workflows and keep UI detail hydration covered by tests."
     },
     {
       "number": 14,
@@ -609,17 +623,24 @@
       "severity": "Medium",
       "area": "Consumer signature list sensitive field",
       "affectedFilesRoutesFunctions": [
-        "endpoints/consumer-signature/list_GET.ts:27"
+        "endpoints/consumer-signature/list_GET.ts:27",
+        "endpoints/consumer-signature/get_GET.ts",
+        "endpoints/consumer-signature/get_GET.schema.ts",
+        "components/DeliveryWizard.tsx"
       ],
-      "currentStatus": "open",
-      "proofTypeRequired": "Owner-filtered metadata list plus get-by-id signature-data proof.",
+      "currentStatus": "fixed",
+      "proofTypeRequired": "Metadata-only consumer-signature list proof plus owner/admin get-by-id signature data proof.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts",
         "pnpm run test:api",
-        "pnpm run typecheck"
+        "pnpm run typecheck",
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+        "pnpm run test:contracts"
       ],
       "forbiddenProofTypes": [
         "signature image data in list evidence",
@@ -632,9 +653,11 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
       ],
-      "recommendedNextAction": "Create metadata-list and get-by-id signature data split in a separate privacy/UI task."
+      "recommendedNextAction": "Keep signature list metadata-only; use owner/admin get-by-id detail when signature image data is required."
     },
     {
       "number": 15,
@@ -645,15 +668,18 @@
         "docs/production-at-scale-execution-tracker.md",
         "endpoints/hidden-risk/list_GET.ts"
       ],
-      "currentStatus": "open",
-      "proofTypeRequired": "Endpoint contract and dashboard UI proof for pagination and aggregate semantics.",
+      "currentStatus": "partial",
+      "proofTypeRequired": "Design/evidence artifact for hidden-risk aggregate and stale-suppression semantics; full bounded pagination remains a separate UI/query task.",
       "proofCategories": [
         "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts",
         "pnpm run test:api",
-        "pnpm run typecheck"
+        "pnpm run typecheck",
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/sensitive-list-endpoints.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts"
       ],
       "forbiddenProofTypes": [
         "blind limit changing aggregate semantics",
@@ -667,9 +693,11 @@
       "relatedEvidenceOutputPaths": [
         "docs/production-at-scale-execution-tracker.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+        "docs/production-scale/evidence/latest-production-scale-evidence.json",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
       ],
-      "recommendedNextAction": "Split hidden-risk pagination and aggregate semantics in a separate design task."
+      "recommendedNextAction": "Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics."
     },
     {
       "number": 16,

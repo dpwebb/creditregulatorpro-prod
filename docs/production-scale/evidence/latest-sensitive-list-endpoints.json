@@ -1,0 +1,43 @@
+{
+  "reportName": "sensitive-list-endpoints-evidence",
+  "generatedAt": "2026-05-20T19:11:15.370Z",
+  "branch": "staging",
+  "commit": "0dffe029864319abd5f4f6c37718c5294143112d",
+  "status": "passed",
+  "productionProof": false,
+  "productionDataMutated": false,
+  "liveExternalProvidersConnected": false,
+  "realConsumerPiiUsed": false,
+  "statements": [
+    "Parser-test list responses are metadata-only; rawExtractedText is available only through admin-only detail/export paths.",
+    "Consumer-signature list responses are metadata-only; signatureData is available only through owner/admin detail access.",
+    "Hidden-risk full-set aggregate semantics are documented as partial/design-only evidence; no blind limit was applied.",
+    "This report does not claim production-at-scale readiness."
+  ],
+  "evaluations": {
+    "parserTestCase": {
+      "listMetadataOnly": true,
+      "detailIncludesRawText": true,
+      "detailAdminOnly": true,
+      "exportIncludesRawText": true,
+      "exportAdminOnly": true
+    },
+    "consumerSignature": {
+      "listMetadataOnly": true,
+      "detailIncludesSignatureData": true,
+      "detailOwnerOrAdminControlled": true
+    },
+    "hiddenRisk": {
+      "designArtifactGenerated": true,
+      "currentEndpointUsesFullMatchingSetForAggregate": true,
+      "blindLimitApplied": false,
+      "status": "partial-design-only",
+      "recommendedImplementation": [
+        "Split aggregate counts into a dedicated aggregate query that preserves stale-suppression semantics.",
+        "Add a paginated row query with explicit limit/offset after the aggregate contract is separated.",
+        "Update Risk Triage UI to show aggregate totals independently from page size.",
+        "Add API/UI tests that prove total counts are full-set counts while rows are bounded."
+      ]
+    }
+  }
+}

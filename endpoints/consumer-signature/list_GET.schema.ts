@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-import { Selectable } from "kysely";
-import { ConsumerSignature, SignatureTypeArrayValues, FreezeType, FreezeStatus } from "../../helpers/schema";
+import { Json, SignatureType, SignatureTypeArrayValues, FreezeType, FreezeStatus } from "../../helpers/schema";
 
 export const CONSUMER_SIGNATURE_LIST_DEFAULT_LIMIT = 50;
 export const CONSUMER_SIGNATURE_LIST_MAX_LIMIT = 100;
@@ -14,14 +13,23 @@ export const schema = z.object({
 
 export type InputType = Partial<z.infer<typeof schema>>;
 
-export type ConsumerSignatureWithDetails = Selectable<ConsumerSignature> & {
+export type ConsumerSignatureListItem = {
+  id: number;
+  userId: number;
+  signatureType: SignatureType;
+  isVerified: boolean;
+  verifiedAt: Date | null;
+  verifiedBy: number | null;
+  associatedFreezeId: number | null;
+  metadata: Json | null;
+  createdAt: Date;
   freezeType: FreezeType | null;
   freezeStatus: FreezeStatus | null;
   freezeBureauId: number | null;
 };
 
 export type OutputType = {
-  signatures: ConsumerSignatureWithDetails[];
+  signatures: ConsumerSignatureListItem[];
 };
 
 export const getSignatureList = async (params: InputType = {}, init?: RequestInit): Promise<OutputType> => {

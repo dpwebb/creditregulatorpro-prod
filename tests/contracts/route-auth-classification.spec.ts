@@ -55,6 +55,7 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
     "endpoints/cases/review-data_GET.ts",
     "endpoints/cases/review_GET.ts",
     "endpoints/consumer-signature/list_GET.ts",
+    "endpoints/consumer-signature/get_GET.ts",
     "endpoints/creditor-validation/create_POST.ts",
     "endpoints/creditor-validation/delete_POST.ts",
     "endpoints/creditor-validation/dismiss_POST.ts",
@@ -245,6 +246,7 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
     "endpoints/parser-test-case/create_POST.ts",
     "endpoints/parser-test-case/delete_POST.ts",
     "endpoints/parser-test-case/export_POST.ts",
+    "endpoints/parser-test-case/get_GET.ts",
     "endpoints/parser-test-case/import_POST.ts",
     "endpoints/parser-test-case/list_GET.ts",
     "endpoints/parser-test-case/promote-rule_POST.ts",
@@ -453,7 +455,7 @@ describe("route auth classification contract", () => {
     expect(unclassifiedHandlers).toEqual([]);
     expect(classifiedHandlers).toEqual(endpointHandlers());
     expect(classifiedHandlers).toEqual(serverRouteHandlers());
-    expect(classifiedHandlers).toHaveLength(283);
+    expect(classifiedHandlers).toHaveLength(285);
   });
 
   it("pins the public route inventory so changes require explicit contract updates", () => {

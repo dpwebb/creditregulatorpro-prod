@@ -41,7 +41,7 @@ Use only these status values in the execution table:
 - Ingest cleanup is destructive and best-effort.
 - Retention auto-purge now defaults to preview and destructive apply requires explicit confirmation with append-only audit evidence; broader retention purge/archive/restore proof remains unresolved.
 - Scheduled scan and retention cron routes now require bearer-only derived cron tokens; query-token and legacy JWT substring fallbacks were removed.
-- High-growth list endpoints now have explicit default/max bounds. Remaining inventory notes: `hidden-risk/list` still computes aggregate/stale-suppression semantics over the full matching risk set and should get a separate pagination/UX split before it is treated as production-scale; `parser-test-case/list` is bounded but still returns `rawExtractedText` for the current admin parser UI; `consumer-signature/list` is bounded but still returns `signatureData` for the existing delivery wizard compatibility path.
+- High-growth list endpoints now have explicit default/max bounds. `parser-test-case/list` is metadata-only and moves `rawExtractedText` to admin-only detail/export paths. `consumer-signature/list` is metadata-only and moves `signatureData` to owner/admin detail access. Remaining inventory note: `hidden-risk/list` still computes aggregate/stale-suppression semantics over the full matching risk set and should get a separate pagination/UX split before it is treated as production-scale.
 - Ingest/PDF/storage/auth/DB observability is now surfaced through sanitized dashboard metrics and thresholds; external alert delivery remains future work.
 - Disaster recovery proof is incomplete. A human-observed restore drill runbook, evidence template, and non-mutating evidence-field validator now exist, but no completed restore evidence has been recorded.
 - A local/staging-safe production-scale load/concurrency dry-run harness now exists and refuses production mutation. Repeated operator-run local/staging capacity evidence still needs to be collected before any production-at-scale claim.
@@ -90,7 +90,7 @@ Inventory date: 2026-05-20.
 Bounded in the additional list endpoint limits task:
 
 - `endpoints/bankruptcy/list_GET.ts` - default 50, max 100, owner/admin filter preserved, created-desc sorting preserved through endpoint ordering.
-- `endpoints/consumer-signature/list_GET.ts` - default 50, max 100, user-owner filter preserved, created-desc sorting preserved. The response still includes `signatureData` for the current delivery wizard compatibility path.
+- `endpoints/consumer-signature/list_GET.ts` - default 50, max 100, user-owner filter preserved, created-desc sorting preserved. The response is metadata-only and omits `signatureData`; `endpoints/consumer-signature/get_GET.ts` provides owner/admin detail access when signature image data is required.
 - `endpoints/creditor-validation/list_GET.ts` - default 50, max 100, owner/admin `tradeline.userId` filtering preserved, detected/created-desc sorting preserved.
 - `endpoints/discrimination/list_GET.ts` - default 50, max 100, user-owned tradeline filter preserved, reported/created-desc sorting applied for stable bounded pages.
 - `endpoints/evidence/list_GET.ts` - default 50, max 100, packet owner filtering preserved, id-desc sorting preserved.
@@ -100,7 +100,7 @@ Bounded in the additional list endpoint limits task:
 - `endpoints/obligation-instance/list_GET.ts` - default 50, max 100, owner/admin filtering preserved, created-desc sorting preserved.
 - `endpoints/parser-known-entity/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.
 - `endpoints/parser-mapping/list_GET.ts` - default 50, max 100, admin-only guard preserved, priority-desc sorting preserved.
-- `endpoints/parser-test-case/list_GET.ts` - default 50, max 100, admin-only guard preserved, updated-desc sorting preserved; activated parser-rule candidates are limited to the returned page's test case IDs. The response still includes `rawExtractedText` for current admin parser UI compatibility.
+- `endpoints/parser-test-case/list_GET.ts` - default 50, max 100, admin-only guard preserved, updated-desc sorting preserved; activated parser-rule candidates are limited to the returned page's test case IDs. The response is metadata-only and omits `rawExtractedText`; `endpoints/parser-test-case/get_GET.ts` and `export_POST.ts` provide admin-only raw text access for detail/export workflows.
 - `endpoints/regulatory-notification/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.
 - `endpoints/regulatory-update/list_GET.ts` - default 50, max 100, admin-only guard preserved, detected-desc sorting preserved.
 - `endpoints/scanning-rule/list_GET.ts` - default 50, max 100, admin-only guard preserved, created-desc sorting preserved.

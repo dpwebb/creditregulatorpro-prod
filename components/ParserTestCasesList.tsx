@@ -8,7 +8,9 @@ import { Spinner } from "./Spinner";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableContainer } from "./Table";
 import { ParserTestResultsPanel } from "./ParserTestResultsPanel";
 import { ParserTestSavedOutputPanel } from "./ParserTestSavedOutputPanel";
+import { getParserTestCase } from "../endpoints/parser-test-case/get_GET.schema";
 import { useDebounce } from "../helpers/useDebounce";
+import { useParserTestCaseDetail } from "../helpers/parserTestQueries";
 import styles from "./ParserTestCasesList.module.css";
 
 interface ParserTestCasesListProps {
@@ -47,6 +49,8 @@ export function ParserTestCasesList({
   const [hiddenRunResultIds, setHiddenRunResultIds] = React.useState<Set<number>>(() => new Set());
   const debouncedSearch = useDebounce(search, 300);
   const selectedTestCaseId = selectedTestCase?.id;
+  const selectedDetailQuery = useParserTestCaseDetail(selectedTestCaseId, Boolean(selectedTestCaseId));
+  const selectedDetailTestCase = selectedDetailQuery.data?.testCase ?? selectedTestCase;
   const isRunningTest = (id: number) => runningTestCaseId === id;
   const isRunDisabled = runningTestCaseId !== null;
 
@@ -82,6 +86,20 @@ export function ParserTestCasesList({
   const handleRunClick = (id: number) => {
     showRunResultsFor(id);
     onRun(id);
+  };
+
+  const handleEditClick = async (testCase: any) => {
+    if (typeof testCase?.id !== "number" || testCase.rawExtractedText !== undefined) {
+      onEdit(testCase);
+      return;
+    }
+
+    try {
+      const detail = await getParserTestCase({ id: testCase.id });
+      onEdit(detail.testCase);
+    } catch {
+      onEdit(testCase);
+    }
   };
 
   const listPanel = (
@@ -165,7 +183,7 @@ export function ParserTestCasesList({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => onEdit(tc)}
+                          onClick={() => void handleEditClick(tc)}
                           title="Edit"
                         >
                           <Edit size={14} />
@@ -198,7 +216,7 @@ export function ParserTestCasesList({
   const detailPanel = selectedTestCase ? (
     <div className={styles.detailPanel}>
       <div className={styles.detailHeader}>
-        <h3 className={styles.detailTitle}>{selectedTestCase.name}</h3>
+        <h3 className={styles.detailTitle}>{selectedDetailTestCase.name}</h3>
         <div className={styles.detailActions}>
           <Button size="sm" variant="outline" onClick={() => setSelectedTestCase(null)}>
             <XCircle size={14} /> Test Cases
@@ -224,7 +242,7 @@ export function ParserTestCasesList({
               </Button>
             )
           )}
-          <Button size="sm" variant="outline" onClick={() => onEdit(selectedTestCase)}>
+          <Button size="sm" variant="outline" onClick={() => void handleEditClick(selectedDetailTestCase)}>
             <Edit size={14} /> Edit
           </Button>
           <Button size="sm" onClick={() => handleRunClick(selectedTestCase.id)} disabled={isRunDisabled}>
@@ -250,7 +268,7 @@ export function ParserTestCasesList({
           />
         ) : (
           <ParserTestSavedOutputPanel
-            testCase={selectedTestCase}
+            testCase={selectedDetailTestCase}
             emptyIcon={<Clock size={48} className="text-muted-foreground mb-4" />}
             onAdjudicate={onAdjudicate}
             isAdjudicating={isAdjudicating}

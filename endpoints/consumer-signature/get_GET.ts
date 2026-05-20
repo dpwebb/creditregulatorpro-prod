@@ -1,21 +1,17 @@
-import { schema, OutputType } from "./list_GET.schema";
+import { schema, OutputType } from "./get_GET.schema";
 
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { logRead } from "../../helpers/auditLogger";
+import { isAdmin } from "../../helpers/userRoleUtils";
 
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
-
     const url = new URL(request.url);
-    const searchParams = Object.fromEntries(url.searchParams.entries());
-    
     const input = schema.parse({
-      signatureType: searchParams.signatureType || undefined,
-      limit: searchParams.limit ?? undefined,
-      offset: searchParams.offset ?? undefined,
+      id: url.searchParams.get("id") ?? undefined,
     });
 
     let query = db
@@ -24,6 +20,7 @@ export async function handle(request: Request) {
       .select([
         "consumerSignature.id",
         "consumerSignature.userId",
+        "consumerSignature.signatureData",
         "consumerSignature.signatureType",
         "consumerSignature.isVerified",
         "consumerSignature.verifiedAt",
@@ -31,33 +28,28 @@ export async function handle(request: Request) {
         "consumerSignature.associatedFreezeId",
         "consumerSignature.metadata",
         "consumerSignature.createdAt",
-        // Select freeze details if available
         "identityTheftFreeze.freezeType as freezeType",
         "identityTheftFreeze.status as freezeStatus",
         "identityTheftFreeze.bureauId as freezeBureauId",
       ])
-      .where("consumerSignature.userId", "=", user.id);
+      .where("consumerSignature.id", "=", input.id);
 
-    if (input.signatureType) {
-      query = query.where("consumerSignature.signatureType", "=", input.signatureType);
+    if (!isAdmin(user)) {
+      query = query.where("consumerSignature.userId", "=", user.id);
     }
 
-    const signatures = await query
-      .orderBy("consumerSignature.createdAt", "desc")
-      .limit(input.limit)
-      .offset(input.offset)
-      .execute();
+    const signature = await query.executeTakeFirst();
 
-    // Log audit
-    await logRead(user.id, "USER_ACCOUNT", user.id, request);
+    if (!signature) {
+      return new Response(JSON.stringify({ error: "Signature not found" }), { status: 404 });
+    }
 
-    const metadataOnlySignatures = signatures.map((signature) => {
-      const { signatureData: _signatureData, ...metadata } = signature as typeof signature & { signatureData?: unknown };
-      return metadata;
+    await logRead(user.id, "USER_ACCOUNT", signature.userId, request);
+
+    return new Response(JSON.stringify({ signature } satisfies OutputType), {
+      headers: { "Content-Type": "application/json" },
     });
-
-    return new Response(JSON.stringify({ signatures: metadataOnlySignatures } satisfies OutputType));
-    } catch (error) {
+  } catch (error) {
     return handleEndpointError(error);
   }
 }

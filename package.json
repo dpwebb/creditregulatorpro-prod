@@ -69,6 +69,7 @@
     "baseline:production-scale-local": "node scripts/production-scale-harness.mjs",
     "production-scale:evidence": "node scripts/production-scale-evidence.mjs",
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",
+    "sensitive-list-endpoints:evidence": "node scripts/sensitive-list-endpoints-evidence.mjs",
     "restore:drill:simulated": "node scripts/restore-drill-simulated.mjs",
     "report:runtime-size": "node scripts/runtime-size-report.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",

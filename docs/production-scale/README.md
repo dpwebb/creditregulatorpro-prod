@@ -158,6 +158,25 @@ New bureau communication attachments use storage references; old inline evidence
 
 Historical raw report bytes remain a partial blocker until an approved remediation plan handles old inline rows. The inventory command is evidence, not remediation and not production-at-scale proof.
 
+## Sensitive List Endpoint Evidence
+
+Run:
+
+```bash
+pnpm run sensitive-list-endpoints:evidence
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-sensitive-list-endpoints.md`
+- `docs/production-scale/evidence/latest-sensitive-list-endpoints.json`
+
+Parser-test list responses are metadata-only and no longer include `rawExtractedText`. Admins can still access raw parser-test text through `/_api/parser-test-case/get` and `/_api/parser-test-case/export`, both of which remain admin-only.
+
+Consumer-signature list responses are metadata-only and no longer include `signatureData`. Signature image data is available through `/_api/consumer-signature/get`, which requires the owner or an admin. Non-owner users cannot retrieve another user's signature data.
+
+Hidden-risk list semantics remain partial/design-only in this evidence. The endpoint still computes aggregate and stale-suppression semantics over the full matching set, so a safe future fix must split aggregate counts from bounded row pagination instead of applying a blind limit.
+
 ## Migration Governance Evidence
 
 Run:
