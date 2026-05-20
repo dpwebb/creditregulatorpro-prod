@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T18:07:24.857Z
+Generated at: 2026-05-20T18:20:58.290Z
 Current branch: `staging`
-Current commit hash: `dce75c4dab378c7ca3c7f8230cfa7e6e24fd76a9`
+Current commit hash: `06a358b6df7729287a7cebdd4cd9c8e84ad5557a`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -23,7 +23,7 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 - Expected blockers: 25
 - Actual blockers: 25
 - Registry validation: passed
-- Status counts: requires-human-proof=1, simulated-proof-only=2, partial=13, fixed=1, open=8
+- Status counts: requires-human-proof=1, simulated-proof-only=2, partial=13, fixed=3, open=6
 
 ## Automated Local Evidence
 
@@ -49,12 +49,12 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Next action: Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
-  Next action: Create a sanitized inventory and reviewed remediation plan without moving data silently.
-- #7 Bureau communication storage (High; open)
-  Proof required: Storage adapter proof for new bureau attachments plus compatibility proof for old records.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Move bureau attachments to the existing storage adapter in a separate task.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
+- #7 Bureau communication storage (High; fixed)
+  Proof required: Automated storage adapter proof for new bureau attachments plus compatibility proof for old inline records.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
+  Next action: Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
   Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
@@ -71,10 +71,10 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
   Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
   Next action: Keep production probes read-only and run seeded privacy smokes only locally or in staging.
-- #12 OCR route-local validation shape (Medium; open)
-  Proof required: OCR upload-limit and output-stability tests after shared validation alignment.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`, `pnpm run test:deterministic-ingestion-report`
-  Next action: Align OCR validation in a separate bounded route task without changing OCR output.
+- #12 OCR route-local validation shape (Medium; fixed)
+  Proof required: OCR shared upload-validation proof plus valid-fixture output-stability evidence.
+  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`, `pnpm run test:deterministic-ingestion-report`, `pnpm run typecheck`
+  Next action: Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests.
 - #13 Parser-test list sensitive field (Medium; open)
   Proof required: Admin UI compatibility plus metadata-only list proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx`, `pnpm run test:api`, `pnpm run typecheck`
@@ -177,8 +177,8 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
-  Next action: Create a sanitized inventory and reviewed remediation plan without moving data silently.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
   Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
@@ -268,12 +268,8 @@ No read-only production command is executed by this report. Any production evide
   Next action: Prove cache-miss behavior under bounded synthetic load or add a separate render queue.
 - #6 Historical raw report bytes (High; partial)
   Proof required: Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
-  Next action: Create a sanitized inventory and reviewed remediation plan without moving data silently.
-- #7 Bureau communication storage (High; open)
-  Proof required: Storage adapter proof for new bureau attachments plus compatibility proof for old records.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run typecheck`
-  Next action: Move bureau attachments to the existing storage adapter in a separate task.
+  Allowed commands: `pnpm run storage:raw-report-inventory`, `pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts`, `pnpm run test:api`, `pnpm run operator:dashboard`
+  Next action: Use the sanitized inventory to create a reviewed remediation plan without moving data silently.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
   Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
@@ -290,10 +286,6 @@ No read-only production command is executed by this report. Any production evide
   Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
   Next action: Keep production probes read-only and run seeded privacy smokes only locally or in staging.
-- #12 OCR route-local validation shape (Medium; open)
-  Proof required: OCR upload-limit and output-stability tests after shared validation alignment.
-  Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`, `pnpm run test:deterministic-ingestion-report`
-  Next action: Align OCR validation in a separate bounded route task without changing OCR output.
 - #13 Parser-test list sensitive field (Medium; open)
   Proof required: Admin UI compatibility plus metadata-only list proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/parser-test-cases-list-navigation.spec.tsx`, `pnpm run test:api`, `pnpm run typecheck`

@@ -68,3 +68,24 @@ Outputs:
 These files are `SIMULATED` evidence only. They use synthetic in-memory queue jobs, mocked worker dependencies, and no real reports or production queue records. They do not activate a production worker, do not change production deployment, do not mutate production data, and do not connect to live providers.
 
 The production ingest runtime blocker remains unresolved for production use until bounded staging-safe queue-depth recovery evidence is recorded and reviewed. Simulated proof cannot be promoted to production proof.
+
+## Storage Raw Report Inventory
+
+Run:
+
+```bash
+pnpm run storage:raw-report-inventory
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-storage-raw-report-inventory.md`
+- `docs/production-scale/evidence/latest-storage-raw-report-inventory.json`
+
+This is sanitized read-only inventory evidence. It counts possible inline `reportArtifact.storageUrl` and `evidenceAttachment.storageUrl` rows without printing raw bytes, raw base64, raw PII, storage secrets, or signed URLs. It does not migrate or delete historical inline rows.
+
+If the local database is unavailable, the generated report is marked `database-unavailable`; those unavailable counts are not zero-row proof.
+
+New bureau communication attachments use storage references; old inline evidence attachment rows remain compatible and readable through metadata-safe paths. OCR upload validation now uses the shared upload boundary checks while preserving valid PDF OCR output.
+
+Historical raw report bytes remain a partial blocker until an approved remediation plan handles old inline rows. The inventory command is evidence, not remediation and not production-at-scale proof.

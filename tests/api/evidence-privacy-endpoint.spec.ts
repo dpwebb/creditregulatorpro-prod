@@ -561,6 +561,33 @@ describe("evidence privacy and ownership endpoints", () => {
     await expect(missing.json()).resolves.toEqual({ error: "Obligation instance not found." });
   });
 
+  it("keeps legacy inline evidence attachment records metadata-readable without exposing base64", async () => {
+    const legacyInlineBase64 = "data:application/pdf;base64,TEVHQUNZX0lOTElORV9CVVJFQVVfUkVQT1JU";
+    mocks.getEvidenceAttachments.mockResolvedValueOnce([
+      attachment({
+        id: 803,
+        fileName: "legacy-inline-bureau-response.pdf",
+        storageUrl: legacyInlineBase64,
+      }),
+    ]);
+    queueResults({ first: { userId: 10 } });
+
+    const response = await listAttachments(getRequest("/_api/evidence-attachment/list?packetId=601"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual([
+      expect.objectContaining({
+        id: 803,
+        fileName: "legacy-inline-bureau-response.pdf",
+      }),
+    ]);
+    expect(body[0]).not.toHaveProperty("storageUrl");
+    expect(JSON.stringify(body)).not.toContain(legacyInlineBase64);
+    expect(JSON.stringify(body)).not.toContain("TEVHQUNZX0lOTElORV9CVVJFQVVfUkVQT1JU");
+    expectNoSensitiveLeak(body);
+  });
+
   it("uploads attachment metadata for owned resources without leaking raw file bytes or signed secrets", async () => {
     queueResults({ first: { userId: 10 } });
 
@@ -819,8 +846,30 @@ describe("evidence privacy and ownership endpoints", () => {
     expect(mocks.logAudit).not.toHaveBeenCalled();
   });
 
+  it("rejects unsupported bureau communication MIME types before ownership or storage work", async () => {
+    const response = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({
+          fileName: "synthetic-bureau-response.txt",
+          fileType: "text/plain",
+          fileDataBase64: Buffer.from("SYNTHETIC_TEXT_FILE").toString("base64"),
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "File type must be PDF, PNG, or JPG" });
+    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.uploadFile).not.toHaveBeenCalled();
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
   it("records a bounded bureau communication upload through the existing evidence path", async () => {
     const body = bureauCommunicationBody();
+    const bureauStorageUrl = "local:evidence/bureau-communications/10/1234567890-synthetic-bureau-response.pdf";
+    mocks.uploadFile.mockResolvedValueOnce(bureauStorageUrl);
     queueResults(
       { first: { id: 701, userId: 10, organizationId: 1000 } },
       { first: { currentHash: "previous-synthetic-hash" } },
@@ -831,7 +880,7 @@ describe("evidence privacy and ownership endpoints", () => {
           obligationInstanceId: null,
           packetId: null,
           fileName: "synthetic-bureau-response.pdf",
-          storageUrl: body.fileDataBase64,
+          storageUrl: bureauStorageUrl,
         }),
       },
       { first: null },
@@ -853,14 +902,22 @@ describe("evidence privacy and ownership endpoints", () => {
       fileHash: expect.any(String),
       responseClassification: expect.any(Object),
     });
+    expect(mocks.uploadFile).toHaveBeenCalledWith(
+      body.fileDataBase64,
+      expect.stringMatching(/^evidence\/bureau-communications\/10\/[a-f0-9-]+-[a-f0-9]{16}-synthetic-bureau-response\.pdf$/),
+      "application/pdf",
+    );
     expect(valuesFor("evidenceAttachment")[0]).toMatchObject({
       fileName: "synthetic-bureau-response.pdf",
       fileType: "application/pdf",
       fileSizeBytes: Buffer.from(body.fileDataBase64, "base64").length,
-      storageUrl: body.fileDataBase64,
+      storageUrl: bureauStorageUrl,
       uploadedBy: 10,
       region: "CA",
     });
+    expect(valuesFor("evidenceAttachment")[0].storageUrl).not.toBe(body.fileDataBase64);
+    expect(JSON.stringify(responseBody)).not.toContain(body.fileDataBase64);
+    expectNoSensitiveLeak(responseBody, { allowLocalStorageUrl: true });
     expect(mocks.db.transaction).toHaveBeenCalled();
     expect(mocks.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({

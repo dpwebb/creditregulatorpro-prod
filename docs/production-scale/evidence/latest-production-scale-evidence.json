@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T18:07:24.857Z",
+  "generatedAt": "2026-05-20T18:20:58.290Z",
   "branch": "staging",
-  "commit": "dce75c4dab378c7ca3c7f8230cfa7e6e24fd76a9",
+  "commit": "06a358b6df7729287a7cebdd4cd9c8e84ad5557a",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -19,8 +19,8 @@
       "requires-human-proof": 1,
       "simulated-proof-only": 2,
       "partial": 13,
-      "fixed": 1,
-      "open": 8
+      "fixed": 3,
+      "open": 6
     },
     "validation": {
       "valid": true,
@@ -225,6 +225,8 @@
           "currentStatus": "partial",
           "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
           "allowedProofCommands": [
+            "pnpm run storage:raw-report-inventory",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
             "pnpm run test:api",
             "pnpm run operator:dashboard"
@@ -240,19 +242,22 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/report-artifact-storage.md",
+            "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+            "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Create a sanitized inventory and reviewed remediation plan without moving data silently."
+          "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently."
         },
         {
           "number": 7,
           "title": "Bureau communication storage",
           "severity": "High",
           "area": "Bureau communication storage",
-          "currentStatus": "open",
-          "proofTypeRequired": "Storage adapter proof for new bureau attachments plus compatibility proof for old records.",
+          "currentStatus": "fixed",
+          "proofTypeRequired": "Automated storage adapter proof for new bureau attachments plus compatibility proof for old inline records.",
           "allowedProofCommands": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
             "pnpm run test:api",
             "pnpm run typecheck"
@@ -267,10 +272,11 @@
           "simulatedProofAcceptable": false,
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
+            "docs/report-artifact-storage.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Move bureau attachments to the existing storage adapter in a separate task."
+          "recommendedNextAction": "Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan."
         },
         {
           "number": 8,
@@ -392,12 +398,13 @@
           "title": "OCR route-local validation shape",
           "severity": "Medium",
           "area": "OCR route-local validation shape",
-          "currentStatus": "open",
-          "proofTypeRequired": "OCR upload-limit and output-stability tests after shared validation alignment.",
+          "currentStatus": "fixed",
+          "proofTypeRequired": "OCR shared upload-validation proof plus valid-fixture output-stability evidence.",
           "allowedProofCommands": [
             "pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts",
-            "pnpm run test:deterministic-ingestion-report"
+            "pnpm run test:deterministic-ingestion-report",
+            "pnpm run typecheck"
           ],
           "forbiddenProofTypes": [
             "OCR output behavior change",
@@ -412,7 +419,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Align OCR validation in a separate bounded route task without changing OCR output."
+          "recommendedNextAction": "Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests."
         },
         {
           "number": 13,
@@ -1095,6 +1102,8 @@
           "currentStatus": "partial",
           "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
           "allowedProofCommands": [
+            "pnpm run storage:raw-report-inventory",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
             "pnpm run test:api",
             "pnpm run operator:dashboard"
@@ -1110,10 +1119,12 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/report-artifact-storage.md",
+            "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+            "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Create a sanitized inventory and reviewed remediation plan without moving data silently."
+          "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently."
         },
         {
           "number": 8,
@@ -1666,6 +1677,8 @@
       "currentStatus": "partial",
       "proofTypeRequired": "Non-destructive inventory and remediation plan for old inline rows while new rows stay reference-based.",
       "allowedProofCommands": [
+        "pnpm run storage:raw-report-inventory",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
         "pnpm run operator:dashboard"
@@ -1681,37 +1694,12 @@
       "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/report-artifact-storage.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Create a sanitized inventory and reviewed remediation plan without moving data silently."
-    },
-    {
-      "number": 7,
-      "title": "Bureau communication storage",
-      "severity": "High",
-      "area": "Bureau communication storage",
-      "currentStatus": "open",
-      "proofTypeRequired": "Storage adapter proof for new bureau attachments plus compatibility proof for old records.",
-      "allowedProofCommands": [
-        "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
-        "pnpm run test:api",
-        "pnpm run typecheck"
-      ],
-      "forbiddenProofTypes": [
-        "raw attachment bytes in DB evidence",
-        "live mail delivery",
-        "production evidence mutation",
-        "dashboard PASS alone"
-      ],
-      "productionMutationForbidden": true,
-      "simulatedProofAcceptable": false,
-      "humanProofRequired": false,
-      "relatedEvidenceOutputPaths": [
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Move bureau attachments to the existing storage adapter in a separate task."
+      "recommendedNextAction": "Use the sanitized inventory to create a reviewed remediation plan without moving data silently."
     },
     {
       "number": 8,
@@ -1827,33 +1815,6 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
       "recommendedNextAction": "Keep production probes read-only and run seeded privacy smokes only locally or in staging."
-    },
-    {
-      "number": 12,
-      "title": "OCR route-local validation shape",
-      "severity": "Medium",
-      "area": "OCR route-local validation shape",
-      "currentStatus": "open",
-      "proofTypeRequired": "OCR upload-limit and output-stability tests after shared validation alignment.",
-      "allowedProofCommands": [
-        "pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts",
-        "pnpm run test:deterministic-ingestion-report"
-      ],
-      "forbiddenProofTypes": [
-        "OCR output behavior change",
-        "parser behavior change",
-        "real PII PDF fixture",
-        "dashboard PASS alone"
-      ],
-      "productionMutationForbidden": true,
-      "simulatedProofAcceptable": false,
-      "humanProofRequired": false,
-      "relatedEvidenceOutputPaths": [
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Align OCR validation in a separate bounded route task without changing OCR output."
     },
     {
       "number": 13,

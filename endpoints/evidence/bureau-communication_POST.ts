@@ -19,6 +19,10 @@ import {
   isUploadRequestTextTooLarge,
   uploadRequestTooLargeResponse,
 } from "../../helpers/uploadPayloadValidation";
+import {
+  buildBureauCommunicationStorageMetadata,
+  storeBureauCommunicationAttachment,
+} from "../../helpers/evidenceAttachmentStorage";
 import CryptoJS from "crypto-js";
 
 function toJsonArray(value: string[] | undefined): Json | undefined {
@@ -232,6 +236,13 @@ export async function handle(request: Request) {
     const fileHash = CryptoJS.SHA256(input.fileDataBase64).toString(CryptoJS.enc.Hex);
     
     const fileSizeBytes = getBase64DecodedByteLength(input.fileDataBase64);
+    const storedAttachment = await storeBureauCommunicationAttachment({
+      bytesBase64: input.fileDataBase64,
+      userId: user.id,
+      fileName: input.fileName,
+      mimeType: input.fileType,
+      sha256: fileHash,
+    });
 
     // Use a transaction to ensure atomicity and hash chain integrity
     const result = await db.transaction().execute(async (trx) => {
@@ -285,7 +296,7 @@ export async function handle(request: Request) {
           fileName: input.fileName,
           fileType: input.fileType,
           fileSizeBytes,
-          storageUrl: input.fileDataBase64, // Storing base64 directly as per requirements/existing patterns
+          storageUrl: storedAttachment.storageUrl,
           description: `Bureau Communication ${input.communicationType}. SHA256: ${fileHash}. ${input.description || ""}`.trim(),
           uploadedBy: user.id,
           region: "CA",
@@ -384,6 +395,7 @@ export async function handle(request: Request) {
         communicationType: input.communicationType,
         responseClassification: result.responseClassification,
         fileName: input.fileName,
+        storage: buildBureauCommunicationStorageMetadata(storedAttachment),
         linkedTo: {
           tradelineId: effectiveTradelineId,
           packetId: input.packetId,

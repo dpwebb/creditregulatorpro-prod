@@ -1,0 +1,55 @@
+{
+  "reportName": "storage-raw-report-inventory",
+  "generatedAt": "2026-05-20T18:22:49.350Z",
+  "branch": "staging",
+  "commit": "06a358b6df7729287a7cebdd4cd9c8e84ad5557a",
+  "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
+  "status": "database-unavailable",
+  "databaseReachable": false,
+  "countsReliable": false,
+  "collectionError": "database unavailable; raw connection details and database targets are not stored",
+  "nonDestructive": true,
+  "historicalRowsMigrated": false,
+  "rawValuesPrinted": false,
+  "rawBytesPrinted": false,
+  "signedUrlsPrinted": false,
+  "productionDataMutated": false,
+  "liveExternalProvidersConnected": false,
+  "safety": {
+    "productionEnvironmentDetected": false,
+    "productionMutationForbidden": true,
+    "realConsumerPiiUsed": false,
+    "rawReportBytesExposed": false,
+    "storageSecretsExposed": false,
+    "signedUrlsExposed": false,
+    "silentHistoricalMigrationPerformed": false,
+    "databaseUnavailableDoesNotImplyZeroInlineRows": true
+  },
+  "tables": {
+    "reportArtifact": {
+      "totalRows": 0,
+      "storageUrlRows": 0,
+      "localReferenceRows": 0,
+      "possibleInlineBase64Rows": 0,
+      "dataUrlBase64Rows": 0,
+      "nonLocalReferenceRows": 0,
+      "nullStorageRows": 0
+    },
+    "evidenceAttachment": {
+      "totalRows": 0,
+      "storageUrlRows": 0,
+      "localReferenceRows": 0,
+      "possibleInlineBase64Rows": 0,
+      "dataUrlBase64Rows": 0,
+      "nonLocalReferenceRows": 0,
+      "nullStorageRows": 0
+    }
+  },
+  "statements": [
+    "This inventory is non-destructive and sanitized.",
+    "The local database was unavailable; possible inline base64 rows were not counted and must not be treated as zero.",
+    "No historical raw report rows are migrated or deleted by this command.",
+    "This report does not claim production-at-scale readiness."
+  ],
+  "recommendedNextAction": "Run this command again with a staging-safe local database connection before relying on inventory counts."
+}

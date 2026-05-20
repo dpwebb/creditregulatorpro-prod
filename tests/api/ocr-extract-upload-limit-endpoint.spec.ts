@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { getUploadRequestBodyMaxBytes } from "../../helpers/uploadPayloadValidation";
+
 const mocks = vi.hoisted(() => ({
   getServerUserSession: vi.fn(),
   checkRateLimit: vi.fn(),
@@ -54,6 +56,18 @@ function postRequest(body: Record<string, unknown>) {
   });
 }
 
+function oversizedRawPostRequest() {
+  return new Request("http://localhost/_api/ocr/extract", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "content-length": String(getUploadRequestBodyMaxBytes(OCR_PDF_MAX_BYTES) + 1),
+      "user-agent": "synthetic-ocr-upload-limit-test",
+    },
+    body: "{",
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -76,7 +90,49 @@ describe("OCR extract upload limit contract", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      error: "PDF file exceeds the 15 MB extraction limit",
+      error: "PDF file exceeds the 15 MB upload limit",
+    });
+    expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
+    expect(mocks.normalizeTradelines).not.toHaveBeenCalled();
+    expect(mocks.scoreTradelines).not.toHaveBeenCalled();
+  });
+
+  it("rejects raw oversized OCR request bodies before JSON parse or OCR parsing work", async () => {
+    const response = await extractOcr(oversizedRawPostRequest());
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({
+      error: "PDF file request body exceeds the 15 MB upload limit",
+    });
+    expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
+    expect(mocks.normalizeTradelines).not.toHaveBeenCalled();
+    expect(mocks.scoreTradelines).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed OCR base64 before OCR parsing work", async () => {
+    const response = await extractOcr(postRequest({ bytesBase64: "not-valid-base64!" }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "PDF file data must be valid base64",
+    });
+    expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
+    expect(mocks.normalizeTradelines).not.toHaveBeenCalled();
+    expect(mocks.scoreTradelines).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsupported OCR MIME types before OCR parsing work", async () => {
+    const response = await extractOcr(
+      postRequest({
+        fileName: "synthetic-credit-report.png",
+        mimeType: "image/png",
+        bytesBase64: Buffer.from("SYNTHETIC_IMAGE_BYTES", "utf8").toString("base64"),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Only PDF extraction is supported",
     });
     expect(mocks.extractCanonicalCreditReport).not.toHaveBeenCalled();
     expect(mocks.normalizeTradelines).not.toHaveBeenCalled();

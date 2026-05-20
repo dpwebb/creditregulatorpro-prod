@@ -1,8 +1,8 @@
-# Report Artifact Raw PDF Storage
+# Report Artifact And Attachment Storage
 
 Updated: 2026-05-20
 
-This document covers the storage behavior for new report artifact raw PDF uploads. It does not claim broad-production or production-at-scale readiness.
+This document covers the storage behavior for new report artifact raw PDF uploads and new bureau communication attachments. It does not claim broad-production or production-at-scale readiness.
 
 ## Current Format
 
@@ -34,6 +34,37 @@ The following new raw PDF writes store references instead of inline base64:
 
 Report artifact list responses omit `storageUrl` so list payloads do not expose raw PDF bytes or storage references.
 
+## Bureau Communication Attachments
+
+New bureau communication file uploads now store bytes through the same storage adapter family instead of putting inline base64 in `evidenceAttachment.storageUrl`. The database stores a reference in this format:
+
+`local:evidence/bureau-communications/<user-id>/<uuid>-<sha256-prefix>-<filename>`
+
+Legacy evidence attachment rows that already contain inline base64 remain readable by compatibility helpers and metadata-only list paths. They are not migrated, deleted, or rewritten by this change.
+
+Evidence attachment list responses continue to omit `storageUrl`, so list payloads do not expose raw file bytes, inline base64, storage object names, signed URLs, or storage secrets.
+
+## Raw Report Inventory
+
+Run:
+
+```bash
+pnpm run storage:raw-report-inventory
+```
+
+The command writes sanitized aggregate evidence only:
+
+- `docs/production-scale/evidence/latest-storage-raw-report-inventory.md`
+- `docs/production-scale/evidence/latest-storage-raw-report-inventory.json`
+
+It counts possible inline `reportArtifact.storageUrl` and `evidenceAttachment.storageUrl` rows without printing raw values. It is non-destructive, does not migrate historical rows, does not delete old inline records, and does not print raw bytes, storage secrets, signed URLs, or PII.
+
+If no staging-safe local database connection is available, the command still writes sanitized evidence marked `database-unavailable`; those unavailable counts must not be treated as zero inline rows.
+
+## OCR Upload Validation
+
+The OCR extraction route now uses the shared upload validation helpers for filename, MIME, base64, decoded-size, and raw request-body bounds while preserving the existing 15 MB PDF limit. Valid PDF extraction still calls the same OCR/canonical extraction path and returns the same response shape.
+
 ## Boundaries
 
-This change does not alter parser output, OCR behavior, violation detection, evidence binding, packet readiness, response lifecycle, ingest queue semantics, admin correction truth, deployment behavior, or historical inline records.
+This change does not alter parser output, OCR output for valid fixtures, violation detection, evidence binding, packet readiness, response lifecycle, ingest queue semantics, admin correction truth, deployment behavior, or historical inline records.

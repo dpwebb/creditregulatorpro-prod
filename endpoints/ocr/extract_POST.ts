@@ -1,4 +1,4 @@
-import { schema, OutputType } from "./extract_POST.schema";
+import { OCR_EXTRACT_UPLOAD_MAX_BYTES, schema, OutputType } from "./extract_POST.schema";
 
 import { extractCanonicalCreditReport } from "../../helpers/canonicalCreditReportExtractor";
 import { normalizeTradelines } from "../../helpers/normalization";
@@ -8,16 +8,11 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { checkRateLimit, RateLimitConfig } from "../../helpers/rateLimiter";
 import { isScannedPdfUnsupportedError } from "../../helpers/creditReportPdfEligibility";
 import { logRejectedScannedPdfUpload } from "../../helpers/creditReportUploadRejectionAudit";
-
-const MAX_PDF_BYTES = 15 * 1024 * 1024;
-
-function getDecodedBase64Size(bytesBase64: string): number {
-  const payload = bytesBase64.includes(",")
-    ? bytesBase64.split(",").pop() || ""
-    : bytesBase64;
-  const padding = payload.match(/=+$/)?.[0].length || 0;
-  return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
-}
+import {
+  isUploadRequestContentLengthTooLarge,
+  isUploadRequestTextTooLarge,
+  uploadRequestTooLargeResponse,
+} from "../../helpers/uploadPayloadValidation";
 
 export async function handle(request: Request) {
   try {
@@ -39,16 +34,17 @@ export async function handle(request: Request) {
       );
     }
 
-    const json = JSON.parse(await request.text());
+    if (isUploadRequestContentLengthTooLarge(request, OCR_EXTRACT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("PDF file", OCR_EXTRACT_UPLOAD_MAX_BYTES);
+    }
+
+    const text = await request.text();
+    if (isUploadRequestTextTooLarge(text, OCR_EXTRACT_UPLOAD_MAX_BYTES)) {
+      return uploadRequestTooLargeResponse("PDF file", OCR_EXTRACT_UPLOAD_MAX_BYTES);
+    }
+
+    const json = JSON.parse(text);
     const input = schema.parse(json);
-
-    if (input.mimeType !== "application/pdf") {
-      throw new BusinessRuleError("Only PDF extraction is supported", 400);
-    }
-
-    if (getDecodedBase64Size(input.bytesBase64) > MAX_PDF_BYTES) {
-      throw new BusinessRuleError("PDF file exceeds the 15 MB extraction limit", 400);
-    }
 
     // 1. Parse the report
     // Note: We are not persisting anything yet.
