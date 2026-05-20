@@ -71,6 +71,7 @@ Before promoting staging to production, confirm:
 - Violation search/status endpoint coverage passes: `pnpm exec vitest run tests/api/violation-search-status-endpoint.spec.ts`.
 - Report ingest lifecycle endpoint coverage passes: `pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts`.
 - Evidence privacy endpoint coverage passes: `pnpm exec vitest run tests/api/evidence-privacy-endpoint.spec.ts`.
+- Retention apply guard coverage passes: `pnpm exec vitest run tests/api/retention-apply-guard-endpoint.spec.ts` and `pnpm exec vitest run tests/api/cron-auth-endpoint.spec.ts`. Retention cron and admin routes must preview by default, reject query-token auth, require explicit `APPLY_RETENTION_PURGE` confirmation for destructive apply, and record append-only audit evidence when apply runs.
 - Contracts pass: `pnpm run test:contracts`.
 - API tests pass: `pnpm run test:api`.
 - Typecheck passes: `pnpm run typecheck`.

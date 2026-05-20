@@ -9,6 +9,7 @@ import {
   runRetentionEnforcement,
   getRetentionStats,
 } from "../helpers/adminRetentionApi";
+import { RETENTION_APPLY_CONFIRMATION } from "../endpoints/admin/retention_POST.schema";
 import { useAuditLogs } from "../helpers/useAuditLogs";
 import { DataRetentionStats } from "./DataRetentionStats";
 import { DataRetentionAutomation } from "./DataRetentionAutomation";
@@ -80,7 +81,7 @@ export const DataRetentionPanel = () => {
   });
 
   const handleRunRetention = () => {
-    mutation.mutate({ confirmDelete: true });
+    mutation.mutate({ mode: "apply", confirmation: RETENTION_APPLY_CONFIRMATION });
   };
 
   return (
@@ -105,7 +106,7 @@ export const DataRetentionPanel = () => {
 
         <div className={styles.actionArea}>
           <div className={styles.actionDisclaimer}>
-            Only manual enforcement requires confirmation. Automated purging happens silently.
+            Preview is the default. Manual and automated destructive apply require explicit confirmation.
           </div>
           <Button 
             variant="destructive" 

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
     return `unexpected-${label}`;
   }),
   runRegulationUpdateScan: vi.fn(),
+  previewRetention: vi.fn(),
   enforceRetention: vi.fn(),
   logAudit: vi.fn(),
 }));
@@ -23,6 +24,7 @@ vi.mock("../../helpers/regulationRegistryService", () => ({
 }));
 
 vi.mock("../../helpers/dataRetention", () => ({
+  previewRetention: mocks.previewRetention,
   enforceRetention: mocks.enforceRetention,
 }));
 
@@ -33,11 +35,11 @@ vi.mock("../../helpers/auditLogger", () => ({
 import { handle as scheduledScan } from "../../endpoints/regulation-registry/scheduled-scan_POST";
 import { handle as retentionAutoPurge } from "../../endpoints/retention/auto-purge_POST";
 
-function postRequest(path: string, token?: string): Request {
+function postRequest(path: string, token?: string, body: unknown = {}): Request {
   return new Request(`http://localhost${path}`, {
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: "{}",
+    body: JSON.stringify(body),
   });
 }
 
@@ -72,6 +74,10 @@ describe("cron route bearer authentication", () => {
       skipped: 0,
       errors: [],
       candidateIds: [],
+    });
+    mocks.previewRetention.mockResolvedValue({
+      ...retentionSummary(),
+      message: "Synthetic retention preview completed.",
     });
     mocks.enforceRetention.mockResolvedValue(retentionSummary());
     mocks.logAudit.mockResolvedValue(undefined);
@@ -113,7 +119,7 @@ describe("cron route bearer authentication", () => {
     await expect(missingToken.json()).resolves.toEqual({ error: "Unauthorized: Invalid or missing token" });
   });
 
-  it("accepts retention auto-purge bearer token without changing purge invocation semantics", async () => {
+  it("defaults retention auto-purge bearer token to preview without deleting", async () => {
     const response = await retentionAutoPurge(
       postRequest("/_api/retention/auto-purge", mocks.retentionToken),
     );
@@ -121,8 +127,41 @@ describe("cron route bearer authentication", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
+      message: "Synthetic retention preview completed.",
+    });
+    expect(mocks.previewRetention).toHaveBeenCalledTimes(1);
+    expect(mocks.enforceRetention).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects retention auto-purge apply without explicit confirmation", async () => {
+    const response = await retentionAutoPurge(
+      postRequest("/_api/retention/auto-purge", mocks.retentionToken, { mode: "apply" }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("Retention apply requires confirmation"),
+    });
+    expect(mocks.previewRetention).not.toHaveBeenCalled();
+    expect(mocks.enforceRetention).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("accepts retention auto-purge apply with bearer token and explicit confirmation", async () => {
+    const response = await retentionAutoPurge(
+      postRequest("/_api/retention/auto-purge", mocks.retentionToken, {
+        mode: "apply",
+        confirmation: "APPLY_RETENTION_PURGE",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
       message: "Synthetic retention purge completed.",
     });
+    expect(mocks.previewRetention).not.toHaveBeenCalled();
     expect(mocks.enforceRetention).toHaveBeenCalledWith(true);
     expect(mocks.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -130,6 +169,10 @@ describe("cron route bearer authentication", () => {
         entityType: "REPORT_ARTIFACT",
         userId: 0,
         status: "SUCCESS",
+        details: expect.objectContaining({
+          operation: "AUTOMATED_RETENTION_PURGE",
+          explicitConfirmation: true,
+        }),
       }),
     );
   });

@@ -1,7 +1,22 @@
 import { z } from "zod";
+import { RETENTION_APPLY_CONFIRMATION } from "../../helpers/retentionApplyGuard";
+
+export { RETENTION_APPLY_CONFIRMATION };
 
 export const schema = z.object({
-  confirmDelete: z.boolean(),
+  mode: z.enum(["preview", "apply"]).default("preview"),
+  confirmDelete: z.boolean().optional(),
+  confirmation: z.string().optional(),
+}).strict().superRefine((input, ctx) => {
+  const applyRequested = input.mode === "apply" || input.confirmDelete === true;
+  if (!applyRequested) return;
+  if (input.confirmation === RETENTION_APPLY_CONFIRMATION) return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: ["confirmation"],
+    message: `Retention apply requires confirmation "${RETENTION_APPLY_CONFIRMATION}".`,
+  });
 });
 
 export type InputType = z.infer<typeof schema>;

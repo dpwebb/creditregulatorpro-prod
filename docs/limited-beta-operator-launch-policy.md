@@ -12,7 +12,7 @@ Limited beta remains constrained because these blockers are unresolved:
 
 - Historical inline `reportArtifact.storageUrl` records remain readable and are not destructively migrated.
 - Report upload, OCR, parser, compliance scan, storage, and cleanup work still require strict operator limits until repeated load/concurrency and restore evidence exists.
-- New report PDF uploads store storage references instead of raw inline bytes, but storage lifecycle, purge/archive, growth monitoring, and full metadata-only list hardening remain incomplete.
+- New report PDF uploads store storage references instead of raw inline bytes, and retention apply is guarded by preview-first confirmation, but storage lifecycle, purge/archive, growth monitoring, and restore proof remain incomplete.
 - Packet PDF download/send paths still generate PDFs synchronously.
 - Ingest, packet PDF, storage growth, and auth failure observability is incomplete.
 - A production restore drill is not recorded as completed in the scale audit.
@@ -98,6 +98,7 @@ Rollback or disable beta entry points if any of these occur:
 
 - This policy is an operator guardrail. It does not add runtime throttling.
 - If a limit cannot be measured or enforced operationally, beta is not allowed for that window.
+- Retention cron and admin retention routes preview by default; destructive apply requires the explicit `APPLY_RETENTION_PURGE` confirmation and must be operator-supervised.
 - Do not increase limits because response processing is hardened; response queue hardening does not remove synchronous ingest/OCR/PDF/storage risk.
 - Do not use real consumer data in staging smokes or diagnostics.
 - Do not broaden beta scope to unsupported bureau layouts, unsupported scanned PDFs, direct furnisher workflows, or legal-determination language.

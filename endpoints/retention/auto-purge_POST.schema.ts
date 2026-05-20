@@ -1,7 +1,21 @@
 import { z } from "zod";
+import { RETENTION_APPLY_CONFIRMATION } from "../../helpers/retentionApplyGuard";
 
-// No input required for the auto-purge trigger itself; authentication is bearer-only.
-export const schema = z.object({});
+export { RETENTION_APPLY_CONFIRMATION };
+
+export const schema = z.object({
+  mode: z.enum(["preview", "apply"]).default("preview"),
+  confirmation: z.string().optional(),
+}).strict().superRefine((input, ctx) => {
+  if (input.mode !== "apply") return;
+  if (input.confirmation === RETENTION_APPLY_CONFIRMATION) return;
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: ["confirmation"],
+    message: `Retention apply requires confirmation "${RETENTION_APPLY_CONFIRMATION}".`,
+  });
+});
 
 export type InputType = z.infer<typeof schema>;
 
@@ -29,15 +43,18 @@ export type RetentionSummary = {
 export type OutputType = RetentionSummary;
 
 /**
- * Client helper for calling the auto-purge endpoint.
+ * Client helper for calling the retention cron endpoint.
  * Typically called by an external cron service, not the frontend client.
  */
 export const postAutoPurge = async (
   token: string,
+  body?: InputType,
   init?: RequestInit
 ): Promise<OutputType> => {
+  const validatedInput = schema.parse(body ?? {});
   const result = await fetch(`/_api/retention/auto-purge`, {
     method: "POST",
+    body: JSON.stringify(validatedInput),
     ...init,
     headers: {
       "Content-Type": "application/json",

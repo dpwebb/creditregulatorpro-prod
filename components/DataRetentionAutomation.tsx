@@ -59,7 +59,7 @@ export const DataRetentionAutomation = () => {
                 <div className={styles.stepContent}>
                   <p className={styles.stepTitle}>Prepare Authentication</p>
                   <p className={styles.stepText}>
-                    The endpoint requires the HMAC-derived retention cron token in a Bearer header.
+                    The endpoint requires the HMAC-derived retention cron token in a Bearer header. Requests without an apply body run preview only.
                   </p>
                   <div className={styles.codeBlock}>
                     Authorization: Bearer YOUR_RETENTION_CRON_TOKEN
@@ -90,6 +90,19 @@ export const DataRetentionAutomation = () => {
                     curl -X POST \{'\n'}
                     &nbsp;&nbsp;{WEBHOOK_URL} \{'\n'}
                     &nbsp;&nbsp;-H "Authorization: Bearer [TOKEN]"
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.step}>
+                <div className={styles.stepNumber}>4</div>
+                <div className={styles.stepContent}>
+                  <p className={styles.stepTitle}>Apply Requires Confirmation</p>
+                  <p className={styles.stepText}>
+                    To delete eligible records, send an apply body with the approved confirmation phrase.
+                  </p>
+                  <div className={styles.codeBlock}>
+                    {JSON.stringify({ mode: "apply", confirmation: "APPLY_RETENTION_PURGE" })}
                   </div>
                 </div>
               </div>
