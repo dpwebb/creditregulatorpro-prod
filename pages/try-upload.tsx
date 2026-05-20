@@ -9,12 +9,17 @@ import { Progress } from "../components/Progress";
 import { AnonymousUploadPreview } from "../components/AnonymousUploadPreview";
 import { useAnonymousUpload } from "../helpers/useAnonymousUpload";
 import { storeAnonymousReportForSignup } from "../helpers/anonymousReportHandoff";
+import {
+  FRONTEND_LIMITED_BETA_READINESS,
+  FRONTEND_UPLOAD_LIMITS,
+} from "../helpers/frontendProductionReadinessUx";
 import { toast } from "sonner";
 import styles from "./try-upload.module.css";
 
 const ESTIMATED_ANALYSIS_DURATION_MS = 90_000;
 const MIN_ANALYSIS_PROGRESS = 8;
 const MAX_ANALYSIS_PROGRESS = 95;
+const ANONYMOUS_UPLOAD_LIMIT = FRONTEND_UPLOAD_LIMITS.anonymousReport;
 
 // Helper function to read file as base64 safely
 const readFileAsBase64 = (file: File): Promise<string> => {
@@ -188,15 +193,18 @@ export default function TryUploadPage() {
                 <FileDropzone
                   accept=".pdf,application/pdf"
                   maxFiles={1}
-                  maxSize={20 * 1024 * 1024} // 20 MB
+                  maxSize={ANONYMOUS_UPLOAD_LIMIT.maxBytes}
                   onFilesSelected={handleFilesSelected}
                   errorMessageOverride={handleErrorMessage}
                   title="Drop your PDF credit report here"
-                  subtitle="Original Equifax or TransUnion PDF only"
+                  subtitle={`Original Equifax or TransUnion PDF only. Server limit: ${ANONYMOUS_UPLOAD_LIMIT.label}.`}
                 />
                 <div className={styles.helpTextContainer}>
                   <p className={styles.helpText}>
                     Not sure if you have the right file? It should be the original downloaded PDF from Equifax or TransUnion Canada, not a photo or scan.
+                  </p>
+                  <p className={styles.limitText}>
+                    {FRONTEND_LIMITED_BETA_READINESS.classification}. Anonymous uploads use the {ANONYMOUS_UPLOAD_LIMIT.label} server limit and do not change beta capacity policy.
                   </p>
                   <button 
                     className={styles.helpLink} 

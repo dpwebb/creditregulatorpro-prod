@@ -71,6 +71,33 @@
   color: var(--secondary);
   }
 
+.readinessBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--warning) 8%, var(--card));
+  color: var(--foreground);
+}
+
+.readinessBanner svg {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.readinessBanner strong,
+.readinessBanner span {
+  display: block;
+  line-height: 1.45;
+}
+
+.readinessBanner span {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
 .helpCard {
   background-color: color-mix(in srgb, var(--info) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--info) 20%, transparent);
@@ -368,6 +395,17 @@
 .progressMessage {
   font-size: 0.75rem;
   color: var(--muted-foreground);
+  text-align: center;
+}
+
+.progressDetail {
+  border: 1px solid color-mix(in srgb, var(--info) 25%, var(--border));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--info) 7%, var(--card));
+  color: var(--foreground);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  padding: var(--spacing-2) var(--spacing-3);
   text-align: center;
 }
 

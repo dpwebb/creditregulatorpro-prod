@@ -22,6 +22,7 @@ import { Textarea } from "../components/Textarea";
 import { Skeleton } from "../components/Skeleton";
 import { Input } from "../components/Input";
 import { Badge } from "../components/Badge";
+import { FRONTEND_LIMITED_BETA_READINESS } from "../helpers/frontendProductionReadinessUx";
 import {
   useComplianceConfigs,
   useUpdateComplianceConfigs,
@@ -704,13 +705,15 @@ export default function AdminComplianceConfigPage() {
                 />
               </div>
               <p className={styles.cardDescription}>
-                When enabled, users can purchase paid subscription plans via Stripe.
+                When enabled, users can purchase paid subscription plans via Stripe. This billing flag does not indicate broad-production or production-at-scale readiness.
               </p>
 
               {productionMode && (
                 <div className={styles.infoBox} style={{ marginTop: "var(--spacing-4)", backgroundColor: "color-mix(in srgb, var(--warning) 10%, var(--background))", borderColor: "color-mix(in srgb, var(--warning) 30%, transparent)" }}>
                   <AlertTriangle size={18} className={styles.infoIcon} style={{ color: "var(--warning)" }} />
-                  <p>Production mode is active. Users can upgrade to paid plans.</p>
+                  <p>
+                    Production mode is active for billing only. {FRONTEND_LIMITED_BETA_READINESS.classification}; {FRONTEND_LIMITED_BETA_READINESS.notReady}
+                  </p>
                 </div>
               )}
 

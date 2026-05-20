@@ -10,6 +10,34 @@
   gap: var(--spacing-4);
 }
 
+.packetOpsBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  background-color: color-mix(in srgb, var(--warning) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-4) var(--spacing-6);
+  margin-bottom: var(--spacing-6);
+  color: var(--foreground);
+}
+
+.packetOpsBanner svg {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.packetOpsBanner strong,
+.packetOpsBanner span {
+  display: block;
+  line-height: 1.45;
+}
+
+.packetOpsBanner span {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
 .nextStepText {
   font-weight: 500;
   color: var(--foreground);

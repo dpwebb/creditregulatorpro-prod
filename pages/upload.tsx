@@ -18,8 +18,14 @@ import {
   isQueuedProcessingOutput,
   OutputType as UploadReportOutput,
 } from "../endpoints/ingest/report_POST.schema";
+import {
+  FRONTEND_LIMITED_BETA_READINESS,
+  FRONTEND_UPLOAD_LIMITS,
+} from "../helpers/frontendProductionReadinessUx";
 import { Helmet } from "react-helmet";
 import styles from "./upload.module.css";
+
+const AUTHENTICATED_UPLOAD_LIMIT = FRONTEND_UPLOAD_LIMITS.authenticatedReport;
 
 const getFriendlyStageName = (stage: string) => {
     if (stage.startsWith("pass_a_")) return "Reading your report...";
@@ -37,6 +43,8 @@ const getFriendlyStageName = (stage: string) => {
     case "running": return "Processing in the background...";
     case "retry_scheduled": return "Queued for retry...";
     case "dead_lettered": return "Needs operator review...";
+    case "failed": return "Processing failed...";
+    case "canceled": return "Processing canceled...";
     case "user_setup": return "Setting up your profile...";
     case "creating_artifact": return "Saving your report...";
     case "extracting_text": return "Reading your file...";
@@ -48,6 +56,25 @@ const getFriendlyStageName = (stage: string) => {
     case "finalizing": return "Almost done...";
     case "complete": return "Done! ✓";
     default: return stage.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  }
+};
+
+const getQueuedStatusDetail = (stage: string) => {
+  switch (stage) {
+    case "queued":
+      return "Your report is saved and waiting for the ingest worker.";
+    case "running":
+      return "The ingest worker is processing OCR, parsing, and compliance checks outside the request path.";
+    case "retry_scheduled":
+      return "Processing will retry automatically. No new upload is needed yet.";
+    case "dead_lettered":
+      return "Processing needs operator review before it can continue.";
+    case "failed":
+      return "Processing failed before results were finalized. Try again later or contact support.";
+    case "canceled":
+      return "Processing was canceled before results were finalized.";
+    default:
+      return null;
   }
 };
 
@@ -132,9 +159,8 @@ export default function UploadPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Validate file size (e.g. 15MB)
-      if (selectedFile.size > 15 * 1024 * 1024) {
-        toast.error("File is too large. Maximum size is 15MB.");
+      if (selectedFile.size > AUTHENTICATED_UPLOAD_LIMIT.maxBytes) {
+        toast.error(`File is too large. Maximum size is ${AUTHENTICATED_UPLOAD_LIMIT.label}.`);
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
@@ -437,6 +463,17 @@ export default function UploadPage() {
           </span>
         </div>
 
+        <div className={styles.readinessBanner}>
+          <AlertCircle size={18} />
+          <div>
+            <strong>{FRONTEND_LIMITED_BETA_READINESS.classification}</strong>
+            <span>
+              Server file limit: {AUTHENTICATED_UPLOAD_LIMIT.label} PDF. Upload the original downloaded report with selectable text; photo or scanned PDFs may be held or rejected unless deterministic OCR is available and operator review is required.
+            </span>
+            <span>{FRONTEND_LIMITED_BETA_READINESS.uploadPolicy}</span>
+          </div>
+        </div>
+
         <div className={styles.helpCard}>
           <Collapsible>
             <CollapsibleTrigger className={styles.helpTrigger}>
@@ -508,7 +545,7 @@ export default function UploadPage() {
             </label>
             <HelpTooltip 
               title="What You Can Upload"
-              content="Upload the original downloaded PDF with selectable text. Scanned or photo PDFs are not supported yet. Maximum size: 15MB."
+              content={`Upload the original downloaded PDF with selectable text. Scanned or photo PDFs are not supported yet. Maximum size: ${AUTHENTICATED_UPLOAD_LIMIT.label}.`}
             />
           </div>
           
@@ -544,6 +581,11 @@ export default function UploadPage() {
               <Progress value={displayedProgress} />
               {uploadProgress.message && (
                 <div className={styles.progressMessage}>{uploadProgress.message}</div>
+              )}
+              {getQueuedStatusDetail(uploadProgress.stage) && (
+                <div className={styles.progressDetail}>
+                  {getQueuedStatusDetail(uploadProgress.stage)}
+                </div>
               )}
             </div>
           )}

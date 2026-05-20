@@ -61,6 +61,25 @@
   border: 1px solid var(--border);
 }
 
+.pdfStatusNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-4);
+  border: 1px solid color-mix(in srgb, var(--info) 30%, var(--border));
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--info) 7%, var(--surface));
+  color: var(--muted-foreground);
+  padding: var(--spacing-3);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.pdfStatusNotice svg {
+  flex-shrink: 0;
+  color: var(--info);
+}
+
 .metadataItem {
   display: flex;
   flex-direction: column;

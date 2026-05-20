@@ -4,7 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "./Button";
 import { FileDropzone } from "./FileDropzone";
 import { useUploadAttachmentMutation } from "../helpers/attachmentQueries";
+import { FRONTEND_UPLOAD_LIMITS } from "../helpers/frontendProductionReadinessUx";
 import styles from "./EvidenceUploadDialog.module.css";
+
+const EVIDENCE_UPLOAD_LIMIT = FRONTEND_UPLOAD_LIMITS.evidenceAttachment;
 
 interface EvidenceUploadDialogProps {
   obligationInstanceId?: number;
@@ -63,7 +66,7 @@ export const EvidenceUploadDialog: React.FC<EvidenceUploadDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Upload Evidence</DialogTitle>
           <DialogDescription>
-            Upload supporting documents for this obligation. Accepted formats: PDF, PNG, JPG.
+            Upload supporting documents for this obligation. Accepted formats: PDF, PNG, JPG. Server limit: {EVIDENCE_UPLOAD_LIMIT.label}.
           </DialogDescription>
         </DialogHeader>
 
@@ -71,10 +74,10 @@ export const EvidenceUploadDialog: React.FC<EvidenceUploadDialogProps> = ({
           {!file ? (
             <FileDropzone
               accept=".pdf,.png,.jpg,.jpeg"
-              maxSize={10 * 1024 * 1024} // 10MB
+              maxSize={EVIDENCE_UPLOAD_LIMIT.maxBytes}
               onFilesSelected={handleFileSelect}
               title="Drag & drop evidence file"
-              subtitle="PDF or Images up to 10MB"
+              subtitle={`PDF or images up to ${EVIDENCE_UPLOAD_LIMIT.label}`}
               className={styles.dropzone}
             />
           ) : (

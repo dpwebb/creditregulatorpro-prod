@@ -9,12 +9,13 @@ import { useBureauCommunication } from "../helpers/useBureauCommunication";
 import { usePacketList } from "../helpers/packetQueries";
 import { useTradelineList } from "../helpers/tradelineQueries";
 import { BureauCommunicationTypes } from "../endpoints/evidence/bureau-communication_POST.schema";
+import { FRONTEND_UPLOAD_LIMITS } from "../helpers/frontendProductionReadinessUx";
 import { z } from "zod";
 import { FileText, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import styles from "./BureauCommunicationDialog.module.css";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const BUREAU_COMMUNICATION_UPLOAD_LIMIT = FRONTEND_UPLOAD_LIMITS.bureauCommunication;
 const ACCEPTED_FILE_TYPES = "application/pdf,image/png,image/jpeg,image/jpg";
 
 const formSchema = z.object({
@@ -151,7 +152,7 @@ export function BureauCommunicationDialog({
         <DialogHeader>
           <DialogTitle>Log Bureau Communication</DialogTitle>
           <DialogDescription>
-            Upload correspondence to create an immutable evidence trail.
+            Upload correspondence to create an immutable evidence trail. Server limit: {BUREAU_COMMUNICATION_UPLOAD_LIMIT.label}.
           </DialogDescription>
         </DialogHeader>
 
@@ -168,10 +169,10 @@ export function BureauCommunicationDialog({
                 <div className={fileError ? styles.dropzoneError : ""}>
                   <FileDropzone
                     accept=".pdf,.png,.jpg,.jpeg"
-                    maxSize={MAX_FILE_SIZE}
+                    maxSize={BUREAU_COMMUNICATION_UPLOAD_LIMIT.maxBytes}
                     onFilesSelected={handleFileSelect}
                     title="Drop PDF or Image here"
-                    subtitle="Max 10MB"
+                    subtitle={`Max ${BUREAU_COMMUNICATION_UPLOAD_LIMIT.label}`}
                     className={styles.dropzone}
                   />
                 </div>

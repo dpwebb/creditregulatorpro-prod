@@ -42,6 +42,8 @@ import {
   type ResponseDocumentListInput,
   type ResponseQueueRemediationInput,
 } from "../helpers/responseDocumentQueries";
+import { useAdminIngestProcessingQueue } from "../helpers/ingestQueueQueries";
+import { FRONTEND_LIMITED_BETA_READINESS } from "../helpers/frontendProductionReadinessUx";
 import { useAdminUserDetail, useAdminUsers, type AdminUserDetailOutput } from "../helpers/adminQueries";
 import type { OutputType as ResponseGetOutput } from "../endpoints/responses/get_GET.schema";
 import type { OutputType as ResponseListOutput } from "../endpoints/responses/list_GET.schema";
@@ -319,6 +321,21 @@ function SafetyBanner() {
         <span>This page does not change packet readiness or wording.</span>
         <span>This page does not activate regulation runtime truth.</span>
         <span>No mailbox, Gmail, IMAP, or inbox integration is used.</span>
+      </div>
+    </div>
+  );
+}
+
+function LimitedBetaOperatorBanner() {
+  return (
+    <div className={styles.safetyBanner}>
+      <AlertTriangle size={18} />
+      <div>
+        <strong>{FRONTEND_LIMITED_BETA_READINESS.classification}</strong>
+        <span>{FRONTEND_LIMITED_BETA_READINESS.notReady}</span>
+        <span>{FRONTEND_LIMITED_BETA_READINESS.populationPolicy}</span>
+        <span>{FRONTEND_LIMITED_BETA_READINESS.uploadPolicy}</span>
+        <span>These are operator policy constraints and dashboard visibility cues; this page does not add runtime throttling or production-scale readiness.</span>
       </div>
     </div>
   );
@@ -910,6 +927,98 @@ function MetricsStrip() {
         </section>
       ) : null}
     </>
+  );
+}
+
+function IngestQueueVisibilityPanel() {
+  const ingestQueueQuery = useAdminIngestProcessingQueue({ limit: 25, includeEvents: false });
+  const jobs = ingestQueueQuery.data?.jobs ?? [];
+
+  return (
+    <section className={styles.queuePanel} aria-label="Ingest queue visibility">
+      <div className={styles.reviewHeader}>
+        <Activity size={18} />
+        <div>
+          <h2>Ingest Queue Visibility</h2>
+          <p>Read-only operator view for queued report OCR, parsing, and compliance work.</p>
+        </div>
+      </div>
+
+      <div className={styles.reviewNotice}>
+        <ShieldCheck size={18} />
+        <div>
+          <span>Upload/process requests enqueue or attach to ingest jobs; the bounded worker owns expensive processing.</span>
+          <span>Queued, running, failed, dead-lettered, stale, and canceled states are visible without exposing raw report bytes or extracted text.</span>
+          <span>This panel is visibility only and does not change ingest queue semantics or start production-at-scale work.</span>
+        </div>
+      </div>
+
+      {ingestQueueQuery.isLoading ? (
+        <Skeleton className={styles.responseSkeleton} />
+      ) : ingestQueueQuery.isError ? (
+        <div className={styles.warningBox} role="alert">
+          <AlertTriangle size={18} />
+          <span>{ingestQueueQuery.error instanceof Error ? ingestQueueQuery.error.message : "Unable to load ingest queue jobs."}</span>
+        </div>
+      ) : jobs.length === 0 ? (
+        <div className={styles.stateBox}>
+          <ClipboardList size={24} />
+          <h3>No ingest queue jobs</h3>
+          <p>Queued, running, failed, dead-lettered, stale, or canceled ingest jobs will appear here for operator review.</p>
+        </div>
+      ) : (
+        <div className={styles.queueTableWrap}>
+          <table className={styles.queueTable}>
+            <thead>
+              <tr>
+                <th>Job</th>
+                <th>Status</th>
+                <th>Attempts</th>
+                <th>Artifact</th>
+                <th>Failure</th>
+                <th>Last event</th>
+                <th>Remediation state</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((job) => (
+                <tr key={job.id} className={job.staleRunning || job.status === "dead_lettered" || job.status === "failed" ? styles.queueWarningRow : undefined}>
+                  <td>
+                    <strong>#{job.id}</strong>
+                    <span>{formatEnum(job.jobType)}</span>
+                  </td>
+                  <td>
+                    <Badge variant={queueStatusVariant(job.status)}>{formatEnum(job.status)}</Badge>
+                    {job.staleRunning ? <span className={styles.manualReviewFlag}>Stale running</span> : null}
+                  </td>
+                  <td>{job.attemptCount} / {job.maxAttempts}</td>
+                  <td>
+                    <span>Report artifact {job.payloadSummary.reportArtifactId}</span>
+                    <span>{job.payloadSummary.mimeType ?? "unknown MIME"}</span>
+                    <span>Raw bytes stored: {job.payloadSummary.rawReportBytesStored ? "yes" : "no"}</span>
+                    <span>Extracted text stored: {job.payloadSummary.extractedReportTextStored ? "yes" : "no"}</span>
+                  </td>
+                  <td>{safeValue(job.lastErrorReason ?? job.lastErrorCode ?? "-")}</td>
+                  <td>
+                    <span>{formatEnum(job.lastEvent?.eventType ?? "-")}</span>
+                    <span>{formatDate(job.lastEvent?.createdAt)}</span>
+                  </td>
+                  <td>
+                    <span>{job.reviewEligible ? "Review available" : "No review action"}</span>
+                    {job.cancelEligible ? <span>Cancel available</span> : null}
+                    {job.retryEligible ? <span>Retry requires operator action</span> : null}
+                    {job.remediationStatus.deadLetterReviewedAt ? <span>Dead letter reviewed {formatDate(job.remediationStatus.deadLetterReviewedAt)}</span> : null}
+                    {job.remediationStatus.staleRunningReviewedAt ? <span>Stale reviewed {formatDate(job.remediationStatus.staleRunningReviewedAt)}</span> : null}
+                    {job.remediationStatus.canceledAt ? <span>Canceled {formatDate(job.remediationStatus.canceledAt)}</span> : null}
+                    {job.remediationStatus.replacementJobId ? <span>Replacement #{job.remediationStatus.replacementJobId}</span> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -1511,7 +1620,9 @@ export default function AdminResponseDocumentsPage() {
       </PageHeader>
 
       <SafetyBanner />
+      <LimitedBetaOperatorBanner />
       <MetricsStrip />
+      <IngestQueueVisibilityPanel />
       <QueueRemediationPanel />
       <ResponseCapturePanel onCaptured={setSelectedResponseId} />
 

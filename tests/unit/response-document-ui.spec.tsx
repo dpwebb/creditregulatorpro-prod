@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   useResponseDocumentAdminReviewMutation: vi.fn(),
   useResponseCaptureMutation: vi.fn(),
   useResponseQueueRemediationMutation: vi.fn(),
+  useAdminIngestProcessingQueue: vi.fn(),
   adminReviewMutateAsync: vi.fn(),
   responseCaptureMutateAsync: vi.fn(),
   queueRemediationMutateAsync: vi.fn(),
@@ -29,6 +30,10 @@ vi.mock("../../helpers/responseDocumentQueries", () => ({
   useResponseDocumentAdminReviewMutation: mocks.useResponseDocumentAdminReviewMutation,
   useResponseCaptureMutation: mocks.useResponseCaptureMutation,
   useResponseQueueRemediationMutation: mocks.useResponseQueueRemediationMutation,
+}));
+
+vi.mock("../../helpers/ingestQueueQueries", () => ({
+  useAdminIngestProcessingQueue: mocks.useAdminIngestProcessingQueue,
 }));
 
 vi.mock("../../helpers/adminQueries", () => ({
@@ -567,6 +572,80 @@ function resetHookMocks() {
     isPending: false,
     error: null,
   });
+  mocks.useAdminIngestProcessingQueue.mockReturnValue({
+    data: {
+      total: 2,
+      jobs: [
+        {
+          id: 811,
+          jobType: "report_ingest",
+          status: "dead_lettered",
+          attemptCount: 3,
+          maxAttempts: 3,
+          staleRunning: false,
+          retryEligible: true,
+          reviewEligible: true,
+          cancelEligible: false,
+          payloadSummary: {
+            reportArtifactId: 301,
+            region: "CA",
+            mimeType: "application/pdf",
+            artifactSha256Present: true,
+            metadataKeys: ["source"],
+            rawReportBytesStored: false,
+            extractedReportTextStored: false,
+          },
+          lastErrorCode: "SYNTHETIC_INGEST_FAILURE",
+          lastErrorReason: "Synthetic sanitized ingest failure.",
+          lastEvent: {
+            eventType: "dead_lettered",
+            createdAt: "2026-05-18T12:03:00.000Z",
+          },
+          remediationStatus: {
+            deadLetterReviewedAt: null,
+            staleRunningReviewedAt: null,
+            canceledAt: null,
+            replacementJobId: null,
+          },
+        },
+        {
+          id: 812,
+          jobType: "report_ingest",
+          status: "running",
+          attemptCount: 1,
+          maxAttempts: 3,
+          staleRunning: true,
+          retryEligible: false,
+          reviewEligible: true,
+          cancelEligible: false,
+          payloadSummary: {
+            reportArtifactId: 302,
+            region: "CA",
+            mimeType: "application/pdf",
+            artifactSha256Present: true,
+            metadataKeys: [],
+            rawReportBytesStored: false,
+            extractedReportTextStored: false,
+          },
+          lastErrorCode: null,
+          lastErrorReason: null,
+          lastEvent: {
+            eventType: "claimed",
+            createdAt: "2026-05-18T12:04:00.000Z",
+          },
+          remediationStatus: {
+            deadLetterReviewedAt: null,
+            staleRunningReviewedAt: null,
+            canceledAt: null,
+            replacementJobId: null,
+          },
+        },
+      ],
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  });
   mocks.adminReviewMutateAsync.mockResolvedValue({ response: mocks.detailResponse });
   mocks.useResponseDocumentAdminReviewMutation.mockReturnValue({
     mutateAsync: mocks.adminReviewMutateAsync,
@@ -699,6 +778,15 @@ describe("admin response document UI", () => {
     expect(screen.getByText("Last Soak")).toBeInTheDocument();
     expect(screen.getByText("DL Reviewed")).toBeInTheDocument();
     expect(screen.getByText("Stale Reviewed")).toBeInTheDocument();
+    expect(screen.getByText("Limited beta only under strict constraints")).toBeInTheDocument();
+    expect(screen.getByText(/Not broad-production ready\. Not production-at-scale ready\./i)).toBeInTheDocument();
+    expect(screen.getByText(/policy gate, not a runtime throttle/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ingest Queue Visibility" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /ingest queue visibility/i })).toHaveTextContent("dead lettered");
+    expect(screen.getByRole("region", { name: /ingest queue visibility/i })).toHaveTextContent("running");
+    expect(screen.getByRole("region", { name: /ingest queue visibility/i })).toHaveTextContent("Report artifact 301");
+    expect(screen.getByRole("region", { name: /ingest queue visibility/i })).toHaveTextContent("Raw bytes stored: no");
+    expect(screen.getByRole("region", { name: /ingest queue visibility/i })).toHaveTextContent("Extracted text stored: no");
     expect(screen.getByRole("heading", { name: "Queue Remediation" })).toBeInTheDocument();
     expect(screen.getByText(/Live mailbox scheduling remains deferred/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Manual Response Capture" })).toBeInTheDocument();
@@ -722,7 +810,7 @@ describe("admin response document UI", () => {
   it("renders queue remediation states and submits explicit operator actions", async () => {
     render(<AdminResponseDocumentsPage />);
 
-    expect(screen.getByText("Job")).toBeInTheDocument();
+    expect(screen.getAllByText("Job").length).toBeGreaterThan(0);
     expect(screen.getByText("#701")).toBeInTheDocument();
     expect(screen.getByText("#702")).toBeInTheDocument();
     expect(screen.getByText("#703")).toBeInTheDocument();

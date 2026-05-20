@@ -29,6 +29,7 @@ import { exportToCSV } from "../helpers/csvExporter";
 import { generateReportPDF } from "../helpers/reportGenerator";
 import { formatDateTime, formatRelativeTime, formatDate } from "../helpers/formatters";
 import { useAuth } from "../helpers/useAuth";
+import { FRONTEND_LIMITED_BETA_READINESS } from "../helpers/frontendProductionReadinessUx";
 import { useResponseDocuments } from "../helpers/responseDocumentQueries";
 import type { OutputType as ResponseListOutput } from "../endpoints/responses/list_GET.schema";
 import { Link, useSearchParams } from "react-router-dom";
@@ -350,6 +351,19 @@ export default function PacketsPage() {
           )}
         </div>
       </PageHeader>
+
+      <div className={styles.packetOpsBanner}>
+        <AlertCircle size={18} />
+        <div>
+          <strong>Packet readiness and PDF rendering follow limited beta constraints.</strong>
+          <span>
+            {FRONTEND_LIMITED_BETA_READINESS.notReady} Packet creation stays gated by verified source-report evidence and readiness blockers.
+          </span>
+          <span>
+            Packet PDFs may render on first open/download and reuse cached output when packet content is unchanged; render/download failures remain visible here and in operator dashboard metrics.
+          </span>
+        </div>
+      </div>
 
             {!isAdmin && hasReadyToMail && (
         <div className={styles.nextStepBanner}>
