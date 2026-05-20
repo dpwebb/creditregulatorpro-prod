@@ -18,6 +18,7 @@ describe("ingest processing worker script", () => {
       dryRun: true,
       apply: false,
       maxJobs: 1,
+      maxJobsExplicit: false,
       concurrency: 1,
       leaseSeconds: null,
       workerId: null,
@@ -42,6 +43,7 @@ describe("ingest processing worker script", () => {
       dryRun: false,
       apply: true,
       maxJobs: 5,
+      maxJobsExplicit: true,
       concurrency: 1,
       leaseSeconds: 120,
       workerId: "ingest-worker-test",
@@ -97,6 +99,26 @@ describe("ingest processing worker script", () => {
     expect(() => validateIngestWorkerRuntimeSafety(apply, { CRP_ENV: "production" })).toThrow(
       /Production ingest worker apply refused/i,
     );
+  });
+
+  it("refuses production apply when the max job bound was not explicitly supplied", () => {
+    const options = parseIngestWorkerArgs([
+      "--apply",
+      "--worker-id",
+      "production-bounded-ingest-worker",
+      "--source",
+      PRODUCTION_INGEST_WORKER_SOURCE,
+    ]);
+
+    expect(() =>
+      validateIngestWorkerRuntimeSafety(options, {
+        CRP_ENV: "production",
+        CRP_PRODUCTION_INGEST_WORKER_APPLY: PRODUCTION_INGEST_WORKER_APPLY_GUARD,
+        CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT: PRODUCTION_INGEST_WORKER_ONE_SHOT_GUARD,
+        CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS: "1",
+        CRP_PRODUCTION_INGEST_WORKER_OPERATOR: "operator-token",
+      }),
+    ).toThrow(/--max-jobs/);
   });
 
   it("accepts production apply only with matching one-shot guards and bounded source scope", () => {

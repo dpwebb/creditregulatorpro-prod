@@ -7,6 +7,7 @@ import {
   REQUIRED_PROMOTION_COMMANDS,
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
+import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
 import { buildHumanRestoreDrillEvidenceAcceptanceReport } from "../../scripts/staging-backup-restore-checklist.mjs";
 
 function dashboardWithSkips(skip = 2) {
@@ -96,6 +97,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run restore:accept-human-evidence");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
+    expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
   });
 
   it("does not claim production-at-scale readiness while unresolved or human-required blockers remain", () => {
@@ -146,6 +148,76 @@ describe("production promotion evidence pack", () => {
     expect(humanRestoreEvidenceAcceptance.accepted).toBe(true);
     expect(blocker1?.classification).toBe("fixed with human-observed evidence");
     expect(blocker22?.classification).toBe("fixed with human-observed evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 2 production runtime unresolved without accepted production queue-depth evidence", () => {
+    const report = buildPack();
+    const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
+
+    expect(report.productionWorkerReadinessEvidence).toMatchObject({
+      productionProof: false,
+      acceptedProductionRunEvidence: {
+        accepted: false,
+      },
+      blockerCoverage: {
+        productionIngestRuntime: false,
+      },
+    });
+    expect(blocker2?.classification).toBe("partial");
+  });
+
+  it("allows blocker 2 production-ready only with accepted production queue-depth evidence", () => {
+    const productionWorkerReadinessEvidence = buildProductionWorkerReadinessEvidenceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      productionWorkerQueueDepthEvidence: {
+        status: "accepted",
+        accepted: true,
+        evidencePath: "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+        blockerCoverage: {
+          productionIngestRuntime: true,
+          productionWorkflowParityAndRollback: false,
+        },
+      },
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      productionWorkerReadinessEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
+    const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
+
+    expect(blocker2?.classification).toBe("fixed with human-observed evidence");
+    expect(blocker11?.classification).toBe("partial");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 11 partial until production workflow parity and rollback evidence are present", () => {
+    const report = buildPack();
+    const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
+
+    expect(blocker11?.classification).toBe("partial");
+    expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).not.toContain(11);
+  });
+
+  it("classifies blocker 21 with exact release evidence commands, not dashboard PASS alone", () => {
+    const report = buildPack();
+    const blocker21 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 21);
+
+    expect(blocker21?.classification).toBe("fixed with automated evidence");
+    expect(report.commandList).toEqual(
+      expect.arrayContaining([
+        "pnpm run production-scale:evidence",
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-scale:promotion-pack",
+        "pnpm run operator:dashboard",
+      ]),
+    );
+    expect(report.skippedChecks.dashboardPassAloneIsReleaseEvidence).toBe(false);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 });

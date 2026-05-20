@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T20:47:44.452Z",
+  "generatedAt": "2026-05-20T21:01:52.130Z",
   "currentBranch": "staging",
-  "currentCommitHash": "f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb",
+  "currentCommitHash": "def2a024b30aaa811cd354a3bb3f1d78b8efe789",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -39,6 +39,7 @@
     "pnpm run test:deterministic-ingestion-report",
     "pnpm run response:soak-check",
     "pnpm run operator:dashboard",
+    "pnpm run production-worker:readiness-evidence",
     "pnpm run check:migrations",
     "pnpm run check:restore-drill-evidence",
     "pnpm run restore:accept-human-evidence",
@@ -159,6 +160,35 @@
       "status": null
     },
     {
+      "command": "pnpm run production-worker:readiness-evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-readiness.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-readiness.json",
+          "exists": true,
+          "reportName": "production-worker-readiness-evidence",
+          "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
+          "generatedAt": "2026-05-20T21:00:33.882Z",
+          "status": "prepared-awaiting-human-production-evidence",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T21:00:33.882Z",
+      "status": "prepared-awaiting-human-production-evidence"
+    },
+    {
       "command": "pnpm run check:migrations",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -267,12 +297,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T20:47:27.265Z",
+          "generatedAt": "2026-05-20T21:00:39.169Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T20:47:27.265Z",
+      "latestGeneratedAt": "2026-05-20T21:00:39.169Z",
       "status": null
     },
     {
@@ -748,7 +778,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T20:47:27.265Z",
+      "generatedAt": "2026-05-20T21:00:39.169Z",
       "status": null,
       "productionProof": false
     },
@@ -915,6 +945,24 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/latest-production-worker-readiness.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-readiness.json",
+      "exists": true,
+      "reportName": "production-worker-readiness-evidence",
+      "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
+      "generatedAt": "2026-05-20T21:00:33.882Z",
+      "status": "prepared-awaiting-human-production-evidence",
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/evidence/latest-migration-governance.md",
       "exists": true,
       "reportName": null,
@@ -1015,6 +1063,24 @@
     },
     {
       "path": "docs/production-scale/evidence/human-restore-drill-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
       "exists": false,
       "reportName": null,
       "evidenceType": null,
@@ -1167,6 +1233,24 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/latest-production-promotion-pack.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-promotion-pack.json",
+      "exists": true,
+      "reportName": "production-promotion-evidence-pack",
+      "evidenceType": null,
+      "generatedAt": "2026-05-20T21:00:39.169Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/README.md",
       "exists": true,
       "reportName": null,
@@ -1183,29 +1267,11 @@
       "generatedAt": null,
       "status": null,
       "productionProof": false
-    },
-    {
-      "path": "docs/production-scale/evidence/latest-production-promotion-pack.md",
-      "exists": true,
-      "reportName": null,
-      "evidenceType": null,
-      "generatedAt": null,
-      "status": null,
-      "productionProof": false
-    },
-    {
-      "path": "docs/production-scale/evidence/latest-production-promotion-pack.json",
-      "exists": true,
-      "reportName": "production-promotion-evidence-pack",
-      "evidenceType": null,
-      "generatedAt": "2026-05-20T20:16:14.890Z",
-      "status": null,
-      "productionProof": false
     }
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T20:47:44.452Z",
+    "generatedAt": "2026-05-20T21:01:52.130Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1221,6 +1287,27 @@
       "errors": [
         "No human restore evidence artifact has been submitted."
       ]
+    }
+  },
+  "productionWorkerReadinessEvidence": {
+    "reportName": "production-worker-readiness-evidence",
+    "generatedAt": "2026-05-20T21:01:52.130Z",
+    "status": "prepared-awaiting-human-production-evidence",
+    "productionProof": false,
+    "acceptedProductionRunEvidence": {
+      "status": "not-submitted",
+      "accepted": false,
+      "evidencePath": null
+    },
+    "blockerCoverage": {
+      "productionIngestRuntime": false,
+      "productionWorkflowParityAndRollback": false,
+      "releaseEvidenceExactCommands": true
+    },
+    "safety": {
+      "productionJobsProcessedByCodex": false,
+      "productionWorkerActivatedByDefault": false,
+      "dashboardPassAloneIsReleaseEvidence": false
     }
   },
   "blockerClassifications": [
@@ -1285,6 +1372,7 @@
       "allowedProofCommands": [
         "pnpm run ingest:worker:simulated-proof",
         "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
@@ -1305,6 +1393,8 @@
         "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -1632,7 +1722,7 @@
       "severity": "High",
       "area": "Production deployment parity",
       "currentStatus": "partial",
-      "classification": "human proof required",
+      "classification": "partial",
       "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
       "proofCategories": [
         "automated-local",
@@ -1643,6 +1733,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run test:contracts",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
@@ -1662,7 +1753,9 @@
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json"
       ],
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
       "humanProofRequired": true,
@@ -2021,15 +2114,17 @@
       "title": "Ingest observability release gating",
       "severity": "Medium",
       "area": "Ingest observability release gating",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
+      "currentStatus": "fixed",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Release evidence capture records exact commands, production worker readiness evidence, dashboard skips, and explicit dashboard-PASS limitations.",
       "proofCategories": [
         "automated-local",
         "staging"
       ],
       "allowedProofCommands": [
         "pnpm run production-scale:evidence",
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-scale:promotion-pack",
         "pnpm run operator:dashboard",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
       ],
@@ -2041,10 +2136,14 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "docs/production-scale/evidence/latest-production-promotion-pack.md",
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates.",
+      "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
@@ -2270,6 +2369,7 @@
       "allowedProofCommands": [
         "pnpm run ingest:worker:simulated-proof",
         "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
@@ -2290,6 +2390,8 @@
         "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -2463,7 +2565,7 @@
       "severity": "High",
       "area": "Production deployment parity",
       "currentStatus": "partial",
-      "classification": "human proof required",
+      "classification": "partial",
       "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
       "proofCategories": [
         "automated-local",
@@ -2474,6 +2576,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run test:contracts",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
@@ -2493,7 +2596,9 @@
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json"
       ],
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
       "humanProofRequired": true,
@@ -2540,40 +2645,6 @@
       ],
       "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
-      "number": 21,
-      "title": "Ingest observability release gating",
-      "severity": "Medium",
-      "area": "Ingest observability release gating",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
-      "proofCategories": [
-        "automated-local",
-        "staging"
-      ],
-      "allowedProofCommands": [
-        "pnpm run production-scale:evidence",
-        "pnpm run operator:dashboard",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "dashboard PASS alone",
-        "silent skipped checks",
-        "release gate changes in this framework",
-        "raw report metrics"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/production-observability-metrics.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates.",
-      "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -2786,13 +2857,13 @@
     "dashboardAvailable": true,
     "dashboardCommand": "pnpm run operator:dashboard -- --json",
     "checksSkipped": true,
-    "skipCount": 54,
+    "skipCount": 55,
     "treatsSkipAsPass": false,
     "dashboardPassAloneIsReleaseEvidence": false,
     "summary": {
       "pass": 9,
       "fail": 2,
-      "skip": 54,
+      "skip": 55,
       "simulated": 1,
       "humanRequired": 3,
       "manual": 12,
@@ -3004,50 +3075,6 @@
       "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": true,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
-      "number": 11,
-      "title": "Production deployment parity",
-      "severity": "High",
-      "area": "Production deployment parity",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
-      "proofCategories": [
-        "automated-local",
-        "read-only-production",
-        "human-observed"
-      ],
-      "allowedProofCommands": [
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
-        "pnpm run production-worker:activation-plan",
-        "pnpm run test:contracts",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "production fixture creation",
-        "production deploy changes",
-        "secrets or sessions",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json",
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
-      ],
-      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
-      "humanProofRequired": true,
-      "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
     },

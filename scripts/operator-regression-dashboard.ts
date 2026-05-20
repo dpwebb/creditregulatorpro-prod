@@ -120,6 +120,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm run test:contracts",
   "pnpm run test:api",
   "pnpm run typecheck",
+  "pnpm run production-worker:readiness-evidence",
 ];
 
 export const GATED_SMOKE_CHECKS = [
@@ -829,6 +830,15 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
       name: "Report Ingest / Retrieval",
       checks: [
         ingestQueueHealthCheck(options.ingestQueueMetrics),
+        check(
+          "Production worker readiness evidence",
+          "SKIP",
+          "Non-mutating production worker readiness evidence records default-off production workflow status, dry-run command, apply guards, bounded max-jobs requirement, rollback/stop instructions, future queue-depth fields, and explicit no-production-jobs-processed-by-Codex safety. This exact command is release evidence; dashboard PASS alone is not sufficient.",
+          {
+            command: "pnpm run production-worker:readiness-evidence",
+            runByDefault: true,
+          },
+        ),
         check(
           "Ingest lifecycle remediation endpoint",
           "SKIP",

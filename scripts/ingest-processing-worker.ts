@@ -22,6 +22,7 @@ export type WorkerCliOptions = {
   dryRun: boolean;
   apply: boolean;
   maxJobs: number;
+  maxJobsExplicit?: boolean;
   concurrency: number;
   leaseSeconds: number | null;
   workerId: string | null;
@@ -170,6 +171,9 @@ export function validateIngestWorkerRuntimeSafety(
   if (env.CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS !== String(options.maxJobs)) {
     missingGuards.push("CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS");
   }
+  if (options.maxJobsExplicit !== true) {
+    missingGuards.push("--max-jobs");
+  }
   if (!env.CRP_PRODUCTION_INGEST_WORKER_OPERATOR || !SAFE_TOKEN_PATTERN.test(env.CRP_PRODUCTION_INGEST_WORKER_OPERATOR)) {
     missingGuards.push("CRP_PRODUCTION_INGEST_WORKER_OPERATOR");
   }
@@ -218,6 +222,7 @@ export function parseIngestWorkerArgs(args: string[]): WorkerCliOptions {
     dryRun: true,
     apply: false,
     maxJobs: DEFAULT_MAX_JOBS,
+    maxJobsExplicit: false,
     concurrency: DEFAULT_CONCURRENCY,
     leaseSeconds: null,
     workerId: null,
@@ -242,12 +247,14 @@ export function parseIngestWorkerArgs(args: string[]): WorkerCliOptions {
     }
     if (arg === "--once") {
       options.maxJobs = 1;
+      options.maxJobsExplicit = true;
       continue;
     }
     if (arg === "--max-jobs") {
       const parsed = parsePositiveInt(nextValue(args, index, arg), arg);
       if (parsed > 100) fail("--max-jobs must be 100 or less.");
       options.maxJobs = parsed;
+      options.maxJobsExplicit = true;
       index += 1;
       continue;
     }

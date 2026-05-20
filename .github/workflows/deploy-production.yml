@@ -21,10 +21,9 @@ on:
         type: boolean
         default: false
       ingest_worker_max_jobs:
-        description: "Bounded production ingest worker job limit. Must be 1-5."
+        description: "Required bounded production ingest worker job limit when a worker dry-run or apply is requested. Must be 1-5."
         required: false
         type: string
-        default: "1"
       ingest_worker_operator:
         description: "Safe operator identifier required for production apply."
         required: false
@@ -177,17 +176,25 @@ jobs:
           TARGET_SHA: ${{ steps.target.outputs.sha }}
           RUN_PRODUCTION_INGEST_WORKER_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker_dry_run || false }}
           RUN_PRODUCTION_INGEST_WORKER_APPLY: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ingest_worker_apply || false }}
-          PRODUCTION_INGEST_WORKER_MAX_JOBS: ${{ inputs.ingest_worker_max_jobs || '1' }}
+          PRODUCTION_INGEST_WORKER_MAX_JOBS: ${{ inputs.ingest_worker_max_jobs || '' }}
           PRODUCTION_INGEST_WORKER_OPERATOR: ${{ inputs.ingest_worker_operator || '' }}
           PRODUCTION_INGEST_WORKER_APPLY_ACK: ${{ inputs.ingest_worker_apply_ack || '' }}
         run: |
-          case "${PRODUCTION_INGEST_WORKER_MAX_JOBS:-1}" in
-            1|2|3|4|5) ;;
-            *)
-              echo "Refusing production ingest worker input: ingest_worker_max_jobs must be 1-5."
-              exit 1
-              ;;
-          esac
+          production_worker_requested="false"
+          if [ "${RUN_PRODUCTION_INGEST_WORKER_DRY_RUN:-false}" = "true" ] ||
+            [ "${RUN_PRODUCTION_INGEST_WORKER_APPLY:-false}" = "true" ]; then
+            production_worker_requested="true"
+          fi
+
+          if [ "$production_worker_requested" = "true" ]; then
+            case "${PRODUCTION_INGEST_WORKER_MAX_JOBS:-}" in
+              1|2|3|4|5) ;;
+              *)
+                echo "Refusing production ingest worker input: ingest_worker_max_jobs must be explicitly set to 1-5 when a worker run is requested."
+                exit 1
+                ;;
+            esac
+          fi
           if [ -n "${PRODUCTION_INGEST_WORKER_OPERATOR:-}" ] &&
             ! printf '%s' "$PRODUCTION_INGEST_WORKER_OPERATOR" | grep -Eq '^[a-zA-Z0-9_.:-]{1,120}$'; then
             echo "Refusing production ingest worker input: ingest_worker_operator must be a safe token."
@@ -197,6 +204,16 @@ jobs:
             [ "$PRODUCTION_INGEST_WORKER_APPLY_ACK" != "explicit-bounded-production-ingest-worker-apply" ]; then
             echo "Refusing production ingest worker input: ingest_worker_apply_ack is invalid."
             exit 1
+          fi
+          if [ "${RUN_PRODUCTION_INGEST_WORKER_APPLY:-false}" = "true" ]; then
+            if [ "${PRODUCTION_INGEST_WORKER_APPLY_ACK:-}" != "explicit-bounded-production-ingest-worker-apply" ]; then
+              echo "Refusing production ingest worker input: ingest_worker_apply_ack is required for apply."
+              exit 1
+            fi
+            if ! printf '%s' "${PRODUCTION_INGEST_WORKER_OPERATOR:-}" | grep -Eq '^[a-zA-Z0-9_.:-]{1,120}$'; then
+              echo "Refusing production ingest worker input: ingest_worker_operator is required for apply and must be a safe token."
+              exit 1
+            fi
           fi
 
           ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" "TARGET_SHA='$TARGET_SHA' RUN_PRODUCTION_INGEST_WORKER_DRY_RUN='$RUN_PRODUCTION_INGEST_WORKER_DRY_RUN' RUN_PRODUCTION_INGEST_WORKER_APPLY='$RUN_PRODUCTION_INGEST_WORKER_APPLY' PRODUCTION_INGEST_WORKER_MAX_JOBS='$PRODUCTION_INGEST_WORKER_MAX_JOBS' PRODUCTION_INGEST_WORKER_OPERATOR='$PRODUCTION_INGEST_WORKER_OPERATOR' PRODUCTION_INGEST_WORKER_APPLY_ACK='$PRODUCTION_INGEST_WORKER_APPLY_ACK' bash -s" <<'REMOTE'
@@ -244,6 +261,7 @@ jobs:
 
               if [ "${RUN_PRODUCTION_INGEST_WORKER_DRY_RUN:-false}" = "true" ]; then
                 echo "Running read-only bounded production ingest worker dry-run."
+                echo "Production ingest worker evidence: mode=dry-run max_jobs=${PRODUCTION_INGEST_WORKER_MAX_JOBS} mutates_queue=false."
                 docker exec \
                   -e CRP_ENV=production \
                   -e PRODUCTION_INGEST_WORKER_MAX_JOBS="$PRODUCTION_INGEST_WORKER_MAX_JOBS" \
@@ -264,6 +282,7 @@ jobs:
               fi
 
               echo "Running bounded one-shot production ingest worker apply."
+              echo "Production ingest worker evidence: mode=apply max_jobs=${PRODUCTION_INGEST_WORKER_MAX_JOBS} failure_stops_workflow=true."
               docker exec \
                 -e CRP_ENV=production \
                 -e CRP_PRODUCTION_INGEST_WORKER_APPLY="$PRODUCTION_INGEST_WORKER_APPLY_ACK" \

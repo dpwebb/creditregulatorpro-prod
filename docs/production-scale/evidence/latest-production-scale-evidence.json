@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T20:47:27.265Z",
+  "generatedAt": "2026-05-20T21:00:39.169Z",
   "branch": "staging",
-  "commit": "f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb",
+  "commit": "def2a024b30aaa811cd354a3bb3f1d78b8efe789",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -17,9 +17,9 @@
     "allAuditBlockersRepresented": true,
     "statusCounts": {
       "requires-human-proof": 1,
-      "partial": 13,
+      "partial": 12,
       "simulated-proof-only": 4,
-      "fixed": 7
+      "fixed": 8
     },
     "validation": {
       "valid": true,
@@ -30,13 +30,13 @@
     "available": true,
     "command": "pnpm run operator:dashboard -- --json",
     "exitCode": 0,
-    "skipCount": 54,
+    "skipCount": 55,
     "checksSkipped": true,
     "treatsSkipAsPass": false,
     "summary": {
       "pass": 9,
       "fail": 2,
-      "skip": 54,
+      "skip": 55,
       "simulated": 1,
       "humanRequired": 3,
       "manual": 12,
@@ -110,6 +110,7 @@
         "pnpm exec vitest run tests/unit/response-processing-worker-orchestrator-script.spec.ts",
         "pnpm exec vitest run tests/unit/violation-search-preservation.spec.ts",
         "pnpm run alerts:dry-run",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run response:lifecycle -- --dry-run",
         "pnpm run response:orchestration-check",
         "pnpm run response:queue-load-check",
@@ -135,7 +136,7 @@
         "pnpm run test:golden-path",
         "pnpm run typecheck"
       ],
-      "skipCount": 54,
+      "skipCount": 55,
       "simulatedCount": 1,
       "humanRequiredCount": 3,
       "skippedChecksVisible": true,
@@ -213,6 +214,7 @@
           "allowedProofCommands": [
             "pnpm run ingest:worker:simulated-proof",
             "pnpm run production-worker:activation-plan",
+            "pnpm run production-worker:readiness-evidence",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
             "pnpm run staging:ingest-worker -- --dry-run",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
@@ -236,6 +238,8 @@
             "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
@@ -514,6 +518,7 @@
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
             "pnpm run production-worker:activation-plan",
+            "pnpm run production-worker:readiness-evidence",
             "pnpm run test:contracts",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
@@ -536,7 +541,9 @@
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-            "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+            "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json"
           ],
           "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
         },
@@ -838,10 +845,12 @@
           "title": "Ingest observability release gating",
           "severity": "Medium",
           "area": "Ingest observability release gating",
-          "currentStatus": "partial",
-          "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
+          "currentStatus": "fixed",
+          "proofTypeRequired": "Release evidence capture records exact commands, production worker readiness evidence, dashboard skips, and explicit dashboard-PASS limitations.",
           "allowedProofCommands": [
             "pnpm run production-scale:evidence",
+            "pnpm run production-worker:readiness-evidence",
+            "pnpm run production-scale:promotion-pack",
             "pnpm run operator:dashboard",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
           ],
@@ -856,10 +865,14 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-production-promotion-pack.md",
+            "docs/production-scale/evidence/latest-production-promotion-pack.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates."
+          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
         },
         {
           "number": 22,
@@ -1052,6 +1065,7 @@
           "allowedProofCommands": [
             "pnpm run ingest:worker:simulated-proof",
             "pnpm run production-worker:activation-plan",
+            "pnpm run production-worker:readiness-evidence",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
             "pnpm run staging:ingest-worker -- --dry-run",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
@@ -1075,6 +1089,8 @@
             "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
@@ -1342,6 +1358,7 @@
           "allowedProofCommands": [
             "pnpm run ingest:worker:simulated-proof",
             "pnpm run production-worker:activation-plan",
+            "pnpm run production-worker:readiness-evidence",
             "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
             "pnpm run staging:ingest-worker -- --dry-run",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
@@ -1365,6 +1382,8 @@
             "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
@@ -1613,10 +1632,12 @@
           "title": "Ingest observability release gating",
           "severity": "Medium",
           "area": "Ingest observability release gating",
-          "currentStatus": "partial",
-          "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
+          "currentStatus": "fixed",
+          "proofTypeRequired": "Release evidence capture records exact commands, production worker readiness evidence, dashboard skips, and explicit dashboard-PASS limitations.",
           "allowedProofCommands": [
             "pnpm run production-scale:evidence",
+            "pnpm run production-worker:readiness-evidence",
+            "pnpm run production-scale:promotion-pack",
             "pnpm run operator:dashboard",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
           ],
@@ -1631,10 +1652,14 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-production-promotion-pack.md",
+            "docs/production-scale/evidence/latest-production-promotion-pack.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates."
+          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
         }
       ]
     },
@@ -1655,6 +1680,7 @@
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
             "pnpm run production-worker:activation-plan",
+            "pnpm run production-worker:readiness-evidence",
             "pnpm run test:contracts",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
@@ -1677,7 +1703,9 @@
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-            "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+            "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json"
           ],
           "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
         },
@@ -1841,6 +1869,7 @@
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
             "pnpm run production-worker:activation-plan",
+            "pnpm run production-worker:readiness-evidence",
             "pnpm run test:contracts",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
@@ -1863,7 +1892,9 @@
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
             "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-            "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+            "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+            "docs/production-scale/evidence/latest-production-worker-readiness.md",
+            "docs/production-scale/evidence/latest-production-worker-readiness.json"
           ],
           "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
         },
@@ -2025,6 +2056,7 @@
       "allowedProofCommands": [
         "pnpm run ingest:worker:simulated-proof",
         "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
@@ -2048,6 +2080,8 @@
         "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
@@ -2228,6 +2262,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:readiness-evidence",
         "pnpm run test:contracts",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
@@ -2250,7 +2285,9 @@
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
         "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.json"
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json"
       ],
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
     },
@@ -2450,34 +2487,6 @@
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
       ],
       "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof."
-    },
-    {
-      "number": 21,
-      "title": "Ingest observability release gating",
-      "severity": "Medium",
-      "area": "Ingest observability release gating",
-      "currentStatus": "partial",
-      "proofTypeRequired": "Release evidence capture that records exact commands and dashboard skips.",
-      "allowedProofCommands": [
-        "pnpm run production-scale:evidence",
-        "pnpm run operator:dashboard",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "dashboard PASS alone",
-        "silent skipped checks",
-        "release gate changes in this framework",
-        "raw report metrics"
-      ],
-      "productionMutationForbidden": true,
-      "simulatedProofAcceptable": false,
-      "humanProofRequired": false,
-      "relatedEvidenceOutputPaths": [
-        "docs/production-observability-metrics.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Use the evidence command to capture exact release evidence before deciding hard gates."
     },
     {
       "number": 22,

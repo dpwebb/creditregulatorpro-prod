@@ -1,0 +1,175 @@
+{
+  "reportName": "production-worker-readiness-evidence",
+  "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
+  "generatedAt": "2026-05-20T21:00:33.882Z",
+  "branch": "staging",
+  "commit": "def2a024b30aaa811cd354a3bb3f1d78b8efe789",
+  "status": "prepared-awaiting-human-production-evidence",
+  "productionProof": false,
+  "staticValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "production worker default-off",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "dry-run non-mutating path",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "apply requires explicit confirmation",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "apply requires explicit max job bound",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "empty queue exits successfully",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "failure stops workflow",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "exact release evidence commands recorded",
+        "status": "passed",
+        "passed": true,
+        "commands": [
+          "pnpm run production-worker:readiness-evidence",
+          "pnpm run production-scale:evidence",
+          "pnpm run production-scale:promotion-pack",
+          "pnpm run operator:dashboard",
+          "pnpm run test:api",
+          "pnpm run typecheck",
+          "git diff --check"
+        ]
+      }
+    ],
+    "failedChecks": []
+  },
+  "workerDefaultOff": {
+    "status": "passed",
+    "defaultProductionDeployStartsWorker": false,
+    "alwaysOnWorkerServiceAdded": false,
+    "workflowDispatchInputsRequired": [
+      "run_ingest_worker_dry_run=true for dry-run",
+      "run_ingest_worker_apply=true for apply"
+    ]
+  },
+  "dryRun": {
+    "command": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+    "mutatesQueue": false,
+    "claimsJobs": false,
+    "processesJobs": false
+  },
+  "applyMode": {
+    "command": "pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+    "defaultEnabled": false,
+    "boundedOneShot": true,
+    "maxJobs": {
+      "required": true,
+      "min": 1,
+      "max": 5
+    },
+    "guardList": [
+      "workflow_dispatch input run_ingest_worker_apply=true",
+      "workflow_dispatch input run_ingest_worker_dry_run=false",
+      "ingest_worker_max_jobs explicitly set to 1-5",
+      "ingest_worker_apply_ack=explicit-bounded-production-ingest-worker-apply",
+      "ingest_worker_operator set to a safe token",
+      "CRP_ENV=production",
+      "CRP_PRODUCTION_INGEST_WORKER_APPLY=explicit-bounded-production-ingest-worker-apply",
+      "CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT=true",
+      "CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS matching --max-jobs",
+      "CRP_PRODUCTION_INGEST_WORKER_OPERATOR set to a safe token",
+      "--concurrency=1",
+      "--source=authenticated_ingest_process",
+      "--worker-id present"
+    ]
+  },
+  "rollbackStopInstructions": [
+    "Do not rerun workflow_dispatch with worker inputs.",
+    "Use rollback_sha production deployment for application rollback.",
+    "If a one-shot worker is still running, stop the production application container or wait for the bounded command to exit.",
+    "Inspect queue depth and dead-letter rows before any later apply attempt."
+  ],
+  "futureHumanProductionRunFields": {
+    "queueDepthBefore": null,
+    "queueDepthAfter": null,
+    "processedJobs": null,
+    "failureCount": null,
+    "workerExitCode": null,
+    "rollbackStopVerified": null,
+    "operatorAcknowledgementSigned": null,
+    "sanitizedEvidence": null
+  },
+  "acceptedProductionRunEvidence": {
+    "status": "not-submitted",
+    "accepted": false,
+    "evidencePath": null,
+    "defaultEvidencePaths": [
+      "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+      "docs/production-scale/evidence/production-worker-queue-depth-evidence.md"
+    ],
+    "validation": {
+      "accepted": false,
+      "status": "not-submitted",
+      "errors": [
+        "No accepted production worker queue-depth evidence has been submitted."
+      ],
+      "sensitiveFindings": [],
+      "blockerCoverage": {
+        "productionIngestRuntime": false,
+        "productionWorkflowParityAndRollback": false
+      }
+    },
+    "blockerCoverage": {
+      "productionIngestRuntime": false,
+      "productionWorkflowParityAndRollback": false
+    }
+  },
+  "blockerCoverage": {
+    "productionIngestRuntime": false,
+    "productionWorkflowParityAndRollback": false,
+    "releaseEvidenceExactCommands": true
+  },
+  "blockerStatus": {
+    "blocker2": "human-operator-production-queue-depth-evidence-required",
+    "blocker11": "partial-production-workflow-parity-and-rollback-evidence-required",
+    "blocker21": "exact-release-evidence-command-references-present"
+  },
+  "safety": {
+    "productionJobsProcessedByCodex": false,
+    "productionDataMutatedByCodex": false,
+    "productionWorkerActivatedByDefault": false,
+    "parserBehaviorChanged": false,
+    "ocrBehaviorChanged": false,
+    "canonicalMappingChanged": false,
+    "violationBehaviorChanged": false,
+    "packetBehaviorChanged": false,
+    "storageBehaviorChanged": false,
+    "dryRunIsNonMutating": true,
+    "dashboardPassAloneIsReleaseEvidence": false
+  },
+  "requiredStatements": [
+    "No production jobs were processed by Codex.",
+    "The production worker remains default-off.",
+    "Dry-run is non-mutating.",
+    "Production apply requires explicit operator inputs and runtime guards.",
+    "Blocker 2 cannot be production-ready without accepted production queue-depth evidence.",
+    "Dashboard PASS alone is not release evidence; exact commands are required."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-production-worker-readiness.md",
+    "json": "docs/production-scale/evidence/latest-production-worker-readiness.json"
+  }
+}

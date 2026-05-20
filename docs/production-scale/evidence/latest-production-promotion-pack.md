@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T20:47:44.452Z
+Generated at: 2026-05-20T21:01:52.130Z
 Current branch: `staging`
-Current commit hash: `f2a483ba06fa85ebf09884cb250ae40d2a6c0aeb`
+Current commit hash: `def2a024b30aaa811cd354a3bb3f1d78b8efe789`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -25,6 +25,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run test:deterministic-ingestion-report` - reference-required; evidence: none
 - `pnpm run response:soak-check` - reference-required; evidence: none
 - `pnpm run operator:dashboard` - reference-required; evidence: none
+- `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
 - `pnpm run check:migrations` - reference-required; evidence: none
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
@@ -58,7 +59,7 @@ Recommended readiness classification: **limited beta**
 - Dashboard command: `pnpm run operator:dashboard -- --json`
 - Dashboard available: yes
 - Checks skipped: true
-- Skip count: 54
+- Skip count: 55
 - SKIP treated as PASS: no
 
 ## Human Restore Drill Evidence Acceptance
@@ -70,10 +71,19 @@ Recommended readiness classification: **limited beta**
 - Blocker 22 coverage: not accepted
 - SIMULATED-only submitted as human proof: no
 
+## Production Worker Readiness Evidence
+
+- Status: prepared-awaiting-human-production-evidence
+- Production proof accepted: no
+- Queue-depth evidence accepted: no
+- Queue-depth evidence path: `not submitted`
+- Blocker 2 coverage: not accepted
+- Blocker 11 coverage: not accepted
+- Codex processed production jobs: no
+
 ## Human-Required Proof
 
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #11 Production deployment parity (High; human proof required) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #20 Production-safe privacy probe depth (Medium; human proof required) - Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
@@ -100,9 +110,8 @@ Recommended readiness classification: **limited beta**
 - #8 Response operations maturity (High; partial) - Use SIMULATED alert dry-run only as response-ops evidence; live scheduler, purge/archive, and historical backfill still need bounded operator proof.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial) - Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
-- #11 Production deployment parity (High; human proof required) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
+- #11 Production deployment parity (High; partial) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
 - #20 Production-safe privacy probe depth (Medium; human proof required) - Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
-- #21 Ingest observability release gating (Medium; partial) - Use the evidence command to capture exact release evidence before deciding hard gates.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
 ## Unresolved Scale Blockers
@@ -134,6 +143,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.md` - present
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.json` - present; evidenceType=DESIGN_AND_GUARD_EVIDENCE
+- `docs/production-scale/evidence/latest-production-worker-readiness.md` - present
+- `docs/production-scale/evidence/latest-production-worker-readiness.json` - present; evidenceType=PRODUCTION_WORKER_READINESS_EVIDENCE
 - `docs/production-scale/evidence/latest-migration-governance.md` - present
 - `docs/production-scale/evidence/latest-migration-governance.json` - present
 - `docs/production-scale/evidence/latest-production-safe-probes.md` - present
@@ -146,6 +157,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-runtime-size.json` - present
 - `docs/production-scale/evidence/human-restore-drill-evidence.md` - missing
 - `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
+- `docs/production-scale/evidence/production-worker-queue-depth-evidence.json` - missing
+- `docs/production-scale/evidence/production-worker-queue-depth-evidence.md` - missing
 - `docs/restore-drill-evidence-template.md` - present
 - `docs/staging-ingest-worker-operation.md` - present
 - `docs/production-ingest-worker-activation.md` - present
@@ -162,10 +175,10 @@ Recommended readiness classification: **limited beta**
 - `docs/runtime-size-and-dependency-report.md` - present
 - `docs/production-scale/runtime-size-threshold-policy.json` - present
 - `docs/production-at-scale-endpoint-auth-appendix.md` - present
-- `docs/production-scale/README.md` - present
-- `docs/production-scale/blocker-registry.json` - present
 - `docs/production-scale/evidence/latest-production-promotion-pack.md` - present
 - `docs/production-scale/evidence/latest-production-promotion-pack.json` - present
+- `docs/production-scale/README.md` - present
+- `docs/production-scale/blocker-registry.json` - present
 
 ## Stale Reference Detection
 

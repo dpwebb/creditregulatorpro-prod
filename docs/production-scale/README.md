@@ -171,16 +171,21 @@ Run:
 
 ```bash
 pnpm run production-worker:activation-plan
+pnpm run production-worker:readiness-evidence
 ```
 
 Outputs:
 
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.md`
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.json`
+- `docs/production-scale/evidence/latest-production-worker-readiness.md`
+- `docs/production-scale/evidence/latest-production-worker-readiness.json`
 
 This is design and guard evidence only. It documents the default-off production workflow path, dry-run procedure, bounded apply guards, queue-depth evidence expectations, and rollback/stop procedure. It does not activate a production worker, process production jobs, mutate production data, or claim production-at-scale readiness.
 
-Production apply remains fail-closed unless every explicit workflow input and runtime guard in `docs/production-ingest-worker-activation.md` is present. Blocker 2 remains not fully production-fixed until an approved production run is actually activated and evidenced. Blocker 11 remains partial until production parity and rollback evidence are complete.
+Production apply remains fail-closed unless every explicit workflow input and runtime guard in `docs/production-ingest-worker-activation.md` is present. The readiness evidence records branch, commit, default-off status, dry-run command, guard list, bounded max-jobs requirement, rollback/stop instructions, future queue-depth before/after fields, and the explicit statement that Codex processed no production jobs.
+
+Blocker 2 remains not production-ready until accepted operator production queue-depth evidence exists. Blocker 11 remains partial until production workflow parity and rollback/stop evidence are accepted. Blocker 21 must be supported by exact release evidence commands and cannot rely on dashboard PASS alone.
 
 ## Simulated Load Evidence
 

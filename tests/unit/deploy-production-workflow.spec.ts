@@ -84,9 +84,11 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("run_ingest_worker_dry_run:");
     expect(source).toContain("run_ingest_worker_apply:");
     expect(source).toContain("default: false");
+    expect(source).toContain("ingest_worker_max_jobs must be explicitly set to 1-5 when a worker run is requested.");
     expect(source).toContain("Skipping production ingest worker. Manual workflow_dispatch input is required.");
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_DRY_RUN: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_dry_run || false }}');
     expect(source).toContain('RUN_PRODUCTION_INGEST_WORKER_APPLY: ${{ github.event_name == \'workflow_dispatch\' && inputs.run_ingest_worker_apply || false }}');
+    expect(source).toContain("production_worker_requested=\"false\"");
     expect(source).not.toContain("docker compose up -d --build ingest");
     expect(source).not.toContain("restart: unless-stopped ingest");
   });
@@ -96,11 +98,14 @@ describe("production deploy workflow verification", () => {
 
     expect(source).toContain("run_production_ingest_worker_plan() {");
     expect(source).toContain("choose dry-run or apply, not both");
-    expect(source).toContain("Refusing production ingest worker input: ingest_worker_max_jobs must be 1-5.");
+    expect(source).toContain("Refusing production ingest worker input: ingest_worker_max_jobs must be explicitly set to 1-5 when a worker run is requested.");
     expect(source).toContain("Refusing production ingest worker input: ingest_worker_operator must be a safe token.");
     expect(source).toContain("Refusing production ingest worker input: ingest_worker_apply_ack is invalid.");
+    expect(source).toContain("Refusing production ingest worker input: ingest_worker_apply_ack is required for apply.");
+    expect(source).toContain("Refusing production ingest worker input: ingest_worker_operator is required for apply and must be a safe token.");
     expect(source).toContain("ingest_worker_max_jobs must be 1-5");
     expect(source).toContain("Running read-only bounded production ingest worker dry-run.");
+    expect(source).toContain("Production ingest worker evidence: mode=dry-run max_jobs=${PRODUCTION_INGEST_WORKER_MAX_JOBS} mutates_queue=false.");
     expect(source).toContain(
       "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
     );
@@ -108,6 +113,7 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT=true");
     expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS=\"$PRODUCTION_INGEST_WORKER_MAX_JOBS\"");
     expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_OPERATOR=\"$PRODUCTION_INGEST_WORKER_OPERATOR\"");
+    expect(source).toContain("Production ingest worker evidence: mode=apply max_jobs=${PRODUCTION_INGEST_WORKER_MAX_JOBS} failure_stops_workflow=true.");
     expect(source).toContain(
       "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
     );

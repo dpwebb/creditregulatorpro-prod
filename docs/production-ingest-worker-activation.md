@@ -33,7 +33,7 @@ In GitHub Actions, use `workflow_dispatch` on production with:
 
 - `run_ingest_worker_dry_run=true`
 - `run_ingest_worker_apply=false`
-- `ingest_worker_max_jobs=1`
+- `ingest_worker_max_jobs=1` explicitly set
 
 Dry-run previews eligible queue status only. It must not claim jobs, process jobs, update artifacts, or mutate queue state.
 
@@ -65,6 +65,8 @@ pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id p
 
 The worker refuses production-like apply if any guard is missing or invalid.
 
+The workflow also refuses any requested worker run unless `ingest_worker_max_jobs` is explicitly provided. The deploy default remains worker-off and does not infer a production worker job bound.
+
 ## Queue-Depth Check
 
 Before apply, record dry-run output and operator dashboard queue status. After apply, record:
@@ -77,6 +79,14 @@ Before apply, record dry-run output and operator dashboard queue status. After a
 - worker exit code
 
 Failure exit code must be treated as blocking evidence. Do not continue silently after failed or dead-lettered jobs.
+
+Generate non-mutating readiness evidence before promotion review:
+
+```sh
+pnpm run production-worker:readiness-evidence
+```
+
+That command writes `docs/production-scale/evidence/latest-production-worker-readiness.md` and `.json`. It does not run the production worker. It remains unresolved until a human/operator production queue-depth evidence artifact is supplied and accepted.
 
 ## Rollback/Stop
 

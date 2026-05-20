@@ -624,6 +624,7 @@ describe("operator regression dashboard", () => {
     expect(semantics.simulatedProofVisible).toBe(true);
     expect(semantics.humanRequiredProofVisible).toBe(true);
     expect(semantics.exactCommands).toContain("pnpm run alerts:dry-run");
+    expect(semantics.exactCommands).toContain("pnpm run production-worker:readiness-evidence");
   });
 
   it("supports run-checks through bounded command result mapping", () => {
