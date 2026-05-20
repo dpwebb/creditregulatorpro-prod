@@ -1,0 +1,504 @@
+{
+  "reportName": "production-deployment-parity-evidence",
+  "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+  "generatedAt": "2026-05-20T23:21:49.023Z",
+  "maxAgeDays": 14,
+  "branch": "staging",
+  "commit": "735139f29bcb6e711175f5fc09f4ed6b4a7a557b",
+  "status": "accepted-production-deployment-parity",
+  "current": true,
+  "productionProof": false,
+  "productionProbeTargetSource": {
+    "configured": false,
+    "configuredOrigin": null,
+    "workflowSource": "GitHub Actions vars.PRODUCTION_APP_URL with default https://creditregulatorpro.com",
+    "commandAccessesTarget": false
+  },
+  "runtimeProductionProbesExecutedByThisCommand": false,
+  "productionSafeProbeEvidence": {
+    "path": "docs/production-scale/evidence/latest-production-safe-probes.json",
+    "exists": true,
+    "generatedAt": "2026-05-20T23:21:45.000Z",
+    "current": true,
+    "ageDays": 0,
+    "accepted": true,
+    "status": "passed",
+    "targetHost": "staging.creditregulatorpro.com",
+    "planOnly": true,
+    "runtimeProductionProof": false,
+    "runtimeProbePlanReadOnly": true,
+    "runtimeProbeResultsReadOnly": true,
+    "runtimeProbePlanMethods": [
+      "GET",
+      "HEAD"
+    ],
+    "runtimeProbeResultMethods": [],
+    "invalidSessionDenialPlanned": true,
+    "invalidSessionDenialRuntimeChecked": false,
+    "publicHealthReadinessPlanned": true,
+    "staticContractsPassed": true,
+    "productionDataMutated": false,
+    "productionFixturesCreated": false,
+    "productionWorkerActivated": false,
+    "validation": {
+      "ok": true,
+      "errors": []
+    }
+  },
+  "stagingOwnerDenialEvidenceReference": {
+    "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+    "exists": true,
+    "generatedAt": "2026-05-20T23:21:44.905Z",
+    "current": true,
+    "ageDays": 0,
+    "accepted": true,
+    "status": "passed",
+    "productionProof": false,
+    "stagingOrLocalProofOnly": true,
+    "syntheticFixturesOnly": true,
+    "ownerBDeniedOwnerARecords": true,
+    "adminOnlyRoutesDeniedForNonAdmins": true,
+    "totalChecks": 30,
+    "failedChecks": 0,
+    "validation": {
+      "ok": true,
+      "errors": []
+    }
+  },
+  "workflowValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "rollback SHA workflow_dispatch input required for rollback",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "selected rollback SHA is deployed and verified",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "post-deploy health check runs after selected commit deploy",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "production workflow runtime probes are GET/HEAD only",
+        "status": "passed",
+        "passed": true,
+        "methods": [
+          "GET",
+          "HEAD"
+        ],
+        "unsafe": []
+      },
+      {
+        "name": "invalid-session denial probes are checked",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "public health/readiness probes are checked",
+        "status": "passed",
+        "passed": true
+      },
+      {
+        "name": "production ingest worker remains default-off",
+        "status": "passed",
+        "passed": true
+      }
+    ],
+    "failedChecks": [],
+    "runtimeProbeCalls": [
+      {
+        "label": "root route",
+        "method": "HEAD",
+        "path": "/",
+        "acceptedStatuses": [
+          "2xx",
+          "3xx"
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "login route",
+        "method": "GET",
+        "path": "/login",
+        "acceptedStatuses": [
+          "2xx",
+          "3xx"
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "auth session denial",
+        "method": "GET",
+        "path": "/_api/auth/session",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "report artifact list denial",
+        "method": "GET",
+        "path": "/_api/report-artifact/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "packet list denial",
+        "method": "GET",
+        "path": "/_api/packet/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "evidence event list denial",
+        "method": "GET",
+        "path": "/_api/evidence/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "response document list denial",
+        "method": "GET",
+        "path": "/_api/responses/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "support ticket list denial",
+        "method": "GET",
+        "path": "/_api/support-ticket/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "invalid session auth denial",
+        "method": "GET",
+        "path": "/_api/auth/session",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "invalid session report artifact list denial",
+        "method": "GET",
+        "path": "/_api/report-artifact/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "invalid session packet list denial",
+        "method": "GET",
+        "path": "/_api/packet/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "invalid session evidence event list denial",
+        "method": "GET",
+        "path": "/_api/evidence/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "invalid session response document list denial",
+        "method": "GET",
+        "path": "/_api/responses/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      },
+      {
+        "label": "invalid session support ticket list denial",
+        "method": "GET",
+        "path": "/_api/support-ticket/list?limit=1",
+        "acceptedStatuses": [
+          401,
+          403
+        ],
+        "readOnly": true
+      }
+    ],
+    "runtimeProbeSafety": {
+      "ok": true,
+      "unsafe": [],
+      "methods": [
+        "GET",
+        "HEAD"
+      ],
+      "probeCount": 14
+    },
+    "rollbackShaInputRequired": true,
+    "selectedRollbackShaDeployedAndVerified": true,
+    "postRollbackHealthCheckRequired": true,
+    "invalidSessionDenialChecked": true,
+    "publicHealthReadinessChecked": true,
+    "productionWorkerDefaultOff": true
+  },
+  "invalidSessionDenialProbeStatus": {
+    "workflowChecked": true,
+    "latestSafeProbeEvidenceAccepted": true,
+    "runtimeProductionProof": false
+  },
+  "publicHealthReadinessProbeStatus": {
+    "workflowChecked": true,
+    "latestSafeProbeEvidenceAccepted": true,
+    "runtimeProductionProof": false
+  },
+  "staticUnsafePostSurfaceProof": {
+    "status": "passed",
+    "totalContracts": 16,
+    "failedContracts": [],
+    "unsafePostSurfaceStaticProofCount": 14,
+    "retiredPublicRouteStaticProofCount": 7,
+    "unsafePostSurfaces": [
+      {
+        "name": "missing cron token denial - clock scan",
+        "route": "/_api/clock/scan",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "invalid cron token denial - clock scan",
+        "route": "/_api/clock/scan",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "missing cron token denial - regulation scheduled scan",
+        "route": "/_api/regulation-registry/scheduled-scan",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "invalid cron token denial - regulation scheduled scan",
+        "route": "/_api/regulation-registry/scheduled-scan",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "missing cron token denial - retention auto purge",
+        "route": "/_api/retention/auto-purge",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "invalid cron token denial - retention auto purge",
+        "route": "/_api/retention/auto-purge",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "unsigned PostGrid webhook rejection",
+        "route": "/_api/webhook/postgrid",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "unsigned Stripe webhook rejection",
+        "route": "/_api/webhook/stripe",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "invalid tracking webhook bearer rejection",
+        "route": "/_api/webhook/tracking",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/delete_POST.ts",
+        "route": "endpoints/admin/letter-template/delete_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/humanize_POST.ts",
+        "route": "endpoints/admin/letter-template/humanize_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/rollback_POST.ts",
+        "route": "endpoints/admin/letter-template/rollback_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/seed_POST.ts",
+        "route": "endpoints/admin/letter-template/seed_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template_POST.ts",
+        "route": "endpoints/admin/letter-template_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      }
+    ],
+    "retiredPublicRoutes": [
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/delete_POST.ts",
+        "route": "endpoints/admin/letter-template/delete_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/history_GET.ts",
+        "route": "endpoints/admin/letter-template/history_GET.ts",
+        "method": "GET",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/humanize_POST.ts",
+        "route": "endpoints/admin/letter-template/humanize_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/rollback_POST.ts",
+        "route": "endpoints/admin/letter-template/rollback_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template/seed_POST.ts",
+        "route": "endpoints/admin/letter-template/seed_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-template_POST.ts",
+        "route": "endpoints/admin/letter-template_POST.ts",
+        "method": "POST",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      },
+      {
+        "name": "retired public route remains reset - endpoints/admin/letter-templates_GET.ts",
+        "route": "endpoints/admin/letter-templates_GET.ts",
+        "method": "GET",
+        "productionExecution": "static-contract-only",
+        "status": "passed"
+      }
+    ]
+  },
+  "retiredPublicRouteContractProof": {
+    "path": "tests/contracts/route-auth-classification.spec.ts",
+    "exists": true,
+    "retiredResetPublicRoutesContractProtected": true,
+    "publicInventoryPinned": true,
+    "unsafeEndpointInventoryPinned": true,
+    "status": "passed",
+    "staticContractCount": 7
+  },
+  "rollbackEvidence": {
+    "status": "passed",
+    "rollbackShaInputRequired": true,
+    "selectedRollbackShaDeployedAndVerified": true,
+    "healthCheckAfterRollbackRequired": true,
+    "rollbackProcedure": [
+      "Use the Deploy production workflow_dispatch rollback_sha input with a reviewed full commit SHA.",
+      "Deploy the selected rollback SHA through the normal production workflow so build checks still run.",
+      "Verify the production checkout SHA matches the requested rollback SHA before the container build.",
+      "Run the production health/readiness and denial probes after rollback before considering rollback complete.",
+      "Record sanitized operator evidence separately if a real rollback is executed."
+    ]
+  },
+  "blockerCoverage": {
+    "productionDeploymentParity": true,
+    "productionSafePrivacyProbeDepth": true,
+    "releaseEvidenceExactCommands": true
+  },
+  "blockerStatus": {
+    "blocker11": "production-deployment-parity-controls-current",
+    "blocker20": "production-safe-privacy-depth-evidenced-with-staging-owner-denial",
+    "blocker21": "exact-release-evidence-command-references-present"
+  },
+  "safety": {
+    "runtimeProductionProbesReadOnly": true,
+    "runtimeProductionProbeMethods": [
+      "GET",
+      "HEAD"
+    ],
+    "unsafeProductionRuntimeMethods": [],
+    "staticProofTreatedAsRuntimeProductionProof": false,
+    "productionDataMutatedByCodex": false,
+    "productionFixturesCreatedByCodex": false,
+    "productionWorkerActivatedByCodex": false,
+    "productionJobsProcessedByCodex": false,
+    "liveExternalProvidersCalledByCodex": false,
+    "routeAuthClassificationLoosened": false,
+    "dashboardPassAloneIsReleaseEvidence": false
+  },
+  "requiredStatements": [
+    "Production probes remain GET/HEAD only unless a route is statically verified by contract.",
+    "This command did not execute production probes, create production fixtures, mutate production, activate production workers, process production jobs, or call live external providers.",
+    "Static POST and retired-route checks are contract proof only and are not runtime production proof.",
+    "Staging/local owner-denial evidence supports privacy depth without production fixture creation.",
+    "Rollback requires an explicit rollback_sha input and health/readiness checks after rollback.",
+    "Dashboard PASS alone is not release proof while SKIP rows remain."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-production-deployment-parity.md",
+    "json": "docs/production-scale/evidence/latest-production-deployment-parity.json"
+  },
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "sensitiveFindings": []
+  }
+}

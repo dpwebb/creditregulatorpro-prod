@@ -8,6 +8,7 @@ import {
   REQUIRED_PROMOTION_COMMANDS,
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
+import { buildProductionDeploymentParityEvidenceReport } from "../../scripts/production-deployment-parity-evidence.mjs";
 import { buildMigrationGateReport } from "../../scripts/migration-gate.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
 import {
@@ -282,6 +283,148 @@ function acceptedStagingIngestWorkerEvidence() {
   };
 }
 
+function acceptedProductionSafeProbeEvidence() {
+  return {
+    status: "passed",
+    startedAt: "2026-05-20T12:00:00.000Z",
+    completedAt: "2026-05-20T12:00:00.000Z",
+    targetHost: "staging.creditregulatorpro.com",
+    planOnly: true,
+    runtimeProbePlan: [
+      {
+        name: "app shell",
+        path: "/",
+        method: "HEAD",
+        acceptedStatuses: [200],
+        readOnly: true,
+        mutationExpected: false,
+      },
+      {
+        name: "login route",
+        path: "/login",
+        method: "GET",
+        acceptedStatuses: [200],
+        readOnly: true,
+        mutationExpected: false,
+      },
+      {
+        name: "auth session endpoint invalid session",
+        path: "/_api/auth/session",
+        method: "GET",
+        acceptedStatuses: [401, 403],
+        readOnly: true,
+        mutationExpected: false,
+      },
+    ],
+    publicChecks: [],
+    protectedUnauthenticatedChecks: [],
+    protectedInvalidSessionChecks: [],
+    staticRejectionContracts: [{ name: "retired public route remains reset", status: "passed" }],
+    safety: {
+      staticContractsPassed: true,
+      productionDataMutated: false,
+      productionFixturesCreated: false,
+      productionWorkerActivated: false,
+      liveExternalProvidersConnected: false,
+    },
+  };
+}
+
+function acceptedStagingOwnerDenialEvidence() {
+  return {
+    reportName: "staging-owner-denial-smoke",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "passed",
+    productionProof: false,
+    stagingOrLocalProofOnly: true,
+    syntheticFixturesOnly: true,
+    productionDataMutated: false,
+    productionFixturesCreated: false,
+    liveExternalProvidersConnected: false,
+    summary: {
+      totalChecks: 30,
+      passedChecks: 30,
+      failedChecks: 0,
+      ownerBDeniedOwnerARecords: true,
+      adminOnlyRoutesDeniedForNonAdmins: true,
+    },
+  };
+}
+
+function acceptedDeploymentParityEvidence({ includeOwnerDenial = true } = {}) {
+  return buildProductionDeploymentParityEvidenceReport({
+    rootDir: process.cwd(),
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    productionSafeProbeEvidence: acceptedProductionSafeProbeEvidence(),
+    stagingOwnerDenialEvidence: includeOwnerDenial
+      ? acceptedStagingOwnerDenialEvidence()
+      : {
+          reportName: "staging-owner-denial-smoke",
+          generatedAt: "2026-05-20T12:00:00.000Z",
+          status: "not-submitted",
+          productionProof: false,
+          stagingOrLocalProofOnly: false,
+          syntheticFixturesOnly: false,
+          productionDataMutated: false,
+          productionFixturesCreated: false,
+          liveExternalProvidersConnected: false,
+          summary: {
+            totalChecks: 0,
+            failedChecks: 0,
+            ownerBDeniedOwnerARecords: false,
+            adminOnlyRoutesDeniedForNonAdmins: false,
+          },
+        },
+  });
+}
+
+function notSubmittedProductionDeploymentParityEvidence() {
+  return {
+    reportName: "production-deployment-parity-evidence",
+    evidenceType: "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+    generatedAt: null,
+    status: "not-submitted",
+    current: false,
+    productionProof: false,
+    productionSafeProbeEvidence: {
+      accepted: false,
+      current: false,
+      path: "docs/production-scale/evidence/latest-production-safe-probes.json",
+    },
+    stagingOwnerDenialEvidenceReference: {
+      accepted: false,
+      current: false,
+      path: "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+      productionProof: false,
+    },
+    rollbackEvidence: {
+      status: "not-submitted",
+      rollbackShaInputRequired: false,
+      healthCheckAfterRollbackRequired: false,
+    },
+    blockerCoverage: {
+      productionDeploymentParity: false,
+      productionSafePrivacyProbeDepth: false,
+      releaseEvidenceExactCommands: true,
+    },
+    safety: {
+      runtimeProductionProbesReadOnly: false,
+      staticProofTreatedAsRuntimeProductionProof: false,
+      productionDataMutatedByCodex: false,
+      productionFixturesCreatedByCodex: false,
+      productionWorkerActivatedByCodex: false,
+      productionJobsProcessedByCodex: false,
+      liveExternalProvidersCalledByCodex: false,
+      dashboardPassAloneIsReleaseEvidence: false,
+    },
+    validation: {
+      ok: false,
+      errors: ["No production deployment parity evidence has been generated."],
+      sensitiveFindings: [],
+    },
+  };
+}
+
 function notSubmittedStagingIngestWorkerEvidence() {
   return {
     reportName: "staging-ingest-worker-queue-drain-evidence",
@@ -491,6 +634,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run restore:evidence:current-check");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
+    expect(report.commandList).toContain("pnpm run production-deployment-parity:evidence");
     expect(report.commandList).toContain("pnpm run production-worker:activation-evidence");
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
     expect(report.commandList).toContain("pnpm run ingest:worker:staging-evidence");
@@ -666,6 +810,7 @@ describe("production promotion evidence pack", () => {
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
       stagingIngestWorkerEvidence: acceptedStagingIngestWorkerEvidence(),
+      productionDeploymentParityEvidence: notSubmittedProductionDeploymentParityEvidence(),
       generatedAt: "2026-05-20T12:00:00.000Z",
       env: {},
     });
@@ -917,6 +1062,7 @@ describe("production promotion evidence pack", () => {
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
       productionWorkerReadinessEvidence,
+      productionDeploymentParityEvidence: notSubmittedProductionDeploymentParityEvidence(),
       generatedAt: "2026-05-20T12:00:00.000Z",
       env: {},
     });
@@ -929,11 +1075,85 @@ describe("production promotion evidence pack", () => {
   });
 
   it("keeps blocker 11 partial until production workflow parity and rollback evidence are present", () => {
-    const report = buildPack();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      productionDeploymentParityEvidence: notSubmittedProductionDeploymentParityEvidence(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
     const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
 
     expect(blocker11?.classification).toBe("partial");
     expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).not.toContain(11);
+  });
+
+  it("closes blocker 11 only with current production-safe probe and rollback evidence", () => {
+    const productionDeploymentParityEvidence = acceptedDeploymentParityEvidence();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      productionDeploymentParityEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
+    const blocker20 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 20);
+
+    expect(productionDeploymentParityEvidence.blockerCoverage.productionDeploymentParity).toBe(true);
+    expect(blocker11?.classification).toBe("fixed with automated evidence");
+    expect(blocker20?.classification).toBe("fixed with staging evidence");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("does not close blocker 11 without rollback evidence", () => {
+    const productionDeploymentParityEvidence = {
+      ...acceptedDeploymentParityEvidence(),
+      current: true,
+      status: "partial",
+      rollbackEvidence: {
+        status: "failed",
+        rollbackShaInputRequired: false,
+        healthCheckAfterRollbackRequired: false,
+      },
+      blockerCoverage: {
+        productionDeploymentParity: false,
+        productionSafePrivacyProbeDepth: true,
+        releaseEvidenceExactCommands: true,
+      },
+      validation: {
+        ok: false,
+        errors: ["Rollback evidence must require rollback_sha."],
+        sensitiveFindings: [],
+      },
+    };
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      productionDeploymentParityEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
+
+    expect(blocker11?.classification).toBe("partial");
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("does not close blocker 20 with unauthenticated production-safe probes alone", () => {
+    const productionDeploymentParityEvidence = acceptedDeploymentParityEvidence({ includeOwnerDenial: false });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      productionDeploymentParityEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker20 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 20);
+
+    expect(productionDeploymentParityEvidence.productionSafeProbeEvidence.accepted).toBe(true);
+    expect(productionDeploymentParityEvidence.stagingOwnerDenialEvidenceReference.accepted).toBe(false);
+    expect(blocker20?.classification).toBe("human proof required");
   });
 
   it("closes blocker 8 only through non-mutating response ops readiness controls", () => {
@@ -1023,6 +1243,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toEqual(
       expect.arrayContaining([
         "pnpm run production-scale:evidence",
+        "pnpm run production-deployment-parity:evidence",
         "pnpm run production-worker:activation-evidence",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker:staging-evidence",

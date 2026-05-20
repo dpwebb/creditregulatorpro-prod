@@ -68,6 +68,7 @@
     "migrations:gate": "node scripts/migration-gate.mjs",
     "readiness:production": "node scripts/production-readiness-gate.mjs",
     "production-safe-probes:evidence": "node scripts/production-readiness-gate.mjs --plan-only --write-evidence --skip-local-checks --skip-github-deploy-check",
+    "production-deployment-parity:evidence": "node scripts/production-deployment-parity-evidence.mjs",
     "staging-owner-denial-smoke:evidence": "node scripts/staging-owner-denial-smoke.mjs",
     "production:readiness": "tsx scripts/production-readiness-report.ts",
     "operator:dashboard": "tsx scripts/operator-regression-dashboard.ts",

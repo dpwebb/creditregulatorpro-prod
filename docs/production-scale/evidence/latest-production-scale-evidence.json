@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T23:06:42.751Z",
+  "generatedAt": "2026-05-20T23:22:00.653Z",
   "branch": "staging",
-  "commit": "6acd011de08d889d16c776e4ace8ca5e0ca1e560",
+  "commit": "735139f29bcb6e711175f5fc09f4ed6b4a7a557b",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -568,16 +568,18 @@
           "severity": "High",
           "area": "Production deployment parity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+          "proofTypeRequired": "Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.",
           "allowedProofCommands": [
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
             "pnpm run production-worker:activation-plan",
             "pnpm run production-worker:activation-evidence",
             "pnpm run production-worker:readiness-evidence",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run test:contracts",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -601,9 +603,11 @@
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
-            "docs/production-scale/evidence/latest-production-worker-readiness.json"
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
+          "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete."
         },
         {
           "number": 12,
@@ -890,13 +894,15 @@
           "severity": "Medium",
           "area": "Production-safe privacy probe depth",
           "currentStatus": "partial",
-          "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+          "proofTypeRequired": "Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.",
           "allowedProofCommands": [
             "pnpm run test:contracts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -915,9 +921,11 @@
             "docs/production-scale/evidence/latest-production-safe-probes.md",
             "docs/production-scale/evidence/latest-production-safe-probes.json",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof."
+          "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof."
         },
         {
           "number": 21,
@@ -928,6 +936,7 @@
           "proofTypeRequired": "Release evidence capture records exact commands, production worker readiness evidence, dashboard skips, and explicit dashboard-PASS limitations.",
           "allowedProofCommands": [
             "pnpm run production-scale:evidence",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run production-worker:readiness-evidence",
             "pnpm run production-worker:activation-evidence",
             "pnpm run response:ops-readiness-evidence",
@@ -949,6 +958,8 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
             "docs/production-scale/evidence/latest-production-worker-readiness.json",
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
@@ -966,7 +977,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
+          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production deployment parity evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
         },
         {
           "number": 22,
@@ -1794,13 +1805,15 @@
           "severity": "Medium",
           "area": "Production-safe privacy probe depth",
           "currentStatus": "partial",
-          "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+          "proofTypeRequired": "Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.",
           "allowedProofCommands": [
             "pnpm run test:contracts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -1819,9 +1832,11 @@
             "docs/production-scale/evidence/latest-production-safe-probes.md",
             "docs/production-scale/evidence/latest-production-safe-probes.json",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof."
+          "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof."
         },
         {
           "number": 21,
@@ -1832,6 +1847,7 @@
           "proofTypeRequired": "Release evidence capture records exact commands, production worker readiness evidence, dashboard skips, and explicit dashboard-PASS limitations.",
           "allowedProofCommands": [
             "pnpm run production-scale:evidence",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run production-worker:readiness-evidence",
             "pnpm run production-worker:activation-evidence",
             "pnpm run response:ops-readiness-evidence",
@@ -1853,6 +1869,8 @@
           "humanProofRequired": false,
           "relatedEvidenceOutputPaths": [
             "docs/production-observability-metrics.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
             "docs/production-scale/evidence/latest-production-worker-readiness.json",
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
@@ -1870,7 +1888,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
+          "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production deployment parity evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence."
         }
       ]
     },
@@ -1886,16 +1904,18 @@
           "severity": "High",
           "area": "Production deployment parity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+          "proofTypeRequired": "Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.",
           "allowedProofCommands": [
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
             "pnpm run production-worker:activation-plan",
             "pnpm run production-worker:activation-evidence",
             "pnpm run production-worker:readiness-evidence",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run test:contracts",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -1919,9 +1939,11 @@
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
-            "docs/production-scale/evidence/latest-production-worker-readiness.json"
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
+          "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete."
         },
         {
           "number": 20,
@@ -1929,13 +1951,15 @@
           "severity": "Medium",
           "area": "Production-safe privacy probe depth",
           "currentStatus": "partial",
-          "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+          "proofTypeRequired": "Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.",
           "allowedProofCommands": [
             "pnpm run test:contracts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -1954,9 +1978,11 @@
             "docs/production-scale/evidence/latest-production-safe-probes.md",
             "docs/production-scale/evidence/latest-production-safe-probes.json",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof."
+          "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof."
         }
       ]
     },
@@ -2146,16 +2172,18 @@
           "severity": "High",
           "area": "Production deployment parity",
           "currentStatus": "partial",
-          "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+          "proofTypeRequired": "Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.",
           "allowedProofCommands": [
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
             "pnpm run production-worker:activation-plan",
             "pnpm run production-worker:activation-evidence",
             "pnpm run production-worker:readiness-evidence",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run test:contracts",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -2179,9 +2207,11 @@
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
             "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
             "docs/production-scale/evidence/latest-production-worker-readiness.md",
-            "docs/production-scale/evidence/latest-production-worker-readiness.json"
+            "docs/production-scale/evidence/latest-production-worker-readiness.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
+          "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete."
         },
         {
           "number": 18,
@@ -2228,13 +2258,15 @@
           "severity": "Medium",
           "area": "Production-safe privacy probe depth",
           "currentStatus": "partial",
-          "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+          "proofTypeRequired": "Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.",
           "allowedProofCommands": [
             "pnpm run test:contracts",
             "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
             "pnpm run production-safe-probes:evidence",
             "pnpm run staging-owner-denial-smoke:evidence",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
           ],
           "forbiddenProofTypes": [
@@ -2253,9 +2285,11 @@
             "docs/production-scale/evidence/latest-production-safe-probes.md",
             "docs/production-scale/evidence/latest-production-safe-probes.json",
             "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+            "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+            "docs/production-scale/evidence/latest-production-deployment-parity.md",
+            "docs/production-scale/evidence/latest-production-deployment-parity.json"
           ],
-          "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof."
+          "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof."
         },
         {
           "number": 22,
@@ -2607,16 +2641,18 @@
       "severity": "High",
       "area": "Production deployment parity",
       "currentStatus": "partial",
-      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+      "proofTypeRequired": "Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.",
       "allowedProofCommands": [
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:activation-evidence",
         "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-deployment-parity:evidence",
         "pnpm run test:contracts",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
       ],
       "forbiddenProofTypes": [
@@ -2640,9 +2676,11 @@
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
-        "docs/production-scale/evidence/latest-production-worker-readiness.json"
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "docs/production-scale/evidence/latest-production-deployment-parity.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.json"
       ],
-      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete."
+      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete."
     },
     {
       "number": 15,
@@ -2833,13 +2871,15 @@
       "severity": "Medium",
       "area": "Production-safe privacy probe depth",
       "currentStatus": "partial",
-      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+      "proofTypeRequired": "Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.",
       "allowedProofCommands": [
         "pnpm run test:contracts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm run production-deployment-parity:evidence",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
       ],
       "forbiddenProofTypes": [
@@ -2858,9 +2898,11 @@
         "docs/production-scale/evidence/latest-production-safe-probes.md",
         "docs/production-scale/evidence/latest-production-safe-probes.json",
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+        "docs/production-scale/evidence/latest-production-deployment-parity.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.json"
       ],
-      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof."
+      "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof."
     },
     {
       "number": 22,

@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T23:06:42.776Z
+Generated at: 2026-05-20T23:22:17.560Z
 Current branch: `staging`
-Current commit hash: `6acd011de08d889d16c776e4ace8ca5e0ca1e560`
+Current commit hash: `735139f29bcb6e711175f5fc09f4ed6b4a7a557b`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -35,6 +35,7 @@ Recommended readiness classification: **limited beta**
 - `pnpm run alerts:dry-run` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerts-dry-run.md, docs/production-scale/evidence/latest-alerts-dry-run.json
 - `pnpm run alerts:exclusion:validate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-exclusion-validation.md, docs/production-scale/evidence/latest-alerting-exclusion-validation.json
 - `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
+- `pnpm run production-deployment-parity:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-deployment-parity.md, docs/production-scale/evidence/latest-production-deployment-parity.json
 - `pnpm run production-worker:activation-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-activation-evidence.md, docs/production-scale/evidence/latest-production-worker-activation-evidence.json
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
 - `pnpm run ingest:worker:staging-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md, docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json
@@ -99,6 +100,21 @@ Recommended readiness classification: **limited beta**
 - Evidence age days: not available
 - Blocker 1 current coverage: not accepted
 - Missing fields: human-observed evidence type, operator name or role, date/time, environment, backup source, restore target, RPO result, RTO result, auth/session post-restore result, packet PDF post-restore result, response queue post-restore result, cleanup/lifecycle post-restore result, retention archive/restore result or explicit retention exclusion, rollback/cleanup result, signed operator acknowledgement, explicit sanitized evidence statement
+
+## Production Deployment Parity Evidence
+
+- Status: accepted-production-deployment-parity
+- Current: yes
+- Production proof: no
+- Production-safe probe evidence accepted: yes
+- Staging/local owner-denial evidence accepted: yes
+- Runtime production probes executed by this command: no
+- Runtime production probes read-only: yes
+- Rollback SHA input required: yes
+- Health check after rollback required: yes
+- Blocker 11 coverage: accepted
+- Blocker 20 coverage: accepted
+- Static POST and retired-route proof is not runtime production proof.
 
 ## Production Worker Readiness Evidence
 
@@ -208,7 +224,6 @@ Recommended readiness classification: **limited beta**
 
 - #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
-- #20 Production-safe privacy probe depth (Medium; human proof required) - Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
 ## Simulated Proof-Only Checks
@@ -230,8 +245,6 @@ Recommended readiness classification: **limited beta**
 - #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
-- #11 Production deployment parity (High; partial) - Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.
-- #20 Production-safe privacy probe depth (Medium; human proof required) - Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
 ## Unresolved Scale Blockers
@@ -278,6 +291,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-production-worker-activation-evidence.json` - present; evidenceType=PRODUCTION_WORKER_ACTIVATION_EVIDENCE
 - `docs/production-scale/evidence/latest-production-worker-readiness.md` - present
 - `docs/production-scale/evidence/latest-production-worker-readiness.json` - present; evidenceType=PRODUCTION_WORKER_READINESS_EVIDENCE
+- `docs/production-scale/evidence/latest-production-deployment-parity.md` - present
+- `docs/production-scale/evidence/latest-production-deployment-parity.json` - present; evidenceType=PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE
 - `docs/production-scale/evidence/latest-migration-governance.md` - present
 - `docs/production-scale/evidence/latest-migration-governance.json` - present
 - `docs/production-scale/evidence/latest-migration-gate.md` - present

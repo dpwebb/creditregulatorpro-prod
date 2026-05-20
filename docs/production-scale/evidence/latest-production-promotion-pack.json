@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T23:06:42.776Z",
+  "generatedAt": "2026-05-20T23:22:17.560Z",
   "currentBranch": "staging",
-  "currentCommitHash": "6acd011de08d889d16c776e4ace8ca5e0ca1e560",
+  "currentCommitHash": "735139f29bcb6e711175f5fc09f4ed6b4a7a557b",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -43,6 +43,7 @@
     "pnpm run alerts:dry-run",
     "pnpm run alerts:exclusion:validate",
     "pnpm run response:ops-readiness-evidence",
+    "pnpm run production-deployment-parity:evidence",
     "pnpm run production-worker:activation-evidence",
     "pnpm run production-worker:readiness-evidence",
     "pnpm run ingest:worker:staging-evidence",
@@ -284,6 +285,35 @@
       ],
       "latestGeneratedAt": "2026-05-20T21:29:30.894Z",
       "status": "operator-ready-with-deferred-controls"
+    },
+    {
+      "command": "pnpm run production-deployment-parity:evidence",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-deployment-parity.json",
+          "exists": true,
+          "reportName": "production-deployment-parity-evidence",
+          "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+          "generatedAt": "2026-05-20T23:21:49.023Z",
+          "status": "accepted-production-deployment-parity",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-20T23:21:49.023Z",
+      "status": "accepted-production-deployment-parity"
     },
     {
       "command": "pnpm run production-worker:activation-evidence",
@@ -626,12 +656,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T22:55:17.015Z",
+          "generatedAt": "2026-05-20T23:22:00.653Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T22:55:17.015Z",
+      "latestGeneratedAt": "2026-05-20T23:22:00.653Z",
       "status": null
     },
     {
@@ -916,12 +946,12 @@
           "exists": true,
           "reportName": "staging-owner-denial-smoke",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T18:54:00.891Z",
+          "generatedAt": "2026-05-20T23:21:44.905Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T18:54:00.891Z",
+      "latestGeneratedAt": "2026-05-20T23:21:44.905Z",
       "status": "passed"
     },
     {
@@ -1078,7 +1108,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T22:55:17.015Z",
+      "generatedAt": "2026-05-20T23:22:00.653Z",
       "status": null,
       "productionProof": false
     },
@@ -1407,6 +1437,24 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-deployment-parity.json",
+      "exists": true,
+      "reportName": "production-deployment-parity-evidence",
+      "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+      "generatedAt": "2026-05-20T23:21:49.023Z",
+      "status": "accepted-production-deployment-parity",
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/evidence/latest-migration-governance.md",
       "exists": true,
       "reportName": null,
@@ -1474,7 +1522,7 @@
       "exists": true,
       "reportName": "staging-owner-denial-smoke",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T18:54:00.891Z",
+      "generatedAt": "2026-05-20T23:21:44.905Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1807,7 +1855,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T22:56:00.113Z",
+      "generatedAt": "2026-05-20T23:06:42.776Z",
       "status": null,
       "productionProof": false
     },
@@ -1832,7 +1880,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1852,7 +1900,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -1911,9 +1959,74 @@
       "acceptsSimulatedEvidenceAsProductionProof": false
     }
   },
+  "productionDeploymentParityEvidence": {
+    "reportName": "production-deployment-parity-evidence",
+    "generatedAt": "2026-05-20T23:21:49.023Z",
+    "status": "accepted-production-deployment-parity",
+    "current": true,
+    "productionProof": false,
+    "runtimeProductionProbesExecutedByThisCommand": false,
+    "productionSafeProbeEvidence": {
+      "accepted": true,
+      "current": true,
+      "path": "docs/production-scale/evidence/latest-production-safe-probes.json",
+      "planOnly": true,
+      "runtimeProductionProof": false
+    },
+    "stagingOwnerDenialEvidenceReference": {
+      "accepted": true,
+      "current": true,
+      "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+      "productionProof": false
+    },
+    "invalidSessionDenialProbeStatus": {
+      "workflowChecked": true,
+      "latestSafeProbeEvidenceAccepted": true,
+      "runtimeProductionProof": false
+    },
+    "publicHealthReadinessProbeStatus": {
+      "workflowChecked": true,
+      "latestSafeProbeEvidenceAccepted": true,
+      "runtimeProductionProof": false
+    },
+    "rollbackEvidence": {
+      "status": "passed",
+      "rollbackShaInputRequired": true,
+      "healthCheckAfterRollbackRequired": true,
+      "selectedRollbackShaDeployedAndVerified": true
+    },
+    "staticUnsafePostSurfaceProof": {
+      "status": "passed",
+      "unsafePostSurfaceStaticProofCount": 14
+    },
+    "retiredPublicRouteContractProof": {
+      "status": "passed",
+      "staticContractCount": 7
+    },
+    "blockerCoverage": {
+      "productionDeploymentParity": true,
+      "productionSafePrivacyProbeDepth": true,
+      "releaseEvidenceExactCommands": true
+    },
+    "validation": {
+      "ok": true,
+      "errors": [],
+      "sensitiveFindings": []
+    },
+    "safety": {
+      "runtimeProductionProbesReadOnly": true,
+      "staticProofTreatedAsRuntimeProductionProof": false,
+      "productionDataMutatedByCodex": false,
+      "productionFixturesCreatedByCodex": false,
+      "productionWorkerActivatedByCodex": false,
+      "productionJobsProcessedByCodex": false,
+      "liveExternalProvidersCalledByCodex": false,
+      "dashboardPassAloneIsReleaseEvidence": false
+    }
+  },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -1934,7 +2047,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2028,7 +2141,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2051,7 +2164,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2111,7 +2224,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2278,7 +2391,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "accepted-formal-waiver",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "waived",
@@ -2312,7 +2425,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-20T23:06:42.776Z",
+    "generatedAt": "2026-05-20T23:22:17.560Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -2809,8 +2922,8 @@
       "severity": "High",
       "area": "Production deployment parity",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.",
       "proofCategories": [
         "automated-local",
         "read-only-production",
@@ -2822,9 +2935,11 @@
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:activation-evidence",
         "pnpm run production-worker:readiness-evidence",
+        "pnpm run production-deployment-parity:evidence",
         "pnpm run test:contracts",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
       ],
       "forbiddenProofTypes": [
@@ -2845,9 +2960,11 @@
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
-        "docs/production-scale/evidence/latest-production-worker-readiness.json"
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "docs/production-scale/evidence/latest-production-deployment-parity.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.json"
       ],
-      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
+      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
@@ -3183,8 +3300,8 @@
       "severity": "Medium",
       "area": "Production-safe privacy probe depth",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
+      "classification": "fixed with staging evidence",
+      "proofTypeRequired": "Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.",
       "proofCategories": [
         "automated-local",
         "staging",
@@ -3195,8 +3312,10 @@
         "pnpm run test:contracts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
+        "pnpm run production-deployment-parity:evidence",
         "pnpm run production-safe-probes:evidence",
         "pnpm run staging-owner-denial-smoke:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
       ],
       "forbiddenProofTypes": [
@@ -3212,9 +3331,11 @@
         "docs/production-scale/evidence/latest-production-safe-probes.md",
         "docs/production-scale/evidence/latest-production-safe-probes.json",
         "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
+        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+        "docs/production-scale/evidence/latest-production-deployment-parity.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.json"
       ],
-      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
+      "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
@@ -3234,6 +3355,7 @@
       ],
       "allowedProofCommands": [
         "pnpm run production-scale:evidence",
+        "pnpm run production-deployment-parity:evidence",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run production-worker:activation-evidence",
         "pnpm run response:ops-readiness-evidence",
@@ -3252,6 +3374,8 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/production-observability-metrics.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.md",
+        "docs/production-scale/evidence/latest-production-deployment-parity.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
@@ -3269,7 +3393,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
+      "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production deployment parity evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
@@ -3646,99 +3770,6 @@
       "waiverReason": null
     },
     {
-      "number": 11,
-      "title": "Production deployment parity",
-      "severity": "High",
-      "area": "Production deployment parity",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Workflow unit tests, read-only production-safe probe evidence, local/staging synthetic owner-denial evidence, default-off production worker path evidence, and human-observed production evidence; rollback proof remains incomplete.",
-      "proofCategories": [
-        "automated-local",
-        "read-only-production",
-        "human-observed"
-      ],
-      "allowedProofCommands": [
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
-        "pnpm run production-worker:activation-plan",
-        "pnpm run production-worker:activation-evidence",
-        "pnpm run production-worker:readiness-evidence",
-        "pnpm run test:contracts",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "production fixture creation",
-        "production deploy changes",
-        "secrets or sessions",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json",
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
-        "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
-        "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
-        "docs/production-scale/evidence/latest-production-worker-readiness.md",
-        "docs/production-scale/evidence/latest-production-worker-readiness.json"
-      ],
-      "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and collect separate rollback plus approved production worker dry-run/apply evidence before calling deployment parity complete.",
-      "humanProofRequired": true,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
-      "number": 20,
-      "title": "Production-safe privacy probe depth",
-      "severity": "Medium",
-      "area": "Production-safe privacy probe depth",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
-      "proofCategories": [
-        "automated-local",
-        "staging",
-        "read-only-production",
-        "human-observed"
-      ],
-      "allowedProofCommands": [
-        "pnpm run test:contracts",
-        "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "production fixture creation",
-        "real tenant records in evidence",
-        "credentials or cookies in evidence",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/production-at-scale-endpoint-auth-appendix.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json",
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
-      ],
-      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
-      "humanProofRequired": true,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
       "number": 22,
       "title": "Retention archive/restore proof",
       "severity": "Medium",
@@ -3959,49 +3990,6 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
       "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
-      "humanProofRequired": true,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    },
-    {
-      "number": 20,
-      "title": "Production-safe privacy probe depth",
-      "severity": "Medium",
-      "area": "Production-safe privacy probe depth",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Local/staging synthetic owner-denial proof plus human-observed read-only production probe evidence. Synthetic owner-denial is not production mutation proof.",
-      "proofCategories": [
-        "automated-local",
-        "staging",
-        "read-only-production",
-        "human-observed"
-      ],
-      "allowedProofCommands": [
-        "pnpm run test:contracts",
-        "pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "production fixture creation",
-        "real tenant records in evidence",
-        "credentials or cookies in evidence",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/production-at-scale-endpoint-auth-appendix.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json",
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
-        "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json"
-      ],
-      "recommendedNextAction": "Run read-only production-safe probes and local/staging synthetic owner-denial smoke; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,

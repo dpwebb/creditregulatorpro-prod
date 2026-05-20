@@ -77,6 +77,21 @@ The runtime production probe plan is read-only: only `GET` and `HEAD` requests m
 
 The report records branch, commit, target host, exact probe groups, static rejection contracts, body-scan status for unauthenticated runtime responses, and explicit safety statements that no production fixtures are created, no production data is mutated, no production worker is activated, and no live external provider is called.
 
+## Production Deployment Parity Evidence
+
+Run:
+
+```bash
+pnpm run production-deployment-parity:evidence
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-production-deployment-parity.md`
+- `docs/production-scale/evidence/latest-production-deployment-parity.json`
+
+This evidence validates the production workflow's read-only probe plan, invalid-session denial checks, static POST/retired-route contract proof, rollback SHA input requirement, and post-rollback health-check requirement. It also references the latest production-safe probe and local/staging owner-denial evidence. It does not execute production probes, create production fixtures, mutate production, activate the production worker, process production jobs, or call live external providers.
+
 ## Local/Staging Owner-Denial Smoke
 
 Run:

@@ -1,9 +1,9 @@
 {
   "status": "passed",
-  "startedAt": "2026-05-20T18:56:33.311Z",
-  "completedAt": "2026-05-20T18:56:33.437Z",
+  "startedAt": "2026-05-20T23:21:44.889Z",
+  "completedAt": "2026-05-20T23:21:45.000Z",
   "branch": "staging",
-  "commit": "63f8615c4d87703fcb113e5a776821fc2fa76302",
+  "commit": "735139f29bcb6e711175f5fc09f4ed6b4a7a557b",
   "targetHost": "staging.creditregulatorpro.com",
   "planOnly": true,
   "runtimeProbePlan": [

@@ -41,6 +41,15 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("creditregulatorpro-production-deploy-health/1.0");
   });
 
+  it("keeps all production health probes read-only", () => {
+    const source = workflowSource();
+    const methods = [...source.matchAll(/wait_for_status\s+"[^"]+"\s+"([^"]+)"/g)].map((match) => match[1]);
+
+    expect(methods.length).toBeGreaterThan(0);
+    expect(new Set(methods)).toEqual(new Set(["HEAD", "GET"]));
+    expect(source).not.toMatch(/wait_for_status\s+"[^"]+"\s+"(?:POST|PUT|PATCH|DELETE)"/);
+  });
+
   it("checks production-safe unauthenticated auth-session denial", () => {
     const source = workflowSource();
 
@@ -76,6 +85,20 @@ describe("production deploy workflow verification", () => {
     expect(source).not.toContain("smoke:outcome-fixture-setup");
     expect(source).not.toContain("smoke:response-document");
     expect(source).not.toContain("response-auth-smoke");
+  });
+
+  it("requires rollback SHA selection and post-rollback health checks to share the normal deploy path", () => {
+    const source = workflowSource();
+    const deployStepIndex = source.indexOf("- name: Deploy selected commit");
+    const verifyStepIndex = source.indexOf("- name: Verify production health");
+
+    expect(source).toContain("rollback_sha:");
+    expect(source).toContain('TARGET_SHA: ${{ steps.target.outputs.sha }}');
+    expect(source).toContain('git checkout --force "$TARGET_SHA"');
+    expect(source).toContain('target_sha="$(git rev-parse "$TARGET_SHA")"');
+    expect(source).toContain("Production checkout SHA mismatch");
+    expect(deployStepIndex).toBeGreaterThan(-1);
+    expect(verifyStepIndex).toBeGreaterThan(deployStepIndex);
   });
 
   it("keeps production ingest worker execution default-off and manual only", () => {

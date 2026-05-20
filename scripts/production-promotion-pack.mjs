@@ -18,6 +18,12 @@ import {
 } from "./production-worker-activation-evidence.mjs";
 
 import {
+  PRODUCTION_DEPLOYMENT_PARITY_JSON_PATH,
+  PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,
+  readProductionDeploymentParityEvidenceReport,
+} from "./production-deployment-parity-evidence.mjs";
+
+import {
   buildMigrationGateReport,
   MIGRATION_GATE_JSON_PATH,
   MIGRATION_GATE_MD_PATH,
@@ -102,6 +108,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run alerts:dry-run",
   "pnpm run alerts:exclusion:validate",
   "pnpm run response:ops-readiness-evidence",
+  "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run ingest:worker:staging-evidence",
@@ -131,6 +138,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run retention:archive-restore:simulated",
   "pnpm run packet-pdf:cache-miss-proof",
   "pnpm run production-worker:activation-plan",
+  "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run migrations:evidence",
@@ -217,6 +225,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run production-worker:readiness-evidence": [
     PRODUCTION_WORKER_READINESS_MD_PATH,
     PRODUCTION_WORKER_READINESS_JSON_PATH,
+  ],
+  "pnpm run production-deployment-parity:evidence": [
+    PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,
+    PRODUCTION_DEPLOYMENT_PARITY_JSON_PATH,
   ],
   "pnpm run migrations:evidence": [
     "docs/production-scale/evidence/latest-migration-governance.md",
@@ -454,6 +466,7 @@ function classifyBlocker(
   blocker,
   humanRestoreEvidenceAcceptance = null,
   restoreReadinessCheck = null,
+  productionDeploymentParityEvidence = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
@@ -486,10 +499,14 @@ function classifyBlocker(
   }
   if (blocker.number === 11) {
     if (
-      productionWorkerReadinessEvidence?.blockerCoverage?.productionWorkflowParityAndRollback === true &&
-      productionWorkerReadinessEvidence?.acceptedProductionRunEvidence?.accepted === true
+      productionDeploymentParityEvidence?.current === true &&
+      productionDeploymentParityEvidence?.blockerCoverage?.productionDeploymentParity === true &&
+      productionDeploymentParityEvidence?.productionSafeProbeEvidence?.accepted === true &&
+      productionDeploymentParityEvidence?.rollbackEvidence?.status === "passed" &&
+      productionDeploymentParityEvidence?.safety?.productionDataMutatedByCodex !== true &&
+      productionDeploymentParityEvidence?.safety?.productionFixturesCreatedByCodex !== true
     ) {
-      return "fixed with human-observed evidence";
+      return "fixed with automated evidence";
     }
     return "partial";
   }
@@ -570,6 +587,16 @@ function classifyBlocker(
     runtimeSizePolicyAcceptance?.blockerCoverage?.acceptedWarningOnlyWaiver === true
   ) {
     return "waived with explicit reason";
+  }
+  if (
+    blocker.number === 20 &&
+    productionDeploymentParityEvidence?.current === true &&
+    productionDeploymentParityEvidence?.blockerCoverage?.productionSafePrivacyProbeDepth === true &&
+    productionDeploymentParityEvidence?.productionSafeProbeEvidence?.accepted === true &&
+    productionDeploymentParityEvidence?.stagingOwnerDenialEvidenceReference?.accepted === true &&
+    productionDeploymentParityEvidence?.safety?.productionFixturesCreatedByCodex !== true
+  ) {
+    return "fixed with staging evidence";
   }
   if (
     blocker.number === 22 &&
@@ -681,6 +708,7 @@ export function buildProductionPromotionPackReport({
   dashboardReport = null,
   humanRestoreEvidenceAcceptance = null,
   restoreReadinessCheck = null,
+  productionDeploymentParityEvidence = null,
   productionWorkerActivationEvidence = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
@@ -727,6 +755,8 @@ export function buildProductionPromotionPackReport({
       evidencePath: acceptedHumanRestoreEvidence.evidencePath,
       generatedAt,
     });
+  const deploymentParityEvidence =
+    productionDeploymentParityEvidence ?? readProductionDeploymentParityEvidenceReport({ rootDir, generatedAt });
   const workerReadinessEvidence =
     productionWorkerReadinessEvidence ?? buildProductionWorkerReadinessEvidenceReport({ rootDir, generatedAt });
   const workerActivationEvidence =
@@ -749,6 +779,7 @@ export function buildProductionPromotionPackReport({
       blocker,
       acceptedHumanRestoreEvidence,
       currentRestoreReadiness,
+      deploymentParityEvidence,
       workerReadinessEvidence,
       stagingIngestEvidence,
       rawReportRemediationEvidence,
@@ -806,6 +837,8 @@ export function buildProductionPromotionPackReport({
     ...Object.values(OUTPUT_BY_COMMAND).flat(),
     HUMAN_RESTORE_DRILL_EVIDENCE_MD_PATH,
     HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
+    PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,
+    PRODUCTION_DEPLOYMENT_PARITY_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_MD_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
@@ -890,6 +923,71 @@ export function buildProductionPromotionPackReport({
         modifiesProduction: currentRestoreReadiness.safety?.modifiesProduction === true,
         acceptsSimulatedEvidenceAsProductionProof:
           currentRestoreReadiness.safety?.acceptsSimulatedEvidenceAsProductionProof === true,
+      },
+    },
+    productionDeploymentParityEvidence: {
+      reportName: deploymentParityEvidence.reportName,
+      generatedAt: deploymentParityEvidence.generatedAt,
+      status: deploymentParityEvidence.status,
+      current: deploymentParityEvidence.current === true,
+      productionProof: deploymentParityEvidence.productionProof === true,
+      runtimeProductionProbesExecutedByThisCommand:
+        deploymentParityEvidence.runtimeProductionProbesExecutedByThisCommand === true,
+      productionSafeProbeEvidence: {
+        accepted: deploymentParityEvidence.productionSafeProbeEvidence?.accepted === true,
+        current: deploymentParityEvidence.productionSafeProbeEvidence?.current === true,
+        path: deploymentParityEvidence.productionSafeProbeEvidence?.path ?? null,
+        planOnly: deploymentParityEvidence.productionSafeProbeEvidence?.planOnly === true,
+        runtimeProductionProof: deploymentParityEvidence.productionSafeProbeEvidence?.runtimeProductionProof === true,
+      },
+      stagingOwnerDenialEvidenceReference: {
+        accepted: deploymentParityEvidence.stagingOwnerDenialEvidenceReference?.accepted === true,
+        current: deploymentParityEvidence.stagingOwnerDenialEvidenceReference?.current === true,
+        path: deploymentParityEvidence.stagingOwnerDenialEvidenceReference?.path ?? null,
+        productionProof: deploymentParityEvidence.stagingOwnerDenialEvidenceReference?.productionProof === true,
+      },
+      invalidSessionDenialProbeStatus: deploymentParityEvidence.invalidSessionDenialProbeStatus ?? null,
+      publicHealthReadinessProbeStatus: deploymentParityEvidence.publicHealthReadinessProbeStatus ?? null,
+      rollbackEvidence: {
+        status: deploymentParityEvidence.rollbackEvidence?.status ?? "unknown",
+        rollbackShaInputRequired: deploymentParityEvidence.rollbackEvidence?.rollbackShaInputRequired === true,
+        healthCheckAfterRollbackRequired:
+          deploymentParityEvidence.rollbackEvidence?.healthCheckAfterRollbackRequired === true,
+        selectedRollbackShaDeployedAndVerified:
+          deploymentParityEvidence.rollbackEvidence?.selectedRollbackShaDeployedAndVerified === true,
+      },
+      staticUnsafePostSurfaceProof: {
+        status: deploymentParityEvidence.staticUnsafePostSurfaceProof?.status ?? "unknown",
+        unsafePostSurfaceStaticProofCount:
+          deploymentParityEvidence.staticUnsafePostSurfaceProof?.unsafePostSurfaceStaticProofCount ?? 0,
+      },
+      retiredPublicRouteContractProof: {
+        status: deploymentParityEvidence.retiredPublicRouteContractProof?.status ?? "unknown",
+        staticContractCount: deploymentParityEvidence.retiredPublicRouteContractProof?.staticContractCount ?? 0,
+      },
+      blockerCoverage: deploymentParityEvidence.blockerCoverage,
+      validation: {
+        ok: deploymentParityEvidence.validation?.ok === true,
+        errors: deploymentParityEvidence.validation?.errors ?? [],
+        sensitiveFindings: deploymentParityEvidence.validation?.sensitiveFindings ?? [],
+      },
+      safety: {
+        runtimeProductionProbesReadOnly:
+          deploymentParityEvidence.safety?.runtimeProductionProbesReadOnly === true,
+        staticProofTreatedAsRuntimeProductionProof:
+          deploymentParityEvidence.safety?.staticProofTreatedAsRuntimeProductionProof === true,
+        productionDataMutatedByCodex:
+          deploymentParityEvidence.safety?.productionDataMutatedByCodex === true,
+        productionFixturesCreatedByCodex:
+          deploymentParityEvidence.safety?.productionFixturesCreatedByCodex === true,
+        productionWorkerActivatedByCodex:
+          deploymentParityEvidence.safety?.productionWorkerActivatedByCodex === true,
+        productionJobsProcessedByCodex:
+          deploymentParityEvidence.safety?.productionJobsProcessedByCodex === true,
+        liveExternalProvidersCalledByCodex:
+          deploymentParityEvidence.safety?.liveExternalProvidersCalledByCodex === true,
+        dashboardPassAloneIsReleaseEvidence:
+          deploymentParityEvidence.safety?.dashboardPassAloneIsReleaseEvidence === true,
       },
     },
     productionWorkerReadinessEvidence: {
@@ -1202,6 +1300,7 @@ export function validatePromotionPackReport(report) {
   }
   const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
   const restoreReadiness = report.restoreReadinessCheck;
+  const deploymentParity = report.productionDeploymentParityEvidence;
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const workerActivation = report.productionWorkerActivationEvidence;
   const stagingIngest = report.stagingIngestWorkerEvidence;
@@ -1220,6 +1319,7 @@ export function validatePromotionPackReport(report) {
   const blocker16 = blockers.find((blocker) => blocker.number === 16);
   const blocker17 = blockers.find((blocker) => blocker.number === 17);
   const blocker18 = blockers.find((blocker) => blocker.number === 18);
+  const blocker20 = blockers.find((blocker) => blocker.number === 20);
   const blocker21 = blockers.find((blocker) => blocker.number === 21);
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
   if (blocker2?.classification === "fixed with human-observed evidence") {
@@ -1274,12 +1374,21 @@ export function validatePromotionPackReport(report) {
       errors.push("Blocker 3 cannot be fixed without accepted measured local/staging-safe load evidence.");
     }
   }
-  if (blocker11?.classification === "fixed with human-observed evidence") {
+  if (blocker11?.classification?.startsWith("fixed with")) {
     if (
-      workerReadiness?.acceptedProductionRunEvidence?.accepted !== true ||
-      workerReadiness?.blockerCoverage?.productionWorkflowParityAndRollback !== true
+      deploymentParity?.current !== true ||
+      deploymentParity?.blockerCoverage?.productionDeploymentParity !== true ||
+      deploymentParity?.productionSafeProbeEvidence?.accepted !== true ||
+      deploymentParity?.rollbackEvidence?.status !== "passed" ||
+      deploymentParity?.rollbackEvidence?.rollbackShaInputRequired !== true ||
+      deploymentParity?.rollbackEvidence?.healthCheckAfterRollbackRequired !== true ||
+      deploymentParity?.safety?.runtimeProductionProbesReadOnly !== true ||
+      deploymentParity?.safety?.staticProofTreatedAsRuntimeProductionProof === true ||
+      deploymentParity?.safety?.productionDataMutatedByCodex === true ||
+      deploymentParity?.safety?.productionFixturesCreatedByCodex === true ||
+      deploymentParity?.safety?.productionWorkerActivatedByCodex === true
     ) {
-      errors.push("Blocker 11 cannot be fixed without production workflow parity and rollback evidence.");
+      errors.push("Blocker 11 cannot be fixed without current production-safe probe and rollback evidence.");
     }
   }
   if (blocker11?.classification === "human proof required") {
@@ -1416,10 +1525,25 @@ export function validatePromotionPackReport(report) {
       errors.push("Blocker 18 cannot be waived without accepted warning-only runtime-size waiver evidence.");
     }
   }
+  if (blocker20?.classification?.startsWith("fixed with")) {
+    if (
+      deploymentParity?.current !== true ||
+      deploymentParity?.blockerCoverage?.productionSafePrivacyProbeDepth !== true ||
+      deploymentParity?.productionSafeProbeEvidence?.accepted !== true ||
+      deploymentParity?.stagingOwnerDenialEvidenceReference?.accepted !== true ||
+      deploymentParity?.stagingOwnerDenialEvidenceReference?.productionProof === true ||
+      deploymentParity?.safety?.runtimeProductionProbesReadOnly !== true ||
+      deploymentParity?.safety?.productionFixturesCreatedByCodex === true ||
+      deploymentParity?.safety?.productionDataMutatedByCodex === true
+    ) {
+      errors.push("Blocker 20 cannot be fixed without current staging/local owner-denial evidence and explicit read-only production probe limits.");
+    }
+  }
   if (blocker21?.classification === "fixed with automated evidence") {
     const commandList = new Set(report.commandList ?? []);
     for (const command of [
       "pnpm run production-scale:evidence",
+      "pnpm run production-deployment-parity:evidence",
       "pnpm run production-worker:activation-evidence",
       "pnpm run production-worker:readiness-evidence",
       "pnpm run ingest:worker:staging-evidence",
@@ -1581,6 +1705,37 @@ export function renderPromotionPackMarkdown(report) {
         ? report.restoreReadinessCheck.requiredFields.missing.join(", ")
         : "none"
     }`,
+    "",
+    "## Production Deployment Parity Evidence",
+    "",
+    `- Status: ${report.productionDeploymentParityEvidence.status}`,
+    `- Current: ${report.productionDeploymentParityEvidence.current ? "yes" : "no"}`,
+    `- Production proof: ${report.productionDeploymentParityEvidence.productionProof ? "yes" : "no"}`,
+    `- Production-safe probe evidence accepted: ${
+      report.productionDeploymentParityEvidence.productionSafeProbeEvidence?.accepted ? "yes" : "no"
+    }`,
+    `- Staging/local owner-denial evidence accepted: ${
+      report.productionDeploymentParityEvidence.stagingOwnerDenialEvidenceReference?.accepted ? "yes" : "no"
+    }`,
+    `- Runtime production probes executed by this command: ${
+      report.productionDeploymentParityEvidence.runtimeProductionProbesExecutedByThisCommand ? "yes" : "no"
+    }`,
+    `- Runtime production probes read-only: ${
+      report.productionDeploymentParityEvidence.safety?.runtimeProductionProbesReadOnly ? "yes" : "no"
+    }`,
+    `- Rollback SHA input required: ${
+      report.productionDeploymentParityEvidence.rollbackEvidence?.rollbackShaInputRequired ? "yes" : "no"
+    }`,
+    `- Health check after rollback required: ${
+      report.productionDeploymentParityEvidence.rollbackEvidence?.healthCheckAfterRollbackRequired ? "yes" : "no"
+    }`,
+    `- Blocker 11 coverage: ${
+      report.productionDeploymentParityEvidence.blockerCoverage?.productionDeploymentParity ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 20 coverage: ${
+      report.productionDeploymentParityEvidence.blockerCoverage?.productionSafePrivacyProbeDepth ? "accepted" : "not accepted"
+    }`,
+    "- Static POST and retired-route proof is not runtime production proof.",
     "",
     "## Production Worker Readiness Evidence",
     "",
