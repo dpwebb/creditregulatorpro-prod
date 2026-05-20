@@ -19,11 +19,28 @@ export type Phase1OutputType = {
   error?: string;
 };
 
-/**
- * Final output type returned after Phase 2 (SSE processing) completes.
- */
-export type OutputType = {
+export type QueuedProcessingOutputType = {
   ok: boolean;
+  queued: boolean;
+  artifactId: number;
+  storageUrl: string;
+  jobId: number;
+  queueStatus: "queued" | "running" | "failed" | "dead_lettered" | "canceled" | "succeeded" | string;
+  processingStatus: string;
+  workerRequired: boolean;
+  duplicate: boolean;
+  retryAt: string | null;
+  errorCode: string | null;
+  errorReason: string | null;
+  message: string;
+};
+
+/**
+ * Final output type returned after worker-backed processing completes.
+ */
+export type CompletedProcessingOutputType = {
+  ok: boolean;
+  queued?: false;
   storageUrl: string;
   tradelines: ParsedTradeline[];
   tradelinesCount: number;
@@ -81,6 +98,12 @@ export type OutputType = {
   replayValidation?: DeterministicReplayValidation;
 };
 
+export type OutputType = CompletedProcessingOutputType | QueuedProcessingOutputType;
+
+export function isQueuedProcessingOutput(output: OutputType): output is QueuedProcessingOutputType {
+  return typeof (output as QueuedProcessingOutputType).jobId === "number";
+}
+
 /**
  * Handles Phase 2 SSE stream from /_api/ingest/process.
  * Reads the SSE stream, fires progress callbacks, and returns the final OutputType.
@@ -133,6 +156,12 @@ async function handlePhase2SSEStream(
           message?: string;
           data?: OutputType;
           error?: string;
+          jobId?: number;
+          queueStatus?: string;
+          processingStatus?: string;
+          retryAt?: string | null;
+          errorCode?: string | null;
+          errorReason?: string | null;
         } | null = null;
 
         try {
@@ -144,6 +173,8 @@ async function handlePhase2SSEStream(
         if (event !== null) {
           if (event.type === "progress") {
             onProgress?.(event.stage ?? "", event.percent ?? 0, event.message);
+          } else if (event.type === "status") {
+            onProgress?.(event.stage ?? event.queueStatus ?? "", event.percent ?? 0, event.message);
           } else if (event.type === "complete") {
             finalResult = event.data ?? null;
           } else if (event.type === "error") {
@@ -171,10 +202,10 @@ async function handlePhase2SSEStream(
  *   - Returns { artifactId, extractionStatus } quickly
  *
  * Phase 2: POST /_api/ingest/process
- *   - Polls DocStrange (if async), runs all parsers/validators
- *   - Returns SSE stream with progress events and final OutputType
+ *   - Enqueues or attaches to a durable ingest job
+ *   - Returns SSE stream with queued/running/completed/failure status events
  *
- * The function signature is unchanged so callers (uploadQueries, pages) need no changes.
+ * The function signature is unchanged; callers should handle either a completed result or queued status.
  */
 export const postReport = async (
   body: InputType,

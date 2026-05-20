@@ -21,7 +21,23 @@ export interface SSEErrorEvent {
   code?: string;
 }
 
-export type SSEEvent = SSEProgressEvent | SSECompleteEvent | SSEErrorEvent;
+export interface SSEStatusEvent {
+  type: "status";
+  stage?: string;
+  message?: string;
+  percent?: number;
+  artifactId?: number;
+  jobId?: number;
+  queueStatus?: string;
+  processingStatus?: string;
+  workerRequired?: boolean;
+  duplicate?: boolean;
+  retryAt?: string | null;
+  errorCode?: string | null;
+  errorReason?: string | null;
+}
+
+export type SSEEvent = SSEProgressEvent | SSECompleteEvent | SSEErrorEvent | SSEStatusEvent;
 
 /**
  * Formats data as an SSE message.

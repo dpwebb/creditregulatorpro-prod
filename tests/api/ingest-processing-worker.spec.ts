@@ -232,7 +232,7 @@ describeIfLocalDb("ingest processing worker", () => {
     expect(result.job?.resultSummary).toMatchObject({
       artifactId,
       deterministicPipelineCalledByWorker: true,
-      endpointCutoverEnabled: false,
+      endpointCutoverEnabled: true,
       tradelineCount: 2,
       createdTradelineCount: 1,
       rawReportBytesLogged: false,

@@ -31,6 +31,9 @@ const mocks = vi.hoisted(() => ({
   resolveUserSession: vi.fn(),
   handleIngestSubmit: vi.fn(),
   handleIngestProcess: vi.fn(),
+  enqueueIngestProcessingJob: vi.fn(),
+  getLatestIngestProcessingJobByIdempotencyKey: vi.fn(),
+  updateArtifactProcessingStatus: vi.fn(),
   validateOrigin: vi.fn(),
   runParserLabStage: vi.fn(),
   isAdmin: vi.fn(),
@@ -55,6 +58,15 @@ vi.mock("../../helpers/ingestSessionResolver", () => ({
 vi.mock("../../helpers/ingestReportHandler", () => ({
   handleIngestSubmit: mocks.handleIngestSubmit,
   handleIngestProcess: mocks.handleIngestProcess,
+}));
+
+vi.mock("../../helpers/ingestProcessingQueueService", () => ({
+  enqueueIngestProcessingJob: mocks.enqueueIngestProcessingJob,
+  getLatestIngestProcessingJobByIdempotencyKey: mocks.getLatestIngestProcessingJobByIdempotencyKey,
+}));
+
+vi.mock("../../helpers/ingestProcessingStatus", () => ({
+  updateArtifactProcessingStatus: mocks.updateArtifactProcessingStatus,
 }));
 
 vi.mock("../../helpers/domainGuard", () => ({
@@ -235,6 +247,43 @@ function artifactRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function ingestJobRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 9101,
+    jobType: "report_ingest_process",
+    status: "queued",
+    reportArtifactId: 701,
+    userId: 10,
+    organizationId: null,
+    payload: {
+      region: "CA",
+      mimeType: "application/pdf",
+      artifactSha256: "synthetic-sha-701",
+      metadata: {
+        uploadChannel: "authenticated_ingest",
+        processEndpointCutover: true,
+      },
+    },
+    idempotencyKey: "ingest.process.jh.a",
+    actorUserId: 10,
+    source: "authenticated_ingest_process",
+    runAfter: "2026-01-01T00:00:00.000Z",
+    startedAt: null,
+    finishedAt: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    attemptCount: 0,
+    maxAttempts: 3,
+    lockedBy: null,
+    lockedAt: null,
+    lockedUntil: null,
+    lastErrorCode: null,
+    lastErrorReason: null,
+    resultSummary: {},
+    ...overrides,
+  };
+}
+
 function currentUser(role = "user") {
   return {
     id: 10,
@@ -368,6 +417,13 @@ beforeEach(() => {
       },
     });
   });
+  mocks.getLatestIngestProcessingJobByIdempotencyKey.mockResolvedValue(null);
+  mocks.enqueueIngestProcessingJob.mockResolvedValue({
+    status: "queued",
+    job: ingestJobRow(),
+    duplicateOfJobId: null,
+  });
+  mocks.updateArtifactProcessingStatus.mockResolvedValue(undefined);
   mocks.validateOrigin.mockResolvedValue({ valid: true, mode: "enforce" });
   mocks.runParserLabStage.mockResolvedValue(parserLabOutput);
   mocks.isAdmin.mockImplementation((user: { role?: string }) => user.role === "admin");
@@ -549,9 +605,9 @@ describe("report ingest lifecycle endpoints", () => {
     expect(body).not.toHaveProperty("canonicalOutput");
   });
 
-  it("processes an owned artifact through SSE and denies non-owner processing before pipeline work", async () => {
+  it("enqueues owned artifact processing through SSE and denies non-owner processing before queue work", async () => {
     queueResults(
-      { first: { id: 701, userId: 10 } },
+      { first: artifactRow({ id: 701, userId: 10, processingStatus: "pending", storageUrl: "SHOULD_NOT_SELECT" }) },
       { first: { userId: 10, province: "ON" } },
     );
 
@@ -562,54 +618,118 @@ describe("report ingest lifecycle endpoints", () => {
     const events = await readSseEvents(response);
     expect(events).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: "progress", stage: "synthetic_processing" }),
+        expect.objectContaining({ type: "progress", stage: "queued", percent: 12 }),
+        expect.objectContaining({
+          type: "status",
+          artifactId: 701,
+          jobId: 9101,
+          queueStatus: "queued",
+          processingStatus: "queued",
+          workerRequired: true,
+        }),
         expect.objectContaining({
           type: "complete",
-          data: expect.objectContaining({ ok: true, artifactId: 701, tradelinesCount: 1 }),
+          data: expect.objectContaining({
+            ok: true,
+            queued: true,
+            artifactId: 701,
+            storageUrl: "701",
+            jobId: 9101,
+            queueStatus: "queued",
+          }),
         }),
       ]),
     );
-    expect(mocks.handleIngestProcess).toHaveBeenCalledWith(
-      expect.objectContaining({ user: expect.objectContaining({ id: 10 }) }),
-      701,
-      expect.any(Function),
-    );
+    expect(mocks.enqueueIngestProcessingJob).toHaveBeenCalledWith(expect.objectContaining({
+      reportArtifactId: 701,
+      userId: 10,
+      source: "authenticated_ingest_process",
+      idempotencyKey: "ingest.process.jh.a",
+      payload: expect.objectContaining({
+        region: "CA",
+        mimeType: "application/pdf",
+        metadata: expect.objectContaining({ processEndpointCutover: true }),
+      }),
+    }));
+    expect(mocks.updateArtifactProcessingStatus).toHaveBeenCalledWith(701, "queued");
+    expect(mocks.handleIngestProcess).not.toHaveBeenCalled();
     responseTextIsPrivacySafe(events);
 
     mocks.operations.length = 0;
-    queueResults({ first: { id: 702, userId: 99 } });
+    queueResults({ first: artifactRow({ id: 702, userId: 99 }) });
     const denied = await processReport(postRequest("/_api/ingest/process", { artifactId: 702 }));
 
     expect(denied.status).toBe(403);
     await expect(denied.json()).resolves.toEqual({ error: "Unauthorized access to artifact" });
-    expect(mocks.handleIngestProcess).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueueIngestProcessingJob).toHaveBeenCalledTimes(1);
   });
 
-  it("returns controlled SSE failure events for parser-quality or scanned-style process failures", async () => {
+  it("reuses duplicate active jobs and exposes failed or dead-lettered queue state", async () => {
     queueResults(
-      { first: { id: 701, userId: 10 } },
+      { first: artifactRow({ id: 701, userId: 10, processingStatus: "failed" }) },
       { first: { userId: 10, province: "ON" } },
     );
-    mocks.handleIngestProcess.mockImplementationOnce(async (_session, _artifactId, send: (event: unknown) => void) => {
-      send({
-        type: "error",
-        error: "Parser quality requires manual review before canonical acceptance.",
-        code: "PARSER_QUALITY_REVIEW",
-      });
+    mocks.enqueueIngestProcessingJob.mockResolvedValueOnce({
+      status: "duplicate",
+      job: ingestJobRow({
+        status: "failed",
+        runAfter: "2026-01-01T00:05:00.000Z",
+        attemptCount: 1,
+        lastErrorCode: "INGEST_PROCESSING_FAILED",
+        lastErrorReason: "Synthetic transient queue failure.",
+      }),
+      duplicateOfJobId: 9101,
     });
 
-    const response = await processReport(postRequest("/_api/ingest/process", { artifactId: 701 }));
+    const retrying = await processReport(postRequest("/_api/ingest/process", { artifactId: 701 }));
 
-    expect(response.status).toBe(200);
-    const events = await readSseEvents(response);
-    expect(events).toEqual([
-      {
+    expect(retrying.status).toBe(200);
+    const retryEvents = await readSseEvents(retrying);
+    expect(retryEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "progress", stage: "retry_scheduled" }),
+      expect.objectContaining({
+        type: "status",
+        queueStatus: "failed",
+        retryAt: "2026-01-01T00:05:00.000Z",
+        errorCode: "INGEST_PROCESSING_FAILED",
+      }),
+      expect.objectContaining({
+        type: "complete",
+        data: expect.objectContaining({
+          queued: true,
+          duplicate: true,
+          queueStatus: "failed",
+          errorReason: "Synthetic transient queue failure.",
+        }),
+      }),
+    ]));
+
+    mocks.operations.length = 0;
+    mocks.getLatestIngestProcessingJobByIdempotencyKey.mockResolvedValueOnce(ingestJobRow({
+      status: "dead_lettered",
+      finishedAt: "2026-01-01T00:06:00.000Z",
+      lastErrorCode: "INGEST_ARTIFACT_BYTES_MISSING",
+      lastErrorReason: "Queued report artifact has no stored PDF bytes.",
+    }));
+    queueResults(
+      { first: artifactRow({ id: 701, userId: 10, processingStatus: "failed" }) },
+      { first: { userId: 10, province: "ON" } },
+    );
+
+    const deadLetter = await processReport(postRequest("/_api/ingest/process", { artifactId: 701 }));
+    expect(deadLetter.status).toBe(200);
+    const deadLetterEvents = await readSseEvents(deadLetter);
+    expect(deadLetterEvents).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "status", queueStatus: "dead_lettered" }),
+      expect.objectContaining({
         type: "error",
-        error: "Parser quality requires manual review before canonical acceptance.",
-        code: "PARSER_QUALITY_REVIEW",
-      },
-    ]);
-    expect(JSON.stringify(events)).not.toMatch(/packetReady|packetWording|runtimeBridge|adminOverride/i);
+        code: "INGEST_ARTIFACT_BYTES_MISSING",
+        error: "Queued report artifact has no stored PDF bytes.",
+      }),
+    ]));
+    expect(mocks.enqueueIngestProcessingJob).toHaveBeenCalledTimes(1);
+    expect(mocks.handleIngestProcess).not.toHaveBeenCalled();
+    expect(JSON.stringify([retryEvents, deadLetterEvents])).not.toMatch(/packetReady|packetWording|runtimeBridge|adminOverride/i);
   });
 
   it("lists report artifacts using current user scoping and compact synthetic metadata", async () => {

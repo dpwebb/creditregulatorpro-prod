@@ -9,6 +9,7 @@ import {
   claimNextIngestProcessingJob,
   enqueueIngestProcessingJob,
   extendIngestProcessingJobLease,
+  getLatestIngestProcessingJobByIdempotencyKey,
   getIngestProcessingQueueMetrics,
   listIngestProcessingJobEvents,
   markIngestProcessingJobFailed,
@@ -188,6 +189,9 @@ describeIfLocalDb("ingest processing queue", () => {
       status: "duplicate",
       duplicateOfJobId: first.job.id,
     });
+    const latest = await getLatestIngestProcessingJobByIdempotencyKey(idempotencyKey);
+    expect(latest?.id).toBe(first.job.id);
+    expect(latest?.status).toBe("queued");
 
     const rows = await sql<any>`
       select
@@ -404,7 +408,7 @@ describeIfLocalDb("ingest processing queue", () => {
       noRawReportBytes: true,
       noExtractedReportText: true,
       parserOutputMutated: false,
-      endpointCutoverEnabled: false,
+      endpointCutoverEnabled: true,
     });
     assertNoSensitiveLeak([retryResult, retryDeadLetter, deadResult, retryMetrics, retryEvents, deadEvents, metrics]);
   });

@@ -19,7 +19,7 @@ This tracker is documentation and scope control only. It does not authorize runt
 
 CreditRegulatorPro is limited beta only under strict constraints. It is not broad-production ready. It is not production-at-scale ready.
 
-The highest-risk unresolved blocker is the request-bound ingest/OCR/compliance pipeline combined with raw report bytes stored in `reportArtifact.storageUrl`.
+The maximum audit identified the highest-risk unresolved blocker as the request-bound ingest/OCR/compliance pipeline combined with raw report bytes stored in `reportArtifact.storageUrl`. Queue schema/service, bounded worker processing, and authenticated process endpoint cutover are now complete; raw report PDF storage, lifecycle/remediation visibility, and remaining production-scale blockers are still unresolved.
 
 ## Status Values
 
@@ -32,8 +32,8 @@ Use only these status values in the execution table:
 
 ## Unresolved Blockers
 
-- Durable ingest/OCR/compliance queue schema/service and bounded worker processing exist, but endpoint cutover is not complete.
 - Raw report PDFs are stored in `reportArtifact.storageUrl`.
+- Ingest lifecycle/remediation visibility remains incomplete after queue cutover.
 - Legacy and admin base64 surfaces remain insufficiently bounded.
 - Packet PDF rendering and mail send remain synchronous.
 - Packet PDF failure observability is weak.
@@ -68,7 +68,7 @@ Do not combine tasks. Each numbered row is a separate Codex task with its own im
 | 2 | Phase 1 regression guard | Complete | `docs/phase-1-regression-guard.md` records all required guard commands passing at commit `6ac420ef5893a06bc224759a17a10a0e497f6d5c`; no production-scale architecture work started. | `pnpm run typecheck`; `pnpm run build`; `pnpm run test:contracts`; `pnpm run test:api`; `pnpm run test:golden-path`; `pnpm run test:regression-dashboard`; `pnpm run test:deterministic-ingestion-report`; `pnpm run response:soak-check`; `pnpm run operator:dashboard`; `git diff --check`. |
 | 3 | Durable ingest/OCR/compliance queue schema/service | Complete | `helpers/ingestProcessingQueueSchema.ts` and `helpers/ingestProcessingQueueService.ts` add DB-backed ingest jobs/events with idempotent schema ensure, active idempotency collapse, `FOR UPDATE SKIP LOCKED` leasing, lease extension, retry/dead-letter transitions, sanitized payloads, and no endpoint cutover; `tests/api/ingest-processing-queue.spec.ts` and `tests/unit/ingest-processing-queue-boundary.spec.ts` cover queue behavior and deterministic-output guardrails. | Queue idempotency tests; lease/claim/extension tests; duplicate submission tests; retry-through-max/dead-letter tests; deterministic output regression. |
 | 4 | Bounded ingest worker | Complete | `scripts/ingest-processing-worker.ts` and `ingest:worker` add bounded dry-run-by-default worker processing for queued ingest jobs only. The worker claims jobs with leases, calls the existing `executeIngestPipeline` path with sanitized progress handling, records append-only queue events, marks success/retry/dead-letter, and leaves ingest endpoint behavior unchanged; `tests/api/ingest-processing-worker.spec.ts`, `tests/unit/ingest-processing-worker-script.spec.ts`, and `tests/unit/ingest-processing-queue-boundary.spec.ts` cover worker behavior and endpoint isolation. | Worker dry-run no-mutation test; apply claim/process test; retry/dead-letter test; max-jobs/concurrency tests; sensitive log exclusion test; deterministic output regression; golden path. |
-| 5 | Ingest endpoint cutover | Not started | Upload/process endpoints still run expensive work in request/SSE paths. | Direct API enqueue tests; process/status compatibility tests; duplicate submission tests; existing upload limit tests; deterministic ingestion report. |
+| 5 | Ingest endpoint cutover | Complete | `endpoints/ingest/process_POST.ts` now validates ownership, enqueues or attaches to a durable ingest job with endpoint-scoped idempotency, emits queued/running/retry/dead-letter SSE status events, and no longer calls `handleIngestProcess` or `executeIngestPipeline`; upload submission remains unchanged and worker execution remains required for deterministic processing. | Direct API enqueue tests; process/status compatibility tests; duplicate submission tests; existing upload limit tests; deterministic ingestion report. |
 | 6 | Ingest lifecycle/operator remediation | Not started | Blocker 9: ingest cleanup is destructive and best-effort. | Failed cleanup event tests; remediation visibility tests; no silent partial deletion tests; dashboard surfacing tests. |
 | 7 | Raw report PDF object-storage migration | Not started | Blocker 2: raw report bytes remain in `reportArtifact.storageUrl`. | Storage reference tests; old-record read compatibility tests; non-owner denial tests; local fallback tests; migration compatibility tests. |
 | 8 | Remaining upload/base64 boundary hardening | Not started | Blockers 3, 17, 18, 19, and 20 remain outside the Phase 1 upload boundary. | Oversize/malformed/MIME tests for each route; raw body guard tests; downstream-not-called tests where practical; valid current path regression. |

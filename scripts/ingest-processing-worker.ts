@@ -118,7 +118,7 @@ function printHelp(): void {
     "  --concurrency <1>              Worker concurrency. Only 1 is supported in this bounded task.",
     "",
     "Boundaries:",
-    "  - Existing ingest endpoints are not cut over by this worker.",
+    "  - Ingest endpoint cutover enqueues jobs; this worker owns deterministic processing execution.",
     "  - The worker calls executeIngestPipeline with the same artifact/user/account/context shape used by request-bound ingest.",
     "  - Raw report bytes and extracted text are not logged or stored in worker events.",
   ].join("\n"));
@@ -308,7 +308,7 @@ function resultSummary(job: IngestProcessingJobRecord, signals: PipelineSignalSu
   return {
     artifactId: job.reportArtifactId,
     deterministicPipelineCalledByWorker: true,
-    endpointCutoverEnabled: false,
+    endpointCutoverEnabled: true,
     progressStages: signals.progressStages.slice(0, 30),
     completeEvents: signals.completeEvents,
     errorEvents: signals.errorEvents,

@@ -120,7 +120,7 @@ export type IngestProcessingQueueMetrics = {
     violationTruthMutated: false;
     evidenceBindingMutated: false;
     packetReadinessMutated: false;
-    endpointCutoverEnabled: false;
+    endpointCutoverEnabled: true;
   };
 };
 
@@ -640,6 +640,21 @@ async function findActiveJobByIdempotencyKey(idempotencyKey: string): Promise<In
   return result.rows[0] ? mapJobRow(result.rows[0]) : null;
 }
 
+export async function getLatestIngestProcessingJobByIdempotencyKey(
+  idempotencyKey: string,
+): Promise<IngestProcessingJobRecord | null> {
+  await ensureIngestProcessingQueueSchema();
+  const safeIdempotencyKey = sanitizeToken(idempotencyKey, "idempotencyKey", "");
+  const result = await sql<QueueRow>`
+    select *
+    from public.ingest_processing_job
+    where idempotency_key = ${safeIdempotencyKey}
+    order by created_at desc, id desc
+    limit 1
+  `.execute(db);
+  return result.rows[0] ? mapJobRow(result.rows[0]) : null;
+}
+
 export async function enqueueIngestProcessingJob(
   input: EnqueueIngestProcessingJobInput,
 ): Promise<EnqueueIngestProcessingJobResult> {
@@ -724,7 +739,7 @@ export async function enqueueIngestProcessingJob(
           queueVersion: INGEST_PROCESSING_QUEUE_VERSION,
           rawReportBytesStored: false,
           extractedReportTextStored: false,
-          endpointCutoverEnabled: false,
+          endpointCutoverEnabled: true,
         },
       });
       return inserted;
@@ -1124,7 +1139,7 @@ export async function getIngestProcessingQueueMetrics(): Promise<IngestProcessin
       violationTruthMutated: false,
       evidenceBindingMutated: false,
       packetReadinessMutated: false,
-      endpointCutoverEnabled: false,
+      endpointCutoverEnabled: true,
     },
   };
 }

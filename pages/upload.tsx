@@ -14,7 +14,10 @@ import { toast } from "sonner";
 import { ConsumerInfoMismatchDialog } from "../components/ConsumerInfoMismatchDialog";
 import { ConsumerInfoComparison } from "../helpers/fuzzyMatcher";
 import { postUserProfile } from "../endpoints/user/profile_POST.schema";
-import { OutputType as UploadReportOutput } from "../endpoints/ingest/report_POST.schema";
+import {
+  isQueuedProcessingOutput,
+  OutputType as UploadReportOutput,
+} from "../endpoints/ingest/report_POST.schema";
 import { Helmet } from "react-helmet";
 import styles from "./upload.module.css";
 
@@ -30,6 +33,10 @@ const getFriendlyStageName = (stage: string) => {
     case "docstrange_validating": return "Double-checking...";
     case "docstrange_complete": return "All done reading!";
     case "initializing": return "Getting ready...";
+    case "queued": return "Queued for processing...";
+    case "running": return "Processing in the background...";
+    case "retry_scheduled": return "Queued for retry...";
+    case "dead_lettered": return "Needs operator review...";
     case "user_setup": return "Setting up your profile...";
     case "creating_artifact": return "Saving your report...";
     case "extracting_text": return "Reading your file...";
@@ -171,6 +178,27 @@ export default function UploadPage() {
         },
         {
           onSuccess: (data) => {
+            if (isQueuedProcessingOutput(data)) {
+              setUploadedArtifactId(String(data.artifactId));
+              if (data.queueStatus === "succeeded") {
+                setUploadProgress({ stage: "complete", percent: 100, message: data.message });
+                toast.success("Your report processing is complete.", {
+                  description: "Taking you to the results...",
+                });
+                navigate(`/upload-results/${data.artifactId}`);
+                return;
+              }
+              setUploadProgress({
+                stage: data.queueStatus === "running" ? "running" : data.queueStatus,
+                percent: data.queueStatus === "running" ? 35 : 12,
+                message: data.message,
+              });
+              toast.success("Your report is queued", {
+                description: "Processing will continue in the background. Results will be available after the ingest worker finishes.",
+              });
+              return;
+            }
+
             setUploadProgress({ stage: "complete", percent: 100, message: "Upload complete!" });
             // Store the artifact ID for navigation
             setUploadedArtifactId(data.storageUrl);

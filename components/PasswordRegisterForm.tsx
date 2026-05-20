@@ -21,7 +21,10 @@ import {
   schema as registerSchema,
   postRegister,
 } from "../endpoints/auth/register_with_password_POST.schema";
-import { postReport } from "../endpoints/ingest/report_POST.schema";
+import {
+  isQueuedProcessingOutput,
+  postReport,
+} from "../endpoints/ingest/report_POST.schema";
 import {
   clearAnonymousReportForSignup,
   getAnonymousReportForSignup,
@@ -144,7 +147,18 @@ export const PasswordRegisterForm: React.FC<PasswordRegisterFormProps> = ({
         try {
           const importResult = await postReport(pendingAnonymousReport);
           clearAnonymousReportForSignup();
-          navigate(`/upload-results/${importResult.storageUrl}`);
+          if (isQueuedProcessingOutput(importResult)) {
+            if (importResult.queueStatus === "succeeded") {
+              navigate(`/upload-results/${importResult.artifactId}`);
+            } else {
+              toast.success("Your saved report was queued for processing.", {
+                description: "Results will be available after the ingest worker finishes.",
+              });
+              navigate("/upload");
+            }
+          } else {
+            navigate(`/upload-results/${importResult.storageUrl}`);
+          }
         } catch (importError) {
           clearAnonymousReportForSignup();
           toast.error("Your account was created, but we could not import that report. Please upload it again.");

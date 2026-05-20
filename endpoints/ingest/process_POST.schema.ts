@@ -9,8 +9,25 @@ export const schema = z.object({
 
 export type InputType = z.infer<typeof schema>;
 
-export type OutputType = {
+export type QueuedProcessingOutputType = {
   ok: boolean;
+  queued: boolean;
+  artifactId: number;
+  storageUrl: string;
+  jobId: number;
+  queueStatus: "queued" | "running" | "failed" | "dead_lettered" | "canceled" | "succeeded" | string;
+  processingStatus: string;
+  workerRequired: boolean;
+  duplicate: boolean;
+  retryAt: string | null;
+  errorCode: string | null;
+  errorReason: string | null;
+  message: string;
+};
+
+export type CompletedProcessingOutputType = {
+  ok: boolean;
+  queued?: false;
   storageUrl: string;
   tradelines: ParsedTradeline[];
   tradelinesCount: number;
@@ -66,6 +83,12 @@ export type OutputType = {
   replayHash?: string;
   replayValidation?: DeterministicReplayValidation;
 };
+
+export type OutputType = CompletedProcessingOutputType | QueuedProcessingOutputType;
+
+export function isQueuedProcessingOutput(output: OutputType): output is QueuedProcessingOutputType {
+  return typeof (output as QueuedProcessingOutputType).jobId === "number";
+}
 
 /**
  * Client function for processing a report with SSE streaming support.
@@ -135,7 +158,15 @@ export const postProcess = async (
           const data = line.slice(6);
           if (data.trim() === "") continue;
 
-          let event: { type: string; stage?: string; percent?: number; message?: string; data?: OutputType; error?: string } | null = null;
+          let event: {
+            type: string;
+            stage?: string;
+            percent?: number;
+            message?: string;
+            data?: OutputType;
+            error?: string;
+            queueStatus?: string;
+          } | null = null;
           try {
             event = JSON.parse(data);
           } catch (parseError) {
@@ -145,6 +176,8 @@ export const postProcess = async (
           if (event !== null) {
             if (event.type === "progress") {
               onProgress?.(event.stage ?? "", event.percent ?? 0, event.message);
+            } else if (event.type === "status") {
+              onProgress?.(event.stage ?? event.queueStatus ?? "", event.percent ?? 0, event.message);
             } else if (event.type === "complete") {
               finalResult = event.data ?? null;
             } else if (event.type === "error") {
