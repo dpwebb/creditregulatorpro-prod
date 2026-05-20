@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T17:43:43.245Z
+Generated at: 2026-05-20T17:51:22.678Z
 Current branch: `staging`
-Current commit hash: `cde033cd4fae4041e2e9641fbcf94faacbb7a72f`
+Current commit hash: `b7e5c15be19c677541a4965f951af451151d8670`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -29,8 +29,8 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 
 - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
-  Next action: Human operator performs a restore drill, then Codex validates only sanitized filled evidence.
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial)
   Proof required: Staging-safe worker operating evidence before any production-scoped activation.
   Allowed commands: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
@@ -132,6 +132,10 @@ Any checks skipped: yes (58 dashboard SKIP row(s))
 
 SIMULATED: Local or staging-safe simulated evidence is separated here and is never rendered as production proof.
 
+- SIMULATED - #1 Disaster recovery (Critical; requires-human-proof)
+  Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - SIMULATED - #3 Load/concurrency proof (High; simulated-proof-only)
   Proof required: Repeated measured local or staging load evidence with throughput, latency, queue, OCR, PDF, and DB observations.
   Allowed commands: `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-harness.spec.ts`
@@ -209,8 +213,8 @@ No read-only production command is executed by this report. Any production evide
 
 - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
-  Next action: Human operator performs a restore drill, then Codex validates only sanitized filled evidence.
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #8 Response operations maturity (High; partial)
   Proof required: Soak, scheduler boundary, alert dry-run or exclusion, purge/archive, backfill, and remediation evidence.
   Allowed commands: `pnpm run response:soak-check`, `pnpm run response:orchestration-check`, `pnpm run response:worker-orchestrate -- --dry-run`, `pnpm run response:lifecycle -- --dry-run`, `pnpm run response:replay -- --dry-run`, `pnpm run operator:dashboard`
@@ -244,8 +248,8 @@ No read-only production command is executed by this report. Any production evide
 
 - #1 Disaster recovery (Critical; requires-human-proof)
   Proof required: Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.
-  Allowed commands: `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
-  Next action: Human operator performs a restore drill, then Codex validates only sanitized filled evidence.
+  Allowed commands: `pnpm run restore:drill:simulated`, `pnpm run check:restore-drill-evidence`, `pnpm run test:golden-path`, `pnpm run operator:dashboard`, `pnpm run response:soak-check`
+  Next action: Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
 - #2 Production ingest runtime (Critical; partial)
   Proof required: Staging-safe worker operating evidence before any production-scoped activation.
   Allowed commands: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1`, `pnpm run staging:ingest-worker -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`

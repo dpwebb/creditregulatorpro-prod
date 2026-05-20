@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T17:43:43.245Z",
+  "generatedAt": "2026-05-20T17:51:22.678Z",
   "branch": "staging",
-  "commit": "cde033cd4fae4041e2e9641fbcf94faacbb7a72f",
+  "commit": "b7e5c15be19c677541a4965f951af451151d8670",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -72,26 +72,30 @@
           "currentStatus": "requires-human-proof",
           "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
           "allowedProofCommands": [
+            "pnpm run restore:drill:simulated",
             "pnpm run check:restore-drill-evidence",
             "pnpm run test:golden-path",
             "pnpm run operator:dashboard",
             "pnpm run response:soak-check"
           ],
           "forbiddenProofTypes": [
+            "simulated restore proof represented as completed disaster recovery",
             "template-only validation represented as completed restore evidence",
             "production mutation",
             "real PII or raw credit reports",
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
-          "simulatedProofAcceptable": false,
+          "simulatedProofAcceptable": true,
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+            "docs/production-scale/evidence/latest-restore-drill-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Human operator performs a restore drill, then Codex validates only sanitized filled evidence."
+          "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence."
         },
         {
           "number": 2,
@@ -772,6 +776,39 @@
       "commandExecutedByThisReport": false,
       "blockers": [
         {
+          "number": 1,
+          "title": "Disaster recovery",
+          "severity": "Critical",
+          "area": "Disaster recovery",
+          "currentStatus": "requires-human-proof",
+          "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+          "allowedProofCommands": [
+            "pnpm run restore:drill:simulated",
+            "pnpm run check:restore-drill-evidence",
+            "pnpm run test:golden-path",
+            "pnpm run operator:dashboard",
+            "pnpm run response:soak-check"
+          ],
+          "forbiddenProofTypes": [
+            "simulated restore proof represented as completed disaster recovery",
+            "template-only validation represented as completed restore evidence",
+            "production mutation",
+            "real PII or raw credit reports",
+            "dashboard PASS alone"
+          ],
+          "productionMutationForbidden": true,
+          "simulatedProofAcceptable": true,
+          "humanProofRequired": true,
+          "relatedEvidenceOutputPaths": [
+            "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+            "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+            "docs/production-scale/evidence/latest-production-scale-evidence.md",
+            "docs/production-scale/evidence/latest-production-scale-evidence.json"
+          ],
+          "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence."
+        },
+        {
           "number": 3,
           "title": "Load/concurrency proof",
           "severity": "High",
@@ -1258,26 +1295,30 @@
           "currentStatus": "requires-human-proof",
           "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
           "allowedProofCommands": [
+            "pnpm run restore:drill:simulated",
             "pnpm run check:restore-drill-evidence",
             "pnpm run test:golden-path",
             "pnpm run operator:dashboard",
             "pnpm run response:soak-check"
           ],
           "forbiddenProofTypes": [
+            "simulated restore proof represented as completed disaster recovery",
             "template-only validation represented as completed restore evidence",
             "production mutation",
             "real PII or raw credit reports",
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
-          "simulatedProofAcceptable": false,
+          "simulatedProofAcceptable": true,
           "humanProofRequired": true,
           "relatedEvidenceOutputPaths": [
             "docs/restore-drill-evidence-template.md",
+            "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+            "docs/production-scale/evidence/latest-restore-drill-simulated.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Human operator performs a restore drill, then Codex validates only sanitized filled evidence."
+          "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence."
         },
         {
           "number": 8,
@@ -1462,26 +1503,30 @@
       "currentStatus": "requires-human-proof",
       "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
       "allowedProofCommands": [
+        "pnpm run restore:drill:simulated",
         "pnpm run check:restore-drill-evidence",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
       ],
       "forbiddenProofTypes": [
+        "simulated restore proof represented as completed disaster recovery",
         "template-only validation represented as completed restore evidence",
         "production mutation",
         "real PII or raw credit reports",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
-      "simulatedProofAcceptable": false,
+      "simulatedProofAcceptable": true,
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+        "docs/production-scale/evidence/latest-restore-drill-simulated.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Human operator performs a restore drill, then Codex validates only sanitized filled evidence."
+      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence."
     },
     {
       "number": 2,

@@ -1,0 +1,117 @@
+{
+  "reportName": "restore-drill-simulated",
+  "evidenceType": "SIMULATED",
+  "generatedAt": "2026-05-20T17:51:17.812Z",
+  "branch": "staging",
+  "commit": "b7e5c15be19c677541a4965f951af451151d8670",
+  "simulationId": "sim-restore-035a36a2-2f44-4068-a224-a28424dab06d",
+  "status": "passed",
+  "humanObservedRestoreProofStillRequired": true,
+  "readinessClaim": "No production, broad-production, or production-at-scale readiness claim is made.",
+  "syntheticBackupMetadata": {
+    "evidenceType": "SIMULATED",
+    "backupId": "SIMULATED-BACKUP-sim-restore-035a36a2-2f44-4068-a224-a28424dab06d",
+    "sourceEnvironment": "SIMULATED-local-fixture-source",
+    "sourceCommit": "b7e5c15be19c677541a4965f951af451151d8670",
+    "createdAt": "2026-05-20T17:51:17.812Z",
+    "containsProductionData": false,
+    "containsRealConsumerPii": false,
+    "productionBackupAccessed": false
+  },
+  "syntheticRestoreTargetMetadata": {
+    "evidenceType": "SIMULATED",
+    "targetId": "SIMULATED-RESTORE-TARGET-sim-restore-035a36a2-2f44-4068-a224-a28424dab06d",
+    "targetEnvironment": "SIMULATED-local-temp-state",
+    "tempStateRoot": "SIMULATED-local-temp-state/sim-restore-035a36a2-2f44-4068-a224-a28424dab06d",
+    "productionTarget": false,
+    "restoreExecuted": false
+  },
+  "syntheticRpoRto": {
+    "evidenceType": "SIMULATED",
+    "rpoTarget": "SIMULATED-RPO-target-15-minutes",
+    "rpoActual": "SIMULATED-RPO-observed-5-minutes",
+    "rtoTarget": "SIMULATED-RTO-target-30-minutes",
+    "rtoActual": "SIMULATED-RTO-observed-2-minutes"
+  },
+  "preRestoreChecks": [
+    {
+      "name": "SIMULATED source metadata present",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_SOURCE_METADATA_PRESENT",
+      "notes": "Synthetic backup ID, source environment, and source commit were created."
+    },
+    {
+      "name": "SIMULATED restore target metadata present",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_RESTORE_TARGET_METADATA_PRESENT",
+      "notes": "Synthetic local temp restore target metadata was created."
+    },
+    {
+      "name": "SIMULATED production environment guard",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_PRODUCTION_ENV_GUARD_PASSED",
+      "notes": "Production-looking environment variables and database targets were not detected."
+    },
+    {
+      "name": "SIMULATED provider isolation",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_EXTERNAL_PROVIDER_ISOLATION_PASSED",
+      "notes": "No email, webhook, Stripe, PostGrid, cloud storage, or other live provider calls are made."
+    }
+  ],
+  "postRestoreChecks": [
+    {
+      "name": "SIMULATED auth/session marker",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_AUTH_SESSION_CHECK_PASSED",
+      "notes": "Synthetic auth/session post-restore check marker verified."
+    },
+    {
+      "name": "SIMULATED packet PDF marker",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_PACKET_PDF_CHECK_PASSED",
+      "notes": "Synthetic packet PDF post-restore check marker verified."
+    },
+    {
+      "name": "SIMULATED response queue marker",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_RESPONSE_QUEUE_CHECK_PASSED",
+      "notes": "Synthetic response queue post-restore check marker verified."
+    },
+    {
+      "name": "SIMULATED cleanup/lifecycle marker",
+      "evidenceType": "SIMULATED",
+      "status": "passed",
+      "marker": "SIMULATED_CLEANUP_LIFECYCLE_CHECK_PASSED",
+      "notes": "Synthetic cleanup/lifecycle post-restore check marker verified."
+    }
+  ],
+  "safety": {
+    "evidenceType": "SIMULATED",
+    "syntheticFixturesOnly": true,
+    "localTempStateOnly": true,
+    "productionBackupsAccessed": false,
+    "productionDatabaseDumpsAccessed": false,
+    "productionDataMutated": false,
+    "realConsumerPiiUsed": false,
+    "liveExternalProvidersConnected": false,
+    "runsDump": false,
+    "runsRestore": false,
+    "sendsMail": false,
+    "changesParserBehavior": false,
+    "changesPacketWording": false,
+    "changesQueueSemantics": false,
+    "changesSchemaBehavior": false
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

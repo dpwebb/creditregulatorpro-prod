@@ -34,3 +34,20 @@ The command is evidence/reporting only. It fails closed in production-like envir
 - Human-observed evidence is required for restore, retention recoverability, and production probe claims that Codex must not perform directly.
 
 Dashboard PASS alone is not release evidence. Dashboard `SKIP` rows remain visible in the generated report and cannot be treated as PASS.
+
+## Simulated Restore Drill
+
+Run:
+
+```bash
+pnpm run restore:drill:simulated
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-restore-drill-simulated.md`
+- `docs/production-scale/evidence/latest-restore-drill-simulated.json`
+
+These files are `SIMULATED` evidence only. They use synthetic backup metadata, synthetic restore target metadata, and local temp-state labels. They do not access production backups, do not restore production dumps, do not mutate production data, and do not connect to live providers.
+
+The disaster recovery blocker remains open until a human-observed restore drill produces signed, sanitized evidence with RPO/RTO, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, and operator acknowledgement results.

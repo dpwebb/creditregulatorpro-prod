@@ -47,6 +47,14 @@ CRP_STAGING_BACKUP_RESTORE_CHECK=true pnpm run check:staging-backup-restore
 pnpm run check:restore-drill-evidence
 ```
 
+7. Optional autonomous simulated proof can be generated without dumps, restores, production data, or live providers:
+
+```sh
+pnpm run restore:drill:simulated
+```
+
+This writes `docs/production-scale/evidence/latest-restore-drill-simulated.md` and `docs/production-scale/evidence/latest-restore-drill-simulated.json`. These artifacts are labeled `SIMULATED` and are not a substitute for a human-observed restore drill.
+
 ## Drill Procedure
 
 1. Record the drill start time in a copy of `docs/restore-drill-evidence-template.md`.
@@ -84,21 +92,27 @@ pnpm run operator:dashboard
 A restore drill is not complete until a filled evidence artifact records:
 
 - Drill date.
-- Operator.
+- Drill timestamp.
+- Operator identity.
+- Officer acknowledgement.
 - Source environment.
 - Source commit/SHA.
+- Backup source.
 - Source backup/dump identifier without secrets.
+- Restore target.
 - Target environment.
 - Target DB guard confirmation.
 - RPO target.
+- RPO actual.
 - RTO target.
+- RTO actual.
 - Actual restore duration.
 - Post-restore checks run.
 - Golden path result.
-- Auth/session check result.
-- Packet PDF check result.
-- Response queue/dashboard check result.
-- Cleanup of local sensitive dump.
+- Post-restore auth/session result.
+- Post-restore packet PDF result.
+- Post-restore response queue result.
+- Cleanup/lifecycle result.
 - Signoff.
 
 The evidence artifact must be sanitized and pass:
@@ -120,4 +134,4 @@ Stop the drill and do not claim completion if:
 
 ## Current Status
 
-Runbook, template, and non-mutating validation exist. No restore drill has been performed by this task, and no production data has been mutated.
+Runbook, template, non-mutating validation, and autonomous simulated restore evidence generation exist. Simulated proof does not close the disaster recovery blocker. No production backup has been accessed, no production dump has been restored, no production data has been mutated, and a human-observed signed restore drill remains blocking for broader production and production-at-scale readiness.

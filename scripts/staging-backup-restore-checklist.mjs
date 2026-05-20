@@ -57,22 +57,44 @@ export const BACKUP_RESTORE_DRILL_STEPS = [
 
 export const REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS = [
   "Drill date",
-  "Operator",
+  "Drill timestamp",
+  "Operator identity",
+  "Officer acknowledgement",
   "Source environment",
   "Source commit/SHA",
+  "Backup source",
   "Source backup/dump identifier without secrets",
+  "Restore target",
   "Target environment",
   "Target DB guard confirmation",
   "RPO target",
+  "RPO actual",
   "RTO target",
+  "RTO actual",
   "Actual restore duration",
   "Post-restore checks run",
   "Golden path result",
-  "Auth/session check result",
-  "Packet PDF check result",
-  "Response queue/dashboard check result",
-  "Cleanup of local sensitive dump",
+  "Post-restore auth/session result",
+  "Post-restore packet PDF result",
+  "Post-restore response queue result",
+  "Cleanup/lifecycle result",
   "Signoff",
+];
+
+export const RESTORE_DRILL_OPERATOR_PROOF_FIELDS = [
+  "Operator identity",
+  "Officer acknowledgement",
+  "Signoff",
+];
+
+export const RESTORE_DRILL_REQUIRED_VALUE_PLACEHOLDERS = [
+  "TBD",
+  "TODO",
+  "N/A",
+  "NA",
+  "NONE",
+  "NULL",
+  "-",
 ];
 
 export const RESTORE_DRILL_SENSITIVE_PATTERNS = [
@@ -89,8 +111,16 @@ export const RESTORE_DRILL_SENSITIVE_PATTERNS = [
     pattern: /\b(?:sk|ghp|github_pat|xox[baprs])_[A-Za-z0-9_-]{12,}\b/i,
   },
   {
+    name: "access-token",
+    pattern: /\baccess[_-]?token\s*[:=]\s*[A-Za-z0-9._~+/=-]{12,}\b/i,
+  },
+  {
     name: "bearer-token-value",
     pattern: /\bBearer\s+[A-Za-z0-9._~+/=-]{20,}\b/i,
+  },
+  {
+    name: "password-assignment",
+    pattern: /\b(?:password|passwd|pwd)\s*[:=]\s*\S{6,}\b/i,
   },
   {
     name: "session-cookie",
@@ -99,6 +129,18 @@ export const RESTORE_DRILL_SENSITIVE_PATTERNS = [
   {
     name: "raw-pdf-bytes",
     pattern: /(?:%PDF-|JVBERi0)/i,
+  },
+  {
+    name: "raw-base64-block",
+    pattern: /\b(?:base64|fileDataBase64|rawBase64)\s*[:=]\s*[A-Za-z0-9+/]{40,}={0,2}\b/i,
+  },
+  {
+    name: "obvious-ssn-or-sin",
+    pattern: /\b(?:\d{3}-\d{2}-\d{4}|\d{3}[- ]?\d{3}[- ]?\d{3})\b/,
+  },
+  {
+    name: "obvious-email-pii",
+    pattern: /\b[A-Z0-9._%+-]+@(?!example\.test\b|example\.invalid\b|example\.com\b)[A-Z0-9.-]+\.[A-Z]{2,}\b/i,
   },
 ];
 
@@ -160,18 +202,79 @@ export function scanRestoreDrillEvidenceSensitiveContent(text) {
     .map((item) => item.name);
 }
 
+function parseMarkdownTableFields(text) {
+  const fields = new Map();
+  for (const line of String(text ?? "").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) continue;
+    const cells = trimmed
+      .split("|")
+      .slice(1, -1)
+      .map((cell) => cell.trim());
+    if (cells.length < 2) continue;
+    const [field, value] = cells;
+    if (!field || /^-+$/.test(field) || /^field$/i.test(field)) continue;
+    fields.set(field.toLowerCase(), { field, value });
+  }
+  return fields;
+}
+
+function normalizeEvidenceValue(value) {
+  return String(value ?? "")
+    .replace(/[`*_]/g, "")
+    .replace(/<br\s*\/?>/gi, " ")
+    .trim();
+}
+
+function isPlaceholderOnlyValue(value) {
+  const normalized = normalizeEvidenceValue(value);
+  if (!normalized) return true;
+  return RESTORE_DRILL_REQUIRED_VALUE_PLACEHOLDERS.some(
+    (placeholder) => normalized.toLowerCase() === placeholder.toLowerCase(),
+  );
+}
+
+function evidenceHasField(text, field, parsedFields) {
+  if (parsedFields.has(field.toLowerCase())) return true;
+  const fieldPattern = new RegExp(`(^|[|#\\-:*\\s])${escapeRegExp(field)}([|#\\-:*\\s]|$)`, "im");
+  return fieldPattern.test(text);
+}
+
+function fieldValue(field, parsedFields) {
+  return parsedFields.get(field.toLowerCase())?.value ?? "";
+}
+
+function detectsCompletedProductionRestoreClaim(text) {
+  return /\bproduction\b.{0,80}\brestore\b.{0,80}\b(completed|complete|succeeded|successful|passed|done)\b/i.test(text) ||
+    /\brestore\b.{0,80}\bproduction\b.{0,80}\b(completed|complete|succeeded|successful|passed|done)\b/i.test(text);
+}
+
 export function validateRestoreDrillEvidenceText(text, options = {}) {
   const requiredFields = options.requiredFields ?? REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS;
-  const missingFields = requiredFields.filter((field) => {
-    const fieldPattern = new RegExp(`(^|[|#\\-:*\\s])${escapeRegExp(field)}([|#\\-:*\\s]|$)`, "im");
-    return !fieldPattern.test(text);
-  });
+  const templateOnly = options.templateOnly ?? /^Status:\s*Template only\./im.test(text);
+  const parsedFields = parseMarkdownTableFields(text);
+  const missingFields = requiredFields.filter((field) => !evidenceHasField(text, field, parsedFields));
+  const placeholderFields = templateOnly
+    ? []
+    : requiredFields.filter((field) => !missingFields.includes(field) && isPlaceholderOnlyValue(fieldValue(field, parsedFields)));
   const sensitiveFindings = scanRestoreDrillEvidenceSensitiveContent(text);
+  const productionRestoreClaimed = detectsCompletedProductionRestoreClaim(text);
+  const missingOperatorProofFields = productionRestoreClaimed
+    ? RESTORE_DRILL_OPERATOR_PROOF_FIELDS.filter((field) => missingFields.includes(field) || isPlaceholderOnlyValue(fieldValue(field, parsedFields)))
+    : [];
 
   return {
-    ok: missingFields.length === 0 && sensitiveFindings.length === 0,
+    ok:
+      missingFields.length === 0 &&
+      placeholderFields.length === 0 &&
+      sensitiveFindings.length === 0 &&
+      missingOperatorProofFields.length === 0,
+    templateOnly,
     missingFields,
+    placeholderFields,
     sensitiveFindings,
+    productionRestoreClaimed,
+    missingOperatorProofFields,
     requiredFieldCount: requiredFields.length,
   };
 }
@@ -191,7 +294,7 @@ export function buildRestoreDrillEvidenceValidationReport(path = RESTORE_DRILL_E
       runsRestore: false,
       modifiesStaging: false,
       modifiesProduction: false,
-      claimsRestoreCompleted: false,
+      claimsRestoreCompleted: validation.productionRestoreClaimed,
     },
   };
 }
@@ -268,8 +371,16 @@ function printEvidenceValidationReport(report) {
     if (report.validation.missingFields.length > 0) {
       console.error(`[FAIL] Missing fields: ${report.validation.missingFields.join(", ")}`);
     }
+    if (report.validation.placeholderFields.length > 0) {
+      console.error(`[FAIL] Placeholder-only values: ${report.validation.placeholderFields.join(", ")}`);
+    }
     if (report.validation.sensitiveFindings.length > 0) {
       console.error(`[FAIL] Sensitive patterns found: ${report.validation.sensitiveFindings.join(", ")}`);
+    }
+    if (report.validation.missingOperatorProofFields.length > 0) {
+      console.error(
+        `[FAIL] Production restore claim lacks operator proof fields: ${report.validation.missingOperatorProofFields.join(", ")}`,
+      );
     }
     return;
   }

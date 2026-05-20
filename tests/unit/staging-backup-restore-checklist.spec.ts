@@ -17,6 +17,43 @@ import {
   validateRestoreDrillEvidenceText,
 } from "../../scripts/staging-backup-restore-checklist.mjs";
 
+function completeSyntheticFilledEvidence(overrides: Record<string, string> = {}) {
+  const values: Record<string, string> = {
+    "Drill date": "2026-05-20",
+    "Drill timestamp": "2026-05-20T12:00:00-03:00",
+    "Operator identity": "Synthetic Operator",
+    "Officer acknowledgement": "Synthetic Officer acknowledged sanitized evidence",
+    "Source environment": "staging-safe synthetic source",
+    "Source commit/SHA": "abc123synthetic",
+    "Backup source": "sanitized synthetic backup family",
+    "Source backup/dump identifier without secrets": "backup-simulated-20260520",
+    "Restore target": "local synthetic restore target",
+    "Target environment": "local non-production",
+    "Target DB guard confirmation": "CRP_LOCAL_DEV=true confirmed",
+    "RPO target": "15 minutes",
+    "RPO actual": "5 minutes",
+    "RTO target": "30 minutes",
+    "RTO actual": "10 minutes",
+    "Actual restore duration": "8 minutes",
+    "Post-restore checks run": "golden path, auth/session, packet PDF, response queue, cleanup lifecycle",
+    "Golden path result": "pass - pnpm run test:golden-path",
+    "Post-restore auth/session result": "pass - auth session synthetic marker",
+    "Post-restore packet PDF result": "pass - packet PDF synthetic marker",
+    "Post-restore response queue result": "pass - response queue synthetic marker",
+    "Cleanup/lifecycle result": "pass - local dump cleanup confirmed",
+    "Signoff": "Synthetic operator, observer, and reviewer signed off",
+    ...overrides,
+  };
+
+  return [
+    "# Filled Restore Drill Evidence",
+    "",
+    "| Field | Value | Notes |",
+    "| --- | --- | --- |",
+    ...REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS.map((field) => `| ${field} | ${values[field] ?? "missing"} | synthetic |`),
+  ].join("\n");
+}
+
 describe("staging backup/restore checklist", () => {
   it("requires an explicit gate env var", () => {
     expect(shouldRunBackupRestoreCheck({})).toEqual({
@@ -89,17 +126,22 @@ describe("staging backup/restore checklist", () => {
     });
   });
 
-  it("requires every restore drill evidence field and rejects missing fields", () => {
-    const validEvidence = REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS
-      .map((field) => `| ${field} | TBD | |`)
-      .join("\n");
-
-    expect(validateRestoreDrillEvidenceText(validEvidence)).toEqual({
+  it("accepts a safe complete synthetic filled restore evidence fixture", () => {
+    expect(validateRestoreDrillEvidenceText(completeSyntheticFilledEvidence())).toMatchObject({
       ok: true,
+      templateOnly: false,
       missingFields: [],
+      placeholderFields: [],
       sensitiveFindings: [],
+      productionRestoreClaimed: false,
+      missingOperatorProofFields: [],
       requiredFieldCount: REQUIRED_RESTORE_DRILL_EVIDENCE_FIELDS.length,
     });
+  });
+
+  it("requires every restore drill evidence field and rejects missing fields", () => {
+    const validEvidence = completeSyntheticFilledEvidence();
+    expect(validateRestoreDrillEvidenceText(validEvidence).ok).toBe(true);
 
     const missing = validateRestoreDrillEvidenceText("| Drill date | TBD | |");
     expect(missing.ok).toBe(false);
@@ -108,11 +150,50 @@ describe("staging backup/restore checklist", () => {
     );
   });
 
+  it("rejects missing or placeholder RPO/RTO values in filled evidence", () => {
+    const report = validateRestoreDrillEvidenceText(completeSyntheticFilledEvidence({
+      "RPO target": "TBD",
+      "RPO actual": "TODO",
+      "RTO target": "N/A",
+      "RTO actual": "-",
+    }));
+
+    expect(report.ok).toBe(false);
+    expect(report.placeholderFields).toEqual(
+      expect.arrayContaining(["RPO target", "RPO actual", "RTO target", "RTO actual"]),
+    );
+  });
+
+  it("rejects missing post-restore check results", () => {
+    const evidence = completeSyntheticFilledEvidence()
+      .split(/\r?\n/)
+      .filter((line) =>
+        !line.includes("| Post-restore auth/session result |") &&
+        !line.includes("| Post-restore packet PDF result |") &&
+        !line.includes("| Post-restore response queue result |") &&
+        !line.includes("| Cleanup/lifecycle result |"),
+      )
+      .join("\n");
+    const report = validateRestoreDrillEvidenceText(evidence);
+
+    expect(report.ok).toBe(false);
+    expect(report.missingFields).toEqual(
+      expect.arrayContaining([
+        "Post-restore auth/session result",
+        "Post-restore packet PDF result",
+        "Post-restore response queue result",
+        "Cleanup/lifecycle result",
+      ]),
+    );
+  });
+
   it("validates the restore drill evidence template without claiming completion", () => {
     const report = buildRestoreDrillEvidenceValidationReport("docs/restore-drill-evidence-template.md");
 
     expect(report.status).toBe("passed");
     expect(report.validation.missingFields).toEqual([]);
+    expect(report.validation.placeholderFields).toEqual([]);
+    expect(report.validation.templateOnly).toBe(true);
     expect(report.validation.sensitiveFindings).toEqual([]);
     expect(report.safety).toMatchObject({
       readsSecrets: false,
@@ -131,6 +212,36 @@ describe("staging backup/restore checklist", () => {
     ).toContain("database-url-with-credentials");
     expect(scanRestoreDrillEvidenceSensitiveContent("-----BEGIN PRIVATE KEY-----")).toContain("private-key-block");
     expect(scanRestoreDrillEvidenceSensitiveContent("JVBERi0xLjQK")).toContain("raw-pdf-bytes");
+    expect(scanRestoreDrillEvidenceSensitiveContent("password=super-secret-value")).toContain("password-assignment");
+    expect(scanRestoreDrillEvidenceSensitiveContent("consumer@example.org")).toContain("obvious-email-pii");
+    expect(scanRestoreDrillEvidenceSensitiveContent("123-45-6789")).toContain("obvious-ssn-or-sin");
+    expect(scanRestoreDrillEvidenceSensitiveContent("fileDataBase64=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")).toContain("raw-base64-block");
+  });
+
+  it("rejects secrets and obvious PII in filled evidence", () => {
+    const report = validateRestoreDrillEvidenceText(
+      `${completeSyntheticFilledEvidence()}\nOperator email: consumer@example.org\npassword=super-secret-value\n123-45-6789`,
+    );
+
+    expect(report.ok).toBe(false);
+    expect(report.sensitiveFindings).toEqual(
+      expect.arrayContaining(["obvious-email-pii", "password-assignment", "obvious-ssn-or-sin"]),
+    );
+  });
+
+  it("rejects production restore completion claims without required operator fields", () => {
+    const evidence = completeSyntheticFilledEvidence({
+      "Operator identity": "TBD",
+      "Officer acknowledgement": "TBD",
+      "Signoff": "TBD",
+    }) + "\nProduction restore completed successfully.";
+    const report = validateRestoreDrillEvidenceText(evidence);
+
+    expect(report.ok).toBe(false);
+    expect(report.productionRestoreClaimed).toBe(true);
+    expect(report.missingOperatorProofFields).toEqual(
+      expect.arrayContaining(["Operator identity", "Officer acknowledgement", "Signoff"]),
+    );
   });
 
   it("keeps restore drill docs free of secret-like values", () => {
@@ -149,5 +260,6 @@ describe("staging backup/restore checklist", () => {
     expect(packageJson.scripts["check:restore-drill-evidence"]).toBe(
       "node scripts/staging-backup-restore-checklist.mjs --validate-evidence docs/restore-drill-evidence-template.md",
     );
+    expect(packageJson.scripts["restore:drill:simulated"]).toBe("node scripts/restore-drill-simulated.mjs");
   });
 });

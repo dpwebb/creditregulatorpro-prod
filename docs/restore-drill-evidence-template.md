@@ -9,21 +9,27 @@ Do not store secrets, private keys, database URLs with credentials, raw PDF byte
 | Field | Value | Notes |
 | --- | --- | --- |
 | Drill date | TBD | Use ISO date and time with timezone. |
-| Operator | TBD | Human operator who ran the drill outside Codex. |
+| Drill timestamp | TBD | ISO timestamp when the drill started. |
+| Operator identity | TBD | Human operator who ran the drill outside Codex. |
+| Officer acknowledgement | TBD | Officer/reviewer acknowledgement that evidence is sanitized and complete. |
 | Source environment | TBD | Example: staging. Do not include credentials. |
 | Source commit/SHA | TBD | Commit deployed at the source environment. |
+| Backup source | TBD | Sanitized source system or backup family name. |
 | Source backup/dump identifier without secrets | TBD | Use a sanitized backup ID or dump label only. |
+| Restore target | TBD | Sanitized target label; must not be production. |
 | Target environment | TBD | Must be local or explicitly approved non-production. |
 | Target DB guard confirmation | TBD | Confirm local/non-production guard and `CRP_LOCAL_DEV=true` where applicable. |
 | RPO target | TBD | Example: restore point age target. |
+| RPO actual | TBD | Actual observed restore point age. |
 | RTO target | TBD | Example: maximum expected restore time. |
+| RTO actual | TBD | Actual observed time to restore and complete checks. |
 | Actual restore duration | TBD | Wall-clock duration from restore start to completed local restore. |
 | Post-restore checks run | TBD | List commands run after restore. |
 | Golden path result | TBD | Record pass/fail and command. |
-| Auth/session check result | TBD | Record pass/fail and command. |
-| Packet PDF check result | TBD | Record pass/fail and command. |
-| Response queue/dashboard check result | TBD | Record pass/fail and commands. |
-| Cleanup of local sensitive dump | TBD | Confirm deletion or approved retention location without secrets. |
+| Post-restore auth/session result | TBD | Record pass/fail and command. |
+| Post-restore packet PDF result | TBD | Record pass/fail and command. |
+| Post-restore response queue result | TBD | Record pass/fail and commands. |
+| Cleanup/lifecycle result | TBD | Confirm dump cleanup and lifecycle/queue cleanup checks without secrets. |
 | Signoff | TBD | Operator, observer, and reviewer signoff. |
 
 ## Required Commands
@@ -54,4 +60,5 @@ pnpm run operator:dashboard
 
 - This template must be copied and filled by a human operator after an actual external restore drill.
 - The filled artifact must pass `node scripts/staging-backup-restore-checklist.mjs --validate-evidence <path>`.
+- Filled evidence must replace every `TBD`, `TODO`, and `N/A` placeholder with a concrete sanitized value.
 - Do not mark the disaster recovery blocker complete until filled, signed evidence exists and required post-restore checks pass.
