@@ -48,6 +48,7 @@ const mocks = vi.hoisted(() => ({
   applyRecipientOverrideToPacketContent: vi.fn(),
   attachIdentificationToPacketContent: vi.fn(),
   generatePacketContentPdfBase64: vi.fn(),
+  getOrRenderPacketPdfBase64: vi.fn(),
 }));
 
 vi.mock("../../helpers/db", () => ({
@@ -112,6 +113,10 @@ vi.mock("../../helpers/packetPdfContent", () => ({
   applyRecipientOverrideToPacketContent: mocks.applyRecipientOverrideToPacketContent,
   attachIdentificationToPacketContent: mocks.attachIdentificationToPacketContent,
   generatePacketContentPdfBase64: mocks.generatePacketContentPdfBase64,
+}));
+
+vi.mock("../../helpers/packetPdfCache", () => ({
+  getOrRenderPacketPdfBase64: mocks.getOrRenderPacketPdfBase64,
 }));
 
 import { handle as recordDelivery } from "../../endpoints/packet/delivery_POST";
@@ -462,6 +467,13 @@ beforeEach(() => {
   mocks.readStoredPdf.mockResolvedValue(Buffer.from("SYNTHETIC_PDF_BYTES"));
   mocks.parseStoredPacketContent.mockReturnValue(packetContent());
   mocks.generatePacketContentPdfBase64.mockResolvedValue(Buffer.from("SYNTHETIC_PDF_BYTES").toString("base64"));
+  mocks.getOrRenderPacketPdfBase64.mockImplementation(async (input: { renderBase64: () => Promise<string> }) => ({
+    base64Pdf: await input.renderBase64(),
+    cacheHit: false,
+    cacheKey: "synthetic-cache-key",
+    objectName: "packet-pdfs/10/601/mail-synthetic-cache-key.pdf",
+    storageUrl: "local:packet-pdfs/10/601/mail-synthetic-cache-key.pdf",
+  }));
   mocks.sendRegisteredMail.mockResolvedValue({
     id: "pg_synthetic_letter_001",
     trackingNumber: "SYNTHETIC_TRACKING_001",
@@ -724,6 +736,36 @@ describe("packet delivery, status, and send endpoint coverage", () => {
     expect(valuesFor("evidenceEvent")).toEqual([]);
     expect(valuesFor("auditLog")).toEqual([]);
     expectNoSensitiveLeak(body);
+  });
+
+  it("uses cached packet PDF bytes for send routes when the cache is valid", async () => {
+    queueSendHappyPath();
+    const cachedBase64 = Buffer.from("SYNTHETIC_CACHED_PDF_BYTES").toString("base64");
+    mocks.getOrRenderPacketPdfBase64.mockResolvedValueOnce({
+      base64Pdf: cachedBase64,
+      cacheHit: true,
+      cacheKey: "synthetic-cache-key",
+      objectName: "packet-pdfs/10/601/mail-synthetic-cache-key.pdf",
+      storageUrl: "local:packet-pdfs/10/601/mail-synthetic-cache-key.pdf",
+    });
+
+    const response = await sendRegistered(postRequest("/_api/packet/send-registered", sendBody()));
+
+    expect(response.status).toBe(200);
+    expect(mocks.getOrRenderPacketPdfBase64).toHaveBeenCalledWith(
+      expect.objectContaining({
+        packetId: 601,
+        userId: "10",
+        purpose: "mail",
+        packetContent: expect.any(Object),
+      }),
+    );
+    expect(mocks.generatePacketContentPdfBase64).not.toHaveBeenCalled();
+    expect(mocks.sendRegisteredMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pdf: `data:application/pdf;base64,${cachedBase64}`,
+      }),
+    );
   });
 
   it("blocks duplicate send attempts for already-sent packets before provider calls or duplicate delivery records", async () => {

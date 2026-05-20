@@ -50,6 +50,19 @@ function fakeIngestMetrics(
   };
 }
 
+function fakePacketPdfMetrics(
+  overrides: Partial<NonNullable<Parameters<typeof buildOperatorDashboard>[0]["packetPdfMetrics"]>> = {},
+) {
+  return {
+    generatedAt: "2026-05-20T00:00:00.000Z",
+    renderAttemptEvents: 4,
+    renderSucceededEvents: 3,
+    renderFailedEvents: 1,
+    latestFailureAt: "2026-05-20T00:02:00.000Z",
+    ...overrides,
+  };
+}
+
 describe("operator regression dashboard", () => {
   it("prints the required dashboard categories", () => {
     const report = buildOperatorDashboard({ runGit: fakeGit(), fileExists: () => true });
@@ -105,6 +118,17 @@ describe("operator regression dashboard", () => {
           category: "Manual / Gated Smoke",
           name: "Runtime Bridge Mapping smoke",
           requiresCredentials: true,
+        }),
+        expect.objectContaining({
+          category: "Packet Reliability",
+          name: "Packet PDF render health",
+          runByDefault: false,
+        }),
+        expect.objectContaining({
+          category: "Packet Reliability",
+          name: "Packet PDF cache",
+          command: "pnpm exec vitest run tests/unit/packet-pdf-cache.spec.ts",
+          runByDefault: true,
         }),
         expect.objectContaining({
           category: "Packet Reliability",
@@ -315,6 +339,21 @@ describe("operator regression dashboard", () => {
     expect(rendered).toContain("failed cleanup events: 2");
     expect(rendered).toContain("cleanup-failed jobs: 2");
     expect(rendered).toContain("operator remediation events: 4");
+  });
+
+  it("surfaces packet PDF render failures", () => {
+    const report = buildOperatorDashboard({
+      runGit: fakeGit(),
+      fileExists: () => true,
+      packetPdfMetrics: fakePacketPdfMetrics(),
+    });
+    const rendered = renderDashboard(report);
+
+    expect(rendered).toContain("[OPEN] Packet PDF render health");
+    expect(rendered).toContain("render attempts: 4");
+    expect(rendered).toContain("render successes: 3");
+    expect(rendered).toContain("render failures: 1");
+    expect(rendered).toContain("latest failure: 2026-05-20T00:02:00.000Z");
   });
 
   it("lists gated smoke checks as manual and credential-gated", () => {

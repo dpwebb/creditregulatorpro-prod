@@ -30,6 +30,7 @@ type BuildDashboardOptions = {
   runGit?: GitRunner;
   fileExists?: FileExists;
   ingestQueueMetrics?: IngestQueueDashboardMetrics | null;
+  packetPdfMetrics?: PacketPdfDashboardMetrics | null;
 };
 
 export type IngestQueueDashboardMetrics = {
@@ -53,6 +54,14 @@ export type IngestQueueDashboardMetrics = {
   lastRemediationAt: string | null;
 };
 
+export type PacketPdfDashboardMetrics = {
+  generatedAt: string;
+  renderAttemptEvents: number;
+  renderSucceededEvents: number;
+  renderFailedEvents: number;
+  latestFailureAt: string | null;
+};
+
 export const DASHBOARD_SAFETY_BOUNDARIES = {
   modifiesFiles: false,
   callsProductionWithCredentials: false,
@@ -71,6 +80,7 @@ export const SAFE_RUN_CHECK_COMMANDS = [
   "pnpm exec vitest run tests/api/admin-audit-log-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/packet-delivery-status-endpoint.spec.ts",
+  "pnpm exec vitest run tests/unit/packet-pdf-cache.spec.ts",
   "pnpm exec vitest run tests/unit/outcome-comparison.spec.ts",
   "pnpm exec vitest run tests/api/outcome-tracking-endpoint.spec.ts",
   "pnpm exec vitest run tests/api/outcome-admin-review-endpoint.spec.ts",
@@ -256,6 +266,29 @@ function ingestQueueHealthCheck(metrics: IngestQueueDashboardMetrics | null | un
   );
 }
 
+function packetPdfHealthCheck(metrics: PacketPdfDashboardMetrics | null | undefined): DashboardCheck {
+  if (!metrics) {
+    return check(
+      "Packet PDF render health",
+      "INFO",
+      "Runtime packet PDF render metrics were not available in this invocation. Run in an environment with FLOOT_DATABASE_URL to surface render attempts, successes, and failures.",
+      { kind: "info" },
+    );
+  }
+
+  return check(
+    "Packet PDF render health",
+    metrics.renderFailedEvents > 0 ? "OPEN" : "PASS",
+    [
+      `render attempts: ${metrics.renderAttemptEvents}`,
+      `render successes: ${metrics.renderSucceededEvents}`,
+      `render failures: ${metrics.renderFailedEvents}`,
+      `latest failure: ${metrics.latestFailureAt ?? "none"}`,
+    ].join("; "),
+    { kind: "smoke" },
+  );
+}
+
 export function parseArgs(argv: string[]) {
   const flags = new Set(argv);
   const categoryIndex = argv.indexOf("--category");
@@ -379,6 +412,7 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
     {
       name: "Packet Reliability",
       checks: [
+        packetPdfHealthCheck(options.packetPdfMetrics),
         check("Packet lifecycle endpoint", "SKIP", "Endpoint-backed readiness/build/create/PDF/non-owner/stale-ID coverage.", {
           kind: "endpoint-test",
           command: "pnpm exec vitest run tests/api/packet-lifecycle-endpoint.spec.ts",
@@ -400,6 +434,15 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         check("Packet PDF", "SKIP", "Packet PDF rendering tests are available but not in the default bounded run.", {
           command: "pnpm exec vitest run tests/unit/dispute-packet-pdf.spec.ts",
         }),
+        check(
+          "Packet PDF cache",
+          "SKIP",
+          "Content-addressed packet PDF cache coverage for first render storage, cache hits, invalidation, render failure events, and sensitive payload exclusion.",
+          {
+            command: "pnpm exec vitest run tests/unit/packet-pdf-cache.spec.ts",
+            runByDefault: true,
+          },
+        ),
       ],
     },
     {
@@ -913,10 +956,48 @@ async function loadIngestQueueMetricsForDashboard(): Promise<IngestQueueDashboar
   }
 }
 
+async function loadPacketPdfMetricsForDashboard(): Promise<PacketPdfDashboardMetrics | null> {
+  if (!process.env.FLOOT_DATABASE_URL) return null;
+  try {
+    const [{ db }, cache] = await Promise.all([
+      import("../helpers/db"),
+      import("../helpers/packetPdfCache"),
+    ]);
+    const countEvent = async (eventType: string): Promise<number> => {
+      const row = await db
+        .selectFrom("evidenceEvent")
+        .select(({ fn }) => fn.count<string>("id").as("count"))
+        .where("eventType", "=", eventType)
+        .executeTakeFirst();
+      return Number(row?.count ?? 0);
+    };
+    const latestFailure = await db
+      .selectFrom("evidenceEvent")
+      .select("at")
+      .where("eventType", "=", cache.PACKET_PDF_RENDER_FAILED_EVENT)
+      .orderBy("at", "desc")
+      .limit(1)
+      .executeTakeFirst();
+
+    return {
+      generatedAt: new Date().toISOString(),
+      renderAttemptEvents: await countEvent(cache.PACKET_PDF_RENDER_ATTEMPT_EVENT),
+      renderSucceededEvents: await countEvent(cache.PACKET_PDF_RENDER_SUCCEEDED_EVENT),
+      renderFailedEvents: await countEvent(cache.PACKET_PDF_RENDER_FAILED_EVENT),
+      latestFailureAt: latestFailure?.at ? new Date(latestFailure.at).toISOString() : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const ingestQueueMetrics = await loadIngestQueueMetricsForDashboard();
-  let report = filterDashboard(buildOperatorDashboard({ ingestQueueMetrics }), options.category);
+  const [ingestQueueMetrics, packetPdfMetrics] = await Promise.all([
+    loadIngestQueueMetricsForDashboard(),
+    loadPacketPdfMetricsForDashboard(),
+  ]);
+  let report = filterDashboard(buildOperatorDashboard({ ingestQueueMetrics, packetPdfMetrics }), options.category);
 
   if (options.runChecks) {
     report = applyRunResults(report);

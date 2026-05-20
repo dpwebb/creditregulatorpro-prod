@@ -15,6 +15,7 @@ import {
   parseStoredPacketContent,
 } from "../../helpers/packetPdfContent";
 import { isSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import { getOrRenderPacketPdfBase64 } from "../../helpers/packetPdfCache";
 
 type IdentificationPdfAttachment = Awaited<ReturnType<typeof getConsumerIdentificationPdfAttachment>>;
 
@@ -138,11 +139,18 @@ export async function handle(request: Request) {
           }
         }
 
-        const base64Pdf = await generatePacketContentPdfBase64(
+        const { base64Pdf } = await getOrRenderPacketPdfBase64({
+          packetId: input.packetId,
+          userId: String(packet.userId ?? user.id),
+          purpose: "download",
           packetContent,
-          String(packet.userId ?? user.id),
-          String(input.packetId)
-        );
+          renderBase64: () =>
+            generatePacketContentPdfBase64(
+              packetContent,
+              String(packet.userId ?? user.id),
+              String(input.packetId)
+            ),
+        });
         const bytes = Buffer.from(base64Pdf, "base64");
         const pdfBody = bytes.buffer.slice(
           bytes.byteOffset,
@@ -158,8 +166,8 @@ export async function handle(request: Request) {
             "Content-Length": bytes.length.toString(),
           },
         });
-      } catch (error) {
-        console.warn(`Falling back to stored packet PDF for packet ${input.packetId}`, error);
+      } catch {
+        console.warn(`Falling back to stored packet PDF for packet ${input.packetId} after packet-content render failure.`);
       }
     }
 

@@ -21,6 +21,7 @@ import {
   parseStoredPacketContent,
 } from "../../helpers/packetPdfContent";
 import { isSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import { getOrRenderPacketPdfBase64 } from "../../helpers/packetPdfCache";
 
 const INTEGRITY_BLOCK_MESSAGE = "Transmission blocked: system integrity check failed. All conditions must be met before submission.";
 
@@ -373,8 +374,14 @@ export async function handle(request: Request) {
 
     attachIdentificationToPacketContent(packetContent, identificationAttachment);
 
-    // 7. Generate PDF base64 with signature included
-    const base64Pdf = await generatePacketContentPdfBase64(packetContent, userId.toString(), input.packetId.toString());
+    // 7. Resolve PDF base64 with signature included
+    const { base64Pdf } = await getOrRenderPacketPdfBase64({
+      packetId: input.packetId,
+      userId: userId.toString(),
+      purpose: "mail",
+      packetContent,
+      renderBase64: () => generatePacketContentPdfBase64(packetContent, userId.toString(), input.packetId.toString()),
+    });
     const dataUri = `data:application/pdf;base64,${base64Pdf}`;
 
     // 8. Call PostGrid — if this fails after payment was verified, we need to refund
