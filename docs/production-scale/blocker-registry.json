@@ -19,6 +19,7 @@
     "pnpm run operator:dashboard",
     "pnpm run check:restore-drill-evidence",
     "pnpm run check:migrations",
+    "pnpm run migrations:evidence",
     "pnpm run baseline:production-scale-local -- --dry-run",
     "pnpm run baseline:production-scale-local -- --simulated",
     "pnpm run report:runtime-size",
@@ -218,15 +219,15 @@
       "area": "Migration governance",
       "affectedFilesRoutesFunctions": ["helpers/*Schema*", "scripts/check-migrations.mjs", "migrations/0000-runtime-schema-inventory.md"],
       "currentStatus": "partial",
-      "proofTypeRequired": "Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.",
+      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
       "proofCategories": ["automated-local"],
-      "allowedProofCommands": ["pnpm run check:migrations", "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts", "pnpm run typecheck"],
+      "allowedProofCommands": ["pnpm run check:migrations", "pnpm run migrations:evidence", "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts", "pnpm run typecheck"],
       "forbiddenProofTypes": ["runtime DDL changes", "schema mutation without review", "production DB introspection", "dashboard PASS alone"],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": false,
       "humanProofRequired": false,
-      "relatedEvidenceOutputPaths": ["docs/database-migration-policy.md", "migrations/0000-runtime-schema-inventory.md", "docs/production-scale/evidence/latest-production-scale-evidence.md", "docs/production-scale/evidence/latest-production-scale-evidence.json"],
-      "recommendedNextAction": "Convert runtime schema inventory into reviewed migration governance in a separate task."
+      "relatedEvidenceOutputPaths": ["docs/database-migration-policy.md", "migrations/0000-runtime-schema-inventory.md", "docs/production-scale/evidence/latest-migration-governance.md", "docs/production-scale/evidence/latest-migration-governance.json", "docs/production-scale/evidence/latest-production-scale-evidence.md", "docs/production-scale/evidence/latest-production-scale-evidence.json"],
+      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time."
     },
     {
       "number": 11,

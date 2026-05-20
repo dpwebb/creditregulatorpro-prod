@@ -1,0 +1,1737 @@
+{
+  "reportName": "migration-governance-drift-evidence",
+  "generatedAt": "2026-05-20T18:44:36.108Z",
+  "evidenceTimestamp": "2026-05-20T18:44:36.108Z",
+  "branch": "staging",
+  "commit": "c6cc055d5b3c53049ed34b815a8c84a636c0068b",
+  "safety": {
+    "nonMutating": true,
+    "requiresDatabase": false,
+    "mutatesDatabase": false,
+    "executesDdl": false,
+    "readsCredentials": false,
+    "productionMutationAttempted": false,
+    "liveExternalProvidersConnected": false
+  },
+  "scanRoots": [
+    "helpers",
+    "scripts",
+    "endpoints/migration"
+  ],
+  "ledgerDir": "migrations",
+  "expectedSchemaSources": [
+    {
+      "path": "scripts/bootstrap-local-auth-schema.ts",
+      "kind": "bootstrap",
+      "description": "Local auth/session/account bootstrap DDL.",
+      "exists": true
+    },
+    {
+      "path": "scripts/bootstrap-local-app-fixtures.ts",
+      "kind": "bootstrap",
+      "description": "Local app fixture and core table bootstrap DDL.",
+      "exists": true
+    },
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "kind": "runtime-ensure",
+      "description": "AI assist run audit table ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "kind": "runtime-ensure",
+      "description": "Consumer identification document table ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Dispute packet findings table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Ingest processing job and event table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Outcome comparison and finding outcome table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser rule promotion table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser test adjudication table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser training archive table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation reconciliation candidate table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation registry and mapping table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation runtime bridge mapping table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Violation correction and regulation reference table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "endpoints/migration/create_POST.ts",
+      "kind": "migration-metadata-endpoint",
+      "description": "Admin metadata endpoint for recording migration entries; does not execute DDL.",
+      "exists": true
+    },
+    {
+      "path": "endpoints/migration/list_GET.ts",
+      "kind": "migration-metadata-endpoint",
+      "description": "Admin metadata endpoint for listing migration entries; does not execute DDL.",
+      "exists": true
+    },
+    {
+      "path": "endpoints/migration/update_POST.ts",
+      "kind": "migration-metadata-endpoint",
+      "description": "Admin metadata endpoint for updating migration status; does not execute DDL.",
+      "exists": true
+    }
+  ],
+  "knownRuntimeEnsureSources": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "kind": "runtime-ensure",
+      "description": "AI assist run audit table ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "kind": "runtime-ensure",
+      "description": "Consumer identification document table ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Dispute packet findings table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Ingest processing job and event table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Outcome comparison and finding outcome table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser rule promotion table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser test adjudication table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser training archive table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation reconciliation candidate table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation registry and mapping table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation runtime bridge mapping table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Violation correction and regulation reference table/index ensure.",
+      "exists": true
+    }
+  ],
+  "runtimeEnsureFunctions": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "kind": "runtime-ensure",
+      "description": "AI assist run audit table ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "kind": "runtime-ensure",
+      "description": "Consumer identification document table ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Dispute packet findings table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Ingest processing job and event table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Outcome comparison and finding outcome table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser rule promotion table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser test adjudication table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "kind": "runtime-ensure",
+      "description": "Parser training archive table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation reconciliation candidate table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation registry and mapping table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "kind": "runtime-ensure",
+      "description": "Regulation runtime bridge mapping table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "kind": "runtime-ensure",
+      "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
+      "exists": true
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "kind": "runtime-ensure",
+      "description": "Violation correction and regulation reference table/index ensure.",
+      "exists": true
+    }
+  ],
+  "bootstrapScripts": [
+    {
+      "path": "scripts/bootstrap-local-auth-schema.ts",
+      "kind": "bootstrap",
+      "description": "Local auth/session/account bootstrap DDL.",
+      "exists": true
+    },
+    {
+      "path": "scripts/bootstrap-local-app-fixtures.ts",
+      "kind": "bootstrap",
+      "description": "Local app fixture and core table bootstrap DDL.",
+      "exists": true
+    }
+  ],
+  "migrationMetadataEndpoints": [
+    {
+      "path": "endpoints/migration/create_POST.ts",
+      "kind": "migration-metadata-endpoint",
+      "description": "Admin metadata endpoint for recording migration entries; does not execute DDL.",
+      "exists": true
+    },
+    {
+      "path": "endpoints/migration/list_GET.ts",
+      "kind": "migration-metadata-endpoint",
+      "description": "Admin metadata endpoint for listing migration entries; does not execute DDL.",
+      "exists": true
+    },
+    {
+      "path": "endpoints/migration/update_POST.ts",
+      "kind": "migration-metadata-endpoint",
+      "description": "Admin metadata endpoint for updating migration status; does not execute DDL.",
+      "exists": true
+    }
+  ],
+  "detectedSchemaMutationSources": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "matches": [
+        {
+          "line": 38,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.ai_assist_run ("
+        },
+        {
+          "line": 55,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ai_assist_run_feature_created"
+        },
+        {
+          "line": 60,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ai_assist_run_subject"
+        }
+      ]
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "matches": [
+        {
+          "line": 116,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.consumer_identification_document ("
+        },
+        {
+          "line": 131,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_consumer_identification_document_user_id"
+        }
+      ]
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "matches": [
+        {
+          "line": 10,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.dispute_packet_findings ("
+        },
+        {
+          "line": 51,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_dispute_packet_findings_creditor_obligation_test_id"
+        },
+        {
+          "line": 55,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_dispute_packet_findings_dispute_packet_id"
+        },
+        {
+          "line": 59,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_dispute_packet_findings_user_created_at"
+        },
+        {
+          "line": 63,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_dispute_packet_findings_tradeline_created_at"
+        },
+        {
+          "line": 67,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_dispute_packet_findings_report_artifact_id"
+        },
+        {
+          "line": 71,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_dispute_packet_findings_bureau_id"
+        }
+      ]
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "matches": [
+        {
+          "line": 13,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.ingest_processing_job ("
+        },
+        {
+          "line": 52,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.ingest_processing_job_event ("
+        },
+        {
+          "line": 95,
+          "pattern": "alter table",
+          "excerpt": "alter table public.ingest_processing_job_event"
+        },
+        {
+          "line": 99,
+          "pattern": "alter table",
+          "excerpt": "alter table public.ingest_processing_job_event"
+        },
+        {
+          "line": 121,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_ingest_processing_job_active_idempotency_unique"
+        },
+        {
+          "line": 126,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_status_run_after"
+        },
+        {
+          "line": 130,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_artifact_status"
+        },
+        {
+          "line": 134,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_user_created_at"
+        },
+        {
+          "line": 138,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_locked_until"
+        },
+        {
+          "line": 142,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_event_job_created_at"
+        },
+        {
+          "line": 146,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_event_type_created_at"
+        }
+      ]
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "matches": [
+        {
+          "line": 10,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.outcome_comparison_run ("
+        },
+        {
+          "line": 55,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.finding_outcome ("
+        },
+        {
+          "line": 114,
+          "pattern": "alter table",
+          "excerpt": "alter table public.outcome_comparison_run"
+        },
+        {
+          "line": 127,
+          "pattern": "alter table",
+          "excerpt": "alter table public.outcome_comparison_run"
+        },
+        {
+          "line": 133,
+          "pattern": "alter table",
+          "excerpt": "alter table public.finding_outcome"
+        },
+        {
+          "line": 152,
+          "pattern": "alter table",
+          "excerpt": "alter table public.finding_outcome"
+        },
+        {
+          "line": 165,
+          "pattern": "alter table",
+          "excerpt": "alter table public.outcome_comparison_run"
+        },
+        {
+          "line": 172,
+          "pattern": "alter table",
+          "excerpt": "alter table public.outcome_comparison_run"
+        },
+        {
+          "line": 179,
+          "pattern": "alter table",
+          "excerpt": "alter table public.finding_outcome"
+        },
+        {
+          "line": 186,
+          "pattern": "alter table",
+          "excerpt": "alter table public.finding_outcome"
+        },
+        {
+          "line": 193,
+          "pattern": "alter table",
+          "excerpt": "alter table public.finding_outcome"
+        },
+        {
+          "line": 201,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_user_created_at"
+        },
+        {
+          "line": 205,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_previous_report_artifact_id"
+        },
+        {
+          "line": 209,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_later_report_artifact_id"
+        },
+        {
+          "line": 213,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_packet_id"
+        },
+        {
+          "line": 217,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_status"
+        },
+        {
+          "line": 221,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_comparison_scope"
+        },
+        {
+          "line": 225,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_outcome_comparison_run_admin_review_status"
+        },
+        {
+          "line": 229,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_comparison_run_id"
+        },
+        {
+          "line": 233,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_user_created_at"
+        },
+        {
+          "line": 237,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_dispute_packet_id"
+        },
+        {
+          "line": 241,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_dispute_packet_finding_id"
+        },
+        {
+          "line": 245,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_creditor_obligation_test_id"
+        },
+        {
+          "line": 249,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_previous_tradeline_id"
+        },
+        {
+          "line": 253,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_later_tradeline_id"
+        },
+        {
+          "line": 257,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_outcome_type"
+        },
+        {
+          "line": 261,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_finding_outcome_admin_review_status"
+        }
+      ]
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "matches": [
+        {
+          "line": 10,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.parser_rule_candidate ("
+        },
+        {
+          "line": 36,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.parser_extraction_rule ("
+        },
+        {
+          "line": 54,
+          "pattern": "create index",
+          "excerpt": "create index if not exists parser_rule_candidate_test_case_idx"
+        },
+        {
+          "line": 59,
+          "pattern": "create index",
+          "excerpt": "create index if not exists parser_extraction_rule_active_idx"
+        },
+        {
+          "line": 64,
+          "pattern": "alter table",
+          "excerpt": "alter table public.parser_rule_candidate"
+        }
+      ]
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "matches": [
+        {
+          "line": 10,
+          "pattern": "alter table",
+          "excerpt": "alter table public.parser_test_case"
+        }
+      ]
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "matches": [
+        {
+          "line": 133,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.parser_test_training_archive ("
+        },
+        {
+          "line": 153,
+          "pattern": "alter table",
+          "excerpt": "alter table public.parser_test_training_archive"
+        },
+        {
+          "line": 193,
+          "pattern": "alter table",
+          "excerpt": "alter table public.parser_test_training_archive"
+        },
+        {
+          "line": 205,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_parser_test_training_archive_source"
+        },
+        {
+          "line": 210,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_parser_test_training_archive_use"
+        }
+      ]
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "matches": [
+        {
+          "line": 108,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_reconciliation_candidate ("
+        },
+        {
+          "line": 145,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_candidate_type on public.regulation_reconciliation_candidate(candidate_type)`.execute(db);"
+        },
+        {
+          "line": 146,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_review_status on public.regulation_reconciliation_candidate(review_status)`.execute(db);"
+        },
+        {
+          "line": 147,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_severity on public.regulation_reconciliation_candidate(severity)`.execute(db);"
+        },
+        {
+          "line": 148,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_static_reference on public.regulation_reconciliation_candidate(static_reference_id)`.execute("
+        },
+        {
+          "line": 149,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_db_regulation on public.regulation_reconciliation_candidate(db_regulation_id)`.execute(db);"
+        },
+        {
+          "line": 150,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_db_mapping on public.regulation_reconciliation_candidate(db_mapping_id)`.execute(db);"
+        },
+        {
+          "line": 151,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_rule on public.regulation_reconciliation_candidate(deterministic_rule_id)`.execute(db);"
+        },
+        {
+          "line": 152,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_created_at on public.regulation_reconciliation_candidate(created_at)`.execute(db);"
+        },
+        {
+          "line": 153,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_reconciliation_run on public.regulation_reconciliation_candidate(reconciliation_run_id)`.execute(db);"
+        }
+      ]
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "matches": [
+        {
+          "line": 8,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_registry ("
+        },
+        {
+          "line": 45,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_update_source ("
+        },
+        {
+          "line": 63,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_source_scan ("
+        },
+        {
+          "line": 79,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_update_candidate ("
+        },
+        {
+          "line": 119,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_violation_mapping ("
+        },
+        {
+          "line": 138,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_regulation_registry_active_truth"
+        },
+        {
+          "line": 143,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_registry_filters on public.regulation_registry(jurisdiction, regulation_category, active_status, review_stat"
+        },
+        {
+          "line": 144,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_candidate_status on public.regulation_update_candidate(status, change_classification, detected_at desc)`.exe"
+        },
+        {
+          "line": 145,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_candidate_regulation_id on public.regulation_update_candidate(candidate_regulation_id)`.execute(db);"
+        },
+        {
+          "line": 146,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_mapping_violation on public.regulation_violation_mapping(violation_category, active)`.execute(db);"
+        },
+        {
+          "line": 147,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_regulation_mapping_regulation on public.regulation_violation_mapping(regulation_id, active)`.execute(db);"
+        }
+      ]
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "matches": [
+        {
+          "line": 131,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.regulation_runtime_bridge_mapping ("
+        },
+        {
+          "line": 179,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_bridge_mode on public.regulation_runtime_bridge_mapping(bridge_mode)`.execute(db);"
+        },
+        {
+          "line": 180,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_activation_status on public.regulation_runtime_bridge_mapping(activation_status)`.execute(db"
+        },
+        {
+          "line": 181,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_rule on public.regulation_runtime_bridge_mapping(deterministic_rule_id)`.execute(db);"
+        },
+        {
+          "line": 182,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_violation_category on public.regulation_runtime_bridge_mapping(violation_category)`.execute("
+        },
+        {
+          "line": 183,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_static_reference on public.regulation_runtime_bridge_mapping(static_reference_id)`.execute(d"
+        },
+        {
+          "line": 184,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_db_regulation on public.regulation_runtime_bridge_mapping(db_regulation_id)`.execute(db);"
+        },
+        {
+          "line": 185,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_db_mapping on public.regulation_runtime_bridge_mapping(db_mapping_id)`.execute(db);"
+        },
+        {
+          "line": 186,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_reference_class on public.regulation_runtime_bridge_mapping(reference_class)`.execute(db);"
+        },
+        {
+          "line": 187,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_consumer_wording on public.regulation_runtime_bridge_mapping(consumer_wording_mode)`.execute"
+        },
+        {
+          "line": 188,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_reg_runtime_bridge_mapping_created_at on public.regulation_runtime_bridge_mapping(created_at)`.execute(db);"
+        },
+        {
+          "line": 190,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_reg_runtime_bridge_mapping_dedupe"
+        }
+      ]
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "matches": [
+        {
+          "line": 17,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.bureau_response_event ("
+        },
+        {
+          "line": 76,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_user_created_at"
+        },
+        {
+          "line": 80,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_packet_id"
+        },
+        {
+          "line": 84,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_dispute_packet_finding_id"
+        },
+        {
+          "line": 88,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_finding_outcome_id"
+        },
+        {
+          "line": 92,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_comparison_run_id"
+        },
+        {
+          "line": 96,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_bureau_id"
+        },
+        {
+          "line": 100,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_agency_id"
+        },
+        {
+          "line": 104,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_response_channel"
+        },
+        {
+          "line": 108,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_document_type"
+        },
+        {
+          "line": 112,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_status"
+        },
+        {
+          "line": 116,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_received_at"
+        },
+        {
+          "line": 120,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_bureau_response_event_normalized_hash"
+        },
+        {
+          "line": 124,
+          "pattern": "alter table",
+          "excerpt": "alter table public.bureau_response_event"
+        },
+        {
+          "line": 136,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_bureau_response_event_intake_idempotency_unique"
+        },
+        {
+          "line": 141,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_processing_event ("
+        },
+        {
+          "line": 211,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_response_event_id"
+        },
+        {
+          "line": 215,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_user_created_at"
+        },
+        {
+          "line": 219,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_packet_id"
+        },
+        {
+          "line": 223,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_tradeline_id"
+        },
+        {
+          "line": 227,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_violation_id"
+        },
+        {
+          "line": 231,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_classification"
+        },
+        {
+          "line": 235,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_status"
+        },
+        {
+          "line": 239,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_manual_review"
+        },
+        {
+          "line": 243,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_event_idempotency"
+        },
+        {
+          "line": 247,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_admin_review_event ("
+        },
+        {
+          "line": 292,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_admin_review_event_response_event_id"
+        },
+        {
+          "line": 296,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_admin_review_event_user_created_at"
+        },
+        {
+          "line": 300,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_admin_review_event_action"
+        },
+        {
+          "line": 304,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_processing_job ("
+        },
+        {
+          "line": 342,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_processing_job_event ("
+        },
+        {
+          "line": 382,
+          "pattern": "alter table",
+          "excerpt": "alter table public.response_processing_job_event"
+        },
+        {
+          "line": 386,
+          "pattern": "alter table",
+          "excerpt": "alter table public.response_processing_job_event"
+        },
+        {
+          "line": 405,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_response_processing_job_active_idempotency_unique"
+        },
+        {
+          "line": 410,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_job_status_run_after"
+        },
+        {
+          "line": 414,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_job_type_status"
+        },
+        {
+          "line": 418,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_job_locked_until"
+        },
+        {
+          "line": 422,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_job_event_job_created_at"
+        },
+        {
+          "line": 426,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_job_event_type_created_at"
+        },
+        {
+          "line": 431,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_worker_orchestration_run ("
+        },
+        {
+          "line": 460,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_worker_orchestration_event ("
+        },
+        {
+          "line": 491,
+          "pattern": "alter table",
+          "excerpt": "alter table public.response_worker_orchestration_event"
+        },
+        {
+          "line": 493,
+          "pattern": "alter table",
+          "excerpt": "alter table public.response_worker_orchestration_event"
+        },
+        {
+          "line": 500,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_response_worker_orchestration_active_lock_unique"
+        },
+        {
+          "line": 505,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_worker_orchestration_status_created_at"
+        },
+        {
+          "line": 509,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_worker_orchestration_lock_status"
+        },
+        {
+          "line": 513,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_worker_orchestration_source"
+        },
+        {
+          "line": 517,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_worker_orchestration_event_run_created_at"
+        },
+        {
+          "line": 521,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_worker_orchestration_event_type_created_at"
+        },
+        {
+          "line": 525,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.response_processing_lifecycle_event ("
+        },
+        {
+          "line": 557,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_lifecycle_event_type_created_at"
+        },
+        {
+          "line": 561,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_lifecycle_target"
+        },
+        {
+          "line": 565,
+          "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_response_processing_lifecycle_cleanup_target_unique"
+        },
+        {
+          "line": 572,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_response_processing_lifecycle_source_created_at"
+        }
+      ]
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "matches": [
+        {
+          "line": 10,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.violation_correction ("
+        },
+        {
+          "line": 36,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.violation_correction_evidence ("
+        },
+        {
+          "line": 53,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.violation_regulation_reference ("
+        },
+        {
+          "line": 80,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.violation_training_example ("
+        },
+        {
+          "line": 95,
+          "pattern": "alter table",
+          "excerpt": "alter table public.violation_correction"
+        },
+        {
+          "line": 104,
+          "pattern": "alter table",
+          "excerpt": "alter table public.violation_correction_evidence"
+        },
+        {
+          "line": 111,
+          "pattern": "alter table",
+          "excerpt": "alter table public.violation_regulation_reference"
+        },
+        {
+          "line": 116,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_correction_run on public.violation_correction(extraction_run_id)"
+        },
+        {
+          "line": 119,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_correction_tradeline on public.violation_correction(tradeline_id)"
+        },
+        {
+          "line": 122,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_correction_original on public.violation_correction(original_violation_id)"
+        },
+        {
+          "line": 125,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_correction_status on public.violation_correction(status)"
+        },
+        {
+          "line": 128,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_correction_evidence_correction on public.violation_correction_evidence(correction_id)"
+        },
+        {
+          "line": 131,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_regulation_reference_correction on public.violation_regulation_reference(correction_id)"
+        },
+        {
+          "line": 134,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_violation_training_example_correction on public.violation_training_example(correction_id)"
+        }
+      ]
+    },
+    {
+      "path": "scripts/bootstrap-local-app-fixtures.ts",
+      "matches": [
+        {
+          "line": 50,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.bureau ("
+        },
+        {
+          "line": 65,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.creditor ("
+        },
+        {
+          "line": 74,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_artifact ("
+        },
+        {
+          "line": 93,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.tradeline ("
+        },
+        {
+          "line": 154,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.tradeline_artifact_presence ("
+        },
+        {
+          "line": 162,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.tradeline_snapshot ("
+        },
+        {
+          "line": 192,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.obligation_instance ("
+        },
+        {
+          "line": 226,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.creditor_obligation_test ("
+        },
+        {
+          "line": 259,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.packet ("
+        },
+        {
+          "line": 294,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.dispute_packet_findings ("
+        },
+        {
+          "line": 331,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.success_metric ("
+        },
+        {
+          "line": 346,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.parser_test_case ("
+        },
+        {
+          "line": 372,
+          "pattern": "alter table",
+          "excerpt": "alter table public.parser_test_case"
+        },
+        {
+          "line": 385,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.parser_test_run ("
+        },
+        {
+          "line": 396,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.pass_extraction ("
+        },
+        {
+          "line": 421,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.violation_correction ("
+        },
+        {
+          "line": 445,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.violation_correction_evidence ("
+        },
+        {
+          "line": 460,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.violation_regulation_reference ("
+        },
+        {
+          "line": 485,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.violation_training_example ("
+        },
+        {
+          "line": 498,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.pass_a_edit_log ("
+        },
+        {
+          "line": 510,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_consumer_info ("
+        },
+        {
+          "line": 540,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_credit_score ("
+        },
+        {
+          "line": 555,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_inquiry ("
+        },
+        {
+          "line": 569,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_public_record ("
+        },
+        {
+          "line": 595,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_consumer_statement ("
+        },
+        {
+          "line": 610,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.report_employment_info ("
+        },
+        {
+          "line": 632,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.tradeline_payment_history ("
+        },
+        {
+          "line": 665,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.tradeline_payment_history_detail ("
+        },
+        {
+          "line": 684,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_report_artifact_user_id on public.report_artifact(user_id)`;"
+        },
+        {
+          "line": 685,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_report_artifact_fixture_sha on public.report_artifact(sha256)`;"
+        },
+        {
+          "line": 686,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_tradeline_user_id on public.tradeline(user_id)`;"
+        },
+        {
+          "line": 687,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_tradeline_report_artifact_id on public.tradeline(report_artifact_id)`;"
+        },
+        {
+          "line": 688,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_creditor_obligation_test_tradeline_id on public.creditor_obligation_test(tradeline_id)`;"
+        },
+        {
+          "line": 689,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_correction_run on public.violation_correction(extraction_run_id)`;"
+        },
+        {
+          "line": 690,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_correction_tradeline on public.violation_correction(tradeline_id)`;"
+        },
+        {
+          "line": 691,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_correction_original on public.violation_correction(original_violation_id)`;"
+        },
+        {
+          "line": 692,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_correction_status on public.violation_correction(status)`;"
+        },
+        {
+          "line": 693,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_correction_evidence_correction on public.violation_correction_evidence(correction_id)`;"
+        },
+        {
+          "line": 694,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_regulation_reference_correction on public.violation_regulation_reference(correction_id)`;"
+        },
+        {
+          "line": 695,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_violation_training_example_correction on public.violation_training_example(correction_id)`;"
+        },
+        {
+          "line": 696,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_packet_tradeline_id on public.packet(tradeline_id)`;"
+        },
+        {
+          "line": 697,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_creditor_obligation_test_id on public.dispute_packet_findings(creditor_obligation_test_id)`;"
+        },
+        {
+          "line": 698,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_dispute_packet_id on public.dispute_packet_findings(dispute_packet_id)`;"
+        },
+        {
+          "line": 699,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_user_created_at on public.dispute_packet_findings(user_id, created_at desc)`;"
+        },
+        {
+          "line": 700,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_tradeline_created_at on public.dispute_packet_findings(tradeline_id, created_at desc)`;"
+        },
+        {
+          "line": 701,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_report_artifact_id on public.dispute_packet_findings(report_artifact_id)`;"
+        },
+        {
+          "line": 702,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_dispute_packet_findings_bureau_id on public.dispute_packet_findings(bureau_id)`;"
+        }
+      ]
+    },
+    {
+      "path": "scripts/bootstrap-local-auth-schema.ts",
+      "matches": [
+        {
+          "line": 93,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.users ("
+        },
+        {
+          "line": 104,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.user_passwords ("
+        },
+        {
+          "line": 109,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.subscriptions ("
+        },
+        {
+          "line": 128,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_subscriptions_user_id on public.subscriptions(user_id)`;"
+        },
+        {
+          "line": 130,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.user_account ("
+        },
+        {
+          "line": 150,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.consumer_identification_document ("
+        },
+        {
+          "line": 163,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_consumer_identification_document_user_id on public.consumer_identification_document(user_id)`;"
+        },
+        {
+          "line": 165,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.sessions ("
+        },
+        {
+          "line": 173,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_sessions_user_id on public.sessions(user_id)`;"
+        },
+        {
+          "line": 174,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_sessions_expires_at on public.sessions(expires_at)`;"
+        },
+        {
+          "line": 176,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.login_attempts ("
+        },
+        {
+          "line": 182,
+          "pattern": "create index",
+          "excerpt": "await sql`create index if not exists idx_login_attempts_email_attempted_at on public.login_attempts(email, attempted_at desc)`;"
+        },
+        {
+          "line": 184,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.rate_limit_entry ("
+        },
+        {
+          "line": 192,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.audit_log ("
+        },
+        {
+          "line": 207,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.email_verification_tokens ("
+        },
+        {
+          "line": 216,
+          "pattern": "create table",
+          "excerpt": "await sql`create table if not exists public.password_reset_tokens ("
+        }
+      ]
+    }
+  ],
+  "detectedSchemaMutationSourcePaths": [
+    "helpers/aiAssistRunStore.ts",
+    "helpers/consumerIdentification.ts",
+    "helpers/disputePacketFindingsSchema.tsx",
+    "helpers/ingestProcessingQueueSchema.ts",
+    "helpers/outcomeTrackingSchema.ts",
+    "helpers/parserRulePromotionSchema.tsx",
+    "helpers/parserTestAdjudicationSchema.tsx",
+    "helpers/parserTestTrainingArchive.tsx",
+    "helpers/regulationReconciliationCandidateService.ts",
+    "helpers/regulationRegistrySchema.ts",
+    "helpers/regulationRuntimeBridgeMappingService.ts",
+    "helpers/responseDocumentSchema.ts",
+    "helpers/violationCorrectionSchema.tsx",
+    "scripts/bootstrap-local-app-fixtures.ts",
+    "scripts/bootstrap-local-auth-schema.ts"
+  ],
+  "migrationLedgerEntries": [
+    {
+      "path": "migrations/0000-runtime-schema-inventory.md",
+      "bytes": 2275
+    }
+  ],
+  "unknownSchemaMutationSources": [],
+  "unledgeredSchemaMutationSources": [],
+  "missingExpectedSources": [],
+  "missingExpectedInventoryEntries": [],
+  "findings": [
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/aiAssistRunStore.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "AI assist run audit table ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/consumerIdentification.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Consumer identification document table ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Dispute packet findings table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/ingestProcessingQueueSchema.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Ingest processing job and event table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/outcomeTrackingSchema.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Outcome comparison and finding outcome table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/parserRulePromotionSchema.tsx",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Parser rule promotion table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Parser test adjudication table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/parserTestTrainingArchive.tsx",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Parser training archive table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Regulation reconciliation candidate table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/regulationRegistrySchema.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Regulation registry and mapping table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Regulation runtime bridge mapping table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/responseDocumentSchema.ts",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure."
+    },
+    {
+      "category": "known-runtime-ensure-source",
+      "sourcePath": "helpers/violationCorrectionSchema.tsx",
+      "title": "Known runtime ensure source remains active",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence.",
+      "detail": "Violation correction and regulation reference table/index ensure."
+    },
+    {
+      "category": "bootstrap-script",
+      "sourcePath": "scripts/bootstrap-local-auth-schema.ts",
+      "title": "Bootstrap schema script",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep classified as bootstrap/local or controlled fixture setup; do not treat as production migration governance.",
+      "detail": "Local auth/session/account bootstrap DDL."
+    },
+    {
+      "category": "bootstrap-script",
+      "sourcePath": "scripts/bootstrap-local-app-fixtures.ts",
+      "title": "Bootstrap schema script",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep classified as bootstrap/local or controlled fixture setup; do not treat as production migration governance.",
+      "detail": "Local app fixture and core table bootstrap DDL."
+    },
+    {
+      "category": "migration-metadata-endpoint",
+      "sourcePath": "endpoints/migration/create_POST.ts",
+      "title": "Migration metadata endpoint",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep clear that this endpoint records metadata only and does not execute DDL.",
+      "detail": "Admin metadata endpoint for recording migration entries; does not execute DDL."
+    },
+    {
+      "category": "migration-metadata-endpoint",
+      "sourcePath": "endpoints/migration/list_GET.ts",
+      "title": "Migration metadata endpoint",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep clear that this endpoint records metadata only and does not execute DDL.",
+      "detail": "Admin metadata endpoint for listing migration entries; does not execute DDL."
+    },
+    {
+      "category": "migration-metadata-endpoint",
+      "sourcePath": "endpoints/migration/update_POST.ts",
+      "title": "Migration metadata endpoint",
+      "releaseImpact": "warning-only",
+      "status": "present",
+      "recommendation": "Keep clear that this endpoint records metadata only and does not execute DDL.",
+      "detail": "Admin metadata endpoint for updating migration status; does not execute DDL."
+    }
+  ],
+  "releaseSummary": {
+    "checkerMode": "release-visible-reporting-only",
+    "governanceStatus": "partial",
+    "releaseBlockingFindings": 0,
+    "warningOnlyFindings": 18,
+    "hardDeployGateEnabled": false,
+    "runtimeEnsureResidualCount": 13,
+    "unknownSchemaMutationSourceCount": 0,
+    "unledgeredSchemaMutationSourceCount": 0,
+    "missingExpectedSourceCount": 0,
+    "missingExpectedInventoryEntryCount": 0
+  },
+  "recommendation": "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
+  "deployGateRecommendation": "Run check:migrations as a non-blocking informational report only until a later audited task explicitly wires a stable hard deployment gate.",
+  "validation": {
+    "ok": true,
+    "errors": []
+  }
+}

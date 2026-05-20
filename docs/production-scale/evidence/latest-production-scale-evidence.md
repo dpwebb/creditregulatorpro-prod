@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T18:38:30.520Z
+Generated at: 2026-05-20T18:44:36.091Z
 Current branch: `staging`
-Current commit hash: `019b1394ef194cbd32aab3ad351618879d49fa70`
+Current commit hash: `c6cc055d5b3c53049ed34b815a8c84a636c0068b`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -66,9 +66,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial)
-  Proof required: Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.
-  Allowed commands: `pnpm run check:migrations`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
-  Next action: Convert runtime schema inventory into reviewed migration governance in a separate task.
+  Proof required: Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.
+  Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
+  Next action: Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`
@@ -285,9 +285,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial)
-  Proof required: Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.
-  Allowed commands: `pnpm run check:migrations`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
-  Next action: Convert runtime schema inventory into reviewed migration governance in a separate task.
+  Proof required: Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.
+  Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm run typecheck`
+  Next action: Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests and human-observed read-only production evidence; seeded smokes stay local/staging.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run test:contracts`

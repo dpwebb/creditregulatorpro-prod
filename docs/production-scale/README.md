@@ -125,3 +125,21 @@ If the local database is unavailable, the generated report is marked `database-u
 New bureau communication attachments use storage references; old inline evidence attachment rows remain compatible and readable through metadata-safe paths. OCR upload validation now uses the shared upload boundary checks while preserving valid PDF OCR output.
 
 Historical raw report bytes remain a partial blocker until an approved remediation plan handles old inline rows. The inventory command is evidence, not remediation and not production-at-scale proof.
+
+## Migration Governance Evidence
+
+Run:
+
+```bash
+pnpm run check:migrations
+pnpm run migrations:evidence
+```
+
+Outputs:
+
+- `docs/production-scale/evidence/latest-migration-governance.md`
+- `docs/production-scale/evidence/latest-migration-governance.json`
+
+The checker is a static, non-mutating source and ledger scan. It reports branch, commit, evidence timestamp, known runtime ensure sources, bootstrap scripts, unknown or unledgered schema mutation sources, missing expected sources, missing expected inventory entries, and whether findings are `warning-only` or `release-blocking`.
+
+Migration governance remains partial while runtime ensure paths exist. The remediation path is a reviewed additive migration ledger cutover, one runtime ensure workstream at a time, with rollback notes and separately approved deployment gating.

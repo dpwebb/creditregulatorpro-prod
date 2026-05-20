@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T18:38:30.520Z",
+  "generatedAt": "2026-05-20T18:44:36.091Z",
   "branch": "staging",
-  "commit": "019b1394ef194cbd32aab3ad351618879d49fa70",
+  "commit": "c6cc055d5b3c53049ed34b815a8c84a636c0068b",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -462,9 +462,10 @@
           "severity": "High",
           "area": "Migration governance",
           "currentStatus": "partial",
-          "proofTypeRequired": "Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.",
+          "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
           "allowedProofCommands": [
             "pnpm run check:migrations",
+            "pnpm run migrations:evidence",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
             "pnpm run typecheck"
           ],
@@ -480,10 +481,12 @@
           "relatedEvidenceOutputPaths": [
             "docs/database-migration-policy.md",
             "migrations/0000-runtime-schema-inventory.md",
+            "docs/production-scale/evidence/latest-migration-governance.md",
+            "docs/production-scale/evidence/latest-migration-governance.json",
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Convert runtime schema inventory into reviewed migration governance in a separate task."
+          "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time."
         },
         {
           "number": 11,
@@ -2006,9 +2009,10 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "proofTypeRequired": "Non-mutating migration inventory evidence now; reviewed ledger and drift gate later.",
+      "proofTypeRequired": "Release-visible non-mutating migration governance and runtime ensure drift evidence now; reviewed additive ledger cutover and hard gate remain future work.",
       "allowedProofCommands": [
         "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
         "pnpm run typecheck"
       ],
@@ -2024,10 +2028,12 @@
       "relatedEvidenceOutputPaths": [
         "docs/database-migration-policy.md",
         "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Convert runtime schema inventory into reviewed migration governance in a separate task."
+      "recommendedNextAction": "Keep runtime ensure residuals release-visible and convert them to reviewed additive migration ledger entries one workstream at a time."
     },
     {
       "number": 11,

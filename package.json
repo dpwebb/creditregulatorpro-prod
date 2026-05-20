@@ -58,6 +58,7 @@
     "check:source-of-truth": "node scripts/check-github-source-of-truth.mjs",
     "check:staging-gate": "node scripts/check-staging-gate.mjs",
     "check:migrations": "node scripts/check-migrations.mjs",
+    "migrations:evidence": "node scripts/check-migrations.mjs --write-evidence",
     "readiness:production": "node scripts/production-readiness-gate.mjs",
     "production:readiness": "tsx scripts/production-readiness-report.ts",
     "operator:dashboard": "tsx scripts/operator-regression-dashboard.ts",

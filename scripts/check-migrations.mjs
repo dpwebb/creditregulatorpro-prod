@@ -1,9 +1,13 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const DEFAULT_SCAN_ROOTS = ["helpers", "scripts", "endpoints/migration"];
 export const DEFAULT_LEDGER_DIR = "migrations";
+export const DEFAULT_MIGRATION_EVIDENCE_DIR = "docs/production-scale/evidence";
+export const MIGRATION_EVIDENCE_MARKDOWN = "latest-migration-governance.md";
+export const MIGRATION_EVIDENCE_JSON = "latest-migration-governance.json";
 
 export const EXPECTED_SCHEMA_SOURCES = [
   {
@@ -120,6 +124,19 @@ function repoPath(rootDir, relativePath) {
   return path.join(rootDir, ...normalizeRelativePath(relativePath).split("/"));
 }
 
+function safeGit(args, rootDir, fallback = "unknown") {
+  try {
+    const output = execFileSync("git", args, {
+      cwd: rootDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+    return output.length > 0 ? output : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function safeReadFile(filePath) {
   try {
     return readFileSync(filePath, "utf8");
@@ -215,11 +232,156 @@ function sourceMentionedByLedger(ledgerEntries, sourcePath) {
   return ledgerEntries.some((entry) => normalizeRelativePath(entry.content).includes(normalized));
 }
 
+function finding({
+  category,
+  sourcePath,
+  title,
+  releaseImpact,
+  status,
+  recommendation,
+  detail = "",
+}) {
+  return {
+    category,
+    sourcePath,
+    title,
+    releaseImpact,
+    status,
+    recommendation,
+    detail,
+  };
+}
+
+function buildFindings({
+  expected,
+  runtimeEnsureFunctions,
+  bootstrapScripts,
+  migrationMetadataEndpoints,
+  unknownSchemaMutationSources,
+  unledgeredSchemaMutationSources,
+  missingExpectedSources,
+  missingExpectedInventoryEntries,
+  migrationLedgerEntries,
+}) {
+  const findings = [];
+
+  for (const source of runtimeEnsureFunctions) {
+    findings.push(finding({
+      category: "known-runtime-ensure-source",
+      sourcePath: source.path,
+      title: "Known runtime ensure source remains active",
+      releaseImpact: source.exists ? "warning-only" : "release-blocking",
+      status: source.exists ? "present" : "missing",
+      recommendation: source.exists
+        ? "Keep release-visible until this ensure path has an additive reviewed migration and rollback evidence."
+        : "Restore the expected source or update the inventory through a reviewed migration-governance task.",
+      detail: source.description,
+    }));
+  }
+
+  for (const source of bootstrapScripts) {
+    findings.push(finding({
+      category: "bootstrap-script",
+      sourcePath: source.path,
+      title: "Bootstrap schema script",
+      releaseImpact: source.exists ? "warning-only" : "release-blocking",
+      status: source.exists ? "present" : "missing",
+      recommendation: source.exists
+        ? "Keep classified as bootstrap/local or controlled fixture setup; do not treat as production migration governance."
+        : "Restore the expected bootstrap script or update the inventory through review.",
+      detail: source.description,
+    }));
+  }
+
+  for (const source of migrationMetadataEndpoints) {
+    findings.push(finding({
+      category: "migration-metadata-endpoint",
+      sourcePath: source.path,
+      title: "Migration metadata endpoint",
+      releaseImpact: source.exists ? "warning-only" : "release-blocking",
+      status: source.exists ? "present" : "missing",
+      recommendation: source.exists
+        ? "Keep clear that this endpoint records metadata only and does not execute DDL."
+        : "Restore the expected migration metadata endpoint or update the inventory through review.",
+      detail: source.description,
+    }));
+  }
+
+  for (const sourcePath of unknownSchemaMutationSources) {
+    findings.push(finding({
+      category: "unknown-schema-mutation-source",
+      sourcePath,
+      title: "Unknown schema mutation source detected",
+      releaseImpact: "release-blocking",
+      status: "unknown",
+      recommendation: "Add the source to a reviewed migration inventory entry or remove the schema mutation from runtime code.",
+      detail: "Detected by static schema-mutation pattern scan.",
+    }));
+  }
+
+  for (const sourcePath of unledgeredSchemaMutationSources) {
+    findings.push(finding({
+      category: "unledgered-schema-mutation-source",
+      sourcePath,
+      title: "Schema mutation source is not represented in the ledger",
+      releaseImpact: "release-blocking",
+      status: "unledgered",
+      recommendation: "Add a ledger entry naming this source before relying on release evidence.",
+      detail: "Detected source was absent from migration ledger text.",
+    }));
+  }
+
+  for (const sourcePath of missingExpectedSources) {
+    const expectedSource = expected.find((source) => source.path === sourcePath);
+    findings.push(finding({
+      category: "missing-expected-source",
+      sourcePath,
+      title: "Expected schema source missing",
+      releaseImpact: "release-blocking",
+      status: "missing",
+      recommendation: "Restore the expected source or update the migration inventory through a reviewed task.",
+      detail: expectedSource?.description ?? "",
+    }));
+  }
+
+  for (const sourcePath of missingExpectedInventoryEntries) {
+    const expectedSource = expected.find((source) => source.path === sourcePath);
+    findings.push(finding({
+      category: "missing-expected-inventory-entry",
+      sourcePath,
+      title: "Expected source missing from migration inventory ledger",
+      releaseImpact: "release-blocking",
+      status: "unledgered",
+      recommendation: "Update migrations/0000-runtime-schema-inventory.md or a later reviewed ledger entry to name this source.",
+      detail: expectedSource?.description ?? "",
+    }));
+  }
+
+  if (migrationLedgerEntries.length === 0) {
+    findings.push(finding({
+      category: "missing-ledger",
+      sourcePath: DEFAULT_LEDGER_DIR,
+      title: "Migration ledger is missing or empty",
+      releaseImpact: "release-blocking",
+      status: "missing",
+      recommendation: "Create a reviewed inventory ledger before relying on migration governance evidence.",
+      detail: "No migration ledger files were found.",
+    }));
+  }
+
+  return findings;
+}
+
+function countFindings(findings, releaseImpact) {
+  return findings.filter((item) => item.releaseImpact === releaseImpact).length;
+}
+
 export function scanMigrationState({
   rootDir = process.cwd(),
   scanRoots = DEFAULT_SCAN_ROOTS,
   ledgerDir = DEFAULT_LEDGER_DIR,
   expectedSources = EXPECTED_SCHEMA_SOURCES,
+  generatedAt = new Date().toISOString(),
 } = {}) {
   const expected = expectedSources.map((source) => ({
     ...source,
@@ -240,33 +402,78 @@ export function scanMigrationState({
   const missingExpectedSources = expected
     .filter((source) => !source.exists)
     .map((source) => source.path);
+  const missingExpectedInventoryEntries = expected
+    .filter((source) => source.exists && !sourceMentionedByLedger(migrationLedgerEntries, source.path))
+    .map((source) => source.path);
 
   const hasOpenInventoryRisk =
     unknownSchemaMutationSources.length > 0 ||
     unledgeredSchemaMutationSources.length > 0 ||
     missingExpectedSources.length > 0 ||
+    missingExpectedInventoryEntries.length > 0 ||
     migrationLedgerEntries.length === 0;
+  const runtimeEnsureFunctions = expected.filter((source) => source.kind === "runtime-ensure");
+  const bootstrapScripts = expected.filter((source) => source.kind === "bootstrap");
+  const migrationMetadataEndpoints = expected.filter((source) => source.kind === "migration-metadata-endpoint");
+  const findings = buildFindings({
+    expected,
+    runtimeEnsureFunctions,
+    bootstrapScripts,
+    migrationMetadataEndpoints,
+    unknownSchemaMutationSources,
+    unledgeredSchemaMutationSources,
+    missingExpectedSources,
+    missingExpectedInventoryEntries,
+    migrationLedgerEntries,
+  });
+  const releaseBlockingFindings = countFindings(findings, "release-blocking");
+  const warningOnlyFindings = countFindings(findings, "warning-only");
 
   return {
+    reportName: "migration-governance-drift-evidence",
+    generatedAt,
+    evidenceTimestamp: generatedAt,
+    branch: safeGit(["branch", "--show-current"], rootDir),
+    commit: safeGit(["rev-parse", "HEAD"], rootDir),
     safety: {
       nonMutating: true,
       requiresDatabase: false,
       mutatesDatabase: false,
       executesDdl: false,
       readsCredentials: false,
+      productionMutationAttempted: false,
+      liveExternalProvidersConnected: false,
     },
     scanRoots,
     ledgerDir,
     expectedSchemaSources: expected,
-    runtimeEnsureFunctions: expected.filter((source) => source.kind === "runtime-ensure"),
-    bootstrapScripts: expected.filter((source) => source.kind === "bootstrap"),
-    migrationMetadataEndpoints: expected.filter((source) => source.kind === "migration-metadata-endpoint"),
+    knownRuntimeEnsureSources: runtimeEnsureFunctions,
+    runtimeEnsureFunctions,
+    bootstrapScripts,
+    migrationMetadataEndpoints,
     detectedSchemaMutationSources,
     detectedSchemaMutationSourcePaths: detectedPaths,
     migrationLedgerEntries: migrationLedgerEntries.map(({ content, ...entry }) => entry),
     unknownSchemaMutationSources,
     unledgeredSchemaMutationSources,
     missingExpectedSources,
+    missingExpectedInventoryEntries,
+    findings,
+    releaseSummary: {
+      checkerMode: "release-visible-reporting-only",
+      governanceStatus: "partial",
+      releaseBlockingFindings,
+      warningOnlyFindings,
+      hardDeployGateEnabled: false,
+      runtimeEnsureResidualCount: runtimeEnsureFunctions.filter((source) => source.exists).length,
+      unknownSchemaMutationSourceCount: unknownSchemaMutationSources.length,
+      unledgeredSchemaMutationSourceCount: unledgeredSchemaMutationSources.length,
+      missingExpectedSourceCount: missingExpectedSources.length,
+      missingExpectedInventoryEntryCount: missingExpectedInventoryEntries.length,
+    },
+    recommendation: hasOpenInventoryRisk
+      ? "Resolve release-blocking migration inventory findings before treating schema governance as complete; keep this checker non-mutating and release-visible."
+      : "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
     deployGateRecommendation: hasOpenInventoryRisk
       ? "Run check:migrations as a non-blocking informational report only; resolve missing, unknown, or unledgered schema mutation sources before enabling a hard deployment gate."
       : "Run check:migrations as a non-blocking informational report only until a later audited task explicitly wires a stable hard deployment gate.",
@@ -275,14 +482,22 @@ export function scanMigrationState({
 
 export function renderMigrationReport(report) {
   const lines = [
-    "# Migration Inventory And Drift Checker",
+    "# Migration Governance Drift Evidence",
     "",
     "Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.",
+    `Generated at: ${report.generatedAt}`,
+    `Current branch: ${report.branch}`,
+    `Current commit hash: ${report.commit}`,
     `Scan roots: ${report.scanRoots.join(", ")}`,
     `Ledger directory: ${report.ledgerDir}`,
+    `Checker mode: ${report.releaseSummary.checkerMode}`,
+    `Governance status: ${report.releaseSummary.governanceStatus}`,
+    `Release-blocking findings: ${report.releaseSummary.releaseBlockingFindings}`,
+    `Warning-only findings: ${report.releaseSummary.warningOnlyFindings}`,
+    `Hard deploy gate enabled: ${report.releaseSummary.hardDeployGateEnabled ? "yes" : "no"}`,
     "",
     "## Runtime Ensure Functions",
-    ...report.runtimeEnsureFunctions.map((source) =>
+    ...report.knownRuntimeEnsureSources.map((source) =>
       `- ${source.path} (${source.exists ? "present" : "missing"}): ${source.description}`,
     ),
     "",
@@ -318,6 +533,19 @@ export function renderMigrationReport(report) {
     ...(report.missingExpectedSources.length > 0
       ? report.missingExpectedSources.map((source) => `- Missing expected source: ${source}`)
       : ["- Missing expected source: none."]),
+    ...(report.missingExpectedInventoryEntries.length > 0
+      ? report.missingExpectedInventoryEntries.map((source) => `- Missing expected inventory entry: ${source}`)
+      : ["- Missing expected inventory entry: none."]),
+    "",
+    "## Release Findings",
+    ...(report.findings.length > 0
+      ? report.findings.map((item) =>
+          `- [${item.releaseImpact}] ${item.category}: ${item.sourcePath} (${item.status}) - ${item.recommendation}`,
+        )
+      : ["- None."]),
+    "",
+    "## Recommendation",
+    report.recommendation,
     "",
     "## Deploy Gate Recommendation",
     report.deployGateRecommendation,
@@ -326,13 +554,134 @@ export function renderMigrationReport(report) {
   return `${lines.join("\n")}\n`;
 }
 
+export function validateMigrationGovernanceReport(report) {
+  const errors = [];
+  if (report.reportName !== "migration-governance-drift-evidence") errors.push("reportName is missing or invalid.");
+  if (!report.generatedAt || !report.evidenceTimestamp) errors.push("generatedAt/evidenceTimestamp is required.");
+  if (!report.branch || !report.commit) errors.push("branch and commit are required.");
+  if (report.safety?.nonMutating !== true) errors.push("checker must be non-mutating.");
+  if (report.safety?.requiresDatabase !== false) errors.push("checker must not require database access.");
+  if (report.safety?.mutatesDatabase !== false) errors.push("checker must not mutate the database.");
+  if (report.safety?.executesDdl !== false) errors.push("checker must not execute DDL.");
+  if (!Array.isArray(report.knownRuntimeEnsureSources)) errors.push("known runtime ensure sources are required.");
+  if (!Array.isArray(report.bootstrapScripts)) errors.push("bootstrap scripts are required.");
+  if (!Array.isArray(report.unknownSchemaMutationSources)) errors.push("unknown mutation sources are required.");
+  if (!Array.isArray(report.missingExpectedSources)) errors.push("missing expected sources are required.");
+  if (!Array.isArray(report.findings)) errors.push("findings are required.");
+  if (!report.findings.every((item) => ["release-blocking", "warning-only"].includes(item.releaseImpact))) {
+    errors.push("each finding must be release-blocking or warning-only.");
+  }
+  if (!report.recommendation) errors.push("recommendation is required.");
+  return { ok: errors.length === 0, errors };
+}
+
+export function writeMigrationGovernanceEvidence(report, {
+  rootDir = process.cwd(),
+  evidenceDir = DEFAULT_MIGRATION_EVIDENCE_DIR,
+} = {}) {
+  const validation = validateMigrationGovernanceReport(report);
+  if (!validation.ok) {
+    throw new Error(`Migration governance report validation failed: ${validation.errors.join("; ")}`);
+  }
+  const absoluteEvidenceDir = repoPath(rootDir, evidenceDir);
+  mkdirSync(absoluteEvidenceDir, { recursive: true });
+  const markdownPath = normalizeRelativePath(path.join(evidenceDir, MIGRATION_EVIDENCE_MARKDOWN));
+  const jsonPath = normalizeRelativePath(path.join(evidenceDir, MIGRATION_EVIDENCE_JSON));
+  writeFileSync(repoPath(rootDir, markdownPath), renderMigrationReport(report), "utf8");
+  writeFileSync(repoPath(rootDir, jsonPath), `${JSON.stringify({ ...report, validation }, null, 2)}\n`, "utf8");
+  return { markdownPath, jsonPath };
+}
+
+function nextValue(args, index, flag) {
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value.`);
+  return value;
+}
+
+function parseArgs(args) {
+  const options = {
+    rootDir: process.cwd(),
+    evidenceDir: DEFAULT_MIGRATION_EVIDENCE_DIR,
+    json: false,
+    writeEvidence: true,
+  };
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--help" || arg === "-h") {
+      printHelp();
+      process.exit(0);
+    }
+    if (["--apply", "--execute", "--run-ddl", "--ddl", "--mutate", "--write-db"].includes(arg)) {
+      throw new Error(`${arg} is refused. Migration governance evidence is static and non-mutating.`);
+    }
+    if (arg === "--json") {
+      options.json = true;
+      continue;
+    }
+    if (arg === "--no-write-evidence") {
+      options.writeEvidence = false;
+      continue;
+    }
+    if (arg === "--write-evidence") {
+      options.writeEvidence = true;
+      continue;
+    }
+    if (arg === "--root") {
+      options.rootDir = path.resolve(nextValue(args, index, arg));
+      index += 1;
+      continue;
+    }
+    if (arg === "--evidence-dir") {
+      options.evidenceDir = normalizeRelativePath(nextValue(args, index, arg));
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown option: ${arg}`);
+  }
+  return options;
+}
+
+function printHelp() {
+  console.log([
+    "Usage: pnpm run check:migrations -- [options]",
+    "",
+    "Static, non-mutating migration governance and runtime schema ensure inventory checker.",
+    "By default it writes docs/production-scale/evidence/latest-migration-governance.{md,json}.",
+    "",
+    "Options:",
+    "  --json                    Print JSON report instead of Markdown.",
+    "  --write-evidence          Write evidence outputs. Default.",
+    "  --no-write-evidence       Do not write evidence outputs.",
+    "  --root <path>             Project root. Defaults to current working directory.",
+    "  --evidence-dir <path>     Output directory. Defaults to docs/production-scale/evidence.",
+    "",
+    "Refused:",
+    "  --apply, --execute, --run-ddl, --ddl, --mutate, --write-db",
+  ].join("\n"));
+}
+
 async function main() {
-  const args = new Set(process.argv.slice(2));
-  const report = scanMigrationState();
-  if (args.has("--json")) {
+  const options = parseArgs(process.argv.slice(2));
+  const report = scanMigrationState({ rootDir: options.rootDir });
+  const validation = validateMigrationGovernanceReport(report);
+  if (!validation.ok) {
+    throw new Error(`Migration governance report validation failed: ${validation.errors.join("; ")}`);
+  }
+  let outputs = null;
+  if (options.writeEvidence) {
+    outputs = writeMigrationGovernanceEvidence(report, {
+      rootDir: options.rootDir,
+      evidenceDir: options.evidenceDir,
+    });
+  }
+  if (options.json) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     console.log(renderMigrationReport(report));
+  }
+  if (outputs) {
+    console.log(`Evidence Markdown: ${outputs.markdownPath}`);
+    console.log(`Evidence JSON: ${outputs.jsonPath}`);
   }
 }
 

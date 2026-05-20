@@ -37,8 +37,17 @@ This entry records existing schema creation and mutation sources. It does not ex
 
 ## Deployment Gate Status
 
-`pnpm run check:migrations` is informational only. This inventory does not change production deployment behavior and does not hard-fail deploys.
+`pnpm run check:migrations` is release-visible reporting only. It writes non-mutating evidence to:
+
+- `docs/production-scale/evidence/latest-migration-governance.md`
+- `docs/production-scale/evidence/latest-migration-governance.json`
+
+This inventory does not change production deployment behavior and does not hard-fail deploys.
+
+The checker distinguishes warning-only residuals from release-blocking governance findings. Known runtime ensure sources represented in this inventory are warning-only residuals. Unknown mutation sources, unledgered mutation sources, missing expected source files, missing expected inventory entries, or a missing ledger are release-blocking governance findings for review.
 
 ## Cutover Notes
 
 Future migration tasks should convert runtime DDL ownership into additive, reviewed ledger migrations one workstream at a time. Runtime ensure functions must stay active until each replacement migration and rollback path is tested.
+
+Migration governance remains partial until those runtime ensure residuals have a fully governed additive migration strategy and a separately approved hard gate.
