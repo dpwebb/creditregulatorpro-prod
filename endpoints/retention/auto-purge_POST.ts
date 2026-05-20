@@ -4,33 +4,25 @@ import { logAudit } from "../../helpers/auditLogger";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { deriveCronSecret } from "../../helpers/cronSecret";
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not set");
-}
-
-// New HMAC-derived secret for this cron job
-const CRON_SECRET_HMAC = deriveCronSecret("retention-auto-purge-cron");
-
-// Legacy secret: first 32 chars of JWT_SECRET (kept for backward compatibility)
-const CRON_SECRET_LEGACY = process.env.JWT_SECRET.substring(0, 32);
-
-function isValidCronToken(token: string): boolean {
-  return token === CRON_SECRET_HMAC || token === CRON_SECRET_LEGACY;
-}
+const CRON_SECRET = deriveCronSecret("retention-auto-purge-cron");
 
 export async function handle(request: Request) {
   try {
-    // 1. Authentication (Custom Token Check)
+    // 1. Authentication (bearer-only derived cron token)
     const url = new URL(request.url);
-    const queryToken = url.searchParams.get("token");
+    if (url.searchParams.has("token")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid or missing token" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     const authHeader = request.headers.get("Authorization");
     const bearerToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.substring(7)
+      ? authHeader.substring(7).trim()
       : null;
 
-    const providedToken = queryToken || bearerToken;
-
-    if (!providedToken || !isValidCronToken(providedToken)) {
+    if (!bearerToken || bearerToken !== CRON_SECRET) {
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid or missing token" }),
         { status: 401, headers: { "Content-Type": "application/json" } }

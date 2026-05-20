@@ -389,7 +389,11 @@ function hasAdminGuard(source: string): boolean {
 }
 
 function hasCronGuard(source: string): boolean {
-  return /deriveCronSecret|CRON_SECRET/.test(source) && /Authorization|Bearer|token/i.test(source);
+  return /deriveCronSecret|CRON_SECRET/.test(source) && /Authorization|Bearer/.test(source);
+}
+
+function rejectsQueryToken(source: string): boolean {
+  return /searchParams\.has\(["']token["']\)/.test(source) && /status:\s*401/.test(source);
 }
 
 function hasWebhookGuard(source: string): boolean {
@@ -463,6 +467,23 @@ describe("route auth classification contract", () => {
       expectCategory(handlerFile, "cron-token authenticated");
       expect(hasCronGuard(endpointSource(handlerFile))).toBe(true);
     }
+  });
+
+  it("keeps cron endpoints bearer-only without query or legacy substring token fallback", () => {
+    const cronEndpoints = [
+      "endpoints/clock/scan_POST.ts",
+      "endpoints/regulation-registry/scheduled-scan_POST.ts",
+      "endpoints/retention/auto-purge_POST.ts",
+    ];
+
+    for (const handlerFile of cronEndpoints) {
+      const source = endpointSource(handlerFile);
+      expect(hasCronGuard(source)).toBe(true);
+      expect(source).not.toMatch(/searchParams\.get\(["']token["']\)|queryToken|CRON_SECRET_LEGACY|substring\(0,\s*32\)/);
+    }
+
+    expect(rejectsQueryToken(endpointSource("endpoints/regulation-registry/scheduled-scan_POST.ts"))).toBe(true);
+    expect(rejectsQueryToken(endpointSource("endpoints/retention/auto-purge_POST.ts"))).toBe(true);
   });
 
   it("requires webhook endpoints to use webhook signature or shared-secret guards", () => {

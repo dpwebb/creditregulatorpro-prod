@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// No input required for the auto-purge trigger itself, authentication is handled via headers/query
+// No input required for the auto-purge trigger itself; authentication is bearer-only.
 export const schema = z.object({});
 
 export type InputType = z.infer<typeof schema>;

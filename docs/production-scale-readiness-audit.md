@@ -280,8 +280,7 @@ Positive evidence:
 
 Risks:
 
-- Some operational endpoints use non-session cron tokens and still accept query tokens: `endpoints/regulation-registry/scheduled-scan_POST.ts` and `endpoints/retention/auto-purge_POST.ts`. `endpoints/clock/scan_POST.ts` now requires bearer-token cron authorization.
-- `endpoints/retention/auto-purge_POST.ts` still allows a legacy token derived from the first 32 characters of `JWT_SECRET`.
+- Superseded by `docs/production-at-scale-maximum-audit.md` and the production-at-scale execution tracker: `endpoints/clock/scan_POST.ts`, `endpoints/regulation-registry/scheduled-scan_POST.ts`, and `endpoints/retention/auto-purge_POST.ts` now require bearer-token cron authorization. Query-token support and the retention legacy `JWT_SECRET` substring fallback have been removed.
 - `server.ts` generated endpoint wrappers often return `"Error loading endpoint code " + e.message`, which is acceptable for module load errors but should be reviewed for production sanitization consistency.
 
 ### 5. Observability and Operations

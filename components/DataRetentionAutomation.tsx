@@ -59,10 +59,10 @@ export const DataRetentionAutomation = () => {
                 <div className={styles.stepContent}>
                   <p className={styles.stepTitle}>Prepare Authentication</p>
                   <p className={styles.stepText}>
-                    The endpoint requires a Bearer token derived from your system's JWT Secret.
+                    The endpoint requires the HMAC-derived retention cron token in a Bearer header.
                   </p>
                   <div className={styles.codeBlock}>
-                    Authorization: Bearer YOUR_JWT_SECRET_FIRST_32_CHARS
+                    Authorization: Bearer YOUR_RETENTION_CRON_TOKEN
                   </div>
                 </div>
               </div>
