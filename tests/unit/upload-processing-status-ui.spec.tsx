@@ -8,28 +8,44 @@ import {
 } from "../../pages/upload";
 
 describe("credit file upload processing status UI", () => {
-  it("renders queued backend status as waiting for worker, not indefinite processing", () => {
+  it("renders queued backend status as a user-facing waiting-for-analysis state", () => {
     const onCheckStatus = vi.fn();
+    const onViewUploadHistory = vi.fn();
     render(
       <CreditFileProcessingStatus
         progress={{ stage: "queued", percent: 12, message: "Report processing has been queued." }}
         displayedProgress={12}
+        fileName="synthetic-report.pdf"
+        uploadedAt={Date.parse("2026-05-21T16:30:00.000Z")}
+        lastCheckedAt={Date.parse("2026-05-21T16:31:00.000Z")}
+        nextCheckInSeconds={8}
+        currentTimeMs={Date.parse("2026-05-21T16:31:00.000Z")}
         outcome={{
           type: "queued_waiting_for_worker",
           artifactId: 701,
-          message: "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.",
+          message: "Your report is uploaded and waiting for analysis to begin. You do not need to stay on this page; results will appear in your account when analysis is complete.",
           nextAction: "wait_for_worker",
           diagnosticCode: "INGEST_QUEUED_WAITING_FOR_WORKER",
         }}
         onCheckStatus={onCheckStatus}
+        onViewUploadHistory={onViewUploadHistory}
       />,
     );
 
-    expect(screen.getByText("Waiting for processing worker")).toBeInTheDocument();
-    expect(screen.getByText("Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.")).toBeInTheDocument();
+    expect(screen.getAllByText("Waiting for analysis to start").length).toBeGreaterThan(0);
+    expect(screen.getByText("synthetic-report.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Your report is uploaded and waiting for analysis to begin. You do not need to stay on this page; results will appear in your account when analysis is complete.")).toBeInTheDocument();
+    expect(screen.getByText("Report uploaded")).toBeInTheDocument();
+    expect(screen.getByText("Reading report text")).toBeInTheDocument();
+    expect(screen.getByText("Uploaded 1 minute ago. Most reports finish in 1-3 minutes.")).toBeInTheDocument();
+    expect(screen.getByText("Next check in: 8 seconds")).toBeInTheDocument();
+    expect(screen.getAllByText(/You do not need to stay on this page/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/worker/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/keep this page open/i)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Check status" }));
+    fireEvent.click(screen.getByRole("button", { name: "Check now" }));
     expect(onCheckStatus).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "View upload history" }));
+    expect(onViewUploadHistory).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the last known queued state when a status refresh fails", () => {
@@ -37,7 +53,7 @@ describe("credit file upload processing status UI", () => {
       currentOutcome: {
         type: "queued_waiting_for_worker",
         artifactId: 701,
-        message: "Your report was received and is waiting for processing.",
+        message: "Your report is uploaded and waiting for analysis to begin.",
         nextAction: "wait_for_worker",
         diagnosticCode: "INGEST_QUEUED_WAITING_FOR_WORKER",
       },
@@ -50,7 +66,7 @@ describe("credit file upload processing status UI", () => {
       nextAction: "wait_for_worker",
       diagnosticCode: "INGEST_STATUS_REFRESH_UNAVAILABLE_LAST_KNOWN_QUEUED",
     }));
-    expect(outcome.message).toMatch(/still waiting for processing/i);
+    expect(outcome.message).toMatch(/still waiting for analysis/i);
   });
 
   it("renders running backend status as active processing", () => {
@@ -62,9 +78,9 @@ describe("credit file upload processing status UI", () => {
       />,
     );
 
-    expect(screen.getByText("Processing your credit file")).toBeInTheDocument();
-    expect(screen.getByText("Processing is active. This usually takes a few moments.")).toBeInTheDocument();
-    expect(screen.getByText("Checking processing status...")).toBeInTheDocument();
+    expect(screen.getByText("Reading report text")).toBeInTheDocument();
+    expect(screen.getByText("Analysis is running. This usually takes a few moments.")).toBeInTheDocument();
+    expect(screen.getByText("Checking for updates...")).toBeInTheDocument();
   });
 
   it("disables duplicate submit actions while processing is active", () => {
@@ -88,13 +104,16 @@ describe("credit file upload processing status UI", () => {
         progress={null}
         displayedProgress={100}
         outcome={{ type: "success", artifactId: "42" }}
+        completionSummary={{ totalTradelines: 2, actionableCount: 6 }}
         onReviewResults={onReviewResults}
       />,
     );
 
-    expect(screen.getByText("Credit file processed.")).toBeInTheDocument();
-    expect(screen.getByText("Review your results.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Review your results" }));
+    expect(screen.getByText("Analysis complete")).toBeInTheDocument();
+    expect(screen.getByText("Your report results are ready.")).toBeInTheDocument();
+    expect(screen.getByText("accounts found").parentElement).toHaveTextContent("2");
+    expect(screen.getByText("items may need review").parentElement).toHaveTextContent("6");
+    fireEvent.click(screen.getByRole("button", { name: "View results" }));
     expect(onReviewResults).toHaveBeenCalledTimes(1);
   });
 
@@ -133,16 +152,18 @@ describe("credit file upload processing status UI", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Manual review is required before this report can continue.");
   });
 
-  it("shows status-check mode when processing goes stale", () => {
+  it("shows delayed status-check mode when processing goes stale", () => {
     const onCheckStatus = vi.fn();
     render(
       <CreditFileProcessingStatus
         progress={{ stage: "status_check", percent: 99 }}
         displayedProgress={99}
+        uploadedAt={Date.parse("2026-05-21T16:27:00.000Z")}
+        currentTimeMs={Date.parse("2026-05-21T16:31:00.000Z")}
         outcome={{
           type: "stale",
           artifactId: 701,
-          message: "Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.",
+          message: "This is taking longer than usual, but your report is still saved. We will keep checking for updates in your account.",
           nextAction: "check_status",
           diagnosticCode: "INGEST_UI_STATUS_CHECK_TIMEOUT",
         }}
@@ -150,9 +171,10 @@ describe("credit file upload processing status UI", () => {
       />,
     );
 
-    expect(screen.getByText("Check processing status")).toBeInTheDocument();
-    expect(screen.getByText("Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Check status" }));
+    expect(screen.getByText("Checking for updates")).toBeInTheDocument();
+    expect(screen.getByText("This is taking longer than usual, but your report is still saved. We will keep checking for updates in your account.")).toBeInTheDocument();
+    expect(screen.getByText("Processing has not started yet. You can leave this page; we will keep checking in your account.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Check now" }));
     expect(onCheckStatus).toHaveBeenCalledTimes(1);
   });
 });

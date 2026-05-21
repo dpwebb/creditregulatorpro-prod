@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { z } from "zod";
 import { useReportArtifactList, useCreateReportArtifact, useDeleteReportArtifact } from "../helpers/reportArtifactQueries";
@@ -42,27 +42,72 @@ export default function ReportArtifactsPage() {
   }
 
   const getExpirationStatus = (expiresAt: Date | string | null) => {
-    if (!expiresAt) return { variant: "info" as const, label: "No Expiry", icon: Clock };
+    if (!expiresAt) return { variant: "info" as const, label: "No Expiry", icon: Clock, nextAction: "View file" };
     
     const date = new Date(expiresAt);
-    if (isPast(date)) return { variant: "error" as const, label: "Expired", icon: AlertCircle };
+    if (isPast(date)) return { variant: "error" as const, label: "Expired", icon: AlertCircle, nextAction: "View file" };
     
     const warningDate = addDays(new Date(), 30);
-    if (isBefore(date, warningDate)) return { variant: "warning" as const, label: "Expires Soon", icon: Clock };
+    if (isBefore(date, warningDate)) return { variant: "warning" as const, label: "Expires Soon", icon: Clock, nextAction: "View file" };
     
-    return { variant: "success" as const, label: "Valid", icon: CheckCircle };
+    return { variant: "success" as const, label: "Valid", icon: CheckCircle, nextAction: "View file" };
+  };
+
+  const isCreditReportArtifact = (artifactType: string | null | undefined) =>
+    artifactType === "credit_report" || artifactType === "consumer_disclosure";
+
+  const getProcessingDisplay = (processingStatus: string | null | undefined) => {
+    switch (processingStatus) {
+      case "completed":
+        return {
+          variant: "success" as const,
+          label: "Analysis complete",
+          icon: CheckCircle,
+          nextAction: "View results",
+        };
+      case "failed":
+      case "manual_review_required":
+        return {
+          variant: "error" as const,
+          label: "Needs attention",
+          icon: AlertCircle,
+          nextAction: "Check the upload status",
+        };
+      case "processing":
+      case "running":
+        return {
+          variant: "info" as const,
+          label: "Analyzing report",
+          icon: Clock,
+          nextAction: "Results will appear here when ready",
+        };
+      case "queued":
+      case "pending":
+      default:
+        return {
+          variant: "info" as const,
+          label: "Waiting for analysis",
+          icon: Clock,
+          nextAction: "No action needed",
+        };
+    }
   };
 
   const renderArtifact = (artifact: any) => {
-    const status = getExpirationStatus(artifact.expiresAt);
+    const isCreditReport = isCreditReportArtifact(artifact.artifactType);
+    const status = isCreditReport
+      ? getProcessingDisplay(artifact.processingStatus)
+      : getExpirationStatus(artifact.expiresAt);
     const StatusIcon = status.icon;
+    const displayName = artifact.fileName || humanizeLabels.humanizeArtifactType(artifact.artifactType || "Credit report");
+    const canViewResults = isCreditReport && artifact.processingStatus === "completed";
     
     return (
       <div key={artifact.id} className={styles.artifactCard}>
         <div className={styles.cardTopRow}>
           <div className={styles.cardTypeAndStatus}>
             <span className={styles.artifactType}>
-              {humanizeLabels.humanizeArtifactType(artifact.artifactType || "Unknown Type")}
+              {displayName}
             </span>
             <Badge variant={status.variant} className={styles.statusBadge}>
               <StatusIcon size={12} className={styles.badgeIcon} />
@@ -77,11 +122,15 @@ export default function ReportArtifactsPage() {
         </div>
         <div className={styles.cardBottomRow}>
           <div className={styles.accountCell}>
-            {artifact.artifactType === 'credit_report' || artifact.artifactType === 'consumer_disclosure' ? (
+            {isCreditReport ? (
               <div className={styles.bureauInfo}>
                 <BureauBadge bureauName={artifact.bureauName} size="sm" />
                 <span className={styles.accountCount}>
-                  {artifact.linkedAccountCount ? `${artifact.linkedAccountCount} account${artifact.linkedAccountCount !== 1 ? 's' : ''} found` : "No accounts found yet"}
+                  {artifact.processingStatus === "completed"
+                    ? artifact.linkedAccountCount
+                      ? `${artifact.linkedAccountCount} account${artifact.linkedAccountCount !== 1 ? 's' : ''} found`
+                      : "No accounts found"
+                    : status.nextAction}
                 </span>
               </div>
             ) : artifact.tradelineId ? (
@@ -95,7 +144,7 @@ export default function ReportArtifactsPage() {
           </div>
           <div className={styles.actionsCell}>
             <Button asChild variant="ghost" size="icon-sm" className={styles.actionBtn}>
-              <Link to={`/upload-review/${artifact.id}`} title="View Document">
+              <Link to={canViewResults ? `/upload-results/${artifact.id}` : `/upload-review/${artifact.id}`} title={canViewResults ? "View Results" : "View Upload Status"}>
                 <LinkIcon size={16} />
               </Link>
             </Button>

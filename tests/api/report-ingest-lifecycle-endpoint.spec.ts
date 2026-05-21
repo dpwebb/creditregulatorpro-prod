@@ -236,6 +236,7 @@ function artifactRow(overrides: Record<string, unknown> = {}) {
     crrgYear: null,
     expiresAt: new Date("2027-01-01T00:00:00.000Z"),
     validationRulesApplied: null,
+    fileName: "synthetic-credit-report.pdf",
     data: {
       fileName: "synthetic-credit-report.pdf",
       parserQuality: {
@@ -920,7 +921,7 @@ describe("report ingest lifecycle endpoints", () => {
       canLeavePage: true,
       canCheckStatus: true,
     }));
-    expect(body.userMessage).toBe("Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.");
+    expect(body.userMessage).toBe("Your report is uploaded and waiting for analysis to begin. You do not need to stay on this page; results will appear in your account when analysis is complete.");
     responseTextIsPrivacySafe(body);
     expect(mocks.getLatestIngestProcessingJobForArtifactReadOnly).toHaveBeenCalledWith(701);
     expect(mocks.operations.map((operation) => operation.kind)).toEqual(["select"]);
@@ -1095,6 +1096,7 @@ describe("report ingest lifecycle endpoints", () => {
           id: 701,
           userId: 10,
           artifactType: "credit_report",
+          fileName: "synthetic-credit-report.pdf",
           processingStatus: "completed",
           tradelineAccountNumber: "Account ending 3456",
           linkedAccountCount: 1,
@@ -1112,13 +1114,45 @@ describe("report ingest lifecycle endpoints", () => {
     expect(endpointSource).not.toContain('"reportArtifact.storageUrl"');
     expect(endpointSource).not.toContain('"reportArtifact.data"');
     expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
-    expect(whereValues("reportArtifact.processingStatus")).toContainEqual([
-      "reportArtifact.processingStatus",
-      "=",
-      "completed",
-    ]);
+    expect(whereValues("reportArtifact.processingStatus")).toEqual([]);
     expect(limitValuesFor("reportArtifact")).toContain(10);
     expect(offsetValuesFor("reportArtifact")).toContain(0);
+    responseTextIsPrivacySafe(body);
+  });
+
+  it("lists current user's pending report artifacts so upload history can show in-progress status", async () => {
+    queueResults(
+      { firstOrThrow: { total: "1" } },
+      {
+        execute: [
+          artifactRow({
+            processingStatus: "queued",
+            linkedAccountCount: "0",
+            bureauName: null,
+            fileName: "pending-synthetic-report.pdf",
+          }),
+        ],
+      },
+    );
+
+    const response = await listReportArtifacts(getRequest("/_api/report-artifact/list?limit=10"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      total: 1,
+      artifacts: [
+        expect.objectContaining({
+          id: 701,
+          userId: 10,
+          processingStatus: "queued",
+          fileName: "pending-synthetic-report.pdf",
+          linkedAccountCount: 0,
+        }),
+      ],
+    });
+    expect(whereValues("reportArtifact.userId")).toContainEqual(["reportArtifact.userId", "=", 10]);
+    expect(whereValues("reportArtifact.processingStatus")).toEqual([]);
     responseTextIsPrivacySafe(body);
   });
 

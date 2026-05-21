@@ -72,9 +72,9 @@ type BuildStatusInput = {
 };
 
 const QUEUED_MESSAGE =
-  "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.";
+  "Your report is uploaded and waiting for analysis to begin. You do not need to stay on this page; results will appear in your account when analysis is complete.";
 
-const PROCESSING_MESSAGE = "Processing is active. This usually takes a few moments.";
+const PROCESSING_MESSAGE = "Analysis is running. This usually takes a few moments.";
 
 const FAILED_MESSAGE =
   "Processing could not be completed. Please upload the report again or contact support if the problem continues.";
@@ -83,10 +83,10 @@ const MANUAL_REVIEW_MESSAGE =
   "Manual review is required before this report can continue. Support will review the upload and update your account.";
 
 const STALE_MESSAGE =
-  "Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.";
+  "This is taking longer than usual, but your report is still saved. We will keep checking for updates in your account.";
 
 const NO_WORKER_HEARTBEAT_MESSAGE =
-  "Your report is queued, but the processing worker has not checked in recently. You can leave this page; support can retry or review the queue if this does not clear.";
+  "Processing has not started yet. No action is needed from you, but this has been flagged for review if it does not clear.";
 
 const DEFAULT_NO_WORKER_HEARTBEAT_STALL_AFTER_SECONDS = 120;
 
@@ -212,7 +212,7 @@ export function buildIngestUploadStatusView(input: BuildStatusInput): IngestUplo
           queueStatus: job.status,
           processingStatus: "completed",
           nextAction: "review_results",
-          userMessage: "Credit file processed. Review your results.",
+          userMessage: "Analysis complete. Your report results are ready.",
           diagnosticCode: "INGEST_PROCESSING_COMPLETED",
           workerRequired: false,
           canLeavePage: true,
@@ -300,7 +300,7 @@ export function buildIngestUploadStatusView(input: BuildStatusInput): IngestUplo
       queueStatus: null,
       processingStatus: "completed",
       nextAction: "review_results",
-      userMessage: "Credit file processed. Review your results.",
+      userMessage: "Analysis complete. Your report results are ready.",
       diagnosticCode: "INGEST_ARTIFACT_COMPLETED",
       workerRequired: false,
       canLeavePage: true,

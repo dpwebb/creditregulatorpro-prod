@@ -25,6 +25,7 @@ import {
   getIngestProcessingStatus,
   type OutputType as IngestProcessingStatusOutput,
 } from "../endpoints/ingest/status_GET.schema";
+import { getUploadResults } from "../endpoints/upload-results/get_GET.schema";
 import type { IngestUploadStatus } from "../helpers/ingestUploadStatusPresenter";
 import {
   FRONTEND_LIMITED_BETA_READINESS,
@@ -36,8 +37,23 @@ import styles from "./upload.module.css";
 const AUTHENTICATED_UPLOAD_LIMIT = FRONTEND_UPLOAD_LIMITS.authenticatedReport;
 const PROCESSING_POLL_INTERVAL_MS = 3_000;
 const PROCESSING_STATUS_CHECK_TIMEOUT_MS = 30_000;
+const STATUS_AUTO_REFRESH_INTERVAL_MS = 8_000;
+const STATUS_CLOCK_TICK_MS = 1_000;
+const DELAYED_PROCESSING_THRESHOLD_MS = 90_000;
+const STALLED_PROCESSING_THRESHOLD_MS = 180_000;
+const QUEUED_ANALYSIS_MESSAGE =
+  "Your report is uploaded and waiting for analysis to begin. You do not need to stay on this page; results will appear in your account when analysis is complete.";
+const DELAYED_ANALYSIS_MESSAGE =
+  "This is taking longer than usual, but your report is still queued.";
+const STALLED_ANALYSIS_MESSAGE =
+  "Processing has not started yet. You can leave this page; we will keep checking in your account.";
 
 type UploadProgressState = { stage: string; percent: number; message?: string };
+type CompletionSummary = {
+  totalTradelines?: number | null;
+  actionableCount?: number | null;
+  bureauName?: string | null;
+};
 type ProcessingOutcome =
   | { type: "success"; artifactId: string }
   | {
@@ -56,7 +72,7 @@ export function recoverProcessingOutcomeAfterStatusRefreshFailure(input: {
     return {
       ...input.currentOutcome,
       artifactId: input.currentOutcome.artifactId ?? input.targetArtifactId,
-      message: "Your report is still waiting for processing. The latest status refresh did not complete; you can leave this page and check again later.",
+      message: "Your report is still waiting for analysis to begin. The latest status refresh did not complete, but we will keep checking.",
       nextAction: "wait_for_worker",
       diagnosticCode: "INGEST_STATUS_REFRESH_UNAVAILABLE_LAST_KNOWN_QUEUED",
     };
@@ -65,10 +81,52 @@ export function recoverProcessingOutcomeAfterStatusRefreshFailure(input: {
   return {
     type: "stale",
     artifactId: input.targetArtifactId,
-    message: "Processing status could not be refreshed. Try Check status again or contact support if this continues.",
+    message: "The latest status check did not complete. Your report is still saved, and you can check again in a moment.",
     nextAction: "check_status",
     diagnosticCode: "INGEST_STATUS_REFRESH_FAILED",
   };
+}
+
+const ANALYSIS_STAGES = [
+  "Report uploaded",
+  "Waiting for analysis to start",
+  "Reading report text",
+  "Identifying accounts and tradelines",
+  "Checking for report issues",
+  "Preparing results",
+] as const;
+
+function isPendingOutcome(outcome: ProcessingOutcome | null | undefined): boolean {
+  return (
+    outcome?.type === "queued_waiting_for_worker" ||
+    outcome?.type === "stale" ||
+    outcome?.type === "stalled_no_worker_heartbeat"
+  );
+}
+
+function formatClockTime(timestamp: number | null | undefined): string {
+  if (!timestamp) return "Not checked yet";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function formatElapsedUpload(uploadedAt: number | null | undefined, nowMs: number): string {
+  if (!uploadedAt) return "Uploaded just now. Most reports finish in 1-3 minutes.";
+  const elapsedMs = Math.max(0, nowMs - uploadedAt);
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
+  if (elapsedMinutes < 1) return "Uploaded just now. Most reports finish in 1-3 minutes.";
+  if (elapsedMinutes === 1) return "Uploaded 1 minute ago. Most reports finish in 1-3 minutes.";
+  return `Uploaded ${elapsedMinutes} minutes ago. Most reports finish in 1-3 minutes.`;
+}
+
+function getPendingDelayMessage(uploadedAt: number | null | undefined, nowMs: number): string | null {
+  if (!uploadedAt) return null;
+  const elapsedMs = Math.max(0, nowMs - uploadedAt);
+  if (elapsedMs >= STALLED_PROCESSING_THRESHOLD_MS) return STALLED_ANALYSIS_MESSAGE;
+  if (elapsedMs >= DELAYED_PROCESSING_THRESHOLD_MS) return DELAYED_ANALYSIS_MESSAGE;
+  return null;
 }
 
 const getFriendlyStageName = (stage: string) => {
@@ -83,9 +141,9 @@ const getFriendlyStageName = (stage: string) => {
     case "docstrange_validating": return "Double-checking...";
     case "docstrange_complete": return "All done reading!";
     case "initializing": return "Getting ready...";
-    case "queued": return "Processing your credit file";
-    case "running": return "Processing your credit file";
-    case "retry_scheduled": return "Processing your credit file";
+    case "queued": return "Waiting for analysis to start";
+    case "running": return "Reading report text";
+    case "retry_scheduled": return "Waiting for analysis to continue";
     case "status_check": return "Checking processing status";
     case "dead_lettered": return "Processing could not be completed";
     case "failed": return "Processing could not be completed";
@@ -97,7 +155,7 @@ const getFriendlyStageName = (stage: string) => {
     case "persisting_tradelines": return "Saving your information...";
     case "storing_comprehensive_data": return "Saving details...";
     case "validation": return "Checking for problems...";
-    case "compliance_scanning": return "Looking for rule violations...";
+    case "compliance_scanning": return "Checking for report issues...";
     case "finalizing": return "Almost done...";
     case "complete": return "Done! ✓";
     default: return stage.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
@@ -107,11 +165,11 @@ const getFriendlyStageName = (stage: string) => {
 const getProcessingStatusDetail = (stage: string) => {
   switch (stage) {
     case "queued":
-      return "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.";
+      return QUEUED_ANALYSIS_MESSAGE;
     case "running":
-      return "Processing is active. This usually takes a few moments.";
+      return "Analysis is running. This usually takes a few moments.";
     case "status_check":
-      return "Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.";
+      return "This is taking longer than usual, but your report is still saved. We will keep checking for updates in your account.";
     case "retry_scheduled":
     case "failed":
       return "Processing could not be completed. Please upload the report again or contact support if the problem continues.";
@@ -125,7 +183,7 @@ const getProcessingStatusDetail = (stage: string) => {
 
 const getProcessingStatusNote = (stage: string) => {
   if (stage === "queued" || stage === "running" || stage === "retry_scheduled" || stage === "failed") {
-    return stage === "queued" ? "Waiting for an ingest worker." : "This may take a few moments.";
+    return stage === "queued" ? "You can leave this page. Results will appear in your account when ready." : "This may take a few moments.";
   }
   return null;
 };
@@ -192,16 +250,32 @@ export function CreditFileProcessingStatus({
   displayedProgress,
   isCheckingStatus = false,
   outcome = null,
+  fileName = null,
+  uploadedAt = null,
+  lastCheckedAt = null,
+  nextCheckInSeconds = null,
+  manualStatusMessage = null,
+  completionSummary = null,
+  currentTimeMs = Date.now(),
   onReviewResults,
   onCheckStatus,
+  onViewUploadHistory,
   onUploadAnother,
 }: {
   progress: UploadProgressState | null;
   displayedProgress: number;
   isCheckingStatus?: boolean;
   outcome?: ProcessingOutcome | null;
+  fileName?: string | null;
+  uploadedAt?: number | null;
+  lastCheckedAt?: number | null;
+  nextCheckInSeconds?: number | null;
+  manualStatusMessage?: string | null;
+  completionSummary?: CompletionSummary | null;
+  currentTimeMs?: number;
   onReviewResults?: () => void;
   onCheckStatus?: () => void;
+  onViewUploadHistory?: () => void;
   onUploadAnother?: () => void;
 }) {
   if (outcome?.type === "success") {
@@ -209,11 +283,38 @@ export function CreditFileProcessingStatus({
       <div className={styles.success} role="status">
         <ShieldCheck size={22} className={styles.successIcon} />
         <div className={styles.successContent}>
-          <h3>Credit file processed.</h3>
-          <p>Review your results.</p>
+          <h3>Analysis complete</h3>
+          <p>Your report results are ready.</p>
+          {completionSummary ? (
+            <div className={styles.completionStats}>
+              {completionSummary.totalTradelines != null && (
+                <div className={styles.completionStat}>
+                  <strong>{completionSummary.totalTradelines}</strong>
+                  <span>
+                    account{completionSummary.totalTradelines === 1 ? "" : "s"} found
+                  </span>
+                </div>
+              )}
+              {completionSummary.actionableCount != null && (
+                <div className={styles.completionStat}>
+                  <strong>{completionSummary.actionableCount}</strong>
+                  <span>
+                    item{completionSummary.actionableCount === 1 ? "" : "s"} may need review
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className={styles.successNote}>Preparing your result summary...</p>
+          )}
           {onReviewResults && (
             <Button onClick={onReviewResults} className={styles.dashboardButton}>
-              Review your results
+              View results
+            </Button>
+          )}
+          {onViewUploadHistory && (
+            <Button onClick={onViewUploadHistory} variant="ghost" size="sm">
+              View upload history
             </Button>
           )}
         </div>
@@ -221,51 +322,87 @@ export function CreditFileProcessingStatus({
     );
   }
 
-  if (outcome?.type === "queued_waiting_for_worker") {
-    return (
-      <div className={styles.progressContainer} role="status" aria-live="polite">
-        <div className={styles.processingStatusHeader}>
-          <Info size={18} />
-          <span className={styles.progressStage}>Waiting for processing worker</span>
-          <span>Queued</span>
-        </div>
-        <div className={styles.progressDetail}>{outcome.message}</div>
-        <div className={styles.statusActions}>
-          {onCheckStatus && (
-            <Button onClick={onCheckStatus} variant="outline" size="sm">
-              Check status
-            </Button>
-          )}
-          {onUploadAnother && (
-            <Button onClick={onUploadAnother} variant="ghost" size="sm">
-              Upload another report
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (isPendingOutcome(outcome)) {
+    const pendingTitle =
+      outcome.type === "stalled_no_worker_heartbeat"
+        ? "Processing appears delayed"
+        : outcome.type === "stale"
+          ? "Checking for updates"
+          : "Waiting for analysis to start";
+    const pendingBadge =
+      outcome.type === "stalled_no_worker_heartbeat"
+        ? "Delayed"
+        : outcome.type === "stale"
+          ? "Checking"
+          : "Waiting";
+    const delayMessage = getPendingDelayMessage(uploadedAt, currentTimeMs);
+    const nextCheckCopy =
+      nextCheckInSeconds != null
+        ? `Next check in: ${Math.max(0, nextCheckInSeconds)} second${Math.max(0, nextCheckInSeconds) === 1 ? "" : "s"}`
+        : "Next check: scheduled automatically";
 
-  if (outcome?.type === "stalled_no_worker_heartbeat" || outcome?.type === "stale") {
     return (
-      <div className={styles.progressContainer} role="status" aria-live="polite">
-        <div className={styles.processingStatusHeader}>
-          <Info size={18} />
-          <span className={styles.progressStage}>
-            {outcome.type === "stalled_no_worker_heartbeat" ? "Processing worker unavailable" : "Check processing status"}
-          </span>
-          <span>{outcome.type === "stalled_no_worker_heartbeat" ? "Worker check" : "Status check"}</span>
+      <div className={`${styles.progressContainer} ${styles.pendingStatusCard}`} role="status" aria-live="polite">
+        <div className={styles.pendingHeader}>
+          <div className={styles.pendingHeaderTitle}>
+            <Info size={18} />
+            <div>
+              <span className={styles.progressStage}>{pendingTitle}</span>
+              {fileName && <span className={styles.pendingFileName}>{fileName}</span>}
+            </div>
+          </div>
+          <span className={styles.pendingBadge}>{pendingBadge}</span>
         </div>
-        <div className={styles.progressDetail}>{outcome.message}</div>
+
+        <div className={styles.progressDetail}>{outcome.message || QUEUED_ANALYSIS_MESSAGE}</div>
+
+        <ol className={styles.analysisTimeline} aria-label="Analysis progress">
+          {ANALYSIS_STAGES.map((stage, index) => {
+            const itemState = index === 0 ? "complete" : index === 1 ? "current" : "upcoming";
+            return (
+              <li key={stage} className={`${styles.timelineItem} ${styles[`timelineItem_${itemState}`]}`}>
+                <span className={styles.timelineMarker}>{index + 1}</span>
+                <span>{stage}</span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className={styles.statusTiming}>
+          <span>{formatElapsedUpload(uploadedAt, currentTimeMs)}</span>
+          <span>Last checked: {formatClockTime(lastCheckedAt)}</span>
+          <span>{nextCheckCopy}</span>
+        </div>
+
+        {delayMessage && <div className={styles.delayNotice}>{delayMessage}</div>}
+
+        <div className={styles.leaveNotice}>
+          You do not need to stay on this page. Your report will continue processing and results will appear in your account when ready.
+        </div>
+
+        <Collapsible>
+          <CollapsibleTrigger className={styles.statusInfoTrigger}>
+            <span>What's happening?</span>
+            <ChevronDown size={16} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className={styles.statusInfoContent}>
+            We received your file and are waiting for analysis to start. Once it begins, we will read the report text, identify accounts, check for report issues, and prepare your results.
+          </CollapsibleContent>
+        </Collapsible>
+
+        {manualStatusMessage && (
+          <div className={styles.progressMessage}>{manualStatusMessage}</div>
+        )}
+
         <div className={styles.statusActions}>
           {onCheckStatus && (
             <Button onClick={onCheckStatus} variant="outline" size="sm">
-              Check status
+              {isCheckingStatus ? "Checking..." : "Check now"}
             </Button>
           )}
-          {onUploadAnother && (
-            <Button onClick={onUploadAnother} variant="ghost" size="sm">
-              Upload another report
+          {onViewUploadHistory && (
+            <Button onClick={onViewUploadHistory} variant="outline" size="sm">
+              View upload history
             </Button>
           )}
         </div>
@@ -320,7 +457,7 @@ export function CreditFileProcessingStatus({
       )}
       {note && <div className={styles.progressMessage}>{note}</div>}
       {isCheckingStatus && (
-        <div className={styles.progressMessage}>Checking processing status...</div>
+        <div className={styles.progressMessage}>Checking for updates...</div>
       )}
     </div>
   );
@@ -358,27 +495,37 @@ export default function UploadPage() {
   const [queuedProcessing, setQueuedProcessing] = useState<QueuedProcessingOutputType | null>(null);
   const [isCheckingProcessingStatus, setIsCheckingProcessingStatus] = useState(false);
   const [processingOutcome, setProcessingOutcome] = useState<ProcessingOutcome | null>(null);
+  const [uploadReceivedAt, setUploadReceivedAt] = useState<number | null>(null);
+  const [lastStatusCheckedAt, setLastStatusCheckedAt] = useState<number | null>(null);
+  const [nextStatusCheckAt, setNextStatusCheckAt] = useState<number | null>(null);
+  const [statusClockNow, setStatusClockNow] = useState(Date.now());
+  const [manualStatusMessage, setManualStatusMessage] = useState<string | null>(null);
+  const [completionSummary, setCompletionSummary] = useState<CompletionSummary | null>(null);
 
   const navigate = useNavigate();
   const { authState } = useAuth();
   const { mutate: uploadReport, isPending, error } = useUploadReport((stage, percent, message) => {
     setUploadProgress({ stage, percent, message });
   });
+  const isWaitingForAnalysis = isPendingOutcome(processingOutcome);
   const isProcessingActive =
     isPending ||
     isCheckingProcessingStatus ||
-    isQueuedProcessingActive(queuedProcessing?.queueStatus);
+    isQueuedProcessingActive(queuedProcessing?.queueStatus) ||
+    isWaitingForAnalysis;
 
   const markProcessingSuccess = useCallback((artifactId: number | string) => {
     const normalizedArtifactId = String(artifactId);
     setUploadedArtifactId(normalizedArtifactId);
     setQueuedProcessing(null);
     activeProcessingStartedAtRef.current = null;
+    setNextStatusCheckAt(null);
+    setManualStatusMessage(null);
     setProcessingOutcome({ type: "success", artifactId: normalizedArtifactId });
-    setUploadProgress({ stage: "complete", percent: 100, message: "Credit file processed. Review your results." });
+    setUploadProgress({ stage: "complete", percent: 100, message: "Analysis complete. View your results." });
     setDisplayedProgress(100);
-    toast.success("Credit file processed.", {
-      description: "Review your results.",
+    toast.success("Analysis complete", {
+      description: "Your report results are ready.",
     });
   }, []);
 
@@ -388,6 +535,8 @@ export default function UploadPage() {
   ) => {
     setQueuedProcessing(null);
     activeProcessingStartedAtRef.current = null;
+    setNextStatusCheckAt(null);
+    setManualStatusMessage(null);
     setProcessingOutcome({
       type: "failed",
       message,
@@ -405,18 +554,30 @@ export default function UploadPage() {
     setProcessingOutcome(null);
     setUploadProgress(null);
     setDisplayedProgress(0);
+    setUploadedArtifactId(null);
+    setUploadReceivedAt(null);
+    setLastStatusCheckedAt(null);
+    setNextStatusCheckAt(null);
+    setManualStatusMessage(null);
+    setCompletionSummary(null);
   }, []);
 
   const applyStatusViewUpdate = useCallback((status: IngestProcessingStatusOutput) => {
     setUploadedArtifactId(String(status.artifactId));
+    const checkedAtMs = Date.parse(status.checkedAt);
+    const normalizedCheckedAt = Number.isFinite(checkedAtMs) ? checkedAtMs : Date.now();
+    setLastStatusCheckedAt(normalizedCheckedAt);
+    setStatusClockNow(normalizedCheckedAt);
 
     if (status.status === "completed") {
+      setNextStatusCheckAt(null);
       markProcessingSuccess(status.artifactId);
       return;
     }
 
     if (status.status === "processing") {
       activeProcessingStartedAtRef.current ??= Date.now();
+      setNextStatusCheckAt(normalizedCheckedAt + STATUS_AUTO_REFRESH_INTERVAL_MS);
       setProcessingOutcome(null);
       setQueuedProcessing({
         ok: status.ok,
@@ -444,6 +605,11 @@ export default function UploadPage() {
     const nextOutcome = outcomeFromStatusView(status);
     setQueuedProcessing(null);
     activeProcessingStartedAtRef.current = null;
+    setNextStatusCheckAt(
+      nextOutcome && isPendingOutcome(nextOutcome)
+        ? normalizedCheckedAt + STATUS_AUTO_REFRESH_INTERVAL_MS
+        : null,
+    );
     setProcessingOutcome(nextOutcome);
     setUploadProgress(
       status.status === "queued_waiting_for_worker"
@@ -457,25 +623,35 @@ export default function UploadPage() {
   const refreshProcessingStatus = useCallback(async (artifactId?: number | string | null) => {
     const targetArtifactId = Number(artifactId ?? queuedProcessing?.artifactId ?? uploadedArtifactId);
     if (!Number.isFinite(targetArtifactId) || targetArtifactId <= 0) {
-      return;
+      return null;
     }
 
     setIsCheckingProcessingStatus(true);
     try {
       const status = await getIngestProcessingStatus({ artifactId: targetArtifactId });
       applyStatusViewUpdate(status);
+      return status;
     } catch (statusError) {
       console.error("Failed to refresh upload processing status:", statusError);
       const recoveredOutcome = recoverProcessingOutcomeAfterStatusRefreshFailure({
         currentOutcome: processingOutcome,
         targetArtifactId,
       });
+      const checkedAt = Date.now();
+      setLastStatusCheckedAt(checkedAt);
+      setStatusClockNow(checkedAt);
+      setNextStatusCheckAt(
+        isPendingOutcome(recoveredOutcome)
+          ? checkedAt + STATUS_AUTO_REFRESH_INTERVAL_MS
+          : null,
+      );
       setProcessingOutcome(recoveredOutcome);
       if (recoveredOutcome.type === "queued_waiting_for_worker") {
         setUploadProgress({ stage: "queued", percent: 12, message: recoveredOutcome.message });
       } else if (recoveredOutcome.type !== "success") {
         setUploadProgress({ stage: "status_check", percent: Math.min(displayedProgress, 99), message: recoveredOutcome.message });
       }
+      return null;
     } finally {
       setIsCheckingProcessingStatus(false);
     }
@@ -484,8 +660,12 @@ export default function UploadPage() {
   const applyQueuedProcessingUpdate = useCallback((data: QueuedProcessingOutputType) => {
     setUploadedArtifactId(String(data.artifactId));
     const uploadStatus = uploadStatusFromQueuedOutput(data);
+    const checkedAt = Date.now();
+    setLastStatusCheckedAt(checkedAt);
+    setStatusClockNow(checkedAt);
 
     if (uploadStatus === "completed") {
+      setNextStatusCheckAt(null);
       markProcessingSuccess(data.artifactId);
       return;
     }
@@ -493,10 +673,11 @@ export default function UploadPage() {
     if (uploadStatus === "queued_waiting_for_worker") {
       activeProcessingStartedAtRef.current = null;
       setQueuedProcessing(null);
+      setNextStatusCheckAt(checkedAt + STATUS_AUTO_REFRESH_INTERVAL_MS);
       setProcessingOutcome({
         type: "queued_waiting_for_worker",
         artifactId: data.artifactId,
-        message: data.userMessage ?? "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.",
+        message: data.userMessage ?? QUEUED_ANALYSIS_MESSAGE,
         nextAction: data.nextAction ?? "wait_for_worker",
         diagnosticCode: data.diagnosticCode ?? "INGEST_QUEUED_WAITING_FOR_WORKER",
       });
@@ -507,6 +688,7 @@ export default function UploadPage() {
     if (uploadStatus === "manual_review_required") {
       activeProcessingStartedAtRef.current = null;
       setQueuedProcessing(null);
+      setNextStatusCheckAt(null);
       setProcessingOutcome({
         type: "manual_review_required",
         artifactId: data.artifactId,
@@ -526,10 +708,11 @@ export default function UploadPage() {
     if (uploadStatus === "stalled_no_worker_heartbeat") {
       activeProcessingStartedAtRef.current = null;
       setQueuedProcessing(null);
+      setNextStatusCheckAt(checkedAt + STATUS_AUTO_REFRESH_INTERVAL_MS);
       setProcessingOutcome({
         type: "stalled_no_worker_heartbeat",
         artifactId: data.artifactId,
-        message: data.userMessage ?? "Your report is queued, but the processing worker has not checked in recently.",
+        message: data.userMessage ?? "Processing has not started yet. No action is needed from you, but this has been flagged for review if it does not clear.",
         nextAction: data.nextAction ?? "contact_support",
         diagnosticCode: data.diagnosticCode ?? "INGEST_NO_WORKER_HEARTBEAT",
       });
@@ -540,10 +723,11 @@ export default function UploadPage() {
     if (uploadStatus === "stale") {
       activeProcessingStartedAtRef.current = null;
       setQueuedProcessing(null);
+      setNextStatusCheckAt(checkedAt + STATUS_AUTO_REFRESH_INTERVAL_MS);
       setProcessingOutcome({
         type: "stale",
         artifactId: data.artifactId,
-        message: data.userMessage ?? "Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.",
+        message: data.userMessage ?? "This is taking longer than usual, but your report is still saved. We will keep checking for updates in your account.",
         nextAction: data.nextAction ?? "check_status",
         diagnosticCode: data.diagnosticCode ?? "INGEST_PROCESSING_STALE",
       });
@@ -552,6 +736,7 @@ export default function UploadPage() {
     }
 
     activeProcessingStartedAtRef.current ??= Date.now();
+    setNextStatusCheckAt(checkedAt + STATUS_AUTO_REFRESH_INTERVAL_MS);
     setProcessingOutcome(null);
     setQueuedProcessing(data);
     setUploadProgress({
@@ -618,7 +803,7 @@ export default function UploadPage() {
         setProcessingOutcome({
           type: "stale",
           artifactId: queuedProcessing.artifactId,
-          message: "Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.",
+          message: "This is taking longer than usual, but your report is still saved. We will keep checking for updates in your account.",
           nextAction: "check_status",
           diagnosticCode: "INGEST_UI_STATUS_CHECK_TIMEOUT",
         });
@@ -654,6 +839,93 @@ export default function UploadPage() {
     };
   }, [applyQueuedProcessingUpdate, displayedProgress, markProcessingFailure, markProcessingSuccess, queuedProcessing]);
 
+  useEffect(() => {
+    const targetArtifactId = processingOutcome?.artifactId ?? uploadedArtifactId;
+    if (!isPendingOutcome(processingOutcome) || !targetArtifactId || isCheckingProcessingStatus) {
+      setNextStatusCheckAt((current) => (isPendingOutcome(processingOutcome) ? current : null));
+      return;
+    }
+
+    const scheduledAt = Date.now() + STATUS_AUTO_REFRESH_INTERVAL_MS;
+    setNextStatusCheckAt(scheduledAt);
+
+    const timeoutId = window.setTimeout(() => {
+      setManualStatusMessage(null);
+      void refreshProcessingStatus(targetArtifactId);
+    }, STATUS_AUTO_REFRESH_INTERVAL_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    isCheckingProcessingStatus,
+    processingOutcome,
+    refreshProcessingStatus,
+    uploadedArtifactId,
+  ]);
+
+  useEffect(() => {
+    if (!isWaitingForAnalysis) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setStatusClockNow(Date.now());
+    }, STATUS_CLOCK_TICK_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [isWaitingForAnalysis]);
+
+  useEffect(() => {
+    const artifactId = Number(uploadedArtifactId);
+    if (processingOutcome?.type !== "success" || !Number.isFinite(artifactId) || artifactId <= 0) {
+      return;
+    }
+
+    let canceled = false;
+    void getUploadResults({ artifactId })
+      .then((results) => {
+        if (canceled) return;
+        setCompletionSummary({
+          totalTradelines: results.stats.totalTradelines,
+          actionableCount: results.stats.actionableCount,
+          bureauName: results.metadata.bureauName,
+        });
+      })
+      .catch((summaryError) => {
+        if (!canceled) {
+          console.warn("Failed to load upload completion summary:", summaryError);
+        }
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [processingOutcome?.type, uploadedArtifactId]);
+
+  const handleStatusCheckNow = useCallback(async () => {
+    const targetArtifactId = processingOutcome?.type === "success"
+      ? uploadedArtifactId
+      : processingOutcome?.artifactId ?? uploadedArtifactId;
+    setManualStatusMessage("Checking now...");
+    const status = await refreshProcessingStatus(targetArtifactId);
+    if (status?.status === "completed") {
+      setManualStatusMessage(null);
+      return;
+    }
+    if (status?.status === "processing") {
+      setManualStatusMessage("Checked just now - analysis is running.");
+      return;
+    }
+    if (status?.status === "stale" || status?.status === "stalled_no_worker_heartbeat") {
+      setManualStatusMessage("Checked just now - processing is delayed, but your report is saved.");
+      return;
+    }
+    if (status?.status === "queued_waiting_for_worker") {
+      setManualStatusMessage("Checked just now - still waiting for analysis to start.");
+      return;
+    }
+    setManualStatusMessage("Checked just now - we will keep checking for updates.");
+  }, [processingOutcome, refreshProcessingStatus, uploadedArtifactId]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -678,6 +950,12 @@ export default function UploadPage() {
       setProcessingOutcome(null);
       setUploadProgress(null);
       setDisplayedProgress(0);
+      setUploadedArtifactId(null);
+      setUploadReceivedAt(null);
+      setLastStatusCheckedAt(null);
+      setNextStatusCheckAt(null);
+      setManualStatusMessage(null);
+      setCompletionSummary(null);
     }
   };
 
@@ -700,6 +978,13 @@ export default function UploadPage() {
       activeProcessingStartedAtRef.current = null;
       setQueuedProcessing(null);
       setProcessingOutcome(null);
+      const uploadStartedAt = Date.now();
+      setUploadReceivedAt(uploadStartedAt);
+      setStatusClockNow(uploadStartedAt);
+      setLastStatusCheckedAt(null);
+      setNextStatusCheckAt(null);
+      setManualStatusMessage(null);
+      setCompletionSummary(null);
 
       uploadReport(
         {
@@ -714,24 +999,24 @@ export default function UploadPage() {
               applyQueuedProcessingUpdate(data);
               const uploadStatus = uploadStatusFromQueuedOutput(data);
               if (uploadStatus === "queued_waiting_for_worker") {
-                toast.info("Report waiting for processing", {
-                  description: data.userMessage ?? "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.",
+                toast.info("Report uploaded", {
+                  description: data.userMessage ?? QUEUED_ANALYSIS_MESSAGE,
                 });
               } else if (uploadStatus === "stalled_no_worker_heartbeat") {
-                toast.info("Processing worker unavailable", {
-                  description: data.userMessage ?? "Your report is queued, but the processing worker has not checked in recently.",
+                toast.info("Analysis delayed", {
+                  description: data.userMessage ?? "Processing has not started yet. No action is needed from you, but this has been flagged for review if it does not clear.",
                 });
               } else if (uploadStatus === "processing") {
-                toast.info("Processing is active", {
-                  description: data.userMessage ?? "Processing is active. This usually takes a few moments.",
+                toast.info("Analysis started", {
+                  description: data.userMessage ?? "Analysis is running. This usually takes a few moments.",
                 });
               }
               return;
             }
 
             if (!isQueuedProcessingOutput(data)) {
-              toast.success("Credit file processed.", {
-                description: "Review your results.",
+              toast.success("Analysis complete", {
+                description: "Your report results are ready.",
               });
             }
 
@@ -848,6 +1133,8 @@ export default function UploadPage() {
           onError: (_err) => {
             setUploadProgress(null);
             setQueuedProcessing(null);
+            setNextStatusCheckAt(null);
+            setManualStatusMessage(null);
             setProcessingOutcome({
               type: "failed",
               message: "Processing could not be completed. Please upload the report again or contact support if the problem continues.",
@@ -1096,10 +1383,22 @@ export default function UploadPage() {
               displayedProgress={displayedProgress}
               isCheckingStatus={isCheckingProcessingStatus}
               outcome={processingOutcome}
+              fileName={file?.name ?? null}
+              uploadedAt={uploadReceivedAt}
+              lastCheckedAt={lastStatusCheckedAt}
+              nextCheckInSeconds={
+                nextStatusCheckAt
+                  ? Math.max(0, Math.ceil((nextStatusCheckAt - statusClockNow) / 1000))
+                  : null
+              }
+              manualStatusMessage={manualStatusMessage}
+              completionSummary={completionSummary}
+              currentTimeMs={statusClockNow}
               onReviewResults={processingOutcome?.type === "success" && uploadedArtifactId
                 ? () => navigate(`/upload-results/${uploadedArtifactId}`)
                 : undefined}
-              onCheckStatus={() => refreshProcessingStatus(processingOutcome?.type === "success" ? uploadedArtifactId : processingOutcome?.artifactId ?? uploadedArtifactId)}
+              onCheckStatus={handleStatusCheckNow}
+              onViewUploadHistory={() => navigate("/my-accounts?tab=reports")}
               onUploadAnother={resetUploadForm}
             />
           )}

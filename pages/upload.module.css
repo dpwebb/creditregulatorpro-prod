@@ -353,6 +353,34 @@
   margin-bottom: var(--spacing-1);
 }
 
+.completionStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--spacing-3);
+  margin: var(--spacing-4) 0;
+}
+
+.completionStat {
+  border: 1px solid color-mix(in srgb, var(--success) 28%, var(--border));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--success) 8%, var(--card));
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.completionStat strong {
+  color: var(--success);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.completionStat span {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
 .mono {
   font-family: var(--font-family-monospace);
   background-color: color-mix(in srgb, var(--background) 50%, transparent);
@@ -376,6 +404,173 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
+}
+
+.pendingStatusCard {
+  max-width: 560px;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  border: 1px solid color-mix(in srgb, var(--info) 24%, var(--border));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--info) 5%, var(--card));
+}
+
+.pendingHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.pendingHeaderTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.pendingHeaderTitle svg {
+  color: var(--info);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.pendingFileName {
+  display: block;
+  margin-top: var(--spacing-1);
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.pendingBadge {
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--info) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.5rem;
+  color: var(--info);
+  background-color: color-mix(in srgb, var(--info) 8%, transparent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.analysisTimeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-3);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.timelineMarker {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  background-color: var(--card);
+  color: var(--muted-foreground);
+}
+
+.timelineItem_complete {
+  color: var(--foreground);
+}
+
+.timelineItem_complete .timelineMarker {
+  border-color: var(--success);
+  color: var(--success);
+  background-color: color-mix(in srgb, var(--success) 10%, var(--card));
+}
+
+.timelineItem_current {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.timelineItem_current .timelineMarker {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+
+.statusTiming {
+  display: grid;
+  gap: var(--spacing-1);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.delayNotice {
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--warning) 8%, var(--card));
+  color: var(--foreground);
+  padding: var(--spacing-3);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.leaveNotice {
+  border: 1px solid color-mix(in srgb, var(--success) 28%, var(--border));
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in srgb, var(--success) 7%, var(--card));
+  color: var(--foreground);
+  padding: var(--spacing-3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.statusInfoTrigger {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.statusInfoTrigger svg {
+  transition: transform var(--animation-duration-fast) ease;
+}
+
+.statusInfoTrigger[data-state="open"] svg {
+  transform: rotate(180deg);
+}
+
+.statusInfoContent {
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background-color: var(--card);
+  color: var(--muted-foreground);
+  padding: var(--spacing-3);
+  font-size: 0.8125rem;
+  line-height: 1.45;
 }
 
 .progressHeader {
@@ -451,6 +646,12 @@
   .uploadButton {
     width: 100%;
     min-width: 0;
+  }
+  .pendingHeader {
+    flex-direction: column;
+  }
+  .pendingFileName {
+    max-width: 100%;
   }
   .regionBanner {
     flex-direction: column;

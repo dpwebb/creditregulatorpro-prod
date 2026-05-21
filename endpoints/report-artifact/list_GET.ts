@@ -1,5 +1,6 @@
 import { OutputType, schema } from "./list_GET.schema";
 
+import { sql } from "kysely";
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
@@ -25,8 +26,7 @@ export async function handle(request: Request) {
     let countQuery = buildBaseQuery().select((eb) => eb.fn.countAll<string>().as('total'));
     if (user.role !== 'admin') {
       countQuery = countQuery
-        .where('reportArtifact.userId', '=', user.id)
-        .where('reportArtifact.processingStatus', '=', 'completed');
+        .where('reportArtifact.userId', '=', user.id);
     }
     const countResult = await countQuery.executeTakeFirstOrThrow();
     const total = parseInt(countResult.total, 10);
@@ -47,6 +47,7 @@ export async function handle(request: Request) {
       "reportArtifact.expiresAt",
       "reportArtifact.validationRulesApplied",
       "reportArtifact.processingStatus",
+      sql<string | null>`"reportArtifact"."data" ->> 'fileName'`.as("fileName"),
       "tradeline.accountNumber as tradelineAccountNumber",
       "tradeline.accountType as tradelineAccountType",
       // Subquery: count tradelines linked to this artifact via report_artifact_id
@@ -67,8 +68,7 @@ export async function handle(request: Request) {
 
     if (user.role !== 'admin') {
       dataQuery = dataQuery
-        .where('reportArtifact.userId', '=', user.id)
-        .where('reportArtifact.processingStatus', '=', 'completed');
+        .where('reportArtifact.userId', '=', user.id);
     }
 
     dataQuery = dataQuery.orderBy("reportArtifact.createdAt", "desc");

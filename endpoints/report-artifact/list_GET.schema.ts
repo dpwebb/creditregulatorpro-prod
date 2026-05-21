@@ -32,6 +32,7 @@ export type ReportArtifactListItem = Pick<
 >;
 
 export type ReportArtifactWithDetails = ReportArtifactListItem & {
+  fileName: string | null;
   tradelineAccountNumber: string | null;
   tradelineAccountType: string | null;
   linkedAccountCount: number | null;
