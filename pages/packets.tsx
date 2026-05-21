@@ -36,7 +36,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { DisputePacketType } from "../helpers/disputePacketTemplate";
 import type { DisputePacketCandidate } from "../helpers/disputePacketService";
 import type { SimpleDisputePacketContent } from "../helpers/disputePacketTemplate";
-import { buildPacketPreviewDisplayContent } from "../helpers/packetPreviewDisplay";
+import { buildPacketPreviewDisplayContent, type PacketPreviewDisplayContent } from "../helpers/packetPreviewDisplay";
 import styles from "./packets.module.css";
 
 export function parseInitialPacketIssueId(searchParams: URLSearchParams): number | null {
@@ -47,6 +47,36 @@ export function parseInitialPacketIssueId(searchParams: URLSearchParams): number
 }
 
 type ResponseTimelineItem = ResponseListOutput["responses"][number];
+
+function PacketRecipientFacingPreview({ content }: { content: PacketPreviewDisplayContent }) {
+  return (
+    <div className={styles.previewContent} role="region" aria-label="Recipient-facing packet preview">
+      <section className={styles.previewLetterSection} aria-label="Recipient-facing dispute letter">
+        <pre className={styles.previewLetterText}>{content.letterText}</pre>
+      </section>
+      {content.evidenceSummary.length > 0 && (
+        <section className={styles.previewSupplementalSection}>
+          <h5>Evidence summary</h5>
+          <ul>
+            {content.evidenceSummary.map((item, index) => (
+              <li key={`evidence-${index}`}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {content.attachmentChecklist.length > 0 && (
+        <section className={styles.previewSupplementalSection}>
+          <h5>Attachment checklist</h5>
+          <ul>
+            {content.attachmentChecklist.map((item, index) => (
+              <li key={`attachment-${index}`}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
 
 function formatResponseEnum(value: string | null | undefined): string {
   if (!value) return "Unknown";
@@ -894,32 +924,11 @@ function CreatePacketDialog({
                 Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings.
               </div>
             ) : (
-              <div className={styles.previewContent} role="region" aria-label="Recipient-facing packet preview">
-                <h4>{preview.title}</h4>
-                <section className={styles.previewLetterSection}>
-                  <pre className={styles.previewLetterText}>{previewDisplay?.letterText}</pre>
-                </section>
-                {previewDisplay && previewDisplay.evidenceSummary.length > 0 && (
-                  <section className={styles.previewSupplementalSection}>
-                    <h5>Evidence summary</h5>
-                    <ul>
-                      {previewDisplay.evidenceSummary.map((item, index) => (
-                        <li key={`evidence-${index}`}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-                {previewDisplay && previewDisplay.attachmentChecklist.length > 0 && (
-                  <section className={styles.previewSupplementalSection}>
-                    <h5>Attachment checklist</h5>
-                    <ul>
-                      {previewDisplay.attachmentChecklist.map((item, index) => (
-                        <li key={`attachment-${index}`}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
-              </div>
+              previewDisplay ? (
+                <PacketRecipientFacingPreview content={previewDisplay} />
+              ) : (
+                <div className={styles.builderState}>Unable to display the packet preview.</div>
+              )
             )}
           </div>
         </div>

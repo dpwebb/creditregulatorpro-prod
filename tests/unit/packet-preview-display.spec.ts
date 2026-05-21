@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { buildPacketPreviewDisplayContent } from "../../helpers/packetPreviewDisplay";
-import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import {
+  buildConsumerDisputePacketLetterText,
+  buildSimpleDisputePacketContent,
+} from "../../helpers/disputePacketTemplate";
+import { buildDisputePacketPdfLetterText } from "../../helpers/disputePacketPdf";
 
 describe("packet preview display content", () => {
   it("builds recipient-facing preview text from the humanized letter path", () => {
@@ -53,12 +57,15 @@ describe("packet preview display content", () => {
     packet.attachmentChecklist.push("Source report #77; field: lastReportedDate; artifact ID 77");
 
     const preview = buildPacketPreviewDisplayContent(packet);
+    const templateLetterText = buildConsumerDisputePacketLetterText(packet);
+    const pdfLetterText = buildDisputePacketPdfLetterText(packet);
     const combined = [
       preview.letterText,
       ...preview.evidenceSummary,
       ...preview.attachmentChecklist,
     ].join("\n");
 
+    expect(preview.letterText).toBe(templateLetterText);
     expect(combined).toContain("Credit report reviewed:");
     expect(combined).toContain("Disputed Account");
     expect(combined).toContain("Company reporting the account: Rogers Communications");
@@ -66,9 +73,15 @@ describe("packet preview display content", () => {
     expect(combined).toContain("Information disputed: Date last reported");
     expect(combined).toContain("Reported value: Aug 21, 2012");
     expect(combined).toContain("Requested result: Verify the correct information");
+    expect(pdfLetterText).toContain("Disputed Account");
+    expect(pdfLetterText).toContain("Company reporting the account: Rogers Communications");
+    expect(pdfLetterText).toContain("Account: Account number not provided on report");
+    expect(pdfLetterText).toContain("Information I am disputing: Date last reported");
+    expect(pdfLetterText).toContain("What the report shows: Aug 21, 2012");
     expect(preview.attachmentChecklist.length).toBeGreaterThan(0);
     expect(preview.evidenceSummary.length).toBeGreaterThan(0);
     expect(combined).not.toMatch(/tradeline|artifact|source report|field:|PIPEDA_|2012-08-21T|lastReportedDate|sourceReportArtifactId|Account ending reau|Expected:\s*Not known/i);
+    expect(pdfLetterText).not.toMatch(/tradeline|artifact|source report|field:|PIPEDA_|2012-08-21T|lastReportedDate|sourceReportArtifactId|Account ending reau|Expected:\s*Not known/i);
     expect(packet.metadata.internalReferences?.[0]).toMatchObject({
       reportArtifactId: 77,
       regulationIds: ["PIPEDA_4_5"],

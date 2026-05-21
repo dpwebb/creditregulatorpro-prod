@@ -30,22 +30,13 @@ function sanitizePacketPreviewLine(value: unknown): string {
     .trim();
 }
 
-function sanitizePacketPreviewText(value: unknown): string {
-  return String(value ?? "")
-    .split(/\r?\n/)
-    .map((line) => sanitizePacketPreviewLine(line))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
 function sanitizePacketPreviewList(items: string[]): string[] {
   return items.map((item) => sanitizePacketPreviewLine(item)).filter(Boolean);
 }
 
 export function buildPacketPreviewDisplayContent(packet: SimpleDisputePacketContent): PacketPreviewDisplayContent {
   return {
-    letterText: sanitizePacketPreviewText(buildConsumerDisputePacketLetterText(packet)),
+    letterText: buildConsumerDisputePacketLetterText(packet),
     evidenceSummary: sanitizePacketPreviewList(packet.evidenceList),
     attachmentChecklist: sanitizePacketPreviewList(packet.attachmentChecklist),
   };
