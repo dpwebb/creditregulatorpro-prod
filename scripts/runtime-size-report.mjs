@@ -20,6 +20,13 @@ export const DEFAULT_RUNTIME_SIZE_EVIDENCE_DIR = "docs/production-scale/evidence
 export const RUNTIME_SIZE_EVIDENCE_MARKDOWN = "latest-runtime-size.md";
 export const RUNTIME_SIZE_EVIDENCE_JSON = "latest-runtime-size.json";
 
+const RUNTIME_SIZE_POLICY_MODES = new Set(["warning-only", "release-blocking", "waived", "hard-gate"]);
+const RELEASE_BLOCKING_POLICY_MODES = new Set(["release-blocking", "hard-gate"]);
+
+function isReleaseBlockingPolicyMode(policyMode) {
+  return RELEASE_BLOCKING_POLICY_MODES.has(policyMode);
+}
+
 export const PDF_OCR_RUNTIME_DEPENDENCIES = [
   "pdf-parse",
   "pdfjs-dist",
@@ -73,7 +80,7 @@ export const DEFAULT_RUNTIME_SIZE_THRESHOLD_POLICY = {
   semantics: {
     pass: "Metric is present and at or below the warning threshold.",
     warn: "Metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size. WARN is visible evidence but not a hard gate.",
-    fail: "Only emitted when policyMode is hard-gate and a threshold explicitly enables failOnExceed.",
+    fail: "Only emitted when policyMode is release-blocking, or legacy hard-gate, and a threshold explicitly enables failOnExceed.",
     waived: "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present.",
   },
   thresholds: [
@@ -225,8 +232,8 @@ function validateRuntimeSizeThresholdPolicy(policy, source = "policy") {
   const errors = [];
   if (!policy || typeof policy !== "object") errors.push(`${source} must be a JSON object.`);
   if (policy && policy.schemaVersion !== 1) errors.push(`${source} schemaVersion must be 1.`);
-  if (policy && !["warning-only", "hard-gate"].includes(policy.policyMode)) {
-    errors.push(`${source} policyMode must be warning-only or hard-gate.`);
+  if (policy && !RUNTIME_SIZE_POLICY_MODES.has(policy.policyMode)) {
+    errors.push(`${source} policyMode must be warning-only, release-blocking, waived, or legacy hard-gate.`);
   }
   if (!Array.isArray(policy?.thresholds) || policy.thresholds.length === 0) {
     errors.push(`${source} must include at least one threshold.`);
@@ -271,8 +278,8 @@ function validateRuntimeSizeThresholdPolicy(policy, source = "policy") {
     if (threshold.waiver?.accepted === true && !String(threshold.waiver.reason ?? "").trim()) {
       errors.push(`${threshold.id} waiver must include a reason.`);
     }
-    if (threshold.failOnExceed === true && policy.policyMode !== "hard-gate") {
-      errors.push(`${threshold.id} cannot enable failOnExceed unless policyMode is hard-gate.`);
+    if (threshold.failOnExceed === true && !isReleaseBlockingPolicyMode(policy.policyMode)) {
+      errors.push(`${threshold.id} cannot enable failOnExceed unless policyMode is release-blocking or legacy hard-gate.`);
     }
   }
 
@@ -634,7 +641,7 @@ function classifyByteThreshold({ metricValue, threshold, policy }) {
     };
   }
   if (
-    policy.policyMode === "hard-gate" &&
+    isReleaseBlockingPolicyMode(policy.policyMode) &&
     threshold.failOnExceed === true &&
     Number.isFinite(threshold.failBytes) &&
     metricValue.bytes > threshold.failBytes
@@ -642,7 +649,7 @@ function classifyByteThreshold({ metricValue, threshold, policy }) {
     return {
       status: "FAIL",
       breached: true,
-      reason: `Metric exceeds explicit hard-gate fail threshold ${threshold.failBytes} bytes.`,
+      reason: `Metric exceeds explicit release-blocking fail threshold ${threshold.failBytes} bytes.`,
     };
   }
   if (Number.isFinite(threshold.warnBytes) && metricValue.bytes > threshold.warnBytes) {
@@ -864,7 +871,7 @@ export function renderRuntimeSizeReport(report) {
     "- Vite chunking/build behavior changes: no",
     "- PDF/OCR behavior changes: no",
     "- Docker runtime package changes: no",
-    "- FAIL is emitted only when an explicit hard-gate policy enables it.",
+    "- FAIL is emitted only when an explicit release-blocking policy enables it.",
     "",
     "## Threshold Policy",
     "",
@@ -1005,7 +1012,7 @@ function printHelp() {
     "",
     "Options:",
     "  --json                         Print JSON instead of Markdown.",
-    "  --check                        Exit non-zero only for explicit hard-gate FAIL rows.",
+    "  --check                        Exit non-zero only for explicit release-blocking FAIL rows.",
     "  --no-write-evidence            Do not write latest-runtime-size evidence files.",
     "  --root <path>                  Project root. Defaults to current working directory.",
     "  --policy <path>                Threshold policy JSON. Defaults to docs/production-scale/runtime-size-threshold-policy.json.",

@@ -3,19 +3,38 @@
   "policyName": "runtime-size-and-heavy-dependency-threshold-policy",
   "policyMode": "warning-only",
   "evidenceMode": "reporting-only",
+  "ownerRole": "Release governance owner",
+  "reviewDate": "2026-08-20",
+  "acceptedRiskStatement": "Runtime-size threshold pressure and heavy PDF/OCR dependency size are accepted for limited beta only under warning-only governance; this policy does not claim release-blocking build protection.",
+  "releaseGateMode": "warning-only",
   "statusValues": ["PASS", "WARN", "FAIL", "WAIVED"],
   "semantics": {
     "pass": "Metric is present and at or below the warning threshold.",
     "warn": "Metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size. WARN is visible evidence but not a hard gate.",
-    "fail": "Only emitted when policyMode is hard-gate and a threshold explicitly enables failOnExceed.",
+    "fail": "Only emitted when policyMode is release-blocking, or legacy hard-gate, and a threshold explicitly enables failOnExceed.",
     "waived": "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present."
   },
   "formalWaiver": {
     "accepted": true,
-    "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future hard-gate activation requires reviewed threshold policy change.",
+    "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future release-blocking activation requires reviewed threshold policy change.",
     "approvedByRole": "Release governance owner",
+    "ownerRole": "Release governance owner",
     "acceptedAt": "2026-05-20T12:00:00.000Z",
-    "expiresOn": "2026-08-20"
+    "expiresOn": "2026-08-20",
+    "reviewDate": "2026-08-20",
+    "acceptedRiskStatement": "The warning-only runtime-size posture is formally accepted for limited beta and must not be represented as a release-blocking hard gate."
+  },
+  "remediationPlans": {
+    "mainJsCssSize": {
+      "ownerRole": "Frontend platform owner",
+      "targetDate": "2026-08-20",
+      "plan": "Review route-level chunking, lazy loading, and CSS ownership in a separate audited task with UI regression coverage before any release-blocking threshold activation."
+    },
+    "heavyPdfOcrDependencies": {
+      "ownerRole": "PDF/OCR platform owner",
+      "targetDate": "2026-08-20",
+      "plan": "Review PDF/OCR dependency isolation or replacement only in a dedicated OCR/PDF regression task; this policy does not change dependencies."
+    }
   },
   "thresholds": [
     {
@@ -29,7 +48,7 @@
       "remediation": {
         "ownerRole": "Frontend platform owner",
         "targetDate": "2026-08-20",
-        "plan": "Review route-level chunking or lazy-loading in a separate audited task before any hard-gate activation."
+        "plan": "Review route-level chunking or lazy-loading in a separate audited task before any release-blocking activation."
       },
       "recommendation": "Review route-level chunking or lazy-loading in a separate audited task before any production-scale claim."
     },
@@ -131,7 +150,10 @@
       "failOnExceed": false,
       "waiver": {
         "accepted": true,
-        "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence."
+        "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+        "ownerRole": "PDF/OCR platform owner",
+        "reviewDate": "2026-08-20",
+        "acceptedRiskStatement": "Source-only Docker OCR/PDF runtime byte size remains waived because packages are inventoried by name and any future package change requires OCR/parser regression proof."
       },
       "recommendation": "Treat Docker OCR package changes as review-required; this task does not change Docker packages."
     }

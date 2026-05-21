@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +17,9 @@ export const RUNTIME_SIZE_POLICY_ACCEPTANCE_JSON_PATH =
   "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json";
 
 const DEFAULT_MAX_EVIDENCE_AGE_HOURS = 24;
+const POLICY_MODES = new Set(["warning-only", "release-blocking", "waived", "hard-gate"]);
+const RELEASE_BLOCKING_POLICY_MODES = new Set(["release-blocking", "hard-gate"]);
+const DEPENDENCY_VERSION_FIELDS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
 
 function normalizeRelativePath(value) {
   return String(value ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -73,6 +77,18 @@ function thresholdById(policy) {
   return new Map((policy.thresholds ?? []).map((threshold) => [threshold.id, threshold]));
 }
 
+function compactDate(value) {
+  return String(value ?? "").trim();
+}
+
+function hasOwner(value) {
+  return Boolean(String(value?.ownerRole ?? value?.approvedByRole ?? value?.owner ?? "").trim());
+}
+
+function hasReviewDate(value) {
+  return Boolean(String(value?.reviewDate ?? value?.expiresOn ?? value?.expiryDate ?? "").trim());
+}
+
 function hasRemediation(threshold) {
   const remediation = threshold?.remediation;
   return Boolean(
@@ -82,8 +98,15 @@ function hasRemediation(threshold) {
   );
 }
 
-function hasWaiverReason(threshold) {
-  return threshold?.waiver?.accepted === true && Boolean(String(threshold.waiver.reason ?? "").trim());
+function hasThresholdWaiverGovernance(threshold) {
+  const waiver = threshold?.waiver ?? {};
+  return Boolean(
+    waiver.accepted === true &&
+    String(waiver.reason ?? "").trim() &&
+    hasOwner(waiver) &&
+    hasReviewDate(waiver) &&
+    String(waiver.acceptedRiskStatement ?? "").trim()
+  );
 }
 
 function formalWaiverAccepted(policy) {
@@ -91,9 +114,54 @@ function formalWaiverAccepted(policy) {
   return Boolean(
     waiver.accepted === true &&
     String(waiver.reason ?? "").trim() &&
-    String(waiver.approvedByRole ?? "").trim() &&
-    String(waiver.acceptedAt ?? "").trim(),
+    hasOwner(waiver) &&
+    String(waiver.acceptedAt ?? "").trim() &&
+    hasReviewDate(waiver) &&
+    String(waiver.acceptedRiskStatement ?? "").trim()
   );
+}
+
+function dependencyVersionSnapshot(packageJson) {
+  return Object.fromEntries(DEPENDENCY_VERSION_FIELDS.map((field) => [
+    field,
+    packageJson?.[field] ?? {},
+  ]));
+}
+
+function gitShowJson(rootDir, gitRef) {
+  const result = spawnSync("git", ["show", gitRef], {
+    cwd: rootDir,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  if (result.status !== 0) return null;
+  try {
+    return JSON.parse(result.stdout);
+  } catch {
+    return null;
+  }
+}
+
+function collectDependencyVersionChangeStatus(rootDir) {
+  const currentPackageJson = readJsonIfPresent(rootDir, "package.json");
+  const headPackageJson = gitShowJson(rootDir, "HEAD:package.json");
+  if (!currentPackageJson || !headPackageJson) {
+    return {
+      determinable: false,
+      changed: false,
+      reason: "Unable to compare package dependency versions against HEAD.",
+      fieldsChecked: DEPENDENCY_VERSION_FIELDS,
+    };
+  }
+
+  const currentSnapshot = dependencyVersionSnapshot(currentPackageJson);
+  const headSnapshot = dependencyVersionSnapshot(headPackageJson);
+  return {
+    determinable: true,
+    changed: JSON.stringify(currentSnapshot) !== JSON.stringify(headSnapshot),
+    reason: null,
+    fieldsChecked: DEPENDENCY_VERSION_FIELDS,
+  };
 }
 
 function summarizeWarningGovernance(evaluations, policy) {
@@ -103,7 +171,7 @@ function summarizeWarningGovernance(evaluations, policy) {
     .map((evaluation) => {
       const threshold = thresholds.get(evaluation.id);
       const remediationAccepted = hasRemediation(threshold);
-      const waiverAccepted = hasWaiverReason(threshold);
+      const waiverAccepted = hasThresholdWaiverGovernance(threshold);
       return {
         id: evaluation.id,
         label: evaluation.label,
@@ -118,36 +186,49 @@ function summarizeWarningGovernance(evaluations, policy) {
             }
           : null,
         waiverAccepted,
-        waiverReason: waiverAccepted ? threshold.waiver.reason : null,
+        waiverReason: String(threshold?.waiver?.reason ?? "").trim() || null,
+        waiverOwner: compactDate(threshold?.waiver?.ownerRole ?? threshold?.waiver?.approvedByRole ?? threshold?.waiver?.owner) || null,
+        waiverReviewDate: compactDate(threshold?.waiver?.reviewDate ?? threshold?.waiver?.expiresOn ?? threshold?.waiver?.expiryDate) || null,
+        acceptedRiskStatement: compactDate(threshold?.waiver?.acceptedRiskStatement) || null,
         accepted: remediationAccepted || waiverAccepted,
       };
     });
 }
 
-function summarizeWaivedRows(evaluations) {
+function summarizeWaivedRows(evaluations, policy) {
+  const thresholds = thresholdById(policy);
   return evaluations
     .filter((evaluation) => evaluation.status === "WAIVED")
-    .map((evaluation) => ({
-      id: evaluation.id,
-      label: evaluation.label,
-      measuredBytes: evaluation.measuredBytes,
-      source: evaluation.source,
-      reason: evaluation.waiverReason ?? evaluation.reason ?? null,
-      accepted: Boolean(String(evaluation.waiverReason ?? evaluation.reason ?? "").trim()),
-    }));
+    .map((evaluation) => {
+      const threshold = thresholds.get(evaluation.id);
+      const waiver = threshold?.waiver ?? {};
+      const reason = waiver.reason ?? evaluation.waiverReason ?? evaluation.reason ?? null;
+      return {
+        id: evaluation.id,
+        label: evaluation.label,
+        measuredBytes: evaluation.measuredBytes,
+        source: evaluation.source,
+        reason,
+        owner: compactDate(waiver.ownerRole ?? waiver.approvedByRole ?? waiver.owner) || null,
+        reviewDate: compactDate(waiver.reviewDate ?? waiver.expiresOn ?? waiver.expiryDate) || null,
+        acceptedRiskStatement: compactDate(waiver.acceptedRiskStatement) || null,
+        accepted: hasThresholdWaiverGovernance(threshold),
+      };
+    });
 }
 
-function validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceAgeHours, now = new Date() }) {
+function validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceAgeHours, dependencyVersionChangeStatus, now = new Date() }) {
   const errors = [];
   const policyMode = policy?.policyMode;
+  const releaseBlockingMode = RELEASE_BLOCKING_POLICY_MODES.has(policyMode);
   const thresholdEvaluation = runtimeEvidence?.thresholdEvaluation;
   const evaluations = thresholdEvaluation?.evaluations ?? [];
   const warningRows = summarizeWarningGovernance(evaluations, policy);
-  const waivedRows = summarizeWaivedRows(evaluations);
+  const waivedRows = summarizeWaivedRows(evaluations, policy);
   const age = evidenceAge(runtimeEvidence?.generatedAt, now);
 
   if (!policy || typeof policy !== "object") errors.push("Threshold policy must exist.");
-  if (!["warning-only", "hard-gate"].includes(policyMode)) errors.push("Runtime-size policy mode must be warning-only or hard-gate.");
+  if (!POLICY_MODES.has(policyMode)) errors.push("Runtime-size policy mode must be warning-only, release-blocking, waived, or legacy hard-gate.");
   if (!runtimeEvidence) errors.push("Latest runtime-size evidence must exist.");
   if (runtimeEvidence?.report !== "runtime-size-and-dependency-report") errors.push("Runtime-size evidence report name is invalid.");
   if (thresholdEvaluation?.policyMode !== policyMode) {
@@ -164,29 +245,32 @@ function validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceA
   }
   for (const row of warningRows) {
     if (!row.accepted) {
-      errors.push(`WARN row ${row.id} must include either remediation owner/date/plan or an explicit waiver reason.`);
+      errors.push(`WARN row ${row.id} must include either remediation owner/date/plan or explicit waiver reason/owner/review date/accepted-risk governance.`);
     }
   }
   for (const row of waivedRows) {
-    if (!row.accepted) errors.push(`WAIVED row ${row.id} must include an explicit reason.`);
+    if (!row.accepted) errors.push(`WAIVED row ${row.id} must include reason, owner, review/expiry date, and accepted-risk statement.`);
+  }
+  if (dependencyVersionChangeStatus?.changed === true) {
+    errors.push("Dependency version declarations changed relative to HEAD.");
   }
 
   let acceptanceKind = "not-accepted";
-  if (policyMode === "warning-only") {
+  if (policyMode === "warning-only" || policyMode === "waived") {
     if (!formalWaiverAccepted(policy)) {
-      errors.push("Warning-only runtime-size policy requires accepted formal waiver evidence.");
+      errors.push(`${policyMode} runtime-size policy requires accepted formal waiver evidence with reason, owner, review date, and accepted-risk statement.`);
     }
     if (runtimeEvidence?.safety?.buildFailsOnThresholds === true || thresholdEvaluation?.hasBlockingFailures === true) {
-      errors.push("Warning-only evidence must not claim hard-gate build behavior.");
+      errors.push(`${policyMode} evidence must not claim release-blocking build behavior.`);
     }
-    acceptanceKind = "warning-only-waiver";
+    acceptanceKind = policyMode === "waived" ? "formal-waiver" : "warning-only-waiver";
   }
 
-  if (policyMode === "hard-gate") {
+  if (releaseBlockingMode) {
     if (thresholdEvaluation?.hasBlockingFailures === true || evaluations.some((evaluation) => evaluation.status === "WARN")) {
-      errors.push("Hard-gate runtime-size policy cannot be accepted while thresholds are exceeded.");
+      errors.push("Release-blocking runtime-size policy cannot be accepted while thresholds are exceeded.");
     }
-    acceptanceKind = "hard-gate";
+    acceptanceKind = policyMode === "hard-gate" ? "hard-gate" : "release-blocking-gate";
   }
 
   const accepted = errors.length === 0;
@@ -194,7 +278,15 @@ function validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceA
     ok: accepted,
     accepted,
     status: accepted
-      ? (acceptanceKind === "hard-gate" ? "accepted-hard-gate" : "accepted-warning-only-waiver")
+      ? (
+          acceptanceKind === "hard-gate"
+            ? "accepted-hard-gate"
+            : acceptanceKind === "release-blocking-gate"
+              ? "accepted-release-blocking-gate"
+              : acceptanceKind === "formal-waiver"
+                ? "accepted-formal-waiver"
+                : "accepted-warning-only-waiver"
+        )
       : "failed",
     acceptanceKind: accepted ? acceptanceKind : "not-accepted",
     errors,
@@ -225,8 +317,9 @@ export function buildRuntimeSizePolicyAcceptanceReport({
     policyErrors.push(error instanceof Error ? error.message : String(error));
   }
   const runtimeEvidence = readJsonIfPresent(rootDir, evidencePath);
+  const dependencyVersionChangeStatus = collectDependencyVersionChangeStatus(rootDir);
   const validation = policy
-    ? validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceAgeHours, now })
+    ? validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceAgeHours, dependencyVersionChangeStatus, now })
     : {
         ok: false,
         accepted: false,
@@ -242,8 +335,8 @@ export function buildRuntimeSizePolicyAcceptanceReport({
 
   const policyMode = policy?.policyMode ?? "unknown";
   const acceptanceKind = validation.acceptanceKind;
-  const hardGateAccepted = validation.accepted && acceptanceKind === "hard-gate";
-  const warningOnlyWaiverAccepted = validation.accepted && acceptanceKind === "warning-only-waiver";
+  const hardGateAccepted = validation.accepted && ["hard-gate", "release-blocking-gate"].includes(acceptanceKind);
+  const warningOnlyWaiverAccepted = validation.accepted && ["warning-only-waiver", "formal-waiver"].includes(acceptanceKind);
   return {
     reportName: "runtime-size-policy-acceptance",
     generatedAt,
@@ -257,8 +350,11 @@ export function buildRuntimeSizePolicyAcceptanceReport({
       accepted: policy?.formalWaiver?.accepted === true,
       reason: policy?.formalWaiver?.reason ?? null,
       approvedByRole: policy?.formalWaiver?.approvedByRole ?? null,
+      ownerRole: policy?.formalWaiver?.ownerRole ?? null,
       acceptedAt: policy?.formalWaiver?.acceptedAt ?? null,
       expiresOn: policy?.formalWaiver?.expiresOn ?? null,
+      reviewDate: policy?.formalWaiver?.reviewDate ?? null,
+      acceptedRiskStatement: policy?.formalWaiver?.acceptedRiskStatement ?? null,
     },
     runtimeEvidence: runtimeEvidence
       ? {
@@ -277,6 +373,7 @@ export function buildRuntimeSizePolicyAcceptanceReport({
     warningRows: validation.warningRows,
     waivedRows: validation.waivedRows,
     evidenceAge: validation.evidenceAge,
+    dependencyVersionChangeStatus,
     blockerCoverage: {
       runtimeSizeGovernance: validation.accepted,
       acceptedHardGate: hardGateAccepted,
@@ -289,7 +386,7 @@ export function buildRuntimeSizePolicyAcceptanceReport({
     safety: {
       nonMutating: true,
       productionDataMutated: false,
-      dependencyVersionsChanged: false,
+      dependencyVersionsChanged: dependencyVersionChangeStatus.changed === true,
       buildChunkingChanged: false,
       buildBehaviorChanged: false,
       pdfOcrBehaviorChanged: false,
@@ -315,10 +412,11 @@ export function renderRuntimeSizePolicyAcceptanceMarkdown(report) {
     "## Formal Waiver",
     "",
     `- Accepted: ${report.formalWaiver.accepted ? "yes" : "no"}`,
-    `- Approved by role: ${report.formalWaiver.approvedByRole ?? "n/a"}`,
+    `- Approved by role: ${report.formalWaiver.approvedByRole ?? report.formalWaiver.ownerRole ?? "n/a"}`,
     `- Accepted at: ${report.formalWaiver.acceptedAt ?? "n/a"}`,
-    `- Expires on: ${report.formalWaiver.expiresOn ?? "n/a"}`,
+    `- Review/expiry date: ${report.formalWaiver.reviewDate ?? report.formalWaiver.expiresOn ?? "n/a"}`,
     `- Reason: ${report.formalWaiver.reason ?? "n/a"}`,
+    `- Accepted risk statement: ${report.formalWaiver.acceptedRiskStatement ?? "n/a"}`,
     "",
     "## Runtime Evidence",
     "",
@@ -334,14 +432,20 @@ export function renderRuntimeSizePolicyAcceptanceMarkdown(report) {
     ...(report.warningRows.length === 0
       ? ["- No WARN rows."]
       : report.warningRows.map((row) =>
-          `- ${row.accepted ? "accepted" : "missing"}: \`${row.id}\` ${row.label}; owner=${row.remediation?.ownerRole ?? "n/a"}; target=${row.remediation?.targetDate ?? "n/a"}; waiver=${row.waiverReason ?? "n/a"}`,
+          `- ${row.accepted ? "accepted" : "missing"}: \`${row.id}\` ${row.label}; owner=${row.remediation?.ownerRole ?? row.waiverOwner ?? "n/a"}; target=${row.remediation?.targetDate ?? row.waiverReviewDate ?? "n/a"}; waiver=${row.waiverReason ?? "n/a"}`,
         )),
     "",
     "## WAIVED Rows",
     "",
     ...(report.waivedRows.length === 0
       ? ["- No WAIVED rows."]
-      : report.waivedRows.map((row) => `- ${row.accepted ? "accepted" : "missing"}: \`${row.id}\` ${row.label}; reason=${row.reason ?? "n/a"}`)),
+      : report.waivedRows.map((row) => `- ${row.accepted ? "accepted" : "missing"}: \`${row.id}\` ${row.label}; owner=${row.owner ?? "n/a"}; review=${row.reviewDate ?? "n/a"}; reason=${row.reason ?? "n/a"}`)),
+    "",
+    "## Dependency Version Check",
+    "",
+    `- Determinable: ${report.dependencyVersionChangeStatus.determinable ? "yes" : "no"}`,
+    `- Dependency versions changed: ${report.dependencyVersionChangeStatus.changed ? "yes" : "no"}`,
+    `- Fields checked: ${report.dependencyVersionChangeStatus.fieldsChecked.join(", ")}`,
     "",
     "## Safety",
     "",

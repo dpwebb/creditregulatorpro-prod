@@ -2,7 +2,7 @@
 
 This acceptance evidence validates runtime-size policy governance only. It does not change dependency versions, build chunks, OCR/PDF behavior, or production data.
 
-Generated at: 2026-05-20T22:10:26.344Z
+Generated at: 2026-05-21T00:10:56.375Z
 Status: accepted-warning-only-waiver
 Accepted: yes
 Acceptance kind: warning-only-waiver
@@ -15,12 +15,13 @@ Runtime-size evidence path: `docs/production-scale/evidence/latest-runtime-size.
 - Accepted: yes
 - Approved by role: Release governance owner
 - Accepted at: 2026-05-20T12:00:00.000Z
-- Expires on: 2026-08-20
-- Reason: Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future hard-gate activation requires reviewed threshold policy change.
+- Review/expiry date: 2026-08-20
+- Reason: Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future release-blocking activation requires reviewed threshold policy change.
+- Accepted risk statement: The warning-only runtime-size posture is formally accepted for limited beta and must not be represented as a release-blocking hard gate.
 
 ## Runtime Evidence
 
-- Generated at: 2026-05-20T22:10:10.817Z
+- Generated at: 2026-05-21T00:10:38.819Z
 - Age hours: 0
 - Overall status: WARN
 - Blocking failures: no
@@ -39,7 +40,13 @@ Runtime-size evidence path: `docs/production-scale/evidence/latest-runtime-size.
 
 ## WAIVED Rows
 
-- accepted: `docker-ocr-runtime-inventory` Docker OCR/PDF runtime package inventory; reason=Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.
+- accepted: `docker-ocr-runtime-inventory` Docker OCR/PDF runtime package inventory; owner=PDF/OCR platform owner; review=2026-08-20; reason=Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.
+
+## Dependency Version Check
+
+- Determinable: yes
+- Dependency versions changed: no
+- Fields checked: dependencies, devDependencies, optionalDependencies, peerDependencies
 
 ## Safety
 

@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-20T23:59:18.621Z
+Generated at: 2026-05-21T00:11:20.036Z
 Current branch: `staging`
-Current commit hash: `548bb5da7edcda239dd1de062344e3da43932a03`
+Current commit hash: `f3d15392b4a8fdf489beeef51f5092dd59ba742d`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -240,7 +240,7 @@ Recommended readiness classification: **limited beta**
 ## Waivers
 
 - #10 Migration governance (High; waived with explicit reason) - Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.
-- #18 Runtime-size gates (Medium; waived with explicit reason) - Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.
+- #18 Runtime-size gates (Medium; waived with explicit reason) - Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
 
 ## Unresolved Production Blockers
 

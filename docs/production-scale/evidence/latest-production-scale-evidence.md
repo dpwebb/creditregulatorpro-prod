@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-20T23:59:01.719Z
+Generated at: 2026-05-21T00:11:02.478Z
 Current branch: `staging`
-Current commit hash: `548bb5da7edcda239dd1de062344e3da43932a03`
+Current commit hash: `f3d15392b4a8fdf489beeef51f5092dd59ba742d`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -98,9 +98,9 @@ Dashboard exact commands recorded: yes
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-measured -- --local`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic.
 - #18 Runtime-size gates (Medium; partial)
-  Proof required: Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.
+  Proof required: Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm run runtime-size:policy-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts`
-  Next action: Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.
+  Next action: Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
 - #19 Heavy PDF/OCR dependencies (Medium; partial)
   Proof required: Policy-bound WARN/WAIVED baseline for heavy PDF/OCR dependencies plus OCR deterministic regression proof for any future dependency or Docker package change.
   Allowed commands: `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`
@@ -246,9 +246,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:activation-evidence`, `pnpm run production-worker:readiness-evidence`, `pnpm run production-deployment-parity:evidence`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
   Next action: Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete.
 - #18 Runtime-size gates (Medium; partial)
-  Proof required: Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.
+  Proof required: Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm run runtime-size:policy-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts`
-  Next action: Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.
+  Next action: Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
 - #20 Production-safe privacy probe depth (Medium; partial)
   Proof required: Current local/staging synthetic owner-denial proof plus explicit read-only production probe limits. Synthetic owner-denial is not production mutation proof and unauthenticated probes alone are insufficient.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-deployment-parity:evidence`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -309,9 +309,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-measured -- --local`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic.
 - #18 Runtime-size gates (Medium; partial)
-  Proof required: Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.
+  Proof required: Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.
   Allowed commands: `pnpm run build`, `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm run runtime-size:policy-acceptance`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-policy-acceptance.spec.ts`
-  Next action: Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change.
+  Next action: Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
 - #19 Heavy PDF/OCR dependencies (Medium; partial)
   Proof required: Policy-bound WARN/WAIVED baseline for heavy PDF/OCR dependencies plus OCR deterministic regression proof for any future dependency or Docker package change.
   Allowed commands: `pnpm run report:runtime-size`, `pnpm run check:runtime-size`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deterministic-ocr-readiness.spec.ts`

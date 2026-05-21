@@ -1156,8 +1156,11 @@ export function buildProductionPromotionPackReport({
         accepted: runtimeSizeAcceptance.formalWaiver?.accepted === true,
         reason: runtimeSizeAcceptance.formalWaiver?.reason ?? null,
         approvedByRole: runtimeSizeAcceptance.formalWaiver?.approvedByRole ?? null,
+        ownerRole: runtimeSizeAcceptance.formalWaiver?.ownerRole ?? null,
         acceptedAt: runtimeSizeAcceptance.formalWaiver?.acceptedAt ?? null,
         expiresOn: runtimeSizeAcceptance.formalWaiver?.expiresOn ?? null,
+        reviewDate: runtimeSizeAcceptance.formalWaiver?.reviewDate ?? null,
+        acceptedRiskStatement: runtimeSizeAcceptance.formalWaiver?.acceptedRiskStatement ?? null,
       },
       runtimeEvidence: runtimeSizeAcceptance.runtimeEvidence ?? null,
       warningRows: runtimeSizeAcceptance.warningRows ?? [],
@@ -1510,7 +1513,7 @@ export function validatePromotionPackReport(report) {
     if (
       runtimeSize?.accepted !== true ||
       runtimeSize?.blockerCoverage?.acceptedHardGate !== true ||
-      runtimeSize?.policyMode !== "hard-gate" ||
+      !["release-blocking", "hard-gate"].includes(runtimeSize?.policyMode) ||
       runtimeSize?.runtimeEvidence?.hasBlockingFailures === true ||
       runtimeSize?.validation?.ok !== true ||
       runtimeSize?.safety?.nonMutating !== true ||
@@ -1519,16 +1522,19 @@ export function validatePromotionPackReport(report) {
       runtimeSize?.safety?.buildBehaviorChanged === true ||
       runtimeSize?.safety?.pdfOcrBehaviorChanged === true
     ) {
-      errors.push("Blocker 18 cannot be fixed by gate without accepted non-mutating hard-gate runtime-size policy evidence.");
+      errors.push("Blocker 18 cannot be fixed by gate without accepted non-mutating release-blocking runtime-size policy evidence.");
     }
   }
   if (blocker18?.classification === "waived with explicit reason") {
     if (
       runtimeSize?.accepted !== true ||
       runtimeSize?.blockerCoverage?.acceptedWarningOnlyWaiver !== true ||
-      runtimeSize?.policyMode !== "warning-only" ||
+      !["warning-only", "waived"].includes(runtimeSize?.policyMode) ||
       runtimeSize?.formalWaiver?.accepted !== true ||
       !runtimeSize?.formalWaiver?.reason ||
+      !(runtimeSize?.formalWaiver?.approvedByRole || runtimeSize?.formalWaiver?.ownerRole) ||
+      !(runtimeSize?.formalWaiver?.reviewDate || runtimeSize?.formalWaiver?.expiresOn) ||
+      !runtimeSize?.formalWaiver?.acceptedRiskStatement ||
       runtimeSize?.safety?.hardGateClaimedWhenWarningOnly === true ||
       runtimeSize?.safety?.dependencyVersionsChanged === true ||
       runtimeSize?.safety?.buildChunkingChanged === true ||

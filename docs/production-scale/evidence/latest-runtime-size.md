@@ -1,6 +1,6 @@
 # Runtime Size And Dependency Report
 
-Generated at: 2026-05-20T22:10:10.817Z
+Generated at: 2026-05-21T00:10:38.819Z
 Script: `scripts/runtime-size-report.mjs`
 
 ## Safety
@@ -13,7 +13,7 @@ Script: `scripts/runtime-size-report.mjs`
 - Vite chunking/build behavior changes: no
 - PDF/OCR behavior changes: no
 - Docker runtime package changes: no
-- FAIL is emitted only when an explicit hard-gate policy enables it.
+- FAIL is emitted only when an explicit release-blocking policy enables it.
 
 ## Threshold Policy
 

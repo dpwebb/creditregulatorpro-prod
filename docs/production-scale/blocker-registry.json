@@ -944,7 +944,7 @@
         "build output"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
+      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.",
       "proofCategories": [
         "automated-local",
         "human-observed"
@@ -961,7 +961,7 @@
         "non-blocking threshold represented as blocking",
         "warning-only policy represented as fixed-by-gate",
         "WARN rows without remediation owner/date or waiver reason",
-        "WAIVED rows without explicit reason",
+        "WAIVED rows without reason, owner, review/expiry date, and accepted-risk statement",
         "dependency upgrades",
         "chunking changes without tests",
         "dashboard PASS alone"
@@ -980,7 +980,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made.",
-      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
+      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change."
     },
     {
       "number": 19,

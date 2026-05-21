@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-20T23:59:01.719Z",
+  "generatedAt": "2026-05-21T00:11:02.478Z",
   "branch": "staging",
-  "commit": "548bb5da7edcda239dd1de062344e3da43932a03",
+  "commit": "f3d15392b4a8fdf489beeef51f5092dd59ba742d",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -825,7 +825,7 @@
           "severity": "Medium",
           "area": "Runtime-size gates",
           "currentStatus": "partial",
-          "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
+          "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.",
           "allowedProofCommands": [
             "pnpm run build",
             "pnpm run report:runtime-size",
@@ -838,7 +838,7 @@
             "non-blocking threshold represented as blocking",
             "warning-only policy represented as fixed-by-gate",
             "WARN rows without remediation owner/date or waiver reason",
-            "WAIVED rows without explicit reason",
+            "WAIVED rows without reason, owner, review/expiry date, and accepted-risk statement",
             "dependency upgrades",
             "chunking changes without tests",
             "dashboard PASS alone"
@@ -856,7 +856,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
+          "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change."
         },
         {
           "number": 19,
@@ -2228,7 +2228,7 @@
           "severity": "Medium",
           "area": "Runtime-size gates",
           "currentStatus": "partial",
-          "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
+          "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.",
           "allowedProofCommands": [
             "pnpm run build",
             "pnpm run report:runtime-size",
@@ -2241,7 +2241,7 @@
             "non-blocking threshold represented as blocking",
             "warning-only policy represented as fixed-by-gate",
             "WARN rows without remediation owner/date or waiver reason",
-            "WAIVED rows without explicit reason",
+            "WAIVED rows without reason, owner, review/expiry date, and accepted-risk statement",
             "dependency upgrades",
             "chunking changes without tests",
             "dashboard PASS alone"
@@ -2259,7 +2259,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
+          "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change."
         },
         {
           "number": 20,
@@ -2811,7 +2811,7 @@
       "severity": "Medium",
       "area": "Runtime-size gates",
       "currentStatus": "partial",
-      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; hard-gate closure must have no exceeded thresholds.",
+      "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.",
       "allowedProofCommands": [
         "pnpm run build",
         "pnpm run report:runtime-size",
@@ -2824,7 +2824,7 @@
         "non-blocking threshold represented as blocking",
         "warning-only policy represented as fixed-by-gate",
         "WARN rows without remediation owner/date or waiver reason",
-        "WAIVED rows without explicit reason",
+        "WAIVED rows without reason, owner, review/expiry date, and accepted-risk statement",
         "dependency upgrades",
         "chunking changes without tests",
         "dashboard PASS alone"
@@ -2842,7 +2842,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a hard gate through a later reviewed threshold-policy change."
+      "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change."
     },
     {
       "number": 19,

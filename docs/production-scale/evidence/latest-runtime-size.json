@@ -1,9 +1,9 @@
 {
   "report": "runtime-size-and-dependency-report",
   "script": "scripts/runtime-size-report.mjs",
-  "generatedAt": "2026-05-20T22:10:10.817Z",
+  "generatedAt": "2026-05-21T00:10:38.819Z",
   "branch": "staging",
-  "commit": "be3bfcb4b545020e2bd676ae5e073b1b09789541",
+  "commit": "f3d15392b4a8fdf489beeef51f5092dd59ba742d",
   "workingTreeClean": false,
   "safety": {
     "reportingOnly": true,
@@ -504,7 +504,7 @@
     "semantics": {
       "pass": "Metric is present and at or below the warning threshold.",
       "warn": "Metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size. WARN is visible evidence but not a hard gate.",
-      "fail": "Only emitted when policyMode is hard-gate and a threshold explicitly enables failOnExceed.",
+      "fail": "Only emitted when policyMode is release-blocking, or legacy hard-gate, and a threshold explicitly enables failOnExceed.",
       "waived": "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present."
     }
   },

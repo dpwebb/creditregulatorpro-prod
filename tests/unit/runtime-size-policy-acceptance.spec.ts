@@ -34,6 +34,8 @@ function basePolicy(overrides: Record<string, unknown> = {}) {
       reason: "Fixture warning-only waiver.",
       approvedByRole: "Release owner",
       acceptedAt: "2026-05-20T12:00:00.000Z",
+      expiresOn: "2026-08-20",
+      acceptedRiskStatement: "Fixture warning-only runtime-size risk is accepted for test governance only.",
     },
     thresholds: [
       {
@@ -59,6 +61,9 @@ function basePolicy(overrides: Record<string, unknown> = {}) {
         waiver: {
           accepted: true,
           reason: "Docker fixture package byte size is not measurable from source-only reporting.",
+          ownerRole: "PDF/OCR owner",
+          reviewDate: "2026-08-20",
+          acceptedRiskStatement: "Fixture Docker byte-size risk is accepted because source-only package names are inventoried.",
         },
       },
     ],
@@ -271,7 +276,92 @@ describe("runtime-size policy acceptance", () => {
     const report = buildRuntimeSizePolicyAcceptanceReport({ rootDir });
 
     expect(report.accepted).toBe(false);
-    expect(report.validation.errors.join("\n")).toMatch(/Hard-gate runtime-size policy cannot be accepted/i);
+    expect(report.validation.errors.join("\n")).toMatch(/Release-blocking runtime-size policy cannot be accepted/i);
+  });
+
+  it("fails release-blocking mode when thresholds are exceeded", () => {
+    const rootDir = makeTempRoot();
+    const policy = basePolicy({
+      policyMode: "release-blocking",
+      formalWaiver: undefined,
+      thresholds: [
+        {
+          ...basePolicy().thresholds[0],
+          failOnExceed: true,
+        },
+      ],
+    });
+    const evidence = baseRuntimeEvidence({
+      safety: {
+        ...baseRuntimeEvidence().safety,
+        buildFailsOnThresholds: true,
+      },
+      thresholdEvaluation: {
+        ...baseRuntimeEvidence().thresholdEvaluation,
+        policyMode: "release-blocking",
+        overallStatus: "FAIL",
+        hasBlockingFailures: true,
+        statusCounts: { FAIL: 1 },
+        evaluations: [
+          {
+            ...baseRuntimeEvidence().thresholdEvaluation.evaluations[0],
+            status: "FAIL",
+            failOnExceed: true,
+          },
+        ],
+      },
+    });
+    writePolicyAndEvidence(rootDir, policy, evidence);
+
+    const report = buildRuntimeSizePolicyAcceptanceReport({ rootDir });
+
+    expect(report.accepted).toBe(false);
+    expect(report.validation.errors.join("\n")).toMatch(/Release-blocking runtime-size policy cannot be accepted/i);
+  });
+
+  it("fails waived rows without owner, review date, and accepted-risk statement", () => {
+    const rootDir = makeTempRoot();
+    const policy = basePolicy({
+      thresholds: [
+        basePolicy().thresholds[0],
+        {
+          ...basePolicy().thresholds[1],
+          waiver: {
+            accepted: true,
+            reason: "Incomplete fixture waiver.",
+          },
+        },
+      ],
+    });
+    writePolicyAndEvidence(rootDir, policy, baseRuntimeEvidence());
+
+    const report = buildRuntimeSizePolicyAcceptanceReport({ rootDir });
+
+    expect(report.accepted).toBe(false);
+    expect(report.validation.errors.join("\n")).toMatch(/WAIVED row fixture-docker must include reason, owner, review\/expiry date, and accepted-risk statement/i);
+  });
+
+  it("requires waiver reason, owner, and review date in waived mode", () => {
+    const rootDir = makeTempRoot();
+    const policy = basePolicy({
+      policyMode: "waived",
+      formalWaiver: {
+        accepted: true,
+        reason: "Fixture top-level waiver.",
+      },
+    });
+    const evidence = baseRuntimeEvidence({
+      thresholdEvaluation: {
+        ...baseRuntimeEvidence().thresholdEvaluation,
+        policyMode: "waived",
+      },
+    });
+    writePolicyAndEvidence(rootDir, policy, evidence);
+
+    const report = buildRuntimeSizePolicyAcceptanceReport({ rootDir });
+
+    expect(report.accepted).toBe(false);
+    expect(report.validation.errors.join("\n")).toMatch(/waived runtime-size policy requires accepted formal waiver evidence/i);
   });
 
   it("does not change dependency versions", () => {

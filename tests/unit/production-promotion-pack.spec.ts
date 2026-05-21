@@ -512,8 +512,11 @@ function acceptedWarningOnlyRuntimeSizePolicyAcceptance() {
       accepted: true,
       reason: "Runtime-size warning-only policy accepted for limited beta with governed WARN rows.",
       approvedByRole: "Release governance owner",
+      ownerRole: "Release governance owner",
       acceptedAt: "2026-05-20T12:00:00.000Z",
       expiresOn: "2026-08-20",
+      reviewDate: "2026-08-20",
+      acceptedRiskStatement: "Warning-only runtime-size risk is accepted for limited beta and is not hard-gate proof.",
     },
     runtimeEvidence: {
       generatedAt: "2026-05-20T12:00:00.000Z",
@@ -525,7 +528,14 @@ function acceptedWarningOnlyRuntimeSizePolicyAcceptance() {
       },
     },
     warningRows: [{ id: "main-js-raw", accepted: true }],
-    waivedRows: [{ id: "docker-ocr-runtime-inventory", accepted: true, reason: "Fixture waiver." }],
+    waivedRows: [{
+      id: "docker-ocr-runtime-inventory",
+      accepted: true,
+      reason: "Fixture waiver.",
+      owner: "PDF/OCR platform owner",
+      reviewDate: "2026-08-20",
+      acceptedRiskStatement: "Fixture waived row risk is accepted with source-only inventory governance.",
+    }],
     blockerCoverage: {
       runtimeSizeGovernance: true,
       acceptedHardGate: false,
