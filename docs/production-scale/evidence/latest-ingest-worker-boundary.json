@@ -1,0 +1,114 @@
+{
+  "reportName": "ingest-worker-boundary-evidence",
+  "generatedAt": "2026-05-21T06:35:46.305Z",
+  "currentBranch": "staging",
+  "currentHead": "e15822371ebdb211955beb062035f1955cb387f4",
+  "workingTreeClean": false,
+  "auditTargets": [
+    "P1-3 Request-bound immediate ingest processing reintroduces high-cost work into the HTTP path.",
+    "P1-8 Queue state shows critical staleness and no drained-queue proof.",
+    "P2-9 Upload UI communicates queue state, but backend liveness is not guaranteed."
+  ],
+  "status": "passed",
+  "CERTIFYING": false,
+  "certificationReason": "This is automated boundary and liveness evidence. It does not claim production queue drain completion without runtime drain evidence.",
+  "checks": [
+    {
+      "name": "process endpoint gates request-bound processing",
+      "passed": true,
+      "detail": "shouldAllowRequestBoundIngestProcessing"
+    },
+    {
+      "name": "process endpoint only claims inline work behind the gate",
+      "passed": true,
+      "detail": "inlineGate.allowed"
+    },
+    {
+      "name": "process endpoint preserves durable enqueue path",
+      "passed": true,
+      "detail": "enqueueIngestProcessingJob"
+    },
+    {
+      "name": "worker preserves lease/claim path",
+      "passed": true,
+      "detail": "claimNextIngestProcessingJob"
+    },
+    {
+      "name": "worker records heartbeat/liveness",
+      "passed": true,
+      "detail": "recordIngestProcessingWorkerHeartbeat"
+    },
+    {
+      "name": "worker keeps bounded concurrency gate",
+      "passed": true,
+      "detail": "concurrency !== 1"
+    },
+    {
+      "name": "queue service exposes worker liveness",
+      "passed": true,
+      "detail": "getIngestProcessingWorkerLiveness"
+    },
+    {
+      "name": "queue schema persists worker heartbeat",
+      "passed": true,
+      "detail": "ingest_processing_worker_heartbeat"
+    },
+    {
+      "name": "upload status exposes no-worker heartbeat state",
+      "passed": true,
+      "detail": "stalled_no_worker_heartbeat"
+    },
+    {
+      "name": "staging compose has ingest worker service",
+      "passed": true,
+      "detail": "creditregulatorpro-staging-ingest-worker"
+    },
+    {
+      "name": "staging worker service scopes source",
+      "passed": true,
+      "detail": "--source authenticated_ingest_process"
+    },
+    {
+      "name": "production compose has ingest worker service",
+      "passed": true,
+      "detail": "creditregulatorpro-ingest-worker"
+    },
+    {
+      "name": "production worker service keeps explicit apply guard",
+      "passed": true,
+      "detail": "explicit-bounded-production-ingest-worker-apply"
+    },
+    {
+      "name": "staging workflow runs ingest worker boundary preflight",
+      "passed": true,
+      "detail": "ingest:worker-boundary-evidence"
+    },
+    {
+      "name": "production workflow runs ingest worker boundary preflight",
+      "passed": true,
+      "detail": "ingest:worker-boundary-evidence"
+    },
+    {
+      "name": "staging workflow starts app and ingest worker services",
+      "passed": true,
+      "detail": "creditregulatorpro-staging creditregulatorpro-staging-ingest-worker"
+    },
+    {
+      "name": "production workflow starts app and ingest worker services",
+      "passed": true,
+      "detail": "creditregulatorpro creditregulatorpro-ingest-worker"
+    }
+  ],
+  "deployStaticCheck": {
+    "stagingWorkerPathPresent": true,
+    "productionWorkerPathPresent": true,
+    "workflowPreflightPresent": true
+  },
+  "commandsToRun": [
+    "git diff --check",
+    "pnpm exec vitest run tests/api/report-ingest-lifecycle-endpoint.spec.ts tests/unit/ingest-processing-queue-boundary.spec.ts --runInBand",
+    "pnpm run test:deterministic-ingestion-report",
+    "pnpm run response:soak-check",
+    "pnpm run check"
+  ]
+}

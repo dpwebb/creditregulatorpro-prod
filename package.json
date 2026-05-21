@@ -45,6 +45,7 @@
     "response-ops:readiness-evidence": "node scripts/response-ops-readiness-evidence.mjs",
     "response:ops-readiness-evidence": "node scripts/response-ops-readiness-evidence.mjs",
     "ingest:worker": "tsx scripts/ingest-processing-worker.ts",
+    "ingest:worker-boundary-evidence": "tsx scripts/ingest-worker-boundary-evidence.ts",
     "ingest:worker:simulated-proof": "tsx scripts/ingest-worker-simulated-proof.ts",
     "ingest:worker:staging-evidence": "tsx scripts/staging-ingest-worker-evidence.ts --apply --max-jobs 2 --confirm-staging-safe",
     "ingest:stuck-99-regression": "tsx scripts/ingest-stuck-99-regression.ts",

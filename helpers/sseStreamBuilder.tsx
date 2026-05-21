@@ -39,6 +39,9 @@ export interface SSEStatusEvent {
   retryAt?: string | null;
   errorCode?: string | null;
   errorReason?: string | null;
+  inlineProcessingAllowed?: boolean;
+  inlineProcessingGateReason?: string;
+  workerLiveness?: unknown;
 }
 
 export type SSEEvent = SSEProgressEvent | SSECompleteEvent | SSEErrorEvent | SSEStatusEvent;

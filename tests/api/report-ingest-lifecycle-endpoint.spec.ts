@@ -38,6 +38,7 @@ const mocks = vi.hoisted(() => ({
   getLatestIngestProcessingJobByIdempotencyKey: vi.fn(),
   getLatestIngestProcessingJobForArtifact: vi.fn(),
   getLatestIngestProcessingJobForArtifactReadOnly: vi.fn(),
+  getIngestProcessingWorkerLivenessReadOnly: vi.fn(),
   updateArtifactProcessingStatus: vi.fn(),
   validateOrigin: vi.fn(),
   runParserLabStage: vi.fn(),
@@ -73,6 +74,7 @@ vi.mock("../../helpers/ingestProcessingQueueService", () => ({
   getLatestIngestProcessingJobByIdempotencyKey: mocks.getLatestIngestProcessingJobByIdempotencyKey,
   getLatestIngestProcessingJobForArtifact: mocks.getLatestIngestProcessingJobForArtifact,
   getLatestIngestProcessingJobForArtifactReadOnly: mocks.getLatestIngestProcessingJobForArtifactReadOnly,
+  getIngestProcessingWorkerLivenessReadOnly: mocks.getIngestProcessingWorkerLivenessReadOnly,
 }));
 
 vi.mock("../../helpers/ingestProcessingStatus", () => ({
@@ -397,6 +399,7 @@ const parserLabOutput = {
 };
 
 beforeEach(() => {
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
   mocks.queryQueue.length = 0;
   mocks.operations.length = 0;
@@ -442,6 +445,17 @@ beforeEach(() => {
   mocks.getLatestIngestProcessingJobByIdempotencyKey.mockResolvedValue(null);
   mocks.getLatestIngestProcessingJobForArtifact.mockResolvedValue(null);
   mocks.getLatestIngestProcessingJobForArtifactReadOnly.mockResolvedValue(null);
+  mocks.getIngestProcessingWorkerLivenessReadOnly.mockResolvedValue({
+    checkedAt: "2026-01-01T00:00:00.000Z",
+    staleAfterSeconds: 300,
+    hasRecentHeartbeat: true,
+    stale: false,
+    ageSeconds: 5,
+    workerId: "synthetic-ingest-worker",
+    source: "authenticated_ingest_process",
+    status: "idle",
+    lastSeenAt: "2026-01-01T00:00:00.000Z",
+  });
   mocks.enqueueIngestProcessingJob.mockResolvedValue({
     status: "queued",
     job: ingestJobRow(),
@@ -643,7 +657,8 @@ describe("report ingest lifecycle endpoints", () => {
     expect(body).not.toHaveProperty("canonicalOutput");
   });
 
-  it("enqueues then immediately processes the owned artifact through request-bound SSE", async () => {
+  it("production-mode process endpoint enqueues owned artifacts without request-bound processing", async () => {
+    vi.stubEnv("CRP_ENV", "production");
     queueResults(
       { first: artifactRow({ id: 701, userId: 10, processingStatus: "pending", storageUrl: "SHOULD_NOT_SELECT" }) },
       { first: { userId: 10, province: "ON" } },
@@ -656,13 +671,24 @@ describe("report ingest lifecycle endpoints", () => {
     const events = await readSseEvents(response);
     expect(events).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ type: "progress", stage: "synthetic_processing", percent: 50 }),
+        expect.objectContaining({ type: "progress", stage: "queued", percent: 12 }),
+        expect.objectContaining({
+          type: "status",
+          queueStatus: "queued",
+          processingStatus: "queued",
+          uploadStatus: "queued_waiting_for_worker",
+          workerRequired: true,
+          inlineProcessingAllowed: false,
+        }),
         expect.objectContaining({
           type: "complete",
           data: expect.objectContaining({
             ok: true,
+            queued: true,
             storageUrl: "701",
-            tradelinesCount: 1,
+            queueStatus: "queued",
+            processingStatus: "queued",
+            uploadStatus: "queued_waiting_for_worker",
           }),
         }),
       ]),
@@ -679,6 +705,38 @@ describe("report ingest lifecycle endpoints", () => {
       }),
     }));
     expect(mocks.updateArtifactProcessingStatus).toHaveBeenCalledWith(701, "queued");
+    expect(mocks.claimIngestProcessingJobById).not.toHaveBeenCalled();
+    expect(mocks.handleIngestProcess).not.toHaveBeenCalled();
+    expect(mocks.markIngestProcessingJobSucceeded).not.toHaveBeenCalled();
+    expect(mocks.markIngestProcessingJobFailed).not.toHaveBeenCalled();
+    responseTextIsPrivacySafe(events);
+  });
+
+  it("local/test mode can still simulate immediate processing only behind the explicit safe flag", async () => {
+    vi.stubEnv("CRP_ENV", "test");
+    vi.stubEnv("CRP_ALLOW_REQUEST_BOUND_INGEST_PROCESSING", "true");
+    queueResults(
+      { first: artifactRow({ id: 701, userId: 10, processingStatus: "pending", storageUrl: "SHOULD_NOT_SELECT" }) },
+      { first: { userId: 10, province: "ON" } },
+    );
+
+    const response = await processReport(postRequest("/_api/ingest/process", { artifactId: 701 }));
+
+    expect(response.status).toBe(200);
+    const events = await readSseEvents(response);
+    expect(events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "progress", stage: "synthetic_processing", percent: 50 }),
+        expect.objectContaining({
+          type: "complete",
+          data: expect.objectContaining({
+            ok: true,
+            storageUrl: "701",
+            tradelinesCount: 1,
+          }),
+        }),
+      ]),
+    );
     expect(mocks.claimIngestProcessingJobById).toHaveBeenCalledWith({
       jobId: 9101,
       workerId: "ingest-process-request-bound-9101",
@@ -719,6 +777,8 @@ describe("report ingest lifecycle endpoints", () => {
   });
 
   it("marks the request-bound queue job failed when immediate processing emits an error", async () => {
+    vi.stubEnv("CRP_ENV", "test");
+    vi.stubEnv("CRP_ALLOW_REQUEST_BOUND_INGEST_PROCESSING", "true");
     queueResults(
       { first: artifactRow({ id: 701, userId: 10, processingStatus: "pending" }) },
       { first: { userId: 10, province: "ON" } },
@@ -956,6 +1016,44 @@ describe("report ingest lifecycle endpoints", () => {
       expect(body).toEqual(expect.objectContaining(testCase.expected));
       responseTextIsPrivacySafe(body);
     }
+  });
+
+  it("returns safe stalled status when an old queued job has no worker heartbeat", async () => {
+    mocks.getLatestIngestProcessingJobForArtifactReadOnly.mockResolvedValueOnce(ingestJobRow({
+      status: "queued",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }));
+    mocks.getIngestProcessingWorkerLivenessReadOnly.mockResolvedValueOnce({
+      checkedAt: "2026-01-01T00:10:00.000Z",
+      staleAfterSeconds: 300,
+      hasRecentHeartbeat: false,
+      stale: true,
+      ageSeconds: null,
+      workerId: null,
+      source: null,
+      status: null,
+      lastSeenAt: null,
+    });
+    queueResults({ first: artifactRow({ id: 701, userId: 10, processingStatus: "queued" }) });
+
+    const response = await getIngestStatus(getRequest("/_api/ingest/status?artifactId=701"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual(expect.objectContaining({
+      ok: false,
+      artifactId: 701,
+      jobId: 9101,
+      status: "stalled_no_worker_heartbeat",
+      queueStatus: "queued",
+      processingStatus: "stalled/no-worker-heartbeat",
+      nextAction: "contact_support",
+      diagnosticCode: "INGEST_NO_WORKER_HEARTBEAT",
+      workerRequired: true,
+      canLeavePage: true,
+      canCheckStatus: true,
+    }));
+    responseTextIsPrivacySafe(body);
   });
 
   it("denies non-owner upload processing status before queue inspection", async () => {

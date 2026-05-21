@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-21T05:58:52.835Z",
+  "generatedAt": "2026-05-21T06:35:45.925Z",
   "branch": "staging",
-  "commit": "0676d10ec5f1ada2abf6d05ced21e2cf2c52376b",
+  "commit": "e15822371ebdb211955beb062035f1955cb387f4",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -143,6 +143,45 @@
       "simulatedProofVisible": true,
       "humanRequiredProofVisible": true
     }
+  },
+  "ingestWorkerBoundary": {
+    "available": true,
+    "status": "passed",
+    "productionProof": false,
+    "checks": [
+      {
+        "name": "request-bound ingest gate",
+        "passed": true
+      },
+      {
+        "name": "worker heartbeat persistence",
+        "passed": true
+      },
+      {
+        "name": "worker heartbeat writer",
+        "passed": true
+      },
+      {
+        "name": "safe no-worker status",
+        "passed": true
+      },
+      {
+        "name": "staging compose worker service",
+        "passed": true
+      },
+      {
+        "name": "production compose worker service",
+        "passed": true
+      },
+      {
+        "name": "deploy workflow preflight",
+        "passed": true
+      },
+      {
+        "name": "deploy workflow starts worker services",
+        "passed": true
+      }
+    ]
   },
   "safety": {
     "productionMutationForbidden": true,

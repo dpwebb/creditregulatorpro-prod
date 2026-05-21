@@ -1,7 +1,10 @@
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { getLatestIngestProcessingJobForArtifactReadOnly } from "../../helpers/ingestProcessingQueueService";
+import {
+  getIngestProcessingWorkerLivenessReadOnly,
+  getLatestIngestProcessingJobForArtifactReadOnly,
+} from "../../helpers/ingestProcessingQueueService";
 import { buildIngestUploadStatusView } from "../../helpers/ingestUploadStatusPresenter";
 import { schema, type OutputType } from "./status_GET.schema";
 
@@ -43,6 +46,7 @@ export async function handle(request: Request) {
       artifactId: input.artifactId,
       artifactProcessingStatus: artifact.processingStatus,
       job: latestJob && latestJob.userId === user.id ? latestJob : null,
+      workerLiveness: latestJob ? await getIngestProcessingWorkerLivenessReadOnly({ source: latestJob.source }) : null,
     });
 
     return new Response(JSON.stringify(view satisfies OutputType));

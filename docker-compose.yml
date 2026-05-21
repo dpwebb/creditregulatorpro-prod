@@ -24,3 +24,27 @@ services:
       - traefik.http.routers.creditregulatorpro-staging.tls=true
       - traefik.http.routers.creditregulatorpro-staging.tls.certresolver=letsencrypt
       - traefik.http.services.creditregulatorpro-staging.loadbalancer.server.port=3334
+
+  creditregulatorpro-staging-ingest-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app-creditregulatorpro-staging
+    container_name: creditregulatorpro-staging-ingest-worker
+    restart: unless-stopped
+    env_file:
+      - .env.staging
+    environment:
+      CRP_ENV: staging
+      LOCAL_DOCUMENT_STORAGE_PATH: /app/document-storage
+      INGEST_WORKER_MAX_JOBS: 5
+      INGEST_WORKER_POLL_SECONDS: 15
+    volumes:
+      - ./document-storage:/app/document-storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    network_mode: host
+    command:
+      - sh
+      - -c
+      - while true; do pnpm run ingest:worker -- --apply --max-jobs "$${INGEST_WORKER_MAX_JOBS:-5}" --concurrency 1 --worker-id creditregulatorpro-staging-ingest-worker --source authenticated_ingest_process; sleep "$${INGEST_WORKER_POLL_SECONDS:-15}"; done

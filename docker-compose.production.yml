@@ -22,3 +22,31 @@ services:
       - traefik.http.routers.creditregulatorpro.tls=true
       - traefik.http.routers.creditregulatorpro.tls.certresolver=letsencrypt
       - traefik.http.services.creditregulatorpro.loadbalancer.server.port=3333
+
+  creditregulatorpro-ingest-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app-creditregulatorpro
+    container_name: creditregulatorpro-ingest-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CRP_ENV: production
+      LOCAL_DOCUMENT_STORAGE_PATH: /app/document-storage
+      INGEST_WORKER_MAX_JOBS: 5
+      INGEST_WORKER_POLL_SECONDS: 15
+      CRP_PRODUCTION_INGEST_WORKER_APPLY: explicit-bounded-production-ingest-worker-apply
+      CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT: "true"
+      CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS: 5
+      CRP_PRODUCTION_INGEST_WORKER_OPERATOR: production-compose-ingest-worker
+    volumes:
+      - ./document-storage:/app/document-storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    network_mode: host
+    command:
+      - sh
+      - -c
+      - while true; do pnpm run ingest:worker -- --apply --max-jobs "$${INGEST_WORKER_MAX_JOBS:-5}" --concurrency 1 --worker-id production-compose-ingest-worker --source authenticated_ingest_process; sleep "$${INGEST_WORKER_POLL_SECONDS:-15}"; done

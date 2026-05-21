@@ -304,10 +304,13 @@ jobs:
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
             pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence
+            pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence
             pnpm run build
             docker rm -f creditregulatorpro-app 2>/dev/null || true
-            docker compose up -d --build creditregulatorpro
+            docker rm -f creditregulatorpro-ingest-worker 2>/dev/null || true
+            docker compose up -d --build creditregulatorpro creditregulatorpro-ingest-worker
             docker ps --filter name=creditregulatorpro-app
+            docker ps --filter name=creditregulatorpro-ingest-worker
 
             run_production_ingest_worker_plan() {
               if [ "${RUN_PRODUCTION_INGEST_WORKER:-false}" != "true" ]; then

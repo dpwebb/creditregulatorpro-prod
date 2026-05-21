@@ -326,12 +326,19 @@ jobs:
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
             pnpm run storage:durability-contract -- --environment staging --compose docker-compose.yml --service creditregulatorpro-staging --preflight --no-write-evidence
+            pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence
             pnpm run build
 
             cleanup_staging_container() {
               docker compose rm -sf creditregulatorpro-staging 2>/dev/null || true
+              docker compose rm -sf creditregulatorpro-staging-ingest-worker 2>/dev/null || true
               docker rm -f creditregulatorpro-staging 2>/dev/null || true
+              docker rm -f creditregulatorpro-staging-ingest-worker 2>/dev/null || true
               docker ps -a --filter "name=^/creditregulatorpro-staging$" --format '{{.ID}}' | while read -r id; do
+                [ -n "$id" ] || continue
+                docker rm -f "$id" 2>/dev/null || true
+              done
+              docker ps -a --filter "name=^/creditregulatorpro-staging-ingest-worker$" --format '{{.ID}}' | while read -r id; do
                 [ -n "$id" ] || continue
                 docker rm -f "$id" 2>/dev/null || true
               done
@@ -340,7 +347,7 @@ jobs:
             deployed=0
             for attempt in 1 2 3; do
               cleanup_staging_container
-              if docker compose up -d --build --force-recreate creditregulatorpro-staging; then
+              if docker compose up -d --build --force-recreate creditregulatorpro-staging creditregulatorpro-staging-ingest-worker; then
                 deployed=1
                 break
               fi

@@ -41,7 +41,7 @@ type UploadProgressState = { stage: string; percent: number; message?: string };
 type ProcessingOutcome =
   | { type: "success"; artifactId: string }
   | {
-      type: "queued_waiting_for_worker" | "failed" | "manual_review_required" | "stale";
+      type: "queued_waiting_for_worker" | "failed" | "manual_review_required" | "stalled_no_worker_heartbeat" | "stale";
       artifactId?: number | string | null;
       message: string;
       nextAction?: string | null;
@@ -246,13 +246,15 @@ export function CreditFileProcessingStatus({
     );
   }
 
-  if (outcome?.type === "stale") {
+  if (outcome?.type === "stalled_no_worker_heartbeat" || outcome?.type === "stale") {
     return (
       <div className={styles.progressContainer} role="status" aria-live="polite">
         <div className={styles.processingStatusHeader}>
           <Info size={18} />
-          <span className={styles.progressStage}>Check processing status</span>
-          <span>Status check</span>
+          <span className={styles.progressStage}>
+            {outcome.type === "stalled_no_worker_heartbeat" ? "Processing worker unavailable" : "Check processing status"}
+          </span>
+          <span>{outcome.type === "stalled_no_worker_heartbeat" ? "Worker check" : "Status check"}</span>
         </div>
         <div className={styles.progressDetail}>{outcome.message}</div>
         <div className={styles.statusActions}>
@@ -446,7 +448,7 @@ export default function UploadPage() {
     setUploadProgress(
       status.status === "queued_waiting_for_worker"
         ? { stage: "queued", percent: 12, message: status.userMessage }
-        : status.status === "stale"
+        : status.status === "stale" || status.status === "stalled_no_worker_heartbeat"
           ? { stage: "status_check", percent: Math.min(displayedProgress, 99), message: status.userMessage }
           : null,
     );
@@ -518,6 +520,20 @@ export default function UploadPage() {
 
     if (uploadStatus === "failed") {
       markProcessingFailure(data.userMessage, data.diagnosticCode ?? data.errorCode);
+      return;
+    }
+
+    if (uploadStatus === "stalled_no_worker_heartbeat") {
+      activeProcessingStartedAtRef.current = null;
+      setQueuedProcessing(null);
+      setProcessingOutcome({
+        type: "stalled_no_worker_heartbeat",
+        artifactId: data.artifactId,
+        message: data.userMessage ?? "Your report is queued, but the processing worker has not checked in recently.",
+        nextAction: data.nextAction ?? "contact_support",
+        diagnosticCode: data.diagnosticCode ?? "INGEST_NO_WORKER_HEARTBEAT",
+      });
+      setUploadProgress({ stage: "stalled_no_worker_heartbeat", percent: Math.min(displayedProgress, 99), message: data.userMessage ?? data.message });
       return;
     }
 
@@ -700,6 +716,10 @@ export default function UploadPage() {
               if (uploadStatus === "queued_waiting_for_worker") {
                 toast.info("Report waiting for processing", {
                   description: data.userMessage ?? "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.",
+                });
+              } else if (uploadStatus === "stalled_no_worker_heartbeat") {
+                toast.info("Processing worker unavailable", {
+                  description: data.userMessage ?? "Your report is queued, but the processing worker has not checked in recently.",
                 });
               } else if (uploadStatus === "processing") {
                 toast.info("Processing is active", {

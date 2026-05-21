@@ -3,9 +3,11 @@ import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { createSSEStream, createSSEResponse, type SSEEvent } from "../../helpers/sseStreamBuilder";
 import { updateArtifactProcessingStatus } from "../../helpers/ingestProcessingStatus";
+import { shouldAllowRequestBoundIngestProcessing } from "../../helpers/ingestProcessingExecutionBoundary";
 import {
   claimIngestProcessingJobById,
   enqueueIngestProcessingJob,
+  getIngestProcessingWorkerLivenessReadOnly,
   getLatestIngestProcessingJobByIdempotencyKey,
   markIngestProcessingJobFailed,
   markIngestProcessingJobSucceeded,
@@ -103,11 +105,13 @@ function messageForJob(job: IngestProcessingJobRecord, duplicate: boolean): stri
   return "Report processing was canceled.";
 }
 
-function queueOutput(job: IngestProcessingJobRecord, duplicate: boolean) {
+async function queueOutput(job: IngestProcessingJobRecord, duplicate: boolean) {
+  const workerLiveness = await getIngestProcessingWorkerLivenessReadOnly({ source: PROCESS_SOURCE }).catch(() => null);
   const statusView = buildIngestUploadStatusView({
     artifactId: job.reportArtifactId,
     artifactProcessingStatus: processingStatusForJob(job.status),
     job,
+    workerLiveness,
   });
   return {
     ok: statusView.ok,
@@ -126,7 +130,8 @@ function queueOutput(job: IngestProcessingJobRecord, duplicate: boolean) {
     retryAt: statusView.retryAt,
     errorCode: job.lastErrorCode,
     errorReason: job.lastErrorReason,
-    message: messageForJob(job, duplicate),
+    workerLiveness,
+    message: statusView.userMessage || messageForJob(job, duplicate),
   };
 }
 
@@ -231,7 +236,8 @@ export async function handle(request: Request) {
   // Return SSE status stream while processing this artifact immediately in the request-bound worker path.
   const stream = createSSEStream(async (send) => {
     try {
-      if (job.status === "queued" || job.status === "failed") {
+      const inlineGate = shouldAllowRequestBoundIngestProcessing();
+      if (inlineGate.allowed && (job.status === "queued" || job.status === "failed")) {
         const workerId = requestBoundWorkerId(job);
         const claimedJob = await claimIngestProcessingJobById({
           jobId: job.id,
@@ -289,10 +295,12 @@ export async function handle(request: Request) {
         }
       }
 
-      const output = queueOutput(job, duplicate);
-      const stage = stageForJob(job.status);
+      const output = await queueOutput(job, duplicate);
+      const stage = output.uploadStatus === "stalled_no_worker_heartbeat"
+        ? "stalled_no_worker_heartbeat"
+        : stageForJob(job.status);
       const percent = percentForJob(job.status);
-      const message = messageForJob(job, duplicate);
+      const message = output.userMessage || messageForJob(job, duplicate);
 
       send({
         type: "progress",
@@ -318,6 +326,9 @@ export async function handle(request: Request) {
         retryAt: output.retryAt,
         errorCode: output.errorCode,
         errorReason: output.errorReason,
+        inlineProcessingAllowed: inlineGate.allowed,
+        inlineProcessingGateReason: inlineGate.reason,
+        workerLiveness: output.workerLiveness,
       });
 
       send({ type: "complete", data: output });

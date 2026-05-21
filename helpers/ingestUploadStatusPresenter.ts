@@ -13,6 +13,7 @@ export type IngestUploadStatus =
   | "completed"
   | "failed"
   | "manual_review_required"
+  | "stalled_no_worker_heartbeat"
   | "stale";
 
 export type IngestUploadNextAction =
@@ -30,9 +31,18 @@ export type IngestUploadStatusJob = {
   reportArtifactId: number;
   userId?: number | null;
   runAfter?: string | null;
+  createdAt?: string | null;
   lockedUntil?: string | null;
   updatedAt?: string | null;
   lastErrorCode?: string | null;
+};
+
+export type IngestUploadWorkerLiveness = {
+  hasRecentHeartbeat: boolean;
+  stale: boolean;
+  lastSeenAt: string | null;
+  workerId?: string | null;
+  status?: string | null;
 };
 
 export type IngestUploadStatusView = {
@@ -56,6 +66,8 @@ type BuildStatusInput = {
   artifactId: number;
   artifactProcessingStatus?: string | null;
   job?: IngestUploadStatusJob | null;
+  workerLiveness?: IngestUploadWorkerLiveness | null;
+  noWorkerHeartbeatStallAfterSeconds?: number | null;
   now?: Date;
 };
 
@@ -73,10 +85,29 @@ const MANUAL_REVIEW_MESSAGE =
 const STALE_MESSAGE =
   "Processing is taking longer than expected. Use Check status to refresh, or upload again if this does not change.";
 
+const NO_WORKER_HEARTBEAT_MESSAGE =
+  "Your report is queued, but the processing worker has not checked in recently. You can leave this page; support can retry or review the queue if this does not clear.";
+
+const DEFAULT_NO_WORKER_HEARTBEAT_STALL_AFTER_SECONDS = 120;
+
 function jobIsStale(job: IngestUploadStatusJob, now: Date): boolean {
   if (job.status !== "running" || !job.lockedUntil) return false;
   const lockedUntilMs = Date.parse(job.lockedUntil);
   return Number.isFinite(lockedUntilMs) && lockedUntilMs < now.getTime();
+}
+
+function jobIsQueuedPastWorkerHeartbeatGrace(
+  job: IngestUploadStatusJob,
+  now: Date,
+  graceSeconds: number,
+): boolean {
+  if (job.status !== "queued" || !job.createdAt) return false;
+  const createdAtMs = Date.parse(job.createdAt);
+  return Number.isFinite(createdAtMs) && now.getTime() - createdAtMs >= graceSeconds * 1000;
+}
+
+function workerHeartbeatMissing(workerLiveness: IngestUploadWorkerLiveness | null | undefined): boolean {
+  return !workerLiveness || workerLiveness.hasRecentHeartbeat !== true || workerLiveness.stale === true;
 }
 
 function statusView(input: Omit<IngestUploadStatusView, "checkedAt"> & { checkedAt?: string }): IngestUploadStatusView {
@@ -90,6 +121,10 @@ export function buildIngestUploadStatusView(input: BuildStatusInput): IngestUplo
   const now = input.now ?? new Date();
   const checkedAt = now.toISOString();
   const job = input.job ?? null;
+  const workerHeartbeatGraceSeconds = Math.max(
+    30,
+    Math.floor(Number(input.noWorkerHeartbeatStallAfterSeconds ?? DEFAULT_NO_WORKER_HEARTBEAT_STALL_AFTER_SECONDS)),
+  );
 
   if (job) {
     if (jobIsStale(job, now)) {
@@ -103,6 +138,28 @@ export function buildIngestUploadStatusView(input: BuildStatusInput): IngestUplo
         nextAction: "check_status",
         userMessage: STALE_MESSAGE,
         diagnosticCode: "INGEST_PROCESSING_STALE",
+        workerRequired: true,
+        canLeavePage: true,
+        canCheckStatus: true,
+        retryAt: null,
+        checkedAt,
+      });
+    }
+
+    if (
+      jobIsQueuedPastWorkerHeartbeatGrace(job, now, workerHeartbeatGraceSeconds) &&
+      workerHeartbeatMissing(input.workerLiveness)
+    ) {
+      return statusView({
+        ok: false,
+        artifactId: input.artifactId,
+        jobId: job.id,
+        status: "stalled_no_worker_heartbeat",
+        queueStatus: job.status,
+        processingStatus: "stalled/no-worker-heartbeat",
+        nextAction: "contact_support",
+        userMessage: NO_WORKER_HEARTBEAT_MESSAGE,
+        diagnosticCode: "INGEST_NO_WORKER_HEARTBEAT",
         workerRequired: true,
         canLeavePage: true,
         canCheckStatus: true,

@@ -13,6 +13,7 @@ import {
   markIngestProcessingJobSucceeded,
   peekNextIngestProcessingJob,
   recordIngestProcessingJobEvent,
+  recordIngestProcessingWorkerHeartbeat,
 } from "../helpers/ingestProcessingQueueService";
 import { resolveReportArtifactPdfBase64 } from "../helpers/reportArtifactStorage";
 import type { Json } from "../helpers/schema";
@@ -56,6 +57,7 @@ type IngestWorkerResolvedDependencies = {
   markSucceeded: typeof markIngestProcessingJobSucceeded;
   markFailed: typeof markIngestProcessingJobFailed;
   recordEvent: typeof recordIngestProcessingJobEvent;
+  recordHeartbeat: typeof recordIngestProcessingWorkerHeartbeat;
   updateArtifactStatus: typeof updateArtifactProcessingStatus;
   loadPipelineInput: typeof loadQueuedIngestPipelineInput;
   executePipeline: typeof executeIngestPipeline;
@@ -305,6 +307,7 @@ function resolveDependencies(dependencies: IngestWorkerDependencies = {}): Inges
     markSucceeded: dependencies.markSucceeded ?? markIngestProcessingJobSucceeded,
     markFailed: dependencies.markFailed ?? markIngestProcessingJobFailed,
     recordEvent: dependencies.recordEvent ?? recordIngestProcessingJobEvent,
+    recordHeartbeat: dependencies.recordHeartbeat ?? recordIngestProcessingWorkerHeartbeat,
     updateArtifactStatus: dependencies.updateArtifactStatus ?? updateArtifactProcessingStatus,
     loadPipelineInput: dependencies.loadPipelineInput ?? loadQueuedIngestPipelineInput,
     executePipeline: dependencies.executePipeline ?? executeIngestPipeline,
@@ -500,8 +503,31 @@ export async function processNextIngestProcessingJob(
   if (dryRun) {
     const preview = await deps.peekNextJob(source);
     if (!preview) {
+      await deps.recordHeartbeat({
+        workerId,
+        source,
+        status: "idle",
+        details: {
+          dryRun: true,
+          queuePreviewAvailable: false,
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+        },
+      });
       return { status: "idle", workerId, dryRun: true, job: null };
     }
+    await deps.recordHeartbeat({
+      workerId,
+      source,
+      status: "dry_run_preview",
+      details: {
+        dryRun: true,
+        jobId: preview.id,
+        queuePreviewAvailable: true,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
     return {
       status: "dry_run_preview",
       workerId,
@@ -519,8 +545,32 @@ export async function processNextIngestProcessingJob(
 
   const job = await deps.claimNextJob({ workerId, source, leaseSeconds });
   if (!job) {
+    await deps.recordHeartbeat({
+      workerId,
+      source,
+      status: "idle",
+      details: {
+        dryRun: false,
+        queuePreviewAvailable: false,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
     return { status: "idle", workerId, dryRun: false, job: null };
   }
+  await deps.recordHeartbeat({
+    workerId,
+    source,
+    status: "processing",
+    details: {
+      dryRun: false,
+      jobId: job.id,
+      reportArtifactId: job.reportArtifactId,
+      attemptCount: job.attemptCount,
+      rawReportBytesLogged: false,
+      extractedReportTextLogged: false,
+    },
+  });
 
   const signals: PipelineSignalSummary = {
     progressStages: [],
@@ -589,6 +639,18 @@ export async function processNextIngestProcessingJob(
         ...observabilitySummary,
       }),
     });
+    await deps.recordHeartbeat({
+      workerId,
+      source,
+      status: "succeeded",
+      details: {
+        dryRun: false,
+        jobId: succeeded.id,
+        reportArtifactId: succeeded.reportArtifactId,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
     return { status: "succeeded", workerId, dryRun: false, job: succeeded, signals };
   } catch (error) {
     await deps.updateArtifactStatus(job.reportArtifactId, "failed").catch(() => undefined);
@@ -596,6 +658,18 @@ export async function processNextIngestProcessingJob(
       ? new IngestProcessingQueueError(error.code, safeIngestWorkerErrorMessage(error), error.permanent)
       : new Error(safeIngestWorkerErrorMessage(error));
     const failed = await deps.markFailed({ job, workerId, error: safeError });
+    await deps.recordHeartbeat({
+      workerId,
+      source,
+      status: failed.status === "dead_lettered" ? "dead_lettered" : "failed",
+      details: {
+        dryRun: false,
+        jobId: failed.id,
+        reportArtifactId: failed.reportArtifactId,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
     return {
       status: failed.status === "dead_lettered" ? "dead_lettered" : "failed",
       workerId,

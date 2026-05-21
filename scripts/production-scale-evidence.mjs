@@ -252,6 +252,53 @@ export function collectDashboardEvidence({ rootDir = process.cwd(), dashboardRep
   };
 }
 
+export function collectIngestWorkerBoundaryEvidence({ rootDir = process.cwd() } = {}) {
+  const checks = [
+    {
+      name: "request-bound ingest gate",
+      passed: readText(rootDir, "endpoints/ingest/process_POST.ts").includes("shouldAllowRequestBoundIngestProcessing"),
+    },
+    {
+      name: "worker heartbeat persistence",
+      passed: readText(rootDir, "helpers/ingestProcessingQueueSchema.ts").includes("ingest_processing_worker_heartbeat"),
+    },
+    {
+      name: "worker heartbeat writer",
+      passed: readText(rootDir, "scripts/ingest-processing-worker.ts").includes("recordIngestProcessingWorkerHeartbeat"),
+    },
+    {
+      name: "safe no-worker status",
+      passed: readText(rootDir, "helpers/ingestUploadStatusPresenter.ts").includes("stalled_no_worker_heartbeat"),
+    },
+    {
+      name: "staging compose worker service",
+      passed: readText(rootDir, "docker-compose.yml").includes("creditregulatorpro-staging-ingest-worker"),
+    },
+    {
+      name: "production compose worker service",
+      passed: readText(rootDir, "docker-compose.production.yml").includes("creditregulatorpro-ingest-worker"),
+    },
+    {
+      name: "deploy workflow preflight",
+      passed:
+        readText(rootDir, ".github/workflows/deploy-staging.yml").includes("ingest:worker-boundary-evidence") &&
+        readText(rootDir, ".github/workflows/deploy-production.yml").includes("ingest:worker-boundary-evidence"),
+    },
+    {
+      name: "deploy workflow starts worker services",
+      passed:
+        readText(rootDir, ".github/workflows/deploy-staging.yml").includes("creditregulatorpro-staging creditregulatorpro-staging-ingest-worker") &&
+        readText(rootDir, ".github/workflows/deploy-production.yml").includes("creditregulatorpro creditregulatorpro-ingest-worker"),
+    },
+  ];
+  return {
+    available: true,
+    status: checks.every((check) => check.passed) ? "passed" : "failed",
+    productionProof: false,
+    checks,
+  };
+}
+
 export function buildProductionScaleEvidenceReport({
   rootDir = process.cwd(),
   registry = null,
@@ -296,6 +343,7 @@ export function buildProductionScaleEvidenceReport({
   const waived = blockers.filter((blocker) => blocker.currentStatus === "waived");
   const unresolved = blockers.filter((blocker) => !["fixed", "waived"].includes(blocker.currentStatus));
   const dashboard = collectDashboardEvidence({ rootDir, dashboardReport });
+  const ingestWorkerBoundary = collectIngestWorkerBoundaryEvidence({ rootDir });
   const auditNumbers = new Set(auditRows.map((row) => row.number));
   const registryNumbers = new Set(blockers.map((blocker) => blocker.number));
   const allAuditBlockersRepresented = auditRows.length === loadedRegistry.expectedBlockerCount &&
@@ -318,6 +366,7 @@ export function buildProductionScaleEvidenceReport({
       validation,
     },
     dashboard,
+    ingestWorkerBoundary,
     safety: {
       productionMutationForbidden: true,
       productionEnvironmentDetected: false,
@@ -375,6 +424,7 @@ export function renderProductionScaleEvidenceMarkdown(report) {
     `All 25 blockers represented: ${report.registry.actualBlockerCount === 25 && report.registry.allAuditBlockersRepresented ? "yes" : "no"}`,
     `Any checks skipped: ${skippedText}`,
     `Dashboard exact commands recorded: ${report.dashboard.releaseEvidenceSemantics?.exactCommandsRequired ? "yes" : "not available"}`,
+    `Ingest worker boundary static proof: ${report.ingestWorkerBoundary.status}`,
     "",
     "## Required Warnings",
     "",

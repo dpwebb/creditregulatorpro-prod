@@ -179,6 +179,7 @@ export type IngestProcessingQueueMetrics = {
   staleRunningReviewedJobs: number;
   lastRemediationStatus: string | null;
   lastRemediationAt: string | null;
+  workerLiveness: IngestProcessingWorkerLiveness;
   boundaries: {
     durableDbBacked: true;
     appendOnlyJobEvents: true;
@@ -191,6 +192,26 @@ export type IngestProcessingQueueMetrics = {
     packetReadinessMutated: false;
     endpointCutoverEnabled: true;
   };
+};
+
+export type IngestProcessingWorkerHeartbeatRecord = {
+  workerId: string;
+  source: string | null;
+  status: string;
+  lastSeenAt: string;
+  details: Record<string, Json>;
+};
+
+export type IngestProcessingWorkerLiveness = {
+  checkedAt: string;
+  staleAfterSeconds: number;
+  hasRecentHeartbeat: boolean;
+  stale: boolean;
+  ageSeconds: number | null;
+  workerId: string | null;
+  source: string | null;
+  status: string | null;
+  lastSeenAt: string | null;
 };
 
 type QueueRow = {
@@ -265,6 +286,16 @@ type QueueEventRow = {
   createdAt?: unknown;
 };
 
+type WorkerHeartbeatRow = {
+  worker_id?: unknown;
+  workerId?: unknown;
+  source?: unknown;
+  status?: unknown;
+  last_seen_at?: unknown;
+  lastSeenAt?: unknown;
+  details?: unknown;
+};
+
 export class IngestProcessingQueueError extends Error {
   readonly code: string;
   readonly permanent: boolean;
@@ -316,7 +347,7 @@ const FULL_SIN_PATTERN = /\b\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/;
 const FULL_ACCOUNT_PATTERN = /\b(?:account|acct|member)\s*(?:number|no\.?|#)?\s*[:#-]?\s*[A-Z0-9][A-Z0-9 -]{9,}\b|\b\d{10,}\b/i;
 const EMAIL_ADDRESS_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
 
-function rowValue(row: QueueRow | QueueEventRow | Record<string, unknown>, snakeCaseKey: string): unknown {
+function rowValue(row: QueueRow | QueueEventRow | WorkerHeartbeatRow | Record<string, unknown>, snakeCaseKey: string): unknown {
   if (Object.prototype.hasOwnProperty.call(row, snakeCaseKey)) return row[snakeCaseKey as keyof typeof row];
   const camelCaseKey = snakeCaseKey.replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase());
   return (row as Record<string, unknown>)[camelCaseKey];
@@ -596,8 +627,8 @@ function isMissingQueueTable(error: unknown): boolean {
   return (
     candidate?.code === "42P01" ||
     candidate?.cause?.code === "42P01" ||
-    /relation .*ingest_processing_job.* does not exist/i.test(candidate?.message ?? "") ||
-    /relation .*ingest_processing_job.* does not exist/i.test(candidate?.cause?.message ?? "")
+    /relation .*ingest_processing_(job|worker_heartbeat).* does not exist/i.test(candidate?.message ?? "") ||
+    /relation .*ingest_processing_(job|worker_heartbeat).* does not exist/i.test(candidate?.cause?.message ?? "")
   );
 }
 
@@ -720,6 +751,36 @@ function mapEventRow(row: QueueEventRow): IngestProcessingQueueEventRecord {
     errorCode: rowValue(row, "error_code") ? sanitizeErrorString(rowValue(row, "error_code"), "INGEST_QUEUE_ERROR", 80) : null,
     errorReason: rowValue(row, "error_reason") ? sanitizeErrorString(rowValue(row, "error_reason"), "Ingest processing event error.") : null,
     createdAt: toIso(rowValue(row, "created_at")),
+  };
+}
+
+function mapWorkerHeartbeatRow(row: WorkerHeartbeatRow): IngestProcessingWorkerHeartbeatRecord {
+  return {
+    workerId: sanitizeToken(String(rowValue(row, "worker_id") ?? ""), "workerId", "ingest-worker"),
+    source: rowValue(row, "source") ? String(rowValue(row, "source")) : null,
+    status: sanitizeToken(String(rowValue(row, "status") ?? "unknown"), "status", "unknown"),
+    lastSeenAt: toIso(rowValue(row, "last_seen_at")),
+    details: safeDetailsRecord(rowValue(row, "details")),
+  };
+}
+
+function normalizeStaleAfterSeconds(value: number | null | undefined): number {
+  const parsed = Number(value ?? 300);
+  if (!Number.isFinite(parsed)) return 300;
+  return Math.min(Math.max(Math.floor(parsed), 30), 3600);
+}
+
+function emptyWorkerLiveness(staleAfterSeconds: number): IngestProcessingWorkerLiveness {
+  return {
+    checkedAt: new Date().toISOString(),
+    staleAfterSeconds,
+    hasRecentHeartbeat: false,
+    stale: true,
+    ageSeconds: null,
+    workerId: null,
+    source: null,
+    status: null,
+    lastSeenAt: null,
   };
 }
 
@@ -1423,6 +1484,94 @@ export async function recordIngestProcessingJobEvent(params: {
   return mapEventRow(eventResult.rows[0]);
 }
 
+export async function recordIngestProcessingWorkerHeartbeat(params: {
+  workerId: string;
+  source?: string | null;
+  status: string;
+  details?: Record<string, Json>;
+}): Promise<IngestProcessingWorkerHeartbeatRecord> {
+  await ensureIngestProcessingQueueSchema();
+  const workerId = sanitizeToken(params.workerId, "workerId", "ingest-worker");
+  const source = params.source ? sanitizeToken(params.source, "source", "") : null;
+  const status = sanitizeToken(params.status, "status", "heartbeat");
+  const result = await sql<WorkerHeartbeatRow>`
+    insert into public.ingest_processing_worker_heartbeat (
+      worker_id,
+      source,
+      status,
+      last_seen_at,
+      details
+    ) values (
+      ${workerId},
+      ${source},
+      ${status},
+      now(),
+      ${JSON.stringify(safeDetailsRecord(params.details ?? {}))}::text::jsonb
+    )
+    on conflict (worker_id)
+    do update set
+      source = excluded.source,
+      status = excluded.status,
+      last_seen_at = now(),
+      details = excluded.details
+    returning *
+  `.execute(db);
+  return mapWorkerHeartbeatRow(result.rows[0]);
+}
+
+export async function getIngestProcessingWorkerLiveness(input: {
+  source?: string | null;
+  staleAfterSeconds?: number | null;
+  ensureSchema?: boolean;
+} = {}): Promise<IngestProcessingWorkerLiveness> {
+  if (input.ensureSchema !== false) await ensureIngestProcessingQueueSchema();
+  const staleAfterSeconds = normalizeStaleAfterSeconds(input.staleAfterSeconds);
+  const source = input.source ? sanitizeToken(input.source, "source", "") : null;
+  const result = await sql<WorkerHeartbeatRow>`
+    select *
+    from public.ingest_processing_worker_heartbeat
+    where (${source}::text is null or source = ${source})
+    order by last_seen_at desc, worker_id asc
+    limit 1
+  `.execute(db);
+  const heartbeat = result.rows[0] ? mapWorkerHeartbeatRow(result.rows[0]) : null;
+  if (!heartbeat) return emptyWorkerLiveness(staleAfterSeconds);
+
+  const checkedAt = new Date();
+  const lastSeenMs = Date.parse(heartbeat.lastSeenAt);
+  const ageSeconds = Number.isFinite(lastSeenMs)
+    ? Math.max(0, Math.floor((checkedAt.getTime() - lastSeenMs) / 1000))
+    : null;
+  const stale = ageSeconds === null || ageSeconds > staleAfterSeconds;
+  return {
+    checkedAt: checkedAt.toISOString(),
+    staleAfterSeconds,
+    hasRecentHeartbeat: !stale,
+    stale,
+    ageSeconds,
+    workerId: heartbeat.workerId,
+    source: heartbeat.source,
+    status: heartbeat.status,
+    lastSeenAt: heartbeat.lastSeenAt,
+  };
+}
+
+export async function getIngestProcessingWorkerLivenessReadOnly(input: {
+  source?: string | null;
+  staleAfterSeconds?: number | null;
+} = {}): Promise<IngestProcessingWorkerLiveness> {
+  try {
+    return await getIngestProcessingWorkerLiveness({
+      source: input.source,
+      staleAfterSeconds: input.staleAfterSeconds,
+      ensureSchema: false,
+    });
+  } catch (error) {
+    if (isMissingQueueTable(error)) return emptyWorkerLiveness(normalizeStaleAfterSeconds(input.staleAfterSeconds));
+    throw error;
+  }
+}
+
 export async function listIngestProcessingJobEvents(jobId: number): Promise<IngestProcessingQueueEventRecord[]> {
   await ensureIngestProcessingQueueSchema();
   const safeJobId = requiredNumber(jobId, "jobId");
@@ -1763,6 +1912,7 @@ export async function getIngestProcessingQueueMetrics(
   const row = counts.rows[0] ?? {};
   const events = eventCounts.rows[0] ?? {};
   const remediation = recentRemediation.rows[0] ?? {};
+  const workerLiveness = await getIngestProcessingWorkerLiveness({ ensureSchema: false });
   return {
     generatedAt: new Date().toISOString(),
     queueVersion: INGEST_PROCESSING_QUEUE_VERSION,
@@ -1785,6 +1935,7 @@ export async function getIngestProcessingQueueMetrics(
     staleRunningReviewedJobs: Number(rowValue(events, "stale_running_reviewed_jobs") ?? 0),
     lastRemediationStatus: rowValue(remediation, "event_type") ? String(rowValue(remediation, "event_type")) : null,
     lastRemediationAt: rowValue(remediation, "created_at") ? toIso(rowValue(remediation, "created_at")) : null,
+    workerLiveness,
     boundaries: {
       durableDbBacked: true,
       appendOnlyJobEvents: true,

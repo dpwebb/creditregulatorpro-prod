@@ -159,6 +159,7 @@ describe("ingest processing worker script", () => {
   it("exits cleanly on an empty queue without mutating worker dependencies", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const claimNextJob = vi.fn(async () => null);
+    const recordHeartbeat = vi.fn();
     const exitCode = await runIngestProcessingWorker({
       dryRun: false,
       apply: true,
@@ -173,12 +174,18 @@ describe("ingest processing worker script", () => {
       markSucceeded: vi.fn(),
       markFailed: vi.fn(),
       recordEvent: vi.fn(),
+      recordHeartbeat,
       updateArtifactStatus: vi.fn().mockResolvedValue(undefined),
       loadPipelineInput: vi.fn(),
     });
 
     expect(exitCode).toBe(0);
     expect(claimNextJob).toHaveBeenCalledTimes(1);
+    expect(recordHeartbeat).toHaveBeenCalledWith(expect.objectContaining({
+      workerId: "local-empty-queue-worker",
+      source: "local_empty_queue",
+      status: "idle",
+    }));
     expect(logSpy.mock.calls.map((call) => call.join(" ")).join("\n")).toContain('"status":"idle"');
     expect(logSpy.mock.calls.map((call) => call.join(" ")).join("\n")).toContain('"failureCount":0');
     logSpy.mockRestore();
@@ -230,6 +237,7 @@ describe("ingest processing worker script", () => {
       }),
       updateArtifactStatus: vi.fn().mockResolvedValue(undefined),
       recordEvent: vi.fn(),
+      recordHeartbeat: vi.fn(),
       markFailed: vi.fn(async () => ({
         ...job,
         status: "dead_lettered",

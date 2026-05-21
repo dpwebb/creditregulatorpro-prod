@@ -92,6 +92,15 @@ export function ensureIngestProcessingQueueSchema(): Promise<void> {
         )
         `.execute(db);
         await sql`
+        create table if not exists public.ingest_processing_worker_heartbeat (
+          worker_id text primary key,
+          source text null,
+          status text not null,
+          last_seen_at timestamptz not null default now(),
+          details jsonb not null default '{}'::jsonb
+        )
+        `.execute(db);
+        await sql`
         alter table public.ingest_processing_job_event
           drop constraint if exists ingest_processing_job_event_type_check
         `.execute(db);
@@ -145,6 +154,10 @@ export function ensureIngestProcessingQueueSchema(): Promise<void> {
         await sql`
         create index if not exists idx_ingest_processing_job_event_type_created_at
           on public.ingest_processing_job_event(event_type, created_at desc)
+        `.execute(db);
+        await sql`
+        create index if not exists idx_ingest_processing_worker_heartbeat_source_seen
+          on public.ingest_processing_worker_heartbeat(source, last_seen_at desc)
         `.execute(db);
       } finally {
         await sql`select pg_advisory_unlock(hashtext('creditregulatorpro.ingest_processing_queue_schema'))`.execute(db);
