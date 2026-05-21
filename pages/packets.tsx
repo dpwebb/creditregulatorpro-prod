@@ -36,6 +36,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { DisputePacketType } from "../helpers/disputePacketTemplate";
 import type { DisputePacketCandidate } from "../helpers/disputePacketService";
 import type { SimpleDisputePacketContent } from "../helpers/disputePacketTemplate";
+import { buildPacketPreviewDisplayContent } from "../helpers/packetPreviewDisplay";
 import styles from "./packets.module.css";
 
 export function parseInitialPacketIssueId(searchParams: URLSearchParams): number | null {
@@ -757,6 +758,10 @@ function CreatePacketDialog({
   const packetActionPending = buildPreview.isPending || createPacket.isPending;
   const canPreview = selectedIssueIds.size > 0 && !packetActionPending;
   const canCreate = selectedIssueIds.size > 0 && !packetActionPending;
+  const previewDisplay = React.useMemo(
+    () => preview ? buildPacketPreviewDisplayContent(preview) : null,
+    [preview],
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -889,18 +894,31 @@ function CreatePacketDialog({
                 Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings.
               </div>
             ) : (
-              <div className={styles.previewContent}>
+              <div className={styles.previewContent} role="region" aria-label="Recipient-facing packet preview">
                 <h4>{preview.title}</h4>
-                <p><strong>To:</strong> {preview.recipient.name}</p>
-                <p>{preview.openingParagraph}</p>
-                <ul>
-                  {preview.disputedItems.map((item) => (
-                    <li key={`${item.issueId}-${item.disputedField}`}>
-                      {item.creditorCollectorName}: {item.disputedField} - {item.requestedAction}
-                    </li>
-                  ))}
-                </ul>
-                <p><strong>Evidence:</strong> {preview.evidenceList.join("; ")}</p>
+                <section className={styles.previewLetterSection}>
+                  <pre className={styles.previewLetterText}>{previewDisplay?.letterText}</pre>
+                </section>
+                {previewDisplay && previewDisplay.evidenceSummary.length > 0 && (
+                  <section className={styles.previewSupplementalSection}>
+                    <h5>Evidence summary</h5>
+                    <ul>
+                      {previewDisplay.evidenceSummary.map((item, index) => (
+                        <li key={`evidence-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {previewDisplay && previewDisplay.attachmentChecklist.length > 0 && (
+                  <section className={styles.previewSupplementalSection}>
+                    <h5>Attachment checklist</h5>
+                    <ul>
+                      {previewDisplay.attachmentChecklist.map((item, index) => (
+                        <li key={`attachment-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
               </div>
             )}
           </div>

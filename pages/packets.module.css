@@ -635,6 +635,32 @@
   margin: 0 0 var(--spacing-3) 0;
 }
 
+.previewLetterSection {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  padding: var(--spacing-3);
+  max-height: 360px;
+  overflow: auto;
+}
+
+.previewLetterText {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+  color: var(--foreground);
+}
+
+.previewSupplementalSection {
+  margin-top: var(--spacing-4);
+}
+
+.previewSupplementalSection h5 {
+  margin: 0 0 var(--spacing-2) 0;
+  font-size: 0.875rem;
+}
+
 .previewContent ul {
   padding-left: var(--spacing-5);
 }

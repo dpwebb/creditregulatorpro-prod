@@ -94,6 +94,7 @@ vi.mock("../../components/DeliveryWizard", () => ({
 
 import PacketsPage, { parseInitialPacketIssueId } from "../../pages/packets";
 import { buildCreatePacketRouteForFinding } from "../../components/TradelineComplianceHub";
+import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
 function candidate(issueId: number, name = "Maple Bank Visa"): DisputePacketCandidate {
   return {
@@ -194,6 +195,81 @@ describe("packet create dialog routing", () => {
       });
     });
     expect(mocks.showSuccess).toHaveBeenCalledWith("Packet generated");
+  });
+
+  it("shows the recipient-facing packet preview instead of compact internal finding text", async () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion report artifact #77",
+      reportDate: "2012-08-21T00:00:00.000Z",
+      dateGenerated: "2026-05-21T00:00:00.000Z",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St", "Halifax, NS B3H 0A1"],
+        email: "test@example.com",
+      },
+      disputedItems: [
+        {
+          issueId: 42,
+          tradelineId: 222,
+          creditorCollectorName: "Rogers Communications",
+          accountNumber: "reau",
+          disputedField: "LasReportedDate",
+          reportedValue: "2012-08-21T00:00:00.000Z",
+          expectedValue: "Not known",
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          explanation: "PIPEDA_4_5 source report #77 field: LasReportedDate tradelineId: 222",
+          evidenceReference: "reportArtifactId: 77; tradelineId: 222; field: LasReportedDate; page 4",
+        },
+      ],
+      reportArtifactIds: [77],
+      generatedByUserId: 20,
+    });
+    packet.metadata.internalReferences = [
+      {
+        findingId: 42,
+        violationId: 9001,
+        tradelineId: 222,
+        reportArtifactId: 77,
+        evidenceIds: ["evidence-raw-77"],
+        regulationIds: ["PIPEDA_4_5"],
+        ruleIds: ["BALANCE_CALCULATION_VIOLATION"],
+        fieldKey: "LasReportedDate",
+        sourceField: "sourceReportArtifactId",
+        readiness: { packetReady: true },
+      },
+    ];
+    packet.attachmentChecklist.push("Source report #77; field: LasReportedDate; artifact ID 77");
+    mocks.buildPacketPreview.mockResolvedValueOnce({ packet });
+
+    renderPacketsPage("/packets?create=true");
+
+    expect(await screen.findByText("Create Dispute Packet")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/Maple Bank Visa/i));
+    fireEvent.click(screen.getByRole("button", { name: "Preview Packet" }));
+
+    const preview = await screen.findByRole("region", { name: "Recipient-facing packet preview" });
+    const previewText = preview.textContent ?? "";
+
+    expect(previewText).toContain("TransUnion Canada");
+    expect(previewText).toContain("Consumer:");
+    expect(previewText).toContain("Credit report reviewed:");
+    expect(previewText).toContain("Disputed Account");
+    expect(previewText).toContain("Company reporting the account: Rogers Communications");
+    expect(previewText).toContain("Account: Account identifier unavailable");
+    expect(previewText).toContain("Information disputed: Date last reported");
+    expect(previewText).toContain("Reported value: Aug 21, 2012");
+    expect(previewText).toContain("Reason for dispute:");
+    expect(previewText).toContain("Requested action:");
+    expect(previewText).toContain("Evidence summary");
+    expect(previewText).toContain("Attachment checklist");
+    expect(previewText).not.toContain("Rogers Communications: LasReportedDate - verify and provide basis");
+    expect(previewText).not.toMatch(/tradeline|artifact|source report|field:|PIPEDA_|2012-08-21T|LasReportedDate|sourceReportArtifactId|Account ending reau|Expected:\s*Not known/i);
   });
 
   it("does not preselect a missing or ineligible originating finding", async () => {
