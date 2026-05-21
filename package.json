@@ -84,6 +84,7 @@
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",
     "storage:raw-report-remediation-plan": "node scripts/storage-raw-report-remediation-plan.mjs",
     "storage:raw-report-remediation-acceptance": "node scripts/storage-raw-report-remediation-plan.mjs --acceptance",
+    "storage:durability-contract": "tsx scripts/storage-durability-contract.ts",
     "sensitive-list-endpoints:evidence": "node scripts/sensitive-list-endpoints-evidence.mjs",
     "restore:drill:simulated": "node scripts/restore-drill-simulated.mjs",
     "retention:archive-restore:simulated": "node scripts/retention-archive-restore-simulated.mjs",

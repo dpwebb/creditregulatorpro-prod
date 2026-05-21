@@ -8,6 +8,10 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      LOCAL_DOCUMENT_STORAGE_PATH: /app/document-storage
+    volumes:
+      - ./document-storage:/app/document-storage
     extra_hosts:
       - "host.docker.internal:host-gateway"
     network_mode: host

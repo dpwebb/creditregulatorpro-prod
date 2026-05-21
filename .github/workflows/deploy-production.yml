@@ -303,6 +303,7 @@ jobs:
             corepack enable
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
+            pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence
             pnpm run build
             docker rm -f creditregulatorpro-app 2>/dev/null || true
             docker compose up -d --build creditregulatorpro

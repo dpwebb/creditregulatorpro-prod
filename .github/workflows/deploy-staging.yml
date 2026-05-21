@@ -325,6 +325,7 @@ jobs:
             corepack enable
             corepack prepare pnpm@10 --activate
             pnpm install --frozen-lockfile
+            pnpm run storage:durability-contract -- --environment staging --compose docker-compose.yml --service creditregulatorpro-staging --preflight --no-write-evidence
             pnpm run build
 
             cleanup_staging_container() {

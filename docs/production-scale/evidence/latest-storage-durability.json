@@ -1,0 +1,95 @@
+{
+  "reportName": "storage-durability-contract",
+  "generatedAt": "2026-05-21T05:59:58.692Z",
+  "currentHead": "0676d10ec5f1ada2abf6d05ced21e2cf2c52376b",
+  "auditTarget": "P0-2 Artifact storage is not certifiably durable across deploys or rollbacks.",
+  "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
+  "liveExternalProviderCallsMade": 0,
+  "certifying": true,
+  "CERTIFYING": true,
+  "productionReadyClaim": "artifact-storage-contract-only",
+  "contracts": {
+    "staging": {
+      "status": "passed",
+      "targetEnvironment": "staging",
+      "mode": "durable-local-mount",
+      "storageRoot": "/app/document-storage",
+      "objectStorage": {
+        "configured": false,
+        "mode": null,
+        "provider": null,
+        "bucketConfigured": false,
+        "liveNetworkCallsMade": false
+      },
+      "durableLocal": {
+        "configured": true,
+        "source": "./document-storage",
+        "target": "/app/document-storage",
+        "type": "bind",
+        "explicitAck": true
+      },
+      "compose": {
+        "checked": true,
+        "path": "docker-compose.yml",
+        "service": "creditregulatorpro-staging",
+        "serviceFound": true
+      },
+      "errors": [],
+      "warnings": []
+    },
+    "production": {
+      "status": "passed",
+      "targetEnvironment": "production",
+      "mode": "durable-local-mount",
+      "storageRoot": "/app/document-storage",
+      "objectStorage": {
+        "configured": false,
+        "mode": null,
+        "provider": null,
+        "bucketConfigured": false,
+        "liveNetworkCallsMade": false
+      },
+      "durableLocal": {
+        "configured": true,
+        "source": "./document-storage",
+        "target": "/app/document-storage",
+        "type": "bind",
+        "explicitAck": true
+      },
+      "compose": {
+        "checked": true,
+        "path": "docker-compose.production.yml",
+        "service": "creditregulatorpro",
+        "serviceFound": true
+      },
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "sentinelSimulation": {
+    "status": "passed",
+    "storageUrl": "local:.storage-durability-sentinel/59eaf45d-b94c-42f0-b4f6-8d3282d2354a/artifact.pdf",
+    "expectedDigest": "0c8b360a5688bc3508fe6813042fde88f2e10f867ccc79ff395995e617d8be40",
+    "actualDigest": "0c8b360a5688bc3508fe6813042fde88f2e10f867ccc79ff395995e617d8be40",
+    "bytesWritten": 80,
+    "boundarySimulation": "write LOCAL_DOCUMENT_STORAGE_PATH, read DOCUMENT_STORAGE_PATH from the same mounted root",
+    "error": null
+  },
+  "deployPreflight": {
+    "staging": {
+      "status": "passed",
+      "missing": []
+    },
+    "production": {
+      "status": "passed",
+      "missing": []
+    }
+  },
+  "commands": [
+    "pnpm run storage:durability-contract",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-durability-contract.spec.ts tests/unit/report-artifact-storage.spec.ts tests/unit/evidence-attachment-storage.spec.ts tests/api/report-artifact-storage-reference.spec.ts",
+    "git diff --check",
+    "pnpm run check",
+    "pnpm run production-scale:evidence"
+  ]
+}
