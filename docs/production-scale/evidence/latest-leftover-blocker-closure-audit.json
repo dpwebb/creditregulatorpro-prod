@@ -1,10 +1,10 @@
 {
   "reportName": "leftover-blocker-closure-audit",
-  "generatedAt": "2026-05-21T00:24:11.292Z",
+  "generatedAt": "2026-05-21T01:36:20.734Z",
   "sourcePromotionPack": "docs/production-scale/evidence/latest-production-promotion-pack.json",
-  "sourcePromotionPackGeneratedAt": "2026-05-21T00:23:57.777Z",
+  "sourcePromotionPackGeneratedAt": "2026-05-21T01:36:03.335Z",
   "currentBranch": "staging",
-  "currentCommitHash": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
+  "currentCommitHash": "fa1d28e478a73e187a7a403ec7aea04135de3318",
   "readinessClassification": {
     "value": "limited beta",
     "canPromoteProductionAtScale": false,
@@ -64,7 +64,7 @@
       "result": "evidence-file-present",
       "status": null,
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:23:44.532Z",
+      "latestGeneratedAt": "2026-05-21T01:35:46.077Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -198,7 +198,7 @@
       "result": "evidence-file-present",
       "status": "accepted-production-deployment-parity",
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
+      "latestGeneratedAt": "2026-05-21T01:33:42.640Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
@@ -294,7 +294,7 @@
       "result": "evidence-file-present",
       "status": "accepted-warning-only-waiver",
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:20:18.797Z",
+      "latestGeneratedAt": "2026-05-21T01:35:41.565Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
@@ -569,7 +569,7 @@
       "result": "evidence-file-present",
       "status": "accepted-production-deployment-parity",
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
+      "latestGeneratedAt": "2026-05-21T01:33:42.640Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
@@ -803,7 +803,7 @@
       "result": "evidence-file-present",
       "status": null,
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:10:38.819Z",
+      "latestGeneratedAt": "2026-05-21T01:35:22.854Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-runtime-size.md",
@@ -827,7 +827,7 @@
       "result": "evidence-file-present",
       "status": "accepted-warning-only-waiver",
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:20:18.797Z",
+      "latestGeneratedAt": "2026-05-21T01:35:41.565Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
@@ -860,7 +860,7 @@
       "result": "evidence-file-present",
       "status": null,
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:23:44.532Z",
+      "latestGeneratedAt": "2026-05-21T01:35:46.077Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1148,7 +1148,7 @@
       "result": "evidence-file-present",
       "status": null,
       "resultSource": "generated evidence file",
-      "latestGeneratedAt": "2026-05-21T00:10:38.819Z",
+      "latestGeneratedAt": "2026-05-21T01:35:22.854Z",
       "evidenceFiles": [
         {
           "path": "docs/production-scale/evidence/latest-runtime-size.md",

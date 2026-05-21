@@ -1,6 +1,6 @@
 # Runtime Size And Dependency Report
 
-Generated at: 2026-05-21T00:10:38.819Z
+Generated at: 2026-05-21T01:35:22.854Z
 Script: `scripts/runtime-size-report.mjs`
 
 ## Safety
@@ -24,9 +24,9 @@ Status counts: WARN=7, WAIVED=1
 
 | Status | Policy row | Measured | Warning | Fail | Waiver / reason |
 | --- | --- | ---: | ---: | ---: | --- |
-| WARN | `main-js-raw` Largest JavaScript asset raw size | 3.13 MiB | 1.50 MiB | disabled | Metric exceeds the configured failBytes value, but this policy is warning-only for this threshold. |
-| WARN | `main-js-gzip` Largest JavaScript asset gzip size | 877.4 KiB | 500.0 KiB | disabled | Metric exceeds the configured warning threshold. |
-| WARN | `main-css-raw` Largest CSS asset raw size | 674.0 KiB | 500.0 KiB | disabled | Metric exceeds the configured warning threshold. |
+| WARN | `main-js-raw` Largest JavaScript asset raw size | 3.14 MiB | 1.50 MiB | disabled | Metric exceeds the configured failBytes value, but this policy is warning-only for this threshold. |
+| WARN | `main-js-gzip` Largest JavaScript asset gzip size | 878.8 KiB | 500.0 KiB | disabled | Metric exceeds the configured warning threshold. |
+| WARN | `main-css-raw` Largest CSS asset raw size | 674.1 KiB | 500.0 KiB | disabled | Metric exceeds the configured warning threshold. |
 | WARN | `main-css-gzip` Largest CSS asset gzip size | 101.5 KiB | 100.0 KiB | disabled | Metric exceeds the configured warning threshold. |
 | WARN | `dependency-pdfjs-dist` pdfjs-dist installed size | 34.58 MiB | 20.00 MiB | disabled | Metric exceeds the configured warning threshold. |
 | WARN | `dependency-pdf-parse` pdf-parse installed size | 27.03 MiB | 20.00 MiB | disabled | Metric exceeds the configured warning threshold. |
@@ -35,25 +35,25 @@ Status counts: WARN=7, WAIVED=1
 
 ## Frontend Build Assets
 
-Build output: `dist`, 19 tracked asset(s), 4.18 MiB total raw size.
+Build output: `dist`, 19 tracked asset(s), 4.19 MiB total raw size.
 
 | Asset | Raw | Gzip | Brotli |
 | --- | ---: | ---: | ---: |
-| `dist/_assets/index-UN-opMmL.js` | 3.13 MiB | 877.4 KiB | 686.5 KiB |
-| `dist/_assets/index-CYJKQrWs.css` | 674.0 KiB | 101.5 KiB | 76.8 KiB |
-| `dist/_assets/react-big-calendar-BZR_JgFc.js` | 136.6 KiB | 42.9 KiB | 37.9 KiB |
-| `dist/_assets/index-DE_IzuZA.js` | 132.6 KiB | 32.1 KiB | 25.8 KiB |
-| `dist/_assets/OnboardingTour-BL3b6gH8.js` | 58.3 KiB | 19.4 KiB | 17.3 KiB |
+| `dist/_assets/index-DEL5BOst.js` | 3.14 MiB | 878.8 KiB | 687.7 KiB |
+| `dist/_assets/index-Oy3e-m6C.css` | 674.1 KiB | 101.5 KiB | 76.8 KiB |
+| `dist/_assets/react-big-calendar-Cdggxsjy.js` | 136.6 KiB | 42.9 KiB | 37.9 KiB |
+| `dist/_assets/index-C9ZQ3TTx.js` | 132.6 KiB | 32.1 KiB | 25.8 KiB |
+| `dist/_assets/OnboardingTour-p7ihuno-.js` | 58.3 KiB | 19.4 KiB | 17.3 KiB |
 | `dist/_assets/index-sk2ek4N-.css` | 28.5 KiB | 4.4 KiB | 3.8 KiB |
 | `dist/_assets/react-big-calendar-Dm-SzPQi.css` | 14.0 KiB | 2.7 KiB | 2.3 KiB |
-| `dist/_assets/PacketViewer-CLvwtrVE.js` | 7.7 KiB | 2.8 KiB | 2.5 KiB |
+| `dist/_assets/PacketViewer-DXpfJyVd.js` | 7.7 KiB | 2.8 KiB | 2.5 KiB |
 | `dist/_assets/index-B9fWrEk-.js` | 6.0 KiB | 2.2 KiB | 2.0 KiB |
-| `dist/_assets/DeadlineCalendarView-D8G5hs0_.js` | 3.8 KiB | 1.5 KiB | 1.3 KiB |
+| `dist/_assets/DeadlineCalendarView-DUXfNyuO.js` | 3.8 KiB | 1.5 KiB | 1.3 KiB |
 | `dist/_assets/PacketViewer-DYFOtPtS.css` | 3.5 KiB | 1.1 KiB | 941 B |
 | `dist/_assets/DeadlineCalendarView-DRrVFbAL.css` | 3.1 KiB | 865 B | 719 B |
 | `dist/_assets/ComplianceCalendarContent-CdY8Afz5.css` | 2.4 KiB | 747 B | 603 B |
 | `dist/_assets/SourceReportPdfView-Dd36mduW.css` | 1.9 KiB | 627 B | 496 B |
-| `dist/_assets/ComplianceCalendarContent-DRt3y-pq.js` | 1.9 KiB | 893 B | 793 B |
+| `dist/_assets/ComplianceCalendarContent-Hx7LBIb1.js` | 1.9 KiB | 891 B | 791 B |
 
 ## Largest Installed Direct Dependencies
 

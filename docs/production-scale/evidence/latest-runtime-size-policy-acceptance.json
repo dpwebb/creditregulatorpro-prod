@@ -1,6 +1,6 @@
 {
   "reportName": "runtime-size-policy-acceptance",
-  "generatedAt": "2026-05-21T00:20:18.797Z",
+  "generatedAt": "2026-05-21T01:35:41.565Z",
   "status": "accepted-warning-only-waiver",
   "accepted": true,
   "acceptanceKind": "warning-only-waiver",
@@ -18,8 +18,8 @@
     "acceptedRiskStatement": "The warning-only runtime-size posture is formally accepted for limited beta and must not be represented as a release-blocking hard gate."
   },
   "runtimeEvidence": {
-    "generatedAt": "2026-05-21T00:10:38.819Z",
-    "commit": "f3d15392b4a8fdf489beeef51f5092dd59ba742d",
+    "generatedAt": "2026-05-21T01:35:22.854Z",
+    "commit": "fa1d28e478a73e187a7a403ec7aea04135de3318",
     "workingTreeClean": false,
     "overallStatus": "WARN",
     "hasBlockingFailures": false,
@@ -27,17 +27,17 @@
       "WARN": 7,
       "WAIVED": 1
     },
-    "largestJsRawBytes": 3281834,
-    "largestJsGzipBytes": 898477,
-    "largestCssRawBytes": 690152,
-    "largestCssGzipBytes": 103908
+    "largestJsRawBytes": 3288131,
+    "largestJsGzipBytes": 899845,
+    "largestCssRawBytes": 690278,
+    "largestCssGzipBytes": 103927
   },
   "warningRows": [
     {
       "id": "main-js-raw",
       "label": "Largest JavaScript asset raw size",
-      "measuredBytes": 3281834,
-      "source": "dist/_assets/index-UN-opMmL.js",
+      "measuredBytes": 3288131,
+      "source": "dist/_assets/index-DEL5BOst.js",
       "remediationAccepted": true,
       "remediation": {
         "ownerRole": "Frontend platform owner",
@@ -54,8 +54,8 @@
     {
       "id": "main-js-gzip",
       "label": "Largest JavaScript asset gzip size",
-      "measuredBytes": 898477,
-      "source": "dist/_assets/index-UN-opMmL.js",
+      "measuredBytes": 899845,
+      "source": "dist/_assets/index-DEL5BOst.js",
       "remediationAccepted": true,
       "remediation": {
         "ownerRole": "Frontend platform owner",
@@ -72,8 +72,8 @@
     {
       "id": "main-css-raw",
       "label": "Largest CSS asset raw size",
-      "measuredBytes": 690152,
-      "source": "dist/_assets/index-CYJKQrWs.css",
+      "measuredBytes": 690278,
+      "source": "dist/_assets/index-Oy3e-m6C.css",
       "remediationAccepted": true,
       "remediation": {
         "ownerRole": "UI platform owner",
@@ -90,8 +90,8 @@
     {
       "id": "main-css-gzip",
       "label": "Largest CSS asset gzip size",
-      "measuredBytes": 103908,
-      "source": "dist/_assets/index-CYJKQrWs.css",
+      "measuredBytes": 103927,
+      "source": "dist/_assets/index-Oy3e-m6C.css",
       "remediationAccepted": true,
       "remediation": {
         "ownerRole": "UI platform owner",
@@ -175,7 +175,7 @@
   ],
   "evidenceAge": {
     "determinable": true,
-    "ageHours": 0.16,
+    "ageHours": 0.01,
     "recentEnough": true,
     "reason": null
   },
@@ -188,8 +188,18 @@
       "devDependencies",
       "optionalDependencies",
       "peerDependencies"
-    ]
+    ],
+    "releaseEvidenceMode": false,
+    "baselineSource": {
+      "type": "git-ref",
+      "value": "HEAD",
+      "compatibilityMode": "local-developer-default"
+    },
+    "added": [],
+    "removed": [],
+    "changedVersions": []
   },
+  "releaseEvidenceMode": false,
   "blockerCoverage": {
     "runtimeSizeGovernance": true,
     "acceptedHardGate": false,

@@ -1,9 +1,9 @@
 {
   "report": "runtime-size-and-dependency-report",
   "script": "scripts/runtime-size-report.mjs",
-  "generatedAt": "2026-05-21T00:10:38.819Z",
+  "generatedAt": "2026-05-21T01:35:22.854Z",
   "branch": "staging",
-  "commit": "f3d15392b4a8fdf489beeef51f5092dd59ba742d",
+  "commit": "fa1d28e478a73e187a7a403ec7aea04135de3318",
   "workingTreeClean": false,
   "safety": {
     "reportingOnly": true,
@@ -17,43 +17,43 @@
   "buildAssets": {
     "distDir": "dist",
     "distPresent": true,
-    "totalBytes": 4384499,
+    "totalBytes": 4390922,
     "assetCount": 19,
     "topAssets": [
       {
-        "path": "dist/_assets/index-UN-opMmL.js",
+        "path": "dist/_assets/index-DEL5BOst.js",
         "extension": ".js",
-        "rawBytes": 3281834,
-        "gzipBytes": 898477,
-        "brotliBytes": 702985
+        "rawBytes": 3288131,
+        "gzipBytes": 899845,
+        "brotliBytes": 704239
       },
       {
-        "path": "dist/_assets/index-CYJKQrWs.css",
+        "path": "dist/_assets/index-Oy3e-m6C.css",
         "extension": ".css",
-        "rawBytes": 690152,
-        "gzipBytes": 103908,
-        "brotliBytes": 78604
+        "rawBytes": 690278,
+        "gzipBytes": 103927,
+        "brotliBytes": 78607
       },
       {
-        "path": "dist/_assets/react-big-calendar-BZR_JgFc.js",
+        "path": "dist/_assets/react-big-calendar-Cdggxsjy.js",
         "extension": ".js",
         "rawBytes": 139895,
         "gzipBytes": 43947,
-        "brotliBytes": 38821
+        "brotliBytes": 38777
       },
       {
-        "path": "dist/_assets/index-DE_IzuZA.js",
+        "path": "dist/_assets/index-C9ZQ3TTx.js",
         "extension": ".js",
         "rawBytes": 135805,
         "gzipBytes": 32820,
-        "brotliBytes": 26402
+        "brotliBytes": 26383
       },
       {
-        "path": "dist/_assets/OnboardingTour-BL3b6gH8.js",
+        "path": "dist/_assets/OnboardingTour-p7ihuno-.js",
         "extension": ".js",
         "rawBytes": 59684,
         "gzipBytes": 19884,
-        "brotliBytes": 17765
+        "brotliBytes": 17757
       },
       {
         "path": "dist/_assets/index-sk2ek4N-.css",
@@ -70,11 +70,11 @@
         "brotliBytes": 2351
       },
       {
-        "path": "dist/_assets/PacketViewer-CLvwtrVE.js",
+        "path": "dist/_assets/PacketViewer-DXpfJyVd.js",
         "extension": ".js",
         "rawBytes": 7907,
         "gzipBytes": 2889,
-        "brotliBytes": 2514
+        "brotliBytes": 2531
       },
       {
         "path": "dist/_assets/index-B9fWrEk-.js",
@@ -84,11 +84,11 @@
         "brotliBytes": 2043
       },
       {
-        "path": "dist/_assets/DeadlineCalendarView-D8G5hs0_.js",
+        "path": "dist/_assets/DeadlineCalendarView-DUXfNyuO.js",
         "extension": ".js",
         "rawBytes": 3860,
-        "gzipBytes": 1499,
-        "brotliBytes": 1345
+        "gzipBytes": 1498,
+        "brotliBytes": 1343
       },
       {
         "path": "dist/_assets/PacketViewer-DYFOtPtS.css",
@@ -119,26 +119,26 @@
         "brotliBytes": 496
       },
       {
-        "path": "dist/_assets/ComplianceCalendarContent-DRt3y-pq.js",
+        "path": "dist/_assets/ComplianceCalendarContent-Hx7LBIb1.js",
         "extension": ".js",
         "rawBytes": 1951,
-        "gzipBytes": 893,
-        "brotliBytes": 793
+        "gzipBytes": 891,
+        "brotliBytes": 791
       }
     ],
     "largestJsAsset": {
-      "path": "dist/_assets/index-UN-opMmL.js",
+      "path": "dist/_assets/index-DEL5BOst.js",
       "extension": ".js",
-      "rawBytes": 3281834,
-      "gzipBytes": 898477,
-      "brotliBytes": 702985
+      "rawBytes": 3288131,
+      "gzipBytes": 899845,
+      "brotliBytes": 704239
     },
     "largestCssAsset": {
-      "path": "dist/_assets/index-CYJKQrWs.css",
+      "path": "dist/_assets/index-Oy3e-m6C.css",
       "extension": ".css",
-      "rawBytes": 690152,
-      "gzipBytes": 103908,
-      "brotliBytes": 78604
+      "rawBytes": 690278,
+      "gzipBytes": 103927,
+      "brotliBytes": 78607
     }
   },
   "dependencies": {
@@ -530,10 +530,10 @@
           "assetType": "js",
           "field": "rawBytes"
         },
-        "measuredBytes": 3281834,
+        "measuredBytes": 3288131,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-UN-opMmL.js",
-        "detail": "dist/_assets/index-UN-opMmL.js rawBytes",
+        "source": "dist/_assets/index-DEL5BOst.js",
+        "detail": "dist/_assets/index-DEL5BOst.js rawBytes",
         "warnBytes": 1572864,
         "failBytes": 3145728,
         "failOnExceed": false,
@@ -552,10 +552,10 @@
           "assetType": "js",
           "field": "gzipBytes"
         },
-        "measuredBytes": 898477,
+        "measuredBytes": 899845,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-UN-opMmL.js",
-        "detail": "dist/_assets/index-UN-opMmL.js gzipBytes",
+        "source": "dist/_assets/index-DEL5BOst.js",
+        "detail": "dist/_assets/index-DEL5BOst.js gzipBytes",
         "warnBytes": 512000,
         "failBytes": 921600,
         "failOnExceed": false,
@@ -574,10 +574,10 @@
           "assetType": "css",
           "field": "rawBytes"
         },
-        "measuredBytes": 690152,
+        "measuredBytes": 690278,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-CYJKQrWs.css",
-        "detail": "dist/_assets/index-CYJKQrWs.css rawBytes",
+        "source": "dist/_assets/index-Oy3e-m6C.css",
+        "detail": "dist/_assets/index-Oy3e-m6C.css rawBytes",
         "warnBytes": 512000,
         "failBytes": 1048576,
         "failOnExceed": false,
@@ -596,10 +596,10 @@
           "assetType": "css",
           "field": "gzipBytes"
         },
-        "measuredBytes": 103908,
+        "measuredBytes": 103927,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-CYJKQrWs.css",
-        "detail": "dist/_assets/index-CYJKQrWs.css gzipBytes",
+        "source": "dist/_assets/index-Oy3e-m6C.css",
+        "detail": "dist/_assets/index-Oy3e-m6C.css gzipBytes",
         "warnBytes": 102400,
         "failBytes": 204800,
         "failOnExceed": false,

@@ -1,10 +1,10 @@
 # Leftover Blocker Closure Audit
 
-Generated at: 2026-05-21T00:24:11.292Z
+Generated at: 2026-05-21T01:36:20.734Z
 Source promotion pack: `docs/production-scale/evidence/latest-production-promotion-pack.json`
-Source promotion pack generated at: 2026-05-21T00:23:57.777Z
+Source promotion pack generated at: 2026-05-21T01:36:03.335Z
 Branch: `staging`
-Commit: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
+Commit: `fa1d28e478a73e187a7a403ec7aea04135de3318`
 Readiness: **limited beta**
 Can promote production-at-scale: no
 
@@ -22,7 +22,7 @@ Can promote production-at-scale: no
 
 ## Command Results
 
-- pnpm run production-scale:evidence: evidence-file-present; latest=2026-05-21T00:23:44.532Z
+- pnpm run production-scale:evidence: evidence-file-present; latest=2026-05-21T01:35:46.077Z
 - pnpm run production-scale:promotion-pack: reference-required
 - pnpm run operator:dashboard: reference-required
 - pnpm run typecheck: reference-required
@@ -33,11 +33,11 @@ Can promote production-at-scale: no
 - pnpm run restore:evidence:current-check: evidence-file-present; status=simulated-only; latest=2026-05-21T00:19:58.813Z
 - pnpm run ingest:worker:staging-evidence: evidence-file-present; status=accepted-staging-queue-drain; latest=2026-05-21T00:20:22.209Z
 - pnpm run production-worker:activation-evidence: evidence-file-present; status=prepared-default-off; latest=2026-05-21T00:19:58.836Z
-- pnpm run production-deployment-parity:evidence: evidence-file-present; status=accepted-production-deployment-parity; latest=2026-05-21T00:19:58.836Z
+- pnpm run production-deployment-parity:evidence: evidence-file-present; status=accepted-production-deployment-parity; latest=2026-05-21T01:33:42.640Z
 - pnpm run response-ops:readiness-evidence: evidence-file-present; status=operator-ready-with-deferred-controls; latest=2026-05-21T00:20:11.502Z
 - pnpm run migrations:gate: evidence-file-present; status=accepted-formal-waiver; latest=2026-05-21T00:20:18.719Z
 - pnpm run baseline:production-scale-measured -- --local: evidence-file-present; status=passed; latest=2026-05-21T00:20:40.403Z
-- pnpm run runtime-size:policy-acceptance: evidence-file-present; status=accepted-warning-only-waiver; latest=2026-05-21T00:20:18.797Z
+- pnpm run runtime-size:policy-acceptance: evidence-file-present; status=accepted-warning-only-waiver; latest=2026-05-21T01:35:41.565Z
 - pnpm run storage:raw-report-remediation-plan: evidence-file-present; status=inventory-unreliable; latest=2026-05-21T00:20:18.909Z
 - pnpm run storage:raw-report-remediation-acceptance: evidence-file-present; status=not-submitted; latest=2026-05-21T00:20:40.418Z
 
