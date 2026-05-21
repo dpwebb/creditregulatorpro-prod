@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   buildSimulatedIngestWorkerProofReport,
@@ -13,6 +13,8 @@ import {
 } from "../../scripts/ingest-worker-simulated-proof";
 
 const tempRoots: string[] = [];
+let sharedRootDir = "";
+let sharedReport: Awaited<ReturnType<typeof buildSimulatedIngestWorkerProofReport>>;
 
 function makeTempRoot() {
   const root = mkdtempSync(join(tmpdir(), "crp-simulated-ingest-worker-test-"));
@@ -20,7 +22,16 @@ function makeTempRoot() {
   return root;
 }
 
-afterEach(() => {
+beforeAll(async () => {
+  sharedRootDir = makeTempRoot();
+  sharedReport = await buildSimulatedIngestWorkerProofReport({
+    rootDir: sharedRootDir,
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    env: {},
+  });
+}, 60_000);
+
+afterAll(() => {
   while (tempRoots.length > 0) {
     const root = tempRoots.pop();
     if (root) rmSync(root, { recursive: true, force: true });
@@ -29,15 +40,9 @@ afterEach(() => {
 
 describe("simulated ingest worker queue-drain proof", () => {
   it("creates markdown and json evidence with queue depth before and after", async () => {
-    const rootDir = makeTempRoot();
-    const report = await buildSimulatedIngestWorkerProofReport({
-      rootDir,
-      generatedAt: "2026-05-20T12:00:00.000Z",
-      env: {},
-    });
-    const outputs = writeSimulatedIngestWorkerProofEvidence(report, { rootDir });
-    const markdownPath = join(rootDir, outputs.markdownPath);
-    const jsonPath = join(rootDir, outputs.jsonPath);
+    const outputs = writeSimulatedIngestWorkerProofEvidence(sharedReport, { rootDir: sharedRootDir });
+    const markdownPath = join(sharedRootDir, outputs.markdownPath);
+    const jsonPath = join(sharedRootDir, outputs.jsonPath);
 
     expect(existsSync(markdownPath)).toBe(true);
     expect(existsSync(jsonPath)).toBe(true);
@@ -66,68 +71,39 @@ describe("simulated ingest worker queue-drain proof", () => {
   });
 
   it("proves dry-run does not mutate synthetic queue state", async () => {
-    const report = await buildSimulatedIngestWorkerProofReport({
-      rootDir: makeTempRoot(),
-      generatedAt: "2026-05-20T12:00:00.000Z",
-      env: {},
-    });
-
-    expect(report.dryRun.exitCode).toBe(0);
-    expect(report.dryRun.mutatedQueueState).toBe(false);
-    expect(report.dryRun.workerLogs.join("\n")).toContain("dry_run_preview");
+    expect(sharedReport.dryRun.exitCode).toBe(0);
+    expect(sharedReport.dryRun.mutatedQueueState).toBe(false);
+    expect(sharedReport.dryRun.workerLogs.join("\n")).toContain("dry_run_preview");
   });
 
   it("proves bounded apply touches only the synthetic staging-safe source scope", async () => {
-    const report = await buildSimulatedIngestWorkerProofReport({
-      rootDir: makeTempRoot(),
-      generatedAt: "2026-05-20T12:00:00.000Z",
-      env: {},
-    });
-
-    expect(report.queueScope.source).toBe(SIMULATED_INGEST_WORKER_SOURCE);
-    expect(report.boundedApply.touchedOutOfScopeJobs).toBe(false);
-    expect(report.queueDepth.after.succeeded).toBe(2);
-    expect(report.queueDepth.after.deadLettered).toBe(1);
-    expect(report.queueDepth.after.staleQueuedOrRunning).toBe(0);
+    expect(sharedReport.queueScope.source).toBe(SIMULATED_INGEST_WORKER_SOURCE);
+    expect(sharedReport.boundedApply.touchedOutOfScopeJobs).toBe(false);
+    expect(sharedReport.queueDepth.after.succeeded).toBe(2);
+    expect(sharedReport.queueDepth.after.deadLettered).toBe(1);
+    expect(sharedReport.queueDepth.after.staleQueuedOrRunning).toBe(0);
   });
 
   it("proves empty queue exits cleanly after the synthetic scope is drained", async () => {
-    const report = await buildSimulatedIngestWorkerProofReport({
-      rootDir: makeTempRoot(),
-      generatedAt: "2026-05-20T12:00:00.000Z",
-      env: {},
-    });
-
-    expect(report.emptyQueue.exitCode).toBe(0);
-    expect(report.emptyQueue.cleanExit).toBe(true);
-    expect(report.emptyQueue.workerLogs.join("\n")).toContain("idle");
+    expect(sharedReport.emptyQueue.exitCode).toBe(0);
+    expect(sharedReport.emptyQueue.cleanExit).toBe(true);
+    expect(sharedReport.emptyQueue.workerLogs.join("\n")).toContain("idle");
   });
 
   it("proves malformed synthetic jobs create visible lifecycle and dead-letter evidence", async () => {
-    const report = await buildSimulatedIngestWorkerProofReport({
-      rootDir: makeTempRoot(),
-      generatedAt: "2026-05-20T12:00:00.000Z",
-      env: {},
-    });
-
-    expect(report.deadLetter.visible).toBe(true);
-    expect(report.deadLetter.status).toBe("dead_lettered");
-    expect(report.deadLetter.errorCode).toBe("SIMULATED_MALFORMED_SYNTHETIC_JOB");
-    expect(report.deadLetter.eventTypes).toEqual(expect.arrayContaining(["claimed", "dead_lettered"]));
+    expect(sharedReport.deadLetter.visible).toBe(true);
+    expect(sharedReport.deadLetter.status).toBe("dead_lettered");
+    expect(sharedReport.deadLetter.errorCode).toBe("SIMULATED_MALFORMED_SYNTHETIC_JOB");
+    expect(sharedReport.deadLetter.eventTypes).toEqual(expect.arrayContaining(["claimed", "dead_lettered"]));
   });
 
   it("does not render simulated proof as production proof or call live providers", async () => {
-    const report = await buildSimulatedIngestWorkerProofReport({
-      rootDir: makeTempRoot(),
-      generatedAt: "2026-05-20T12:00:00.000Z",
-      env: {},
-    });
-    const markdown = renderSimulatedIngestWorkerProofMarkdown(report);
+    const markdown = renderSimulatedIngestWorkerProofMarkdown(sharedReport);
 
-    expect(validateSimulatedIngestWorkerProofReport(report)).toEqual({ ok: true, errors: [] });
-    expect(report.safety.liveExternalProvidersConnected).toBe(false);
-    expect(report.safety.externalProviderCallsMade).toBe(0);
-    expect(report.safety.simulatedEvidenceIsProductionProof).toBe(false);
+    expect(validateSimulatedIngestWorkerProofReport(sharedReport)).toEqual({ ok: true, errors: [] });
+    expect(sharedReport.safety.liveExternalProvidersConnected).toBe(false);
+    expect(sharedReport.safety.externalProviderCallsMade).toBe(0);
+    expect(sharedReport.safety.simulatedEvidenceIsProductionProof).toBe(false);
     expect(markdown).toContain("SIMULATED evidence is not production proof.");
     expect(markdown).toContain("Production deployment or worker activation changed: no");
   });
