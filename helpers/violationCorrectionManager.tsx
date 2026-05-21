@@ -26,6 +26,12 @@ import {
 type CorrectionRow = Selectable<ViolationCorrection>;
 type EvidenceRow = Selectable<ViolationCorrectionEvidence>;
 type RegulationReferenceRow = Selectable<ViolationRegulationReference>;
+type DbExecutor = Pick<typeof db, "selectFrom" | "insertInto" | "updateTable">;
+
+export type FinalizeCorrectionAuditContext = {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
 
 export type { TradelineArtifactLink } from "./violationCorrectionArtifactLinks";
 
@@ -84,8 +90,11 @@ export async function listTradelineIdsForReportArtifact(reportArtifactId: number
   return listTradelineIdsFromArtifactLinks(links, reportArtifactId);
 }
 
-export async function requireCorrection(correctionId: number): Promise<CorrectionRow> {
-  const correction = await db
+export async function requireCorrection(
+  correctionId: number,
+  database: DbExecutor = db
+): Promise<CorrectionRow> {
+  const correction = await database
     .selectFrom("violationCorrection")
     .selectAll()
     .where("id", "=", correctionId)
@@ -98,8 +107,8 @@ export async function requireCorrection(correctionId: number): Promise<Correctio
   return correction;
 }
 
-export async function requireExtractionRun(runId: number) {
-  const run = await db
+export async function requireExtractionRun(runId: number, database: DbExecutor = db) {
+  const run = await database
     .selectFrom("passExtraction")
     .innerJoin("reportArtifact", "reportArtifact.id", "passExtraction.reportArtifactId")
     .select([
@@ -159,11 +168,12 @@ export async function requireTradelineForRun(tradelineId: number, extractionRunI
 
 export async function requireViolationForTradeline(
   violationId: number | null | undefined,
-  tradelineId: number
+  tradelineId: number,
+  database: DbExecutor = db
 ): Promise<Selectable<CreditorObligationTest> | null> {
   if (!violationId) return null;
 
-  const violation = await db
+  const violation = await database
     .selectFrom("creditorObligationTest")
     .selectAll()
     .where("id", "=", violationId)
@@ -180,8 +190,11 @@ export async function requireViolationForTradeline(
   return violation;
 }
 
-export async function getCorrectionEvidence(correctionId: number): Promise<EvidenceRow[]> {
-  return await db
+export async function getCorrectionEvidence(
+  correctionId: number,
+  database: DbExecutor = db
+): Promise<EvidenceRow[]> {
+  return await database
     .selectFrom("violationCorrectionEvidence")
     .selectAll()
     .where("correctionId", "=", correctionId)
@@ -189,8 +202,11 @@ export async function getCorrectionEvidence(correctionId: number): Promise<Evide
     .execute();
 }
 
-export async function getCorrectionRegulationReferences(correctionId: number): Promise<RegulationReferenceRow[]> {
-  return await db
+export async function getCorrectionRegulationReferences(
+  correctionId: number,
+  database: DbExecutor = db
+): Promise<RegulationReferenceRow[]> {
+  return await database
     .selectFrom("violationRegulationReference")
     .selectAll()
     .where("correctionId", "=", correctionId)
@@ -198,20 +214,20 @@ export async function getCorrectionRegulationReferences(correctionId: number): P
     .execute();
 }
 
-async function getTrainingExample(correctionId: number) {
-  return await db
+async function getTrainingExample(correctionId: number, database: DbExecutor = db) {
+  return await database
     .selectFrom("violationTrainingExample")
     .selectAll()
     .where("correctionId", "=", correctionId)
     .executeTakeFirst();
 }
 
-export async function getCorrectionDetail(correctionId: number) {
-  const correction = await requireCorrection(correctionId);
+export async function getCorrectionDetail(correctionId: number, database: DbExecutor = db) {
+  const correction = await requireCorrection(correctionId, database);
   const [evidence, regulationReferences, trainingExample] = await Promise.all([
-    getCorrectionEvidence(correctionId),
-    getCorrectionRegulationReferences(correctionId),
-    getTrainingExample(correctionId),
+    getCorrectionEvidence(correctionId, database),
+    getCorrectionRegulationReferences(correctionId, database),
+    getTrainingExample(correctionId, database),
   ]);
 
   return {
@@ -236,11 +252,15 @@ export function normalizeCorrectionTextFields(input: {
   };
 }
 
-export async function buildTrainingExamplePayload(correctionId: number) {
-  const correction = await requireCorrection(correctionId);
+export async function buildTrainingExamplePayload(
+  correctionId: number,
+  database: DbExecutor = db,
+  correctionOverride?: CorrectionRow
+) {
+  const correction = correctionOverride ?? await requireCorrection(correctionId, database);
   const [run, tradeline, originalViolation, evidence, regulationReferences] = await Promise.all([
-    requireExtractionRun(correction.extractionRunId),
-    db
+    requireExtractionRun(correction.extractionRunId, database),
+    database
       .selectFrom("tradeline")
       .leftJoin("creditor", "creditor.id", "tradeline.creditorId")
       .leftJoin("bureau", "bureau.id", "tradeline.bureauId")
@@ -249,14 +269,14 @@ export async function buildTrainingExamplePayload(correctionId: number) {
       .where("tradeline.id", "=", correction.tradelineId)
       .executeTakeFirst(),
     correction.originalViolationId
-      ? db
+      ? database
           .selectFrom("creditorObligationTest")
           .selectAll()
           .where("id", "=", correction.originalViolationId)
           .executeTakeFirst()
       : Promise.resolve(null),
-    getCorrectionEvidence(correctionId),
-    getCorrectionRegulationReferences(correctionId),
+    getCorrectionEvidence(correctionId, database),
+    getCorrectionRegulationReferences(correctionId, database),
   ]);
 
   if (!tradeline) {
@@ -318,13 +338,17 @@ export async function buildTrainingExamplePayload(correctionId: number) {
   };
 }
 
-export async function upsertTrainingExampleForCorrection(correctionId: number) {
-  const payload = await buildTrainingExamplePayload(correctionId);
+export async function upsertTrainingExampleForCorrection(
+  correctionId: number,
+  database: DbExecutor = db,
+  correctionOverride?: CorrectionRow
+) {
+  const payload = await buildTrainingExamplePayload(correctionId, database, correctionOverride);
   const now = new Date();
 
-  const existing = await getTrainingExample(correctionId);
+  const existing = await getTrainingExample(correctionId, database);
   if (existing) {
-    return await db
+    return await database
       .updateTable("violationTrainingExample")
       .set({
         inputContextJson: payload.inputContextJson,
@@ -339,7 +363,7 @@ export async function upsertTrainingExampleForCorrection(correctionId: number) {
       .executeTakeFirstOrThrow();
   }
 
-  return await db
+  return await database
     .insertInto("violationTrainingExample")
     .values({
       correctionId,
@@ -355,59 +379,153 @@ export async function upsertTrainingExampleForCorrection(correctionId: number) {
     .executeTakeFirstOrThrow();
 }
 
-export async function finalizeCorrection(correctionId: number, adminUserId: number) {
-  const correction = await requireCorrection(correctionId);
-  const [evidence, regulationReferences, originalViolation] = await Promise.all([
-    getCorrectionEvidence(correctionId),
-    getCorrectionRegulationReferences(correctionId),
-    requireViolationForTradeline(correction.originalViolationId, correction.tradelineId),
-  ]);
-
-  const activeRegulationReferenceCount = regulationReferences.filter(
-    (ref) => ref.mappingStatus !== "incorrect"
-  ).length;
-
-  const errors = validateCorrectionFinalizeRequirements({
-    action: correction.correctionAction as ViolationCorrectionAction,
-    originalViolationId: correction.originalViolationId,
-    trainingNoteOnly: correction.trainingNoteOnly,
-    evidenceCount: evidence.length,
-    activeRegulationReferenceCount,
-  });
-
-  if (errors.length > 0) {
-    throw new BusinessRuleError(errors.join(" "), 400);
+async function recordFinalizationFailure(input: {
+  correction: CorrectionRow | null;
+  correctionId: number;
+  adminUserId: number;
+  error: unknown;
+  audit?: FinalizeCorrectionAuditContext;
+}) {
+  try {
+    await db
+      .insertInto("auditLog")
+      .values({
+        actionType: "UPDATE",
+        entityType: "TRADELINE",
+        entityId: input.correction?.tradelineId ?? null,
+        userId: input.adminUserId,
+        details: {
+          action: "violation_correction_finalization_failed",
+          correctionId: input.correctionId,
+          finalizationStatus: "failed",
+          finalizedStatusApplied: false,
+          rollbackExpected: true,
+          error: input.error instanceof Error ? input.error.message : String(input.error),
+        } as Json,
+        status: "FAILURE",
+        timestamp: new Date(),
+        ipAddress: input.audit?.ipAddress ?? null,
+        userAgent: input.audit?.userAgent ?? null,
+      })
+      .execute();
+  } catch (auditError) {
+    console.warn(JSON.stringify({
+      level: "WARN",
+      component: "violationCorrectionManager",
+      message: "Failed to write violation correction finalization failure audit",
+      correctionId: input.correctionId,
+      error: auditError instanceof Error ? auditError.message : String(auditError),
+      timestamp: new Date().toISOString(),
+    }));
   }
+}
 
-  const label =
-    (correction.trainingLabel as ViolationTrainingLabel | null) ??
-    deriveTrainingLabel({
-      action: correction.correctionAction as ViolationCorrectionAction,
-      originalViolationId: correction.originalViolationId,
-      correctedViolationType: correction.correctedViolationType,
-      originalViolationType: originalViolation?.violationCategory ?? null,
+export async function finalizeCorrection(
+  correctionId: number,
+  adminUserId: number,
+  options: { audit?: FinalizeCorrectionAuditContext } = {}
+) {
+  let attemptedCorrection: CorrectionRow | null = null;
+
+  try {
+    return await db.transaction().execute(async (trx) => {
+      const correction = await requireCorrection(correctionId, trx);
+      attemptedCorrection = correction;
+      const [evidence, regulationReferences, originalViolation] = await Promise.all([
+        getCorrectionEvidence(correctionId, trx),
+        getCorrectionRegulationReferences(correctionId, trx),
+        requireViolationForTradeline(correction.originalViolationId, correction.tradelineId, trx),
+      ]);
+
+      const activeRegulationReferenceCount = regulationReferences.filter(
+        (ref) => ref.mappingStatus !== "incorrect"
+      ).length;
+
+      const errors = validateCorrectionFinalizeRequirements({
+        action: correction.correctionAction as ViolationCorrectionAction,
+        originalViolationId: correction.originalViolationId,
+        trainingNoteOnly: correction.trainingNoteOnly,
+        evidenceCount: evidence.length,
+        activeRegulationReferenceCount,
+      });
+
+      if (errors.length > 0) {
+        throw new BusinessRuleError(errors.join(" "), 400);
+      }
+
+      const label =
+        (correction.trainingLabel as ViolationTrainingLabel | null) ??
+        deriveTrainingLabel({
+          action: correction.correctionAction as ViolationCorrectionAction,
+          originalViolationId: correction.originalViolationId,
+          correctedViolationType: correction.correctedViolationType,
+          originalViolationType: originalViolation?.violationCategory ?? null,
+        });
+
+      const now = new Date();
+      const finalizationMetadata = {
+        status: "finalized",
+        trainingLabel: label,
+        finalizedByAdminId: adminUserId,
+        finalReviewedAt: now,
+        updatedAt: now,
+      };
+
+      await trx
+        .updateTable("violationCorrection")
+        .set(finalizationMetadata)
+        .where("id", "=", correctionId)
+        .execute();
+
+      const finalizedCorrection = {
+        ...correction,
+        ...finalizationMetadata,
+      } as CorrectionRow;
+      const trainingExample = await upsertTrainingExampleForCorrection(
+        correctionId,
+        trx,
+        finalizedCorrection,
+      );
+
+      await trx
+        .insertInto("auditLog")
+        .values({
+          actionType: "UPDATE",
+          entityType: "TRADELINE",
+          entityId: correction.tradelineId,
+          userId: adminUserId,
+          details: {
+            action: "violation_correction_finalized",
+            correctionId,
+            trainingExampleId: trainingExample.id,
+            finalizationStatus: "complete",
+          } as Json,
+          status: "SUCCESS",
+          timestamp: now,
+          ipAddress: options.audit?.ipAddress ?? null,
+          userAgent: options.audit?.userAgent ?? null,
+        })
+        .execute();
+
+      const detail = await getCorrectionDetail(correctionId, trx);
+
+      return {
+        correction: detail,
+        trainingExample,
+      };
     });
-
-  const now = new Date();
-  await db
-    .updateTable("violationCorrection")
-    .set({
-      status: "finalized",
-      trainingLabel: label,
-      finalizedByAdminId: adminUserId,
-      finalReviewedAt: now,
-      updatedAt: now,
-    })
-    .where("id", "=", correctionId)
-    .execute();
-
-  const trainingExample = await upsertTrainingExampleForCorrection(correctionId);
-  const detail = await getCorrectionDetail(correctionId);
-
-  return {
-    correction: detail,
-    trainingExample,
-  };
+  } catch (error) {
+    if (!(error instanceof BusinessRuleError)) {
+      await recordFinalizationFailure({
+        correction: attemptedCorrection,
+        correctionId,
+        adminUserId,
+        audit: options.audit,
+        error,
+      });
+    }
+    throw error;
+  }
 }
 
 export function summarizeRegulationReference(ref: Pick<

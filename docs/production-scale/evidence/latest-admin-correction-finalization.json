@@ -1,0 +1,101 @@
+{
+  "generatedAt": "2026-05-21T07:37:20.7386940-03:00",
+  "currentBranch": "staging",
+  "currentHead": "82f0e9fd4967996200e18ab91da11729a6f8c166",
+  "scope": "P2-8 admin correction finalization transaction safety.",
+  "certifying": false,
+  "certifyingReason": "The finalization transaction tests and repo-supported validation passed, but the exact requested Vitest command with --runInBand fails before test execution because Vitest 4.1.5 does not support that option.",
+  "implementation": {
+    "patchedFiles": [
+      "helpers/violationCorrectionManager.tsx",
+      "endpoints/admin/violation-correction/finalize_POST.ts",
+      "tests/unit/violation-correction-finalization-transaction.spec.ts",
+      "tests/api/admin-violation-correction-endpoint.spec.ts"
+    ],
+    "preservedSubsystems": [
+      "admin correction endpoint flow",
+      "violation correction manager",
+      "correction-as-truth behavior",
+      "training example payload shape",
+      "correction detail response shape",
+      "existing finalize validation rules",
+      "existing violation correction replay filters"
+    ],
+    "transactionBoundary": {
+      "correctionStatusUpdate": "transactional",
+      "trainingExampleUpsert": "transactional",
+      "successAuditWrite": "transactional",
+      "unexpectedFailureAuditWrite": "best-effort outside rolled-back transaction",
+      "asynchronousSubsteps": []
+    },
+    "operatorVisibleFailureStatus": {
+      "surface": "auditLog",
+      "action": "violation_correction_finalization_failed",
+      "status": "FAILURE",
+      "finalizedStatusApplied": false,
+      "rollbackExpected": true
+    }
+  },
+  "automatedEvidence": [
+    {
+      "requirement": "simulated failure after status update rolls back or records pending/degraded, not false finalized",
+      "test": "tests/unit/violation-correction-finalization-transaction.spec.ts",
+      "status": "PASS",
+      "evidence": "Training insert failure after status update rejects and records failure audit metadata without success audit."
+    },
+    {
+      "requirement": "successful finalization writes correction status, training material, and audit metadata consistently",
+      "test": "tests/unit/violation-correction-finalization-transaction.spec.ts",
+      "status": "PASS",
+      "evidence": "Status update, training insert, and success audit are recorded under the transaction scope."
+    },
+    {
+      "requirement": "retry after failed finalization is idempotent",
+      "test": "tests/unit/violation-correction-finalization-transaction.spec.ts",
+      "status": "PASS",
+      "evidence": "Success-audit failure rejects with failure audit; retry finalizes correction and training consistently."
+    },
+    {
+      "requirement": "existing violation correction tests pass",
+      "test": "pnpm run test:violation-corrections",
+      "status": "PASS"
+    }
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/violation-correction-finalization-transaction.spec.ts",
+      "status": "PASS",
+      "summary": "1 file, 3 tests passed."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api/admin-violation-correction-endpoint.spec.ts",
+      "status": "PASS",
+      "summary": "1 file, 11 tests passed."
+    },
+    {
+      "command": "pnpm run test:violation-corrections",
+      "status": "PASS",
+      "summary": "Existing violation correction regression checks passed."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit tests/api --runInBand",
+      "status": "FAIL",
+      "summary": "Vitest 4.1.5 rejects --runInBand before tests execute."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit tests/api",
+      "status": "PASS",
+      "summary": "193 files, 1463 tests passed."
+    },
+    {
+      "command": "pnpm run check",
+      "status": "PASS",
+      "summary": "Build, golden path, unit suite, deterministic ingestion report, credit parser regression, tradeline internal checks, and violation correction regression passed."
+    }
+  ]
+}

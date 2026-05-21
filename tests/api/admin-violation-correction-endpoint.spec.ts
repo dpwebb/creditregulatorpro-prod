@@ -486,7 +486,7 @@ describe("admin violation correction endpoint truth-loop coverage", () => {
     expect(mocks.upsertTrainingExampleForCorrection).not.toHaveBeenCalled();
   });
 
-  it("finalizes only through the approved finalize endpoint and writes bounded audit details", async () => {
+  it("finalizes only through the approved finalize endpoint and passes bounded audit context", async () => {
     const response = await finalizeCorrection(
       postRequest("/_api/admin/violation-correction/finalize", {
         correctionId: 501,
@@ -498,20 +498,17 @@ describe("admin violation correction endpoint truth-loop coverage", () => {
       correction: expect.objectContaining({ id: 501, status: "finalized" }),
       trainingExample: expect.objectContaining({ id: 8801, correctionId: 501 }),
     });
-    expect(mocks.finalizeCorrection).toHaveBeenCalledWith(501, 101);
-    expect(valuesFor("auditLog")[0]).toMatchObject({
-      actionType: "UPDATE",
-      entityType: "TRADELINE",
-      entityId: 801,
-      userId: 101,
-      details: {
-        action: "violation_correction_finalized",
-        correctionId: 501,
-        trainingExampleId: 8801,
+    expect(mocks.finalizeCorrection).toHaveBeenCalledWith(
+      501,
+      101,
+      {
+        audit: {
+          ipAddress: "127.0.0.1",
+          userAgent: "synthetic-admin-correction-test",
+        },
       },
-      status: "SUCCESS",
-    });
-    expectAuditSafe((valuesFor("auditLog")[0] as Record<string, unknown>).details);
+    );
+    expect(valuesFor("auditLog")).toEqual([]);
   });
 
   it("surfaces finalize validation failures without writing audit state", async () => {
