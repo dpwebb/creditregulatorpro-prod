@@ -147,6 +147,7 @@ describe("storage durability contract", () => {
 
   it("parses preflight arguments", () => {
     expect(parseStorageDurabilityContractArgs([
+      "--",
       "--environment",
       "staging",
       "--compose",

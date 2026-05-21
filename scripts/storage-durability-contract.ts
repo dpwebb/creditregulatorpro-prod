@@ -528,7 +528,9 @@ export function parseStorageDurabilityContractArgs(args: string[]): CliOptions {
       return next;
     };
 
-    if (arg === "--environment" || arg === "--env") {
+    if (arg === "--") {
+      continue;
+    } else if (arg === "--environment" || arg === "--env") {
       const environment = value();
       if (!["local", "staging", "production"].includes(environment)) {
         throw new Error("--environment must be local, staging, or production.");
