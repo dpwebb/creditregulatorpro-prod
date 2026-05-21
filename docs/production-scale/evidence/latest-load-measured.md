@@ -2,9 +2,9 @@
 
 Measured local/staging-safe evidence only. This command refuses production hosts, production-like environments, live providers, real reports, and PII.
 
-Generated at: 2026-05-21T00:20:40.403Z
+Generated at: 2026-05-21T02:36:59.020Z
 Branch: `staging`
-Commit: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
+Commit: `0784abc525ade21a13bce3078186a04f0584f8a0`
 Mode: measured-local
 Evidence type: MEASURED_LOCAL
 Target context: localhost (local)
@@ -19,7 +19,7 @@ Threshold policy mode: release-blocking
 - Concurrency: 2
 - Observed max concurrency: 2
 - Iterations: 2
-- Latency p50/p95/max ms: 21.28/43.6/48.46
+- Latency p50/p95/max ms: 20.48/35.32/43.9
 
 ## Queue Depth
 
@@ -46,7 +46,7 @@ Threshold policy mode: release-blocking
 - Total PDF requests: 6
 - Cache hits: 4
 - Cache misses: 2
-- Cache miss p50/p95/max ms: 12.07/16.48/16.48
+- Cache miss p50/p95/max ms: 12.33/15.41/15.41
 
 ## Operator Dashboard References
 
@@ -60,8 +60,8 @@ Threshold policy mode: release-blocking
 - [pass] minQueueJobCount: actual=16; expected=4
 - [pass] maxConcurrency: actual=2; expected=4
 - [pass] maxFailureRate: actual=0; expected=0
-- [pass] maxLatencyP95Ms: actual=43.6; expected=250
-- [pass] maxLatencyMaxMs: actual=48.46; expected=1000
+- [pass] maxLatencyP95Ms: actual=35.32; expected=250
+- [pass] maxLatencyMaxMs: actual=43.9; expected=1000
 - [pass] maxQueueDepthAfter: actual=0; expected=0
 - [pass] maxStaleQueueCount: actual=0; expected=0
 - [pass] minRateLimiterAccepted: actual=2; expected=1
