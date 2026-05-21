@@ -55,6 +55,13 @@ type SyntheticQueueState = {
   nextEventId: number;
   generatedAt: string;
   artifactStatusUpdates: Array<{ artifactId: number; status: string }>;
+  workerHeartbeats: Array<{
+    workerId: string;
+    source: string | null;
+    status: string;
+    dryRun: boolean | null;
+    jobId: number | null;
+  }>;
   externalProviderCallsMade: number;
   pipelineCallsMade: number;
 };
@@ -187,6 +194,7 @@ function createSyntheticQueueState(generatedAt: string): SyntheticQueueState {
     nextEventId: 1000,
     generatedAt,
     artifactStatusUpdates: [],
+    workerHeartbeats: [],
     externalProviderCallsMade: 0,
     pipelineCallsMade: 0,
   };
@@ -396,6 +404,31 @@ function createSyntheticWorkerDependencies(state: SyntheticQueueState): IngestWo
         errorCode: params.errorCode ?? null,
         errorReason: params.errorReason ?? null,
       });
+    },
+    recordHeartbeat: async ({ workerId, source, status, details }) => {
+      const normalizedDetails = details && typeof details === "object" && !Array.isArray(details)
+        ? details as Record<string, Json>
+        : {};
+      state.workerHeartbeats.push({
+        workerId,
+        source: source ?? null,
+        status,
+        dryRun: typeof normalizedDetails.dryRun === "boolean" ? normalizedDetails.dryRun : null,
+        jobId: typeof normalizedDetails.jobId === "number" ? normalizedDetails.jobId : null,
+      });
+      return {
+        workerId,
+        source: source ?? null,
+        status,
+        lastSeenAt: state.generatedAt,
+        details: {
+          evidenceType: "SIMULATED",
+          syntheticFixture: true,
+          rawReportBytesLogged: false,
+          extractedReportTextLogged: false,
+          ...normalizedDetails,
+        },
+      };
     },
     updateArtifactStatus: async (artifactId, status) => {
       state.artifactStatusUpdates.push({ artifactId, status });
@@ -630,6 +663,7 @@ export async function buildSimulatedIngestWorkerProofReport({
       artifactStatusUpdates: state.artifactStatusUpdates,
       jobs: summarizeJobs(state, SIMULATED_INGEST_WORKER_SOURCE),
     },
+    workerHeartbeats: state.workerHeartbeats,
     safety: {
       evidenceType: "SIMULATED",
       syntheticFixturesOnly: true,

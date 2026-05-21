@@ -73,6 +73,7 @@ describe("simulated ingest worker queue-drain proof", () => {
   it("proves dry-run does not mutate synthetic queue state", async () => {
     expect(sharedReport.dryRun.exitCode).toBe(0);
     expect(sharedReport.dryRun.mutatedQueueState).toBe(false);
+    expect(sharedReport.workerHeartbeats.some((heartbeat) => heartbeat.status === "dry_run_preview")).toBe(true);
     expect(sharedReport.dryRun.workerLogs.join("\n")).toContain("dry_run_preview");
   });
 
@@ -87,6 +88,7 @@ describe("simulated ingest worker queue-drain proof", () => {
   it("proves empty queue exits cleanly after the synthetic scope is drained", async () => {
     expect(sharedReport.emptyQueue.exitCode).toBe(0);
     expect(sharedReport.emptyQueue.cleanExit).toBe(true);
+    expect(sharedReport.workerHeartbeats.some((heartbeat) => heartbeat.status === "idle" && heartbeat.dryRun === false)).toBe(true);
     expect(sharedReport.emptyQueue.workerLogs.join("\n")).toContain("idle");
   });
 
