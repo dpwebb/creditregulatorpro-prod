@@ -19,12 +19,14 @@ import { snapshotDisputedTradelines, detectAndRecordSilentCorrections } from "./
 import { getLatestTwoSnapshots, createSnapshotsForBatch } from "./tradelineSnapshotManager";
 import { detectSnapshotChanges } from "./changeDetector";
 import { assessPendingPacketImpacts } from "./packetImpactAssessor";
-import { updateArtifactProcessingStatus } from "./ingestProcessingStatus";
 import { ResolvedUserSession } from "./ingestSessionResolver";
 import { ParserQualityAssessment } from "./parserQuality";
 import { extractCanonicalCreditReport } from "./canonicalCreditReportExtractor";
 import { evaluateDisputeOutcomesForTradeline } from "./disputeOutcomeEvaluator";
-import type { DeterministicPipelinePackage } from "./deterministicCreditReportPipeline";
+import {
+  stableCanonicalJson,
+  type DeterministicPipelinePackage,
+} from "./deterministicCreditReportPipeline";
 import type { DeterministicReplayValidation } from "./deterministicReplayValidator";
 import type { DeterministicOcrCoordinateIndex } from "./deterministicOcr";
 import type { PdfjsCoordinateIndex } from "./pdfjsEvidenceCoordinates";
@@ -50,6 +52,239 @@ export interface PipelineParams {
 }
 
 const COMPLIANCE_SCAN_CONCURRENCY = 4;
+
+export type IngestStageKey =
+  | "artifact_stored"
+  | "extraction_snapshot_stored"
+  | "canonical_mapping_stored"
+  | "evidence_index_stored"
+  | "compliance_scan_stored"
+  | "replay_payload_stored"
+  | "comprehensive_sidecar_stored"
+  | "report_promoted_complete";
+
+export type IngestStageStatus = "pending" | "stored" | "failed" | "degraded";
+
+export type IngestStageRecord = {
+  status: IngestStageStatus;
+  updatedAt: string;
+  details?: Record<string, unknown>;
+  error?: string;
+};
+
+export type IngestStagePersistence = {
+  version: 1;
+  criticalStages: IngestStageKey[];
+  stages: Partial<Record<IngestStageKey, IngestStageRecord>>;
+};
+
+const CRITICAL_INGEST_STAGES: IngestStageKey[] = [
+  "artifact_stored",
+  "extraction_snapshot_stored",
+  "canonical_mapping_stored",
+  "evidence_index_stored",
+  "compliance_scan_stored",
+  "replay_payload_stored",
+];
+
+function recordFromJson(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function existingStagePersistence(value: unknown): IngestStagePersistence {
+  const record = recordFromJson(value);
+  const stages = recordFromJson(record.stages);
+  return {
+    version: 1,
+    criticalStages: CRITICAL_INGEST_STAGES,
+    stages: stages as Partial<Record<IngestStageKey, IngestStageRecord>>,
+  };
+}
+
+export function mergeIngestStagePersistence(
+  data: unknown,
+  stage: IngestStageKey,
+  status: IngestStageStatus,
+  options: {
+    details?: Record<string, unknown>;
+    error?: unknown;
+    updatedAt?: string;
+  } = {},
+): Record<string, unknown> {
+  const baseData = recordFromJson(data);
+  const current = existingStagePersistence(baseData.ingestStagePersistence);
+  const updatedAt = options.updatedAt ?? new Date().toISOString();
+  const error = options.error == null
+    ? undefined
+    : options.error instanceof Error
+      ? options.error.message
+      : String(options.error);
+
+  return {
+    ...baseData,
+    ingestStagePersistence: {
+      version: 1,
+      criticalStages: CRITICAL_INGEST_STAGES,
+      stages: {
+        ...current.stages,
+        [stage]: {
+          status,
+          updatedAt,
+          ...(options.details ? { details: options.details } : {}),
+          ...(error ? { error } : {}),
+        },
+      },
+    } satisfies IngestStagePersistence,
+  };
+}
+
+export function evaluateIngestStageCompletion(data: unknown): {
+  ok: boolean;
+  missingStages: IngestStageKey[];
+  failedStages: IngestStageKey[];
+  degradedCriticalStages: IngestStageKey[];
+} {
+  const artifactData = recordFromJson(data);
+  const persistence = existingStagePersistence(artifactData.ingestStagePersistence);
+  const missingStages: IngestStageKey[] = [];
+  const failedStages: IngestStageKey[] = [];
+  const degradedCriticalStages: IngestStageKey[] = [];
+
+  for (const stage of CRITICAL_INGEST_STAGES) {
+    const status = persistence.stages[stage]?.status;
+    if (!status) missingStages.push(stage);
+    else if (status === "failed") failedStages.push(stage);
+    else if (status === "degraded") degradedCriticalStages.push(stage);
+    else if (status !== "stored") missingStages.push(stage);
+  }
+
+  return {
+    ok: missingStages.length === 0 && failedStages.length === 0 && degradedCriticalStages.length === 0,
+    missingStages,
+    failedStages,
+    degradedCriticalStages,
+  };
+}
+
+export function buildIngestReplayPayload(
+  deterministicPipeline: DeterministicPipelinePackage | null,
+  replayValidation: DeterministicReplayValidation | null,
+): Record<string, unknown> | null {
+  if (!deterministicPipeline) return null;
+  return {
+    replayHash: deterministicPipeline.replayHash,
+    canonicalOutput: deterministicPipeline.finalOutput,
+    replayValidation,
+  };
+}
+
+export function replayPayloadMatchesCanonicalState(data: unknown): boolean {
+  const artifactData = recordFromJson(data);
+  const replayPayload = recordFromJson(artifactData.replayPayload);
+  if (!artifactData.canonicalOutput || !replayPayload.canonicalOutput) return false;
+  if (typeof artifactData.replayHash !== "string" || typeof replayPayload.replayHash !== "string") return false;
+  if (artifactData.replayHash !== replayPayload.replayHash) return false;
+  return stableCanonicalJson(artifactData.canonicalOutput) === stableCanonicalJson(replayPayload.canonicalOutput);
+}
+
+async function updateIngestStage(
+  artifactId: number,
+  stage: IngestStageKey,
+  status: IngestStageStatus,
+  options: {
+    details?: Record<string, unknown>;
+    error?: unknown;
+    processingStatus?: string;
+  } = {},
+): Promise<void> {
+  const artifact = await db
+    .selectFrom("reportArtifact")
+    .select("data")
+    .where("id", "=", artifactId)
+    .executeTakeFirst();
+  const data = mergeIngestStagePersistence(artifact?.data ?? {}, stage, status, options);
+  if (options.processingStatus) {
+    await db
+      .updateTable("reportArtifact")
+      .set({
+        data: JSON.parse(JSON.stringify(data)) as Json,
+        processingStatus: options.processingStatus,
+      })
+      .where("id", "=", artifactId)
+      .execute();
+    return;
+  }
+  await db
+    .updateTable("reportArtifact")
+    .set({ data: JSON.parse(JSON.stringify(data)) as Json })
+    .where("id", "=", artifactId)
+    .execute();
+}
+
+async function failCriticalIngestStage(
+  artifactId: number,
+  stage: IngestStageKey,
+  error: unknown,
+  code: string,
+): Promise<never> {
+  await updateIngestStage(artifactId, stage, "failed", {
+    error,
+    processingStatus: "failed",
+  }).catch((stageError) => {
+    console.error(`[Ingest] Failed to record ingest stage failure for ${stage}:`, stageError);
+  });
+  throw new IngestPipelineError(error instanceof Error ? error.message : String(error), code);
+}
+
+async function assertPersistedReplayPayloadMatches(artifactId: number): Promise<void> {
+  const artifact = await db
+    .selectFrom("reportArtifact")
+    .select("data")
+    .where("id", "=", artifactId)
+    .executeTakeFirst();
+  if (!replayPayloadMatchesCanonicalState(artifact?.data)) {
+    await failCriticalIngestStage(
+      artifactId,
+      "replay_payload_stored",
+      new Error("Persisted replay payload does not match the persisted canonical output."),
+      "REPLAY_PAYLOAD_DRIFT",
+    );
+  }
+}
+
+async function promoteReportArtifactComplete(artifactId: number): Promise<void> {
+  await db.transaction().execute(async (trx) => {
+    const artifact = await trx
+      .selectFrom("reportArtifact")
+      .select("data")
+      .where("id", "=", artifactId)
+      .forUpdate()
+      .executeTakeFirst();
+    const completion = evaluateIngestStageCompletion(artifact?.data);
+    if (!completion.ok) {
+      throw new IngestPipelineError(
+        `Cannot complete ingest before critical stages are persisted: missing=${completion.missingStages.join(",") || "none"} failed=${completion.failedStages.join(",") || "none"} degraded=${completion.degradedCriticalStages.join(",") || "none"}.`,
+        "INGEST_STAGE_INCOMPLETE",
+      );
+    }
+    const promotedData = mergeIngestStagePersistence(
+      artifact?.data ?? {},
+      "report_promoted_complete",
+      "stored",
+      { details: { criticalStagesVerified: true } },
+    );
+    await trx
+      .updateTable("reportArtifact")
+      .set({
+        data: JSON.parse(JSON.stringify(promotedData)) as Json,
+        processingStatus: "completed",
+      })
+      .where("id", "=", artifactId)
+      .execute();
+  });
+}
 
 function artifactTimestamp(artifact: { reportDate: Date | string | null; createdAt: Date | string | null }): number {
   return new Date(artifact.reportDate ?? artifact.createdAt ?? 0).getTime();
@@ -273,6 +508,10 @@ export async function executeIngestPipeline({
   let fullExtractionResult: any = { success: false };
   let parserQuality: ParserQualityAssessment | null = null;
 
+  await updateIngestStage(artifactId, "artifact_stored", "stored", {
+    details: { artifactId, durableRowPresent: true },
+  });
+
   // ============================================================
   // UNIFIED EXTRACTION
   // ============================================================
@@ -339,31 +578,55 @@ export async function executeIngestPipeline({
     .executeTakeFirst();
 
   const currentQualityData = (artifactForQuality?.data ?? {}) as Record<string, unknown>;
-  const evidenceLocationIndex = buildEvidenceLocationIndex(deterministicPipeline, {
-    ocrCoordinateIndex,
-    nativePdfCoordinateIndex,
-  });
-  await db
-    .updateTable("reportArtifact")
-    .set({
-      data: JSON.parse(JSON.stringify({
-        ...currentQualityData,
-        extractionStatus: "extracted",
-        extractionSource: extractionProvenance?.selectedMethod ?? "pdf_text",
-        extractionProvenance,
-        deterministicPipeline,
-        canonicalOutput: deterministicPipeline?.finalOutput ?? null,
-        evidenceLocationIndex,
-        replayHash: deterministicPipeline?.replayHash ?? extractionProvenance?.replayHash ?? null,
-        replayValidation,
-        parserQuality,
-        extractionConfidence: parserQuality.confidenceScore,
-        parseConfidence: parserQuality.confidenceScore,
-        bureauName: parserQuality.sourceBureauName,
-      })) as Json,
-    })
-    .where("id", "=", artifactId)
-    .execute();
+  let evidenceLocationIndex: Record<string, unknown> = {};
+  try {
+    evidenceLocationIndex = buildEvidenceLocationIndex(deterministicPipeline, {
+      ocrCoordinateIndex,
+      nativePdfCoordinateIndex,
+    });
+    const replayPayload = buildIngestReplayPayload(deterministicPipeline, replayValidation);
+    await db
+      .updateTable("reportArtifact")
+      .set({
+        data: JSON.parse(JSON.stringify({
+          ...currentQualityData,
+          extractionStatus: "extracted",
+          extractionSource: extractionProvenance?.selectedMethod ?? "pdf_text",
+          extractionProvenance,
+          deterministicPipeline,
+          canonicalOutput: deterministicPipeline?.finalOutput ?? null,
+          evidenceLocationIndex,
+          replayHash: deterministicPipeline?.replayHash ?? extractionProvenance?.replayHash ?? null,
+          replayPayload,
+          replayValidation,
+          parserQuality,
+          extractionConfidence: parserQuality.confidenceScore,
+          parseConfidence: parserQuality.confidenceScore,
+          bureauName: parserQuality.sourceBureauName,
+        })) as Json,
+      })
+      .where("id", "=", artifactId)
+      .execute();
+
+    await assertPersistedReplayPayloadMatches(artifactId);
+    await updateIngestStage(artifactId, "extraction_snapshot_stored", "stored", {
+      details: { extractionSource: extractionProvenance?.selectedMethod ?? "pdf_text" },
+    });
+    await updateIngestStage(artifactId, "canonical_mapping_stored", "stored", {
+      details: { replayHash: deterministicPipeline?.replayHash ?? null },
+    });
+    await updateIngestStage(artifactId, "evidence_index_stored", "stored", {
+      details: {
+        evidenceEntryCount: Object.keys(recordFromJson(evidenceLocationIndex)).length,
+      },
+    });
+    await updateIngestStage(artifactId, "replay_payload_stored", "stored", {
+      details: { replayHash: deterministicPipeline?.replayHash ?? null },
+    });
+  } catch (error) {
+    if (error instanceof IngestPipelineError) throw error;
+    await failCriticalIngestStage(artifactId, "evidence_index_stored", error, "INGEST_EXTRACTION_PERSISTENCE_FAILED");
+  }
 
   if (parserQuality.requiresManualReview) {
     const existingParserEvent = await db
@@ -538,7 +801,7 @@ export async function executeIngestPipeline({
 
       console.log("[Ingest] Payment histories to store:", tradelinePaymentHistories.length);
 
-      await storeComprehensiveReportData({
+      const comprehensiveStorageResult = await storeComprehensiveReportData({
         reportArtifactId: artifactId,
         rawText: parseResult.rawText,
         extractedConsumerInfo: parseResult.consumerInfo,
@@ -549,6 +812,19 @@ export async function executeIngestPipeline({
         extractedEmploymentInfo: parseResult.employmentInfo,
         tradelinePaymentHistories
       });
+      await updateIngestStage(
+        artifactId,
+        "comprehensive_sidecar_stored",
+        comprehensiveStorageResult.errors.length > 0 ? "degraded" : "stored",
+        {
+          details: {
+            errorCount: comprehensiveStorageResult.errors.length,
+            consumerInfoId: comprehensiveStorageResult.consumerInfoId,
+            paymentHistoryCount: comprehensiveStorageResult.paymentHistoryIds.length,
+          },
+          error: comprehensiveStorageResult.errors.join("; ") || undefined,
+        },
+      );
 
       let reportDateToSave: Date | null = null;
       if (parseResult?.reportMetadata?.reportDate) {
@@ -637,6 +913,7 @@ export async function executeIngestPipeline({
   await Promise.resolve();
   
   const persistedViolationIds: number[] = [];
+  const complianceScanErrors: string[] = [];
   if (context.tradelineIds.length > 0) {
     const scanContexts = await buildComplianceScanContexts(user.id, context.tradelineIds);
 
@@ -650,8 +927,20 @@ export async function executeIngestPipeline({
         persistedViolationIds.push(...scanResult.insertedIds);
       } catch (scanError) {
         console.error(`[Ingest] Compliance scan failed for tradeline ${tradelineId}:`, scanError);
+        complianceScanErrors.push(
+          `tradeline ${tradelineId}: ${scanError instanceof Error ? scanError.message : String(scanError)}`
+        );
       }
     });
+
+    if (complianceScanErrors.length > 0) {
+      await failCriticalIngestStage(
+        artifactId,
+        "compliance_scan_stored",
+        new Error(complianceScanErrors.join("; ")),
+        "COMPLIANCE_SCAN_PERSISTENCE_FAILED",
+      );
+    }
 
     const artifactForViolationRun = await db
       .selectFrom("reportArtifact")
@@ -676,6 +965,20 @@ export async function executeIngestPipeline({
       })
       .where("id", "=", artifactId)
       .execute();
+    await updateIngestStage(artifactId, "compliance_scan_stored", "stored", {
+      details: {
+        tradelineCount: context.tradelineIds.length,
+        persistedViolationCount: persistedViolationIds.length,
+      },
+    });
+  } else {
+    await updateIngestStage(artifactId, "compliance_scan_stored", "stored", {
+      details: {
+        tradelineCount: 0,
+        persistedViolationCount: 0,
+        skipped: true,
+      },
+    });
   }
 
   send({ type: "progress", stage: "auto_drift_detection", percent: 94 });
@@ -862,7 +1165,7 @@ export async function executeIngestPipeline({
     (responseData as unknown as Record<string, unknown>).silentCorrections = silentResults;
   }
 
-  await updateArtifactProcessingStatus(artifactId, "completed");
+  await promoteReportArtifactComplete(artifactId);
   send({ type: "complete", data: responseData });
   await Promise.resolve();
 }

@@ -1,0 +1,122 @@
+{
+  "evidenceType": "ingest-stage-persistence",
+  "generatedAt": "2026-05-21T04:27:35.8735106-03:00",
+  "currentHead": "8799a28d0b883c0352db2942dda420c243608d86",
+  "auditTarget": "P1-4 Ingest persistence allows partial writes and replay drift.",
+  "CERTIFYING": false,
+  "certifyingReason": "Automated local simulation, static source verification, and regression proof only; no live production database failure-injection certification is claimed.",
+  "implementation": {
+    "patchedFiles": [
+      "helpers/ingestCorePipeline.tsx",
+      "tests/unit/ingest-stage-persistence.spec.ts",
+      "docs/production-scale/evidence/latest-ingest-stage-persistence.md",
+      "docs/production-scale/evidence/latest-ingest-stage-persistence.json"
+    ],
+    "preservedSubsystems": [
+      "helpers/ingestCorePipeline.tsx ingest orchestration",
+      "helpers/comprehensiveReportStorage.tsx side-table storage",
+      "deterministic parser outputs",
+      "evidence location index builder",
+      "compliance scanner violation detection",
+      "violation search behavior",
+      "packet readiness consumers"
+    ],
+    "criticalStages": [
+      "artifact_stored",
+      "extraction_snapshot_stored",
+      "canonical_mapping_stored",
+      "evidence_index_stored",
+      "compliance_scan_stored",
+      "replay_payload_stored"
+    ],
+    "optionalStages": [
+      "comprehensive_sidecar_stored"
+    ],
+    "completionGate": "transactional reportArtifact promotion with forUpdate lock and critical stage verification",
+    "replayDriftGuard": "persisted replayPayload canonicalOutput and replayHash must match persisted canonicalOutput and replayHash",
+    "reportCompleteRequiresCriticalStages": true,
+    "retryIdempotentStageState": true
+  },
+  "automatedProofs": [
+    {
+      "name": "simulated pre-promotion failure leaves report incomplete",
+      "test": "tests/unit/ingest-stage-persistence.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "evidence index persistence failure is a failed critical stage",
+      "test": "tests/unit/ingest-stage-persistence.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "compliance persistence failure is not swallowed",
+      "test": "tests/unit/ingest-stage-persistence.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "compliance persistence failure preserves previous stable state",
+      "test": "tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "replay payload equals persisted canonical output",
+      "test": "tests/unit/ingest-stage-persistence.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "retry stage recording is idempotent",
+      "test": "tests/unit/ingest-stage-persistence.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "existing golden path still passes",
+      "command": "pnpm run check",
+      "result": "PASS"
+    }
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec tsc --noEmit --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-stage-persistence.spec.ts tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS",
+      "summary": "2 files, 13 tests"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-stage-persistence.spec.ts tests/unit/compliance-persistence-atomic.spec.ts tests/unit/deterministic-ingestion-lockdown.spec.ts tests/unit/evidence-location-index.spec.ts tests/unit/ingest-response-canonical-consistency.spec.ts",
+      "result": "PASS",
+      "summary": "5 files, 46 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "summary": "Git reported only an LF-to-CRLF working-copy warning."
+    },
+    {
+      "command": "pnpm exec vitest run tests/api tests/unit --runInBand",
+      "result": "FAIL",
+      "summary": "Vitest 4.1.5 rejects unsupported option --runInBand before tests run."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api tests/unit",
+      "result": "PASS",
+      "summary": "188 files, 1425 tests"
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "result": "PASS",
+      "summary": "11 fixtures; replay stable; violationSearchPreserved true"
+    },
+    {
+      "command": "pnpm run check",
+      "result": "PASS",
+      "summary": "build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation-correction checks"
+    }
+  ],
+  "residualRisk": [
+    "Live production database crash and rollback timing was not exercised.",
+    "Optional comprehensive side tables remain degraded rather than critical because the current storage subsystem treats them as recoverable sidecar writes."
+  ]
+}
