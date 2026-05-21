@@ -177,6 +177,15 @@ export function redactSensitiveText(value: unknown, accountNumber?: string | nul
   return redactPacketSensitiveText(value, accountNumber);
 }
 
+function safeLetterText(value: unknown, accountNumber?: string | null): string {
+  return redactSensitiveText(value, accountNumber)
+    .replace(/\bsource\s+report\b/gi, "credit report")
+    .replace(/\breport\s+artifact\b/gi, "credit report")
+    .replace(/\bartifact\b/gi, "credit report")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function safeFieldValue(fieldName: string | null | undefined, value: unknown, accountNumber?: string | null): string {
   return formatPacketDisplayValue(fieldName, value, accountNumber);
 }
@@ -198,7 +207,7 @@ function safeLetterFieldLabel(value: unknown): string {
   ) {
     return formatPacketFieldLabel(raw);
   }
-  return redactSensitiveText(raw);
+  return safeLetterText(raw);
 }
 
 function hasReliableExpectedValue(value: unknown): value is string {
@@ -244,21 +253,17 @@ export function actionForIssue(issueType: string | null | undefined, packetType:
 
 function buildItemExplanation(item: SimpleDisputedItemInput, packetType: DisputePacketType): string {
   const neutralExplanation = sanitizeComplianceNeutralText(item.explanation) ?? null;
-  const sourceName = hasText(item.sourceFurnisherName) ? item.sourceFurnisherName.trim() : null;
   const explanationPrefix = neutralExplanation
-    ? `${redactSensitiveText(neutralExplanation, item.accountNumber)} `
-    : "";
-  const sourceSentence = packetType === "credit_bureau" && sourceName
-    ? `The company identified in the report is ${redactSensitiveText(sourceName)}. `
+    ? `${safeLetterText(neutralExplanation, item.accountNumber)} `
     : "";
   const verificationRequest =
     "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
 
   if (packetType === "collection_agency") {
-    return `${explanationPrefix}${verificationRequest} Please provide documentation showing your authority to collect or report this account, including the original creditor, balance claimed, account dates, and supporting records. If the information cannot be supported, please correct it or remove it from my credit report.`;
+    return `${explanationPrefix}${verificationRequest} If the information cannot be supported, please correct it or remove it from my credit report.`;
   }
 
-  return `${explanationPrefix}${sourceSentence}${verificationRequest} Please investigate this item with the company that supplied the information and provide the basis for any information you continue to report. If the information cannot be verified, please correct it or remove it from my credit report.`;
+  return `${explanationPrefix}${verificationRequest} If the information cannot be verified, please correct it or remove it from my credit report.`;
 }
 
 function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: DisputePacketType): SimpleDisputedItem {
@@ -279,10 +284,10 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
     tradelineId: item.tradelineId ?? null,
     creditorCollectorName: isPlaceholder(item.creditorCollectorName)
       ? "Company listed on report"
-      : redactSensitiveText(item.creditorCollectorName),
+      : safeLetterText(item.creditorCollectorName),
     sourceFurnisherName: isPlaceholder(item.sourceFurnisherName)
       ? null
-      : redactSensitiveText(item.sourceFurnisherName),
+      : safeLetterText(item.sourceFurnisherName),
     maskedAccountNumber: maskAccountNumber(item.accountNumber),
     disputedField,
     reportedValue: safeFieldValue(rawDisputedField, item.reportedValue, item.accountNumber),
@@ -325,7 +330,7 @@ function buildAttachmentChecklist(items: SimpleDisputedItem[]): string[] {
 function pushNonEmpty(lines: string[], ...values: Array<string | null | undefined>): void {
   for (const value of values) {
     if (value && value.trim()) {
-      lines.push(redactSensitiveText(value));
+      lines.push(safeLetterText(value));
     }
   }
 }
@@ -340,17 +345,17 @@ function buildItemLetterBlock(item: SimpleDisputedItem, packet: SimpleDisputePac
 
   return [
     "Disputed Account",
-    `Company reporting the account: ${redactSensitiveText(item.creditorCollectorName)}`,
+    `Company reporting the account: ${safeLetterText(item.creditorCollectorName)}`,
     `Account: ${accountDisplay}`,
     `Information disputed: ${fieldLabel}`,
     `Reported value: ${reportedValue}`,
     requestedResult,
     "",
     "Reason for dispute:",
-    redactSensitiveText(item.explanation, item.maskedAccountNumber),
+    safeLetterText(item.explanation, item.maskedAccountNumber),
     "",
     "Requested action:",
-    redactSensitiveText(packet.requestedActionSummary),
+    safeLetterText(packet.requestedActionSummary),
   ];
 }
 
@@ -376,7 +381,7 @@ export function buildConsumerDisputePacketLetterText(packet: SimpleDisputePacket
   pushNonEmpty(lines, packet.reportType);
   lines.push(`Report date: ${packet.reportDate ?? "Information not provided on report"}`);
   lines.push("");
-  lines.push(redactSensitiveText(packet.openingParagraph) || "I am writing to dispute the following information on my credit report.");
+  lines.push(safeLetterText(packet.openingParagraph) || "I am writing to dispute the following information on my credit report.");
   lines.push("");
 
   for (const item of packet.disputedItems) {
@@ -415,26 +420,26 @@ export function buildSimpleDisputePacketContent(input: BuildSimpleDisputePacketI
       input.packetType === "collection_agency"
         ? "Collection Agency Clarification/Dispute Packet"
         : "Credit Bureau Dispute Packet",
-    reportType: redactSensitiveText(input.reportType),
+    reportType: safeLetterText(input.reportType),
     reportDate: formatPacketDate(input.reportDate) ?? null,
     dateGenerated: formatPacketDate(input.dateGenerated ?? new Date()) ?? formatPacketDate(new Date())!,
     recipient: {
       type: input.recipient.type,
-      name: redactSensitiveText(input.recipient.name),
-      address: input.recipient.address.map((line) => redactSensitiveText(line)).filter(Boolean),
+      name: safeLetterText(input.recipient.name),
+      address: input.recipient.address.map((line) => safeLetterText(line)).filter(Boolean),
     },
     consumer: {
-      name: redactSensitiveText(input.consumer.name),
-      address: input.consumer.address.map((line) => redactSensitiveText(line)).filter(Boolean),
-      phone: input.consumer.phone ? redactSensitiveText(input.consumer.phone) : null,
-      email: input.consumer.email ? redactSensitiveText(input.consumer.email) : null,
+      name: safeLetterText(input.consumer.name),
+      address: input.consumer.address.map((line) => safeLetterText(line)).filter(Boolean),
+      phone: input.consumer.phone ? safeLetterText(input.consumer.phone) : null,
+      email: input.consumer.email ? safeLetterText(input.consumer.email) : null,
     },
     openingParagraph: buildOpening(input.packetType),
     disputedItems,
     requestedActionSummary: buildRequestedActionSummary(input.packetType),
     evidenceList,
     attachmentChecklist: buildAttachmentChecklist(disputedItems),
-    signatureLine: `Sincerely,\n\n________________________________\n${redactSensitiveText(input.consumer.name)}`,
+    signatureLine: `Sincerely,\n\n________________________________\n${safeLetterText(input.consumer.name)}`,
     metadata: {
       selectedIssueIds,
       reportArtifactIds,
