@@ -93,6 +93,10 @@ export const STAGING_INGEST_WORKER_EVIDENCE_MD_PATH =
   "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md";
 export const STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH =
   "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json";
+export const PR_GUARDRAILS_EVIDENCE_MD_PATH =
+  "docs/production-scale/evidence/latest-pr-guardrails.md";
+export const PR_GUARDRAILS_EVIDENCE_JSON_PATH =
+  "docs/production-scale/evidence/latest-pr-guardrails.json";
 export const STORAGE_DURABILITY_EVIDENCE_JSON_PATH =
   "docs/production-scale/evidence/latest-storage-durability.json";
 export const STORAGE_DURABILITY_EVIDENCE_MD_PATH =
@@ -158,6 +162,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run ingest:worker:staging-evidence",
+  "pnpm run pr-guardrails:evidence",
   "pnpm run storage:raw-report-remediation-plan",
   "pnpm run storage:raw-report-remediation-acceptance",
   "pnpm run storage:durability-contract",
@@ -286,6 +291,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run production-worker:readiness-evidence": [
     PRODUCTION_WORKER_READINESS_MD_PATH,
     PRODUCTION_WORKER_READINESS_JSON_PATH,
+  ],
+  "pnpm run pr-guardrails:evidence": [
+    PR_GUARDRAILS_EVIDENCE_MD_PATH,
+    PR_GUARDRAILS_EVIDENCE_JSON_PATH,
   ],
   "pnpm run production-deployment-parity:evidence": [
     PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,

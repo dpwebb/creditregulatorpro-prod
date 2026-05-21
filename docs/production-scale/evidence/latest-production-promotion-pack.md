@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-21T10:53:31.648Z
+Generated at: 2026-05-21T11:11:14.030Z
 Current branch: `staging`
-Current commit hash: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
-Current HEAD: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+Current commit hash: `1f96053a13ef763aeb2a932ad0e98432ba85d897`
+Current HEAD: `1f96053a13ef763aeb2a932ad0e98432ba85d897`
 Target environment: `production`
-Target SHA: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+Target SHA: `1f96053a13ef763aeb2a932ad0e98432ba85d897`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -30,7 +30,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+- Target SHA: `1f96053a13ef763aeb2a932ad0e98432ba85d897`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -39,15 +39,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=9499fa6103a4b3cbd2636dba4877ac5dafe7e225; timestamp=2026-05-21T10:53:31.648Z; command=`pnpm run production-worker:readiness-evidence`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=1f96053a13ef763aeb2a932ad0e98432ba85d897; timestamp=2026-05-21T11:11:14.030Z; command=`pnpm run production-worker:readiness-evidence`
 - Storage durability: non-certifying; status=missing; head=0676d10ec5f1ada2abf6d05ced21e2cf2c52376b; timestamp=2026-05-21T05:59:58.692Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=9499fa6103a4b3cbd2636dba4877ac5dafe7e225; timestamp=2026-05-21T10:53:31.648Z; command=`pnpm run migrations:gate`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=1f96053a13ef763aeb2a932ad0e98432ba85d897; timestamp=2026-05-21T11:11:14.030Z; command=`pnpm run migrations:gate`
 - Rollback simulation: non-certifying; status=passed; head=0da5d6e2801f4c21e20ad161631c1f2f87e1f58a; timestamp=2026-05-21T09:14:14.766Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-21T10:53:31.648Z; completed=2026-05-21T10:53:31.648Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-21T11:11:14.030Z; completed=2026-05-21T11:11:14.030Z
 
 ## Command Result Summary
 
@@ -69,6 +69,7 @@ Production-ready claim: **false**
 - `pnpm run production-worker:activation-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-activation-evidence.md, docs/production-scale/evidence/latest-production-worker-activation-evidence.json
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
 - `pnpm run ingest:worker:staging-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md, docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json
+- `pnpm run pr-guardrails:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-pr-guardrails.md, docs/production-scale/evidence/latest-pr-guardrails.json
 - `pnpm run storage:raw-report-remediation-plan` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json
 - `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
 - `pnpm run storage:durability-contract` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-durability.md, docs/production-scale/evidence/latest-storage-durability.json
@@ -332,6 +333,8 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-production-worker-activation-evidence.json` - present; evidenceType=PRODUCTION_WORKER_ACTIVATION_EVIDENCE
 - `docs/production-scale/evidence/latest-production-worker-readiness.md` - present
 - `docs/production-scale/evidence/latest-production-worker-readiness.json` - present; evidenceType=PRODUCTION_WORKER_READINESS_EVIDENCE
+- `docs/production-scale/evidence/latest-pr-guardrails.md` - present
+- `docs/production-scale/evidence/latest-pr-guardrails.json` - present
 - `docs/production-scale/evidence/latest-production-deployment-parity.md` - present
 - `docs/production-scale/evidence/latest-production-deployment-parity.json` - present; evidenceType=PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE
 - `docs/production-scale/evidence/latest-migration-governance.md` - present

@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - staging
+  workflow_dispatch:
+  schedule:
+    - cron: "23 8 * * 1"
 
 jobs:
   golden-path:
@@ -29,3 +32,62 @@ jobs:
 
       - name: Run golden path regression dashboard
         run: pnpm run test:golden-path
+
+  compliance-critical:
+    name: Compliance-critical guardrail before merge
+    if: github.repository == 'dpwebb/creditregulatorpro-staging'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run compliance-critical guardrails
+        run: |
+          pnpm run test:contracts
+          pnpm run test:api
+          pnpm run test:deterministic-ingestion-report
+          pnpm run migrations:gate
+          pnpm run packet-pdf:cache-miss-proof
+          pnpm run test:evidence-ledger
+
+  pre-promotion-automated:
+    name: Scheduled pre-promotion automated guardrail
+    if: github.repository == 'dpwebb/creditregulatorpro-staging' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run heavier automated pre-promotion checks
+        run: |
+          pnpm run response:soak-check
+          pnpm run storage:durability-contract
+          pnpm run deploy:rollback-simulation
+          pnpm run production-scale:evidence
+          pnpm run production-scale:promotion-pack

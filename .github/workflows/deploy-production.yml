@@ -168,6 +168,20 @@ jobs:
       - name: Build + internal regression checks
         run: pnpm run check
 
+      - name: Pre-promotion automated evidence checks
+        run: |
+          pnpm run test:contracts
+          pnpm run test:api
+          pnpm run test:deterministic-ingestion-report
+          pnpm run migrations:gate
+          pnpm run packet-pdf:cache-miss-proof
+          pnpm run test:evidence-ledger
+          pnpm run response:soak-check
+          pnpm run storage:durability-contract
+          pnpm run deploy:rollback-simulation
+          pnpm run production-scale:evidence
+          pnpm run production-scale:promotion-pack
+
   deploy:
     name: Deploy to production server
     if: github.repository == 'dpwebb/creditregulatorpro-prod'

@@ -1,0 +1,438 @@
+{
+  "reportName": "pr-regression-guardrails-evidence",
+  "generatedAt": "2026-05-21T11:11:04.697Z",
+  "currentHead": "1f96053a13ef763aeb2a932ad0e98432ba85d897",
+  "targetEnvironment": "pull-request",
+  "status": "passed",
+  "certifying": true,
+  "CERTIFYING": true,
+  "workflows": [
+    {
+      "path": ".github/workflows/pr-regression-guardrails.yml",
+      "name": "PR regression guardrails",
+      "triggers": {
+        "pullRequest": true,
+        "workflowDispatch": true,
+        "schedule": true,
+        "push": false
+      },
+      "jobs": [
+        "golden-path",
+        "compliance-critical",
+        "pre-promotion-automated"
+      ],
+      "commands": [
+        "pnpm run test:golden-path",
+        "pnpm run test:contracts",
+        "pnpm run test:api",
+        "pnpm run test:deterministic-ingestion-report",
+        "pnpm run migrations:gate",
+        "pnpm run packet-pdf:cache-miss-proof",
+        "pnpm run test:evidence-ledger",
+        "pnpm run response:soak-check",
+        "pnpm run storage:durability-contract",
+        "pnpm run deploy:rollback-simulation",
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack"
+      ],
+      "bashSyntax": {
+        "status": "passed",
+        "blockCount": 2,
+        "results": [
+          {
+            "line": 58,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 88,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    },
+    {
+      "path": ".github/workflows/deploy-production.yml",
+      "name": "Deploy production",
+      "triggers": {
+        "pullRequest": false,
+        "workflowDispatch": true,
+        "schedule": false,
+        "push": true
+      },
+      "jobs": [
+        "resolve-target",
+        "check",
+        "deploy"
+      ],
+      "commands": [
+        "pnpm run migrations:gate",
+        "pnpm run check",
+        "pnpm run test:contracts",
+        "pnpm run test:api",
+        "pnpm run test:deterministic-ingestion-report",
+        "pnpm run packet-pdf:cache-miss-proof",
+        "pnpm run test:evidence-ledger",
+        "pnpm run response:soak-check",
+        "pnpm run storage:durability-contract",
+        "pnpm run deploy:rollback-simulation",
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence",
+        "pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence",
+        "pnpm run build",
+        "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+        "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+      ],
+      "bashSyntax": {
+        "status": "passed",
+        "blockCount": 7,
+        "results": [
+          {
+            "line": 66,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 117,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 172,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 204,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 229,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 390,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 575,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    }
+  ],
+  "fastGoldenPathCommand": "pnpm run test:golden-path",
+  "criticalPrGuardrailCommands": [
+    "pnpm run test:contracts",
+    "pnpm run test:api",
+    "pnpm run test:deterministic-ingestion-report",
+    "pnpm run migrations:gate",
+    "pnpm run packet-pdf:cache-miss-proof",
+    "pnpm run test:evidence-ledger"
+  ],
+  "heavyPrePromotionCommands": [
+    "pnpm run response:soak-check",
+    "pnpm run storage:durability-contract",
+    "pnpm run deploy:rollback-simulation",
+    "pnpm run production-scale:evidence",
+    "pnpm run production-scale:promotion-pack"
+  ],
+  "noManualUiInteractionRequired": true,
+  "validation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "pr workflow parsed",
+        "passed": true,
+        "status": "passed",
+        "workflowName": "PR regression guardrails",
+        "jobs": [
+          "golden-path",
+          "compliance-critical",
+          "pre-promotion-automated"
+        ]
+      },
+      {
+        "name": "production workflow parsed",
+        "passed": true,
+        "status": "passed",
+        "workflowName": "Deploy production",
+        "jobs": [
+          "resolve-target",
+          "check",
+          "deploy"
+        ]
+      },
+      {
+        "name": "fast golden path preserved",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "compliance-critical PR guardrail commands present",
+        "passed": true,
+        "status": "passed",
+        "requiredCommands": [
+          "pnpm run test:contracts",
+          "pnpm run test:api",
+          "pnpm run test:deterministic-ingestion-report",
+          "pnpm run migrations:gate",
+          "pnpm run packet-pdf:cache-miss-proof",
+          "pnpm run test:evidence-ledger"
+        ],
+        "presentCommands": [
+          "pnpm run test:golden-path",
+          "pnpm run test:contracts",
+          "pnpm run test:api",
+          "pnpm run test:deterministic-ingestion-report",
+          "pnpm run migrations:gate",
+          "pnpm run packet-pdf:cache-miss-proof",
+          "pnpm run test:evidence-ledger",
+          "pnpm run response:soak-check",
+          "pnpm run storage:durability-contract",
+          "pnpm run deploy:rollback-simulation",
+          "pnpm run production-scale:evidence",
+          "pnpm run production-scale:promotion-pack"
+        ]
+      },
+      {
+        "name": "heavy checks are scheduled or manually dispatchable",
+        "passed": true,
+        "status": "passed",
+        "requiredCommands": [
+          "pnpm run response:soak-check",
+          "pnpm run storage:durability-contract",
+          "pnpm run deploy:rollback-simulation",
+          "pnpm run production-scale:evidence",
+          "pnpm run production-scale:promotion-pack"
+        ],
+        "triggers": {
+          "pullRequest": true,
+          "workflowDispatch": true,
+          "schedule": true,
+          "push": false
+        }
+      },
+      {
+        "name": "production promotion workflow includes heavier checks",
+        "passed": true,
+        "status": "passed",
+        "requiredCommands": [
+          "pnpm run test:contracts",
+          "pnpm run test:api",
+          "pnpm run test:deterministic-ingestion-report",
+          "pnpm run migrations:gate",
+          "pnpm run packet-pdf:cache-miss-proof",
+          "pnpm run test:evidence-ledger",
+          "pnpm run response:soak-check",
+          "pnpm run storage:durability-contract",
+          "pnpm run deploy:rollback-simulation",
+          "pnpm run production-scale:evidence",
+          "pnpm run production-scale:promotion-pack"
+        ],
+        "presentCommands": [
+          "pnpm run migrations:gate",
+          "pnpm run check",
+          "pnpm run test:contracts",
+          "pnpm run test:api",
+          "pnpm run test:deterministic-ingestion-report",
+          "pnpm run packet-pdf:cache-miss-proof",
+          "pnpm run test:evidence-ledger",
+          "pnpm run response:soak-check",
+          "pnpm run storage:durability-contract",
+          "pnpm run deploy:rollback-simulation",
+          "pnpm run production-scale:evidence",
+          "pnpm run production-scale:promotion-pack",
+          "pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence",
+          "pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence",
+          "pnpm run build",
+          "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+          "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+        ]
+      },
+      {
+        "name": "guardrail commands require no manual UI interaction",
+        "passed": true,
+        "status": "passed",
+        "checkedCommands": [
+          "pnpm run test:golden-path",
+          "pnpm run test:contracts",
+          "pnpm run test:api",
+          "pnpm run test:deterministic-ingestion-report",
+          "pnpm run migrations:gate",
+          "pnpm run packet-pdf:cache-miss-proof",
+          "pnpm run test:evidence-ledger",
+          "pnpm run response:soak-check",
+          "pnpm run storage:durability-contract",
+          "pnpm run deploy:rollback-simulation",
+          "pnpm run production-scale:evidence",
+          "pnpm run production-scale:promotion-pack"
+        ]
+      },
+      {
+        "name": "PR workflow run blocks pass bash syntax",
+        "passed": true,
+        "status": "passed",
+        "blockCount": 2,
+        "failed": []
+      },
+      {
+        "name": "production workflow run blocks pass bash syntax",
+        "passed": true,
+        "status": "passed",
+        "blockCount": 7,
+        "failed": []
+      }
+    ],
+    "failedChecks": [],
+    "prWorkflow": {
+      "path": ".github/workflows/pr-regression-guardrails.yml",
+      "name": "PR regression guardrails",
+      "triggers": {
+        "pullRequest": true,
+        "workflowDispatch": true,
+        "schedule": true,
+        "push": false
+      },
+      "jobs": [
+        "golden-path",
+        "compliance-critical",
+        "pre-promotion-automated"
+      ],
+      "commands": [
+        "pnpm run test:golden-path",
+        "pnpm run test:contracts",
+        "pnpm run test:api",
+        "pnpm run test:deterministic-ingestion-report",
+        "pnpm run migrations:gate",
+        "pnpm run packet-pdf:cache-miss-proof",
+        "pnpm run test:evidence-ledger",
+        "pnpm run response:soak-check",
+        "pnpm run storage:durability-contract",
+        "pnpm run deploy:rollback-simulation",
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack"
+      ],
+      "bashSyntax": {
+        "status": "passed",
+        "blockCount": 2,
+        "results": [
+          {
+            "line": 58,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 88,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    },
+    "productionWorkflow": {
+      "path": ".github/workflows/deploy-production.yml",
+      "name": "Deploy production",
+      "triggers": {
+        "pullRequest": false,
+        "workflowDispatch": true,
+        "schedule": false,
+        "push": true
+      },
+      "jobs": [
+        "resolve-target",
+        "check",
+        "deploy"
+      ],
+      "commands": [
+        "pnpm run migrations:gate",
+        "pnpm run check",
+        "pnpm run test:contracts",
+        "pnpm run test:api",
+        "pnpm run test:deterministic-ingestion-report",
+        "pnpm run packet-pdf:cache-miss-proof",
+        "pnpm run test:evidence-ledger",
+        "pnpm run response:soak-check",
+        "pnpm run storage:durability-contract",
+        "pnpm run deploy:rollback-simulation",
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence",
+        "pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence",
+        "pnpm run build",
+        "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+        "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+      ],
+      "bashSyntax": {
+        "status": "passed",
+        "blockCount": 7,
+        "results": [
+          {
+            "line": 66,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 117,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 172,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 204,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 229,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 390,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 575,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    }
+  }
+}
