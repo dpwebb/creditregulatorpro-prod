@@ -59,14 +59,27 @@ describe("frontend production-readiness UX constraints", () => {
     expect(readinessSource).toContain("policy gate, not a runtime throttle");
   });
 
-  it("keeps packet readiness blockers and packet PDF render/cache failure messaging visible", () => {
+  it("keeps packet readiness blockers visible while keeping render/cache diagnostics admin-only", () => {
     const packetsSource = source("pages/packets.tsx");
     const packetViewerSource = source("components/PacketViewer.tsx");
+    const packetPdfCacheSource = source("helpers/packetPdfCache.ts");
 
     expect(packetsSource).toContain("Review the readiness blockers before creating a packet");
+    expect(packetsSource).toContain("{isAdmin ? (");
     expect(packetsSource).toContain("Packet PDFs may render on first open/download");
-    expect(packetViewerSource).toContain("first open/download may render and cache the packet");
-    expect(packetViewerSource).toContain("Rendering or cache retrieval may have failed");
+    expect(packetsSource).toContain(
+      "Open a letter to review it, then download, print, or send it when you are satisfied with the contents.",
+    );
+    expect(packetViewerSource).toContain(
+      "Your letter is ready to review. You can download, print, or send it when you are satisfied with the contents.",
+    );
+    expect(packetViewerSource).toContain(
+      "Could not load this letter. Please try again, or contact support if the problem continues.",
+    );
+    expect(packetViewerSource).not.toContain("first open/download may render and cache the packet");
+    expect(packetViewerSource).not.toContain("Rendering or cache retrieval may have failed");
+    expect(packetPdfCacheSource).toContain("Packet PDF render attempted");
+    expect(packetPdfCacheSource).toContain("Packet PDF cache hit");
   });
 
   it("does not claim broad production or production-at-scale readiness", () => {

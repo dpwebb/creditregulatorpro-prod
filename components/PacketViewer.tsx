@@ -318,7 +318,7 @@ export function PacketViewer({
               <div className={styles.pdfStatusNotice}>
                 <AlertCircle size={14} />
                 <span>
-                  PDF rendering is content-based: first open/download may render and cache the packet; unchanged packet content can reuse cached PDF output. If rendering or cache read fails, the PDF viewer/download will fail without changing packet readiness.
+                  Your letter is ready to review. You can download, print, or send it when you are satisfied with the contents.
                 </span>
               </div>
             ) : null}
@@ -332,7 +332,7 @@ export function PacketViewer({
             ) : error ? (
               <div className={styles.errorState}>
                 <AlertCircle size={32} />
-                <p>Could not load the packet PDF. Rendering or cache retrieval may have failed; packet readiness was not changed.</p>
+                <p>Could not load this letter. Please try again, or contact support if the problem continues.</p>
               </div>
             ) : pdfBlobUrl ? (
               <div className={styles.viewerContainer}>

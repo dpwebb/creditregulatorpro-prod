@@ -386,13 +386,27 @@ export default function PacketsPage() {
       <div className={styles.packetOpsBanner}>
         <AlertCircle size={18} />
         <div>
-          <strong>Packet readiness and PDF rendering follow limited beta constraints.</strong>
-          <span>
-            {FRONTEND_LIMITED_BETA_READINESS.notReady} Packet creation stays gated by verified source-report evidence and readiness blockers.
-          </span>
-          <span>
-            Packet PDFs may render on first open/download and reuse cached output when packet content is unchanged; render/download failures remain visible here and in operator dashboard metrics.
-          </span>
+          {isAdmin ? (
+            <>
+              <strong>Packet readiness and PDF rendering follow limited beta constraints.</strong>
+              <span>
+                {FRONTEND_LIMITED_BETA_READINESS.notReady} Packet creation stays gated by verified source-report evidence and readiness blockers.
+              </span>
+              <span>
+                Packet PDFs may render on first open/download and reuse cached output when packet content is unchanged; render/download failures remain visible here and in operator dashboard metrics.
+              </span>
+            </>
+          ) : (
+            <>
+              <strong>Your letters are ready to review under limited beta safeguards.</strong>
+              <span>
+                Packet creation stays gated by verified source-report evidence and readiness blockers.
+              </span>
+              <span>
+                Open a letter to review it, then download, print, or send it when you are satisfied with the contents.
+              </span>
+            </>
+          )}
         </div>
       </div>
 
