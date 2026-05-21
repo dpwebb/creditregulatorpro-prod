@@ -48,6 +48,29 @@ type ProcessingOutcome =
       diagnosticCode?: string | null;
     };
 
+export function recoverProcessingOutcomeAfterStatusRefreshFailure(input: {
+  currentOutcome: ProcessingOutcome | null;
+  targetArtifactId: number;
+}): ProcessingOutcome {
+  if (input.currentOutcome?.type === "queued_waiting_for_worker") {
+    return {
+      ...input.currentOutcome,
+      artifactId: input.currentOutcome.artifactId ?? input.targetArtifactId,
+      message: "Your report is still waiting for processing. The latest status refresh did not complete; you can leave this page and check again later.",
+      nextAction: "wait_for_worker",
+      diagnosticCode: "INGEST_STATUS_REFRESH_UNAVAILABLE_LAST_KNOWN_QUEUED",
+    };
+  }
+
+  return {
+    type: "stale",
+    artifactId: input.targetArtifactId,
+    message: "Processing status could not be refreshed. Try Check status again or contact support if this continues.",
+    nextAction: "check_status",
+    diagnosticCode: "INGEST_STATUS_REFRESH_FAILED",
+  };
+}
+
 const getFriendlyStageName = (stage: string) => {
     if (stage.startsWith("pass_a_")) return "Reading your report...";
   if (stage.startsWith("full_")) return "Reading your report thoroughly...";
@@ -441,18 +464,20 @@ export default function UploadPage() {
       applyStatusViewUpdate(status);
     } catch (statusError) {
       console.error("Failed to refresh upload processing status:", statusError);
-      setProcessingOutcome({
-        type: "stale",
-        artifactId: targetArtifactId,
-        message: "Processing status could not be refreshed. Try Check status again or contact support if this continues.",
-        nextAction: "check_status",
-        diagnosticCode: "INGEST_STATUS_REFRESH_FAILED",
+      const recoveredOutcome = recoverProcessingOutcomeAfterStatusRefreshFailure({
+        currentOutcome: processingOutcome,
+        targetArtifactId,
       });
-      setUploadProgress({ stage: "status_check", percent: Math.min(displayedProgress, 99) });
+      setProcessingOutcome(recoveredOutcome);
+      if (recoveredOutcome.type === "queued_waiting_for_worker") {
+        setUploadProgress({ stage: "queued", percent: 12, message: recoveredOutcome.message });
+      } else if (recoveredOutcome.type !== "success") {
+        setUploadProgress({ stage: "status_check", percent: Math.min(displayedProgress, 99), message: recoveredOutcome.message });
+      }
     } finally {
       setIsCheckingProcessingStatus(false);
     }
-  }, [applyStatusViewUpdate, displayedProgress, queuedProcessing?.artifactId, uploadedArtifactId]);
+  }, [applyStatusViewUpdate, displayedProgress, processingOutcome, queuedProcessing?.artifactId, uploadedArtifactId]);
 
   const applyQueuedProcessingUpdate = useCallback((data: QueuedProcessingOutputType) => {
     setUploadedArtifactId(String(data.artifactId));

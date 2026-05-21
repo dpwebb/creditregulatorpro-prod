@@ -272,6 +272,25 @@ export function buildIngestUploadStatusView(input: BuildStatusInput): IngestUplo
     });
   }
 
+  if (input.artifactProcessingStatus === "queued") {
+    return statusView({
+      ok: true,
+      artifactId: input.artifactId,
+      jobId: null,
+      status: "queued_waiting_for_worker",
+      queueStatus: null,
+      processingStatus: "queued",
+      nextAction: "wait_for_worker",
+      userMessage: QUEUED_MESSAGE,
+      diagnosticCode: "INGEST_ARTIFACT_QUEUED_WAITING_FOR_WORKER",
+      workerRequired: true,
+      canLeavePage: true,
+      canCheckStatus: true,
+      retryAt: null,
+      checkedAt,
+    });
+  }
+
   return statusView({
     ok: false,
     artifactId: input.artifactId,

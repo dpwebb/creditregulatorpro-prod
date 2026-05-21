@@ -33,7 +33,12 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Unauthorized access to artifact" }), { status: 403 });
     }
 
-    const latestJob = await getLatestIngestProcessingJobForArtifactReadOnly(input.artifactId);
+    let latestJob: Awaited<ReturnType<typeof getLatestIngestProcessingJobForArtifactReadOnly>> = null;
+    try {
+      latestJob = await getLatestIngestProcessingJobForArtifactReadOnly(input.artifactId);
+    } catch {
+      console.warn("Ingest status queue lookup failed; returning artifact-scoped status only.");
+    }
     const view = buildIngestUploadStatusView({
       artifactId: input.artifactId,
       artifactProcessingStatus: artifact.processingStatus,

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   CreditFileProcessingStatus,
   isUploadActionDisabled,
+  recoverProcessingOutcomeAfterStatusRefreshFailure,
 } from "../../pages/upload";
 
 describe("credit file upload processing status UI", () => {
@@ -29,6 +30,27 @@ describe("credit file upload processing status UI", () => {
     expect(screen.queryByText(/keep this page open/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Check status" }));
     expect(onCheckStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the last known queued state when a status refresh fails", () => {
+    const outcome = recoverProcessingOutcomeAfterStatusRefreshFailure({
+      currentOutcome: {
+        type: "queued_waiting_for_worker",
+        artifactId: 701,
+        message: "Your report was received and is waiting for processing.",
+        nextAction: "wait_for_worker",
+        diagnosticCode: "INGEST_QUEUED_WAITING_FOR_WORKER",
+      },
+      targetArtifactId: 701,
+    });
+
+    expect(outcome).toEqual(expect.objectContaining({
+      type: "queued_waiting_for_worker",
+      artifactId: 701,
+      nextAction: "wait_for_worker",
+      diagnosticCode: "INGEST_STATUS_REFRESH_UNAVAILABLE_LAST_KNOWN_QUEUED",
+    }));
+    expect(outcome.message).toMatch(/still waiting for processing/i);
   });
 
   it("renders running backend status as active processing", () => {

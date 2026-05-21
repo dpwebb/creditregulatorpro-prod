@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T01:20:22.166Z",
+  "generatedAt": "2026-05-21T02:09:15.589Z",
   "command": "pnpm run ingest:stuck-99-regression",
   "scope": "synthetic-local-status-regression",
   "productionMutation": false,
@@ -31,7 +31,7 @@
         "canLeavePage": true,
         "canCheckStatus": true,
         "retryAt": null,
-        "checkedAt": "2026-05-21T01:20:22.166Z"
+        "checkedAt": "2026-05-21T02:09:15.589Z"
       }
     },
     {
@@ -50,7 +50,7 @@
         "canLeavePage": false,
         "canCheckStatus": true,
         "retryAt": null,
-        "checkedAt": "2026-05-21T01:20:22.166Z"
+        "checkedAt": "2026-05-21T02:09:15.589Z"
       }
     },
     {
@@ -69,7 +69,7 @@
         "canLeavePage": true,
         "canCheckStatus": false,
         "retryAt": null,
-        "checkedAt": "2026-05-21T01:20:22.166Z"
+        "checkedAt": "2026-05-21T02:09:15.589Z"
       }
     },
     {
@@ -87,8 +87,8 @@
         "workerRequired": true,
         "canLeavePage": true,
         "canCheckStatus": true,
-        "retryAt": "2026-05-21T01:22:22.166Z",
-        "checkedAt": "2026-05-21T01:20:22.166Z"
+        "retryAt": "2026-05-21T02:11:15.589Z",
+        "checkedAt": "2026-05-21T02:09:15.589Z"
       }
     },
     {
@@ -107,7 +107,7 @@
         "canLeavePage": true,
         "canCheckStatus": true,
         "retryAt": null,
-        "checkedAt": "2026-05-21T01:20:22.166Z"
+        "checkedAt": "2026-05-21T02:09:15.589Z"
       }
     },
     {
@@ -126,7 +126,7 @@
         "canLeavePage": true,
         "canCheckStatus": true,
         "retryAt": null,
-        "checkedAt": "2026-05-21T01:20:22.166Z"
+        "checkedAt": "2026-05-21T02:09:15.589Z"
       }
     }
   ]

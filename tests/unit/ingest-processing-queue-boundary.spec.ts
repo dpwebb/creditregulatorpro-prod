@@ -26,12 +26,12 @@ describe("ingest processing queue boundaries", () => {
     expect(reportEndpoint).not.toContain("enqueueIngestProcessingJob");
     expect(processEndpoint).toContain("enqueueIngestProcessingJob");
     expect(processEndpoint).toContain("getLatestIngestProcessingJobByIdempotencyKey");
-    expect(processEndpoint).not.toContain("handleIngestProcess");
+    expect(processEndpoint).toContain("handleIngestProcess");
     expect(processEndpoint).not.toContain("executeIngestPipeline");
     expect(processEndpoint).not.toContain("claimNextIngestProcessingJob");
   });
 
-  it("documents the queued endpoint path while worker execution owns the deterministic pipeline", () => {
+  it("documents immediate request-bound processing without direct parser or OCR imports", () => {
     const handler = source("helpers/ingestReportHandler.tsx");
     const core = source("helpers/ingestCorePipeline.tsx");
     const service = source("helpers/ingestProcessingQueueService.ts");
@@ -48,6 +48,8 @@ describe("ingest processing queue boundaries", () => {
     expect(worker).toContain("endpointCutoverEnabled: true");
     expect(reportEndpoint).not.toContain("enqueueIngestProcessingJob");
     expect(processEndpoint).toContain("enqueueIngestProcessingJob");
+    expect(processEndpoint).toContain("claimIngestProcessingJobById");
+    expect(processEndpoint).toContain("markIngestProcessingJobSucceeded");
     expect(processEndpoint).not.toContain("processNextIngestProcessingJob");
     expect(processEndpoint).not.toContain("executeIngestPipeline");
 

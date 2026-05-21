@@ -1139,6 +1139,66 @@ export async function claimNextIngestProcessingJob(input: {
   });
 }
 
+export async function claimIngestProcessingJobById(input: {
+  jobId: number;
+  workerId: string;
+  leaseSeconds?: number;
+}): Promise<IngestProcessingJobRecord | null> {
+  await ensureIngestProcessingQueueSchema();
+  const jobId = requiredNumber(input.jobId, "jobId");
+  const workerId = sanitizeToken(input.workerId, "workerId", "ingest-worker");
+  const leaseSeconds = Math.min(Math.max(Number(input.leaseSeconds ?? DEFAULT_LEASE_SECONDS), 30), 3600);
+
+  return db.transaction().execute(async (trx) => {
+    const candidates = await sql<QueueRow>`
+      select *
+      from public.ingest_processing_job
+      where id = ${jobId}
+        and status in ('queued', 'failed')
+        and run_after <= now()
+        and attempt_count < max_attempts
+      for update skip locked
+      limit 1
+    `.execute(trx);
+    const candidate = candidates.rows[0] ? mapJobRow(candidates.rows[0]) : null;
+    if (!candidate) return null;
+
+    const updated = await sql<QueueRow>`
+      update public.ingest_processing_job
+      set
+        status = 'running',
+        attempt_count = attempt_count + 1,
+        started_at = coalesce(started_at, now()),
+        updated_at = now(),
+        locked_by = ${workerId},
+        locked_at = now(),
+        locked_until = now() + make_interval(secs => ${leaseSeconds})
+      where id = ${candidate.id}
+        and status in ('queued', 'failed')
+        and attempt_count < max_attempts
+      returning *
+    `.execute(trx);
+    if (!updated.rows[0]) return null;
+    const claimed = mapJobRow(updated.rows[0]);
+    await appendJobEvent(trx as typeof db, {
+      jobId: claimed.id,
+      eventType: "claimed",
+      previousStatus: candidate.status,
+      nextStatus: "running",
+      attemptCount: claimed.attemptCount,
+      workerId,
+      actorUserId: claimed.actorUserId,
+      details: {
+        requestBoundImmediateProcessing: true,
+        leaseSeconds,
+        rawReportBytesLogged: false,
+        extractedReportTextLogged: false,
+      },
+    });
+    return claimed;
+  });
+}
+
 export async function extendIngestProcessingJobLease(params: {
   job: IngestProcessingJobRecord;
   workerId: string;

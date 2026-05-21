@@ -1,18 +1,25 @@
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
-import { createSSEStream, createSSEResponse } from "../../helpers/sseStreamBuilder";
+import { createSSEStream, createSSEResponse, type SSEEvent } from "../../helpers/sseStreamBuilder";
 import { updateArtifactProcessingStatus } from "../../helpers/ingestProcessingStatus";
 import {
+  claimIngestProcessingJobById,
   enqueueIngestProcessingJob,
   getLatestIngestProcessingJobByIdempotencyKey,
+  markIngestProcessingJobFailed,
+  markIngestProcessingJobSucceeded,
   type IngestProcessingJobRecord,
   type IngestProcessingJobStatus,
 } from "../../helpers/ingestProcessingQueueService";
 import { buildIngestUploadStatusView } from "../../helpers/ingestUploadStatusPresenter";
+import { handleIngestProcess } from "../../helpers/ingestReportHandler";
+import type { ResolvedUserSession } from "../../helpers/ingestSessionResolver";
 import { schema } from "./process_POST.schema";
 
 const PROCESS_SOURCE = "authenticated_ingest_process";
+const REQUEST_BOUND_WORKER_ID = "ingest-process-request-bound";
+const REQUEST_BOUND_LEASE_SECONDS = 300;
 
 type ProcessArtifact = {
   id: number;
@@ -123,6 +130,10 @@ function queueOutput(job: IngestProcessingJobRecord, duplicate: boolean) {
   };
 }
 
+function requestBoundWorkerId(job: IngestProcessingJobRecord): string {
+  return `${REQUEST_BOUND_WORKER_ID}-${job.id}`;
+}
+
 export async function handle(request: Request) {
   let input;
   try {
@@ -135,6 +146,7 @@ export async function handle(request: Request) {
   // Verify session/user BEFORE entering SSE stream to prevent hanging
   let artifact: ProcessArtifact;
   let job: IngestProcessingJobRecord;
+  let resolvedSession: ResolvedUserSession;
   let duplicate = false;
   try {
     const sessionData = await getServerUserSession(request);
@@ -166,6 +178,11 @@ export async function handle(request: Request) {
     if (!userAccount) {
       throw new Error("User account profile not found. Please complete profile setup.");
     }
+    resolvedSession = {
+      user,
+      userAccount,
+      isAuthenticatedUpload: true,
+    };
 
     const artifactData = jsonRecord(artifact.data);
     const idempotencyKey = buildProcessIdempotencyKey(input.artifactId, user.id);
@@ -211,9 +228,67 @@ export async function handle(request: Request) {
     return handleEndpointError(error);
   }
 
-  // Return SSE status stream for compatibility while expensive work is owned by the worker.
+  // Return SSE status stream while processing this artifact immediately in the request-bound worker path.
   const stream = createSSEStream(async (send) => {
     try {
+      if (job.status === "queued" || job.status === "failed") {
+        const workerId = requestBoundWorkerId(job);
+        const claimedJob = await claimIngestProcessingJobById({
+          jobId: job.id,
+          workerId,
+          leaseSeconds: REQUEST_BOUND_LEASE_SECONDS,
+        });
+
+        if (claimedJob) {
+          let terminalEvent: SSEEvent | null = null;
+          await handleIngestProcess(resolvedSession, input.artifactId, (event) => {
+            if (event.type === "complete" || event.type === "error") {
+              terminalEvent = event;
+              return;
+            }
+            send(event);
+          });
+
+          if (terminalEvent?.type === "complete") {
+            await markIngestProcessingJobSucceeded({
+              job: claimedJob,
+              workerId,
+              resultSummary: {
+                artifactId: claimedJob.reportArtifactId,
+                requestBoundImmediateProcessing: true,
+                endpointCutoverEnabled: true,
+                parserOutputMutated: false,
+                ocrBehaviorMutated: false,
+                violationTruthMutated: false,
+                evidenceBindingMutated: false,
+                packetReadinessMutated: false,
+                rawReportBytesLogged: false,
+                extractedReportTextLogged: false,
+              },
+            });
+            send(terminalEvent);
+            return;
+          }
+
+          const safeErrorMessage = terminalEvent?.type === "error"
+            ? terminalEvent.error
+            : "Ingest processing ended without a final status.";
+          await markIngestProcessingJobFailed({
+            job: claimedJob,
+            workerId,
+            error: new Error(safeErrorMessage),
+          });
+          send(terminalEvent?.type === "error"
+            ? terminalEvent
+            : {
+                type: "error",
+                error: "Processing ended without a final status. Please try again or contact support if this continues.",
+                code: "INGEST_PROCESSING_NO_TERMINAL_EVENT",
+              });
+          return;
+        }
+      }
+
       const output = queueOutput(job, duplicate);
       const stage = stageForJob(job.status);
       const percent = percentForJob(job.status);

@@ -1,6 +1,6 @@
 # Ingest Stuck-99 Regression Evidence
 
-Generated at: 2026-05-21T01:20:22.166Z
+Generated at: 2026-05-21T02:09:15.589Z
 
 - Scope: synthetic local status-regression evidence only.
 - Production mutation: false.
