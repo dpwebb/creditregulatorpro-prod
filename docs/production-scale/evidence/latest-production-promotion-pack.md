@@ -1,11 +1,16 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-21T01:36:03.335Z
+Generated at: 2026-05-21T10:53:31.648Z
 Current branch: `staging`
-Current commit hash: `fa1d28e478a73e187a7a403ec7aea04135de3318`
+Current commit hash: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+Current HEAD: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+Target environment: `production`
+Target SHA: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
+Production-ready claim: **false**
 
 ## Required Statements
 
@@ -19,6 +24,30 @@ Recommended readiness classification: **limited beta**
 - Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
 - Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.
 - Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.
+- Existing stale, skipped, manual-only, failed, or non-automated evidence is historical and non-certifying.
+
+## Certification Gate
+
+- CERTIFYING: false
+- Target environment: `production`
+- Target SHA: `9499fa6103a4b3cbd2636dba4877ac5dafe7e225`
+- Missing required checks: none
+- Stale checks: storageDurability, evidenceLedger, rollbackSimulation
+- Non-automated checks: queueLiveness
+- Skipped checks: none
+- Failed checks: queueLiveness, evidenceLedger, migrationGovernance, rollbackSimulation
+
+### Required Certification Checks
+
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=9499fa6103a4b3cbd2636dba4877ac5dafe7e225; timestamp=2026-05-21T10:53:31.648Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=0676d10ec5f1ada2abf6d05ced21e2cf2c52376b; timestamp=2026-05-21T05:59:58.692Z; command=`pnpm run storage:durability-contract`
+- Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=9499fa6103a4b3cbd2636dba4877ac5dafe7e225; timestamp=2026-05-21T10:53:31.648Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=0da5d6e2801f4c21e20ad161631c1f2f87e1f58a; timestamp=2026-05-21T09:14:14.766Z; command=`pnpm run deploy:rollback-simulation`
+
+### Exact Commands Run By This Evidence Pack
+
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-21T10:53:31.648Z; completed=2026-05-21T10:53:31.648Z
 
 ## Command Result Summary
 
@@ -42,9 +71,11 @@ Recommended readiness classification: **limited beta**
 - `pnpm run ingest:worker:staging-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md, docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json
 - `pnpm run storage:raw-report-remediation-plan` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json
 - `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
+- `pnpm run storage:durability-contract` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-durability.md, docs/production-scale/evidence/latest-storage-durability.json
 - `pnpm run check:migrations` - reference-required; evidence: none
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
 - `pnpm run migrations:gate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-gate.md, docs/production-scale/evidence/latest-migration-gate.json
+- `pnpm run deploy:rollback-simulation` - evidence-file-present; evidence: docs/production-scale/evidence/latest-deploy-rollback-simulation.md, docs/production-scale/evidence/latest-deploy-rollback-simulation.json
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
 - `pnpm run restore:evidence:current-check` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-readiness-check.md, docs/production-scale/evidence/latest-restore-readiness-check.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
@@ -166,7 +197,7 @@ Recommended readiness classification: **limited beta**
 - Threshold mode: release-blocking
 - Threshold status: passed
 - Request count: 32
-- Latency p50/p95/max ms: 21.28/43.6/48.46
+- Latency p50/p95/max ms: 20.48/35.32/43.9
 - DB pool configured max: 3
 - DB pool observed signal: available
 - Rate limiter accepted/rejected: 2/22
@@ -197,14 +228,17 @@ Recommended readiness classification: **limited beta**
 
 ## Migration Gate Evidence
 
-- Status: accepted-formal-waiver
-- Policy mode: waived
+- Status: accepted-temporary-allowlist
+- Policy mode: release-blocking
+- CERTIFYING:false
 - Release gate accepted: yes
-- Runtime ensure residual impact: formally-waived
+- Production promotion gate accepted: yes
+- Temporary allowlist active: yes
+- Runtime ensure residual impact: temporary-allowlist
 - Release-blocking findings: 0
-- Formal waiver accepted: yes
-- Formal waiver reason: Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.
-- Blocker 10 coverage: accepted
+- Formal waiver accepted: no
+- Formal waiver reason: n/a
+- Blocker 10 coverage: not accepted
 - Gate mutates DB: no
 - Gate executes DDL: no
 
@@ -239,7 +273,6 @@ Recommended readiness classification: **limited beta**
 
 ## Waivers
 
-- #10 Migration governance (High; waived with explicit reason) - Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.
 - #18 Runtime-size gates (Medium; waived with explicit reason) - Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
 
 ## Unresolved Production Blockers
@@ -248,6 +281,7 @@ Recommended readiness classification: **limited beta**
 - #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
 - #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
 - #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
+- #10 Migration governance (High; partial) - Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.
 - #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
 
 ## Unresolved Scale Blockers
@@ -288,6 +322,10 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/latest-retention-archive-restore-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md` - present
 - `docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json` - present; evidenceType=SIMULATED
+- `docs/production-scale/evidence/latest-storage-durability.md` - present
+- `docs/production-scale/evidence/latest-storage-durability.json` - present; evidenceType=AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT
+- `docs/production-scale/evidence/latest-deploy-rollback-simulation.md` - present
+- `docs/production-scale/evidence/latest-deploy-rollback-simulation.json` - present; evidenceType=AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.md` - present
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.json` - present; evidenceType=DESIGN_AND_GUARD_EVIDENCE
 - `docs/production-scale/evidence/latest-production-worker-activation-evidence.md` - present
@@ -314,6 +352,8 @@ Recommended readiness classification: **limited beta**
 - `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.md` - missing
+- `docs/production-scale/evidence/latest-evidence-ledger.md` - present
+- `docs/production-scale/evidence/latest-evidence-ledger.json` - present
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json` - missing
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md` - missing
 - `docs/production-scale/evidence/alerting-exclusion-evidence.json` - missing

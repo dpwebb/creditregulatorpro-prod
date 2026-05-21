@@ -93,6 +93,51 @@ export const STAGING_INGEST_WORKER_EVIDENCE_MD_PATH =
   "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md";
 export const STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH =
   "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json";
+export const STORAGE_DURABILITY_EVIDENCE_JSON_PATH =
+  "docs/production-scale/evidence/latest-storage-durability.json";
+export const STORAGE_DURABILITY_EVIDENCE_MD_PATH =
+  "docs/production-scale/evidence/latest-storage-durability.md";
+export const EVIDENCE_LEDGER_EVIDENCE_JSON_PATH =
+  "docs/production-scale/evidence/latest-evidence-ledger.json";
+export const EVIDENCE_LEDGER_EVIDENCE_MD_PATH =
+  "docs/production-scale/evidence/latest-evidence-ledger.md";
+export const DEPLOY_ROLLBACK_SIMULATION_JSON_PATH =
+  "docs/production-scale/evidence/latest-deploy-rollback-simulation.json";
+export const DEPLOY_ROLLBACK_SIMULATION_MD_PATH =
+  "docs/production-scale/evidence/latest-deploy-rollback-simulation.md";
+
+export const REQUIRED_CERTIFICATION_CHECKS = [
+  {
+    key: "queueLiveness",
+    label: "Queue liveness",
+    command: "pnpm run production-worker:readiness-evidence",
+    jsonPath: PRODUCTION_WORKER_READINESS_JSON_PATH,
+  },
+  {
+    key: "storageDurability",
+    label: "Storage durability",
+    command: "pnpm run storage:durability-contract",
+    jsonPath: STORAGE_DURABILITY_EVIDENCE_JSON_PATH,
+  },
+  {
+    key: "evidenceLedger",
+    label: "Evidence ledger",
+    command: "pnpm run production-scale:evidence",
+    jsonPath: EVIDENCE_LEDGER_EVIDENCE_JSON_PATH,
+  },
+  {
+    key: "migrationGovernance",
+    label: "Migration governance",
+    command: "pnpm run migrations:gate",
+    jsonPath: MIGRATION_GATE_JSON_PATH,
+  },
+  {
+    key: "rollbackSimulation",
+    label: "Rollback simulation",
+    command: "pnpm run deploy:rollback-simulation",
+    jsonPath: DEPLOY_ROLLBACK_SIMULATION_JSON_PATH,
+  },
+];
 
 export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run typecheck",
@@ -115,9 +160,11 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run storage:raw-report-remediation-plan",
   "pnpm run storage:raw-report-remediation-acceptance",
+  "pnpm run storage:durability-contract",
   "pnpm run check:migrations",
   "pnpm run check:restore-drill-evidence",
   "pnpm run migrations:gate",
+  "pnpm run deploy:rollback-simulation",
   "pnpm run restore:accept-human-evidence",
   "pnpm run restore:evidence:current-check",
   "pnpm run report:runtime-size",
@@ -219,6 +266,14 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run packet-pdf:cache-miss-proof": [
     "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
     "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
+  ],
+  "pnpm run storage:durability-contract": [
+    STORAGE_DURABILITY_EVIDENCE_MD_PATH,
+    STORAGE_DURABILITY_EVIDENCE_JSON_PATH,
+  ],
+  "pnpm run deploy:rollback-simulation": [
+    DEPLOY_ROLLBACK_SIMULATION_MD_PATH,
+    DEPLOY_ROLLBACK_SIMULATION_JSON_PATH,
   ],
   "pnpm run production-worker:activation-plan": [
     "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
@@ -678,6 +733,249 @@ function buildCommandList(rootDir, registry, packageJson) {
   return Array.from(commandSet).map((command) => commandResultSummary(command, rootDir, scripts));
 }
 
+function firstString(...values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function evidenceHead(evidence) {
+  return firstString(
+    evidence?.targetSha,
+    evidence?.targetSHA,
+    evidence?.targetCommitHash,
+    evidence?.targetHead,
+    evidence?.currentHead,
+    evidence?.currentHEAD,
+    evidence?.currentCommitHash,
+    evidence?.headSha,
+    evidence?.commit,
+    evidence?.sha,
+  );
+}
+
+function evidenceTimestamp(evidence) {
+  return firstString(
+    evidence?.generatedAt,
+    evidence?.completedAt,
+    evidence?.timestamp,
+    evidence?.createdAt,
+  );
+}
+
+function evidenceCertifyingFlag(evidence) {
+  return evidence?.CERTIFYING === true || evidence?.certifying === true;
+}
+
+function evidenceLooksManualOnly(evidence) {
+  const markers = [
+    evidence?.evidenceType,
+    evidence?.proofType,
+    evidence?.status,
+    evidence?.validation?.evidenceType,
+    evidence?.acceptanceKind,
+  ].map((value) => String(value ?? "").toLowerCase());
+  return markers.some((value) => /human|manual/.test(value)) ||
+    evidence?.manualOnly === true ||
+    evidence?.manualTestingRequired === true ||
+    evidence?.requiresHumanSignoff === true;
+}
+
+function evidenceLooksSkipped(evidence) {
+  const markers = [
+    evidence?.status,
+    evidence?.result,
+    evidence?.summary?.status,
+  ].map((value) => String(value ?? "").toLowerCase());
+  return markers.some((value) => /skip|skipped|not-run|not run/.test(value)) ||
+    evidence?.skipped === true ||
+    evidence?.checksSkipped === true;
+}
+
+function evidenceStatusText(evidence) {
+  return firstString(
+    evidence?.status,
+    evidence?.result,
+    evidence?.summary?.status,
+    evidence?.validation?.status,
+  );
+}
+
+function checkPassedByKey(key, evidence, targetEnvironment) {
+  if (!evidence || evidenceLooksManualOnly(evidence) || evidenceLooksSkipped(evidence)) return false;
+
+  if (key === "queueLiveness") {
+    return evidenceCertifyingFlag(evidence) === true &&
+      (
+        evidence.queueLiveness?.status === "passed" ||
+        evidence.acceptedProductionRunEvidence?.accepted === true ||
+        evidence.blockerCoverage?.productionIngestRuntime === true ||
+        evidenceStatusText(evidence) === "passed"
+      );
+  }
+
+  if (key === "storageDurability") {
+    const environmentContract = evidence.contracts?.[targetEnvironment];
+    return evidenceCertifyingFlag(evidence) === true &&
+      (
+        evidenceStatusText(evidence) === "passed" ||
+        (
+          environmentContract?.status === "passed" &&
+          evidence.sentinelSimulation?.status === "passed" &&
+          evidence.deployPreflight?.[targetEnvironment]?.status === "passed"
+        )
+      );
+  }
+
+  if (key === "evidenceLedger") {
+    return evidenceCertifyingFlag(evidence) === true &&
+      (
+        evidenceStatusText(evidence) === "passed" ||
+        evidence.automatedEvidenceCoverage?.serverComputedHashesVerifyWithHashChainHelper === true ||
+        evidence.summary?.appendOnlyHelperAdded === true
+      );
+  }
+
+  if (key === "migrationGovernance") {
+    return evidenceCertifyingFlag(evidence) === true &&
+      evidence.productionPromotionGateAccepted === true &&
+      evidence.releaseGateAccepted === true &&
+      evidence.safety?.nonMutating === true;
+  }
+
+  if (key === "rollbackSimulation") {
+    return evidenceCertifyingFlag(evidence) === true &&
+      evidenceStatusText(evidence) === "passed";
+  }
+
+  return evidenceCertifyingFlag(evidence) === true && evidenceStatusText(evidence) === "passed";
+}
+
+function evidenceForCertificationCheck({ check, rootDir, overrides, defaults }) {
+  if (Object.prototype.hasOwnProperty.call(overrides, check.key)) {
+    return overrides[check.key];
+  }
+  if (Object.prototype.hasOwnProperty.call(defaults, check.key)) {
+    return defaults[check.key];
+  }
+  return readJsonIfPresent(rootDir, check.jsonPath);
+}
+
+export function buildPromotionCertificationGate({
+  rootDir = process.cwd(),
+  generatedAt = new Date().toISOString(),
+  targetEnvironment = "production",
+  targetSha,
+  currentHead,
+  certificationEvidence = {},
+  defaultEvidence = {},
+} = {}) {
+  const resolvedTargetSha = targetSha ?? currentHead ?? safeGit(["rev-parse", "HEAD"], rootDir);
+  const checks = {};
+  const reasons = [];
+  const missingRequiredChecks = [];
+  const staleChecks = [];
+  const nonAutomatedChecks = [];
+  const skippedChecks = [];
+  const failedChecks = [];
+
+  for (const check of REQUIRED_CERTIFICATION_CHECKS) {
+    const evidence = evidenceForCertificationCheck({
+      check,
+      rootDir,
+      overrides: certificationEvidence,
+      defaults: defaultEvidence,
+    });
+    const present = Boolean(evidence);
+    const head = present ? evidenceHead(evidence) : null;
+    const timestamp = present ? evidenceTimestamp(evidence) : null;
+    const headMatchesTarget = present && head === resolvedTargetSha;
+    const timestampCurrentForRun = present && timestamp === generatedAt;
+    const certifyingFlag = present && evidenceCertifyingFlag(evidence);
+    const manualOnly = present && evidenceLooksManualOnly(evidence);
+    const skipped = present && evidenceLooksSkipped(evidence);
+    const passed = present && checkPassedByKey(check.key, evidence, targetEnvironment);
+    const status = present ? evidenceStatusText(evidence) : "missing";
+    const checkResult = {
+      key: check.key,
+      label: check.label,
+      command: check.command,
+      evidencePath: check.jsonPath,
+      present,
+      status,
+      generatedAt: timestamp,
+      evidenceHead: head,
+      targetSha: resolvedTargetSha,
+      headMatchesTarget,
+      timestampCurrentForRun,
+      certifyingFlag,
+      manualOnly,
+      skipped,
+      passed,
+      CERTIFYING: present && passed && headMatchesTarget && timestampCurrentForRun && certifyingFlag && !manualOnly && !skipped,
+    };
+
+    if (!present) {
+      missingRequiredChecks.push(check.key);
+      reasons.push(`${check.label} evidence is missing.`);
+    } else {
+      if (!headMatchesTarget) {
+        staleChecks.push(check.key);
+        reasons.push(`${check.label} evidence HEAD does not match target SHA.`);
+      }
+      if (!timestampCurrentForRun) {
+        staleChecks.push(check.key);
+        reasons.push(`${check.label} evidence timestamp is not current for this promotion-pack run.`);
+      }
+      if (manualOnly) {
+        nonAutomatedChecks.push(check.key);
+        reasons.push(`${check.label} evidence is manual-only or human-observed.`);
+      }
+      if (skipped) {
+        skippedChecks.push(check.key);
+        reasons.push(`${check.label} evidence is skipped or not run.`);
+      }
+      if (!passed || !certifyingFlag) {
+        failedChecks.push(check.key);
+        reasons.push(`${check.label} evidence is not passing and certifying.`);
+      }
+    }
+
+    checks[check.key] = checkResult;
+  }
+
+  const uniqueReasons = unique(reasons);
+  const certifying =
+    missingRequiredChecks.length === 0 &&
+    staleChecks.length === 0 &&
+    nonAutomatedChecks.length === 0 &&
+    skippedChecks.length === 0 &&
+    failedChecks.length === 0 &&
+    Object.values(checks).every((check) => check.CERTIFYING === true);
+
+  return {
+    targetEnvironment,
+    targetSha: resolvedTargetSha,
+    generatedAt,
+    requiredChecks: REQUIRED_CERTIFICATION_CHECKS.map((check) => ({
+      key: check.key,
+      label: check.label,
+      command: check.command,
+      evidencePath: check.jsonPath,
+    })),
+    checks,
+    missingRequiredChecks: unique(missingRequiredChecks),
+    staleChecks: unique(staleChecks),
+    nonAutomatedChecks: unique(nonAutomatedChecks),
+    skippedChecks: unique(skippedChecks),
+    failedChecks: unique(failedChecks),
+    reasons: certifying ? [] : uniqueReasons,
+    certifying,
+    CERTIFYING: certifying,
+  };
+}
+
 function readinessClassification(classifiedBlockers) {
   const unresolved = classifiedBlockers.filter((blocker) => isUnresolvedClassification(blocker.classification));
   if (unresolved.length === 0) {
@@ -724,8 +1022,11 @@ export function buildProductionPromotionPackReport({
   migrationGateEvidence = null,
   measuredLoadEvidenceAcceptance = null,
   runtimeSizePolicyAcceptance = null,
+  certificationEvidence = {},
   generatedAt = new Date().toISOString(),
   env = process.env,
+  targetEnvironment = env.CRP_PROMOTION_TARGET_ENV ?? env.TARGET_ENVIRONMENT ?? "production",
+  targetSha = env.CRP_PROMOTION_TARGET_SHA ?? env.TARGET_SHA ?? null,
 } = {}) {
   const productionEnvironment = detectProductionEnvironment(env);
   if (productionEnvironment.productionLike) {
@@ -743,6 +1044,11 @@ export function buildProductionPromotionPackReport({
   const packageJson = loadPackageJson(rootDir);
   const branch = safeGit(["branch", "--show-current"], rootDir);
   const commit = safeGit(["rev-parse", "HEAD"], rootDir);
+  const resolvedTargetEnvironment = String(targetEnvironment || "production").trim();
+  const resolvedTargetSha = targetSha ? String(targetSha).trim() : commit;
+  if (!/^[a-f0-9]{40}$/i.test(resolvedTargetSha)) {
+    throw new Error("Production promotion pack target SHA must be a strict 40-hex commit hash.");
+  }
   const audit = {
     ...parseAuditMetadata(loadedAuditText, auditPath),
     currentCommitHash: parseAuditCommit(loadedAuditText),
@@ -848,6 +1154,12 @@ export function buildProductionPromotionPackReport({
     PRODUCTION_DEPLOYMENT_PARITY_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_MD_PATH,
+    STORAGE_DURABILITY_EVIDENCE_MD_PATH,
+    STORAGE_DURABILITY_EVIDENCE_JSON_PATH,
+    EVIDENCE_LEDGER_EVIDENCE_MD_PATH,
+    EVIDENCE_LEDGER_EVIDENCE_JSON_PATH,
+    DEPLOY_ROLLBACK_SIMULATION_MD_PATH,
+    DEPLOY_ROLLBACK_SIMULATION_JSON_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
     ALERTING_EXCLUSION_EVIDENCE_JSON_PATH,
@@ -863,12 +1175,38 @@ export function buildProductionPromotionPackReport({
   const commandResults = buildCommandList(rootDir, loadedRegistry, packageJson);
   const dashboard = collectDashboardEvidence({ rootDir, dashboardReport });
   const readiness = readinessClassification(classifiedBlockers);
+  const promotionCertification = buildPromotionCertificationGate({
+    rootDir,
+    generatedAt,
+    targetEnvironment: resolvedTargetEnvironment,
+    targetSha: resolvedTargetSha,
+    currentHead: commit,
+    certificationEvidence,
+    defaultEvidence: {
+      queueLiveness: workerReadinessEvidence,
+      migrationGovernance: migrationGate,
+    },
+  });
 
   const report = {
     reportName: "production-promotion-evidence-pack",
     generatedAt,
     currentBranch: branch,
     currentCommitHash: commit,
+    currentHead: commit,
+    targetEnvironment: resolvedTargetEnvironment,
+    targetSha: resolvedTargetSha,
+    exactCommandsRun: [
+      {
+        command: "pnpm run production-scale:promotion-pack",
+        startedAt: generatedAt,
+        completedAt: generatedAt,
+        status: "passed",
+        automated: true,
+      },
+    ],
+    certifying: promotionCertification.CERTIFYING,
+    CERTIFYING: promotionCertification.CERTIFYING,
     auditFilePath: audit.path,
     auditDate: audit.auditDate,
     auditDateParseable: audit.auditDateParseable,
@@ -887,6 +1225,12 @@ export function buildProductionPromotionPackReport({
     commandList: commandResults.map((item) => item.command),
     commandResultSummary: commandResults,
     generatedEvidenceFileReferences,
+    queueLivenessStatus: promotionCertification.checks.queueLiveness,
+    storageDurabilityResult: promotionCertification.checks.storageDurability,
+    evidenceLedgerResult: promotionCertification.checks.evidenceLedger,
+    migrationGovernanceResult: promotionCertification.checks.migrationGovernance,
+    rollbackSimulationResult: promotionCertification.checks.rollbackSimulation,
+    promotionCertification,
     humanRestoreDrillEvidenceAcceptance: {
       reportName: acceptedHumanRestoreEvidence.reportName,
       generatedAt: acceptedHumanRestoreEvidence.generatedAt,
@@ -1264,6 +1608,7 @@ export function buildProductionPromotionPackReport({
       liveExternalProvidersCalled: false,
       realConsumerPiiUsed: false,
       productionAtScaleClaimed: readiness.value === "production-at-scale" && readiness.canPromoteProductionAtScale,
+      productionReadyClaim: promotionCertification.CERTIFYING === true && readiness.value === "production-at-scale",
       simulatedProofIsProductionProof: false,
       dashboardPassTreatedAsCompleteReleaseEvidence: false,
     },
@@ -1311,6 +1656,44 @@ export function validatePromotionPackReport(report) {
   if (!report.currentBranch) errors.push("Promotion pack is missing current branch.");
   if (!/^[a-f0-9]{40}$/i.test(String(report.currentCommitHash ?? ""))) {
     errors.push("Promotion pack is missing a full current commit hash.");
+  }
+  if (!report.targetEnvironment) errors.push("Promotion pack is missing target environment.");
+  if (!/^[a-f0-9]{40}$/i.test(String(report.targetSha ?? ""))) {
+    errors.push("Promotion pack is missing a strict 40-hex target SHA.");
+  }
+  if (!Array.isArray(report.exactCommandsRun) || report.exactCommandsRun.length === 0) {
+    errors.push("Promotion pack is missing exact commands run.");
+  }
+  if (!report.promotionCertification || typeof report.promotionCertification !== "object") {
+    errors.push("Promotion pack is missing promotion certification details.");
+  }
+  for (const requiredKey of [
+    "queueLivenessStatus",
+    "storageDurabilityResult",
+    "evidenceLedgerResult",
+    "migrationGovernanceResult",
+    "rollbackSimulationResult",
+  ]) {
+    if (!report[requiredKey]) errors.push(`Promotion pack is missing ${requiredKey}.`);
+  }
+  if (report.CERTIFYING !== report.promotionCertification?.CERTIFYING) {
+    errors.push("Promotion pack top-level CERTIFYING must match promotionCertification.CERTIFYING.");
+  }
+  if (report.certifying !== report.CERTIFYING) {
+    errors.push("Promotion pack certifying and CERTIFYING flags must match.");
+  }
+  if (report.CERTIFYING === true) {
+    if (report.currentCommitHash !== report.targetSha) {
+      errors.push("Promotion pack cannot certify when current HEAD differs from target SHA.");
+    }
+    for (const check of Object.values(report.promotionCertification?.checks ?? {})) {
+      if (check.CERTIFYING !== true) {
+        errors.push(`Promotion pack cannot certify while required check is not certifying: ${check.key}.`);
+      }
+    }
+  }
+  if (report.safety?.productionReadyClaim === true && report.CERTIFYING !== true) {
+    errors.push("Promotion pack cannot claim production-ready while CERTIFYING is false.");
   }
   for (const evidence of report.generatedEvidenceFileReferences ?? []) {
     if (isSimulatedEvidenceType(evidence.evidenceType) && evidence.productionProof === true) {
@@ -1666,6 +2049,13 @@ function renderCommandRows(commands) {
   });
 }
 
+function renderCertificationRows(checks) {
+  return REQUIRED_CERTIFICATION_CHECKS.map((required) => {
+    const check = checks?.[required.key] ?? {};
+    return `- ${required.label}: ${check.CERTIFYING ? "CERTIFYING" : "non-certifying"}; status=${check.status ?? "missing"}; head=${check.evidenceHead ?? "missing"}; timestamp=${check.generatedAt ?? "missing"}; command=\`${required.command}\``;
+  });
+}
+
 export function renderPromotionPackMarkdown(report) {
   const lines = [
     "# Production Promotion Evidence Pack",
@@ -1673,9 +2063,14 @@ export function renderPromotionPackMarkdown(report) {
     `Generated at: ${report.generatedAt}`,
     `Current branch: \`${report.currentBranch}\``,
     `Current commit hash: \`${report.currentCommitHash}\``,
+    `Current HEAD: \`${report.currentHead ?? report.currentCommitHash}\``,
+    `Target environment: \`${report.targetEnvironment}\``,
+    `Target SHA: \`${report.targetSha}\``,
+    `CERTIFYING:${report.CERTIFYING ? "true" : "false"}`,
     `Audit file path: \`${report.auditFilePath}\``,
     `Audit date: ${report.auditDate ?? "not parseable"}`,
     `Recommended readiness classification: **${report.readinessClassification.value}**`,
+    `Production-ready claim: **${report.safety?.productionReadyClaim ? "true" : "false"}**`,
     "",
     "## Required Statements",
     "",
@@ -1689,6 +2084,28 @@ export function renderPromotionPackMarkdown(report) {
     "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
     "- Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "- Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
+    "- Existing stale, skipped, manual-only, failed, or non-automated evidence is historical and non-certifying.",
+    "",
+    "## Certification Gate",
+    "",
+    `- CERTIFYING: ${report.CERTIFYING ? "true" : "false"}`,
+    `- Target environment: \`${report.targetEnvironment}\``,
+    `- Target SHA: \`${report.targetSha}\``,
+    `- Missing required checks: ${report.promotionCertification?.missingRequiredChecks?.join(", ") || "none"}`,
+    `- Stale checks: ${report.promotionCertification?.staleChecks?.join(", ") || "none"}`,
+    `- Non-automated checks: ${report.promotionCertification?.nonAutomatedChecks?.join(", ") || "none"}`,
+    `- Skipped checks: ${report.promotionCertification?.skippedChecks?.join(", ") || "none"}`,
+    `- Failed checks: ${report.promotionCertification?.failedChecks?.join(", ") || "none"}`,
+    "",
+    "### Required Certification Checks",
+    "",
+    ...renderCertificationRows(report.promotionCertification?.checks),
+    "",
+    "### Exact Commands Run By This Evidence Pack",
+    "",
+    ...report.exactCommandsRun.map((command) =>
+      `- \`${command.command}\` - ${command.status}; started=${command.startedAt}; completed=${command.completedAt}`,
+    ),
     "",
     "## Command Result Summary",
     "",
@@ -1994,11 +2411,13 @@ function printHelp() {
     "",
     "Options:",
     "  --root <path>    Project root. Defaults to current working directory.",
+    "  --target-environment <name>  Promotion target environment. Defaults to production.",
+    "  --target-sha <sha>           Strict 40-hex deploy target SHA. Defaults to current HEAD.",
   ].join("\n"));
 }
 
 function parseArgs(args) {
-  const options = { rootDir: process.cwd() };
+  const options = { rootDir: process.cwd(), targetEnvironment: undefined, targetSha: undefined };
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === "--help" || arg === "-h") {
@@ -2012,6 +2431,20 @@ function parseArgs(args) {
       index += 1;
       continue;
     }
+    if (arg === "--target-environment") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("--target-environment requires a value.");
+      options.targetEnvironment = value;
+      index += 1;
+      continue;
+    }
+    if (arg === "--target-sha") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("--")) throw new Error("--target-sha requires a value.");
+      options.targetSha = value;
+      index += 1;
+      continue;
+    }
     throw new Error(`Unknown option: ${arg}`);
   }
   return options;
@@ -2019,12 +2452,17 @@ function parseArgs(args) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const report = buildProductionPromotionPackReport({ rootDir: options.rootDir });
+  const report = buildProductionPromotionPackReport({
+    rootDir: options.rootDir,
+    targetEnvironment: options.targetEnvironment,
+    targetSha: options.targetSha,
+  });
   const outputs = writePromotionPackOutputs(report, options.rootDir);
   console.log("Production promotion evidence pack generated.");
   console.log(`Markdown: ${outputs.markdownPath}`);
   console.log(`JSON: ${outputs.jsonPath}`);
   console.log(`Readiness classification: ${report.readinessClassification.value}`);
+  console.log(`CERTIFYING:${report.CERTIFYING ? "true" : "false"}`);
   console.log(`Unresolved production blockers: ${report.unresolvedProductionBlockers.length}`);
   console.log(`Unresolved scale blockers: ${report.unresolvedScaleBlockers.length}`);
   console.log("SIMULATED proof is not production proof. Dashboard SKIP is not treated as PASS.");

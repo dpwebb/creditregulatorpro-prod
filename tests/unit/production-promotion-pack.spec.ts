@@ -1,9 +1,11 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildPromotionCertificationGate,
   buildProductionPromotionPackReport,
   REQUIRED_PROMOTION_COMMANDS,
   validatePromotionPackReport,
@@ -592,7 +594,231 @@ function acceptedHardGateRuntimeSizePolicyAcceptance() {
   };
 }
 
+const PROMOTION_GATE_TIMESTAMP = "2026-05-21T12:00:00.000Z";
+const PROMOTION_GATE_TARGET_SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+function currentGitHead() {
+  return execFileSync("git", ["rev-parse", "HEAD"], { cwd: process.cwd(), encoding: "utf8" }).trim();
+}
+
+function certifyingEvidence({
+  targetSha = PROMOTION_GATE_TARGET_SHA,
+  generatedAt = PROMOTION_GATE_TIMESTAMP,
+  overrides = {},
+}: {
+  targetSha?: string;
+  generatedAt?: string;
+  overrides?: Record<string, unknown>;
+} = {}) {
+  return {
+    generatedAt,
+    currentHead: targetSha,
+    targetSha,
+    status: "passed",
+    certifying: true,
+    CERTIFYING: true,
+    queueLiveness: {
+      status: "passed",
+    },
+    acceptedProductionRunEvidence: {
+      accepted: true,
+    },
+    blockerCoverage: {
+      productionIngestRuntime: true,
+    },
+    contracts: {
+      production: {
+        status: "passed",
+      },
+    },
+    sentinelSimulation: {
+      status: "passed",
+    },
+    deployPreflight: {
+      production: {
+        status: "passed",
+      },
+    },
+    automatedEvidenceCoverage: {
+      serverComputedHashesVerifyWithHashChainHelper: true,
+    },
+    summary: {
+      appendOnlyHelperAdded: true,
+    },
+    productionPromotionGateAccepted: true,
+    releaseGateAccepted: true,
+    safety: {
+      nonMutating: true,
+    },
+    ...overrides,
+  };
+}
+
+function allPassingCertificationEvidence({
+  targetSha = PROMOTION_GATE_TARGET_SHA,
+  generatedAt = PROMOTION_GATE_TIMESTAMP,
+  overrides = {},
+}: {
+  targetSha?: string;
+  generatedAt?: string;
+  overrides?: Record<string, unknown>;
+} = {}) {
+  return {
+    queueLiveness: certifyingEvidence({ targetSha, generatedAt }),
+    storageDurability: certifyingEvidence({ targetSha, generatedAt }),
+    evidenceLedger: certifyingEvidence({ targetSha, generatedAt }),
+    migrationGovernance: certifyingEvidence({ targetSha, generatedAt }),
+    rollbackSimulation: certifyingEvidence({ targetSha, generatedAt }),
+    ...overrides,
+  };
+}
+
 describe("production promotion evidence pack", () => {
+  it("marks stale evidence HEAD as non-certifying", () => {
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence({
+        overrides: {
+          storageDurability: certifyingEvidence({
+            overrides: {
+              currentHead: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              targetSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            },
+          }),
+        },
+      }),
+    });
+
+    expect(gate.CERTIFYING).toBe(false);
+    expect(gate.staleChecks).toContain("storageDurability");
+    expect(gate.checks.storageDurability.headMatchesTarget).toBe(false);
+  });
+
+  it("marks missing required evidence as non-certifying", () => {
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence({
+        overrides: {
+          evidenceLedger: null,
+        },
+      }),
+    });
+
+    expect(gate.CERTIFYING).toBe(false);
+    expect(gate.missingRequiredChecks).toContain("evidenceLedger");
+    expect(gate.checks.evidenceLedger.present).toBe(false);
+  });
+
+  it("marks manual-only evidence as non-certifying", () => {
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence({
+        overrides: {
+          rollbackSimulation: certifyingEvidence({
+            overrides: {
+              evidenceType: "MANUAL_ONLY",
+              requiresHumanSignoff: true,
+            },
+          }),
+        },
+      }),
+    });
+
+    expect(gate.CERTIFYING).toBe(false);
+    expect(gate.nonAutomatedChecks).toContain("rollbackSimulation");
+    expect(gate.checks.rollbackSimulation.manualOnly).toBe(true);
+  });
+
+  it("certifies when all required automated mocked checks pass for the target SHA", () => {
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence(),
+    });
+
+    expect(gate.CERTIFYING).toBe(true);
+    expect(gate.missingRequiredChecks).toEqual([]);
+    expect(gate.failedChecks).toEqual([]);
+    expect(Object.values(gate.checks).every((check: { CERTIFYING: boolean }) => check.CERTIFYING === true)).toBe(true);
+  });
+
+  it("keeps the machine-readable evidence schema stable for production promotion certification", () => {
+    const head = currentGitHead();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      stagingIngestWorkerEvidence: notSubmittedStagingIngestWorkerEvidence(),
+      measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
+      runtimeSizePolicyAcceptance: notSubmittedRuntimeSizePolicyAcceptance(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      env: {},
+      targetSha: head,
+      certificationEvidence: allPassingCertificationEvidence({
+        targetSha: head,
+      }),
+    });
+
+    expect(report).toEqual(
+      expect.objectContaining({
+        currentHead: head,
+        currentCommitHash: head,
+        targetEnvironment: "production",
+        targetSha: head,
+        CERTIFYING: true,
+        certifying: true,
+        queueLivenessStatus: expect.any(Object),
+        storageDurabilityResult: expect.any(Object),
+        evidenceLedgerResult: expect.any(Object),
+        migrationGovernanceResult: expect.any(Object),
+        rollbackSimulationResult: expect.any(Object),
+        promotionCertification: expect.objectContaining({
+          CERTIFYING: true,
+          requiredChecks: expect.arrayContaining([
+            expect.objectContaining({
+              key: "queueLiveness",
+              command: "pnpm run production-worker:readiness-evidence",
+            }),
+            expect.objectContaining({
+              key: "storageDurability",
+              command: "pnpm run storage:durability-contract",
+            }),
+            expect.objectContaining({
+              key: "evidenceLedger",
+              command: "pnpm run production-scale:evidence",
+            }),
+            expect.objectContaining({
+              key: "migrationGovernance",
+              command: "pnpm run migrations:gate",
+            }),
+            expect.objectContaining({
+              key: "rollbackSimulation",
+              command: "pnpm run deploy:rollback-simulation",
+            }),
+          ]),
+        }),
+      }),
+    );
+    expect(report.exactCommandsRun).toEqual([
+      expect.objectContaining({
+        command: "pnpm run production-scale:promotion-pack",
+        status: "passed",
+        automated: true,
+      }),
+    ]);
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
   it("fails if a required blocker is missing", () => {
     const registry = JSON.parse(readFileSync(resolve("docs/production-scale/blocker-registry.json"), "utf8"));
     registry.blockers = registry.blockers.filter((blocker: { number: number }) => blocker.number !== 25);

@@ -1,8 +1,22 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-21T01:36:03.335Z",
+  "generatedAt": "2026-05-21T10:53:31.648Z",
   "currentBranch": "staging",
-  "currentCommitHash": "fa1d28e478a73e187a7a403ec7aea04135de3318",
+  "currentCommitHash": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+  "currentHead": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+  "targetEnvironment": "production",
+  "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+  "exactCommandsRun": [
+    {
+      "command": "pnpm run production-scale:promotion-pack",
+      "startedAt": "2026-05-21T10:53:31.648Z",
+      "completedAt": "2026-05-21T10:53:31.648Z",
+      "status": "passed",
+      "automated": true
+    }
+  ],
+  "certifying": false,
+  "CERTIFYING": false,
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -50,9 +64,11 @@
     "pnpm run ingest:worker:staging-evidence",
     "pnpm run storage:raw-report-remediation-plan",
     "pnpm run storage:raw-report-remediation-acceptance",
+    "pnpm run storage:durability-contract",
     "pnpm run check:migrations",
     "pnpm run check:restore-drill-evidence",
     "pnpm run migrations:gate",
+    "pnpm run deploy:rollback-simulation",
     "pnpm run restore:accept-human-evidence",
     "pnpm run restore:evidence:current-check",
     "pnpm run report:runtime-size",
@@ -172,12 +188,12 @@
           "exists": true,
           "reportName": "production-scale-load-measured",
           "evidenceType": "MEASURED_LOCAL",
-          "generatedAt": "2026-05-21T00:20:40.403Z",
+          "generatedAt": "2026-05-21T02:36:59.020Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-21T00:20:40.403Z",
+      "latestGeneratedAt": "2026-05-21T02:36:59.020Z",
       "status": "passed"
     },
     {
@@ -337,12 +353,12 @@
           "exists": true,
           "reportName": "production-deployment-parity-evidence",
           "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
-          "generatedAt": "2026-05-21T01:33:42.640Z",
+          "generatedAt": "2026-05-21T08:40:44.283Z",
           "status": "accepted-production-deployment-parity",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-21T01:33:42.640Z",
+      "latestGeneratedAt": "2026-05-21T08:40:44.283Z",
       "status": "accepted-production-deployment-parity"
     },
     {
@@ -491,6 +507,35 @@
       "status": "not-submitted"
     },
     {
+      "command": "pnpm run storage:durability-contract",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-durability.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-durability.json",
+          "exists": true,
+          "reportName": "storage-durability-contract",
+          "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
+          "generatedAt": "2026-05-21T05:59:58.692Z",
+          "status": null,
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-21T05:59:58.692Z",
+      "status": null
+    },
+    {
       "command": "pnpm run check:migrations",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -531,13 +576,42 @@
           "exists": true,
           "reportName": "migration-governance-release-gate",
           "evidenceType": "MIGRATION_GATE_EVIDENCE",
-          "generatedAt": "2026-05-21T00:20:18.719Z",
-          "status": "accepted-formal-waiver",
+          "generatedAt": "2026-05-21T09:59:24.131Z",
+          "status": "accepted-temporary-allowlist",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-21T00:20:18.719Z",
-      "status": "accepted-formal-waiver"
+      "latestGeneratedAt": "2026-05-21T09:59:24.131Z",
+      "status": "accepted-temporary-allowlist"
+    },
+    {
+      "command": "pnpm run deploy:rollback-simulation",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-deploy-rollback-simulation.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
+          "exists": true,
+          "reportName": "deploy-rollback-simulation",
+          "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
+          "generatedAt": "2026-05-21T09:14:14.766Z",
+          "status": "passed",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-21T09:14:14.766Z",
+      "status": "passed"
     },
     {
       "command": "pnpm run restore:accept-human-evidence",
@@ -686,12 +760,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-21T01:35:46.077Z",
+          "generatedAt": "2026-05-21T06:35:45.925Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-21T01:35:46.077Z",
+      "latestGeneratedAt": "2026-05-21T06:35:45.925Z",
       "status": null
     },
     {
@@ -860,12 +934,12 @@
           "exists": true,
           "reportName": "packet-pdf-cache-miss-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-20T19:53:42.158Z",
+          "generatedAt": "2026-05-21T08:14:52.539Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T19:53:42.158Z",
+      "latestGeneratedAt": "2026-05-21T08:14:52.539Z",
       "status": null
     },
     {
@@ -918,12 +992,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T23:50:41.855Z",
+          "generatedAt": "2026-05-21T09:58:38.213Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:50:41.855Z",
+      "latestGeneratedAt": "2026-05-21T09:58:38.213Z",
       "status": null
     },
     {
@@ -1138,7 +1212,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-21T01:35:46.077Z",
+      "generatedAt": "2026-05-21T06:35:45.925Z",
       "status": null,
       "productionProof": false
     },
@@ -1264,7 +1338,7 @@
       "exists": true,
       "reportName": "production-scale-load-measured",
       "evidenceType": "MEASURED_LOCAL",
-      "generatedAt": "2026-05-21T00:20:40.403Z",
+      "generatedAt": "2026-05-21T02:36:59.020Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1408,8 +1482,44 @@
       "exists": true,
       "reportName": "packet-pdf-cache-miss-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-20T19:53:42.158Z",
+      "generatedAt": "2026-05-21T08:14:52.539Z",
       "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-durability.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-durability.json",
+      "exists": true,
+      "reportName": "storage-durability-contract",
+      "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
+      "generatedAt": "2026-05-21T05:59:58.692Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-deploy-rollback-simulation.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
+      "exists": true,
+      "reportName": "deploy-rollback-simulation",
+      "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
+      "generatedAt": "2026-05-21T09:14:14.766Z",
+      "status": "passed",
       "productionProof": false
     },
     {
@@ -1480,7 +1590,7 @@
       "exists": true,
       "reportName": "production-deployment-parity-evidence",
       "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
-      "generatedAt": "2026-05-21T01:33:42.640Z",
+      "generatedAt": "2026-05-21T08:40:44.283Z",
       "status": "accepted-production-deployment-parity",
       "productionProof": false
     },
@@ -1498,7 +1608,7 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T23:50:41.855Z",
+      "generatedAt": "2026-05-21T09:58:38.213Z",
       "status": null,
       "productionProof": false
     },
@@ -1516,8 +1626,8 @@
       "exists": true,
       "reportName": "migration-governance-release-gate",
       "evidenceType": "MIGRATION_GATE_EVIDENCE",
-      "generatedAt": "2026-05-21T00:20:18.719Z",
-      "status": "accepted-formal-waiver",
+      "generatedAt": "2026-05-21T09:59:24.131Z",
+      "status": "accepted-temporary-allowlist",
       "productionProof": false
     },
     {
@@ -1643,6 +1753,24 @@
       "reportName": null,
       "evidenceType": null,
       "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-evidence-ledger.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-evidence-ledger.json",
+      "exists": true,
+      "reportName": "evidence-ledger-remediation-evidence",
+      "evidenceType": null,
+      "generatedAt": "2026-05-21T05:20:12.2044194Z",
       "status": null,
       "productionProof": false
     },
@@ -1885,7 +2013,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-21T01:34:08.428Z",
+      "generatedAt": "2026-05-21T01:36:03.335Z",
       "status": null,
       "productionProof": false
     },
@@ -1908,9 +2036,259 @@
       "productionProof": false
     }
   ],
+  "queueLivenessStatus": {
+    "key": "queueLiveness",
+    "label": "Queue liveness",
+    "command": "pnpm run production-worker:readiness-evidence",
+    "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
+    "present": true,
+    "status": "prepared-awaiting-human-production-evidence",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
+    "evidenceHead": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": true,
+    "certifyingFlag": false,
+    "manualOnly": true,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "storageDurabilityResult": {
+    "key": "storageDurability",
+    "label": "Storage durability",
+    "command": "pnpm run storage:durability-contract",
+    "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
+    "present": true,
+    "status": null,
+    "generatedAt": "2026-05-21T05:59:58.692Z",
+    "evidenceHead": "0676d10ec5f1ada2abf6d05ced21e2cf2c52376b",
+    "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "headMatchesTarget": false,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": true,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": true,
+    "CERTIFYING": false
+  },
+  "evidenceLedgerResult": {
+    "key": "evidenceLedger",
+    "label": "Evidence ledger",
+    "command": "pnpm run production-scale:evidence",
+    "evidencePath": "docs/production-scale/evidence/latest-evidence-ledger.json",
+    "present": true,
+    "status": null,
+    "generatedAt": "2026-05-21T05:20:12.2044194Z",
+    "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
+    "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "headMatchesTarget": false,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "migrationGovernanceResult": {
+    "key": "migrationGovernance",
+    "label": "Migration governance",
+    "command": "pnpm run migrations:gate",
+    "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
+    "present": true,
+    "status": "accepted-temporary-allowlist",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
+    "evidenceHead": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": true,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "rollbackSimulationResult": {
+    "key": "rollbackSimulation",
+    "label": "Rollback simulation",
+    "command": "pnpm run deploy:rollback-simulation",
+    "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
+    "present": true,
+    "status": "passed",
+    "generatedAt": "2026-05-21T09:14:14.766Z",
+    "evidenceHead": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
+    "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "headMatchesTarget": false,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "promotionCertification": {
+    "targetEnvironment": "production",
+    "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
+    "requiredChecks": [
+      {
+        "key": "queueLiveness",
+        "label": "Queue liveness",
+        "command": "pnpm run production-worker:readiness-evidence",
+        "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json"
+      },
+      {
+        "key": "storageDurability",
+        "label": "Storage durability",
+        "command": "pnpm run storage:durability-contract",
+        "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json"
+      },
+      {
+        "key": "evidenceLedger",
+        "label": "Evidence ledger",
+        "command": "pnpm run production-scale:evidence",
+        "evidencePath": "docs/production-scale/evidence/latest-evidence-ledger.json"
+      },
+      {
+        "key": "migrationGovernance",
+        "label": "Migration governance",
+        "command": "pnpm run migrations:gate",
+        "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json"
+      },
+      {
+        "key": "rollbackSimulation",
+        "label": "Rollback simulation",
+        "command": "pnpm run deploy:rollback-simulation",
+        "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json"
+      }
+    ],
+    "checks": {
+      "queueLiveness": {
+        "key": "queueLiveness",
+        "label": "Queue liveness",
+        "command": "pnpm run production-worker:readiness-evidence",
+        "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "present": true,
+        "status": "prepared-awaiting-human-production-evidence",
+        "generatedAt": "2026-05-21T10:53:31.648Z",
+        "evidenceHead": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": true,
+        "certifyingFlag": false,
+        "manualOnly": true,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "storageDurability": {
+        "key": "storageDurability",
+        "label": "Storage durability",
+        "command": "pnpm run storage:durability-contract",
+        "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
+        "present": true,
+        "status": null,
+        "generatedAt": "2026-05-21T05:59:58.692Z",
+        "evidenceHead": "0676d10ec5f1ada2abf6d05ced21e2cf2c52376b",
+        "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "headMatchesTarget": false,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": true,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": true,
+        "CERTIFYING": false
+      },
+      "evidenceLedger": {
+        "key": "evidenceLedger",
+        "label": "Evidence ledger",
+        "command": "pnpm run production-scale:evidence",
+        "evidencePath": "docs/production-scale/evidence/latest-evidence-ledger.json",
+        "present": true,
+        "status": null,
+        "generatedAt": "2026-05-21T05:20:12.2044194Z",
+        "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
+        "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "headMatchesTarget": false,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "migrationGovernance": {
+        "key": "migrationGovernance",
+        "label": "Migration governance",
+        "command": "pnpm run migrations:gate",
+        "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
+        "present": true,
+        "status": "accepted-temporary-allowlist",
+        "generatedAt": "2026-05-21T10:53:31.648Z",
+        "evidenceHead": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": true,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "rollbackSimulation": {
+        "key": "rollbackSimulation",
+        "label": "Rollback simulation",
+        "command": "pnpm run deploy:rollback-simulation",
+        "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
+        "present": true,
+        "status": "passed",
+        "generatedAt": "2026-05-21T09:14:14.766Z",
+        "evidenceHead": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
+        "targetSha": "9499fa6103a4b3cbd2636dba4877ac5dafe7e225",
+        "headMatchesTarget": false,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      }
+    },
+    "missingRequiredChecks": [],
+    "staleChecks": [
+      "storageDurability",
+      "evidenceLedger",
+      "rollbackSimulation"
+    ],
+    "nonAutomatedChecks": [
+      "queueLiveness"
+    ],
+    "skippedChecks": [],
+    "failedChecks": [
+      "queueLiveness",
+      "evidenceLedger",
+      "migrationGovernance",
+      "rollbackSimulation"
+    ],
+    "reasons": [
+      "Queue liveness evidence is manual-only or human-observed.",
+      "Queue liveness evidence is not passing and certifying.",
+      "Storage durability evidence HEAD does not match target SHA.",
+      "Storage durability evidence timestamp is not current for this promotion-pack run.",
+      "Evidence ledger evidence HEAD does not match target SHA.",
+      "Evidence ledger evidence timestamp is not current for this promotion-pack run.",
+      "Evidence ledger evidence is not passing and certifying.",
+      "Migration governance evidence is not passing and certifying.",
+      "Rollback simulation evidence HEAD does not match target SHA.",
+      "Rollback simulation evidence timestamp is not current for this promotion-pack run.",
+      "Rollback simulation evidence is not passing and certifying."
+    ],
+    "certifying": false,
+    "CERTIFYING": false
+  },
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1930,7 +2308,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -1991,7 +2369,7 @@
   },
   "productionDeploymentParityEvidence": {
     "reportName": "production-deployment-parity-evidence",
-    "generatedAt": "2026-05-21T01:33:42.640Z",
+    "generatedAt": "2026-05-21T08:40:44.283Z",
     "status": "accepted-production-deployment-parity",
     "current": true,
     "productionProof": false,
@@ -2056,7 +2434,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2077,7 +2455,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2171,7 +2549,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2194,7 +2572,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2211,12 +2589,12 @@
       "iterations": 2,
       "failureCount": 0,
       "failureRate": 0,
-      "elapsedMs": 390.81,
-      "throughputPerSecond": 81.88,
+      "elapsedMs": 370.98,
+      "throughputPerSecond": 86.26,
       "latency": {
-        "p50Ms": 21.28,
-        "p95Ms": 43.6,
-        "maxMs": 48.46
+        "p50Ms": 20.48,
+        "p95Ms": 35.32,
+        "maxMs": 43.9
       }
     },
     "dbPool": {
@@ -2256,7 +2634,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2450,26 +2828,33 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
-    "status": "accepted-formal-waiver",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
+    "status": "accepted-temporary-allowlist",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
-    "policyMode": "waived",
+    "policyMode": "release-blocking",
+    "CERTIFYING": false,
     "releaseGateAccepted": true,
-    "runtimeEnsureResidualImpact": "formally-waived",
+    "productionPromotionGateAccepted": true,
+    "temporaryAllowlistActive": true,
+    "runtimeEnsureResidualImpact": "temporary-allowlist",
     "releaseBlockingFindings": 0,
     "warningOnlyFindings": 0,
-    "waivedFindings": 13,
+    "waivedFindings": 0,
+    "temporaryAllowlistFindings": 12,
+    "reviewedAdditiveFindings": 1,
     "blockerCoverage": {
-      "migrationGovernance": true,
-      "acceptedReleaseBlocking": false,
-      "acceptedFormalWaiver": true
+      "migrationGovernance": false,
+      "productionPromotionGate": true,
+      "temporaryAllowlistActive": true,
+      "acceptedReleaseBlocking": true,
+      "acceptedFormalWaiver": false
     },
     "formalWaiver": {
-      "accepted": true,
-      "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
-      "approvedByRole": "Release governance owner",
-      "acceptedAt": "2026-05-20T00:00:00.000Z",
-      "expiresOn": "2026-08-20"
+      "accepted": false,
+      "reason": null,
+      "approvedByRole": null,
+      "acceptedAt": null,
+      "expiresOn": null
     },
     "safety": {
       "nonMutating": true,
@@ -2484,7 +2869,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-21T01:36:03.335Z",
+    "generatedAt": "2026-05-21T10:53:31.648Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -2944,8 +3329,8 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "classification": "waived with explicit reason",
-      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
+      "classification": "partial",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
       "proofCategories": [
         "automated-local"
       ],
@@ -2961,7 +3346,7 @@
         "runtime DDL changes",
         "schema mutation without review",
         "production DB introspection",
-        "policy closure without release-blocking mode or formal waiver",
+        "policy closure while temporary runtime ensure allowlist entries remain active",
         "dashboard PASS alone"
       ],
       "relatedEvidenceOutputPaths": [
@@ -2975,11 +3360,11 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.",
+      "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.",
       "humanProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
-      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources."
+      "waiverReason": null
     },
     {
       "number": 11,
@@ -3837,6 +4222,49 @@
       "waiverReason": null
     },
     {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "partial",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
+      "proofCategories": [
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
+        "pnpm run typecheck"
+      ],
+      "forbiddenProofTypes": [
+        "runtime DDL changes",
+        "schema mutation without review",
+        "production DB introspection",
+        "policy closure while temporary runtime ensure allowlist entries remain active",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/database-migration-policy.md",
+        "docs/production-scale/migration-governance-policy.json",
+        "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-gate.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.",
+      "humanProofRequired": false,
+      "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
+      "waiverReason": null
+    },
+    {
       "number": 22,
       "title": "Retention archive/restore proof",
       "severity": "Medium",
@@ -3894,13 +4322,13 @@
     "treatsSkipAsPass": false,
     "dashboardPassAloneIsReleaseEvidence": false,
     "summary": {
-      "pass": 9,
+      "pass": 10,
       "fail": 2,
       "skip": 55,
       "simulated": 1,
       "humanRequired": 3,
       "manual": 12,
-      "open": 12,
+      "open": 11,
       "info": 8
     }
   },
@@ -4114,49 +4542,6 @@
   ],
   "waivers": [
     {
-      "number": 10,
-      "title": "Migration governance",
-      "severity": "High",
-      "area": "Migration governance",
-      "currentStatus": "partial",
-      "classification": "waived with explicit reason",
-      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
-      "proofCategories": [
-        "automated-local"
-      ],
-      "allowedProofCommands": [
-        "pnpm run check:migrations",
-        "pnpm run migrations:evidence",
-        "pnpm run migrations:gate",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
-        "pnpm run typecheck"
-      ],
-      "forbiddenProofTypes": [
-        "runtime DDL changes",
-        "schema mutation without review",
-        "production DB introspection",
-        "policy closure without release-blocking mode or formal waiver",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/database-migration-policy.md",
-        "docs/production-scale/migration-governance-policy.json",
-        "migrations/0000-runtime-schema-inventory.md",
-        "docs/production-scale/evidence/latest-migration-governance.md",
-        "docs/production-scale/evidence/latest-migration-governance.json",
-        "docs/production-scale/evidence/latest-migration-gate.md",
-        "docs/production-scale/evidence/latest-migration-gate.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.",
-      "humanProofRequired": false,
-      "simulatedProofAcceptable": false,
-      "acceptedHumanEvidence": null,
-      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources."
-    },
-    {
       "number": 18,
       "title": "Runtime-size gates",
       "severity": "Medium",
@@ -4212,6 +4597,7 @@
     "liveExternalProvidersCalled": false,
     "realConsumerPiiUsed": false,
     "productionAtScaleClaimed": false,
+    "productionReadyClaim": false,
     "simulatedProofIsProductionProof": false,
     "dashboardPassTreatedAsCompleteReleaseEvidence": false
   },
@@ -4222,7 +4608,7 @@
     "Historical raw report remediation requires accepted sanitized operator evidence.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
-    "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
+    "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",
     "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "Codex must not promote readiness classification beyond the evidence in this pack."
