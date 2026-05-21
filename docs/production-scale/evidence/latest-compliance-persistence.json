@@ -1,0 +1,90 @@
+{
+  "evidenceType": "compliance-finding-persistence",
+  "generatedAt": "2026-05-21T04:04:40.1692716-03:00",
+  "currentHead": "47bdb3fd883d2ee9ed19af035a82e1a76cf5d1ea",
+  "auditTarget": "P1-5 Compliance findings can be deleted before replacement inserts succeed.",
+  "CERTIFYING": false,
+  "certifyingReason": "Automated local simulation and regression proof only; no live production database concurrency certification is claimed.",
+  "implementation": {
+    "patchedFiles": [
+      "helpers/complianceScanner.tsx",
+      "tests/unit/compliance-persistence-atomic.spec.ts"
+    ],
+    "preservedSubsystems": [
+      "compliance scanner detection logic",
+      "violation search behavior",
+      "rule, evidence, and regulation linking",
+      "packet readiness evaluation",
+      "packet template and PDF generation"
+    ],
+    "replacementMode": "transactional-delete-insert-with-tradeline-row-lock",
+    "manualAdminFindingsPreserved": true,
+    "nonActiveFindingsPreserved": true,
+    "packetReadinessPartialSetExposurePrevented": true,
+    "metadataAdded": "technicalDetails.complianceFindingReplacement"
+  },
+  "automatedProofs": [
+    {
+      "name": "insert failure preserves previous active findings",
+      "test": "tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "successful scan atomically replaces previous auto findings",
+      "test": "tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "manual/admin and non-active findings survive replacement",
+      "test": "tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "packet readiness does not observe partial findings",
+      "test": "tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "concurrent scan simulation does not produce mixed active truth",
+      "test": "tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS"
+    }
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/compliance-persistence-atomic.spec.ts",
+      "result": "PASS",
+      "summary": "1 file, 6 tests"
+    },
+    {
+      "command": "pnpm exec tsc --noEmit --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/compliance-persistence-atomic.spec.ts tests/unit/deterministic-ingestion-lockdown.spec.ts tests/unit/packet-readiness.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts",
+      "result": "PASS",
+      "summary": "6 files, 39 tests"
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit tests/api --runInBand",
+      "result": "FAIL",
+      "summary": "Vitest 4.1.5 rejects unsupported option --runInBand before tests run."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit tests/api",
+      "result": "PASS",
+      "summary": "187 files, 1418 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm run check",
+      "result": "PASS"
+    }
+  ],
+  "residualRisk": [
+    "Live production database contention was not exercised; proof is local automated simulation plus source-level transaction and row-lock checks."
+  ]
+}
