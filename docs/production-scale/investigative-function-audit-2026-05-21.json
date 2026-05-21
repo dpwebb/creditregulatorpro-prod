@@ -1,0 +1,358 @@
+{
+  "auditDate": "2026-05-21",
+  "repo": "C:\\Users\\webbd\\Projects\\creditregulatorpro-staging",
+  "branch": "staging",
+  "commit": "e685d871789f29a3978a23dfafc509ff1afef368",
+  "overallStatus": "BLOCKED",
+  "authenticatedUploadResultStatus": "FAIL",
+  "authenticatedUploadResultSummary": "A synthetic authenticated staging smoke registered and logged in a consumer, uploaded a generated TransUnion PDF, invoked ingest processing, then retrieved upload-results. The retrieval returned 0 tradelines and the command failed.",
+  "functionResults": [
+    {
+      "functionName": "Public app health",
+      "userRoleStateRequired": "anonymous",
+      "entryPoint": "https://staging.creditregulatorpro.com",
+      "expectedBehavior": "Serve the app shell over HTTPS.",
+      "requiredPersistenceSideEffects": "none",
+      "requiredRetrievalDisplayBehavior": "HTTP 200 reachable response.",
+      "existingTestsFound": ["deploy health checks"],
+      "newAuditTestOrCommandUsed": "curl.exe -k -I https://staging.creditregulatorpro.com",
+      "evidenceCollected": "HTTP/1.1 200 OK",
+      "result": "PASS",
+      "riskLevel": "P3",
+      "failureMode": null,
+      "recommendedNextRemediationTask": "Keep public health probes."
+    },
+    {
+      "functionName": "Consumer registration/login/session",
+      "userRoleStateRequired": "anonymous then authenticated consumer",
+      "entryPoint": "/_api/auth/register_with_password, /_api/auth/login_with_password, /_api/auth/session",
+      "expectedBehavior": "Create a synthetic user, authenticate, and resolve role user.",
+      "requiredPersistenceSideEffects": "users, userPassword, userAccount, sessions",
+      "requiredRetrievalDisplayBehavior": "Authenticated endpoints accept session cookie.",
+      "existingTestsFound": ["tests/unit/staging-auth-workflow-smoke.spec.ts", "route auth contract tests"],
+      "newAuditTestOrCommandUsed": "pnpm run smoke:auth-workflow",
+      "evidenceCollected": "Smoke progressed past registration/login and cleaned registered user ID 129.",
+      "result": "PASS",
+      "riskLevel": "P1",
+      "failureMode": null,
+      "recommendedNextRemediationTask": "Record non-secret session/user proof in smoke evidence."
+    },
+    {
+      "functionName": "Consumer credit report upload artifact creation",
+      "userRoleStateRequired": "authenticated consumer",
+      "entryPoint": "/_api/ingest/report",
+      "expectedBehavior": "Accept generated PDF, create owner-scoped report artifact, return artifactId.",
+      "requiredPersistenceSideEffects": "reportArtifact row, stored artifact reference, pending/ready status",
+      "requiredRetrievalDisplayBehavior": "Artifact can be processed and later retrieved by owner.",
+      "existingTestsFound": ["tests/api/report-ingest-lifecycle-endpoint.spec.ts"],
+      "newAuditTestOrCommandUsed": "pnpm run smoke:auth-workflow",
+      "evidenceCollected": "Smoke uploaded and reached process/results, but artifact owner/details were not emitted before cleanup.",
+      "result": "PARTIAL",
+      "riskLevel": "P0",
+      "failureMode": "Artifact creation likely succeeded but was not enough to produce usable results.",
+      "recommendedNextRemediationTask": "Extend smoke to emit artifactId, artifact status, owner proof, and storage reference metadata."
+    },
+    {
+      "functionName": "Ingest processing enqueue/worker boundary",
+      "userRoleStateRequired": "authenticated consumer plus worker",
+      "entryPoint": "/_api/ingest/process, scripts/ingest-processing-worker.ts",
+      "expectedBehavior": "Enqueue durable job, worker claims and completes, status reaches completed or explicit terminal failure.",
+      "requiredPersistenceSideEffects": "ingest_processing_job, job events, reportArtifact processingStatus updates",
+      "requiredRetrievalDisplayBehavior": "Owner sees queued/processing/completed/failed/stalled status.",
+      "existingTestsFound": ["tests/api/report-ingest-lifecycle-endpoint.spec.ts", "tests/api/ingest-processing-worker.spec.ts", "scripts/ingest-worker-simulated-proof.ts"],
+      "newAuditTestOrCommandUsed": "pnpm run smoke:auth-workflow; pnpm run ingest:worker:simulated-proof",
+      "evidenceCollected": "Staging auth smoke failed before usable results; simulated proof passed but states it is not production proof.",
+      "result": "PARTIAL",
+      "riskLevel": "P0",
+      "failureMode": "Staging worker completion was not observed by authenticated consumer workflow.",
+      "recommendedNextRemediationTask": "Add worker-aware polling and staging queue evidence to the auth smoke."
+    },
+    {
+      "functionName": "Canonical extraction and deterministic parser",
+      "userRoleStateRequired": "system",
+      "entryPoint": "helpers/canonicalCreditReportExtractor.tsx and deterministic parser helpers",
+      "expectedBehavior": "Extract canonical report state deterministically without live provider calls.",
+      "requiredPersistenceSideEffects": "canonicalOutput, replayHash, replayPayload on report artifact during real ingest",
+      "requiredRetrievalDisplayBehavior": "Downstream upload-results and packets reflect canonical tradelines.",
+      "existingTestsFound": ["tests/golden-path/golden-path.spec.ts", "scripts/deterministic-ingestion-regression-report.ts"],
+      "newAuditTestOrCommandUsed": "pnpm run test:golden-path; pnpm run test:deterministic-ingestion-report",
+      "evidenceCollected": "Golden path passed; deterministic ingestion report passed 11 fixtures.",
+      "result": "PASS",
+      "riskLevel": "P1",
+      "failureMode": "Not proven for the failed staging uploaded artifact.",
+      "recommendedNextRemediationTask": "Tie staging smoke to persisted canonical output proof."
+    },
+    {
+      "functionName": "Tradeline/account persistence",
+      "userRoleStateRequired": "system",
+      "entryPoint": "helpers/ingestTradelinePersistence and upload-results endpoint",
+      "expectedBehavior": "Persist tradelines linked to report artifact and authenticated owner.",
+      "requiredPersistenceSideEffects": "tradeline rows and tradelineArtifactPresence/reportArtifact links",
+      "requiredRetrievalDisplayBehavior": "Owner upload-results shows totalTradelines > 0 for synthetic fixture.",
+      "existingTestsFound": ["tests/api/report-ingest-lifecycle-endpoint.spec.ts", "tests/unit/violation-search-preservation.spec.ts"],
+      "newAuditTestOrCommandUsed": "pnpm run smoke:auth-workflow",
+      "evidenceCollected": "Failure: Expected at least 2 synthetic tradelines, found 0.",
+      "result": "FAIL",
+      "riskLevel": "P0",
+      "failureMode": "Authenticated staging result retrieval had no persisted tradelines/results.",
+      "recommendedNextRemediationTask": "Diagnose queue completion, artifact-tradeline links, and result query owner filters on staging."
+    },
+    {
+      "functionName": "Violation/compliance scanning",
+      "userRoleStateRequired": "system",
+      "entryPoint": "helpers/complianceScanner.tsx",
+      "expectedBehavior": "Scan persisted tradelines and preserve stable/manual findings.",
+      "requiredPersistenceSideEffects": "creditorObligationTest/finding rows linked to tradelines and evidence",
+      "requiredRetrievalDisplayBehavior": "Findings appear in upload-results and packet recommendation surfaces.",
+      "existingTestsFound": ["compliance persistence tests", "golden path violation detection"],
+      "newAuditTestOrCommandUsed": "pnpm run test:golden-path",
+      "evidenceCollected": "Local golden path violation detection passed; staging upload had no tradelines to scan.",
+      "result": "PARTIAL",
+      "riskLevel": "P1",
+      "failureMode": "Cannot prove staging scan while upstream upload result is empty.",
+      "recommendedNextRemediationTask": "Re-run scan/finding proof after P0 upload result is fixed."
+    },
+    {
+      "functionName": "Upload results retrieval and owner scope",
+      "userRoleStateRequired": "authenticated owner or intended admin",
+      "entryPoint": "/_api/upload-results/get and /upload-results/:artifactId",
+      "expectedBehavior": "Return owner-scoped result summary with tradelines/findings or explicit actionable no-result/manual-review state.",
+      "requiredPersistenceSideEffects": "none beyond reading persisted report/tradeline/finding data",
+      "requiredRetrievalDisplayBehavior": "Frontend displays clear result or failure state.",
+      "existingTestsFound": ["tests/api/report-ingest-lifecycle-endpoint.spec.ts", "tests/unit/upload-processing-status-ui.spec.tsx"],
+      "newAuditTestOrCommandUsed": "pnpm run smoke:auth-workflow; scoped Vitest command",
+      "evidenceCollected": "Staging retrieval found 0 tradelines; local scoped tests passed.",
+      "result": "FAIL",
+      "riskLevel": "P0",
+      "failureMode": "Owner-visible result surface did not show usable report results after upload.",
+      "recommendedNextRemediationTask": "Block readiness until authenticated smoke proves nonzero or valid explicit terminal no-result state."
+    },
+    {
+      "functionName": "UI upload status clarity",
+      "userRoleStateRequired": "authenticated consumer",
+      "entryPoint": "/upload",
+      "expectedBehavior": "Show queued, processing, stale, failed, manual-review, or completed states with next actions.",
+      "requiredPersistenceSideEffects": "none",
+      "requiredRetrievalDisplayBehavior": "User is not left at indefinite queued/99 percent.",
+      "existingTestsFound": ["tests/unit/upload-processing-status-ui.spec.tsx"],
+      "newAuditTestOrCommandUsed": "pnpm exec vitest run tests/unit/upload-processing-status-ui.spec.tsx",
+      "evidenceCollected": "Status UI unit tests passed.",
+      "result": "PARTIAL",
+      "riskLevel": "P1",
+      "failureMode": "No authenticated browser UI smoke was run; API result failure dominates.",
+      "recommendedNextRemediationTask": "Add Playwright synthetic auth upload status smoke."
+    },
+    {
+      "functionName": "Packet recommendation/readiness/build/create/PDF",
+      "userRoleStateRequired": "authenticated owner",
+      "entryPoint": "/_api/packet/recommend, validate-readiness, build, create, pdf",
+      "expectedBehavior": "Eligible findings can produce owner-scoped packets and PDFs.",
+      "requiredPersistenceSideEffects": "disputePacket and disputePacketFinding/evidence events",
+      "requiredRetrievalDisplayBehavior": "Owner can download PDF; non-owner denied.",
+      "existingTestsFound": ["tests/api/packet-lifecycle-endpoint.spec.ts", "packet-pdf cache-miss proof"],
+      "newAuditTestOrCommandUsed": "pnpm run packet-pdf:cache-miss-proof; staging smoke attempted but blocked upstream",
+      "evidenceCollected": "Local PDF proof passed; staging smoke did not reach packet candidate because upload results failed.",
+      "result": "PARTIAL",
+      "riskLevel": "P1",
+      "failureMode": "Packet flow cannot be proven for the uploaded authenticated staging artifact.",
+      "recommendedNextRemediationTask": "Re-run packet proof after upload-results contains findings."
+    },
+    {
+      "functionName": "Evidence, regulation, parser-test, admin correction, response documents",
+      "userRoleStateRequired": "system/admin/support/owner depending function",
+      "entryPoint": "Evidence endpoints, regulation registry, parser-test-case endpoints, admin violation correction endpoints, response endpoints",
+      "expectedBehavior": "Scoped, append-only/auditable behavior according to prior remediation requirements.",
+      "requiredPersistenceSideEffects": "evidence events, rule metadata, correction training/audit rows, response records/events",
+      "requiredRetrievalDisplayBehavior": "Owner/admin/support visibility according to role and scope.",
+      "existingTestsFound": ["evidence API tests", "parser governance tests", "violation correction tests", "response soak check"],
+      "newAuditTestOrCommandUsed": "static inventory plus response/packet/migration related commands",
+      "evidenceCollected": "Local/simulated tests exist, but no single live staging admin smoke was run.",
+      "result": "PARTIAL",
+      "riskLevel": "P2",
+      "failureMode": "Not end-to-end verified against staging role/runtime state in this audit.",
+      "recommendedNextRemediationTask": "Add synthetic admin role smoke for correction/evidence/regulation parser-test surfaces."
+    },
+    {
+      "functionName": "Production-scale certification and deploy assumptions",
+      "userRoleStateRequired": "CI/operator",
+      "entryPoint": "scripts/production-scale-certification.mjs, deploy workflows",
+      "expectedBehavior": "Required gates include core authenticated consumer workflow and do not certify stale/skipped/manual-only checks.",
+      "requiredPersistenceSideEffects": "machine-readable evidence JSON/markdown",
+      "requiredRetrievalDisplayBehavior": "Operators can see blocker status and target SHA.",
+      "existingTestsFound": ["production-scale certification tests", "workflow static tests"],
+      "newAuditTestOrCommandUsed": "inspection of certification gates and command runs",
+      "evidenceCollected": "Certification gate list omits smoke:auth-workflow; existing FINAL_VERIFICATION is for older HEAD 5de10a.",
+      "result": "FAIL",
+      "riskLevel": "P1",
+      "failureMode": "Local certification can pass without proving core authenticated upload-to-results.",
+      "recommendedNextRemediationTask": "Add worker-aware auth workflow smoke as a required production-scale/staging gate."
+    }
+  ],
+  "commandsRun": [
+    {
+      "command": "git status --short --branch",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Clean staging branch at start."
+    },
+    {
+      "command": "git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Repo, branch, commit identified."
+    },
+    {
+      "command": "curl.exe -k -I https://staging.creditregulatorpro.com",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "HTTP 200 OK."
+    },
+    {
+      "command": "$env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='investigative-audit-2026-05-21'; pnpm run smoke:auth-workflow",
+      "status": "failed",
+      "exitCode": 1,
+      "summary": "Expected at least 2 synthetic tradelines, found 0. Registered user ID: 129. Cleanup status: deleted."
+    },
+    {
+      "command": "pnpm run test:golden-path",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Golden parser/canonical/violation/evidence/packet/PDF checks passed."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts --pool=threads --poolOptions.threads.singleThread=true",
+      "status": "failed",
+      "exitCode": 1,
+      "summary": "Unsupported Vitest option --poolOptions; rerun without unsupported option passed."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "3 files, 46 tests passed."
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "11 deterministic fixtures passed; violation search preserved."
+    },
+    {
+      "command": "pnpm run ingest:worker:simulated-proof",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Simulated queue proof passed but is not staging/production proof."
+    },
+    {
+      "command": "pnpm run packet-pdf:cache-miss-proof",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Packet PDF cache-miss proof completed."
+    },
+    {
+      "command": "pnpm run check:migrations",
+      "status": "passed_non_certifying",
+      "exitCode": 0,
+      "summary": "0 release blockers; 18 warning-only runtime ensure findings; output says CERTIFYING:false."
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "node -e \"const fs=require('fs'); JSON.parse(fs.readFileSync('docs/production-scale/investigative-function-audit-2026-05-21.json','utf8')); console.log('audit json parse ok')\"",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Audit JSON parsed successfully."
+    },
+    {
+      "command": "pnpm run check",
+      "status": "passed",
+      "exitCode": 0,
+      "summary": "Build, golden path, unit suite, deterministic ingestion, parser regression, tradeline internal, and violation correction checks passed."
+    }
+  ],
+  "testsAdded": [],
+  "testsReused": [
+    "scripts/staging-auth-workflow-smoke.ts",
+    "tests/unit/staging-auth-workflow-smoke.spec.ts",
+    "tests/unit/upload-processing-status-ui.spec.tsx",
+    "tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+    "scripts/golden-path-regression-dashboard.ts",
+    "scripts/deterministic-ingestion-regression-report.ts",
+    "scripts/ingest-worker-simulated-proof.ts",
+    "scripts/packet-pdf-cache-miss-proof.ts",
+    "scripts/check-migrations.mjs"
+  ],
+  "criticalFailures": [
+    {
+      "id": "P0-authenticated-upload-results-empty",
+      "severity": "P0",
+      "title": "Authenticated staging consumer upload did not produce usable results",
+      "evidence": "pnpm run smoke:auth-workflow failed with Expected at least 2 synthetic tradelines, found 0.",
+      "implicatedPaths": [
+        "scripts/staging-auth-workflow-smoke.ts",
+        "endpoints/ingest/report_POST.ts",
+        "endpoints/ingest/process_POST.ts",
+        "scripts/ingest-processing-worker.ts",
+        "helpers/ingestProcessingQueueService.ts",
+        "endpoints/ingest/status_GET.ts",
+        "endpoints/upload-results/get_GET.ts",
+        "pages/upload.tsx",
+        "pages/upload-results.$artifactId.tsx"
+      ]
+    },
+    {
+      "id": "P1-certification-omits-auth-workflow",
+      "severity": "P1",
+      "title": "Production-scale certification omits the authenticated upload-to-results smoke",
+      "evidence": "scripts/production-scale-certification.mjs gate list does not include pnpm run smoke:auth-workflow.",
+      "implicatedPaths": ["scripts/production-scale-certification.mjs"]
+    },
+    {
+      "id": "P1-auth-smoke-not-worker-aware",
+      "severity": "P1",
+      "title": "Authenticated smoke does not poll worker-backed ingest status to terminal state",
+      "evidence": "Smoke calls process then immediately queries upload-results; staging/production process endpoint is queue-backed.",
+      "implicatedPaths": ["scripts/staging-auth-workflow-smoke.ts", "endpoints/ingest/process_POST.ts", "endpoints/ingest/status_GET.ts"]
+    }
+  ],
+  "remediationTasks": [
+    {
+      "severity": "P0",
+      "prompt": "Fix the staging authenticated consumer upload-to-results path without rewriting ingestion. Use a synthetic auth smoke that registers a user, uploads a generated PDF, enqueues processing, polls /_api/ingest/status until terminal state, verifies worker heartbeat/job state, verifies tradelines/canonical/finding/result rows for the same owner, verifies non-owner denial, and cleans up."
+    },
+    {
+      "severity": "P1",
+      "prompt": "Update scripts/staging-auth-workflow-smoke.ts so it treats queued process output as non-terminal, polls /_api/ingest/status with a bounded timeout, fails on stalled/no-worker/manual-review unless explicitly expected, and verifies upload-results only after completed status. Add it as a required gate in production-scale certification or staging deploy evidence."
+    },
+    {
+      "severity": "P1",
+      "prompt": "Extend authenticated workflow smoke with a second synthetic user to prove non-owner denial for upload-results, packet recommendation/build/create, and packet PDF."
+    },
+    {
+      "severity": "P2",
+      "prompt": "Add an automated browser smoke for /upload and /upload-results using a synthetic authenticated user and no real PII."
+    }
+  ],
+  "unverifiedAreas": [
+    {
+      "area": "Browser UI authenticated upload flow",
+      "reason": "No browser automation was run; API smoke failed first and proved the core result path blocked."
+    },
+    {
+      "area": "Live staging admin correction/evidence/regulation/parser-test surfaces",
+      "reason": "Inventoried and mapped to tests, but not staged with a synthetic admin in this run."
+    },
+    {
+      "area": "Post-failure artifact/job DB state",
+      "reason": "The staging smoke cleaned up the synthetic account by design and did not emit artifact/job diagnostics before failure."
+    },
+    {
+      "area": "Live external providers and live deploy",
+      "reason": "Explicitly out of scope; no live external calls or deploys were run."
+    }
+  ]
+}
