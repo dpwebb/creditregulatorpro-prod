@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  REQUIRED_CERTIFICATION_GATES,
   buildProductionScaleCertificationReport,
   writeProductionScaleCertificationOutputs,
 } from "../../scripts/production-scale-certification.mjs";
@@ -96,6 +97,17 @@ afterEach(() => {
 });
 
 describe("production-scale certification report", () => {
+  it("includes authenticated upload-to-results as a required certification gate", () => {
+    expect(REQUIRED_CERTIFICATION_GATES).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "authenticatedUploadResults",
+          command: "pnpm run smoke:auth-workflow",
+        }),
+      ]),
+    );
+  });
+
   it("marks CERTIFYING:false when a required gate is missing", async () => {
     const root = tempRepoRoot();
     const report = await buildMockReport({

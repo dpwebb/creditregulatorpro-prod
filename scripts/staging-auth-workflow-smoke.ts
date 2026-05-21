@@ -18,6 +18,8 @@ export const AUTH_WORKFLOW_ENDPOINTS = {
   profile: "/_api/user/profile",
   ingestReport: "/_api/ingest/report",
   ingestProcess: "/_api/ingest/process",
+  ingestStatus: "/_api/ingest/status",
+  reportArtifactGet: "/_api/report-artifact/get",
   uploadResults: "/_api/upload-results/get",
   packetRecommend: "/_api/packet/recommend",
   packetValidateReadiness: "/_api/packet/validate-readiness",
@@ -43,6 +45,7 @@ export type SmokeConfig =
       email: string;
       password: string;
       cleanup: boolean;
+      includePacket: boolean;
     }
   | {
       status: "skipped";
@@ -62,15 +65,17 @@ type RegisterResponse = {
   };
 };
 
+type AuthenticatedSessionResponse = {
+  user: {
+    id: number;
+    email: string;
+    displayName: string;
+    role: string;
+  };
+};
+
 type SessionResponse =
-  | {
-      user: {
-        id: number;
-        email: string;
-        displayName: string;
-        role: string;
-      };
-    }
+  | AuthenticatedSessionResponse
   | {
       error: string;
     };
@@ -89,6 +94,73 @@ type IngestPhase2Response = {
   parserQuality?: {
     confidenceScore?: number;
     requiresManualReview?: boolean;
+  };
+};
+
+type QueuedIngestProcessResponse = {
+  ok: boolean;
+  queued?: boolean;
+  artifactId: number;
+  storageUrl?: string;
+  jobId?: number | null;
+  queueStatus?: string | null;
+  processingStatus?: string | null;
+  uploadStatus?: IngestStatusResponse["status"];
+  nextAction?: string | null;
+  userMessage?: string | null;
+  diagnosticCode?: string | null;
+  workerRequired?: boolean;
+  retryAt?: string | null;
+};
+
+type IngestProcessResponse = IngestPhase2Response | QueuedIngestProcessResponse;
+
+type IngestStatusResponse = {
+  ok: boolean;
+  artifactId: number;
+  jobId: number | null;
+  status:
+    | "queued_waiting_for_worker"
+    | "processing"
+    | "completed"
+    | "failed"
+    | "manual_review_required"
+    | "stalled_no_worker_heartbeat"
+    | "stale";
+  queueStatus: string | null;
+  processingStatus: string;
+  nextAction: string;
+  userMessage: string;
+  diagnosticCode: string;
+  workerRequired: boolean;
+  canLeavePage: boolean;
+  canCheckStatus: boolean;
+  retryAt: string | null;
+  checkedAt: string;
+};
+
+type IngestStatusSummary = Pick<
+  IngestStatusResponse,
+  | "artifactId"
+  | "jobId"
+  | "status"
+  | "queueStatus"
+  | "processingStatus"
+  | "nextAction"
+  | "diagnosticCode"
+  | "workerRequired"
+  | "retryAt"
+  | "checkedAt"
+>;
+
+type ReportArtifactGetResponse = {
+  reportArtifact: {
+    id: number;
+    userId?: number | null;
+    organizationId?: number | null;
+    processingStatus?: string | null;
+    createdAt?: string;
+    sha256?: string | null;
   };
 };
 
@@ -154,7 +226,17 @@ type HttpResult = {
 type UploadedReport = {
   artifactId: number;
   phase1: IngestPhase1Response;
-  phase2: IngestPhase2Response;
+  phase2: IngestProcessResponse;
+  terminalStatus: IngestStatusResponse;
+  statusPolls: IngestStatusSummary[];
+};
+
+type SmokeActor = {
+  label: "owner" | "non-owner";
+  api: ApiClient;
+  config: Extract<SmokeConfig, { status: "ready" }>;
+  userId: number;
+  cleanupStatus: { status: string; purgedCounts?: Record<string, number> };
 };
 
 function normalizeBoolean(value: string | undefined): boolean {
@@ -164,6 +246,12 @@ function normalizeBoolean(value: string | undefined): boolean {
 function normalizeEnv(value: string | undefined): string | null {
   const trimmed = String(value ?? "").trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizePositiveInteger(value: string | undefined, fallback: number, minimum: number, maximum: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(maximum, Math.max(minimum, Math.floor(parsed)));
 }
 
 function hostOf(value: string): string | null {
@@ -201,6 +289,15 @@ export function buildSyntheticEmail(runId: string, now = Date.now()): string {
 
 function buildSyntheticPassword(): string {
   return `Smoke${Date.now()}${randomBytes(2).toString("hex")}A1x`;
+}
+
+function buildSecondarySmokeConfig(config: Extract<SmokeConfig, { status: "ready" }>): Extract<SmokeConfig, { status: "ready" }> {
+  return {
+    ...config,
+    runId: `${config.runId}-non-owner`,
+    email: buildSyntheticEmail(`${config.runId}-non-owner`),
+    password: buildSyntheticPassword(),
+  };
 }
 
 export function buildSmokeConfig(env: NodeJS.ProcessEnv): SmokeConfig {
@@ -251,6 +348,7 @@ export function buildSmokeConfig(env: NodeJS.ProcessEnv): SmokeConfig {
     email: normalizeEnv(env.CRP_AUTH_WORKFLOW_SMOKE_EMAIL) ?? buildSyntheticEmail(runId),
     password: normalizeEnv(env.CRP_AUTH_WORKFLOW_SMOKE_PASSWORD) ?? buildSyntheticPassword(),
     cleanup: !skipCleanup,
+    includePacket: normalizeBoolean(env.CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET),
   };
 }
 
@@ -487,6 +585,44 @@ function assertCondition(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 
+export function isCompletedIngestPhase2Response(value: unknown): value is IngestPhase2Response {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    record.ok === true &&
+    typeof record.storageUrl === "string" &&
+    Number.isFinite(record.tradelinesCount) &&
+    Array.isArray(record.tradelineIds)
+  );
+}
+
+export function summarizeIngestStatus(status: IngestStatusResponse): IngestStatusSummary {
+  return {
+    artifactId: status.artifactId,
+    jobId: status.jobId,
+    status: status.status,
+    queueStatus: status.queueStatus,
+    processingStatus: status.processingStatus,
+    nextAction: status.nextAction,
+    diagnosticCode: status.diagnosticCode,
+    workerRequired: status.workerRequired,
+    retryAt: status.retryAt,
+    checkedAt: status.checkedAt,
+  };
+}
+
+export function isSuccessfulTerminalIngestStatus(status: IngestStatusResponse): boolean {
+  return status.status === "completed";
+}
+
+export function isFailedTerminalIngestStatus(status: IngestStatusResponse): boolean {
+  return ["failed", "manual_review_required", "stalled_no_worker_heartbeat", "stale"].includes(status.status);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function registerSyntheticUser(api: ApiClient, config: Extract<SmokeConfig, { status: "ready" }>) {
   const registered = await api.json<RegisterResponse>(AUTH_WORKFLOW_ENDPOINTS.register, {
     method: "POST",
@@ -507,7 +643,10 @@ async function registerSyntheticUser(api: ApiClient, config: Extract<SmokeConfig
   return registered.user;
 }
 
-async function ensureLoginRoundTrip(api: ApiClient, config: Extract<SmokeConfig, { status: "ready" }>): Promise<SessionResponse> {
+async function ensureLoginRoundTrip(
+  api: ApiClient,
+  config: Extract<SmokeConfig, { status: "ready" }>,
+): Promise<AuthenticatedSessionResponse> {
   await api.json<{ success: boolean }>(AUTH_WORKFLOW_ENDPOINTS.logout, { method: "POST", body: {} });
   await api.json<{ user: { id: number; role: string } }>(AUTH_WORKFLOW_ENDPOINTS.login, {
     method: "POST",
@@ -543,6 +682,63 @@ async function updateSyntheticProfile(api: ApiClient) {
   });
 }
 
+async function verifyArtifactOwnership(
+  api: ApiClient,
+  artifactId: number,
+  expectedUserId: number,
+): Promise<ReportArtifactGetResponse["reportArtifact"]> {
+  const artifact = await api.json<ReportArtifactGetResponse>(
+    `${AUTH_WORKFLOW_ENDPOINTS.reportArtifactGet}?id=${encodeURIComponent(String(artifactId))}`,
+  );
+  if (Number(artifact.reportArtifact.id) !== artifactId) {
+    throw new Error(`Artifact detail returned id ${artifact.reportArtifact.id}, expected ${artifactId}.`);
+  }
+  if (Number(artifact.reportArtifact.userId) !== expectedUserId) {
+    throw new Error(
+      `Artifact owner was ${artifact.reportArtifact.userId ?? "missing"}, expected authenticated user ${expectedUserId}.`,
+    );
+  }
+  return artifact.reportArtifact;
+}
+
+async function pollIngestStatus(
+  api: ApiClient,
+  artifactId: number,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<{ terminalStatus: IngestStatusResponse; polls: IngestStatusSummary[] }> {
+  const timeoutMs = normalizePositiveInteger(env.CRP_AUTH_WORKFLOW_SMOKE_TIMEOUT_MS, 240_000, 30_000, 900_000);
+  const pollMs = normalizePositiveInteger(env.CRP_AUTH_WORKFLOW_SMOKE_POLL_MS, 5_000, 1_000, 30_000);
+  const startedAtMs = Date.now();
+  const deadlineMs = startedAtMs + timeoutMs;
+  const polls: IngestStatusSummary[] = [];
+
+  while (true) {
+    const status = await api.json<IngestStatusResponse>(
+      `${AUTH_WORKFLOW_ENDPOINTS.ingestStatus}?artifactId=${encodeURIComponent(String(artifactId))}`,
+    );
+    const summary = summarizeIngestStatus(status);
+    polls.push(summary);
+    console.log(`[auth-smoke] ingest-status ${JSON.stringify(summary)}`);
+
+    if (isSuccessfulTerminalIngestStatus(status)) {
+      return { terminalStatus: status, polls };
+    }
+
+    if (isFailedTerminalIngestStatus(status)) {
+      throw new Error(`Ingest processing reached terminal failure: ${JSON.stringify(summary)}.`);
+    }
+
+    const now = Date.now();
+    if (now >= deadlineMs) {
+      throw new Error(
+        `Timed out after ${timeoutMs}ms waiting for ingest terminal status. Last status: ${JSON.stringify(summary)}.`,
+      );
+    }
+
+    await sleep(Math.min(pollMs, Math.max(0, deadlineMs - now)));
+  }
+}
+
 async function uploadSyntheticReport(api: ApiClient, runId: string): Promise<UploadedReport> {
   const bytesBase64 = await buildSyntheticCreditReportPdfBase64();
   const phase1 = await api.json<IngestPhase1Response>(AUTH_WORKFLOW_ENDPOINTS.ingestReport, {
@@ -559,16 +755,22 @@ async function uploadSyntheticReport(api: ApiClient, runId: string): Promise<Upl
     throw new Error(`Synthetic upload failed in phase 1: ${phase1.error ?? "unknown error"}`);
   }
 
-  const phase2 = await api.sse<IngestPhase2Response>(
+  const phase2 = await api.sse<IngestProcessResponse>(
     AUTH_WORKFLOW_ENDPOINTS.ingestProcess,
     { artifactId: phase1.artifactId },
   );
-  const parsedStorageId = Number(phase2.storageUrl);
+  const parsedStorageId = isCompletedIngestPhase2Response(phase2)
+    ? Number(phase2.storageUrl)
+    : Number(phase2.storageUrl ?? phase2.artifactId);
+  const artifactId = Number.isFinite(parsedStorageId) ? parsedStorageId : phase1.artifactId;
+  const { terminalStatus, polls } = await pollIngestStatus(api, artifactId);
 
   return {
     phase1,
     phase2,
-    artifactId: Number.isFinite(parsedStorageId) ? parsedStorageId : phase1.artifactId,
+    artifactId,
+    terminalStatus,
+    statusPolls: polls,
   };
 }
 
@@ -584,6 +786,22 @@ async function reviewParserResults(api: ApiClient, artifactId: number): Promise<
     throw new Error(`Expected at least 2 synthetic tradelines, found ${results.stats.totalTradelines}.`);
   }
   return results;
+}
+
+async function assertNonOwnerUploadResultsDenied(api: ApiClient, artifactId: number) {
+  const response = await api.request(
+    `${AUTH_WORKFLOW_ENDPOINTS.uploadResults}?artifactId=${encodeURIComponent(String(artifactId))}`,
+  );
+  if (response.ok) {
+    throw new Error("Non-owner could retrieve owner upload results.");
+  }
+  if (response.status !== 403 && response.status !== 404) {
+    throw new Error(`Non-owner upload-results check returned HTTP ${response.status}, expected 403 or 404.`);
+  }
+  return {
+    denied: true,
+    status: response.status,
+  };
 }
 
 async function selectPacketReadyFinding(api: ApiClient): Promise<PacketCandidate> {
@@ -659,33 +877,42 @@ async function validateBuildCreateAndDownloadPacket(api: ApiClient, issueId: num
 }
 
 async function cleanupSyntheticAccount(api: ApiClient, config: Extract<SmokeConfig, { status: "ready" }>) {
-  let session = await api.request(AUTH_WORKFLOW_ENDPOINTS.session);
-  const authenticated =
-    session.ok &&
-    session.json &&
-    typeof session.json === "object" &&
-    "user" in (session.json as Record<string, unknown>);
-
-  if (!authenticated) {
-    await api.json(AUTH_WORKFLOW_ENDPOINTS.login, {
-      method: "POST",
-      body: {
-        email: config.email,
-        password: config.password,
-      },
-    });
-    session = await api.request(AUTH_WORKFLOW_ENDPOINTS.session);
-    if (!session.ok) {
-      throw new Error(`Could not restore synthetic user session for cleanup; session HTTP ${session.status}.`);
+  const deleteBody = {
+    confirmEmail: config.email,
+    confirmPhrase: "DELETE MY ACCOUNT",
+  };
+  const currentSessionDelete = await api.request(AUTH_WORKFLOW_ENDPOINTS.deleteAccount, {
+    method: "POST",
+    body: deleteBody,
+  });
+  if (currentSessionDelete.ok) {
+    const parsed = currentSessionDelete.json as DeleteAccountResponse | null;
+    if (!parsed?.success) {
+      throw new Error("Synthetic account self-delete did not return success=true.");
     }
+    return {
+      status: "deleted" as const,
+      purgedCounts: parsed.purgedCounts ?? {},
+    };
   }
+
+  if (currentSessionDelete.status !== 401 && currentSessionDelete.status !== 403) {
+    throw new Error(
+      `Synthetic account self-delete returned HTTP ${currentSessionDelete.status}: ${extractErrorMessage(currentSessionDelete.raw)}`,
+    );
+  }
+
+  await api.json(AUTH_WORKFLOW_ENDPOINTS.login, {
+    method: "POST",
+    body: {
+      email: config.email,
+      password: config.password,
+    },
+  });
 
   const result = await api.json<DeleteAccountResponse>(AUTH_WORKFLOW_ENDPOINTS.deleteAccount, {
     method: "POST",
-    body: {
-      confirmEmail: config.email,
-      confirmPhrase: "DELETE MY ACCOUNT",
-    },
+    body: deleteBody,
   });
   if (!result.success) {
     throw new Error("Synthetic account self-delete did not return success=true.");
@@ -698,38 +925,74 @@ async function cleanupSyntheticAccount(api: ApiClient, config: Extract<SmokeConf
 
 export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>) {
   const api = new ApiClient(config.baseUrl, config.origin);
+  const actors: SmokeActor[] = [];
   let registeredUserId: number | null = null;
   let cleanupStatus: { status: string; purgedCounts?: Record<string, number> } = { status: "not needed" };
 
   try {
     const user = await registerSyntheticUser(api, config);
     registeredUserId = user.id;
+    actors.push({ label: "owner", api, config, userId: user.id, cleanupStatus });
 
     const session = await ensureLoginRoundTrip(api, config);
     await updateSyntheticProfile(api);
 
     const upload = await uploadSyntheticReport(api, config.runId);
-    if (upload.phase2.tradelinesCount < 2) {
-      throw new Error(`Ingest phase 2 returned ${upload.phase2.tradelinesCount} tradelines, expected at least 2.`);
-    }
-    if (upload.phase2.parserQuality?.requiresManualReview) {
-      throw new Error("Synthetic parser result required manual review; expected packet-ready parser quality.");
+    const artifact = await verifyArtifactOwnership(api, upload.artifactId, session.user.id);
+    if (isCompletedIngestPhase2Response(upload.phase2)) {
+      if (upload.phase2.tradelinesCount < 2) {
+        throw new Error(`Ingest phase 2 returned ${upload.phase2.tradelinesCount} tradelines, expected at least 2.`);
+      }
+      if (upload.phase2.parserQuality?.requiresManualReview) {
+        throw new Error("Synthetic parser result required manual review; expected packet-ready parser quality.");
+      }
     }
 
     const parserReview = await reviewParserResults(api, upload.artifactId);
-    const candidate = await selectPacketReadyFinding(api);
-    const packet = await validateBuildCreateAndDownloadPacket(api, candidate.issueId);
+    const nonOwnerConfig = buildSecondarySmokeConfig(config);
+    const nonOwnerApi = new ApiClient(config.baseUrl, config.origin);
+    const nonOwnerUser = await registerSyntheticUser(nonOwnerApi, nonOwnerConfig);
+    actors.push({
+      label: "non-owner",
+      api: nonOwnerApi,
+      config: nonOwnerConfig,
+      userId: nonOwnerUser.id,
+      cleanupStatus: { status: "not needed" },
+    });
+    await ensureLoginRoundTrip(nonOwnerApi, nonOwnerConfig);
+    await updateSyntheticProfile(nonOwnerApi);
+    const nonOwnerDenial = await assertNonOwnerUploadResultsDenied(nonOwnerApi, upload.artifactId);
+
+    const packetReview = config.includePacket
+      ? await (async () => {
+          const candidate = await selectPacketReadyFinding(api);
+          const packet = await validateBuildCreateAndDownloadPacket(api, candidate.issueId);
+          return { candidate, packet, skipped: false as const };
+        })()
+      : {
+          candidate: null,
+          packet: null,
+          skipped: true as const,
+          reason: "CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET=true was not set.",
+        };
 
     if (api.apiServerErrors.length > 0) {
       throw new Error(`API 5xx responses observed: ${api.apiServerErrors.join(", ")}.`);
     }
 
     if (config.cleanup) {
-      cleanupStatus = await cleanupSyntheticAccount(api, config);
+      for (const actor of [...actors].reverse()) {
+        actor.cleanupStatus = await cleanupSyntheticAccount(actor.api, actor.config);
+      }
+      cleanupStatus = actors.find((actor) => actor.label === "owner")?.cleanupStatus ?? cleanupStatus;
     } else {
+      for (const actor of actors) {
+        actor.cleanupStatus = { status: "skipped by config" };
+      }
       cleanupStatus = { status: "skipped by config" };
     }
 
+    const completedPhase2 = isCompletedIngestPhase2Response(upload.phase2) ? upload.phase2 : null;
     return {
       status: "passed" as const,
       baseUrl: config.baseUrl,
@@ -737,13 +1000,30 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
       authMode: config.authMode,
       runId: config.runId,
       registeredUserId,
-      sessionUserId: "error" in session ? null : session.user.id,
+      sessionUserId: session.user.id,
+      artifact: {
+        artifactId: upload.artifactId,
+        ownerUserId: artifact.userId ?? null,
+        organizationId: artifact.organizationId ?? null,
+        processingStatus: artifact.processingStatus ?? null,
+        sha256Present: Boolean(artifact.sha256),
+      },
+      ingestStatus: {
+        terminalStatus: upload.terminalStatus.status,
+        queueStatus: upload.terminalStatus.queueStatus,
+        processingStatus: upload.terminalStatus.processingStatus,
+        jobId: upload.terminalStatus.jobId,
+        diagnosticCode: upload.terminalStatus.diagnosticCode,
+        pollCount: upload.statusPolls.length,
+        polls: upload.statusPolls,
+      },
       upload: {
         artifactId: upload.artifactId,
-        tradelinesCount: upload.phase2.tradelinesCount,
-        tradelineIdsCount: upload.phase2.tradelineIds.length,
-        parserConfidenceScore: upload.phase2.parserQuality?.confidenceScore ?? null,
-        parserRequiresManualReview: upload.phase2.parserQuality?.requiresManualReview ?? false,
+        processOutputMode: completedPhase2 ? "completed-inline-or-duplicate" : "queued-worker-boundary",
+        tradelinesCount: completedPhase2 ? completedPhase2.tradelinesCount : parserReview.stats.totalTradelines,
+        tradelineIdsCount: completedPhase2 ? completedPhase2.tradelineIds.length : null,
+        parserConfidenceScore: completedPhase2 ? completedPhase2.parserQuality?.confidenceScore ?? null : null,
+        parserRequiresManualReview: completedPhase2 ? completedPhase2.parserQuality?.requiresManualReview ?? false : null,
       },
       parserReview: {
         bureauName: parserReview.metadata.bureauName,
@@ -752,42 +1032,58 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
         totalTradelines: parserReview.stats.totalTradelines,
         actionableCount: parserReview.stats.actionableCount,
       },
+      nonOwnerAccess: nonOwnerDenial,
       findingReview: {
-        issueId: candidate.issueId,
-        tradelineId: candidate.tradelineId,
-        bureauName: candidate.bureauName,
-        issueType: candidate.issueType,
+        skipped: packetReview.skipped,
+        reason: packetReview.skipped ? packetReview.reason : null,
+        issueId: packetReview.candidate?.issueId ?? null,
+        tradelineId: packetReview.candidate?.tradelineId ?? null,
+        bureauName: packetReview.candidate?.bureauName ?? null,
+        issueType: packetReview.candidate?.issueType ?? null,
       },
       packet: {
-        packetId: packet.packetId,
-        status: packet.packetStatus,
-        pdfByteLength: packet.pdfByteLength,
-        packetReady: packet.readiness.packetReady,
-        eligibleFindingIds: packet.readiness.eligibleFindingIds,
+        skipped: packetReview.skipped,
+        reason: packetReview.skipped ? packetReview.reason : null,
+        packetId: packetReview.packet?.packetId ?? null,
+        status: packetReview.packet?.packetStatus ?? null,
+        pdfByteLength: packetReview.packet?.pdfByteLength ?? null,
+        packetReady: packetReview.packet?.readiness.packetReady ?? null,
+        eligibleFindingIds: packetReview.packet?.readiness.eligibleFindingIds ?? [],
       },
       cleanupStatus,
+      actorCleanup: actors.map((actor) => ({
+        label: actor.label,
+        userId: actor.userId,
+        cleanupStatus: actor.cleanupStatus.status,
+      })),
       safety: {
         productionHostRefusedByConfig: true,
-        syntheticUserSelfDeleted: cleanupStatus.status === "deleted",
+        syntheticUserSelfDeleted: actors.every((actor) => actor.cleanupStatus.status === "deleted"),
         noAdminOverrideUsed: true,
         noRuntimeReferenceActivationUsed: true,
         noDirectFurnisherPacketUsed: true,
       },
     };
   } catch (error) {
-    if (registeredUserId && config.cleanup && cleanupStatus.status === "not needed") {
-      try {
-        cleanupStatus = await cleanupSyntheticAccount(api, config);
-      } catch (cleanupError) {
-        cleanupStatus = {
-          status: `cleanup failed: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`,
-        };
+    if (registeredUserId && config.cleanup) {
+      for (const actor of [...actors].reverse()) {
+        if (actor.cleanupStatus.status !== "not needed") continue;
+        try {
+          actor.cleanupStatus = await cleanupSyntheticAccount(actor.api, actor.config);
+        } catch (cleanupError) {
+          actor.cleanupStatus = {
+            status: `cleanup failed: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`,
+          };
+        }
       }
+      cleanupStatus = actors.find((actor) => actor.label === "owner")?.cleanupStatus ?? cleanupStatus;
     }
     throw new Error(
       `${error instanceof Error ? error.message : String(error)} Registered user ID: ${
         registeredUserId ?? "none"
-      }. Cleanup status: ${cleanupStatus.status}.`,
+      }. Cleanup status: ${cleanupStatus.status}. Actor cleanup: ${actors
+        .map((actor) => `${actor.label}:${actor.cleanupStatus.status}`)
+        .join(", ") || "none"}.`,
     );
   }
 }

@@ -22,6 +22,11 @@ export const REQUIRED_CERTIFICATION_GATES = [
     command: 'pnpm run test:api',
   },
   {
+    id: 'authenticatedUploadResults',
+    label: 'Authenticated consumer upload-to-results smoke',
+    command: 'pnpm run smoke:auth-workflow',
+  },
+  {
     id: 'deterministicIngestion',
     label: 'Deterministic ingestion report',
     command: 'pnpm run test:deterministic-ingestion-report',

@@ -1,7 +1,7 @@
 {
   "reportName": "rollback-sha-governance",
-  "generatedAt": "2026-05-21T12:38:42.245Z",
-  "currentHead": "5de10a46026c68ad71d13d38ddf54aba41380efc",
+  "generatedAt": "2026-05-21T17:43:03.631Z",
+  "currentHead": "95a0367f718b560343a891487e31b0e818391b4b",
   "branch": "staging",
   "auditTargets": [
     "P1-1 Rollback SHA validation tests the workflow ref, not the rollback target.",
@@ -24,8 +24,8 @@
           "name": "TARGET_SHA is resolved before validation jobs",
           "status": "passed",
           "passed": true,
-          "resolveIndex": 1300,
-          "checkIndex": 3645
+          "resolveIndex": 1332,
+          "checkIndex": 3677
         },
         {
           "name": "rollback_sha is strict 40-hex and passed through env",

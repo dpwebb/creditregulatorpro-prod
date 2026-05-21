@@ -1,8 +1,8 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-21T12:41:03.800Z
-Current HEAD: `5de10a46026c68ad71d13d38ddf54aba41380efc`
-Target SHA: `5de10a46026c68ad71d13d38ddf54aba41380efc`
+Generated: 2026-05-21T17:45:46.779Z
+Current HEAD: `95a0367f718b560343a891487e31b0e818391b4b`
+Target SHA: `95a0367f718b560343a891487e31b0e818391b4b`
 Target environment: `production-scale-local-certification`
 CERTIFYING:true
 
@@ -16,6 +16,7 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 | --- | --- | --- |
 | Contract tests | PASS | `pnpm run test:contracts` |
 | API tests | PASS | `pnpm run test:api` |
+| Authenticated consumer upload-to-results smoke | PASS | `pnpm run smoke:auth-workflow` |
 | Deterministic ingestion report | PASS | `pnpm run test:deterministic-ingestion-report` |
 | Response soak check | PASS | `pnpm run response:soak-check` |
 | Packet PDF cache-miss proof | PASS | `pnpm run packet-pdf:cache-miss-proof` |
@@ -44,6 +45,7 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 
 - `pnpm run test:contracts`
 - `pnpm run test:api`
+- `pnpm run smoke:auth-workflow`
 - `pnpm run test:deterministic-ingestion-report`
 - `pnpm run response:soak-check`
 - `pnpm run packet-pdf:cache-miss-proof`
