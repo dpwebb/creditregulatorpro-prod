@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-05-21T07:19:58.7280376-03:00",
+  "currentBranch": "staging",
+  "currentHead": "8b771d002261f3d60e898092807f1e3077e9ef04",
+  "scope": "P2-3 bureau communication attachment hashes bind to decoded bytes, not base64 text.",
+  "certifying": false,
+  "certifyingReason": "The byte-hashing tests and repo-supported validation passed, but the exact requested Vitest command with --runInBand fails before test execution because Vitest 4.1.5 does not support that option.",
+  "implementation": {
+    "patchedFiles": [
+      "endpoints/evidence/bureau-communication_POST.ts",
+      "tests/api/evidence-privacy-endpoint.spec.ts"
+    ],
+    "preservedSubsystems": [
+      "existing bureau communication endpoint",
+      "existing evidence attachment storage helper",
+      "existing evidence attachment retrieval behavior",
+      "existing response classification and obligation update flow",
+      "existing packet update flow",
+      "existing transaction flow"
+    ],
+    "hashing": {
+      "algorithm": "sha256",
+      "input": "decoded-bytes",
+      "rawBase64Supported": true,
+      "dataUrlBase64Supported": true,
+      "lineWrappedBase64Supported": true,
+      "invalidBase64Rejected": true
+    },
+    "metadata": {
+      "mimeStoredIn": "evidenceAttachment.fileType",
+      "digestStoredIn": [
+        "bureau communication response fileHash",
+        "evidenceAttachment.description",
+        "auditLog.details.attachmentDigest",
+        "bureau communication storage object name hash prefix"
+      ]
+    }
+  },
+  "automatedEvidence": [
+    {
+      "requirement": "same binary with different base64 line wrapping produces same hash",
+      "test": "tests/api/evidence-privacy-endpoint.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "requirement": "data URL and raw base64 for same bytes produce same hash",
+      "test": "tests/api/evidence-privacy-endpoint.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "requirement": "invalid base64 fails safely",
+      "test": "tests/api/evidence-privacy-endpoint.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "requirement": "existing bureau communication behavior still works",
+      "test": "tests/api/evidence-privacy-endpoint.spec.ts",
+      "status": "PASS"
+    },
+    {
+      "requirement": "evidence ledger tests remain green",
+      "test": "pnpm exec vitest run --config vitest.config.ts tests/unit tests/api",
+      "status": "PASS"
+    }
+  ],
+  "commands": [
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
+      "status": "PASS",
+      "summary": "1 file, 27 tests passed."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "summary": "No whitespace errors."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit tests/api --runInBand",
+      "status": "FAIL",
+      "summary": "Vitest 4.1.5 rejects --runInBand before tests execute."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit tests/api",
+      "status": "PASS",
+      "summary": "192 files, 1460 tests passed."
+    },
+    {
+      "command": "pnpm run check",
+      "status": "PASS",
+      "summary": "Build, golden path, unit suite, deterministic ingestion report, credit parser regression, tradeline internal checks, and violation correction regression passed."
+    }
+  ]
+}

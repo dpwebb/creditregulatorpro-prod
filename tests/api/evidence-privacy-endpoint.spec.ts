@@ -10,6 +10,7 @@ import {
 } from "../../helpers/uploadPayloadValidation";
 import { buildEvidenceEventHashPayload } from "../../helpers/evidenceEventLedger";
 import { chain as hashChain } from "../../helpers/hashChain";
+import { base64PayloadToBuffer, sha256Hex } from "../../helpers/reportBinaryUtils";
 
 type QueryResult = {
   execute?: unknown[];
@@ -285,6 +286,36 @@ function bureauCommunicationBody(overrides: Record<string, unknown> = {}) {
     description: "Synthetic bureau response.",
     ...overrides,
   };
+}
+
+function queueSuccessfulBureauCommunicationRecord(overrides: {
+  eventId?: number;
+  attachmentId?: number;
+  storageUrl?: string;
+  fileName?: string;
+} = {}) {
+  const eventId = overrides.eventId ?? 502;
+  const attachmentId = overrides.attachmentId ?? 802;
+  const fileName = overrides.fileName ?? "synthetic-bureau-response.pdf";
+  const storageUrl =
+    overrides.storageUrl ??
+    `local:evidence/bureau-communications/10/${eventId}-synthetic-bureau-response.pdf`;
+
+  queueResults(
+    { first: { id: 701, userId: 10, organizationId: 1000 } },
+    { first: { currentHash: "previous-synthetic-hash" } },
+    { firstOrThrow: evidenceEvent({ id: eventId, eventType: "BUREAU_RESPONSE_RECEIVED" }) },
+    {
+      firstOrThrow: attachment({
+        id: attachmentId,
+        obligationInstanceId: null,
+        packetId: null,
+        fileName,
+        storageUrl,
+      }),
+    },
+    { first: null },
+  );
 }
 
 function expectNoSensitiveLeak(value: unknown, options: { allowLocalStorageUrl?: boolean } = {}) {
@@ -913,6 +944,91 @@ describe("evidence privacy and ownership endpoints", () => {
     expect(mocks.logAudit).not.toHaveBeenCalled();
   });
 
+  it("hashes bureau communication attachments from decoded bytes across base64 line wrapping", async () => {
+    const bytes = Buffer.from("%PDF-synthetic-byte-hash\nsame-binary-different-wrapping", "utf8");
+    const rawBase64 = bytes.toString("base64");
+    const wrappedBase64 = rawBase64.match(/.{1,12}/g)?.join("\n") ?? rawBase64;
+    const expectedHash = sha256Hex(bytes);
+
+    queueSuccessfulBureauCommunicationRecord({ eventId: 510, attachmentId: 810 });
+    const rawResponse = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({ fileDataBase64: rawBase64 }),
+      ),
+    );
+
+    queueSuccessfulBureauCommunicationRecord({ eventId: 511, attachmentId: 811 });
+    const wrappedResponse = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({ fileDataBase64: wrappedBase64 }),
+      ),
+    );
+
+    expect(rawResponse.status).toBe(200);
+    expect(wrappedResponse.status).toBe(200);
+    await expect(rawResponse.json()).resolves.toMatchObject({ fileHash: expectedHash });
+    await expect(wrappedResponse.json()).resolves.toMatchObject({ fileHash: expectedHash });
+
+    const attachmentInserts = valuesFor("evidenceAttachment") as Array<Record<string, unknown>>;
+    expect(attachmentInserts.slice(-2).map((value) => value.fileSizeBytes)).toEqual([
+      bytes.byteLength,
+      bytes.byteLength,
+    ]);
+    expect(mocks.uploadFile).toHaveBeenNthCalledWith(
+      1,
+      rawBase64,
+      expect.stringContaining(expectedHash.slice(0, 16)),
+      "application/pdf",
+    );
+    expect(mocks.uploadFile).toHaveBeenNthCalledWith(
+      2,
+      wrappedBase64,
+      expect.stringContaining(expectedHash.slice(0, 16)),
+      "application/pdf",
+    );
+  });
+
+  it("hashes bureau communication data URLs and raw base64 for the same bytes identically", async () => {
+    const rawBase64 = Buffer.from("%PDF-synthetic-data-url-equivalence", "utf8").toString("base64");
+    const dataUrlBase64 = `data:application/pdf;base64,${rawBase64}`;
+    const expectedHash = sha256Hex(base64PayloadToBuffer(rawBase64));
+
+    queueSuccessfulBureauCommunicationRecord({ eventId: 520, attachmentId: 820 });
+    const rawResponse = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({ fileDataBase64: rawBase64 }),
+      ),
+    );
+
+    queueSuccessfulBureauCommunicationRecord({ eventId: 521, attachmentId: 821 });
+    const dataUrlResponse = await recordBureauCommunication(
+      postRequest(
+        "/_api/evidence/bureau-communication",
+        bureauCommunicationBody({ fileDataBase64: dataUrlBase64 }),
+      ),
+    );
+
+    expect(rawResponse.status).toBe(200);
+    expect(dataUrlResponse.status).toBe(200);
+    await expect(rawResponse.json()).resolves.toMatchObject({ fileHash: expectedHash });
+    await expect(dataUrlResponse.json()).resolves.toMatchObject({ fileHash: expectedHash });
+    expect(mocks.uploadFile).toHaveBeenNthCalledWith(
+      1,
+      rawBase64,
+      expect.stringContaining(expectedHash.slice(0, 16)),
+      "application/pdf",
+    );
+    expect(mocks.uploadFile).toHaveBeenNthCalledWith(
+      2,
+      dataUrlBase64,
+      expect.stringContaining(expectedHash.slice(0, 16)),
+      "application/pdf",
+    );
+  });
+
   it("rejects unsupported bureau communication MIME types before ownership or storage work", async () => {
     const response = await recordBureauCommunication(
       postRequest(
@@ -935,6 +1051,7 @@ describe("evidence privacy and ownership endpoints", () => {
 
   it("records a bounded bureau communication upload through the existing evidence path", async () => {
     const body = bureauCommunicationBody();
+    const expectedHash = sha256Hex(base64PayloadToBuffer(String(body.fileDataBase64)));
     const bureauStorageUrl = "local:evidence/bureau-communications/10/1234567890-synthetic-bureau-response.pdf";
     mocks.uploadFile.mockResolvedValueOnce(bureauStorageUrl);
     queueResults(
@@ -966,7 +1083,7 @@ describe("evidence privacy and ownership endpoints", () => {
         fileName: "synthetic-bureau-response.pdf",
       }),
       updatedObligationInstance: null,
-      fileHash: expect.any(String),
+      fileHash: expectedHash,
       responseClassification: expect.any(Object),
     });
     expect(mocks.uploadFile).toHaveBeenCalledWith(
@@ -982,6 +1099,7 @@ describe("evidence privacy and ownership endpoints", () => {
       uploadedBy: 10,
       region: "CA",
     });
+    expect(valuesFor("evidenceAttachment")[0].description).toContain(expectedHash);
     expect(valuesFor("evidenceAttachment")[0].storageUrl).not.toBe(body.fileDataBase64);
     expect(JSON.stringify(responseBody)).not.toContain(body.fileDataBase64);
     expectNoSensitiveLeak(responseBody, { allowLocalStorageUrl: true });
@@ -993,6 +1111,16 @@ describe("evidence privacy and ownership endpoints", () => {
         entityId: 502,
         userId: 10,
         status: "SUCCESS",
+        details: expect.objectContaining({
+          fileHash: expectedHash,
+          attachmentDigest: {
+            algorithm: "sha256",
+            source: "decoded-bytes",
+            value: expectedHash,
+            mimeType: "application/pdf",
+            fileSizeBytes: Buffer.from(body.fileDataBase64, "base64").length,
+          },
+        }),
       }),
     );
   });

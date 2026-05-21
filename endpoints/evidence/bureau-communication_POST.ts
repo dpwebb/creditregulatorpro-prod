@@ -23,7 +23,7 @@ import {
   buildBureauCommunicationStorageMetadata,
   storeBureauCommunicationAttachment,
 } from "../../helpers/evidenceAttachmentStorage";
-import CryptoJS from "crypto-js";
+import { base64PayloadToBuffer, sha256Hex } from "../../helpers/reportBinaryUtils";
 
 function toJsonArray(value: string[] | undefined): Json | undefined {
   return value === undefined ? undefined : (JSON.parse(JSON.stringify(value)) as Json);
@@ -232,10 +232,14 @@ export async function handle(request: Request) {
     }
     const effectiveTradelineId = input.tradelineId ?? packetTradelineId ?? obligationTradelineId;
 
-    // Compute SHA-256 hash of the file content
-    const fileHash = CryptoJS.SHA256(input.fileDataBase64).toString(CryptoJS.enc.Hex);
-    
-    const fileSizeBytes = getBase64DecodedByteLength(input.fileDataBase64);
+    // Hash the decoded attachment bytes so equivalent base64 encodings bind to one digest.
+    const fileBytes = base64PayloadToBuffer(input.fileDataBase64);
+    const fileHash = sha256Hex(fileBytes);
+    const fileSizeBytes = fileBytes.byteLength;
+    const declaredDecodedByteLength = getBase64DecodedByteLength(input.fileDataBase64);
+    if (fileSizeBytes !== declaredDecodedByteLength) {
+      return new Response(JSON.stringify({ error: "Bureau communication data must be valid base64" }), { status: 400 });
+    }
     const storedAttachment = await storeBureauCommunicationAttachment({
       bytesBase64: input.fileDataBase64,
       userId: user.id,
@@ -392,6 +396,13 @@ export async function handle(request: Request) {
       userId: user.id,
       details: {
         fileHash,
+        attachmentDigest: {
+          algorithm: "sha256",
+          source: "decoded-bytes",
+          value: fileHash,
+          mimeType: input.fileType,
+          fileSizeBytes,
+        },
         communicationType: input.communicationType,
         responseClassification: result.responseClassification,
         fileName: input.fileName,
