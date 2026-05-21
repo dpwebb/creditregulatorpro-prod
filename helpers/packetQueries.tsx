@@ -23,9 +23,8 @@ export const useTradelinePackets = (tradelineId: number) => {
   return useQuery({
     queryKey: ["packets", { tradelineId }],
     queryFn: async () => {
-      // Fetch all packets and filter client-side since the list endpoint 
-      // returns all user/org packets anyway. 
-      // In a real optimized scenario, we'd add a query param to the endpoint.
+      // The packet list endpoint enforces owner/org scope server-side.
+      // Keep this client-side tradeline filter only as a display defense.
       const data = await fetchPacketList();
       return {
         packets: data.packets.filter(p => p.tradelineId === tradelineId)

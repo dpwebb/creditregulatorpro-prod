@@ -276,6 +276,7 @@ function packetRow(overrides: Record<string, unknown> = {}) {
 function listPacketRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 601,
+    userId: 10,
     tradelineId: 701,
     status: "sent",
     terminalLabel: "Synthetic packet",
@@ -900,10 +901,57 @@ describe("packet delivery, status, and send endpoint coverage", () => {
     expect(limitValuesFor("packet")).toContain(PACKET_LIST_DEFAULT_LIMIT);
     expect(offsetValuesFor("packet")).toEqual([]);
     expect(whereValues("packet.userId")).toContainEqual(["packet.userId", "=", 10]);
+    expect(whereValues("packet.organizationId")).toContainEqual(["packet.organizationId", "=", 1000]);
     expect(whereValues("packet.processingStatus")).toContainEqual(["packet.processingStatus", "=", "completed"]);
     expect(mocks.operations).toContainEqual(
       expect.objectContaining({ table: "packet", method: "orderBy", args: ["packet.createdAt", "desc"] }),
     );
+  });
+
+  it("does not return cross-user or cross-organization packet rows even if storage returns an overbroad result", async () => {
+    queueResults(
+      { firstOrThrow: { total: "3" } },
+      {
+        execute: [
+          listPacketRow({ id: 601, userId: 10, organizationId: 1000 }),
+          listPacketRow({ id: 602, userId: 99, organizationId: 1000 }),
+          listPacketRow({ id: 603, userId: 10, organizationId: 2000 }),
+        ],
+      },
+    );
+
+    const response = await listPackets(getRequest("/_api/packet/list?limit=10"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.packets.map((packet: { id: number }) => packet.id)).toEqual([601]);
+    expect(whereValues("packet.userId")).toContainEqual(["packet.userId", "=", 10]);
+    expect(whereValues("packet.organizationId")).toContainEqual(["packet.organizationId", "=", 1000]);
+    expect(readFileSync(resolve("helpers/packetQueries.tsx"), "utf8")).toContain(
+      "Keep this client-side tradeline filter only as a display defense.",
+    );
+  });
+
+  it("scopes individual packet lists to unorganized owned packets when the session has no organization", async () => {
+    mocks.getServerUserSession.mockResolvedValueOnce({
+      user: { ...currentUser("user"), organizationId: null },
+    });
+    queueResults(
+      { firstOrThrow: { total: "2" } },
+      {
+        execute: [
+          listPacketRow({ id: 601, userId: 10, organizationId: null }),
+          listPacketRow({ id: 602, userId: 10, organizationId: 1000 }),
+        ],
+      },
+    );
+
+    const response = await listPackets(getRequest("/_api/packet/list?limit=10"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.packets.map((packet: { id: number }) => packet.id)).toEqual([601]);
+    expect(whereValues("packet.organizationId")).toContainEqual(["packet.organizationId", "is", null]);
   });
 
   it("preserves admin packet list scope while applying the default limit", async () => {
@@ -915,6 +963,7 @@ describe("packet delivery, status, and send endpoint coverage", () => {
     expect(response.status).toBe(200);
     expect(limitValuesFor("packet")).toContain(PACKET_LIST_DEFAULT_LIMIT);
     expect(whereValues("packet.userId")).toEqual([]);
+    expect(whereValues("packet.organizationId")).toEqual([]);
     expect(whereValues("packet.processingStatus")).toEqual([]);
   });
 

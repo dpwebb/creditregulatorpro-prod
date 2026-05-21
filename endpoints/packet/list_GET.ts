@@ -6,6 +6,22 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { buildPacketLifecycleSummary } from "../../helpers/packetLifecycle";
 import { maskAccountNumber } from "../../helpers/disputePacketTemplate";
 
+type PacketListScopeUser = {
+  id: number;
+  role: string;
+  organizationId: number | null;
+};
+
+function rowInPacketListScope(
+  row: { userId: number | null; organizationId: number | null; processingStatus: string | null },
+  user: PacketListScopeUser,
+) {
+  if (user.role === 'admin') return true;
+  return row.userId === user.id &&
+    row.processingStatus === 'completed' &&
+    row.organizationId === user.organizationId;
+}
+
 export async function handle(request: Request) {
   try {
     const { user } = await getServerUserSession(request);
@@ -24,13 +40,21 @@ export async function handle(request: Request) {
         .leftJoin('bureau', 'bureau.id', 'tradeline.bureauId')
         .leftJoin('statuteVersion', 'statuteVersion.id', 'packet.statuteVersionId');
 
-    // Count query
-    let countQuery = buildBaseQuery().select((eb) => eb.fn.countAll<string>().as('total'));
-    if (user.role !== 'admin') {
-      countQuery = countQuery
+    const applyPacketListServerScope = <T extends ReturnType<typeof buildBaseQuery>>(query: T): T => {
+      if (user.role === 'admin') return query;
+      let scoped = query
         .where('packet.userId', '=', user.id)
         .where('packet.processingStatus', '=', 'completed');
-    }
+      scoped = user.organizationId === null
+        ? scoped.where('packet.organizationId', 'is', null)
+        : scoped.where('packet.organizationId', '=', user.organizationId);
+      return scoped as T;
+    };
+
+    // Count query
+    const countQuery = applyPacketListServerScope(
+      buildBaseQuery().select((eb) => eb.fn.countAll<string>().as('total')),
+    );
     const countResult = await countQuery.executeTakeFirstOrThrow();
     const total = parseInt(countResult.total, 10);
 
@@ -38,6 +62,7 @@ export async function handle(request: Request) {
     let dataQuery = buildBaseQuery()
       .select([
         'packet.id',
+        'packet.userId',
         'packet.tradelineId',
         'packet.status',
         'packet.terminalLabel',
@@ -74,21 +99,27 @@ export async function handle(request: Request) {
       ])
       .orderBy('packet.createdAt', 'desc');
 
-    if (user.role !== 'admin') {
-      dataQuery = dataQuery
-        .where('packet.userId', '=', user.id)
-        .where('packet.processingStatus', '=', 'completed');
-    }
+    dataQuery = applyPacketListServerScope(dataQuery);
 
     dataQuery = dataQuery.limit(validatedInput.limit);
     if (validatedInput.offset !== undefined) {
       dataQuery = dataQuery.offset(validatedInput.offset);
     }
 
-    const rawPackets = await dataQuery.execute();
+    const rawPackets = (await dataQuery.execute()).filter((row) =>
+      rowInPacketListScope(
+        {
+          userId: row.userId,
+          organizationId: row.organizationId,
+          processingStatus: row.processingStatus,
+        },
+        user,
+      ),
+    );
 
     const packets = rawPackets.map((p) => {
-      const { tradelineOriginalCreditorName, tradelineCreditorNameFromTable, responseClockDays, ...rest } = p as typeof p & {
+      const { userId: _userId, tradelineOriginalCreditorName, tradelineCreditorNameFromTable, responseClockDays, ...rest } = p as typeof p & {
+        userId: number | null;
         tradelineOriginalCreditorName: string | null;
         tradelineCreditorNameFromTable: string | null;
         responseClockDays: number | null;

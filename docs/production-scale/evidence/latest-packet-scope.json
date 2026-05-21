@@ -1,0 +1,78 @@
+{
+  "reportName": "packet-list-server-scope-evidence",
+  "generatedAt": "2026-05-21T11:35:19.307Z",
+  "currentHead": "1daae8107db898193d6138abc70d92436c980d7d",
+  "status": "passed",
+  "CERTIFYING": true,
+  "certifying": true,
+  "scope": {
+    "endpointPath": "endpoints/packet/list_GET.ts",
+    "helperPath": "helpers/packetQueries.tsx",
+    "schemaPath": "endpoints/packet/list_GET.schema.ts",
+    "packetListBehaviorPreserved": true,
+    "adminScope": "admin retains existing global packet list behavior",
+    "nonAdminScope": "server requires packet.userId to match the session user, packet.organizationId to match the session organization, and processingStatus=completed",
+    "clientFilterRole": "display defense only",
+    "pagination": "bounded default and max limits from list_GET.schema.ts"
+  },
+  "requiredCommands": [
+    "git diff --check",
+    "pnpm exec vitest run tests/api tests/unit --runInBand",
+    "pnpm exec vitest run --config vitest.config.ts tests/api tests/unit",
+    "pnpm run check"
+  ],
+  "commandResults": [
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm exec vitest run tests/api tests/unit --runInBand",
+      "status": "unsupported-fallback-passed"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api tests/unit",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run check",
+      "status": "passed"
+    }
+  ],
+  "sourceValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "packet list has server scope helper",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "non-admin packet list filters by owner",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "non-admin packet list filters by organization",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "non-admin packet list excludes incomplete rows",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "packet list has bounded pagination",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "client filtering remains display defense only",
+        "passed": true,
+        "status": "passed"
+      }
+    ],
+    "failedChecks": []
+  }
+}

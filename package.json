@@ -82,6 +82,7 @@
     "baseline:production-scale-local": "node scripts/production-scale-harness.mjs",
     "baseline:production-scale-measured": "node scripts/production-scale-measured.mjs",
     "packet-pdf:cache-miss-proof": "tsx scripts/packet-pdf-cache-miss-proof.ts",
+    "packet-scope:evidence": "node scripts/packet-scope-evidence.mjs",
     "deploy:rollback-sha-governance": "node scripts/deploy-rollback-sha-governance.mjs",
     "deploy:rollback-simulation": "node scripts/deploy-rollback-simulation.mjs",
     "deploy:ssh-host-key-pinning": "node scripts/deploy-ssh-host-key-pinning-evidence.mjs",
