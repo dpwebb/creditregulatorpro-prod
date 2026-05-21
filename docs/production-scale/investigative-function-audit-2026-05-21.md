@@ -4,7 +4,7 @@
 
 **Overall status: LIMITED**
 
-The original audit result was **BLOCKED** because the authenticated consumer credit-report upload-to-results path was not proven. Remediation on 2026-05-21 made the staging synthetic authenticated smoke worker-aware, verified artifact ownership, waited for terminal ingest status, proved same-consumer `upload-results`, proved non-owner denial, and added the smoke to `production-scale:certify`. The P0 authenticated upload-to-results blocker is now remediated with executable staging evidence, but this report remains **LIMITED** rather than `READY` because it is an audit/remediation addendum, not a full manual-free production launch approval.
+The original audit result was **BLOCKED** because the authenticated consumer credit-report upload-to-results path was not proven. Remediation on 2026-05-21 made the staging synthetic authenticated smoke worker-aware, verified artifact ownership, waited for terminal ingest status, proved same-consumer `upload-results`, proved non-owner denial, and added the smoke to `production-scale:certify`. A later packet-included staging smoke exposed packet PDF HTTP `502`; that P1 packet PDF issue is now remediated with live staging evidence and included in certification. This report remains **LIMITED** rather than `READY` because it is an audit/remediation addendum, not a full manual-free production launch approval.
 
 Current repo: `C:\Users\webbd\Projects\creditregulatorpro-staging`
 
@@ -71,11 +71,54 @@ $env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:STAGING_BASE_URL='https://staging.cred
 
 Result: **PASS**, exit code 0. The generated certification evidence reports `CERTIFYING:true`, gate `authenticatedUploadResults: passed`, no failed gates, no stale gates, and no skipped gates. Inside that certification run, synthetic owner user `138` uploaded artifact `479`, job `28` reached terminal `completed`, upload-results returned `totalTradelines: 2`, non-owner access returned HTTP `403`, and synthetic users `138` and `139` were deleted.
 
-Remaining non-P0 observation: the legacy packet-included version of the auth smoke was attempted twice during remediation and reached completed upload-results before failing on packet PDF HTTP `502`. Because this remediation targets the P0 upload-to-results blocker and packet PDF has a separate automated proof gate, packet PDF was left as a separate follow-up rather than folded into this bounded fix.
+## Packet PDF Remediation Addendum
+
+Root cause: the packet PDF endpoint `GET /_api/packet/pdf?packetId=...` attached the synthetic saved consumer identification image to simple packet content before rendering. The smoke's prior PNG data URL was syntactically base64 but not a decodable PNG. `pdfmake`/`png-js` threw `Z_DATA_ERROR: incorrect data check` while embedding that image, escaping as a process-level render crash and surfacing through staging as HTTP `502 Bad Gateway`. The first bounded font/cache-miss patch removed request-time remote font fetching but did not fix the crash; the second bounded patch replaced the corrupt synthetic ID image with a valid PNG and added readable PNG/JPEG validation for consumer identification uploads and packet attachment reads.
+
+Files changed:
+
+- `helpers/pdfServerUtils.tsx`
+- `helpers/pdfGenerator.tsx`
+- `helpers/consumerIdentification.ts`
+- `endpoints/packet/pdf_GET.ts`
+- `scripts/staging-auth-workflow-smoke.ts`
+- `scripts/staging-auth-packet-workflow-smoke.ts`
+- `scripts/mock-user-lifecycle-e2e.ts`
+- `scripts/production-scale-certification.mjs`
+- `package.json`
+- Packet PDF/auth smoke/consumer identification tests.
+
+Live staging packet proof:
+
+```powershell
+$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='packet-pdf-fix-2026-05-21b'; pnpm run smoke:auth-workflow:packet
+```
+
+Result: **PASS**, exit code 0.
+
+Evidence:
+
+- Authenticated owner user `148`; artifact `490`; `ownerUserId: 148`; `sha256Present: true`.
+- Ingest job `31` reached terminal `completed`, `queueStatus: succeeded`, `diagnosticCode: INGEST_PROCESSING_COMPLETED`.
+- Upload-results returned `totalTradelines: 2` and `actionableCount: 6`.
+- Packet readiness selected finding `4881`, `packetReady: true`, `eligibleFindingIds: [4881]`.
+- Packet build preserved `selectedIssueIds: [4881]`.
+- Packet create returned packet `141`, status `generated`.
+- Packet PDF request returned HTTP `200`, `content-type: application/pdf`, `pdfByteLength: 8364`, and `%PDF` header proof.
+- Non-owner upload-results and packet PDF retrieval both returned HTTP `403`.
+- Synthetic owner and non-owner users were deleted.
+
+Certification proof:
+
+```powershell
+$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='production-scale-cert-packet-pdf-2026-05-21b'; pnpm run production-scale:certify
+```
+
+Result: **PASS**, exit code 0. `latest-production-scale-certification.json` reports current HEAD `2e4bcb2bafd4ba9d7834b20c00885b421a95fb68`, `CERTIFYING:true`, and passed gates for both `authenticatedUploadResults` and `authenticatedPacketPdf`. Inside the certification run, the packet proof selected finding `4920`, created packet `143`, downloaded an `application/pdf` response with HTTP `200`, `pdfByteLength: 7314`, `%PDF` header proof, and non-owner PDF denial `403`.
 
 ## What Previous Audits Likely Missed
 
-Previous readiness work heavily proved deterministic parser behavior, endpoint contracts, owner checks, mocked lifecycle behavior, and local/simulated worker gates. Those checks are valuable, but they did not require a synthetic logged-in consumer to pass through the deployed staging auth/session/upload/process/retrieve path and prove usable `upload-results`. That gap is now closed by requiring `pnpm run smoke:auth-workflow` in `production-scale:certify`.
+Previous readiness work heavily proved deterministic parser behavior, endpoint contracts, owner checks, mocked lifecycle behavior, and local/simulated worker gates. Those checks are valuable, but they did not require a synthetic logged-in consumer to pass through the deployed staging auth/session/upload/process/retrieve path and prove usable `upload-results`, then continue through packet readiness/create/PDF retrieval with the same owner session. Those gaps are now closed by requiring `pnpm run smoke:auth-workflow` and `pnpm run smoke:auth-workflow:packet` in `production-scale:certify`.
 
 ## Commands Run
 
@@ -98,6 +141,10 @@ Previous readiness work heavily proved deterministic parser behavior, endpoint c
 | `pnpm exec vitest run tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/production-scale-certification.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts` | PASS | 4 files, 55 tests passed after remediation. |
 | `pnpm run smoke:auth-workflow` with staging synthetic auth env | PASS | Artifact `478`, owner `136`, job `27` completed, upload-results had 2 tradelines, non-owner denied 403, cleanup deleted both users. |
 | `pnpm run production-scale:certify` with staging synthetic auth env | PASS | `CERTIFYING:true`; `authenticatedUploadResults` gate passed with artifact `479`, owner `138`, job `28`, 2 tradelines, non-owner denied 403. |
+| `pnpm run smoke:auth-workflow:packet` before ID-image fix | FAIL | Endpoint `GET /_api/packet/pdf?packetId=140` returned HTTP `502`; readiness/build/create had passed for selected finding `4868`; cleanup also hit `502`. |
+| `pnpm exec vitest run tests/unit/consumer-identification-image-validation.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/production-scale-certification.spec.ts tests/api/consumer-identification-upload-boundary.spec.ts tests/api/critical-schema.spec.ts` | PASS | 6 files, 31 tests passed; corrupt PNG rejected and valid ID packet PDF rendered. |
+| `pnpm run smoke:auth-workflow:packet` after ID-image fix | PASS | Artifact `490`, owner `148`, job `31` completed, finding `4881` ready, packet `141`, PDF HTTP `200`, `application/pdf`, 8364 bytes, non-owner PDF denied `403`. |
+| `pnpm run production-scale:certify` with staging synthetic auth env after packet fix | PASS | `CERTIFYING:true`; `authenticatedUploadResults` and `authenticatedPacketPdf` passed; certification packet proof selected finding `4920`, packet `143`, PDF HTTP `200`, `application/pdf`, 7314 bytes, non-owner PDF denied `403`. |
 
 ## Verification Matrix
 
@@ -120,8 +167,8 @@ Previous readiness work heavily proved deterministic parser behavior, endpoint c
 | Upload-results retrieval | authenticated owner/admin | `/_api/upload-results/get`, `/upload-results/:artifactId` | Owner gets results; non-owner denied; admin per intended scope | UI shows status/results/actionable failure | API tests, UI status tests | owner got 2 tradelines; non-owner denied 403 | PASS | P0 | remediated | Keep owner/non-owner proof in certification gate. |
 | UI upload status clarity | authenticated consumer | `/upload` | Queued/processing/stalled/completed are clear | No indefinite 99%/queued confusion | `upload-processing-status-ui.spec.tsx` | unit UI status tests passed | PARTIAL | P1 | component passes, but deployed UI not browser-smoked in auth flow | Add automated Playwright/HTTP UI smoke for synthetic user state. |
 | Auth boundary regression | owner, non-owner, admin | report/upload/packet endpoints | Owner scoped, non-owner denied, admin intentional | Wrong owner cannot see data | route auth and API lifecycle tests | staging smoke created second synthetic user and upload-results returned 403 | PASS | P1 | remediated for upload-results; packet non-owner remains covered elsewhere | Extend packet-specific staging denial separately if needed. |
-| Packet recommendation/readiness | authenticated owner | `/_api/packet/recommend`, `validate-readiness` | Eligible findings become packet candidates | Warnings/blockers shown | packet lifecycle endpoint tests | packet checks were moved behind explicit opt-in; local packet proof passed | PARTIAL | P1 | not part of P0 upload-results proof | Run packet-included staging smoke in a separate packet remediation task. |
-| Packet build/create/PDF | authenticated owner/admin | packet endpoints/PDF | Create persisted packet, PDF downloadable | PDF bytes returned to owner | packet lifecycle and PDF proof tests | packet opt-in attempts reached completed upload-results then packet PDF returned 502 twice; local proof passed | PARTIAL | P1 | staging packet PDF live endpoint requires separate diagnosis | Keep packet PDF cache proof gate and add live staging packet PDF remediation. |
+| Packet recommendation/readiness | authenticated owner | `/_api/packet/recommend`, `validate-readiness` | Eligible findings become packet candidates | Warnings/blockers shown | packet lifecycle endpoint tests | packet-included staging smoke selected finding `4881` and certification selected finding `4920`; readiness returned `packetReady: true` | PASS | P1 | remediated | Keep packet-included staging smoke in certification. |
+| Packet build/create/PDF | authenticated owner/admin | packet endpoints/PDF | Create persisted packet, PDF downloadable | PDF bytes returned to owner | packet lifecycle and PDF proof tests | live staging packet smoke created packet `141`, PDF HTTP `200`, `application/pdf`, 8364 bytes, `%PDF`; certification created packet `143`, PDF HTTP `200`, 7314 bytes, non-owner denied `403` | PASS | P1 | remediated corrupt ID image crash | Keep image validation and packet PDF owner/non-owner proof. |
 | Packet lifecycle | owner/admin | packet list/get/update/status | Scope enforced; lifecycle preserved | User sees own packets only | packet tests | not directly staged | PARTIAL | P2 | not live-smoked | Add owner/non-owner packet smoke. |
 | Admin dashboards | admin | `/admin-*`, admin endpoints | Admin-only metrics and queues visible | Operator can see queue/status | admin endpoint/unit tests | static inventory only in this audit | PARTIAL | P2 | not dynamically role-smoked | Add synthetic admin dashboard smoke with no PII. |
 | Admin violation correction | admin | correction endpoints/manager | Transactional finalization/training/audit | Operator-visible status | correction tests | static inventory only in this audit | PARTIAL | P2 | no live admin correction smoke | Add synthetic correction finalization smoke. |
@@ -129,7 +176,7 @@ Previous readiness work heavily proved deterministic parser behavior, endpoint c
 | Parser-test persistence | admin | parser-test-case endpoints | Persist cases, promote only gated rules | Provenance available | parser unit/API tests | static inventory only | PARTIAL | P2 | no live admin smoke | Add non-mutating parser-test smoke. |
 | Response document processing | user/admin | responses endpoints/workers | Capture/process response metadata append-only | Admin/user surfaces show outcome | response soak and docs | response soak passed locally | PASS | P2 | not related to failed credit upload | Keep as separate gate. |
 | Dead-letter/retry/stale jobs | worker/admin | queue service/admin queue | Stale/dead-letter visible and retryable | User/admin sees safe state | API lifecycle tests | local tests passed; staging proof absent | PARTIAL | P1 | current staging failure may be worker/stale-related | Include queue/job state in auth smoke evidence. |
-| Deployment/staging assumptions | workflow | GitHub Actions, compose, worker scripts | Staging has worker path and post-deploy checks | Evidence should include target SHA and auth workflow | workflow tests, certification | `production-scale:certify` now includes and passed `authenticatedUploadResults` | PASS | P1 | remediated for certification gate | Keep staging smoke environment configured for certification runs. |
+| Deployment/staging assumptions | workflow | GitHub Actions, compose, worker scripts | Staging has worker path and post-deploy checks | Evidence should include target SHA and auth workflow | workflow tests, certification | `production-scale:certify` now includes and passed `authenticatedUploadResults` and `authenticatedPacketPdf` | PASS | P1 | remediated for certification gate | Keep staging smoke environment configured for certification runs. |
 
 ## Critical Findings
 
@@ -167,9 +214,9 @@ The auth workflow smoke now calls `/_api/ingest/process`, polls `/_api/ingest/st
 
 Implicated path: `scripts/staging-auth-workflow-smoke.ts`.
 
-### P1 - Packet-Included Staging Smoke Hit Packet PDF 502 - Open Separate Follow-Up
+### P1 - Packet-Included Staging Smoke Hit Packet PDF 502 - Remediated
 
-During remediation, the packet-included version of the staging auth smoke reached completed upload-results and then failed on packet PDF HTTP `502` twice. This did not block the bounded P0 upload-results fix because packet PDF has a separate automated proof gate and the requested proof point is authenticated upload-to-results. It should still be diagnosed as a separate staging packet/PDF operational issue if live staging packet PDF is release-critical.
+The failing endpoint was `GET /_api/packet/pdf?packetId=...`. The live staging smoke proved readiness/build/create succeeded before PDF retrieval, then the endpoint returned HTTP `502` and subsequent cleanup requests also received `502`, indicating a render-time process crash. The bounded fix validates consumer identification images as readable PNG/JPEG before storage/read attachment, renders corrupt existing ID attachments as optional/missing for simple packet downloads, replaces the smoke's corrupt synthetic PNG with a valid generated PNG, and includes `pnpm run smoke:auth-workflow:packet` in `production-scale:certify`. Live staging now returns HTTP `200` `application/pdf` for owner packet PDF retrieval and HTTP `403` for non-owner PDF retrieval.
 
 ## Lower-Risk Findings
 
@@ -179,25 +226,13 @@ During remediation, the packet-included version of the staging auth smoke reache
 
 ## Remediation Prompts
 
-1. **Diagnose staging packet PDF 502 in packet-included auth smoke**
-
-   ```text
-   You are Codex in Credit Regulator Pro. Diagnose the packet PDF HTTP 502 observed only after the authenticated staging upload-results flow succeeds. Do not rewrite packet PDF generation. Run the auth smoke with CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET=true, inspect packet PDF endpoint logs and cache-miss proof, patch the smallest packet/PDF or staging gateway defect, and preserve existing packet output. Add automated proof and keep upload-results smoke separate.
-   ```
-
-2. **Add browser-level synthetic upload status smoke**
+1. **Add browser-level synthetic upload status smoke**
 
    ```text
    Add an automated Playwright smoke for /upload using a synthetic authenticated session. It must verify that queued, processing, stalled/no-worker, failed/manual-review, and completed states render clear next actions, and that completed upload navigates to /upload-results/:artifactId. No manual browser testing and no real PII.
    ```
 
-3. **Extend packet-specific owner-bound staging proof**
-
-   ```text
-   Add a packet-specific staging smoke that starts from a synthetic owner with verified upload-results, creates a packet, downloads the PDF, proves non-owner denial, and cleans up. Keep it separate from the P0 upload-results certification gate unless packet PDF stability is required for every production certification run.
-   ```
-
-4. **Add synthetic admin role smoke**
+2. **Add synthetic admin role smoke**
 
    ```text
    Add a synthetic admin role smoke for correction, evidence, regulation, parser-test, and queue dashboard surfaces. Use no real PII and do not mutate production references except through existing test-only or staging-safe admin paths.
@@ -207,9 +242,9 @@ During remediation, the packet-included version of the staging auth smoke reache
 
 - Live browser UI was not exercised because this remediation prioritized non-interactive API/runtime proof for the P0 path.
 - Admin dashboards/correction/parser-test surfaces were inventoried and mapped to existing tests, but not staged with a synthetic admin in this run.
-- Two packet-included failed smoke attempts left generated synthetic users unconfirmed because cleanup hit staging gateway errors after packet PDF 502. The passing focused smoke and certification smoke both deleted their synthetic owner and non-owner users.
+- Two pre-fix packet-included failed smoke attempts left generated synthetic users unconfirmed because cleanup hit staging gateway errors after packet PDF 502. The passing focused smoke and certification smoke both deleted their synthetic owner and non-owner users.
 - No live external provider calls or live deploys were run.
 
 ## Verdict
 
-**LIMITED.** The P0 authenticated consumer credit-report upload-to-results path is now proven by executable staging and certification evidence. This report does not independently mark every admin, browser UI, or packet/PDF staging function `READY`; those remain separate follow-up surfaces.
+**LIMITED.** The P0 authenticated consumer credit-report upload-to-results path and the P1 live staging packet readiness/create/PDF retrieval path are now proven by executable staging and certification evidence. This report does not independently mark every admin or browser UI function `READY`; those remain separate follow-up surfaces.

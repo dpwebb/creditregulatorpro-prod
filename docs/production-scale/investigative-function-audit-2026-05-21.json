@@ -2,7 +2,7 @@
   "auditDate": "2026-05-21",
   "repo": "C:\\Users\\webbd\\Projects\\creditregulatorpro-staging",
   "branch": "staging",
-  "commit": "95a0367f718b560343a891487e31b0e818391b4b",
+  "commit": "2e4bcb2bafd4ba9d7834b20c00885b421a95fb68",
   "overallStatus": "LIMITED",
   "authenticatedUploadResultStatus": "PASS",
   "authenticatedUploadResultSummary": "Remediated on 2026-05-21. The worker-aware staging smoke registered/logged in a synthetic consumer, uploaded a generated TransUnion PDF, verified artifact ownership, polled ingest status to completed, retrieved owner upload-results with 2 tradelines and 6 actionable findings, proved non-owner denial with HTTP 403, and cleaned up both synthetic users. production-scale:certify now includes and passed the authenticatedUploadResults gate.",
@@ -178,12 +178,12 @@
         "tests/api/packet-lifecycle-endpoint.spec.ts",
         "packet-pdf cache-miss proof"
       ],
-      "newAuditTestOrCommandUsed": "pnpm run packet-pdf:cache-miss-proof; staging smoke attempted but blocked upstream",
-      "evidenceCollected": "Local packet PDF proof passed; packet-included staging auth smoke attempts reached upload-results success then packet PDF returned HTTP 502 twice.",
-      "result": "PARTIAL",
+      "newAuditTestOrCommandUsed": "pnpm run smoke:auth-workflow:packet; pnpm run production-scale:certify",
+      "evidenceCollected": "Live staging packet smoke selected finding 4881, readiness packetReady true, created packet 141, PDF HTTP 200 application/pdf, 8364 bytes, %PDF header, non-owner packet PDF denied 403. Certification selected finding 4920, created packet 143, PDF HTTP 200 application/pdf, 7314 bytes, non-owner PDF denied 403.",
+      "result": "PASS",
       "riskLevel": "P1",
-      "failureMode": "Live staging packet PDF requires separate diagnosis; not part of P0 upload-results proof.",
-      "recommendedNextRemediationTask": "Run packet-included auth smoke with focused packet PDF logging and fix the bounded staging/PDF defect."
+      "failureMode": null,
+      "recommendedNextRemediationTask": "Keep authenticatedPacketPdf in production-scale certification and retain readable ID image validation."
     },
     {
       "functionName": "Evidence, regulation, parser-test, admin correction, response documents",
@@ -217,11 +217,11 @@
         "workflow static tests"
       ],
       "newAuditTestOrCommandUsed": "inspection of certification gates and command runs",
-      "evidenceCollected": "production-scale:certify now includes authenticatedUploadResults and passed with CERTIFYING:true.",
+      "evidenceCollected": "production-scale:certify now includes authenticatedUploadResults and authenticatedPacketPdf and passed with CERTIFYING:true.",
       "result": "PASS",
       "riskLevel": "P1",
       "failureMode": null,
-      "recommendedNextRemediationTask": "Keep CRP_AUTH_WORKFLOW_SMOKE and STAGING_BASE_URL configured for certifying runs."
+      "recommendedNextRemediationTask": "Keep both live authenticated staging smokes configured for certification runs."
     }
   ],
   "commandsRun": [
@@ -332,11 +332,32 @@
       "status": "passed",
       "exitCode": 0,
       "summary": "CERTIFYING:true; authenticatedUploadResults gate passed with artifact 479, owner 138, job 28 completed, 2 tradelines, non-owner 403, cleanup users 138 and 139 deleted."
+    },
+    {
+      "command": "pnpm run smoke:auth-workflow:packet",
+      "result": "FAIL",
+      "evidence": "Pre-fix packet PDF endpoint /_api/packet/pdf?packetId=140 returned HTTP 502 after readiness/build/create succeeded for selected finding 4868."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit/consumer-identification-image-validation.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/production-scale-certification.spec.ts tests/api/consumer-identification-upload-boundary.spec.ts tests/api/critical-schema.spec.ts",
+      "result": "PASS",
+      "evidence": "6 files, 31 tests passed; corrupt PNG rejected and valid ID packet PDF rendered."
+    },
+    {
+      "command": "pnpm run smoke:auth-workflow:packet",
+      "result": "PASS",
+      "evidence": "Artifact 490 owner 148, job 31 completed, selected finding 4881, packet 141, PDF HTTP 200 application/pdf, 8364 bytes, %PDF header, non-owner packet PDF denied 403."
+    },
+    {
+      "command": "pnpm run production-scale:certify",
+      "result": "PASS",
+      "evidence": "CERTIFYING:true; authenticatedUploadResults and authenticatedPacketPdf passed; packet proof selected finding 4920, packet 143, PDF HTTP 200 application/pdf, 7314 bytes, non-owner PDF denied 403."
     }
   ],
   "testsAdded": [
     "tests/unit/staging-auth-workflow-smoke.spec.ts updated for queued process output, terminal status classification, artifact/status endpoints, and packet opt-in behavior",
-    "tests/unit/production-scale-certification.spec.ts updated to require authenticatedUploadResults gate"
+    "tests/unit/production-scale-certification.spec.ts updated to require authenticatedUploadResults gate",
+    "tests/unit/consumer-identification-image-validation.spec.ts"
   ],
   "testsReused": [
     "scripts/staging-auth-workflow-smoke.ts",
@@ -387,19 +408,20 @@
       "id": "P1-staging-packet-pdf-502",
       "severity": "P1",
       "title": "Packet-included staging auth smoke hit packet PDF HTTP 502 after upload-results succeeded",
-      "status": "open-separate-follow-up",
-      "evidence": "Two remediation runs reached terminal completed ingest and then failed at packet PDF HTTP 502; packet PDF local cache-miss proof passed.",
+      "status": "remediated",
+      "evidence": "Live staging smoke proved /_api/packet/pdf for packet 141 returned HTTP 200 application/pdf, 8364 bytes, %PDF header, and non-owner denial 403. Certification gate authenticatedPacketPdf also passed with packet 143, selected finding 4920, PDF HTTP 200 application/pdf, 7314 bytes, and non-owner denial 403.",
       "implicatedPaths": [
-        "/_api/packet/pdf",
-        "packet PDF helpers/cache path"
-      ]
+        "endpoints/packet/pdf_GET.ts",
+        "helpers/consumerIdentification.ts",
+        "helpers/pdfServerUtils.tsx",
+        "helpers/pdfGenerator.tsx",
+        "scripts/staging-auth-workflow-smoke.ts",
+        "scripts/staging-auth-packet-workflow-smoke.ts"
+      ],
+      "rootCause": "Corrupt synthetic consumer identification PNG was accepted as base64 and attached to packet content; pdfmake/png-js crashed during render with Z_DATA_ERROR, surfacing as staging HTTP 502."
     }
   ],
   "remediationTasks": [
-    {
-      "severity": "P1",
-      "prompt": "Diagnose the packet PDF HTTP 502 observed only after authenticated staging upload-results succeeds. Run CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET=true, inspect packet PDF endpoint logs/cache behavior, patch the smallest packet/PDF or staging gateway defect, and preserve existing packet output."
-    },
     {
       "severity": "P2",
       "prompt": "Add an automated Playwright smoke for /upload and /upload-results using a synthetic authenticated user, proving clear queued/processing/stalled/failed/completed UI states with no manual interaction."
@@ -413,10 +435,6 @@
     {
       "area": "Browser UI authenticated upload flow",
       "reason": "API/runtime proof now passes, but no browser automation was added in this bounded remediation."
-    },
-    {
-      "area": "Live staging packet PDF within auth workflow",
-      "reason": "Packet-included smoke hit HTTP 502 after upload-results success; packet PDF local proof passes and live packet remediation remains separate."
     },
     {
       "area": "Live staging admin correction/evidence/regulation/parser-test surfaces",
@@ -500,6 +518,38 @@
         "status": "open-separate-follow-up",
         "notes": "Packet PDF is outside the P0 upload-results proof and remains covered by packet-pdf:cache-miss-proof; live staging packet PDF should be diagnosed separately if release-critical."
       }
-    ]
-  }
+    ],
+    "packetPdf": {
+      "status": "remediated",
+      "rootCause": "Unreadable synthetic PNG identification image crashed pdfmake/png-js during packet PDF rendering and surfaced as HTTP 502.",
+      "endpoint": "GET /_api/packet/pdf?packetId=...",
+      "focusedSmoke": {
+        "status": "passed",
+        "artifactId": 490,
+        "ownerUserId": 148,
+        "jobId": 31,
+        "selectedFindingId": 4881,
+        "packetId": 141,
+        "pdfHttpStatus": 200,
+        "pdfContentType": "application/pdf",
+        "pdfByteLength": 8364,
+        "pdfStartsWithPdf": true,
+        "nonOwnerPdfStatus": 403
+      },
+      "certification": {
+        "status": "passed",
+        "currentHead": "2e4bcb2bafd4ba9d7834b20c00885b421a95fb68",
+        "CERTIFYING": true,
+        "authenticatedPacketPdf": "passed",
+        "selectedFindingId": 4920,
+        "packetId": 143,
+        "pdfHttpStatus": 200,
+        "pdfContentType": "application/pdf",
+        "pdfByteLength": 7314,
+        "nonOwnerPdfStatus": 403
+      }
+    }
+  },
+  "authenticatedPacketPdfStatus": "PASS",
+  "authenticatedPacketPdfSummary": "Remediated on 2026-05-21. Live staging packet-included smoke uploaded a synthetic report as an authenticated consumer, proved terminal ingest, upload-results with 2 tradelines and 6 findings, selected an eligible finding, passed readiness, created packet 141, retrieved /_api/packet/pdf with HTTP 200 application/pdf and %PDF header, and proved non-owner packet PDF denial with HTTP 403. production-scale:certify now includes authenticatedPacketPdf and returned CERTIFYING:true."
 }

@@ -1,10 +1,10 @@
 {
   "reportName": "migration-governance-drift-evidence",
   "CERTIFYING": false,
-  "generatedAt": "2026-05-21T17:42:42.009Z",
-  "evidenceTimestamp": "2026-05-21T17:42:42.009Z",
+  "generatedAt": "2026-05-21T18:47:13.580Z",
+  "evidenceTimestamp": "2026-05-21T18:47:13.580Z",
   "branch": "staging",
-  "commit": "95a0367f718b560343a891487e31b0e818391b4b",
+  "commit": "2e4bcb2bafd4ba9d7834b20c00885b421a95fb68",
   "safety": {
     "nonMutating": true,
     "requiresDatabase": false,
@@ -349,12 +349,12 @@
       "path": "helpers/consumerIdentification.ts",
       "matches": [
         {
-          "line": 116,
+          "line": 137,
           "pattern": "create table",
           "excerpt": "create table if not exists public.consumer_identification_document ("
         },
         {
-          "line": 131,
+          "line": 152,
           "pattern": "create index",
           "excerpt": "create index if not exists idx_consumer_identification_document_user_id"
         }
