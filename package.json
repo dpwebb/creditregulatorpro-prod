@@ -96,6 +96,7 @@
     "restore:drill:simulated": "node scripts/restore-drill-simulated.mjs",
     "retention:archive-restore:simulated": "node scripts/retention-archive-restore-simulated.mjs",
     "report:runtime-size": "node scripts/runtime-size-report.mjs",
+    "report:bundle": "node scripts/bundle-report.mjs",
     "check:runtime-size": "node scripts/runtime-size-report.mjs --check",
     "runtime-size:policy-acceptance": "node scripts/runtime-size-policy-acceptance.mjs",
     "check:staging-backup-restore": "node scripts/staging-backup-restore-checklist.mjs",

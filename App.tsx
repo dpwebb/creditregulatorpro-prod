@@ -13,7 +13,6 @@ import Page_4 from "./pages/contact.tsx";
 import PageLayout_4 from "./pages/contact.pageLayout.tsx";
 import Page_5 from "./pages/my-info.tsx";
 import PageLayout_5 from "./pages/my-info.pageLayout.tsx";
-import Page_6 from "./pages/packets.tsx";
 import PageLayout_6 from "./pages/packets.pageLayout.tsx";
 import Page_7 from "./pages/calendar.tsx";
 import PageLayout_7 from "./pages/calendar.pageLayout.tsx";
@@ -81,13 +80,11 @@ import Page_38 from "./pages/evidence-management.tsx";
 import PageLayout_38 from "./pages/evidence-management.pageLayout.tsx";
 import Page_39 from "./pages/admin-knowledge-base.tsx";
 import PageLayout_39 from "./pages/admin-knowledge-base.pageLayout.tsx";
-import Page_40 from "./pages/admin-parser-testing.tsx";
 import PageLayout_40 from "./pages/admin-parser-testing.pageLayout.tsx";
 import Page_41 from "./pages/creditor-obligations.tsx";
 import PageLayout_41 from "./pages/creditor-obligations.pageLayout.tsx";
 import Page_42 from "./pages/creditor-validations.tsx";
 import PageLayout_42 from "./pages/creditor-validations.pageLayout.tsx";
-import Page_43 from "./pages/admin-parser-mappings.tsx";
 import PageLayout_43 from "./pages/admin-parser-mappings.pageLayout.tsx";
 import Page_44 from "./pages/admin-user-management.tsx";
 import PageLayout_44 from "./pages/admin-user-management.pageLayout.tsx";
@@ -121,7 +118,6 @@ import Page_58 from "./pages/admin-risk-triage.tsx";
 import PageLayout_58 from "./pages/admin-risk-triage.pageLayout.tsx";
 import Page_59 from "./pages/admin-outcome-reviews.tsx";
 import PageLayout_59 from "./pages/admin-outcome-reviews.pageLayout.tsx";
-import Page_60 from "./pages/admin-response-documents.tsx";
 import PageLayout_60 from "./pages/admin-response-documents.pageLayout.tsx";
 
 if (!window.requestIdleCallback) {
@@ -137,8 +133,17 @@ if (!window.requestIdleCallback) {
 
 import "./base.css";
 
+const Page_6 = React.lazy(() => import("./pages/packets.tsx"));
+const Page_40 = React.lazy(() => import("./pages/admin-parser-testing.tsx"));
+const Page_43 = React.lazy(() => import("./pages/admin-parser-mappings.tsx"));
+const Page_60 = React.lazy(() => import("./pages/admin-response-documents.tsx"));
+
 const fileNameToRoute = new Map([["./pages/login.tsx","/login"],["./pages/_index.tsx","/"],["./pages/upload.tsx","/upload"],["./pages/bureaus.tsx","/bureaus"],["./pages/contact.tsx","/contact"],["./pages/my-info.tsx","/my-info"],["./pages/packets.tsx","/packets"],["./pages/calendar.tsx","/calendar"],["./pages/evidence.tsx","/evidence"],["./pages/progress.tsx","/progress"],["./pages/register.tsx","/register"],["./pages/statutes.tsx","/statutes"],["./pages/try-upload.tsx","/try-upload"],["./pages/my-accounts.tsx","/my-accounts"],["./pages/user-manual.tsx","/user-manual"],["./pages/cases.review.tsx","/cases/review"],["./pages/verify-email.tsx","/verify-email"],["./pages/admin-security.tsx","/admin-security"],["./pages/privacy-policy.tsx","/privacy-policy"],["./pages/reset-password.tsx","/reset-password"],["./pages/tradelines-tab.tsx","/tradelines-tab"],["./pages/tradelines.$id.tsx","/tradelines/:id"],["./pages/evidence-events.tsx","/evidence-events"],["./pages/support-tickets.tsx","/support-tickets"],["./pages/admin-error-logs.tsx","/admin-error-logs"],["./pages/change-detection.tsx","/change-detection"],["./pages/compliance-audit.tsx","/compliance-audit"],["./pages/profile-settings.tsx","/profile-settings"],["./pages/report-artifacts.tsx","/report-artifacts"],["./pages/terms-of-service.tsx","/terms-of-service"],["./pages/deadline-calendar.tsx","/deadline-calendar"],["./pages/metro2-compliance.tsx","/metro2-compliance"],["./pages/bankruptcy-tracker.tsx","/bankruptcy-tracker"],["./pages/bureau-obligations.tsx","/bureau-obligations"],["./pages/regulatory-updates.tsx","/regulatory-updates"],["./pages/admin-activity-logs.tsx","/admin-activity-logs"],["./pages/analytics-dashboard.tsx","/analytics-dashboard"],["./pages/compliance-calendar.tsx","/compliance-calendar"],["./pages/evidence-management.tsx","/evidence-management"],["./pages/admin-knowledge-base.tsx","/admin-knowledge-base"],["./pages/admin-parser-testing.tsx","/admin-parser-testing"],["./pages/creditor-obligations.tsx","/creditor-obligations"],["./pages/creditor-validations.tsx","/creditor-validations"],["./pages/admin-parser-mappings.tsx","/admin-parser-mappings"],["./pages/admin-user-management.tsx","/admin-user-management"],["./pages/collector-obligations.tsx","/collector-obligations"],["./pages/admin-letter-templates.tsx","/admin-letter-templates"],["./pages/enforcement-mechanisms.tsx","/enforcement-mechanisms"],["./pages/admin-compliance-config.tsx","/admin-compliance-config"],["./pages/admin-version-management.tsx","/admin-version-management"],["./pages/identity-theft-protection.tsx","/identity-theft-protection"],["./pages/support-tickets.$ticketId.tsx","/support-tickets/:ticketId"],["./pages/upload-review.$artifactId.tsx","/upload-review/:artifactId"],["./pages/dispute-rotation-analytics.tsx","/dispute-rotation-analytics"],["./pages/upload-results.$artifactId.tsx","/upload-results/:artifactId"],["./pages/admin-user-management.$userId.tsx","/admin-user-management/:userId"],["./pages/admin-mock-lifecycle.tsx","/admin-mock-lifecycle"],["./pages/admin-ai-assist.tsx","/admin-ai-assist"],["./pages/admin-risk-triage.tsx","/admin-risk-triage"],["./pages/admin-outcome-reviews.tsx","/admin-outcome-reviews"],["./pages/admin-response-documents.tsx","/admin-response-documents"]]);
-const fileNameToComponent = new Map([
+type RoutePageComponent =
+  | React.ComponentType<any>
+  | React.LazyExoticComponent<React.ComponentType<any>>;
+
+const fileNameToComponent = new Map<string, RoutePageComponent>([
     ["./pages/login.tsx", Page_0],
 ["./pages/_index.tsx", Page_1],
 ["./pages/upload.tsx", Page_2],
@@ -204,7 +209,12 @@ const fileNameToComponent = new Map([
 
 function makePageRoute(filename: string) {
   const Component = fileNameToComponent.get(filename);
-  return <Component />;
+  if (!Component) return <NotFound />;
+  return (
+    <React.Suspense fallback={null}>
+      <Component />
+    </React.Suspense>
+  );
 }
 
 function toElement({

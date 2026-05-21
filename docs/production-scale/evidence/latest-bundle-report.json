@@ -1,0 +1,504 @@
+{
+  "reportName": "frontend-bundle-report",
+  "script": "scripts/bundle-report.mjs",
+  "generatedAt": "2026-05-21T11:53:48.178Z",
+  "currentBranch": "staging",
+  "currentHead": "ad08b59135630b8941e8bfdfe53c70e12e151993",
+  "workingTreeClean": false,
+  "auditTarget": "P3-1 Frontend bundle size is large and not a hard gate.",
+  "exactCommandsRun": [
+    {
+      "command": "pnpm run report:bundle",
+      "status": "generated",
+      "automated": true
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/bundle-report-script.spec.ts tests/unit/admin-sidebar-routes.spec.ts",
+      "status": "passed",
+      "automated": true
+    },
+    {
+      "command": "pnpm run typecheck",
+      "status": "passed",
+      "automated": true
+    },
+    {
+      "command": "pnpm run build",
+      "status": "passed",
+      "automated": true
+    },
+    {
+      "command": "pnpm run check",
+      "status": "passed",
+      "automated": true
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "automated": true
+    }
+  ],
+  "safety": {
+    "reportingOnly": true,
+    "nonBlocking": true,
+    "explicitReleaseBlockingBudget": false,
+    "certificationDependency": false,
+    "productionScaleCertificationDependsOnThis": false,
+    "dependencyVersionChanges": false,
+    "uiRedesign": false,
+    "userFlowChanges": false,
+    "parserBehaviorChanges": false,
+    "packetPdfOutputChanges": false
+  },
+  "certifying": false,
+  "CERTIFYING": false,
+  "routeSplitting": {
+    "appPath": "App.tsx",
+    "routeMapPresent": true,
+    "suspenseWrapped": true,
+    "targets": [
+      {
+        "route": "/packets",
+        "file": "packets.tsx",
+        "surface": "packet-pdf",
+        "reason": "Packet list imports PDF viewer and delivery wizard surfaces; route-level split preserves packet APIs and PDF behavior.",
+        "routeMapPresent": true,
+        "lazyLoaded": true,
+        "eagerPageImportPresent": false
+      },
+      {
+        "route": "/admin-parser-testing",
+        "file": "admin-parser-testing.tsx",
+        "surface": "admin-parser",
+        "reason": "Parser lab/test harness is admin-only and heavy; route-level split preserves parser execution and regression gates.",
+        "routeMapPresent": true,
+        "lazyLoaded": true,
+        "eagerPageImportPresent": false
+      },
+      {
+        "route": "/admin-parser-mappings",
+        "file": "admin-parser-mappings.tsx",
+        "surface": "admin-parser",
+        "reason": "Parser mapping admin panels are isolated from normal user routes; route-level split preserves mapping queries and admin flow.",
+        "routeMapPresent": true,
+        "lazyLoaded": true,
+        "eagerPageImportPresent": false
+      },
+      {
+        "route": "/admin-response-documents",
+        "file": "admin-response-documents.tsx",
+        "surface": "admin-response-documents",
+        "reason": "Large admin response-document workflow is not needed on normal user routes; route-level split preserves admin-only behavior.",
+        "routeMapPresent": true,
+        "lazyLoaded": true,
+        "eagerPageImportPresent": false
+      }
+    ],
+    "allTargetsLazyLoaded": true,
+    "unchangedRuntimeContract": {
+      "layoutWrappersRemainEager": true,
+      "authRouteWrappersUnchanged": true,
+      "userFlowsChanged": false,
+      "parserTruthChanged": false,
+      "packetPdfOutputChanged": false
+    }
+  },
+  "buildAssets": {
+    "distDir": "dist",
+    "distPresent": true,
+    "totalBytes": 4391895,
+    "assetCount": 28,
+    "topAssets": [
+      {
+        "path": "dist/_assets/index-B67QxIJB.js",
+        "extension": ".js",
+        "rawBytes": 3023292,
+        "gzipBytes": 836524,
+        "brotliBytes": 658214
+      },
+      {
+        "path": "dist/_assets/index-c51JNdWS.css",
+        "extension": ".css",
+        "rawBytes": 617913,
+        "gzipBytes": 93482,
+        "brotliBytes": 70904
+      },
+      {
+        "path": "dist/_assets/admin-parser-testing-B6wp8oWE.js",
+        "extension": ".js",
+        "rawBytes": 146235,
+        "gzipBytes": 38245,
+        "brotliBytes": 32166
+      },
+      {
+        "path": "dist/_assets/react-big-calendar-BcF8CGEA.js",
+        "extension": ".js",
+        "rawBytes": 139896,
+        "gzipBytes": 43956,
+        "brotliBytes": 38828
+      },
+      {
+        "path": "dist/_assets/index-DEGQIRr7.js",
+        "extension": ".js",
+        "rawBytes": 135806,
+        "gzipBytes": 32822,
+        "brotliBytes": 26490
+      },
+      {
+        "path": "dist/_assets/OnboardingTour-DcQ_2Td0.js",
+        "extension": ".js",
+        "rawBytes": 59698,
+        "gzipBytes": 19901,
+        "brotliBytes": 17783
+      },
+      {
+        "path": "dist/_assets/admin-response-documents-DEkmxUFa.js",
+        "extension": ".js",
+        "rawBytes": 56245,
+        "gzipBytes": 12907,
+        "brotliBytes": 11248
+      },
+      {
+        "path": "dist/_assets/admin-parser-testing-DGTLj0Bn.css",
+        "extension": ".css",
+        "rawBytes": 38726,
+        "gzipBytes": 6564,
+        "brotliBytes": 5781
+      },
+      {
+        "path": "dist/_assets/index-sk2ek4N-.css",
+        "extension": ".css",
+        "rawBytes": 29198,
+        "gzipBytes": 4487,
+        "brotliBytes": 3938
+      },
+      {
+        "path": "dist/_assets/admin-parser-mappings-DPKe7uhc.js",
+        "extension": ".js",
+        "rawBytes": 28412,
+        "gzipBytes": 7610,
+        "brotliBytes": 6650
+      },
+      {
+        "path": "dist/_assets/packets-DTaErzk2.js",
+        "extension": ".js",
+        "rawBytes": 26716,
+        "gzipBytes": 8404,
+        "brotliBytes": 7211
+      },
+      {
+        "path": "dist/_assets/react-big-calendar-Dm-SzPQi.css",
+        "extension": ".css",
+        "rawBytes": 14347,
+        "gzipBytes": 2717,
+        "brotliBytes": 2351
+      },
+      {
+        "path": "dist/_assets/packets-CWxAgTPT.css",
+        "extension": ".css",
+        "rawBytes": 14329,
+        "gzipBytes": 2955,
+        "brotliBytes": 2560
+      },
+      {
+        "path": "dist/_assets/admin-response-documents-akbpNB3Q.css",
+        "extension": ".css",
+        "rawBytes": 10117,
+        "gzipBytes": 1906,
+        "brotliBytes": 1623
+      },
+      {
+        "path": "dist/_assets/admin-parser-mappings-D7806rg6.css",
+        "extension": ".css",
+        "rawBytes": 9197,
+        "gzipBytes": 1994,
+        "brotliBytes": 1711
+      },
+      {
+        "path": "dist/_assets/responseDocumentQueries-Cwp-yiGv.js",
+        "extension": ".js",
+        "rawBytes": 8153,
+        "gzipBytes": 1948,
+        "brotliBytes": 1690
+      },
+      {
+        "path": "dist/_assets/PacketViewer-B91crXie.js",
+        "extension": ".js",
+        "rawBytes": 7919,
+        "gzipBytes": 2898,
+        "brotliBytes": 2542
+      },
+      {
+        "path": "dist/_assets/index-B9fWrEk-.js",
+        "extension": ".js",
+        "rawBytes": 6117,
+        "gzipBytes": 2288,
+        "brotliBytes": 2043
+      },
+      {
+        "path": "dist/_assets/DeadlineCalendarView-gGBHzRkN.js",
+        "extension": ".js",
+        "rawBytes": 3871,
+        "gzipBytes": 1505,
+        "brotliBytes": 1360
+      },
+      {
+        "path": "dist/_assets/PacketViewer-DYFOtPtS.css",
+        "extension": ".css",
+        "rawBytes": 3573,
+        "gzipBytes": 1117,
+        "brotliBytes": 941
+      }
+    ],
+    "largestJsAsset": {
+      "path": "dist/_assets/index-B67QxIJB.js",
+      "extension": ".js",
+      "rawBytes": 3023292,
+      "gzipBytes": 836524,
+      "brotliBytes": 658214
+    },
+    "largestCssAsset": {
+      "path": "dist/_assets/index-c51JNdWS.css",
+      "extension": ".css",
+      "rawBytes": 617913,
+      "gzipBytes": 93482,
+      "brotliBytes": 70904
+    }
+  },
+  "thresholdPolicy": {
+    "schemaVersion": 1,
+    "policyName": "runtime-size-and-heavy-dependency-threshold-policy",
+    "source": "docs/production-scale/runtime-size-threshold-policy.json",
+    "policyMode": "warning-only",
+    "evidenceMode": "reporting-only",
+    "statusValues": [
+      "PASS",
+      "WARN",
+      "FAIL",
+      "WAIVED"
+    ],
+    "semantics": {
+      "pass": "Metric is present and at or below the warning threshold.",
+      "warn": "Metric exceeds the warning threshold, or source-only reporting cannot measure a configured runtime size. WARN is visible evidence but not a hard gate.",
+      "fail": "Only emitted when policyMode is release-blocking, or legacy hard-gate, and a threshold explicitly enables failOnExceed.",
+      "waived": "A threshold is exceeded or not directly measurable, but an explicit waiver reason is present."
+    }
+  },
+  "thresholdEvaluation": {
+    "policyName": "runtime-size-and-heavy-dependency-threshold-policy",
+    "policySource": "docs/production-scale/runtime-size-threshold-policy.json",
+    "policyMode": "warning-only",
+    "evidenceMode": "reporting-only",
+    "overallStatus": "WARN",
+    "hasBlockingFailures": false,
+    "statusCounts": {
+      "WARN": 6,
+      "PASS": 1,
+      "WAIVED": 1
+    },
+    "evaluations": [
+      {
+        "id": "main-js-raw",
+        "area": "frontend-js",
+        "label": "Largest JavaScript asset raw size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "js",
+          "field": "rawBytes"
+        },
+        "measuredBytes": 3023292,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-B67QxIJB.js",
+        "detail": "dist/_assets/index-B67QxIJB.js rawBytes",
+        "warnBytes": 1572864,
+        "failBytes": 3145728,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Review route-level chunking or lazy-loading in a separate audited task before any production-scale claim."
+      },
+      {
+        "id": "main-js-gzip",
+        "area": "frontend-js",
+        "label": "Largest JavaScript asset gzip size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "js",
+          "field": "gzipBytes"
+        },
+        "measuredBytes": 836524,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-B67QxIJB.js",
+        "detail": "dist/_assets/index-B67QxIJB.js gzipBytes",
+        "warnBytes": 512000,
+        "failBytes": 921600,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Track gzip size as release evidence; do not refactor chunks in this reporting task."
+      },
+      {
+        "id": "main-css-raw",
+        "area": "frontend-css",
+        "label": "Largest CSS asset raw size",
+        "status": "WARN",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "css",
+          "field": "rawBytes"
+        },
+        "measuredBytes": 617913,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-c51JNdWS.css",
+        "detail": "dist/_assets/index-c51JNdWS.css rawBytes",
+        "warnBytes": 512000,
+        "failBytes": 1048576,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Review CSS ownership and unused rules in a separate UI regression task."
+      },
+      {
+        "id": "main-css-gzip",
+        "area": "frontend-css",
+        "label": "Largest CSS asset gzip size",
+        "status": "PASS",
+        "metric": {
+          "kind": "largestBuildAsset",
+          "assetType": "css",
+          "field": "gzipBytes"
+        },
+        "measuredBytes": 93482,
+        "measuredValueAvailable": true,
+        "source": "dist/_assets/index-c51JNdWS.css",
+        "detail": "dist/_assets/index-c51JNdWS.css gzipBytes",
+        "warnBytes": 102400,
+        "failBytes": 204800,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": false,
+        "reason": "Metric is at or below the configured warning threshold.",
+        "recommendation": "Track compressed CSS size without changing build behavior."
+      },
+      {
+        "id": "dependency-pdfjs-dist",
+        "area": "runtime-dependency",
+        "label": "pdfjs-dist installed size",
+        "status": "WARN",
+        "metric": {
+          "kind": "dependencyInstalledSize",
+          "packageName": "pdfjs-dist"
+        },
+        "measuredBytes": 36254862,
+        "measuredValueAvailable": true,
+        "source": "pdfjs-dist",
+        "detail": "pdfjs-dist dependency 4.2.67",
+        "warnBytes": 20971520,
+        "failBytes": 52428800,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Keep pdfjs-dist risk visible; replacement or isolation requires OCR/PDF regression evidence."
+      },
+      {
+        "id": "dependency-pdf-parse",
+        "area": "runtime-dependency",
+        "label": "pdf-parse installed size",
+        "status": "WARN",
+        "metric": {
+          "kind": "dependencyInstalledSize",
+          "packageName": "pdf-parse"
+        },
+        "measuredBytes": 28345398,
+        "measuredValueAvailable": true,
+        "source": "pdf-parse",
+        "detail": "pdf-parse dependency 1.1.4",
+        "warnBytes": 20971520,
+        "failBytes": 52428800,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Keep pdf-parse risk visible; do not replace without deterministic parser regression evidence."
+      },
+      {
+        "id": "dependency-pdfmake",
+        "area": "runtime-dependency",
+        "label": "pdfmake installed size",
+        "status": "WARN",
+        "metric": {
+          "kind": "dependencyInstalledSize",
+          "packageName": "pdfmake"
+        },
+        "measuredBytes": 13568520,
+        "measuredValueAvailable": true,
+        "source": "pdfmake",
+        "detail": "pdfmake dependency 0.2.21",
+        "warnBytes": 10485760,
+        "failBytes": 31457280,
+        "failOnExceed": false,
+        "waiverReason": null,
+        "breached": true,
+        "reason": "Metric exceeds the configured warning threshold.",
+        "recommendation": "Keep packet PDF generation dependency risk visible without changing packet output."
+      },
+      {
+        "id": "docker-ocr-runtime-inventory",
+        "area": "docker-runtime",
+        "label": "Docker OCR/PDF runtime package inventory",
+        "status": "WAIVED",
+        "metric": {
+          "kind": "dockerOcrRuntimePackageInventory"
+        },
+        "measuredBytes": null,
+        "measuredValueAvailable": true,
+        "source": "Dockerfile",
+        "detail": "Inventoried packages: apt-utils, poppler-utils, tesseract-ocr, tesseract-ocr-eng. Byte size is not measurable from Dockerfile source.",
+        "warnBytes": null,
+        "failBytes": null,
+        "failOnExceed": false,
+        "waiverReason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+        "breached": true,
+        "reason": "Docker package byte sizes are not measurable from this source-only report; Poppler/Tesseract package names are inventoried and any future package change requires OCR/parser regression evidence.",
+        "recommendation": "Treat Docker OCR package changes as review-required; this task does not change Docker packages."
+      }
+    ]
+  },
+  "selectedHeavySurfaces": [
+    {
+      "route": "/packets",
+      "file": "packets.tsx",
+      "surface": "packet-pdf",
+      "reason": "Packet list imports PDF viewer and delivery wizard surfaces; route-level split preserves packet APIs and PDF behavior."
+    },
+    {
+      "route": "/admin-parser-testing",
+      "file": "admin-parser-testing.tsx",
+      "surface": "admin-parser",
+      "reason": "Parser lab/test harness is admin-only and heavy; route-level split preserves parser execution and regression gates."
+    },
+    {
+      "route": "/admin-parser-mappings",
+      "file": "admin-parser-mappings.tsx",
+      "surface": "admin-parser",
+      "reason": "Parser mapping admin panels are isolated from normal user routes; route-level split preserves mapping queries and admin flow."
+    },
+    {
+      "route": "/admin-response-documents",
+      "file": "admin-response-documents.tsx",
+      "surface": "admin-response-documents",
+      "reason": "Large admin response-document workflow is not needed on normal user routes; route-level split preserves admin-only behavior."
+    }
+  ],
+  "notes": [
+    "This report is non-blocking unless the runtime-size threshold policy is explicitly changed to a release-blocking mode with failOnExceed thresholds.",
+    "Only route-level lazy loading was applied to selected heavy admin/parser/PDF surfaces.",
+    "Definitive production-scale certification is not claimed by this performance evidence."
+  ]
+}
