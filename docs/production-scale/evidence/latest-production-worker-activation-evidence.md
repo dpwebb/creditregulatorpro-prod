@@ -1,9 +1,9 @@
 # Production Worker Activation Evidence
 
-Generated at: 2026-05-20T23:06:36.362Z
+Generated at: 2026-05-21T00:19:58.836Z
 Evidence type: PRODUCTION_WORKER_ACTIVATION_EVIDENCE
 Branch: `staging`
-Commit: `6acd011de08d889d16c776e4ace8ca5e0ca1e560`
+Commit: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
 Status: prepared-default-off
 Production proof: no
 

@@ -1,8 +1,8 @@
 # Response Operations Readiness Evidence
 
-Generated at: 2026-05-20T23:44:30.269Z
+Generated at: 2026-05-21T00:20:11.502Z
 Branch: `staging`
-Commit: `78fdc663304cc1d0fe907400f20324c41ba9175c`
+Commit: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
 Status: operator-ready-with-deferred-controls
 Production proof: no
 

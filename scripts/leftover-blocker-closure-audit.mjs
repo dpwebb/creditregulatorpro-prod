@@ -10,6 +10,25 @@ export const DEFAULT_PROMOTION_PACK_JSON_PATH =
   "docs/production-scale/evidence/latest-production-promotion-pack.json";
 
 const PRIOR_LEFTOVER_BLOCKERS = [1, 2, 6, 8, 9, 10, 11, 20, 21, 22, 3, 16, 17, 18];
+const REQUIRED_AUDIT_COMMANDS = [
+  "pnpm run production-scale:evidence",
+  "pnpm run production-scale:promotion-pack",
+  "pnpm run operator:dashboard",
+  "pnpm run typecheck",
+  "git diff --check",
+];
+const OPTIONAL_AUDIT_COMMANDS = [
+  "pnpm run restore:evidence:current-check",
+  "pnpm run ingest:worker:staging-evidence",
+  "pnpm run production-worker:activation-evidence",
+  "pnpm run production-deployment-parity:evidence",
+  "pnpm run response-ops:readiness-evidence",
+  "pnpm run migrations:gate",
+  "pnpm run baseline:production-scale-measured -- --local",
+  "pnpm run runtime-size:policy-acceptance",
+  "pnpm run storage:raw-report-remediation-plan",
+  "pnpm run storage:raw-report-remediation-acceptance",
+];
 
 const MISSING_PROOF = {
   1: {
@@ -209,9 +228,37 @@ function missingProofFor(blocker) {
   };
 }
 
-function summarizeBlocker(blocker) {
+function waiverGovernanceFor(pack, blocker) {
+  if (blocker.number === 10) return pack.migrationGateEvidence?.formalWaiver ?? null;
+  if (blocker.number === 18) return pack.runtimeSizePolicyAcceptance?.formalWaiver ?? null;
+  return blocker.waiverGovernance ?? null;
+}
+
+function summarizeWaiverGovernance(pack, blocker) {
+  const waiver = waiverGovernanceFor(pack, blocker);
+  if (!waiver) {
+    return {
+      reason: blocker.waiverReason ?? null,
+      owner: null,
+      reviewDate: null,
+      acceptedAt: null,
+    };
+  }
+  return {
+    reason: waiver.reason ?? blocker.waiverReason ?? null,
+    owner: waiver.ownerRole ?? waiver.approvedByRole ?? waiver.owner ?? null,
+    reviewDate: waiver.reviewDate ?? waiver.expiresOn ?? waiver.expiryDate ?? null,
+    acceptedAt: waiver.acceptedAt ?? null,
+  };
+}
+
+function summarizeBlocker(pack, blocker) {
   const unresolved = isUnresolvedClassification(blocker.classification);
   const proof = unresolved ? missingProofFor(blocker) : null;
+  const proofCategories = blocker.proofCategories ?? [];
+  const waiverGovernance = blocker.classification === "waived with explicit reason"
+    ? summarizeWaiverGovernance(pack, blocker)
+    : null;
   return {
     number: blocker.number,
     title: blocker.title,
@@ -221,6 +268,11 @@ function summarizeBlocker(blocker) {
     classification: blocker.classification,
     closureState: closureState(blocker),
     waiverReason: blocker.waiverReason ?? null,
+    waiverGovernance,
+    proofCategories,
+    stagingOnlyClosureAllowed:
+      blocker.classification === "fixed with staging evidence" &&
+      (proofCategories.includes("staging") || proofCategories.includes("read-only-production")),
     missingEvidence: proof?.missingEvidence ?? [],
     exactRequiredCommands: proof?.exactRequiredCommands ?? [],
     humanArtifacts: proof?.humanArtifacts ?? [],
@@ -240,8 +292,49 @@ function classifyEvidenceReference(ref) {
   };
 }
 
+function summarizeCommandResult(entry) {
+  return {
+    command: entry.command,
+    availableInRepository: entry.availableInRepository === true,
+    result: entry.result ?? "unknown",
+    status: entry.status ?? null,
+    resultSource: entry.resultSource ?? null,
+    latestGeneratedAt: entry.latestGeneratedAt ?? null,
+    evidenceFiles: (entry.evidenceFiles ?? []).map((file) => ({
+      path: file.path,
+      exists: file.exists === true,
+      status: file.status ?? null,
+      evidenceType: file.evidenceType ?? null,
+      productionProof: file.productionProof === true,
+    })),
+  };
+}
+
+function commandResultByName(commandResults, command) {
+  return commandResults.find((entry) => entry.command === command) ?? {
+    command,
+    availableInRepository: false,
+    result: "not-listed-by-promotion-pack",
+    status: null,
+    resultSource: null,
+    latestGeneratedAt: null,
+    evidenceFiles: [],
+  };
+}
+
 export function validateLeftoverBlockerClosureAuditReport(report) {
   const errors = [];
+  if ((report.allBlockers ?? []).length !== 25) {
+    errors.push(`Expected all 25 blockers in final audit; found ${(report.allBlockers ?? []).length}.`);
+  }
+  const blockerNumbers = new Set((report.allBlockers ?? []).map((blocker) => blocker.number));
+  for (let number = 1; number <= 25; number += 1) {
+    if (!blockerNumbers.has(number)) errors.push(`Blocker ${number} is missing from final audit.`);
+  }
+  const priorNumbers = new Set((report.priorTrackedBlockers ?? []).map((blocker) => blocker.number));
+  for (const number of PRIOR_LEFTOVER_BLOCKERS) {
+    if (!priorNumbers.has(number)) errors.push(`Previously unresolved blocker ${number} is missing from final audit.`);
+  }
   const remainingNumbers = new Set((report.remainingBlockers ?? []).map((blocker) => blocker.number));
   const unresolvedNumbers = new Set(
     (report.allBlockers ?? [])
@@ -269,9 +362,21 @@ export function validateLeftoverBlockerClosureAuditReport(report) {
     if (blocker.classification === "waived with explicit reason" && !blocker.waiverReason) {
       errors.push(`Waived blocker ${blocker.number} is missing an explicit waiver reason.`);
     }
+    if (blocker.classification === "waived with explicit reason") {
+      if (!blocker.waiverGovernance?.reason) errors.push(`Waived blocker ${blocker.number} is missing waiver governance reason.`);
+      if (!blocker.waiverGovernance?.owner) errors.push(`Waived blocker ${blocker.number} is missing waiver governance owner.`);
+      if (!blocker.waiverGovernance?.reviewDate) errors.push(`Waived blocker ${blocker.number} is missing waiver governance review date.`);
+    }
+    if (blocker.classification === "fixed with staging evidence" && blocker.stagingOnlyClosureAllowed !== true) {
+      errors.push(`Staging-evidenced blocker ${blocker.number} is not allowed by registry proof categories.`);
+    }
   }
+  if (typeof report.dashboard?.skipCount !== "number") errors.push("Dashboard SKIP count is missing from final audit.");
   if (report.safety?.simulatedProofPromotedToProductionProof === true) {
     errors.push("Simulated proof was promoted to production proof.");
+  }
+  if (report.safety?.stagingProofPromotedToProductionProof === true) {
+    errors.push("Staging proof was promoted to production proof.");
   }
   if (report.safety?.dashboardSkipTreatedAsPass === true) {
     errors.push("Dashboard SKIP was treated as PASS.");
@@ -288,6 +393,11 @@ export function validateLeftoverBlockerClosureAuditReport(report) {
   ) {
     errors.push("Readiness is not production-at-scale even though no blockers remain.");
   }
+  for (const command of REQUIRED_AUDIT_COMMANDS) {
+    if (!(report.requiredCommandResults ?? []).some((entry) => entry.command === command)) {
+      errors.push(`Required audit command ${command} is missing from command results.`);
+    }
+  }
   return { ok: errors.length === 0, errors };
 }
 
@@ -297,11 +407,12 @@ export function buildLeftoverBlockerClosureAuditReport({
   generatedAt = new Date().toISOString(),
 } = {}) {
   const pack = promotionPack ?? readJson(rootDir, DEFAULT_PROMOTION_PACK_JSON_PATH);
-  const allBlockers = (pack.blockerClassifications ?? []).map(summarizeBlocker);
+  const allBlockers = (pack.blockerClassifications ?? []).map((blocker) => summarizeBlocker(pack, blocker));
   const remainingBlockers = allBlockers.filter((blocker) => isUnresolvedClassification(blocker.classification));
   const priorTrackedBlockers = PRIOR_LEFTOVER_BLOCKERS
     .map((number) => allBlockers.find((blocker) => blocker.number === number))
     .filter(Boolean);
+  const commandResults = (pack.commandResultSummary ?? []).map(summarizeCommandResult);
   const missingEvidenceFiles = (pack.generatedEvidenceFileReferences ?? [])
     .map(classifyEvidenceReference)
     .filter((ref) => !ref.exists);
@@ -325,6 +436,20 @@ export function buildLeftoverBlockerClosureAuditReport({
         blocker.closureState.startsWith("closed") || blocker.closureState === "waived",
       ).length,
     },
+    dashboard: {
+      available: pack.skippedChecks?.dashboardAvailable === true,
+      command: pack.skippedChecks?.dashboardCommand ?? "pnpm run operator:dashboard -- --json",
+      skipCount: pack.skippedChecks?.skipCount ?? null,
+      checksSkipped: pack.skippedChecks?.checksSkipped === true,
+      statusSummary: pack.skippedChecks?.summary ?? {},
+      skipTreatedAsPass: pack.skippedChecks?.treatsSkipAsPass === true,
+      dashboardPassAloneIsReleaseEvidence: pack.skippedChecks?.dashboardPassAloneIsReleaseEvidence === true,
+    },
+    requiredAuditCommands: REQUIRED_AUDIT_COMMANDS,
+    optionalAuditCommands: OPTIONAL_AUDIT_COMMANDS,
+    requiredCommandResults: REQUIRED_AUDIT_COMMANDS.map((command) => commandResultByName(commandResults, command)),
+    optionalCommandResults: OPTIONAL_AUDIT_COMMANDS.map((command) => commandResultByName(commandResults, command)),
+    commandResults,
     priorTrackedBlockers,
     allBlockers,
     remainingBlockers,
@@ -337,11 +462,14 @@ export function buildLeftoverBlockerClosureAuditReport({
       liveProvidersUsed: false,
       realPiiUsed: false,
       simulatedProofPromotedToProductionProof: pack.safety?.simulatedProofIsProductionProof === true,
+      stagingProofPromotedToProductionProof: (pack.stagingProofOnlyChecks ?? []).some((entry) => entry.productionProof === true),
       dashboardSkipTreatedAsPass:
         pack.skippedChecks?.treatsSkipAsPass === true ||
         pack.skippedChecks?.dashboardPassAloneIsReleaseEvidence === true,
       productionAtScaleClaimedWithOpenBlockers:
         pack.readinessClassification?.value === "production-at-scale" && remainingBlockers.length > 0,
+      simulatedAndStagingEvidenceBoundary:
+        "SIMULATED and staging-only evidence are tracked as evidence, but are not promoted to production proof.",
     },
   };
   const validation = validateLeftoverBlockerClosureAuditReport(report);
@@ -387,6 +515,20 @@ export function renderLeftoverBlockerClosureAuditMarkdown(report) {
     `- Human-required blockers: ${report.summary.humanRequiredCount}`,
     `- Simulated-only blockers: ${report.summary.simulatedOnlyCount}`,
     `- Waived blockers: ${report.summary.waivedCount}`,
+    `- Dashboard SKIP count: ${report.dashboard.skipCount ?? "unknown"}`,
+    `- Dashboard SKIP treated as PASS: ${report.dashboard.skipTreatedAsPass ? "yes" : "no"}`,
+    "",
+    "## Command Results",
+    "",
+    ...report.requiredCommandResults.map((entry) =>
+      `- ${entry.command}: ${entry.result}${entry.status ? `; status=${entry.status}` : ""}${entry.latestGeneratedAt ? `; latest=${entry.latestGeneratedAt}` : ""}`,
+    ),
+    "",
+    "## Optional Evidence Command Results",
+    "",
+    ...report.optionalCommandResults.map((entry) =>
+      `- ${entry.command}: ${entry.result}${entry.status ? `; status=${entry.status}` : ""}${entry.latestGeneratedAt ? `; latest=${entry.latestGeneratedAt}` : ""}`,
+    ),
     "",
     "## Prior Leftover Blockers",
     "",
@@ -412,8 +554,10 @@ export function renderLeftoverBlockerClosureAuditMarkdown(report) {
     `- Live providers used: ${report.safety.liveProvidersUsed ? "yes" : "no"}`,
     `- Real PII used: ${report.safety.realPiiUsed ? "yes" : "no"}`,
     `- Simulated proof promoted to production proof: ${report.safety.simulatedProofPromotedToProductionProof ? "yes" : "no"}`,
+    `- Staging proof promoted to production proof: ${report.safety.stagingProofPromotedToProductionProof ? "yes" : "no"}`,
     `- Dashboard SKIP treated as PASS: ${report.safety.dashboardSkipTreatedAsPass ? "yes" : "no"}`,
     `- Production-at-scale claimed with open blockers: ${report.safety.productionAtScaleClaimedWithOpenBlockers ? "yes" : "no"}`,
+    `- Evidence boundary: ${report.safety.simulatedAndStagingEvidenceBoundary}`,
   ];
   if (!report.validation.ok) {
     lines.push("", "## Validation Errors", "", ...report.validation.errors.map((error) => `- ${error}`));

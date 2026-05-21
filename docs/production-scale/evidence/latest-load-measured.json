@@ -1,9 +1,9 @@
 {
   "reportName": "production-scale-load-measured",
   "evidenceType": "MEASURED_LOCAL",
-  "generatedAt": "2026-05-20T23:58:41.039Z",
+  "generatedAt": "2026-05-21T00:20:40.403Z",
   "branch": "staging",
-  "commit": "548bb5da7edcda239dd1de062344e3da43932a03",
+  "commit": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
   "mode": "measured-local",
   "productionProof": false,
   "target": {
@@ -31,12 +31,12 @@
     "iterations": 2,
     "failureCount": 0,
     "failureRate": 0,
-    "elapsedMs": 390.21,
-    "throughputPerSecond": 82.01,
+    "elapsedMs": 390.81,
+    "throughputPerSecond": 81.88,
     "latency": {
-      "p50Ms": 17.68,
-      "p95Ms": 47.21,
-      "maxMs": 49.96
+      "p50Ms": 21.28,
+      "p95Ms": 43.6,
+      "maxMs": 48.46
     }
   },
   "queueDepth": {
@@ -87,9 +87,9 @@
     "realTrafficSent": false,
     "databaseMutated": false,
     "latency": {
-      "p50Ms": 12.38,
-      "p95Ms": 16.55,
-      "maxMs": 17.83
+      "p50Ms": 10.58,
+      "p95Ms": 16.08,
+      "maxMs": 16.68
     },
     "decisions": [
       {
@@ -222,14 +222,14 @@
     "cacheHitCount": 4,
     "cacheMissCount": 2,
     "cacheHitLatency": {
-      "p50Ms": 14.74,
-      "p95Ms": 16.59,
-      "maxMs": 16.59
+      "p50Ms": 4.68,
+      "p95Ms": 13.25,
+      "maxMs": 13.25
     },
     "cacheMissRenderTiming": {
-      "p50Ms": 12.64,
-      "p95Ms": 17.82,
-      "maxMs": 17.82
+      "p50Ms": 12.07,
+      "p95Ms": 16.48,
+      "maxMs": 16.48
     },
     "packetPdfBehaviorChanged": false,
     "liveDeliveryRoutesCalled": false
@@ -327,14 +327,14 @@
       {
         "key": "maxLatencyP95Ms",
         "status": "pass",
-        "actual": 47.21,
+        "actual": 43.6,
         "expected": 250,
         "message": "Measured latency p95 must stay under policy."
       },
       {
         "key": "maxLatencyMaxMs",
         "status": "pass",
-        "actual": 49.96,
+        "actual": 48.46,
         "expected": 1000,
         "message": "Measured max latency must stay under policy."
       },

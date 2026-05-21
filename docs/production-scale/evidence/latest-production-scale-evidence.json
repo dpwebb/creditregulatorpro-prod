@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-21T00:11:02.478Z",
+  "generatedAt": "2026-05-21T00:23:44.532Z",
   "branch": "staging",
-  "commit": "f3d15392b4a8fdf489beeef51f5092dd59ba742d",
+  "commit": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",

@@ -1,10 +1,10 @@
 # Staging Ingest Worker Evidence
 
-Generated at: 2026-05-20T22:40:14.241Z
+Generated at: 2026-05-21T00:20:22.209Z
 Evidence type: STAGING_INGEST_WORKER_QUEUE_DRAIN
 Status: accepted-staging-queue-drain
 Branch: `staging`
-Commit: `44d51b245646efd84a87a016912b9630dc95f1f2`
+Commit: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
 Environment: staging-safe
 Production proof: no
 
@@ -21,7 +21,7 @@ Production proof: no
 ## Bounded Run
 
 - Command: `pnpm run ingest:worker:staging-evidence`
-- Worker command: `pnpm run ingest:worker -- --apply --max-jobs 2 --concurrency 1 --worker-id staging-ingest-evidence --source staging_ingest_evidence_mpenagm9`
+- Worker command: `pnpm run ingest:worker -- --apply --max-jobs 2 --concurrency 1 --worker-id staging-ingest-evidence --source staging_ingest_evidence_mpeqv8e8`
 - Mode: apply
 - Max jobs: 2
 - Worker exit code: 0

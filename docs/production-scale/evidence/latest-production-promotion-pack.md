@@ -1,8 +1,8 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-21T00:11:20.036Z
+Generated at: 2026-05-21T00:23:57.777Z
 Current branch: `staging`
-Current commit hash: `f3d15392b4a8fdf489beeef51f5092dd59ba742d`
+Current commit hash: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **limited beta**
@@ -166,7 +166,7 @@ Recommended readiness classification: **limited beta**
 - Threshold mode: release-blocking
 - Threshold status: passed
 - Request count: 32
-- Latency p50/p95/max ms: 17.68/47.21/49.96
+- Latency p50/p95/max ms: 21.28/43.6/48.46
 - DB pool configured max: 3
 - DB pool observed signal: available
 - Rate limiter accepted/rejected: 2/22

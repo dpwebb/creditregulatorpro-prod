@@ -1,9 +1,9 @@
 {
   "reportName": "response-ops-readiness-evidence",
   "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-  "generatedAt": "2026-05-20T23:44:30.269Z",
+  "generatedAt": "2026-05-21T00:20:11.502Z",
   "branch": "staging",
-  "commit": "78fdc663304cc1d0fe907400f20324c41ba9175c",
+  "commit": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
   "status": "operator-ready-with-deferred-controls",
   "productionProof": false,
   "staticValidation": {

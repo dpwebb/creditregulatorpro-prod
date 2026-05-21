@@ -1,10 +1,10 @@
 {
   "reportName": "leftover-blocker-closure-audit",
-  "generatedAt": "2026-05-20T22:22:26.742Z",
+  "generatedAt": "2026-05-21T00:24:11.292Z",
   "sourcePromotionPack": "docs/production-scale/evidence/latest-production-promotion-pack.json",
-  "sourcePromotionPackGeneratedAt": "2026-05-20T22:22:11.307Z",
+  "sourcePromotionPackGeneratedAt": "2026-05-21T00:23:57.777Z",
   "currentBranch": "staging",
-  "currentCommitHash": "8559aca22ad78c5fa527ff32ab6cece5cf1d04aa",
+  "currentCommitHash": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
   "readinessClassification": {
     "value": "limited beta",
     "canPromoteProductionAtScale": false,
@@ -12,14 +12,1233 @@
   },
   "summary": {
     "totalBlockers": 25,
-    "remainingBlockerCount": 11,
-    "remainingProductionBlockerCount": 7,
+    "remainingBlockerCount": 9,
+    "remainingProductionBlockerCount": 5,
     "remainingScaleBlockerCount": 0,
-    "humanRequiredCount": 4,
+    "humanRequiredCount": 3,
     "simulatedOnlyCount": 1,
     "waivedCount": 2,
-    "fixedOrWaivedCount": 14
+    "fixedOrWaivedCount": 16
   },
+  "dashboard": {
+    "available": true,
+    "command": "pnpm run operator:dashboard -- --json",
+    "skipCount": 55,
+    "checksSkipped": true,
+    "statusSummary": {
+      "pass": 9,
+      "fail": 2,
+      "skip": 55,
+      "simulated": 1,
+      "humanRequired": 3,
+      "manual": 12,
+      "open": 12,
+      "info": 8
+    },
+    "skipTreatedAsPass": false,
+    "dashboardPassAloneIsReleaseEvidence": false
+  },
+  "requiredAuditCommands": [
+    "pnpm run production-scale:evidence",
+    "pnpm run production-scale:promotion-pack",
+    "pnpm run operator:dashboard",
+    "pnpm run typecheck",
+    "git diff --check"
+  ],
+  "optionalAuditCommands": [
+    "pnpm run restore:evidence:current-check",
+    "pnpm run ingest:worker:staging-evidence",
+    "pnpm run production-worker:activation-evidence",
+    "pnpm run production-deployment-parity:evidence",
+    "pnpm run response-ops:readiness-evidence",
+    "pnpm run migrations:gate",
+    "pnpm run baseline:production-scale-measured -- --local",
+    "pnpm run runtime-size:policy-acceptance",
+    "pnpm run storage:raw-report-remediation-plan",
+    "pnpm run storage:raw-report-remediation-acceptance"
+  ],
+  "requiredCommandResults": [
+    {
+      "command": "pnpm run production-scale:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:23:44.532Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-scale-evidence.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-scale:promotion-pack",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run operator:dashboard",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run typecheck",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "git diff --check",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    }
+  ],
+  "optionalCommandResults": [
+    {
+      "command": "pnpm run restore:evidence:current-check",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "simulated-only",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:19:58.813Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-restore-readiness-check.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-restore-readiness-check.json",
+          "exists": true,
+          "status": "simulated-only",
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run ingest:worker:staging-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-staging-queue-drain",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:22.209Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+          "exists": true,
+          "status": "accepted-staging-queue-drain",
+          "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-worker:activation-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "prepared-default-off",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+          "exists": true,
+          "status": "prepared-default-off",
+          "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-deployment-parity:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-production-deployment-parity",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-deployment-parity.json",
+          "exists": true,
+          "status": "accepted-production-deployment-parity",
+          "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run response-ops:readiness-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "operator-ready-with-deferred-controls",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:11.502Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.json",
+          "exists": true,
+          "status": "operator-ready-with-deferred-controls",
+          "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run migrations:gate",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-formal-waiver",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:18.719Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-migration-gate.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-migration-gate.json",
+          "exists": true,
+          "status": "accepted-formal-waiver",
+          "evidenceType": "MIGRATION_GATE_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run baseline:production-scale-measured -- --local",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:40.403Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-load-measured.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-load-measured.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": "MEASURED_LOCAL",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run runtime-size:policy-acceptance",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-warning-only-waiver",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:18.797Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
+          "exists": true,
+          "status": "accepted-warning-only-waiver",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-plan",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "inventory-unreliable",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:18.909Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+          "exists": true,
+          "status": "inventory-unreliable",
+          "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-acceptance",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "not-submitted",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:40.418Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
+          "exists": true,
+          "status": "not-submitted",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    }
+  ],
+  "commandResults": [
+    {
+      "command": "pnpm run typecheck",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run build",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run test:contracts",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run test:api",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run test:golden-path",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run test:regression-dashboard",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run baseline:production-scale-measured -- --local",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:40.403Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-load-measured.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-load-measured.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": "MEASURED_LOCAL",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run response:soak-check",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run operator:dashboard",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run alerts:dry-run",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T23:37:07.386Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run alerts:exclusion:validate",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "not-submitted",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T23:37:11.881Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+          "exists": true,
+          "status": "not-submitted",
+          "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run response-ops:readiness-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "operator-ready-with-deferred-controls",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:11.502Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.json",
+          "exists": true,
+          "status": "operator-ready-with-deferred-controls",
+          "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run response:ops-readiness-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "operator-ready-with-deferred-controls",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:11.502Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-response-ops-readiness.json",
+          "exists": true,
+          "status": "operator-ready-with-deferred-controls",
+          "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-deployment-parity:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-production-deployment-parity",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-deployment-parity.json",
+          "exists": true,
+          "status": "accepted-production-deployment-parity",
+          "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-worker:activation-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "prepared-default-off",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+          "exists": true,
+          "status": "prepared-default-off",
+          "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-worker:readiness-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "prepared-awaiting-human-production-evidence",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T21:00:33.882Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-readiness.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-readiness.json",
+          "exists": true,
+          "status": "prepared-awaiting-human-production-evidence",
+          "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run ingest:worker:staging-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-staging-queue-drain",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:22.209Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+          "exists": true,
+          "status": "accepted-staging-queue-drain",
+          "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-plan",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "inventory-unreliable",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:18.909Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+          "exists": true,
+          "status": "inventory-unreliable",
+          "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-acceptance",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "not-submitted",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:40.418Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json",
+          "exists": true,
+          "status": "not-submitted",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run check:migrations",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run check:restore-drill-evidence",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run migrations:gate",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-formal-waiver",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:18.719Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-migration-gate.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-migration-gate.json",
+          "exists": true,
+          "status": "accepted-formal-waiver",
+          "evidenceType": "MIGRATION_GATE_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run restore:accept-human-evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "not-submitted",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T20:46:25.561Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+          "exists": true,
+          "status": "not-submitted",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run restore:evidence:current-check",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "simulated-only",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:19:58.813Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-restore-readiness-check.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-restore-readiness-check.json",
+          "exists": true,
+          "status": "simulated-only",
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run report:runtime-size",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:10:38.819Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run runtime-size:policy-acceptance",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "accepted-warning-only-waiver",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:20:18.797Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json",
+          "exists": true,
+          "status": "accepted-warning-only-waiver",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run production-scale:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:23:44.532Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-scale-evidence.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-scale-evidence.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run restore:drill:simulated",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T17:51:17.812Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-restore-drill-simulated.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-restore-drill-simulated.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run ingest:worker:simulated-proof",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T17:59:00.836Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run baseline:production-scale-local -- --simulated",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T18:30:24.005Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-load-simulated.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-load-simulated.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run storage:raw-report-inventory",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "database-unavailable",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T21:15:37.971Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+          "exists": true,
+          "status": "database-unavailable",
+          "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run retention:archive-restore:simulated",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T19:40:20.478Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-retention-archive-restore-simulated.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run packet-pdf:cache-miss-proof",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T19:53:42.158Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": "SIMULATED",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-worker:activation-plan",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T20:08:08.761Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run migrations:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T23:50:41.855Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-migration-governance.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-migration-governance.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run production-safe-probes:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": null,
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-safe-probes.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-safe-probes.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run staging-owner-denial-smoke:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T23:21:44.905Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-staging-owner-denial-smoke.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run sensitive-list-endpoints:evidence",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": "passed",
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-20T19:11:15.370Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-sensitive-list-endpoints.json",
+          "exists": true,
+          "status": "passed",
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run check:runtime-size",
+      "availableInRepository": true,
+      "result": "evidence-file-present",
+      "status": null,
+      "resultSource": "generated evidence file",
+      "latestGeneratedAt": "2026-05-21T00:10:38.819Z",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.md",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-runtime-size.json",
+          "exists": true,
+          "status": null,
+          "evidenceType": null,
+          "productionProof": false
+        }
+      ]
+    },
+    {
+      "command": "pnpm run baseline:production-scale-local -- --dry-run",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run response:orchestration-check",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run response:worker-orchestrate -- --dry-run",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run response:lifecycle -- --dry-run",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run response:replay -- --dry-run",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run staging:ingest-worker -- --dry-run",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    },
+    {
+      "command": "pnpm run production-scale:promotion-pack",
+      "availableInRepository": true,
+      "result": "reference-required",
+      "status": null,
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "latestGeneratedAt": null,
+      "evidenceFiles": []
+    }
+  ],
   "priorTrackedBlockers": [
     {
       "number": 1,
@@ -30,6 +1249,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "human-observed",
+        "automated-local",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
       ],
@@ -52,6 +1278,13 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
       ],
@@ -74,6 +1307,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
       ],
@@ -96,6 +1336,14 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -111,6 +1359,13 @@
       "classification": "simulated proof only",
       "closureState": "simulated-only",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
       ],
@@ -136,6 +1391,16 @@
       "classification": "waived with explicit reason",
       "closureState": "waived",
       "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources.",
+      "waiverGovernance": {
+        "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
+        "owner": "Release governance owner",
+        "reviewDate": "2026-08-20",
+        "acceptedAt": "2026-05-20T00:00:00.000Z"
+      },
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -148,23 +1413,21 @@
       "severity": "High",
       "area": "Production deployment parity",
       "currentStatus": "partial",
-      "classification": "partial",
-      "closureState": "partial",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
       "waiverReason": null,
-      "missingEvidence": [
-        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "read-only-production",
+        "human-observed"
       ],
-      "exactRequiredCommands": [
-        "pnpm run production-worker:readiness-evidence",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "stagingOnlyClosureAllowed": false,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
     },
     {
       "number": 20,
@@ -172,22 +1435,22 @@
       "severity": "Medium",
       "area": "Production-safe privacy probe depth",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "closureState": "human-required",
+      "classification": "fixed with staging evidence",
+      "closureState": "closed-staging",
       "waiverReason": null,
-      "missingEvidence": [
-        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "read-only-production",
+        "human-observed"
       ],
-      "exactRequiredCommands": [
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "stagingOnlyClosureAllowed": true,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
     },
     {
       "number": 21,
@@ -198,6 +1461,12 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -213,6 +1482,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
       ],
@@ -236,6 +1512,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -251,6 +1534,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "staging",
+        "automated-local",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -266,6 +1556,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -281,6 +1578,17 @@
       "classification": "waived with explicit reason",
       "closureState": "waived",
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made.",
+      "waiverGovernance": {
+        "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future release-blocking activation requires reviewed threshold policy change.",
+        "owner": "Release governance owner",
+        "reviewDate": "2026-08-20",
+        "acceptedAt": "2026-05-20T12:00:00.000Z"
+      },
+      "proofCategories": [
+        "automated-local",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -298,6 +1606,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "human-observed",
+        "automated-local",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
       ],
@@ -320,6 +1635,13 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
       ],
@@ -342,6 +1664,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -357,6 +1686,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -372,6 +1708,11 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -387,6 +1728,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
       ],
@@ -409,6 +1757,11 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -424,6 +1777,14 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -439,6 +1800,13 @@
       "classification": "simulated proof only",
       "closureState": "simulated-only",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
       ],
@@ -464,6 +1832,16 @@
       "classification": "waived with explicit reason",
       "closureState": "waived",
       "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources.",
+      "waiverGovernance": {
+        "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
+        "owner": "Release governance owner",
+        "reviewDate": "2026-08-20",
+        "acceptedAt": "2026-05-20T00:00:00.000Z"
+      },
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -476,23 +1854,21 @@
       "severity": "High",
       "area": "Production deployment parity",
       "currentStatus": "partial",
-      "classification": "partial",
-      "closureState": "partial",
+      "classification": "fixed with automated evidence",
+      "closureState": "closed-automated",
       "waiverReason": null,
-      "missingEvidence": [
-        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "read-only-production",
+        "human-observed"
       ],
-      "exactRequiredCommands": [
-        "pnpm run production-worker:readiness-evidence",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "stagingOnlyClosureAllowed": false,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
     },
     {
       "number": 12,
@@ -503,6 +1879,11 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -518,6 +1899,11 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -533,6 +1919,11 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -548,6 +1939,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Design/evidence artifact for hidden-risk aggregate semantics, stale-suppression semantics, and a separate bounded pagination plan that does not change aggregate truth."
       ],
@@ -568,6 +1964,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "staging",
+        "automated-local",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -583,6 +1986,13 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -598,6 +2008,17 @@
       "classification": "waived with explicit reason",
       "closureState": "waived",
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made.",
+      "waiverGovernance": {
+        "reason": "Runtime-size thresholds remain warning-only for limited beta because dependency and chunk refactors are explicitly out of scope; WARN rows have owners and dates, and future release-blocking activation requires reviewed threshold policy change.",
+        "owner": "Release governance owner",
+        "reviewDate": "2026-08-20",
+        "acceptedAt": "2026-05-20T12:00:00.000Z"
+      },
+      "proofCategories": [
+        "automated-local",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -613,6 +2034,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Accepted heavy PDF/OCR dependency governance tying runtime-size WARN/WAIVED baseline to deterministic OCR/parser regression proof for any future dependency or Docker package change."
       ],
@@ -631,22 +2057,22 @@
       "severity": "Medium",
       "area": "Production-safe privacy probe depth",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "closureState": "human-required",
+      "classification": "fixed with staging evidence",
+      "closureState": "closed-staging",
       "waiverReason": null,
-      "missingEvidence": [
-        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "read-only-production",
+        "human-observed"
       ],
-      "exactRequiredCommands": [
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "stagingOnlyClosureAllowed": true,
+      "missingEvidence": [],
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": null,
+      "operatorActionRequired": false
     },
     {
       "number": 21,
@@ -657,6 +2083,12 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -672,6 +2104,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
       ],
@@ -695,6 +2134,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates."
       ],
@@ -715,6 +2159,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Stale audit/tracker reference cleanup and aligned promotion-pack evidence after the latest commit, with blocker data still matching the controlling audit."
       ],
@@ -736,6 +2185,11 @@
       "classification": "fixed with automated evidence",
       "closureState": "closed-automated",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [],
       "exactRequiredCommands": [],
       "humanArtifacts": [],
@@ -753,6 +2207,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "human-observed",
+        "automated-local",
+        "simulated"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
       ],
@@ -775,6 +2236,13 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "simulated",
+        "staging",
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
       ],
@@ -797,6 +2265,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "staging",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
       ],
@@ -819,6 +2294,13 @@
       "classification": "simulated proof only",
       "closureState": "simulated-only",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
       ],
@@ -836,30 +2318,6 @@
       "operatorActionRequired": true
     },
     {
-      "number": 11,
-      "title": "Production deployment parity",
-      "severity": "High",
-      "area": "Production deployment parity",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "closureState": "partial",
-      "waiverReason": null,
-      "missingEvidence": [
-        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
-      ],
-      "exactRequiredCommands": [
-        "pnpm run production-worker:readiness-evidence",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
-    },
-    {
       "number": 15,
       "title": "Hidden-risk list semantics",
       "severity": "Medium",
@@ -868,6 +2326,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Design/evidence artifact for hidden-risk aggregate semantics, stale-suppression semantics, and a separate bounded pagination plan that does not change aggregate truth."
       ],
@@ -888,6 +2351,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Accepted heavy PDF/OCR dependency governance tying runtime-size WARN/WAIVED baseline to deterministic OCR/parser regression proof for any future dependency or Docker package change."
       ],
@@ -901,29 +2369,6 @@
       "operatorActionRequired": false
     },
     {
-      "number": 20,
-      "title": "Production-safe privacy probe depth",
-      "severity": "Medium",
-      "area": "Production-safe privacy probe depth",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "closureState": "human-required",
-      "waiverReason": null,
-      "missingEvidence": [
-        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
-      ],
-      "exactRequiredCommands": [
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
-    },
-    {
       "number": 22,
       "title": "Retention archive/restore proof",
       "severity": "Medium",
@@ -932,6 +2377,13 @@
       "classification": "human proof required",
       "closureState": "human-required",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local",
+        "simulated",
+        "human-observed"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
       ],
@@ -955,6 +2407,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates."
       ],
@@ -975,6 +2432,11 @@
       "classification": "partial",
       "closureState": "partial",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [
+        "automated-local"
+      ],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
         "Stale audit/tracker reference cleanup and aligned promotion-pack evidence after the latest commit, with blocker data still matching the controlling audit."
       ],
@@ -990,165 +2452,74 @@
   ],
   "remainingProductionBlockers": [
     {
-      "number": 1,
-      "title": "Disaster recovery",
-      "severity": "Critical",
-      "area": "Disaster recovery",
-      "currentStatus": "requires-human-proof",
-      "classification": "human proof required",
-      "closureState": "human-required",
+      "closureState": "open",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
-        "Filled sanitized human-observed restore drill evidence proving RPO/RTO, auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/cleanup, and signed operator acknowledgement."
+        "Accepted blocker-specific evidence is missing."
       ],
-      "exactRequiredCommands": [
-        "pnpm run restore:accept-human-evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/human-restore-drill-evidence.md",
-        "docs/production-scale/evidence/human-restore-drill-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
     },
     {
-      "number": 2,
-      "title": "Production ingest runtime",
-      "severity": "Critical",
-      "area": "Production ingest runtime",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "closureState": "partial",
+      "closureState": "open",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
-        "Accepted operator production queue-depth before/after evidence for a bounded production ingest worker run; simulated worker proof is not production runtime proof."
+        "Accepted blocker-specific evidence is missing."
       ],
-      "exactRequiredCommands": [
-        "pnpm run production-worker:readiness-evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
     },
     {
-      "number": 6,
-      "title": "Historical raw report bytes",
-      "severity": "High",
-      "area": "Historical raw report bytes",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "closureState": "human-required",
+      "closureState": "open",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
-        "Sanitized operator acceptance showing inventory ran, remediation plan was approved, remediation was performed by operator/approved process, old inline compatibility was tested, post-remediation counts were recorded, and backup/restore prerequisite was acknowledged."
+        "Accepted blocker-specific evidence is missing."
       ],
-      "exactRequiredCommands": [
-        "pnpm run storage:raw-report-remediation-acceptance"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md",
-        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
     },
     {
-      "number": 9,
-      "title": "Observability/alerting",
-      "severity": "High",
-      "area": "Observability/alerting",
-      "currentStatus": "simulated-proof-only",
-      "classification": "simulated proof only",
-      "closureState": "simulated-only",
+      "closureState": "open",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
-        "Live external alert proof or accepted formal alert exclusion. Existing alert evidence is dry-run/simulated only."
+        "Accepted blocker-specific evidence is missing."
       ],
-      "exactRequiredCommands": [
-        "pnpm run alerts:exclusion:validate",
-        "pnpm run response:ops-readiness-evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
-        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
-        "docs/production-scale/evidence/live-alert-proof.md",
-        "docs/production-scale/evidence/live-alert-proof.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
     },
     {
-      "number": 11,
-      "title": "Production deployment parity",
-      "severity": "High",
-      "area": "Production deployment parity",
-      "currentStatus": "partial",
-      "classification": "partial",
-      "closureState": "partial",
+      "closureState": "open",
       "waiverReason": null,
+      "waiverGovernance": null,
+      "proofCategories": [],
+      "stagingOnlyClosureAllowed": false,
       "missingEvidence": [
-        "Accepted production workflow parity plus rollback/stop evidence, including approved bounded production worker dry-run/apply evidence where applicable."
+        "Accepted blocker-specific evidence is missing."
       ],
-      "exactRequiredCommands": [
-        "pnpm run production-worker:readiness-evidence",
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.md",
-        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
-    },
-    {
-      "number": 20,
-      "title": "Production-safe privacy probe depth",
-      "severity": "Medium",
-      "area": "Production-safe privacy probe depth",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "closureState": "human-required",
-      "waiverReason": null,
-      "missingEvidence": [
-        "Human-observed read-only production-safe privacy probe evidence. Local/staging synthetic owner-denial smoke is not production proof."
-      ],
-      "exactRequiredCommands": [
-        "pnpm run production-safe-probes:evidence",
-        "pnpm run staging-owner-denial-smoke:evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/latest-production-safe-probes.md",
-        "docs/production-scale/evidence/latest-production-safe-probes.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
-    },
-    {
-      "number": 22,
-      "title": "Retention archive/restore proof",
-      "severity": "Medium",
-      "area": "Retention archive/restore proof",
-      "currentStatus": "partial",
-      "classification": "human proof required",
-      "closureState": "human-required",
-      "waiverReason": null,
-      "missingEvidence": [
-        "Human-observed physical retention archive/restore lifecycle evidence or accepted explicit retention exclusion. Simulated retention proof is not physical recoverability proof."
-      ],
-      "exactRequiredCommands": [
-        "pnpm run retention:archive-restore:simulated",
-        "pnpm run restore:accept-human-evidence"
-      ],
-      "humanArtifacts": [
-        "docs/production-scale/evidence/human-restore-drill-evidence.md",
-        "docs/production-scale/evidence/human-restore-drill-evidence.json"
-      ],
-      "codexCanSafelyClose": false,
-      "operatorActionRequired": true
+      "exactRequiredCommands": [],
+      "humanArtifacts": [],
+      "codexCanSafelyClose": true,
+      "operatorActionRequired": false
     }
   ],
   "remainingScaleBlockers": [],
@@ -1284,6 +2655,22 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/latest-restore-readiness-check.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-readiness-check.json",
+      "exists": true,
+      "reportName": "restore-evidence-current-readiness-check",
+      "evidenceType": "SIMULATED",
+      "status": "simulated-only",
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
       "exists": true,
       "reportName": null,
@@ -1297,6 +2684,22 @@
       "reportName": "ingest-worker-simulated-queue-drain-proof",
       "evidenceType": "SIMULATED",
       "status": "passed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+      "exists": true,
+      "reportName": "staging-ingest-worker-queue-drain-evidence",
+      "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
+      "status": "accepted-staging-queue-drain",
       "productionProof": false
     },
     {
@@ -1476,6 +2879,22 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+      "exists": true,
+      "reportName": "production-worker-activation-evidence",
+      "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
+      "status": "prepared-default-off",
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/evidence/latest-production-worker-readiness.md",
       "exists": true,
       "reportName": null,
@@ -1489,6 +2908,22 @@
       "reportName": "production-worker-readiness-evidence",
       "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
       "status": "prepared-awaiting-human-production-evidence",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-deployment-parity.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-deployment-parity.json",
+      "exists": true,
+      "reportName": "production-deployment-parity-evidence",
+      "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
+      "status": "accepted-production-deployment-parity",
       "productionProof": false
     },
     {
@@ -1873,8 +3308,10 @@
     "liveProvidersUsed": false,
     "realPiiUsed": false,
     "simulatedProofPromotedToProductionProof": false,
+    "stagingProofPromotedToProductionProof": false,
     "dashboardSkipTreatedAsPass": false,
-    "productionAtScaleClaimedWithOpenBlockers": false
+    "productionAtScaleClaimedWithOpenBlockers": false,
+    "simulatedAndStagingEvidenceBoundary": "SIMULATED and staging-only evidence are tracked as evidence, but are not promoted to production proof."
   },
   "validation": {
     "ok": true,

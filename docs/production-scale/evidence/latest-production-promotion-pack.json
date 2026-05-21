@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-21T00:11:20.036Z",
+  "generatedAt": "2026-05-21T00:23:57.777Z",
   "currentBranch": "staging",
-  "currentCommitHash": "f3d15392b4a8fdf489beeef51f5092dd59ba742d",
+  "currentCommitHash": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -172,12 +172,12 @@
           "exists": true,
           "reportName": "production-scale-load-measured",
           "evidenceType": "MEASURED_LOCAL",
-          "generatedAt": "2026-05-20T23:58:41.039Z",
+          "generatedAt": "2026-05-21T00:20:40.403Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:58:41.039Z",
+      "latestGeneratedAt": "2026-05-21T00:20:40.403Z",
       "status": "passed"
     },
     {
@@ -279,12 +279,12 @@
           "exists": true,
           "reportName": "response-ops-readiness-evidence",
           "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-          "generatedAt": "2026-05-20T23:44:30.269Z",
+          "generatedAt": "2026-05-21T00:20:11.502Z",
           "status": "operator-ready-with-deferred-controls",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:44:30.269Z",
+      "latestGeneratedAt": "2026-05-21T00:20:11.502Z",
       "status": "operator-ready-with-deferred-controls"
     },
     {
@@ -308,12 +308,12 @@
           "exists": true,
           "reportName": "response-ops-readiness-evidence",
           "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-          "generatedAt": "2026-05-20T23:44:30.269Z",
+          "generatedAt": "2026-05-21T00:20:11.502Z",
           "status": "operator-ready-with-deferred-controls",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:44:30.269Z",
+      "latestGeneratedAt": "2026-05-21T00:20:11.502Z",
       "status": "operator-ready-with-deferred-controls"
     },
     {
@@ -337,12 +337,12 @@
           "exists": true,
           "reportName": "production-deployment-parity-evidence",
           "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
-          "generatedAt": "2026-05-20T23:21:49.023Z",
+          "generatedAt": "2026-05-21T00:19:58.836Z",
           "status": "accepted-production-deployment-parity",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:21:49.023Z",
+      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
       "status": "accepted-production-deployment-parity"
     },
     {
@@ -366,12 +366,12 @@
           "exists": true,
           "reportName": "production-worker-activation-evidence",
           "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
-          "generatedAt": "2026-05-20T23:06:36.362Z",
+          "generatedAt": "2026-05-21T00:19:58.836Z",
           "status": "prepared-default-off",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:06:36.362Z",
+      "latestGeneratedAt": "2026-05-21T00:19:58.836Z",
       "status": "prepared-default-off"
     },
     {
@@ -424,12 +424,12 @@
           "exists": true,
           "reportName": "staging-ingest-worker-queue-drain-evidence",
           "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
-          "generatedAt": "2026-05-20T22:40:14.241Z",
+          "generatedAt": "2026-05-21T00:20:22.209Z",
           "status": "accepted-staging-queue-drain",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T22:40:14.241Z",
+      "latestGeneratedAt": "2026-05-21T00:20:22.209Z",
       "status": "accepted-staging-queue-drain"
     },
     {
@@ -453,12 +453,12 @@
           "exists": true,
           "reportName": "storage-raw-report-remediation-plan",
           "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
-          "generatedAt": "2026-05-20T21:15:43.804Z",
+          "generatedAt": "2026-05-21T00:20:18.909Z",
           "status": "inventory-unreliable",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:15:43.804Z",
+      "latestGeneratedAt": "2026-05-21T00:20:18.909Z",
       "status": "inventory-unreliable"
     },
     {
@@ -482,12 +482,12 @@
           "exists": true,
           "reportName": "storage-raw-report-remediation-acceptance",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T21:15:47.869Z",
+          "generatedAt": "2026-05-21T00:20:40.418Z",
           "status": "not-submitted",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:15:47.869Z",
+      "latestGeneratedAt": "2026-05-21T00:20:40.418Z",
       "status": "not-submitted"
     },
     {
@@ -531,12 +531,12 @@
           "exists": true,
           "reportName": "migration-governance-release-gate",
           "evidenceType": "MIGRATION_GATE_EVIDENCE",
-          "generatedAt": "2026-05-20T23:50:45.949Z",
+          "generatedAt": "2026-05-21T00:20:18.719Z",
           "status": "accepted-formal-waiver",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:50:45.949Z",
+      "latestGeneratedAt": "2026-05-21T00:20:18.719Z",
       "status": "accepted-formal-waiver"
     },
     {
@@ -589,12 +589,12 @@
           "exists": true,
           "reportName": "restore-evidence-current-readiness-check",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-20T22:54:49.841Z",
+          "generatedAt": "2026-05-21T00:19:58.813Z",
           "status": "simulated-only",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T22:54:49.841Z",
+      "latestGeneratedAt": "2026-05-21T00:19:58.813Z",
       "status": "simulated-only"
     },
     {
@@ -647,12 +647,12 @@
           "exists": true,
           "reportName": "runtime-size-policy-acceptance",
           "evidenceType": null,
-          "generatedAt": "2026-05-21T00:10:56.375Z",
+          "generatedAt": "2026-05-21T00:20:18.797Z",
           "status": "accepted-warning-only-waiver",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-21T00:10:56.375Z",
+      "latestGeneratedAt": "2026-05-21T00:20:18.797Z",
       "status": "accepted-warning-only-waiver"
     },
     {
@@ -686,12 +686,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-21T00:11:02.478Z",
+          "generatedAt": "2026-05-21T00:23:44.532Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-21T00:11:02.478Z",
+      "latestGeneratedAt": "2026-05-21T00:23:44.532Z",
       "status": null
     },
     {
@@ -1138,7 +1138,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-21T00:11:02.478Z",
+      "generatedAt": "2026-05-21T00:23:44.532Z",
       "status": null,
       "productionProof": false
     },
@@ -1192,7 +1192,7 @@
       "exists": true,
       "reportName": "restore-evidence-current-readiness-check",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-20T22:54:49.841Z",
+      "generatedAt": "2026-05-21T00:19:58.813Z",
       "status": "simulated-only",
       "productionProof": false
     },
@@ -1228,7 +1228,7 @@
       "exists": true,
       "reportName": "staging-ingest-worker-queue-drain-evidence",
       "evidenceType": "STAGING_INGEST_WORKER_QUEUE_DRAIN",
-      "generatedAt": "2026-05-20T22:40:14.241Z",
+      "generatedAt": "2026-05-21T00:20:22.209Z",
       "status": "accepted-staging-queue-drain",
       "productionProof": false
     },
@@ -1264,7 +1264,7 @@
       "exists": true,
       "reportName": "production-scale-load-measured",
       "evidenceType": "MEASURED_LOCAL",
-      "generatedAt": "2026-05-20T23:58:41.039Z",
+      "generatedAt": "2026-05-21T00:20:40.403Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1318,7 +1318,7 @@
       "exists": true,
       "reportName": "response-ops-readiness-evidence",
       "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-      "generatedAt": "2026-05-20T23:44:30.269Z",
+      "generatedAt": "2026-05-21T00:20:11.502Z",
       "status": "operator-ready-with-deferred-controls",
       "productionProof": false
     },
@@ -1354,7 +1354,7 @@
       "exists": true,
       "reportName": "storage-raw-report-remediation-plan",
       "evidenceType": "SANITIZED_DRY_RUN_REMEDIATION_PLAN",
-      "generatedAt": "2026-05-20T21:15:43.804Z",
+      "generatedAt": "2026-05-21T00:20:18.909Z",
       "status": "inventory-unreliable",
       "productionProof": false
     },
@@ -1372,7 +1372,7 @@
       "exists": true,
       "reportName": "storage-raw-report-remediation-acceptance",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T21:15:47.869Z",
+      "generatedAt": "2026-05-21T00:20:40.418Z",
       "status": "not-submitted",
       "productionProof": false
     },
@@ -1444,7 +1444,7 @@
       "exists": true,
       "reportName": "production-worker-activation-evidence",
       "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
-      "generatedAt": "2026-05-20T23:06:36.362Z",
+      "generatedAt": "2026-05-21T00:19:58.836Z",
       "status": "prepared-default-off",
       "productionProof": false
     },
@@ -1480,7 +1480,7 @@
       "exists": true,
       "reportName": "production-deployment-parity-evidence",
       "evidenceType": "PRODUCTION_DEPLOYMENT_PARITY_EVIDENCE",
-      "generatedAt": "2026-05-20T23:21:49.023Z",
+      "generatedAt": "2026-05-21T00:19:58.836Z",
       "status": "accepted-production-deployment-parity",
       "productionProof": false
     },
@@ -1516,7 +1516,7 @@
       "exists": true,
       "reportName": "migration-governance-release-gate",
       "evidenceType": "MIGRATION_GATE_EVIDENCE",
-      "generatedAt": "2026-05-20T23:50:45.949Z",
+      "generatedAt": "2026-05-21T00:20:18.719Z",
       "status": "accepted-formal-waiver",
       "productionProof": false
     },
@@ -1606,7 +1606,7 @@
       "exists": true,
       "reportName": "runtime-size-policy-acceptance",
       "evidenceType": null,
-      "generatedAt": "2026-05-21T00:10:56.375Z",
+      "generatedAt": "2026-05-21T00:20:18.797Z",
       "status": "accepted-warning-only-waiver",
       "productionProof": false
     },
@@ -1885,7 +1885,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T23:59:18.621Z",
+      "generatedAt": "2026-05-21T00:21:01.411Z",
       "status": null,
       "productionProof": false
     },
@@ -1910,7 +1910,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1930,7 +1930,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -1991,7 +1991,7 @@
   },
   "productionDeploymentParityEvidence": {
     "reportName": "production-deployment-parity-evidence",
-    "generatedAt": "2026-05-20T23:21:49.023Z",
+    "generatedAt": "2026-05-21T00:19:58.836Z",
     "status": "accepted-production-deployment-parity",
     "current": true,
     "productionProof": false,
@@ -2056,7 +2056,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2077,7 +2077,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2113,7 +2113,7 @@
       "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
       "accepted": true,
       "status": "accepted-staging-queue-drain",
-      "generatedAt": "2026-05-20T22:40:14.241Z",
+      "generatedAt": "2026-05-21T00:20:22.209Z",
       "productionProof": false,
       "queueDepthBeforeRun": 2,
       "queueDepthAfterRun": 0,
@@ -2142,7 +2142,7 @@
   },
   "stagingIngestWorkerEvidence": {
     "reportName": "staging-ingest-worker-queue-drain-evidence",
-    "generatedAt": "2026-05-20T22:40:14.241Z",
+    "generatedAt": "2026-05-21T00:20:22.209Z",
     "status": "accepted-staging-queue-drain",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
@@ -2171,7 +2171,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2194,7 +2194,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2211,12 +2211,12 @@
       "iterations": 2,
       "failureCount": 0,
       "failureRate": 0,
-      "elapsedMs": 390.21,
-      "throughputPerSecond": 82.01,
+      "elapsedMs": 390.81,
+      "throughputPerSecond": 81.88,
       "latency": {
-        "p50Ms": 17.68,
-        "p95Ms": 47.21,
-        "maxMs": 49.96
+        "p50Ms": 21.28,
+        "p95Ms": 43.6,
+        "maxMs": 48.46
       }
     },
     "dbPool": {
@@ -2256,7 +2256,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2450,7 +2450,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "accepted-formal-waiver",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "waived",
@@ -2484,7 +2484,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-21T00:11:20.036Z",
+    "generatedAt": "2026-05-21T00:23:57.777Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
