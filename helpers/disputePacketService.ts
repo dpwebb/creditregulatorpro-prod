@@ -280,9 +280,19 @@ function toPacketDate(value: Date | null): string | null {
 function fieldFromDetails(details: Record<string, unknown>): string | null {
   const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
   return firstKnownText([
-    firstText(details, ["fieldName", "canonicalField", "field", "sourceField", "disputedField"]),
-    evidence ? firstText(evidence, ["fieldName", "field"]) : null,
+    firstConsumerFieldText(details, ["fieldName", "canonicalField", "field", "disputedField"]),
+    evidence ? firstConsumerFieldText(evidence, ["fieldName", "field", "canonicalField", "disputedField"]) : null,
+    firstConsumerFieldText(details, ["sourceField"]),
+    evidence ? firstConsumerFieldText(evidence, ["sourceField", "canonicalField", "fieldKey"]) : null,
   ]);
+}
+
+function firstConsumerFieldText(details: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = firstText(details, [key]);
+    if (value && formatPacketFieldLabel(value) !== "Supporting reference") return value;
+  }
+  return null;
 }
 
 function valueFromTradeline(row: PacketConsumerDisputedItemSource, fieldName: string | null): unknown {
