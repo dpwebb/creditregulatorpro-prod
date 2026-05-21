@@ -1,7 +1,7 @@
 # Rollback SHA Governance Evidence
 
-Generated: 2026-05-21T08:40:01.613Z
-Current HEAD: 12d0e9bf3b51dd5adf2739324b6226666c415bfd
+Generated: 2026-05-21T12:17:53.941Z
+Current HEAD: a9cab9b6905cc8c38e9fd24bc5e2585f4723214f
 Status: passed
 CERTIFYING:false
 
@@ -14,19 +14,6 @@ CERTIFYING:false
 - Remote checkout equals target: passed
 - Explicit production compose file: passed
 - Bash syntax for extracted run blocks: passed
-
-## Commands
-
-| Command | Result | Notes |
-| --- | --- | --- |
-| `pnpm run deploy:rollback-sha-governance -- --json` | PASS | Static workflow validator passed for staging and production. |
-| `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-sha-governance.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/production-deployment-parity-evidence.spec.ts` | PASS | Focused workflow governance tests passed: 4 files, 31 tests. |
-| `pnpm run deploy:rollback-sha-governance -- --write-evidence --json` | PASS | Generated this rollback SHA governance evidence. |
-| `pnpm run production-deployment-parity:evidence -- --json` | PASS | Existing production deployment parity evidence accepted the new target SHA controls. |
-| `git diff --check` | PASS | Whitespace check passed; Git reported line-ending warnings only. |
-| `pnpm exec vitest run tests/unit --runInBand` | FAIL | Vitest 4.1.5 rejected unsupported option `--runInBand` before running tests. |
-| `pnpm exec vitest run --config vitest.config.ts tests/unit` | PASS | Compatible unit suite passed: 154 files, 1124 tests. |
-| `pnpm run check` | PASS | Build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation correction checks passed. |
 
 ## Workflow Checks
 

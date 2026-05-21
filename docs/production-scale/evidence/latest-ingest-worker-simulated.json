@@ -1,9 +1,9 @@
 {
   "reportName": "ingest-worker-simulated-queue-drain-proof",
   "evidenceType": "SIMULATED",
-  "generatedAt": "2026-05-20T17:59:00.836Z",
+  "generatedAt": "2026-05-21T12:17:43.288Z",
   "branch": "staging",
-  "commit": "8eca089cd4aa2c2ce5624941b10353fc64d4f797",
+  "commit": "a9cab9b6905cc8c38e9fd24bc5e2585f4723214f",
   "simulationId": "SIMULATED-INGEST-WORKER-QUEUE-DRAIN",
   "status": "passed",
   "workerCommand": "pnpm run ingest:worker:simulated-proof",
@@ -126,7 +126,7 @@
           ],
           "completeEvents": 1,
           "errorEvents": 0,
-          "pipelineDurationMs": 43,
+          "pipelineDurationMs": 33,
           "ocrParsingDurationMs": 0,
           "complianceScanDurationMs": 0,
           "parserOutputMutated": false,
@@ -224,6 +224,64 @@
       }
     ]
   },
+  "workerHeartbeats": [
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "dry_run_preview",
+      "dryRun": true,
+      "jobId": 101
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "processing",
+      "dryRun": false,
+      "jobId": 101
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "succeeded",
+      "dryRun": false,
+      "jobId": 101
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "processing",
+      "dryRun": false,
+      "jobId": 102
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "succeeded",
+      "dryRun": false,
+      "jobId": 102
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "processing",
+      "dryRun": false,
+      "jobId": 103
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "dead_lettered",
+      "dryRun": false,
+      "jobId": 103
+    },
+    {
+      "workerId": "simulated-ingest-worker-proof",
+      "source": "SIMULATED_INGEST_WORKER_PROOF",
+      "status": "idle",
+      "dryRun": false,
+      "jobId": null
+    }
+  ],
   "safety": {
     "evidenceType": "SIMULATED",
     "syntheticFixturesOnly": true,

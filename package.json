@@ -87,6 +87,7 @@
     "deploy:rollback-simulation": "node scripts/deploy-rollback-simulation.mjs",
     "deploy:ssh-host-key-pinning": "node scripts/deploy-ssh-host-key-pinning-evidence.mjs",
     "production-scale:evidence": "node scripts/production-scale-evidence.mjs",
+    "production-scale:certify": "node scripts/production-scale-certification.mjs",
     "production-scale:promotion-pack": "node scripts/production-promotion-pack.mjs",
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",
     "storage:raw-report-remediation-plan": "node scripts/storage-raw-report-remediation-plan.mjs",

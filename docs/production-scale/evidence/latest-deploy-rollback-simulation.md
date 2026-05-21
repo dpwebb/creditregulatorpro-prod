@@ -1,7 +1,7 @@
 # Deploy Rollback Simulation Evidence
 
-Generated: 2026-05-21T09:14:14.766Z
-Current HEAD: 0da5d6e2801f4c21e20ad161631c1f2f87e1f58a
+Generated: 2026-05-21T12:17:59.511Z
+Current HEAD: a9cab9b6905cc8c38e9fd24bc5e2585f4723214f
 Status: passed
 CERTIFYING:false
 
@@ -13,18 +13,6 @@ CERTIFYING:false
 - Workflow rollback failure handler: passed
 - Pass/fail evidence produced: passed
 - Bash syntax for extracted run blocks: passed
-
-## Commands Run
-
-- `git diff --check`: passed; Git reported line-ending warnings only.
-- `pnpm exec vitest run tests/unit --runInBand`: failed before test execution because Vitest 4.1.5 rejects the unsupported `--runInBand` option.
-- `pnpm exec vitest run --config vitest.config.ts tests/unit`: passed, 155 files and 1131 tests.
-- `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-simulation.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-rollback-sha-governance.spec.ts`: passed, 4 files and 32 tests.
-- `pnpm run deploy:rollback-simulation -- --write-evidence --json`: passed.
-- `pnpm run check`: passed.
-- `pnpm run commit-push -- --message "Add deploy rollback simulation and recovery path"`: passed; pushed `0da5d6e2801f4c21e20ad161631c1f2f87e1f58a`, then staging Action `26216640000` failed in deploy due nested heredoc indentation.
-- `gh run view 26216640000 --log-failed`: passed; confirmed the failed step was `Deploy selected commit` with `here-document ... wanted EOF`.
-- Remediation: rollback evidence writers now use `printf` JSON output and the static simulator checks that nested heredocs are not used for rollback evidence.
 
 ## Scenarios
 

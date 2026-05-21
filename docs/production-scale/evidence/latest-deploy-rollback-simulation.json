@@ -1,7 +1,7 @@
 {
   "reportName": "deploy-rollback-simulation",
-  "generatedAt": "2026-05-21T09:14:14.766Z",
-  "currentHead": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
+  "generatedAt": "2026-05-21T12:17:59.511Z",
+  "currentHead": "a9cab9b6905cc8c38e9fd24bc5e2585f4723214f",
   "branch": "staging",
   "auditTarget": "P1-2 Deployment replaces containers without automatic rollback or blue-green safety.",
   "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
@@ -10,64 +10,6 @@
   "CERTIFYING": false,
   "liveDeploymentRequired": false,
   "liveExternalProviderCallsMade": 0,
-  "validationCommandSummary": {
-    "requestedRunInBandSupported": false,
-    "allCompatibleValidationPassed": true,
-    "stagingActionRetryRequired": true,
-    "CERTIFYING": false
-  },
-  "commandResults": [
-    {
-      "command": "git diff --check",
-      "status": "passed",
-      "notes": "Git reported line-ending warnings only."
-    },
-    {
-      "command": "pnpm exec vitest run tests/unit --runInBand",
-      "status": "failed",
-      "exitCode": 1,
-      "notes": "Vitest 4.1.5 rejects the unsupported --runInBand option before test execution."
-    },
-    {
-      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit",
-      "status": "passed",
-      "testFiles": 155,
-      "tests": 1131
-    },
-    {
-      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-simulation.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-rollback-sha-governance.spec.ts",
-      "status": "passed",
-      "testFiles": 4,
-      "tests": 32
-    },
-    {
-      "command": "pnpm run deploy:rollback-simulation -- --write-evidence --json",
-      "status": "passed"
-    },
-    {
-      "command": "pnpm run check",
-      "status": "passed"
-    },
-    {
-      "command": "pnpm run commit-push -- --message \"Add deploy rollback simulation and recovery path\"",
-      "status": "passed",
-      "pushedSha": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
-      "followupActionStatus": "failed",
-      "followupActionRunId": "26216640000",
-      "notes": "The staging deploy Action failed after push because nested rollback evidence heredoc indentation broke the remote shell."
-    },
-    {
-      "command": "gh run view 26216640000 --log-failed",
-      "status": "passed",
-      "notes": "Confirmed Deploy selected commit failed with here-document wanted EOF."
-    }
-  ],
-  "actionFailureRemediation": {
-    "failedRunId": "26216640000",
-    "failedSha": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
-    "failure": "Nested rollback evidence heredoc was indented inside the SSH heredoc and failed at remote shell parse time.",
-    "fix": "Rollback evidence writers now use printf JSON output instead of nested heredocs; static simulation checks this invariant."
-  },
   "scenarios": [
     {
       "name": "target-health-pass",
@@ -240,13 +182,13 @@
             "stderr": ""
           },
           {
-            "line": 205,
+            "line": 206,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 330,
+            "line": 366,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
@@ -256,7 +198,7 @@
       },
       "production": {
         "status": "passed",
-        "blockCount": 6,
+        "blockCount": 7,
         "results": [
           {
             "line": 66,
@@ -271,25 +213,31 @@
             "stderr": ""
           },
           {
-            "line": 187,
+            "line": 172,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 211,
+            "line": 204,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 309,
+            "line": 229,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 494,
+            "line": 390,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 575,
             "exitCode": 0,
             "passed": true,
             "stderr": ""

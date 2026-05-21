@@ -34,7 +34,7 @@ const created = {
 
 function marker(): string {
   markerCounter += 1;
-  return `response-worker-orchestration-test-${Date.now().toString(36)}-${markerCounter.toString(36)}`;
+  return `rworchtest${Date.now().toString(36)}${markerCounter.toString(36)}`;
 }
 
 function trackSource(source: string): string {

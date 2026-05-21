@@ -1,7 +1,7 @@
 {
   "reportName": "rollback-sha-governance",
-  "generatedAt": "2026-05-21T08:40:01.613Z",
-  "currentHead": "12d0e9bf3b51dd5adf2739324b6226666c415bfd",
+  "generatedAt": "2026-05-21T12:17:53.941Z",
+  "currentHead": "a9cab9b6905cc8c38e9fd24bc5e2585f4723214f",
   "branch": "staging",
   "auditTargets": [
     "P1-1 Rollback SHA validation tests the workflow ref, not the rollback target.",
@@ -84,13 +84,13 @@
             "stderr": ""
           },
           {
-            "line": 205,
+            "line": 206,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 330,
+            "line": 366,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
@@ -141,7 +141,7 @@
           "name": "run shell blocks pass bash -n",
           "status": "passed",
           "passed": true,
-          "blockCount": 6,
+          "blockCount": 7,
           "failedLines": []
         },
         {
@@ -153,7 +153,7 @@
       "failedChecks": [],
       "bashSyntax": {
         "status": "passed",
-        "blockCount": 6,
+        "blockCount": 7,
         "results": [
           {
             "line": 66,
@@ -168,25 +168,31 @@
             "stderr": ""
           },
           {
-            "line": 187,
+            "line": 172,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 211,
+            "line": 204,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 308,
+            "line": 229,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
           },
           {
-            "line": 473,
+            "line": 390,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 575,
             "exitCode": 0,
             "passed": true,
             "stderr": ""
@@ -205,48 +211,6 @@
     "explicitProductionComposeFile": true,
     "shellBlocksBashSyntaxPassed": true
   },
-  "commands": [
-    {
-      "command": "pnpm run deploy:rollback-sha-governance -- --json",
-      "status": "PASS",
-      "notes": "Static workflow validator passed for staging and production."
-    },
-    {
-      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-sha-governance.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/production-deployment-parity-evidence.spec.ts",
-      "status": "PASS",
-      "notes": "Focused workflow governance tests passed: 4 files, 31 tests."
-    },
-    {
-      "command": "pnpm run deploy:rollback-sha-governance -- --write-evidence --json",
-      "status": "PASS",
-      "notes": "Generated this rollback SHA governance evidence."
-    },
-    {
-      "command": "pnpm run production-deployment-parity:evidence -- --json",
-      "status": "PASS",
-      "notes": "Existing production deployment parity evidence accepted the new target SHA controls."
-    },
-    {
-      "command": "git diff --check",
-      "status": "PASS",
-      "notes": "Whitespace check passed with line-ending warnings only."
-    },
-    {
-      "command": "pnpm exec vitest run tests/unit --runInBand",
-      "status": "FAIL",
-      "notes": "Vitest 4.1.5 rejected unsupported option --runInBand before running tests."
-    },
-    {
-      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit",
-      "status": "PASS",
-      "notes": "Compatible unit suite passed: 154 files, 1124 tests."
-    },
-    {
-      "command": "pnpm run check",
-      "status": "PASS",
-      "notes": "Build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation correction checks passed."
-    }
-  ],
   "validation": {
     "ok": true,
     "errors": []
