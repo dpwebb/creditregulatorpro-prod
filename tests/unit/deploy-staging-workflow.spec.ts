@@ -35,6 +35,21 @@ describe("staging deploy workflow health gate", () => {
     expect(source).not.toContain("TARGET_SHA='$TARGET_SHA'");
   });
 
+  it("retries staging SSH host-key collection without falling back to unchecked deploy", () => {
+    const source = workflowSource();
+    const prepareSshBlock = source.match(/- name: Prepare SSH[\s\S]*?\n      - name: Deploy selected commit/)?.[0] ?? "";
+
+    expect(prepareSshBlock).toContain("scan_staging_known_hosts() {");
+    expect(prepareSshBlock).toContain('ssh-keyscan -4 -T 15 -p "$STAGING_SSH_PORT" "$STAGING_HOST"');
+    expect(prepareSshBlock).toContain('ssh-keyscan -T 15 -p "$STAGING_SSH_PORT" "$STAGING_HOST"');
+    expect(prepareSshBlock).toContain("for attempt in 1 2 3 4 5 6 7 8; do");
+    expect(prepareSshBlock).toContain("Staging SSH host key scan attempt ${attempt}/8 failed; retrying.");
+    expect(prepareSshBlock).toContain("Failed to collect staging SSH host key after retries.");
+    expect(prepareSshBlock).toContain("deploy did not start");
+    expect(prepareSshBlock).not.toMatch(/StrictHostKeyChecking=(?:no|accept-new)/);
+    expect(prepareSshBlock).not.toMatch(/ssh .* \|\| true/);
+  });
+
   it("documents transient 404 readiness retries without weakening the response-auth gate", () => {
     const source = workflowSource();
 

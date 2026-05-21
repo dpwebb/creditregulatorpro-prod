@@ -192,18 +192,31 @@ jobs:
           chmod 600 ~/.ssh/staging_deploy_key
           ssh-keygen -y -f ~/.ssh/staging_deploy_key >/dev/null
           known_hosts_tmp="$(mktemp)"
-          for attempt in 1 2 3 4 5; do
-            if ssh-keyscan -T 10 -p "$STAGING_SSH_PORT" "$STAGING_HOST" > "$known_hosts_tmp" 2>/dev/null && [ -s "$known_hosts_tmp" ]; then
+          scan_staging_known_hosts() {
+            local target_file="$1"
+            : > "$target_file"
+            if ssh-keyscan -4 -T 15 -p "$STAGING_SSH_PORT" "$STAGING_HOST" > "$target_file" 2>/dev/null && [ -s "$target_file" ]; then
+              return 0
+            fi
+            : > "$target_file"
+            if ssh-keyscan -T 15 -p "$STAGING_SSH_PORT" "$STAGING_HOST" > "$target_file" 2>/dev/null && [ -s "$target_file" ]; then
+              return 0
+            fi
+            return 1
+          }
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if scan_staging_known_hosts "$known_hosts_tmp"; then
               cat "$known_hosts_tmp" >> ~/.ssh/known_hosts
               rm -f "$known_hosts_tmp"
               known_hosts_tmp=""
               break
             fi
-            sleep 5
+            echo "Staging SSH host key scan attempt ${attempt}/8 failed; retrying."
+            sleep 10
           done
           if [ -n "$known_hosts_tmp" ]; then
             rm -f "$known_hosts_tmp"
-            echo "Failed to collect staging SSH host key after retries."
+            echo "Failed to collect staging SSH host key after retries. Confirm STAGING_HOST/STAGING_SSH_PORT and network ACLs; deploy did not start."
             exit 1
           fi
 
