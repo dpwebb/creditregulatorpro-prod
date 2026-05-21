@@ -87,6 +87,7 @@ describe("deploy rollback simulation", () => {
         expect.objectContaining({ name: "staging has automatic rollback failure handler", passed: true }),
         expect.objectContaining({ name: "production has automatic rollback failure handler", passed: true }),
         expect.objectContaining({ name: "machine-readable rollback evidence is emitted", passed: true }),
+        expect.objectContaining({ name: "rollback evidence writers avoid nested heredocs", passed: true }),
         expect.objectContaining({ name: "workflows preserve previous image IDs for restore fallback", passed: true }),
       ]),
     );

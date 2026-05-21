@@ -212,6 +212,14 @@ export function validateDeployRollbackWorkflowSafety({ stagingWorkflowText, prod
         productionWorkflowText.includes("rollbackAttempted"),
     },
     {
+      name: "rollback evidence writers avoid nested heredocs",
+      passed:
+        !stagingWorkflowText.includes('cat > "$deploy_rollback_evidence_path" <<EOF') &&
+        !productionWorkflowText.includes('cat > "$evidence_path" <<EOF') &&
+        stagingWorkflowText.includes("printf '%s\\n' \"{\\\"environment\\\":\\\"staging\\\"") &&
+        productionWorkflowText.includes("printf '%s\\n' \"{\\\"environment\\\":\\\"production\\\""),
+    },
+    {
       name: "shell blocks pass bash -n",
       passed: stagingBash.status === "passed" && productionBash.status === "passed",
       stagingFailedLines: stagingBash.failed.map((result) => result.line),

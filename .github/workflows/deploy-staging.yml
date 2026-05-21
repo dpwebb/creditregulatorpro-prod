@@ -501,9 +501,7 @@ jobs:
               local rollback_attempted="$2"
               local rollback_succeeded="$3"
               local rollback_health_result="$4"
-              cat > "$deploy_rollback_evidence_path" <<EOF
-            {"environment":"staging","targetSha":"${TARGET_SHA}","previousSha":"${previous_sha}","previousAppImage":"${previous_app_image}","previousWorkerImage":"${previous_worker_image}","healthResult":"${health_result}","rollbackAttempted":${rollback_attempted},"rollbackSucceeded":${rollback_succeeded},"rollbackHealthResult":"${rollback_health_result}","CERTIFYING":false}
-            EOF
+              printf '%s\n' "{\"environment\":\"staging\",\"targetSha\":\"${TARGET_SHA}\",\"previousSha\":\"${previous_sha}\",\"previousAppImage\":\"${previous_app_image}\",\"previousWorkerImage\":\"${previous_worker_image}\",\"healthResult\":\"${health_result}\",\"rollbackAttempted\":${rollback_attempted},\"rollbackSucceeded\":${rollback_succeeded},\"rollbackHealthResult\":\"${rollback_health_result}\",\"CERTIFYING\":false}" > "$deploy_rollback_evidence_path"
               echo "DEPLOY_ROLLBACK_EVIDENCE_JSON=$(tr -d '\n' < "$deploy_rollback_evidence_path")"
             }
 

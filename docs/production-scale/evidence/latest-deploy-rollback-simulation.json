@@ -1,7 +1,7 @@
 {
   "reportName": "deploy-rollback-simulation",
-  "generatedAt": "2026-05-21T09:00:20.465Z",
-  "currentHead": "03744f97c787d67828003e40f7f7faf7e068fe9b",
+  "generatedAt": "2026-05-21T09:14:14.766Z",
+  "currentHead": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
   "branch": "staging",
   "auditTarget": "P1-2 Deployment replaces containers without automatic rollback or blue-green safety.",
   "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
@@ -13,6 +13,7 @@
   "validationCommandSummary": {
     "requestedRunInBandSupported": false,
     "allCompatibleValidationPassed": true,
+    "stagingActionRetryRequired": true,
     "CERTIFYING": false
   },
   "commandResults": [
@@ -46,8 +47,27 @@
     {
       "command": "pnpm run check",
       "status": "passed"
+    },
+    {
+      "command": "pnpm run commit-push -- --message \"Add deploy rollback simulation and recovery path\"",
+      "status": "passed",
+      "pushedSha": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
+      "followupActionStatus": "failed",
+      "followupActionRunId": "26216640000",
+      "notes": "The staging deploy Action failed after push because nested rollback evidence heredoc indentation broke the remote shell."
+    },
+    {
+      "command": "gh run view 26216640000 --log-failed",
+      "status": "passed",
+      "notes": "Confirmed Deploy selected commit failed with here-document wanted EOF."
     }
   ],
+  "actionFailureRemediation": {
+    "failedRunId": "26216640000",
+    "failedSha": "0da5d6e2801f4c21e20ad161631c1f2f87e1f58a",
+    "failure": "Nested rollback evidence heredoc was indented inside the SSH heredoc and failed at remote shell parse time.",
+    "fix": "Rollback evidence writers now use printf JSON output instead of nested heredocs; static simulation checks this invariant."
+  },
   "scenarios": [
     {
       "name": "target-health-pass",
@@ -182,6 +202,10 @@
       },
       {
         "name": "machine-readable rollback evidence is emitted",
+        "passed": true
+      },
+      {
+        "name": "rollback evidence writers avoid nested heredocs",
         "passed": true
       },
       {

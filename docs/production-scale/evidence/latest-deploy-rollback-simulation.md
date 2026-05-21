@@ -1,7 +1,7 @@
 # Deploy Rollback Simulation Evidence
 
-Generated: 2026-05-21T09:00:20.465Z
-Current HEAD: 03744f97c787d67828003e40f7f7faf7e068fe9b
+Generated: 2026-05-21T09:14:14.766Z
+Current HEAD: 0da5d6e2801f4c21e20ad161631c1f2f87e1f58a
 Status: passed
 CERTIFYING:false
 
@@ -22,6 +22,9 @@ CERTIFYING:false
 - `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-simulation.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-rollback-sha-governance.spec.ts`: passed, 4 files and 32 tests.
 - `pnpm run deploy:rollback-simulation -- --write-evidence --json`: passed.
 - `pnpm run check`: passed.
+- `pnpm run commit-push -- --message "Add deploy rollback simulation and recovery path"`: passed; pushed `0da5d6e2801f4c21e20ad161631c1f2f87e1f58a`, then staging Action `26216640000` failed in deploy due nested heredoc indentation.
+- `gh run view 26216640000 --log-failed`: passed; confirmed the failed step was `Deploy selected commit` with `here-document ... wanted EOF`.
+- Remediation: rollback evidence writers now use `printf` JSON output and the static simulator checks that nested heredocs are not used for rollback evidence.
 
 ## Scenarios
 
@@ -63,6 +66,7 @@ CERTIFYING:false
 - passed: staging has automatic rollback failure handler
 - passed: production has automatic rollback failure handler
 - passed: machine-readable rollback evidence is emitted
+- passed: rollback evidence writers avoid nested heredocs
 - passed: shell blocks pass bash -n
 
 ## Boundaries
