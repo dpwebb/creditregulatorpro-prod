@@ -49,6 +49,15 @@ describe("measured production-scale load evidence", () => {
       .toThrow(/production host/i);
     expect(() => parseMeasuredLoadArgs(["--local"], { CRP_ENV: "production" }))
       .toThrow(/production-like environment/i);
+    expect(() => parseMeasuredLoadArgs(["--local"], { FLOOT_DATABASE_URL: "postgres://user:pass@db.creditregulatorpro-prod.internal/app" }))
+      .toThrow(/production database target/i);
+  });
+
+  it("refuses live provider enablement flags", () => {
+    expect(() => parseMeasuredLoadArgs(["--local"], { CRP_ENABLE_LIVE_PROVIDERS: "true" }))
+      .toThrow(/live provider flag/i);
+    expect(() => parseMeasuredLoadArgs(["--local"], { POSTGRID_LIVE_DELIVERY_ENABLED: "1" }))
+      .toThrow(/live provider flag/i);
   });
 
   it("refuses runs without exactly one local or staging-safe flag", () => {
@@ -100,6 +109,7 @@ describe("measured production-scale load evidence", () => {
     const { report } = await buildReport();
     expect(report.dbPool.configuredMax).toBe(5);
     expect(report.dbPool.observedSignalAvailable).toBe(true);
+    expect(report.dbPool.saturationRatio).toBeGreaterThan(0);
     expect(validateMeasuredLoadEvidenceReport(report)).toEqual({ ok: true, errors: [] });
 
     const explicitUnavailable = clone(report);
@@ -129,6 +139,20 @@ describe("measured production-scale load evidence", () => {
     expect(existsSync(markdownPath)).toBe(true);
     expect(existsSync(jsonPath)).toBe(true);
     expect(JSON.parse(readFileSync(jsonPath, "utf8")).evidenceType).toBe("MEASURED_LOCAL");
+    expect(report.thresholdPolicy).toMatchObject({
+      mode: "release-blocking",
+      currentMode: "release-blocking",
+      owner: "Release governance owner",
+      reviewDate: "2026-08-20",
+    });
+    expect(report.thresholdEvaluation.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "maxFailureRate", status: "pass" }),
+        expect.objectContaining({ key: "maxStaleQueueCount", status: "pass" }),
+        expect.objectContaining({ key: "dbPoolSaturationWarningThreshold", status: "pass" }),
+        expect.objectContaining({ key: "minRateLimiterRejectionRatio", status: "pass" }),
+      ]),
+    );
     expect(acceptance).toMatchObject({
       status: "accepted",
       accepted: true,

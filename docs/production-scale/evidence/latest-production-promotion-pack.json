@@ -1,8 +1,8 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-20T23:51:38.736Z",
+  "generatedAt": "2026-05-20T23:59:18.621Z",
   "currentBranch": "staging",
-  "currentCommitHash": "222cb7ac35442c7a0854f121d9201bddcbd7218a",
+  "currentCommitHash": "548bb5da7edcda239dd1de062344e3da43932a03",
   "auditFilePath": "docs/production-at-scale-maximum-audit.md",
   "auditDate": "2026-05-20",
   "auditDateParseable": true,
@@ -172,12 +172,12 @@
           "exists": true,
           "reportName": "production-scale-load-measured",
           "evidenceType": "MEASURED_LOCAL",
-          "generatedAt": "2026-05-20T21:56:40.769Z",
+          "generatedAt": "2026-05-20T23:58:41.039Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T21:56:40.769Z",
+      "latestGeneratedAt": "2026-05-20T23:58:41.039Z",
       "status": "passed"
     },
     {
@@ -686,12 +686,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-20T23:51:22.391Z",
+          "generatedAt": "2026-05-20T23:59:01.719Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-20T23:51:22.391Z",
+      "latestGeneratedAt": "2026-05-20T23:59:01.719Z",
       "status": null
     },
     {
@@ -1138,7 +1138,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T23:51:22.391Z",
+      "generatedAt": "2026-05-20T23:59:01.719Z",
       "status": null,
       "productionProof": false
     },
@@ -1264,7 +1264,7 @@
       "exists": true,
       "reportName": "production-scale-load-measured",
       "evidenceType": "MEASURED_LOCAL",
-      "generatedAt": "2026-05-20T21:56:40.769Z",
+      "generatedAt": "2026-05-20T23:58:41.039Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1885,7 +1885,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-20T23:44:51.719Z",
+      "generatedAt": "2026-05-20T23:51:38.736Z",
       "status": null,
       "productionProof": false
     },
@@ -1910,7 +1910,7 @@
   ],
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -1930,7 +1930,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -2056,7 +2056,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2077,7 +2077,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2171,7 +2171,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2194,7 +2194,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2209,12 +2209,14 @@
       "concurrency": 2,
       "observedMaxConcurrency": 2,
       "iterations": 2,
-      "elapsedMs": 369.5,
-      "throughputPerSecond": 86.6,
+      "failureCount": 0,
+      "failureRate": 0,
+      "elapsedMs": 390.21,
+      "throughputPerSecond": 82.01,
       "latency": {
-        "p50Ms": 17.95,
-        "p95Ms": 37.04,
-        "maxMs": 37.14
+        "p50Ms": 17.68,
+        "p95Ms": 47.21,
+        "maxMs": 49.96
       }
     },
     "dbPool": {
@@ -2254,7 +2256,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2421,7 +2423,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "accepted-formal-waiver",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "waived",
@@ -2455,7 +2457,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-20T23:51:38.736Z",
+    "generatedAt": "2026-05-20T23:59:18.621Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",

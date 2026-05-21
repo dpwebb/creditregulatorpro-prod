@@ -129,22 +129,50 @@ function defaultPolicy() {
   return {
     schemaVersion: 1,
     policyName: "production-scale-measured-load-threshold-policy",
+    mode: "release-blocking",
     currentMode: "release-blocking",
+    owner: "Release governance owner",
+    reviewDate: "2026-08-20",
     thresholds: {
       minRequestCount: 8,
       minQueueJobCount: 4,
       maxConcurrency: 4,
+      maxFailureRate: 0,
       maxLatencyP95Ms: 250,
       maxLatencyMaxMs: 1000,
       maxQueueDepthAfter: 0,
+      maxStaleQueueCount: 0,
       minRateLimiterAccepted: 1,
       minRateLimiterRejected: 1,
+      minRateLimiterRejectionRatio: 0.5,
       maxRateLimiterWritePressureEvents: 100,
       minPacketPdfCacheHitCount: 1,
       minPacketPdfCacheMissCount: 1,
       minDbPoolConfiguredMax: 1,
+      dbPoolSaturationWarningThreshold: 0.85,
       requireDbPoolSignalOrExplicitUnavailable: true,
       requireZeroExternalProviderCalls: true,
+    },
+  };
+}
+
+function normalizeThresholdPolicy(policy = defaultPolicy()) {
+  const fallback = defaultPolicy();
+  const mode = VALID_POLICY_MODES.has(policy.currentMode)
+    ? policy.currentMode
+    : VALID_POLICY_MODES.has(policy.mode)
+      ? policy.mode
+      : fallback.currentMode;
+  return {
+    ...fallback,
+    ...policy,
+    mode,
+    currentMode: mode,
+    owner: policy.owner ?? policy.policyOwner ?? fallback.owner,
+    reviewDate: policy.reviewDate ?? policy.reviewOrExpiryDate ?? fallback.reviewDate,
+    thresholds: {
+      ...fallback.thresholds,
+      ...(policy.thresholds ?? {}),
     },
   };
 }
@@ -153,7 +181,7 @@ export function loadMeasuredLoadThresholdPolicy({
   rootDir = process.cwd(),
   policyPath = LOAD_THRESHOLD_POLICY_PATH,
 } = {}) {
-  return readJsonIfPresent(rootDir, policyPath) ?? defaultPolicy();
+  return normalizeThresholdPolicy(readJsonIfPresent(rootDir, policyPath) ?? defaultPolicy());
 }
 
 export function parseMeasuredLoadArgs(args, env = process.env) {
@@ -352,6 +380,7 @@ async function measureRateLimiterPressure(config) {
     maxAttempts,
     acceptedCount,
     rejectedCount,
+    rejectionRatio: Number((rejectedCount / Math.max(attempts, 1)).toFixed(4)),
     writePressureEvents: attempts,
     bounded: attempts <= MAX_RATE_LIMIT_PRESSURE_ATTEMPTS,
     realTrafficSent: false,
@@ -410,6 +439,7 @@ function buildDbPoolSignal(config, requestBatch, env) {
     observedActiveConnections: activeProxyMax,
     observedOpenConnections: null,
     observedBorrowedConnections: requestBatch.observedMaxConcurrency,
+    saturationRatio: Number((activeProxyMax / Math.max(pool.configuredMax, 1)).toFixed(4)),
     observedSignalAvailable: true,
     unavailableReason: null,
     signalSource: "measured in-process bounded DB pool borrowing proxy; no database connection was opened by the load harness",
@@ -421,7 +451,8 @@ function threshold(status, key, actual, expected, message) {
 }
 
 export function evaluateMeasuredLoadThresholds(report, policy = defaultPolicy()) {
-  const thresholds = policy.thresholds ?? {};
+  const normalizedPolicy = normalizeThresholdPolicy(policy);
+  const thresholds = normalizedPolicy.thresholds ?? {};
   const results = [
     threshold(
       report.summary.requestCount >= Number(thresholds.minRequestCount ?? 1) ? "pass" : "fail",
@@ -445,6 +476,13 @@ export function evaluateMeasuredLoadThresholds(report, policy = defaultPolicy())
       "Measured concurrency must remain bounded.",
     ),
     threshold(
+      Number(report.summary.failureRate ?? 0) <= Number(thresholds.maxFailureRate ?? 0) ? "pass" : "fail",
+      "maxFailureRate",
+      report.summary.failureRate ?? 0,
+      thresholds.maxFailureRate,
+      "Measured failure rate must stay under policy.",
+    ),
+    threshold(
       report.summary.latency.p95Ms <= Number(thresholds.maxLatencyP95Ms ?? Number.POSITIVE_INFINITY) ? "pass" : "fail",
       "maxLatencyP95Ms",
       report.summary.latency.p95Ms,
@@ -466,6 +504,13 @@ export function evaluateMeasuredLoadThresholds(report, policy = defaultPolicy())
       "Queue depth after the measured run must drain to policy.",
     ),
     threshold(
+      report.queueDepth.staleQueuedJobsRemaining <= Number(thresholds.maxStaleQueueCount ?? 0) ? "pass" : "fail",
+      "maxStaleQueueCount",
+      report.queueDepth.staleQueuedJobsRemaining,
+      thresholds.maxStaleQueueCount,
+      "Stale synthetic queue count must stay under policy.",
+    ),
+    threshold(
       report.rateLimiter.acceptedCount >= Number(thresholds.minRateLimiterAccepted ?? 1) ? "pass" : "fail",
       "minRateLimiterAccepted",
       report.rateLimiter.acceptedCount,
@@ -478,6 +523,13 @@ export function evaluateMeasuredLoadThresholds(report, policy = defaultPolicy())
       report.rateLimiter.rejectedCount,
       thresholds.minRateLimiterRejected,
       "Rate limiter must record rejected synthetic attempts.",
+    ),
+    threshold(
+      report.rateLimiter.rejectionRatio >= Number(thresholds.minRateLimiterRejectionRatio ?? 0) ? "pass" : "fail",
+      "minRateLimiterRejectionRatio",
+      report.rateLimiter.rejectionRatio,
+      thresholds.minRateLimiterRejectionRatio,
+      "Hostile synthetic pressure must produce the expected rejection ratio.",
     ),
     threshold(
       report.rateLimiter.writePressureEvents <= Number(thresholds.maxRateLimiterWritePressureEvents ?? MAX_RATE_LIMIT_PRESSURE_ATTEMPTS) ? "pass" : "fail",
@@ -508,6 +560,16 @@ export function evaluateMeasuredLoadThresholds(report, policy = defaultPolicy())
       "DB pool configured max must be visible.",
     ),
     threshold(
+      !Number.isFinite(Number(report.dbPool.saturationRatio)) ||
+        Number(report.dbPool.saturationRatio) <= Number(thresholds.dbPoolSaturationWarningThreshold ?? 1)
+        ? "pass"
+        : "fail",
+      "dbPoolSaturationWarningThreshold",
+      report.dbPool.saturationRatio ?? "unavailable",
+      thresholds.dbPoolSaturationWarningThreshold,
+      "DB pool saturation signal must stay below the configured warning threshold when available.",
+    ),
+    threshold(
       thresholds.requireDbPoolSignalOrExplicitUnavailable === false ||
         report.dbPool.observedSignalAvailable === true ||
         Boolean(report.dbPool.unavailableReason)
@@ -527,9 +589,9 @@ export function evaluateMeasuredLoadThresholds(report, policy = defaultPolicy())
     ),
   ];
   const failCount = results.filter((item) => item.status === "fail").length;
-  const mode = VALID_POLICY_MODES.has(policy.currentMode) ? policy.currentMode : "warning-only";
+  const mode = normalizedPolicy.currentMode;
   return {
-    policyName: policy.policyName ?? "production-scale-measured-load-threshold-policy",
+    policyName: normalizedPolicy.policyName ?? "production-scale-measured-load-threshold-policy",
     mode,
     status: failCount === 0 ? "passed" : mode === "release-blocking" ? "failed" : "warning-only",
     releaseBlocking: mode === "release-blocking",
@@ -542,7 +604,7 @@ export async function buildMeasuredLoadEvidenceReport(config, dependencies = {})
   const rootDir = config.rootDir ?? process.cwd();
   const generatedAt = dependencies.generatedAt ?? new Date().toISOString();
   const env = dependencies.env ?? process.env;
-  const policy = dependencies.policy ?? loadMeasuredLoadThresholdPolicy({ rootDir, policyPath: config.policyPath });
+  const policy = normalizeThresholdPolicy(dependencies.policy ?? loadMeasuredLoadThresholdPolicy({ rootDir, policyPath: config.policyPath }));
   const requestBatch = await measureRequestBatch(config);
   const queueDepth = await measureSyntheticQueue(config);
   const rateLimiter = await measureRateLimiterPressure(config);
@@ -581,6 +643,8 @@ export async function buildMeasuredLoadEvidenceReport(config, dependencies = {})
       concurrency: config.concurrency,
       observedMaxConcurrency: Math.max(requestBatch.observedMaxConcurrency, queueDepth.observedMaxConcurrency),
       iterations: config.iterations,
+      failureCount: queueDepth.after.failed,
+      failureRate: Number((queueDepth.after.failed / Math.max(requestBatch.requestCount + queueDepth.jobCount, 1)).toFixed(4)),
       elapsedMs: Number(requestBatch.elapsedMs.toFixed(2)),
       throughputPerSecond: requestBatch.throughputPerSecond,
       latency: requestBatch.latency,
@@ -628,8 +692,11 @@ export async function buildMeasuredLoadEvidenceReport(config, dependencies = {})
     },
     thresholdPolicy: {
       path: config.policyPath ?? LOAD_THRESHOLD_POLICY_PATH,
-      currentMode: policy.currentMode ?? "warning-only",
+      mode: policy.currentMode,
+      currentMode: policy.currentMode,
       policyName: policy.policyName ?? "production-scale-measured-load-threshold-policy",
+      owner: policy.owner,
+      reviewDate: policy.reviewDate,
     },
     outputPaths: {
       markdown: LOAD_MEASURED_MD_PATH,
@@ -666,6 +733,7 @@ export function validateMeasuredLoadEvidenceReport(report) {
   if (!Number.isFinite(report.summary?.requestCount) || report.summary.requestCount < 1) errors.push("request count is required.");
   if (!Number.isFinite(report.summary?.queueJobCount) || report.summary.queueJobCount < 1) errors.push("queue job count is required.");
   if (!Number.isFinite(report.summary?.concurrency) || report.summary.concurrency < 1) errors.push("concurrency is required.");
+  if (!Number.isFinite(report.summary?.failureRate)) errors.push("failure rate is required.");
   const latency = report.summary?.latency;
   if (!latency || !Number.isFinite(latency.p50Ms) || !Number.isFinite(latency.p95Ms) || !Number.isFinite(latency.maxMs)) {
     errors.push("latency p50/p95/max metrics are required.");
@@ -673,13 +741,18 @@ export function validateMeasuredLoadEvidenceReport(report) {
     errors.push("latency metrics must be ordered p50 <= p95 <= max.");
   }
   if (!report.queueDepth?.before || !report.queueDepth?.after) errors.push("queue depth before/after is required.");
+  if (!Number.isFinite(report.queueDepth?.staleQueuedJobsRemaining)) errors.push("stale queue count is required.");
   if (!Number.isFinite(report.dbPool?.configuredMax)) errors.push("DB pool configured max is required.");
+  if (report.dbPool?.observedSignalAvailable === true && !Number.isFinite(report.dbPool?.saturationRatio)) {
+    errors.push("DB pool saturation ratio is required when DB pool signal is available.");
+  }
   if (report.dbPool?.observedSignalAvailable !== true && !report.dbPool?.unavailableReason) {
     errors.push("DB pool observed signal must appear or be explicitly unavailable.");
   }
   if (!Number.isFinite(report.rateLimiter?.acceptedCount) || !Number.isFinite(report.rateLimiter?.rejectedCount)) {
     errors.push("rate limiter accepted/rejected counts are required.");
   }
+  if (!Number.isFinite(report.rateLimiter?.rejectionRatio)) errors.push("rate limiter rejection ratio is required.");
   if (report.rateLimiter?.bounded !== true || report.rateLimiter?.writePressureEvents > MAX_RATE_LIMIT_PRESSURE_ATTEMPTS) {
     errors.push("rate limiter pressure must be bounded.");
   }
@@ -697,6 +770,9 @@ export function validateMeasuredLoadEvidenceReport(report) {
     !["passed", "warning-only", "failed"].includes(report.thresholdEvaluation.status)
   ) {
     errors.push("threshold evaluation with accepted policy mode and status is required.");
+  }
+  if (!report.thresholdPolicy?.owner || !report.thresholdPolicy?.reviewDate) {
+    errors.push("threshold policy owner and review date are required.");
   }
   if (report.thresholdEvaluation?.status === "failed") errors.push("measured load threshold policy failed.");
   return { ok: errors.length === 0, errors };

@@ -2,9 +2,9 @@
 
 Measured local/staging-safe evidence only. This command refuses production hosts, production-like environments, live providers, real reports, and PII.
 
-Generated at: 2026-05-20T21:56:40.769Z
+Generated at: 2026-05-20T23:58:41.039Z
 Branch: `staging`
-Commit: `1dcc63f804a9850ff016d085f2ac17613e1ad6d7`
+Commit: `548bb5da7edcda239dd1de062344e3da43932a03`
 Mode: measured-local
 Evidence type: MEASURED_LOCAL
 Target context: localhost (local)
@@ -19,7 +19,7 @@ Threshold policy mode: release-blocking
 - Concurrency: 2
 - Observed max concurrency: 2
 - Iterations: 2
-- Latency p50/p95/max ms: 17.95/37.04/37.14
+- Latency p50/p95/max ms: 17.68/47.21/49.96
 
 ## Queue Depth
 
@@ -46,7 +46,7 @@ Threshold policy mode: release-blocking
 - Total PDF requests: 6
 - Cache hits: 4
 - Cache misses: 2
-- Cache miss p50/p95/max ms: 14.98/15.13/15.13
+- Cache miss p50/p95/max ms: 12.64/17.82/17.82
 
 ## Operator Dashboard References
 
@@ -59,15 +59,19 @@ Threshold policy mode: release-blocking
 - [pass] minRequestCount: actual=32; expected=8
 - [pass] minQueueJobCount: actual=16; expected=4
 - [pass] maxConcurrency: actual=2; expected=4
-- [pass] maxLatencyP95Ms: actual=37.04; expected=250
-- [pass] maxLatencyMaxMs: actual=37.14; expected=1000
+- [pass] maxFailureRate: actual=0; expected=0
+- [pass] maxLatencyP95Ms: actual=47.21; expected=250
+- [pass] maxLatencyMaxMs: actual=49.96; expected=1000
 - [pass] maxQueueDepthAfter: actual=0; expected=0
+- [pass] maxStaleQueueCount: actual=0; expected=0
 - [pass] minRateLimiterAccepted: actual=2; expected=1
 - [pass] minRateLimiterRejected: actual=22; expected=1
+- [pass] minRateLimiterRejectionRatio: actual=0.9167; expected=0.5
 - [pass] maxRateLimiterWritePressureEvents: actual=24; expected=100
 - [pass] minPacketPdfCacheHitCount: actual=4; expected=1
 - [pass] minPacketPdfCacheMissCount: actual=2; expected=1
 - [pass] minDbPoolConfiguredMax: actual=3; expected=1
+- [pass] dbPoolSaturationWarningThreshold: actual=0.6667; expected=0.85
 - [pass] requireDbPoolSignalOrExplicitUnavailable: actual=true; expected=true
 - [pass] requireZeroExternalProviderCalls: actual=0; expected=0
 

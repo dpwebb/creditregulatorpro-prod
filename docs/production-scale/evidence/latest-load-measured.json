@@ -1,9 +1,9 @@
 {
   "reportName": "production-scale-load-measured",
   "evidenceType": "MEASURED_LOCAL",
-  "generatedAt": "2026-05-20T21:56:40.769Z",
+  "generatedAt": "2026-05-20T23:58:41.039Z",
   "branch": "staging",
-  "commit": "1dcc63f804a9850ff016d085f2ac17613e1ad6d7",
+  "commit": "548bb5da7edcda239dd1de062344e3da43932a03",
   "mode": "measured-local",
   "productionProof": false,
   "target": {
@@ -29,12 +29,14 @@
     "concurrency": 2,
     "observedMaxConcurrency": 2,
     "iterations": 2,
-    "elapsedMs": 369.5,
-    "throughputPerSecond": 86.6,
+    "failureCount": 0,
+    "failureRate": 0,
+    "elapsedMs": 390.21,
+    "throughputPerSecond": 82.01,
     "latency": {
-      "p50Ms": 17.95,
-      "p95Ms": 37.04,
-      "maxMs": 37.14
+      "p50Ms": 17.68,
+      "p95Ms": 47.21,
+      "maxMs": 49.96
     }
   },
   "queueDepth": {
@@ -66,6 +68,7 @@
     "observedActiveConnections": 2,
     "observedOpenConnections": null,
     "observedBorrowedConnections": 2,
+    "saturationRatio": 0.6667,
     "observedSignalAvailable": true,
     "unavailableReason": null,
     "signalSource": "measured in-process bounded DB pool borrowing proxy; no database connection was opened by the load harness"
@@ -78,14 +81,15 @@
     "maxAttempts": 2,
     "acceptedCount": 2,
     "rejectedCount": 22,
+    "rejectionRatio": 0.9167,
     "writePressureEvents": 24,
     "bounded": true,
     "realTrafficSent": false,
     "databaseMutated": false,
     "latency": {
-      "p50Ms": 12.37,
-      "p95Ms": 15.95,
-      "maxMs": 16.05
+      "p50Ms": 12.38,
+      "p95Ms": 16.55,
+      "maxMs": 17.83
     },
     "decisions": [
       {
@@ -218,14 +222,14 @@
     "cacheHitCount": 4,
     "cacheMissCount": 2,
     "cacheHitLatency": {
-      "p50Ms": 3.24,
-      "p95Ms": 21.36,
-      "maxMs": 21.36
+      "p50Ms": 14.74,
+      "p95Ms": 16.59,
+      "maxMs": 16.59
     },
     "cacheMissRenderTiming": {
-      "p50Ms": 14.98,
-      "p95Ms": 15.13,
-      "maxMs": 15.13
+      "p50Ms": 12.64,
+      "p95Ms": 17.82,
+      "maxMs": 17.82
     },
     "packetPdfBehaviorChanged": false,
     "liveDeliveryRoutesCalled": false
@@ -274,8 +278,11 @@
   },
   "thresholdPolicy": {
     "path": "docs/production-scale/load-threshold-policy.json",
+    "mode": "release-blocking",
     "currentMode": "release-blocking",
-    "policyName": "production-scale-measured-load-threshold-policy"
+    "policyName": "production-scale-measured-load-threshold-policy",
+    "owner": "Release governance owner",
+    "reviewDate": "2026-08-20"
   },
   "outputPaths": {
     "markdown": "docs/production-scale/evidence/latest-load-measured.md",
@@ -311,16 +318,23 @@
         "message": "Measured concurrency must remain bounded."
       },
       {
+        "key": "maxFailureRate",
+        "status": "pass",
+        "actual": 0,
+        "expected": 0,
+        "message": "Measured failure rate must stay under policy."
+      },
+      {
         "key": "maxLatencyP95Ms",
         "status": "pass",
-        "actual": 37.04,
+        "actual": 47.21,
         "expected": 250,
         "message": "Measured latency p95 must stay under policy."
       },
       {
         "key": "maxLatencyMaxMs",
         "status": "pass",
-        "actual": 37.14,
+        "actual": 49.96,
         "expected": 1000,
         "message": "Measured max latency must stay under policy."
       },
@@ -330,6 +344,13 @@
         "actual": 0,
         "expected": 0,
         "message": "Queue depth after the measured run must drain to policy."
+      },
+      {
+        "key": "maxStaleQueueCount",
+        "status": "pass",
+        "actual": 0,
+        "expected": 0,
+        "message": "Stale synthetic queue count must stay under policy."
       },
       {
         "key": "minRateLimiterAccepted",
@@ -344,6 +365,13 @@
         "actual": 22,
         "expected": 1,
         "message": "Rate limiter must record rejected synthetic attempts."
+      },
+      {
+        "key": "minRateLimiterRejectionRatio",
+        "status": "pass",
+        "actual": 0.9167,
+        "expected": 0.5,
+        "message": "Hostile synthetic pressure must produce the expected rejection ratio."
       },
       {
         "key": "maxRateLimiterWritePressureEvents",
@@ -372,6 +400,13 @@
         "actual": 3,
         "expected": 1,
         "message": "DB pool configured max must be visible."
+      },
+      {
+        "key": "dbPoolSaturationWarningThreshold",
+        "status": "pass",
+        "actual": 0.6667,
+        "expected": 0.85,
+        "message": "DB pool saturation signal must stay below the configured warning threshold when available."
       },
       {
         "key": "requireDbPoolSignalOrExplicitUnavailable",
