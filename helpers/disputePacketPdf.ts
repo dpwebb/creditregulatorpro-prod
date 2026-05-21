@@ -26,9 +26,10 @@ function bulletList(items: string[]): Content {
 
 function safePdfText(value: unknown): string {
   return redactPacketSensitiveText(value)
-    .replace(/\bsource report\b/gi, "credit report")
-    .replace(/\breport artifact\b/gi, "credit report")
+    .replace(/\bsource\s+report\b/gi, "credit report")
+    .replace(/\breport\s+artifact\b/gi, "credit report")
     .replace(/\bartifact\b/gi, "credit report")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -192,15 +193,6 @@ export async function generateDisputePacketPDF(
       smallText: {
         fontSize: 9.5,
         lineHeight: 1.2,
-      },
-      tableHeader: {
-        fontSize: 8.5,
-        bold: true,
-        fillColor: "#f3f4f6",
-      },
-      tableCell: {
-        fontSize: 8.2,
-        lineHeight: 1.15,
       },
       signature: {
         fontSize: 10.5,

@@ -134,6 +134,23 @@ describe("simple dispute packet PDF", () => {
       ],
       reportArtifactIds: [77],
     });
+    packet.metadata.internalReferences = [
+      {
+        findingId: 111,
+        violationId: 111,
+        tradelineId: 222,
+        reportArtifactId: 77,
+        evidenceIds: ["evidence-77"],
+        regulationIds: ["PIPEDA_4_5"],
+        ruleIds: ["BALANCE_CALCULATION_VIOLATION"],
+        fieldKey: "lastReportedDate",
+        sourceField: "sourceReportArtifactId",
+        readiness: { packetReady: true, findingEligible: true },
+      },
+    ];
+    packet.attachmentChecklist.push(
+      "Source report #77; field: currentBalance; sourceReportArtifactId: 77; referenceId: PIPEDA_4_5",
+    );
 
     const text = await extractPdfText(await generateDisputePacketPDF(packet));
 
@@ -144,10 +161,18 @@ describe("simple dispute packet PDF", () => {
     expect(text).toContain("Information I am disputing: Date last reported");
     expect(text).toContain("What the report shows: Aug 21, 2012");
     expect(text).toContain("What I am requesting: Please verify this information and correct or remove it if it cannot be supported.");
+    expect(text).not.toMatch(/Creditor\/collector|Requested action\s+Account\s+Field\s+Reported\s+Expected/i);
     expect(text).not.toMatch(/tradeline|artifact|field:|source report|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION/i);
     expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-    expect(text).not.toMatch(/lastReportedDate|currentBalance|Account ending reau|Expected:\s*Not known/i);
+    expect(text).not.toMatch(/lastReportedDate|currentBalance|sourceReportArtifactId|reportArtifactId|tradelineId|referenceId|Account ending reau|Expected:\s*Not known/i);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);
+    expect(packet.metadata.internalReferences?.[0]).toMatchObject({
+      reportArtifactId: 77,
+      tradelineId: 222,
+      regulationIds: ["PIPEDA_4_5"],
+      fieldKey: "lastReportedDate",
+      sourceField: "sourceReportArtifactId",
+    });
     expect(packet.disputedItems.map((item) => item.tradelineId)).toEqual([222, 223]);
   });
 });
