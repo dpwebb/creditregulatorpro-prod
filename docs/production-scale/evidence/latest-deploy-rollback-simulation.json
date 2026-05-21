@@ -1,0 +1,294 @@
+{
+  "reportName": "deploy-rollback-simulation",
+  "generatedAt": "2026-05-21T09:00:20.465Z",
+  "currentHead": "03744f97c787d67828003e40f7f7faf7e068fe9b",
+  "branch": "staging",
+  "auditTarget": "P1-2 Deployment replaces containers without automatic rollback or blue-green safety.",
+  "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
+  "status": "passed",
+  "certifying": false,
+  "CERTIFYING": false,
+  "liveDeploymentRequired": false,
+  "liveExternalProviderCallsMade": 0,
+  "validationCommandSummary": {
+    "requestedRunInBandSupported": false,
+    "allCompatibleValidationPassed": true,
+    "CERTIFYING": false
+  },
+  "commandResults": [
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "notes": "Git reported line-ending warnings only."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit --runInBand",
+      "status": "failed",
+      "exitCode": 1,
+      "notes": "Vitest 4.1.5 rejects the unsupported --runInBand option before test execution."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit",
+      "status": "passed",
+      "testFiles": 155,
+      "tests": 1131
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-simulation.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-rollback-sha-governance.spec.ts",
+      "status": "passed",
+      "testFiles": 4,
+      "tests": 32
+    },
+    {
+      "command": "pnpm run deploy:rollback-simulation -- --write-evidence --json",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run check",
+      "status": "passed"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "target-health-pass",
+      "targetSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "previousSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "finalSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "healthResult": "passed",
+      "rollbackAttempted": false,
+      "rollbackSucceeded": false,
+      "rollbackHealthResult": "not-run",
+      "certifying": false,
+      "CERTIFYING": false,
+      "accepted": true,
+      "events": [
+        {
+          "action": "capture-previous",
+          "activeSha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "action": "deploy-target",
+          "activeSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "action": "target-health",
+          "result": "passed",
+          "activeSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
+    },
+    {
+      "name": "target-health-fail-rollback-pass",
+      "targetSha": "cccccccccccccccccccccccccccccccccccccccc",
+      "previousSha": "dddddddddddddddddddddddddddddddddddddddd",
+      "finalSha": "dddddddddddddddddddddddddddddddddddddddd",
+      "healthResult": "failed",
+      "rollbackAttempted": true,
+      "rollbackSucceeded": true,
+      "rollbackHealthResult": "passed",
+      "certifying": false,
+      "CERTIFYING": false,
+      "accepted": true,
+      "events": [
+        {
+          "action": "capture-previous",
+          "activeSha": "dddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "action": "deploy-target",
+          "activeSha": "cccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "action": "target-health",
+          "result": "failed",
+          "activeSha": "cccccccccccccccccccccccccccccccccccccccc"
+        },
+        {
+          "action": "rollback-attempt",
+          "previousSha": "dddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "action": "restore-previous",
+          "result": "passed",
+          "activeSha": "dddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "action": "rollback-health",
+          "result": "passed",
+          "activeSha": "dddddddddddddddddddddddddddddddddddddddd"
+        }
+      ]
+    },
+    {
+      "name": "target-health-fail-rollback-fail",
+      "targetSha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "previousSha": "ffffffffffffffffffffffffffffffffffffffff",
+      "finalSha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "healthResult": "failed",
+      "rollbackAttempted": true,
+      "rollbackSucceeded": false,
+      "rollbackHealthResult": "not-run",
+      "certifying": false,
+      "CERTIFYING": false,
+      "accepted": false,
+      "events": [
+        {
+          "action": "capture-previous",
+          "activeSha": "ffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "action": "deploy-target",
+          "activeSha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "action": "target-health",
+          "result": "failed",
+          "activeSha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "action": "rollback-attempt",
+          "previousSha": "ffffffffffffffffffffffffffffffffffffffff"
+        },
+        {
+          "action": "restore-previous",
+          "result": "failed",
+          "activeSha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ]
+    }
+  ],
+  "workflowValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "staging captures previous SHA before target checkout",
+        "passed": true
+      },
+      {
+        "name": "production captures previous SHA before target checkout",
+        "passed": true
+      },
+      {
+        "name": "workflows preserve previous image IDs for restore fallback",
+        "passed": true
+      },
+      {
+        "name": "staging has automatic rollback failure handler",
+        "passed": true
+      },
+      {
+        "name": "production has automatic rollback failure handler",
+        "passed": true
+      },
+      {
+        "name": "machine-readable rollback evidence is emitted",
+        "passed": true
+      },
+      {
+        "name": "shell blocks pass bash -n",
+        "passed": true,
+        "stagingFailedLines": [],
+        "productionFailedLines": []
+      }
+    ],
+    "failedChecks": [],
+    "bashSyntax": {
+      "staging": {
+        "status": "passed",
+        "blockCount": 5,
+        "results": [
+          {
+            "line": 60,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 111,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 181,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 205,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 330,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      },
+      "production": {
+        "status": "passed",
+        "blockCount": 6,
+        "results": [
+          {
+            "line": 66,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 117,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 187,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 211,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 309,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 494,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    }
+  },
+  "summary": {
+    "healthPassKeepsTarget": true,
+    "healthFailRestoresPrevious": true,
+    "rollbackFailureCertifyingFalse": true,
+    "workflowHasFailureHandler": true,
+    "evidenceProducedForPassAndFail": true,
+    "shellBlocksBashSyntaxPassed": true
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  },
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-deploy-rollback-simulation.md",
+    "json": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json"
+  }
+}

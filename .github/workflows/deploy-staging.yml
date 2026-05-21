@@ -400,6 +400,16 @@ jobs:
 
             cd /opt/creditregulatorpro-staging/app
             git fetch --prune origin
+            previous_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+            previous_sha="$(printf '%s' "$previous_sha" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+            if ! printf '%s' "$previous_sha" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "Refusing staging deploy: previous known-good SHA could not be captured."
+              exit 1
+            fi
+            previous_app_image="$(docker inspect -f '{{.Image}}' creditregulatorpro-staging 2>/dev/null || true)"
+            previous_worker_image="$(docker inspect -f '{{.Image}}' creditregulatorpro-staging-ingest-worker 2>/dev/null || true)"
+            deploy_rollback_evidence_path="/tmp/creditregulatorpro-staging-deploy-rollback-evidence.json"
+            echo "Staging previous known-good SHA captured: ${previous_sha}."
             git checkout --force "$TARGET_SHA"
             deployed_sha="$(git rev-parse HEAD)"
             target_sha="$(git rev-parse "$TARGET_SHA")"
@@ -486,7 +496,83 @@ jobs:
               return 1
             }
 
-            wait_for_staging_health "before"
+            write_staging_deploy_rollback_evidence() {
+              local health_result="$1"
+              local rollback_attempted="$2"
+              local rollback_succeeded="$3"
+              local rollback_health_result="$4"
+              cat > "$deploy_rollback_evidence_path" <<EOF
+            {"environment":"staging","targetSha":"${TARGET_SHA}","previousSha":"${previous_sha}","previousAppImage":"${previous_app_image}","previousWorkerImage":"${previous_worker_image}","healthResult":"${health_result}","rollbackAttempted":${rollback_attempted},"rollbackSucceeded":${rollback_succeeded},"rollbackHealthResult":"${rollback_health_result}","CERTIFYING":false}
+            EOF
+              echo "DEPLOY_ROLLBACK_EVIDENCE_JSON=$(tr -d '\n' < "$deploy_rollback_evidence_path")"
+            }
+
+            restore_previous_staging_deploy() {
+              local reason="$1"
+              if ! printf '%s' "${previous_sha:-}" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "Staging automatic rollback refused: previous SHA is missing or invalid."
+                write_staging_deploy_rollback_evidence "failed" "true" "false" "not-run"
+                return 1
+              fi
+              if [ "$previous_sha" = "$TARGET_SHA" ]; then
+                echo "Staging automatic rollback refused: previous SHA equals target SHA."
+                write_staging_deploy_rollback_evidence "failed" "true" "false" "not-run"
+                return 1
+              fi
+
+              echo "Attempting staging automatic rollback to ${previous_sha} after ${reason}."
+              if ! (
+                set -euo pipefail
+                git checkout --force "$previous_sha"
+                restored_sha="$(git rev-parse HEAD)"
+                if [ "$restored_sha" != "$previous_sha" ]; then
+                  echo "Staging rollback checkout SHA mismatch: expected ${previous_sha}, got ${restored_sha}."
+                  exit 1
+                fi
+                assert_no_unsupported_vite_node_env
+                corepack enable
+                corepack prepare pnpm@10 --activate
+                pnpm install --frozen-lockfile
+                pnpm run storage:durability-contract -- --environment staging --compose docker-compose.yml --service creditregulatorpro-staging --preflight --no-write-evidence
+                pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence
+                pnpm run build
+                cleanup_staging_container
+                docker compose up -d --build --force-recreate creditregulatorpro-staging creditregulatorpro-staging-ingest-worker
+              ); then
+                echo "Staging previous SHA rebuild failed; attempting captured previous image restore."
+                if [ -n "${previous_app_image:-}" ] && docker image inspect "$previous_app_image" >/dev/null 2>&1; then
+                  git checkout --force "$previous_sha" || true
+                  docker tag "$previous_app_image" app-creditregulatorpro-staging
+                  cleanup_staging_container
+                  docker compose up -d --no-build --force-recreate creditregulatorpro-staging creditregulatorpro-staging-ingest-worker
+                else
+                  write_staging_deploy_rollback_evidence "failed" "true" "false" "not-run"
+                  echo "Staging automatic rollback failed: captured previous image is unavailable."
+                  return 1
+                fi
+              fi
+
+              docker ps --filter "name=^/creditregulatorpro-staging$" --format '{{.Status}}' | grep -q '^Up ' || {
+                write_staging_deploy_rollback_evidence "failed" "true" "false" "not-run"
+                echo "Staging rollback container is not running after restore."
+                return 1
+              }
+
+              if wait_for_staging_health "rollback"; then
+                write_staging_deploy_rollback_evidence "failed" "true" "true" "passed"
+                echo "Staging automatic rollback succeeded."
+                return 0
+              fi
+
+              write_staging_deploy_rollback_evidence "failed" "true" "false" "failed"
+              echo "Staging automatic rollback failed health verification."
+              return 1
+            }
+
+            if ! wait_for_staging_health "before"; then
+              restore_previous_staging_deploy "before-health" || true
+              exit 1
+            fi
 
             response_auth_smokes_required() {
               local changed_files="/tmp/response-auth-changed-files.txt"
@@ -849,7 +935,11 @@ jobs:
               run_response_auth_smokes
             fi
 
-            wait_for_staging_health "after"
+            if ! wait_for_staging_health "after"; then
+              restore_previous_staging_deploy "after-health" || true
+              exit 1
+            fi
+            write_staging_deploy_rollback_evidence "passed" "false" "false" "not-run"
 
             run_staging_ingest_worker_orchestration() {
               if [ "${RUN_INGEST_WORKER:-false}" != "true" ]; then

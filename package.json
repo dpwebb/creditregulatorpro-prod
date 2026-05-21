@@ -81,6 +81,7 @@
     "baseline:production-scale-measured": "node scripts/production-scale-measured.mjs",
     "packet-pdf:cache-miss-proof": "tsx scripts/packet-pdf-cache-miss-proof.ts",
     "deploy:rollback-sha-governance": "node scripts/deploy-rollback-sha-governance.mjs",
+    "deploy:rollback-simulation": "node scripts/deploy-rollback-simulation.mjs",
     "production-scale:evidence": "node scripts/production-scale-evidence.mjs",
     "production-scale:promotion-pack": "node scripts/production-promotion-pack.mjs",
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",

@@ -294,6 +294,7 @@ jobs:
           ssh-keyscan -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy selected commit
+        id: deploy_remote
         env:
           PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
           PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
@@ -360,6 +361,19 @@ jobs:
               exit 1
             fi
           fi
+
+          previous_sha="$(ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" 'cd /opt/creditregulatorpro/app && git rev-parse HEAD 2>/dev/null || true')"
+          previous_sha="$(printf '%s' "$previous_sha" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
+          if ! printf '%s' "$previous_sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Refusing production deploy: previous known-good SHA could not be captured."
+            exit 1
+          fi
+          previous_app_image="$(ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" "docker inspect -f '{{.Image}}' creditregulatorpro-app 2>/dev/null || true")"
+          previous_worker_image="$(ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" "docker inspect -f '{{.Image}}' creditregulatorpro-ingest-worker 2>/dev/null || true")"
+          echo "previous_sha=$previous_sha" >> "$GITHUB_OUTPUT"
+          echo "previous_app_image=$previous_app_image" >> "$GITHUB_OUTPUT"
+          echo "previous_worker_image=$previous_worker_image" >> "$GITHUB_OUTPUT"
+          echo "Production previous known-good SHA captured: ${previous_sha}."
 
           ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" bash -s -- \
             "$TARGET_SHA" \
@@ -470,11 +484,19 @@ jobs:
       - name: Verify production health
         env:
           PRODUCTION_APP_URL: ${{ vars.PRODUCTION_APP_URL || 'https://creditregulatorpro.com' }}
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+          PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+          TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}
+          PREVIOUS_SHA: ${{ steps.deploy_remote.outputs.previous_sha }}
+          PREVIOUS_APP_IMAGE: ${{ steps.deploy_remote.outputs.previous_app_image }}
+          PREVIOUS_WORKER_IMAGE: ${{ steps.deploy_remote.outputs.previous_worker_image }}
         run: |
           set -euo pipefail
 
           base_url="${PRODUCTION_APP_URL%/}"
           invalid_session_cookie="floot_built_app_session=invalid-production-readiness-probe"
+          evidence_path="${RUNNER_TEMP:-/tmp}/production-deploy-rollback-evidence.json"
 
           wait_for_status() {
             local label="$1"
@@ -518,17 +540,108 @@ jobs:
             return 1
           }
 
-          wait_for_status "root route" "HEAD" "/" '^[23][0-9][0-9]$'
-          wait_for_status "login route" "GET" "/login" '^[23][0-9][0-9]$'
-          wait_for_status "auth session denial" "GET" "/_api/auth/session" '^(401|403)$'
-          wait_for_status "report artifact list denial" "GET" "/_api/report-artifact/list?limit=1" '^(401|403)$'
-          wait_for_status "packet list denial" "GET" "/_api/packet/list?limit=1" '^(401|403)$'
-          wait_for_status "evidence event list denial" "GET" "/_api/evidence/list?limit=1" '^(401|403)$'
-          wait_for_status "response document list denial" "GET" "/_api/responses/list?limit=1" '^(401|403)$'
-          wait_for_status "support ticket list denial" "GET" "/_api/support-ticket/list?limit=1" '^(401|403)$'
-          wait_for_status "invalid session auth denial" "GET" "/_api/auth/session" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
-          wait_for_status "invalid session report artifact list denial" "GET" "/_api/report-artifact/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
-          wait_for_status "invalid session packet list denial" "GET" "/_api/packet/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
-          wait_for_status "invalid session evidence event list denial" "GET" "/_api/evidence/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
-          wait_for_status "invalid session response document list denial" "GET" "/_api/responses/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
-          wait_for_status "invalid session support ticket list denial" "GET" "/_api/support-ticket/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          run_production_health_checks() {
+            local phase="$1"
+            echo "Running production health checks for ${phase}."
+            wait_for_status "root route" "HEAD" "/" '^[23][0-9][0-9]$'
+            wait_for_status "login route" "GET" "/login" '^[23][0-9][0-9]$'
+            wait_for_status "auth session denial" "GET" "/_api/auth/session" '^(401|403)$'
+            wait_for_status "report artifact list denial" "GET" "/_api/report-artifact/list?limit=1" '^(401|403)$'
+            wait_for_status "packet list denial" "GET" "/_api/packet/list?limit=1" '^(401|403)$'
+            wait_for_status "evidence event list denial" "GET" "/_api/evidence/list?limit=1" '^(401|403)$'
+            wait_for_status "response document list denial" "GET" "/_api/responses/list?limit=1" '^(401|403)$'
+            wait_for_status "support ticket list denial" "GET" "/_api/support-ticket/list?limit=1" '^(401|403)$'
+            wait_for_status "invalid session auth denial" "GET" "/_api/auth/session" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+            wait_for_status "invalid session report artifact list denial" "GET" "/_api/report-artifact/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+            wait_for_status "invalid session packet list denial" "GET" "/_api/packet/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+            wait_for_status "invalid session evidence event list denial" "GET" "/_api/evidence/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+            wait_for_status "invalid session response document list denial" "GET" "/_api/responses/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+            wait_for_status "invalid session support ticket list denial" "GET" "/_api/support-ticket/list?limit=1" '^(401|403)$' "Cookie: ${invalid_session_cookie}"
+          }
+
+          write_production_deploy_rollback_evidence() {
+            local health_result="$1"
+            local rollback_attempted="$2"
+            local rollback_succeeded="$3"
+            local rollback_health_result="$4"
+            cat > "$evidence_path" <<EOF
+          {"environment":"production","targetSha":"${TARGET_SHA}","previousSha":"${PREVIOUS_SHA}","previousAppImage":"${PREVIOUS_APP_IMAGE}","previousWorkerImage":"${PREVIOUS_WORKER_IMAGE}","healthResult":"${health_result}","rollbackAttempted":${rollback_attempted},"rollbackSucceeded":${rollback_succeeded},"rollbackHealthResult":"${rollback_health_result}","CERTIFYING":false}
+          EOF
+            echo "DEPLOY_ROLLBACK_EVIDENCE_JSON=$(tr -d '\n' < "$evidence_path")"
+          }
+
+          restore_previous_production_deploy() {
+            local reason="$1"
+            if ! printf '%s' "${PREVIOUS_SHA:-}" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "Production automatic rollback refused: previous SHA is missing or invalid."
+              write_production_deploy_rollback_evidence "failed" "true" "false" "not-run"
+              return 1
+            fi
+            if [ "$PREVIOUS_SHA" = "$TARGET_SHA" ]; then
+              echo "Production automatic rollback refused: previous SHA equals target SHA."
+              write_production_deploy_rollback_evidence "failed" "true" "false" "not-run"
+              return 1
+            fi
+
+            echo "Attempting production automatic rollback to ${PREVIOUS_SHA} after ${reason}."
+            ssh -i ~/.ssh/production_deploy_key -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_USER@$PRODUCTION_HOST" bash -s -- "$PREVIOUS_SHA" "$PREVIOUS_APP_IMAGE" "$PREVIOUS_WORKER_IMAGE" <<'REMOTE'
+              set -euo pipefail
+              PREVIOUS_SHA="${1:?missing previous sha}"
+              PREVIOUS_APP_IMAGE="${2:-}"
+              PREVIOUS_WORKER_IMAGE="${3:-}"
+              if ! printf '%s' "$PREVIOUS_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "Refusing production rollback: PREVIOUS_SHA is invalid."
+                exit 1
+              fi
+              cd /opt/creditregulatorpro/app
+              if ! (
+                set -euo pipefail
+                git fetch --prune origin
+                git checkout --force "$PREVIOUS_SHA"
+                restored_sha="$(git rev-parse HEAD)"
+                if [ "$restored_sha" != "$PREVIOUS_SHA" ]; then
+                  echo "Production rollback checkout SHA mismatch: expected ${PREVIOUS_SHA}, got ${restored_sha}."
+                  exit 1
+                fi
+                corepack enable
+                corepack prepare pnpm@10 --activate
+                pnpm install --frozen-lockfile
+                pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence
+                pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence
+                pnpm run build
+                docker rm -f creditregulatorpro-app 2>/dev/null || true
+                docker rm -f creditregulatorpro-ingest-worker 2>/dev/null || true
+                docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker
+              ); then
+                echo "Production previous SHA rebuild failed; attempting captured previous image restore."
+                if [ -n "$PREVIOUS_APP_IMAGE" ] && docker image inspect "$PREVIOUS_APP_IMAGE" >/dev/null 2>&1; then
+                  git checkout --force "$PREVIOUS_SHA" || true
+                  docker tag "$PREVIOUS_APP_IMAGE" app-creditregulatorpro
+                  docker rm -f creditregulatorpro-app 2>/dev/null || true
+                  docker rm -f creditregulatorpro-ingest-worker 2>/dev/null || true
+                  docker compose -f docker-compose.production.yml up -d --no-build --force-recreate creditregulatorpro creditregulatorpro-ingest-worker
+                else
+                  echo "Production automatic rollback failed: captured previous image is unavailable."
+                  exit 1
+                fi
+              fi
+              docker ps --filter name=creditregulatorpro-app --format '{{.Status}}' | grep -q '^Up '
+              docker ps --filter name=creditregulatorpro-ingest-worker --format '{{.Status}}' | grep -q '^Up '
+              echo "Production automatic rollback restored ${PREVIOUS_SHA}."
+          REMOTE
+
+            if run_production_health_checks "rollback"; then
+              write_production_deploy_rollback_evidence "failed" "true" "true" "passed"
+              return 0
+            fi
+
+            write_production_deploy_rollback_evidence "failed" "true" "false" "failed"
+            return 1
+          }
+
+          if run_production_health_checks "target"; then
+            write_production_deploy_rollback_evidence "passed" "false" "false" "not-run"
+          else
+            restore_previous_production_deploy "production-health" || true
+            exit 1
+          fi
