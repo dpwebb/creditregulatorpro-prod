@@ -6,15 +6,33 @@ const workflowSource = () =>
   readFileSync(join(process.cwd(), ".github", "workflows", "deploy-staging.yml"), "utf8");
 
 describe("staging deploy workflow health gate", () => {
-  it("removes only unsupported Vite NODE_ENV production entries before building", () => {
+  it("fails fast on unsupported Vite NODE_ENV production entries without mutating env files", () => {
     const source = workflowSource();
-    const cleanupBlock = source.match(/remove_unsupported_vite_node_env\(\) \{[\s\S]*?\n            \}/)?.[0] ?? "";
+    const driftBlock = source.match(/assert_no_unsupported_vite_node_env\(\) \{[\s\S]*?\n            \}/)?.[0] ?? "";
 
-    expect(source).toContain("remove_unsupported_vite_node_env() {");
-    expect(source).toContain("remove_unsupported_vite_node_env");
-    expect(cleanupBlock).toContain("NODE_ENV[[:space:]]*=[[:space:]]*production");
-    expect(cleanupBlock).toContain("Removed unsupported NODE_ENV=production");
-    expect(cleanupBlock).not.toMatch(/DATABASE_URL|FLOOT_DATABASE_URL|STAGING_DATABASE_URL/);
+    expect(source).toContain("assert_no_unsupported_vite_node_env() {");
+    expect(source).toContain("assert_no_unsupported_vite_node_env");
+    expect(driftBlock).toContain("NODE_ENV[[:space:]]*=[[:space:]]*production");
+    expect(driftBlock).toContain("Staging deploy refused: ${env_file} contains NODE_ENV=production.");
+    expect(driftBlock).toContain("Fix the server config manually");
+    expect(driftBlock).toContain("will not mutate persistent .env files");
+    expect(driftBlock).not.toMatch(/mktemp|grep -Ev|cat "\$tmp_file" > "\$env_file"|Removed unsupported NODE_ENV=production/);
+    expect(driftBlock).not.toMatch(/DATABASE_URL|FLOOT_DATABASE_URL|STAGING_DATABASE_URL/);
+  });
+
+  it("validates rollback SHA locally before staging deploy and avoids raw SSH env assignment", () => {
+    const source = workflowSource();
+
+    expect(source).toContain("Check out repository for target validation");
+    expect(source).toContain("fetch-depth: 0");
+    expect(source).toContain("ROLLBACK_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha || '' }}");
+    expect(source).toContain('if ! printf \'%s\' "$rollback_sha" | grep -Eq \'^[0-9a-fA-F]{40}$\'; then');
+    expect(source).toContain('target_sha="$(printf \'%s\' "$rollback_sha" | tr \'[:upper:]\' \'[:lower:]\')"');
+    expect(source).toContain('git cat-file -e "$target_sha^{commit}"');
+    expect(source).toContain('Refusing staging deploy: TARGET_SHA must be a validated lowercase full commit SHA.');
+    expect(source).toContain('Refusing staging deploy: remote TARGET_SHA is invalid.');
+    expect(source).toContain('bash -s -- \\');
+    expect(source).not.toContain("TARGET_SHA='$TARGET_SHA'");
   });
 
   it("documents transient 404 readiness retries without weakening the response-auth gate", () => {

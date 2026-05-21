@@ -146,6 +146,21 @@ function writePolicyAndEvidence(rootDir: string, policy: unknown, evidence: unkn
   writeJson(rootDir, "docs/production-scale/evidence/latest-runtime-size.json", evidence);
 }
 
+function fixturePackageJson(overrides: Record<string, unknown> = {}) {
+  return {
+    dependencies: {
+      react: "19.2.1",
+      "pdf-parse": "1.1.4",
+    },
+    devDependencies: {
+      vitest: "4.1.5",
+    },
+    optionalDependencies: {},
+    peerDependencies: {},
+    ...overrides,
+  };
+}
+
 afterEach(() => {
   while (tempRoots.length > 0) {
     const root = tempRoots.pop();
@@ -163,17 +178,22 @@ describe("runtime-size policy acceptance", () => {
     });
     expect(parseRuntimeSizePolicyAcceptanceArgs([
       "--json",
+      "--release-evidence",
       "--policy",
       "policy.json",
       "--evidence",
       "evidence.json",
       "--max-age-hours",
       "48",
+      "--dependency-baseline-ref",
+      "abc123",
     ])).toMatchObject({
       json: true,
+      releaseEvidenceMode: true,
       policyPath: "policy.json",
       evidencePath: "evidence.json",
       maxEvidenceAgeHours: 48,
+      dependencyBaselineRef: "abc123",
     });
     expect(() => parseRuntimeSizePolicyAcceptanceArgs(["--unknown"])).toThrow(/Unknown option/i);
   });
@@ -237,6 +257,107 @@ describe("runtime-size policy acceptance", () => {
     });
     expect(existsSync(path.join(rootDir, outputs.markdownPath))).toBe(true);
     expect(existsSync(path.join(rootDir, outputs.jsonPath))).toBe(true);
+  });
+
+  it("fails release evidence mode when no explicit dependency baseline is provided", () => {
+    const rootDir = makeTempRoot();
+    writePolicyAndEvidence(rootDir, basePolicy(), baseRuntimeEvidence());
+    writeJson(rootDir, "package.json", fixturePackageJson());
+
+    const report = buildRuntimeSizePolicyAcceptanceReport({
+      rootDir,
+      releaseEvidenceMode: true,
+    });
+
+    expect(report.accepted).toBe(false);
+    expect(report.dependencyVersionChangeStatus).toMatchObject({
+      determinable: false,
+      releaseEvidenceMode: true,
+      baselineSource: {
+        type: "missing-explicit-baseline",
+      },
+    });
+    expect(report.validation.errors.join("\n")).toMatch(/RUNTIME_SIZE_BASELINE_REF|RUNTIME_SIZE_DEPENDENCY_BASELINE_PATH/i);
+  });
+
+  it("accepts release evidence mode when dependencies match an explicit package snapshot baseline", () => {
+    const rootDir = makeTempRoot();
+    const packageJson = fixturePackageJson();
+    writePolicyAndEvidence(rootDir, basePolicy(), baseRuntimeEvidence());
+    writeJson(rootDir, "package.json", packageJson);
+    writeJson(rootDir, "docs/production-scale/evidence/runtime-size-dependency-baseline-package.json", packageJson);
+
+    const report = buildRuntimeSizePolicyAcceptanceReport({
+      rootDir,
+      releaseEvidenceMode: true,
+      dependencyBaselinePackageJsonPath: "docs/production-scale/evidence/runtime-size-dependency-baseline-package.json",
+    });
+
+    expect(report.accepted).toBe(true);
+    expect(report.dependencyVersionChangeStatus).toMatchObject({
+      determinable: true,
+      changed: false,
+      releaseEvidenceMode: true,
+      baselineSource: {
+        type: "package-json-file",
+        value: "docs/production-scale/evidence/runtime-size-dependency-baseline-package.json",
+      },
+      added: [],
+      removed: [],
+      changedVersions: [],
+    });
+  });
+
+  it("reports added, removed, and changed dependency versions against the explicit baseline", () => {
+    const rootDir = makeTempRoot();
+    writePolicyAndEvidence(rootDir, basePolicy(), baseRuntimeEvidence());
+    writeJson(rootDir, "package.json", fixturePackageJson({
+      dependencies: {
+        react: "19.2.2",
+        zod: "3.25.76",
+      },
+      devDependencies: {},
+      optionalDependencies: {
+        sharp: "0.33.0",
+      },
+      peerDependencies: {},
+    }));
+    writeJson(rootDir, "dependency-baseline-package.json", fixturePackageJson({
+      dependencies: {
+        react: "19.2.1",
+        "pdf-parse": "1.1.4",
+      },
+      devDependencies: {
+        vitest: "4.1.5",
+      },
+      optionalDependencies: {},
+      peerDependencies: {},
+    }));
+
+    const report = buildRuntimeSizePolicyAcceptanceReport({
+      rootDir,
+      releaseEvidenceMode: true,
+      dependencyBaselinePackageJsonPath: "dependency-baseline-package.json",
+    });
+
+    expect(report.accepted).toBe(false);
+    expect(report.dependencyVersionChangeStatus.added).toEqual(expect.arrayContaining([
+      { field: "dependencies", name: "zod", currentVersion: "3.25.76" },
+      { field: "optionalDependencies", name: "sharp", currentVersion: "0.33.0" },
+    ]));
+    expect(report.dependencyVersionChangeStatus.removed).toEqual(expect.arrayContaining([
+      { field: "dependencies", name: "pdf-parse", baselineVersion: "1.1.4" },
+      { field: "devDependencies", name: "vitest", baselineVersion: "4.1.5" },
+    ]));
+    expect(report.dependencyVersionChangeStatus.changedVersions).toEqual([
+      {
+        field: "dependencies",
+        name: "react",
+        baselineVersion: "19.2.1",
+        currentVersion: "19.2.2",
+      },
+    ]);
+    expect(report.validation.errors.join("\n")).toMatch(/Dependency version declarations changed relative to the explicit runtime-size baseline/i);
   });
 
   it("fails hard-gate mode when thresholds are exceeded", () => {

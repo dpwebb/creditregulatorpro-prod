@@ -20,6 +20,7 @@ const DEFAULT_MAX_EVIDENCE_AGE_HOURS = 24;
 const POLICY_MODES = new Set(["warning-only", "release-blocking", "waived", "hard-gate"]);
 const RELEASE_BLOCKING_POLICY_MODES = new Set(["release-blocking", "hard-gate"]);
 const DEPENDENCY_VERSION_FIELDS = ["dependencies", "devDependencies", "optionalDependencies", "peerDependencies"];
+const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 
 function normalizeRelativePath(value) {
   return String(value ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -128,6 +129,41 @@ function dependencyVersionSnapshot(packageJson) {
   ]));
 }
 
+function dependencyDiff(currentSnapshot, baselineSnapshot) {
+  const added = [];
+  const removed = [];
+  const changed = [];
+  for (const field of DEPENDENCY_VERSION_FIELDS) {
+    const current = currentSnapshot?.[field] ?? {};
+    const baseline = baselineSnapshot?.[field] ?? {};
+    const names = new Set([...Object.keys(current), ...Object.keys(baseline)]);
+    for (const name of [...names].sort()) {
+      if (!(name in baseline) && name in current) {
+        added.push({ field, name, currentVersion: current[name] });
+        continue;
+      }
+      if (name in baseline && !(name in current)) {
+        removed.push({ field, name, baselineVersion: baseline[name] });
+        continue;
+      }
+      if (current[name] !== baseline[name]) {
+        changed.push({
+          field,
+          name,
+          baselineVersion: baseline[name],
+          currentVersion: current[name],
+        });
+      }
+    }
+  }
+  return {
+    added,
+    removed,
+    changed,
+    changedCount: added.length + removed.length + changed.length,
+  };
+}
+
 function gitShowJson(rootDir, gitRef) {
   const result = spawnSync("git", ["show", gitRef], {
     cwd: rootDir,
@@ -142,25 +178,94 @@ function gitShowJson(rootDir, gitRef) {
   }
 }
 
-function collectDependencyVersionChangeStatus(rootDir) {
+function resolveDependencyBaseline({ rootDir, baselineRef, baselinePackageJsonPath, releaseEvidenceMode }) {
+  if (baselinePackageJsonPath) {
+    const baselinePackageJson = readJsonIfPresent(rootDir, baselinePackageJsonPath);
+    return {
+      packageJson: baselinePackageJson,
+      source: {
+        type: "package-json-file",
+        value: normalizeRelativePath(baselinePackageJsonPath),
+      },
+      error: baselinePackageJson ? null : `Dependency baseline package JSON was not readable: ${baselinePackageJsonPath}`,
+    };
+  }
+
+  if (baselineRef) {
+    const baselinePackageJson = gitShowJson(rootDir, `${baselineRef}:package.json`);
+    return {
+      packageJson: baselinePackageJson,
+      source: {
+        type: "git-ref",
+        value: baselineRef,
+      },
+      error: baselinePackageJson ? null : `Dependency baseline ref did not provide a readable package.json: ${baselineRef}`,
+    };
+  }
+
+  if (releaseEvidenceMode) {
+    return {
+      packageJson: null,
+      source: {
+        type: "missing-explicit-baseline",
+        value: null,
+      },
+      error: "Release evidence mode requires RUNTIME_SIZE_BASELINE_REF or RUNTIME_SIZE_DEPENDENCY_BASELINE_PATH.",
+    };
+  }
+
+  return {
+    packageJson: gitShowJson(rootDir, "HEAD:package.json"),
+    source: {
+      type: "git-ref",
+      value: "HEAD",
+      compatibilityMode: "local-developer-default",
+    },
+    error: null,
+  };
+}
+
+function collectDependencyVersionChangeStatus(rootDir, {
+  releaseEvidenceMode = false,
+  baselineRef = "",
+  baselinePackageJsonPath = "",
+} = {}) {
   const currentPackageJson = readJsonIfPresent(rootDir, "package.json");
-  const headPackageJson = gitShowJson(rootDir, "HEAD:package.json");
-  if (!currentPackageJson || !headPackageJson) {
+  const baseline = resolveDependencyBaseline({
+    rootDir,
+    baselineRef,
+    baselinePackageJsonPath,
+    releaseEvidenceMode,
+  });
+  if (!currentPackageJson || !baseline.packageJson) {
     return {
       determinable: false,
       changed: false,
-      reason: "Unable to compare package dependency versions against HEAD.",
+      reason: !currentPackageJson
+        ? "Unable to read current package.json dependency versions."
+        : baseline.error ?? "Unable to read dependency baseline package.json.",
       fieldsChecked: DEPENDENCY_VERSION_FIELDS,
+      releaseEvidenceMode,
+      baselineSource: baseline.source,
+      added: [],
+      removed: [],
+      changedVersions: [],
     };
   }
 
   const currentSnapshot = dependencyVersionSnapshot(currentPackageJson);
-  const headSnapshot = dependencyVersionSnapshot(headPackageJson);
+  const baselineSnapshot = dependencyVersionSnapshot(baseline.packageJson);
+  const diff = dependencyDiff(currentSnapshot, baselineSnapshot);
   return {
     determinable: true,
-    changed: JSON.stringify(currentSnapshot) !== JSON.stringify(headSnapshot),
+    changed: diff.changedCount > 0,
     reason: null,
     fieldsChecked: DEPENDENCY_VERSION_FIELDS,
+    releaseEvidenceMode,
+    baselineSource: baseline.source,
+    added: diff.added,
+    removed: diff.removed,
+    changedVersions: diff.changed,
   };
 }
 
@@ -252,7 +357,10 @@ function validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceA
     if (!row.accepted) errors.push(`WAIVED row ${row.id} must include reason, owner, review/expiry date, and accepted-risk statement.`);
   }
   if (dependencyVersionChangeStatus?.changed === true) {
-    errors.push("Dependency version declarations changed relative to HEAD.");
+    errors.push("Dependency version declarations changed relative to the explicit runtime-size baseline.");
+  }
+  if (dependencyVersionChangeStatus?.releaseEvidenceMode === true && dependencyVersionChangeStatus?.determinable !== true) {
+    errors.push(dependencyVersionChangeStatus.reason ?? "Release evidence dependency baseline comparison was not determinable.");
   }
 
   let acceptanceKind = "not-accepted";
@@ -302,6 +410,9 @@ export function buildRuntimeSizePolicyAcceptanceReport({
   policyPath = DEFAULT_RUNTIME_SIZE_POLICY_PATH,
   evidencePath = `docs/production-scale/evidence/${RUNTIME_SIZE_EVIDENCE_JSON}`,
   maxEvidenceAgeHours = DEFAULT_MAX_EVIDENCE_AGE_HOURS,
+  releaseEvidenceMode = TRUE_VALUES.has(String(process.env.RUNTIME_SIZE_RELEASE_EVIDENCE ?? "").toLowerCase()),
+  dependencyBaselineRef = process.env.RUNTIME_SIZE_BASELINE_REF ?? "",
+  dependencyBaselinePackageJsonPath = process.env.RUNTIME_SIZE_DEPENDENCY_BASELINE_PATH ?? "",
   generatedAt = new Date().toISOString(),
   now = new Date(),
 } = {}) {
@@ -317,7 +428,11 @@ export function buildRuntimeSizePolicyAcceptanceReport({
     policyErrors.push(error instanceof Error ? error.message : String(error));
   }
   const runtimeEvidence = readJsonIfPresent(rootDir, evidencePath);
-  const dependencyVersionChangeStatus = collectDependencyVersionChangeStatus(rootDir);
+  const dependencyVersionChangeStatus = collectDependencyVersionChangeStatus(rootDir, {
+    releaseEvidenceMode,
+    baselineRef: dependencyBaselineRef,
+    baselinePackageJsonPath: dependencyBaselinePackageJsonPath,
+  });
   const validation = policy
     ? validateAcceptance({ policy, runtimeEvidence, generatedAt, maxEvidenceAgeHours, dependencyVersionChangeStatus, now })
     : {
@@ -374,6 +489,7 @@ export function buildRuntimeSizePolicyAcceptanceReport({
     waivedRows: validation.waivedRows,
     evidenceAge: validation.evidenceAge,
     dependencyVersionChangeStatus,
+    releaseEvidenceMode,
     blockerCoverage: {
       runtimeSizeGovernance: validation.accepted,
       acceptedHardGate: hardGateAccepted,
@@ -443,15 +559,20 @@ export function renderRuntimeSizePolicyAcceptanceMarkdown(report) {
     "",
     "## Dependency Version Check",
     "",
+    `- Release evidence mode: ${report.releaseEvidenceMode ? "yes" : "no"}`,
     `- Determinable: ${report.dependencyVersionChangeStatus.determinable ? "yes" : "no"}`,
+    `- Baseline source: ${report.dependencyVersionChangeStatus.baselineSource?.type ?? "unknown"}${report.dependencyVersionChangeStatus.baselineSource?.value ? ` (${report.dependencyVersionChangeStatus.baselineSource.value})` : ""}`,
     `- Dependency versions changed: ${report.dependencyVersionChangeStatus.changed ? "yes" : "no"}`,
     `- Fields checked: ${report.dependencyVersionChangeStatus.fieldsChecked.join(", ")}`,
+    `- Added dependencies: ${report.dependencyVersionChangeStatus.added?.length ?? 0}`,
+    `- Removed dependencies: ${report.dependencyVersionChangeStatus.removed?.length ?? 0}`,
+    `- Changed dependency versions: ${report.dependencyVersionChangeStatus.changedVersions?.length ?? 0}`,
     "",
     "## Safety",
     "",
     "- Non-mutating: yes",
     "- Production data mutated: no",
-    "- Dependency versions changed: no",
+    `- Dependency versions changed: ${report.safety.dependencyVersionsChanged ? "yes" : "no"}`,
     "- Build chunking changed: no",
     "- Build behavior changed: no",
     "- PDF/OCR behavior changed: no",
@@ -480,6 +601,9 @@ export function parseRuntimeSizePolicyAcceptanceArgs(args) {
     policyPath: DEFAULT_RUNTIME_SIZE_POLICY_PATH,
     evidencePath: `docs/production-scale/evidence/${RUNTIME_SIZE_EVIDENCE_JSON}`,
     maxEvidenceAgeHours: DEFAULT_MAX_EVIDENCE_AGE_HOURS,
+    releaseEvidenceMode: TRUE_VALUES.has(String(process.env.RUNTIME_SIZE_RELEASE_EVIDENCE ?? "").toLowerCase()),
+    dependencyBaselineRef: process.env.RUNTIME_SIZE_BASELINE_REF ?? "",
+    dependencyBaselinePackageJsonPath: process.env.RUNTIME_SIZE_DEPENDENCY_BASELINE_PATH ?? "",
     json: false,
   };
   for (let index = 0; index < args.length; index += 1) {
@@ -492,6 +616,10 @@ export function parseRuntimeSizePolicyAcceptanceArgs(args) {
     };
     if (arg === "--json") {
       options.json = true;
+      continue;
+    }
+    if (arg === "--release-evidence") {
+      options.releaseEvidenceMode = true;
       continue;
     }
     if (arg === "--root") {
@@ -508,6 +636,14 @@ export function parseRuntimeSizePolicyAcceptanceArgs(args) {
     }
     if (arg === "--max-age-hours") {
       options.maxEvidenceAgeHours = parseHours(nextValue(), DEFAULT_MAX_EVIDENCE_AGE_HOURS);
+      continue;
+    }
+    if (arg === "--dependency-baseline-ref") {
+      options.dependencyBaselineRef = nextValue();
+      continue;
+    }
+    if (arg === "--dependency-baseline-package-json") {
+      options.dependencyBaselinePackageJsonPath = normalizeRelativePath(nextValue());
       continue;
     }
     if (arg === "--help" || arg === "-h") {
@@ -531,6 +667,10 @@ function printHelp() {
     "  --policy <path>                Threshold policy JSON.",
     "  --evidence <path>              Latest runtime-size evidence JSON.",
     "  --max-age-hours <hours>        Maximum evidence age. Defaults to 24.",
+    "  --release-evidence             Require an explicit dependency baseline.",
+    "  --dependency-baseline-ref <ref> Compare dependencies against <ref>:package.json.",
+    "  --dependency-baseline-package-json <path>",
+    "                                 Compare dependencies against a saved package.json snapshot.",
   ].join("\n"));
 }
 

@@ -296,16 +296,25 @@ export function validateProductionDeployWorkflowParity(workflowText) {
       "rollback SHA workflow_dispatch input required for rollback",
       workflowText.includes("rollback_sha:") &&
         workflowText.includes("Commit SHA to deploy for rollback") &&
-        workflowText.includes('if [ -n "${{ inputs.rollback_sha }}" ]; then') &&
-        workflowText.includes('echo "sha=${{ inputs.rollback_sha }}" >> "$GITHUB_OUTPUT"'),
+        workflowText.includes("ROLLBACK_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha || '' }}") &&
+        workflowText.includes('rollback_sha="${ROLLBACK_SHA_INPUT:-}"') &&
+        workflowText.includes("grep -Eq '^[0-9a-fA-F]{40}$'") &&
+        workflowText.includes('target_sha="$(printf \'%s\' "$rollback_sha" | tr \'[:upper:]\' \'[:lower:]\')"') &&
+        workflowText.includes('git cat-file -e "$target_sha^{commit}"') &&
+        workflowText.includes('echo "sha=$target_sha" >> "$GITHUB_OUTPUT"'),
     ),
     staticCheck(
       "selected rollback SHA is deployed and verified",
       workflowText.includes("TARGET_SHA: ${{ steps.target.outputs.sha }}") &&
+        workflowText.includes("ssh -i ~/.ssh/production_deploy_key") &&
+        workflowText.includes("bash -s --") &&
+        workflowText.includes('TARGET_SHA="${1:?missing target sha}"') &&
+        workflowText.includes("grep -Eq '^[0-9a-f]{40}$'") &&
         workflowText.includes('git checkout --force "$TARGET_SHA"') &&
         workflowText.includes('deployed_sha="$(git rev-parse HEAD)"') &&
         workflowText.includes('target_sha="$(git rev-parse "$TARGET_SHA")') &&
-        workflowText.includes("Production checkout SHA mismatch"),
+        workflowText.includes("Production checkout SHA mismatch") &&
+        !workflowText.includes("TARGET_SHA='$TARGET_SHA'"),
     ),
     staticCheck(
       "post-deploy health check runs after selected commit deploy",

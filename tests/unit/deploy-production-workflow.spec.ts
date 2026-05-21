@@ -10,8 +10,12 @@ describe("production deploy workflow verification", () => {
     const source = workflowSource();
 
     expect(source).toContain("rollback_sha:");
-    expect(source).toContain('if [ -n "${{ inputs.rollback_sha }}" ]; then');
-    expect(source).toContain('echo "sha=${{ inputs.rollback_sha }}" >> "$GITHUB_OUTPUT"');
+    expect(source).toContain("Check out repository for target validation");
+    expect(source).toContain("fetch-depth: 0");
+    expect(source).toContain("ROLLBACK_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha || '' }}");
+    expect(source).toContain('if ! printf \'%s\' "$rollback_sha" | grep -Eq \'^[0-9a-fA-F]{40}$\'; then');
+    expect(source).toContain('target_sha="$(printf \'%s\' "$rollback_sha" | tr \'[:upper:]\' \'[:lower:]\')"');
+    expect(source).toContain('git cat-file -e "$target_sha^{commit}"');
     expect(source).toContain("Build + internal regression checks");
     expect(source).toContain("run: pnpm run check");
     expect(source).toContain("pnpm run build");
@@ -94,9 +98,13 @@ describe("production deploy workflow verification", () => {
 
     expect(source).toContain("rollback_sha:");
     expect(source).toContain('TARGET_SHA: ${{ steps.target.outputs.sha }}');
+    expect(source).toContain('Refusing production deploy: TARGET_SHA must be a validated lowercase full commit SHA.');
+    expect(source).toContain('Refusing production deploy: remote TARGET_SHA is invalid.');
+    expect(source).toContain('bash -s -- \\');
     expect(source).toContain('git checkout --force "$TARGET_SHA"');
     expect(source).toContain('target_sha="$(git rev-parse "$TARGET_SHA")"');
     expect(source).toContain("Production checkout SHA mismatch");
+    expect(source).not.toContain("TARGET_SHA='$TARGET_SHA'");
     expect(deployStepIndex).toBeGreaterThan(-1);
     expect(verifyStepIndex).toBeGreaterThan(deployStepIndex);
   });
