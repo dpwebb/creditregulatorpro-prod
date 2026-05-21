@@ -51,25 +51,27 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify({ error: "Artifact not found" }), { status: 404 });
     }
 
+    const artifactOwnerUserId = Number(artifact.userId);
+
     // Check ownership
-    if (user.role !== "admin" && artifact.userId !== user.id) {
+    if (user.role !== "admin" && artifactOwnerUserId !== user.id) {
       return new Response(JSON.stringify({ error: "Unauthorized access to artifact" }), { status: 403 });
     }
 
     // 4. Identify Tradelines for current artifact
-    let tradelineIds: number[] = [];
-
-    if (artifact.tradelineId) {
-      tradelineIds.push(artifact.tradelineId);
-    }
-
     const artifactData = artifact.data as Record<string, unknown> | null;
     const parserQuality = artifactData?.parserQuality as OutputType["parserQuality"] | undefined;
     const parserRequiresReview = Boolean(parserQuality?.requiresManualReview);
 
-    if (artifactData?.tradelineIds && Array.isArray(artifactData.tradelineIds)) {
-      tradelineIds = [...new Set([...tradelineIds, ...(artifactData.tradelineIds as number[])])];
-    }
+    const artifactLinkedTradelineIds = await getTradelineIdsForArtifact(input.artifactId);
+    const tradelineIds = await filterTradelineIdsForArtifactOwner(
+      [
+        ...idsFromUnknown(artifact.tradelineId),
+        ...idsFromUnknown(artifactData?.tradelineIds),
+        ...artifactLinkedTradelineIds,
+      ],
+      artifactOwnerUserId
+    );
 
     // If no tradelines found linked, we can't find violations
     if (tradelineIds.length === 0) {
@@ -126,6 +128,7 @@ export async function handle(request: Request) {
         "bureau.name as bureauName",
       ])
       .where("creditorObligationTest.tradelineId", "in", tradelineIds)
+      .where("tradeline.userId", "=", artifactOwnerUserId)
       .execute();
 
     const filteredViolations = violations.filter((v) =>
@@ -234,6 +237,7 @@ export async function handle(request: Request) {
         .leftJoin("bureau", "bureau.id", "tradeline.bureauId")
         .select("bureau.name as bureauName")
         .where("tradeline.id", "=", tradelineIds[0])
+        .where("tradeline.userId", "=", artifactOwnerUserId)
         .executeTakeFirst();
       if (firstTradelineBureau?.bureauName) {
         artifactBureauName = firstTradelineBureau.bureauName;
@@ -247,7 +251,7 @@ export async function handle(request: Request) {
     // 8. Cross-reference with previous report artifact
     const crossReference = await computeCrossReference(
       input.artifactId,
-      user.id,
+      artifactOwnerUserId,
       tradelineIds,
       artifact.createdAt ? new Date(artifact.createdAt) : new Date()
     );
@@ -335,15 +339,63 @@ export async function handle(request: Request) {
 }
 
 /**
- * Fetches tradeline IDs for a given artifact from the tradelineArtifactPresence table.
+ * Fetches tradeline IDs for a given artifact from durable links plus legacy direct links.
  */
 async function getTradelineIdsForArtifact(artifactId: number): Promise<number[]> {
+  const [presenceRows, directRows] = await Promise.all([
+    db
+      .selectFrom("tradelineArtifactPresence")
+      .select("tradelineId")
+      .where("reportArtifactId", "=", artifactId)
+      .execute(),
+    db
+      .selectFrom("tradeline")
+      .select("id as tradelineId")
+      .where("reportArtifactId", "=", artifactId)
+      .execute(),
+  ]);
+
+  return uniquePositiveIds([
+    ...presenceRows.map((row) => row.tradelineId),
+    ...directRows.map((row) => row.tradelineId),
+  ]);
+}
+
+function idsFromUnknown(value: unknown): number[] {
+  if (Array.isArray(value)) return uniquePositiveIds(value);
+  return uniquePositiveIds([value]);
+}
+
+function uniquePositiveIds(values: unknown[]): number[] {
+  const ids: number[] = [];
+  const seen = new Set<number>();
+
+  for (const value of values) {
+    const id = typeof value === "number" ? value : Number(value);
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+
+  return ids;
+}
+
+async function filterTradelineIdsForArtifactOwner(
+  candidateIds: unknown[],
+  artifactOwnerUserId: number
+): Promise<number[]> {
+  const ids = uniquePositiveIds(candidateIds);
+  if (ids.length === 0) return [];
+
   const rows = await db
-    .selectFrom("tradelineArtifactPresence")
-    .select("tradelineId")
-    .where("reportArtifactId", "=", artifactId)
+    .selectFrom("tradeline")
+    .select("id")
+    .where("id", "in", ids)
+    .where("userId", "=", artifactOwnerUserId)
     .execute();
-  return rows.map(r => r.tradelineId);
+
+  const allowedIds = new Set(rows.map((row) => Number(row.id)));
+  return ids.filter((id) => allowedIds.has(id));
 }
 
 /**
@@ -353,7 +405,8 @@ async function getTradelineIdsForArtifact(artifactId: number): Promise<number[]>
 async function getDisputeActivityByTradeline(
   tradelineIds: number[],
   fromDate: Date,
-  toDate: Date
+  toDate: Date,
+  userId: number
 ): Promise<Map<number, DisputeActivity[]>> {
   if (tradelineIds.length === 0) return new Map();
 
@@ -368,6 +421,7 @@ async function getDisputeActivityByTradeline(
       "packet.createdAt",
     ])
     .where("packet.tradelineId", "in", tradelineIds)
+    .where("packet.userId", "=", userId)
     .where("packet.createdAt", ">=", fromDate)
     .where("packet.createdAt", "<=", toDate)
     .execute();
@@ -401,7 +455,8 @@ async function getDisputeActivityByTradeline(
  * Tradelines with no bureauId are included with null.
  */
 async function getBureauIdsByTradelineIds(
-  tradelineIds: number[]
+  tradelineIds: number[],
+  userId: number
 ): Promise<Map<number, number | null>> {
   if (tradelineIds.length === 0) return new Map();
 
@@ -409,6 +464,7 @@ async function getBureauIdsByTradelineIds(
     .selectFrom("tradeline")
     .select(["id", "bureauId"])
     .where("id", "in", tradelineIds)
+    .where("userId", "=", userId)
     .execute();
 
   return new Map(rows.map(r => [r.id, r.bureauId ?? null]));
@@ -421,7 +477,7 @@ async function computeCrossReference(
   currentArtifactCreatedAt: Date
 ): Promise<CrossReference | null> {
   // --- Step 1: Determine the current artifact's bureau ID(s) FIRST ---
-  const currentBureauMap = await getBureauIdsByTradelineIds(currentTradelineIds);
+  const currentBureauMap = await getBureauIdsByTradelineIds(currentTradelineIds, userId);
   const currentBureauIds = new Set<number>();
   for (const bureauId of currentBureauMap.values()) {
     if (bureauId !== null) currentBureauIds.add(bureauId);
@@ -474,13 +530,16 @@ async function computeCrossReference(
   console.log(`Cross-referencing artifact ${currentArtifactId} with same-bureau previous artifact ${previousArtifact.id}`);
 
   // Use tradelineArtifactPresence table to get the previous artifact's tradeline IDs
-  const allPreviousTradelineIds = await getTradelineIdsForArtifact(previousArtifact.id);
+  const allPreviousTradelineIds = await filterTradelineIdsForArtifactOwner(
+    await getTradelineIdsForArtifact(previousArtifact.id),
+    userId
+  );
   console.log(`Previous artifact ${previousArtifact.id} has ${allPreviousTradelineIds.length} tradelines from presence table.`);
 
   // --- Bureau-aware filtering (safety net) ---
   // Since we already selected a same-bureau artifact, this should rarely exclude anything,
   // but we keep it as a safety net for tradelines with mixed or null bureau IDs.
-  const previousBureauMap = await getBureauIdsByTradelineIds(allPreviousTradelineIds);
+  const previousBureauMap = await getBureauIdsByTradelineIds(allPreviousTradelineIds, userId);
   const crossBureauExcluded: number[] = [];
   const previousTradelineIds = allPreviousTradelineIds.filter(id => {
     const bureauId = previousBureauMap.get(id) ?? null;
@@ -523,17 +582,18 @@ async function computeCrossReference(
   const disputeActivityMap = await getDisputeActivityByTradeline(
     disputeRelevantIds,
     previousArtifactCreatedAt,
-    currentArtifactCreatedAt
+    currentArtifactCreatedAt,
+    userId
   );
 
   // --- Matched tradelines: diff key fields + dispute activity ---
-  const matched = await computeMatchedDiffs(matchedIds, previousArtifact.id, disputeActivityMap);
+  const matched = await computeMatchedDiffs(matchedIds, previousArtifact.id, disputeActivityMap, userId);
 
   // --- Added tradelines: query current state (no dispute activity needed) ---
-  const added = await queryTradelineSummaries(addedIds);
+  const added = await queryTradelineSummaries(addedIds, undefined, userId);
 
   // --- Removed tradelines: query current DB state + dispute activity ---
-  const removed = await queryTradelineSummaries(removedIds, disputeActivityMap);
+  const removed = await queryTradelineSummaries(removedIds, disputeActivityMap, userId);
 
   return {
     previousArtifactId: previousArtifact.id,
@@ -553,7 +613,8 @@ async function computeCrossReference(
 async function computeMatchedDiffs(
   matchedIds: number[],
   previousArtifactId: number,
-  disputeActivityMap: Map<number, DisputeActivity[]>
+  disputeActivityMap: Map<number, DisputeActivity[]>,
+  userId: number
 ) {
   if (matchedIds.length === 0) return [];
 
@@ -569,6 +630,7 @@ async function computeMatchedDiffs(
       "creditor.name as creditorName",
     ])
     .where("tradeline.id", "in", matchedIds)
+    .where("tradeline.userId", "=", userId)
     .execute();
 
   // Fetch previous snapshots for these tradelines from the previous artifact
@@ -646,11 +708,12 @@ async function computeMatchedDiffs(
  */
 async function queryTradelineSummaries(
   ids: number[],
-  disputeActivityMap?: Map<number, DisputeActivity[]>
+  disputeActivityMap?: Map<number, DisputeActivity[]>,
+  userId?: number
 ) {
   if (ids.length === 0) return [];
 
-  const rows = await db
+  let query = db
     .selectFrom("tradeline")
     .leftJoin("creditor", "creditor.id", "tradeline.creditorId")
     .select([
@@ -659,8 +722,13 @@ async function queryTradelineSummaries(
       "tradeline.status",
       "creditor.name as creditorName",
     ])
-    .where("tradeline.id", "in", ids)
-    .execute();
+    .where("tradeline.id", "in", ids);
+
+  if (userId !== undefined) {
+    query = query.where("tradeline.userId", "=", userId);
+  }
+
+  const rows = await query.execute();
 
   return rows.map(row => {
     const disputeActivity = disputeActivityMap?.get(row.id);

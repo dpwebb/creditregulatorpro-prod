@@ -1198,6 +1198,60 @@ describe("report ingest lifecycle endpoints", () => {
     expect(mocks.db.selectFrom).toHaveBeenCalledTimes(2);
   });
 
+  it("resolves upload results from durable artifact-tradeline links and filters linked IDs to the artifact owner", async () => {
+    queueResults(
+      {
+        first: artifactRow({
+          id: 701,
+          userId: 10,
+          tradelineId: null,
+          data: {
+            fileName: "synthetic-credit-report.pdf",
+            parserQuality: {
+              confidenceScore: 93,
+              requiresManualReview: false,
+              sourceBureauName: "Synthetic Bureau",
+            },
+          },
+        }),
+      },
+      { execute: [{ tradelineId: 8101 }, { tradelineId: 9901 }] },
+      { execute: [] },
+      { execute: [{ id: 8101 }] },
+      { execute: [] },
+      { first: { bureauName: "Synthetic Bureau" } },
+      { execute: [{ id: 8101, bureauId: 12 }] },
+      { first: null },
+    );
+
+    const response = await getUploadResults(getRequest("/_api/upload-results/get?artifactId=701"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({
+      metadata: {
+        fileName: "synthetic-credit-report.pdf",
+        region: "CA",
+        bureauName: "Synthetic Bureau",
+      },
+      stats: {
+        totalTradelines: 1,
+        actionableCount: 0,
+      },
+      topFindings: [],
+      challengeAccessPoints: [],
+    });
+    expect(whereValues("reportArtifactId")).toContainEqual(["reportArtifactId", "=", 701]);
+    expect(whereValues("userId")).toContainEqual(["userId", "=", 10]);
+    expect(whereValues("tradeline.userId")).toContainEqual(["tradeline.userId", "=", 10]);
+    expect(whereValues("creditorObligationTest.tradelineId")).toContainEqual([
+      "creditorObligationTest.tradelineId",
+      "in",
+      [8101],
+    ]);
+    responseTextIsPrivacySafe(body);
+  });
+
   it("returns safe upload-result summary metadata for owned artifacts without tradelines", async () => {
     queueResults({
       first: {
