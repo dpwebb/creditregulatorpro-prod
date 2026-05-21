@@ -37,11 +37,9 @@ vi.mock("../../helpers/db", () => ({
 import { handle as resetUser } from "../../endpoints/admin/reset-user_POST";
 
 const originalEnv = {
-  CRP_LOCAL_DEV: process.env.CRP_LOCAL_DEV,
   CRP_ENV: process.env.CRP_ENV,
   NODE_ENV: process.env.NODE_ENV,
   FLOOT_DATABASE_URL: process.env.FLOOT_DATABASE_URL,
-  LOCAL_DATABASE_NAME: process.env.LOCAL_DATABASE_NAME,
 };
 
 const resetCounts = {
@@ -63,14 +61,6 @@ function restoreEnv(): void {
   }
 }
 
-function setSafeLocalEnv(): void {
-  process.env.CRP_LOCAL_DEV = "true";
-  process.env.CRP_ENV = "local";
-  process.env.NODE_ENV = "test";
-  process.env.FLOOT_DATABASE_URL = "postgres://local:local@127.0.0.1:5432/creditregulatorpro_local";
-  process.env.LOCAL_DATABASE_NAME = "creditregulatorpro_local";
-}
-
 function resetRequest(body: unknown): Request {
   return new Request("http://localhost/_api/admin/reset-user", {
     method: "POST",
@@ -90,7 +80,6 @@ function makeBuilder(result: QueryResult) {
 
 beforeEach(() => {
   restoreEnv();
-  setSafeLocalEnv();
   vi.clearAllMocks();
   mocks.selectQueue.length = 0;
   mocks.deleteQueue.length = 0;
@@ -116,7 +105,7 @@ afterEach(() => {
 });
 
 describe("admin reset-user endpoint", () => {
-  it("resets a local non-admin user with explicit email confirmation", async () => {
+  it("resets a non-admin user with explicit email confirmation", async () => {
     mocks.selectQueue.push({ id: 22, email: "user@example.invalid", role: "user" });
     mocks.deleteQueue.push({ numDeletedRows: 1n });
 
@@ -146,6 +135,31 @@ describe("admin reset-user endpoint", () => {
         }),
       }),
     );
+  });
+
+  it("allows admin reset outside local development when admin and confirmation checks pass", async () => {
+    process.env.CRP_ENV = "staging";
+    process.env.NODE_ENV = "production";
+    process.env.FLOOT_DATABASE_URL = "postgres://app:app@staging-db.example.invalid:5432/creditregulatorpro_staging";
+    mocks.selectQueue.push({ id: 22, email: "user@example.invalid", role: "user" });
+    mocks.deleteQueue.push({ numDeletedRows: 0n });
+
+    const response = await resetUser(resetRequest({
+      userId: 22,
+      confirmEmail: "user@example.invalid",
+    }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      userEmail: "user@example.invalid",
+      ...resetCounts,
+    });
+    expect(mocks.deleteUserReportDataCascade).toHaveBeenCalledWith(22, 100, expect.any(Request));
+    expect(mocks.logAudit).toHaveBeenCalledWith(expect.objectContaining({
+      status: "SUCCESS",
+      details: expect.objectContaining({ action: "ACCOUNT_DATA_RESET" }),
+    }));
   });
 
   it("returns 400 for missing or invalid confirmation email before mutation", async () => {
@@ -188,20 +202,48 @@ describe("admin reset-user endpoint", () => {
     expect(mocks.deleteUserReportDataCascade).not.toHaveBeenCalled();
   });
 
-  it("blocks unsafe production-like database targets before any reset work", async () => {
-    process.env.FLOOT_DATABASE_URL = "postgres://app:app@db.example.invalid:5432/creditregulatorpro_prod";
-    process.env.LOCAL_DATABASE_NAME = "creditregulatorpro_prod";
+  it("blocks target admin accounts before mutation", async () => {
+    mocks.selectQueue.push({ id: 22, email: "admin-target@example.invalid", role: "admin" });
 
     const response = await resetUser(resetRequest({
       userId: 22,
-      confirmEmail: "user@example.invalid",
+      confirmEmail: "admin-target@example.invalid",
     }));
 
-    expect(response.status).toBe(409);
+    expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      error: expect.stringContaining("non-local database hosts"),
+      error: "Cannot reset an admin account",
     });
-    expect(mocks.db.selectFrom).not.toHaveBeenCalled();
+    expect(mocks.deleteUserReportDataCascade).not.toHaveBeenCalled();
+  });
+
+  it("blocks current admin self-reset before mutation", async () => {
+    mocks.selectQueue.push({ id: 100, email: "admin@example.invalid", role: "admin" });
+
+    const response = await resetUser(resetRequest({
+      userId: 100,
+      confirmEmail: "admin@example.invalid",
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Cannot reset an admin account",
+    });
+    expect(mocks.deleteUserReportDataCascade).not.toHaveBeenCalled();
+  });
+
+  it("blocks confirmation email mismatches before mutation", async () => {
+    mocks.selectQueue.push({ id: 22, email: "user@example.invalid", role: "user" });
+
+    const response = await resetUser(resetRequest({
+      userId: 22,
+      confirmEmail: "other@example.invalid",
+    }));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Confirmation email does not match the target user's email",
+    });
     expect(mocks.deleteUserReportDataCascade).not.toHaveBeenCalled();
   });
 

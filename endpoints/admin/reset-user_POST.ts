@@ -4,7 +4,6 @@ import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { handleEndpointError, BusinessRuleError } from "../../helpers/endpointErrorHandler";
 import { deleteUserReportDataCascade } from "../../helpers/deleteReportArtifactCascade";
 import { logAudit } from "../../helpers/auditLogger";
-import { validateAdminResetEnvironment } from "../../helpers/adminResetSafety";
 
 function logResetFailure(error: unknown): void {
   if (error instanceof BusinessRuleError) {
@@ -40,11 +39,6 @@ export async function handle(request: Request) {
 
     const json = JSON.parse(await request.text());
     const input = schema.parse(json);
-
-    const safety = validateAdminResetEnvironment();
-    if (safety.ok === false) {
-      throw new BusinessRuleError(safety.reason, 409);
-    }
 
     // 2. Verify target user exists and is NOT an admin
     const targetUser = await db

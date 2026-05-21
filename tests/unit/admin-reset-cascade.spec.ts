@@ -22,7 +22,6 @@ describe("admin reset cascade", () => {
     const schema = source("endpoints/admin/reset-user_POST.schema.ts");
 
     expect(endpoint).toContain("deleteUserReportDataCascade");
-    expect(endpoint).toContain("validateAdminResetEnvironment");
     expect(endpoint).toContain("normalizedTargetEmail");
     expect(endpoint).toContain("...resetCounts");
     expect(endpoint).toContain('action: "UPDATE"');
