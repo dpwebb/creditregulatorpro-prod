@@ -19,6 +19,7 @@ import {
   summarizeIngestStatus,
   validateSmokeHost,
 } from "../../scripts/staging-auth-workflow-smoke";
+import { buildPacketWorkflowSmokeEnv } from "../../scripts/staging-auth-packet-workflow-smoke";
 
 const smokeSource = () =>
   readFileSync(join(process.cwd(), "scripts", "staging-auth-workflow-smoke.ts"), "utf8");
@@ -94,6 +95,19 @@ describe("authenticated workflow smoke harness", () => {
     }));
   });
 
+  it("provides a dedicated packet-included authenticated workflow smoke entrypoint", () => {
+    expect(
+      buildPacketWorkflowSmokeEnv({
+        STAGING_BASE_URL: "https://staging.creditregulatorpro.com",
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        [AUTH_WORKFLOW_SMOKE_ENV]: "true",
+        CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET: "true",
+      }),
+    );
+  });
+
   it("refuses staging runs when cleanup is disabled", () => {
     const config = buildSmokeConfig({
       [AUTH_WORKFLOW_SMOKE_ENV]: "true",
@@ -156,6 +170,8 @@ describe("authenticated workflow smoke harness", () => {
     expect(source).toContain("stalled_no_worker_heartbeat");
     expect(source).toContain("verifyArtifactOwnership");
     expect(source).toContain("assertNonOwnerUploadResultsDenied");
+    expect(source).toContain("assertNonOwnerPacketPdfDenied");
+    expect(source).toContain("[auth-smoke] packet-pdf");
     expect(source).toContain("CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET");
     expect(source).toContain("No packet-ready synthetic credit bureau finding");
     expect(source).toContain("confirmPhrase: \"DELETE MY ACCOUNT\"");

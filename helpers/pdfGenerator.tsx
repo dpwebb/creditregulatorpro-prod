@@ -1,71 +1,6 @@
-import PdfPrinter from "pdfmake";
-import type { TDocumentDefinitions, TFontDictionary, Content } from "pdfmake/interfaces";
+import type { TDocumentDefinitions, Content } from "pdfmake/interfaces";
 import { generatePdfWatermark } from "./contentMarker";
-
-const ROBOTO_FONTS = {
-  normal: {
-    localPath: "fonts/Roboto-Regular.ttf",
-    url: "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Regular.ttf",
-    filename: "Roboto-Regular.ttf",
-  },
-  bold: {
-    localPath: "fonts/Roboto-Medium.ttf",
-    url: "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Medium.ttf",
-    filename: "Roboto-Medium.ttf",
-  },
-  italics: {
-    localPath: "fonts/Roboto-Italic.ttf",
-    url: "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Italic.ttf",
-    filename: "Roboto-Italic.ttf",
-  },
-  bolditalics: {
-    localPath: "fonts/Roboto-MediumItalic.ttf",
-    url: "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-MediumItalic.ttf",
-    filename: "Roboto-MediumItalic.ttf",
-  },
-};
-
-async function ensureRobotoFonts(): Promise<TFontDictionary> {
-  const fs = await import("fs");
-  const path = await import("path");
-  const os = await import("os");
-
-  const fontsDir = path.join(os.tmpdir(), "pdfmake-fonts");
-  
-  if (!fs.existsSync(fontsDir)) {
-    fs.mkdirSync(fontsDir, { recursive: true });
-  }
-
-  const result: TFontDictionary = {
-    Roboto: {
-      normal: "",
-      bold: "",
-      italics: "",
-      bolditalics: "",
-    },
-  };
-  
-  for (const [style, config] of Object.entries(ROBOTO_FONTS)) {
-    if (fs.existsSync(config.localPath)) {
-      (result.Roboto as any)[style] = config.localPath;
-      continue;
-    }
-
-    const tmpPath = path.join(fontsDir, config.filename);
-    if (!fs.existsSync(tmpPath)) {
-      const response = await fetch(config.url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch font ${config.filename}: ${response.statusText}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      fs.writeFileSync(tmpPath, Buffer.from(arrayBuffer));
-    }
-    
-    (result.Roboto as any)[style] = tmpPath;
-  }
-  
-  return result;
-}
+import { generateServerPdf } from "./pdfServerUtils";
 
 /**
  * Historical consumer-file reference data stored inside existing packet content.
@@ -586,35 +521,5 @@ export async function generatePDF(
     };
   }
 
-  // Ensure fonts are available before creating the printer
-  const fonts = await ensureRobotoFonts();
-
-  // Create printer instance with font configuration
-  const printer = new PdfPrinter(fonts);
-
-  // Generate PDF document
-  const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-  // Convert PDF stream to base64
-  return new Promise<string>((resolve, reject) => {
-    const chunks: Buffer[] = [];
-
-    pdfDoc.on("data", (chunk: Buffer) => {
-      chunks.push(chunk);
-    });
-
-    pdfDoc.on("end", () => {
-      const pdfBuffer = Buffer.concat(chunks);
-      const base64String = pdfBuffer.toString("base64");
-      resolve(base64String);
-    });
-
-    pdfDoc.on("error", (error: Error) => {
-      console.error("PDF generation error:", error);
-      reject(error);
-    });
-
-    // Finalize the PDF document
-    pdfDoc.end();
-  });
+  return generateServerPdf(docDefinition);
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   applyRecipientOverrideToPacketContent,
@@ -6,6 +6,8 @@ import {
 } from "../../helpers/packetPdfContent";
 import { generateDisputePacketPDF } from "../../helpers/disputePacketPdf";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+
+const originalFetch = globalThis.fetch;
 
 function buildPacket() {
   return buildSimpleDisputePacketContent({
@@ -37,12 +39,25 @@ function buildPacket() {
 }
 
 describe("simple dispute packet PDF", () => {
+  beforeEach(() => {
+    delete process.env.CRP_PDF_REMOTE_FONT_FETCH;
+    globalThis.fetch = vi.fn(async () => {
+      throw new Error("Remote font fetch must not run for packet PDF rendering");
+    }) as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    delete process.env.CRP_PDF_REMOTE_FONT_FETCH;
+  });
+
   it("generates a downloadable PDF for a credit bureau packet", async () => {
     const base64 = await generateDisputePacketPDF(buildPacket(), "11", "22");
     const bytes = Buffer.from(base64, "base64");
 
     expect(bytes.subarray(0, 4).toString("utf8")).toBe("%PDF");
     expect(bytes.length).toBeGreaterThan(1000);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("supports the service-send render path with recipient overrides", async () => {

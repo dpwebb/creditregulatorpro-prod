@@ -211,6 +211,16 @@ type PacketCreateResponse = {
   status: string;
 };
 
+type PacketPdfDiagnostics = {
+  packetId: number;
+  selectedIssueId: number;
+  pdfStatus: number;
+  pdfContentType: string;
+  pdfByteLength: number;
+  pdfStartsWithPdf: boolean;
+  responseSnippet?: string;
+};
+
 type DeleteAccountResponse = {
   success: boolean;
   purgedCounts?: Record<string, number>;
@@ -804,6 +814,25 @@ async function assertNonOwnerUploadResultsDenied(api: ApiClient, artifactId: num
   };
 }
 
+async function assertNonOwnerPacketPdfDenied(api: ApiClient, packetId: number) {
+  const response = await api.raw(
+    `${AUTH_WORKFLOW_ENDPOINTS.packetPdf}?packetId=${encodeURIComponent(String(packetId))}`,
+  );
+  const raw = await response.text();
+  if (response.ok) {
+    throw new Error(`Non-owner could retrieve owner packet PDF ${packetId}.`);
+  }
+  if (response.status !== 403 && response.status !== 404) {
+    throw new Error(
+      `Non-owner packet PDF check returned HTTP ${response.status}, expected 403 or 404. Body: ${extractErrorMessage(raw)}`,
+    );
+  }
+  return {
+    denied: true,
+    status: response.status,
+  };
+}
+
 async function selectPacketReadyFinding(api: ApiClient): Promise<PacketCandidate> {
   const recommendations = await api.json<PacketRecommendResponse>(
     `${AUTH_WORKFLOW_ENDPOINTS.packetRecommend}?packetType=credit_bureau&limit=25`,
@@ -827,6 +856,13 @@ async function validateBuildCreateAndDownloadPacket(api: ApiClient, issueId: num
     method: "POST",
     body: packetInput,
   });
+  console.log(`[auth-smoke] packet-readiness ${JSON.stringify({
+    selectedIssueId: issueId,
+    packetReady: readiness.packetReady,
+    eligibleFindingIds: readiness.eligibleFindingIds,
+    ineligibleFindingIds: readiness.ineligibleFindingIds,
+    reasonCodes: readiness.reasonCodes,
+  })}`);
   if (!readiness.packetReady || !readiness.eligibleFindingIds.includes(issueId)) {
     throw new Error(`Selected finding was not packet-ready: ${readiness.reasonCodes.join(", ") || "no reason codes"}`);
   }
@@ -835,6 +871,12 @@ async function validateBuildCreateAndDownloadPacket(api: ApiClient, issueId: num
     method: "POST",
     body: packetInput,
   });
+  console.log(`[auth-smoke] packet-build ${JSON.stringify({
+    selectedIssueId: issueId,
+    packetType: built.packet.packetType,
+    buildSelectedIssueIds: built.packet.metadata?.selectedIssueIds ?? [],
+    disputedIssueIds: built.packet.disputedItems?.map((item) => item.issueId ?? null) ?? [],
+  })}`);
   if (built.packet.packetType !== "credit_bureau") {
     throw new Error(`Built packet type was ${built.packet.packetType}, expected credit_bureau.`);
   }
@@ -849,29 +891,60 @@ async function validateBuildCreateAndDownloadPacket(api: ApiClient, issueId: num
   if (!created.success || !Number.isInteger(created.packetId)) {
     throw new Error("Packet create did not return success and packetId.");
   }
+  console.log(`[auth-smoke] packet-created ${JSON.stringify({
+    selectedIssueId: issueId,
+    packetId: created.packetId,
+    packetStatus: created.status,
+  })}`);
 
   const pdfResponse = await api.raw(
     `${AUTH_WORKFLOW_ENDPOINTS.packetPdf}?packetId=${encodeURIComponent(String(created.packetId))}`,
   );
   const pdfBytes = Buffer.from(await pdfResponse.arrayBuffer());
   const contentType = pdfResponse.headers.get("content-type") ?? "";
+  const diagnostics: PacketPdfDiagnostics = {
+    packetId: created.packetId,
+    selectedIssueId: issueId,
+    pdfStatus: pdfResponse.status,
+    pdfContentType: contentType,
+    pdfByteLength: pdfBytes.byteLength,
+    pdfStartsWithPdf: pdfBytes.subarray(0, 4).toString("utf8") === "%PDF",
+    responseSnippet: contentType.includes("application/pdf")
+      ? undefined
+      : pdfBytes.toString("utf8").slice(0, 500),
+  };
+
+  console.log(`[auth-smoke] packet-pdf ${JSON.stringify(diagnostics)}`);
+
   if (!pdfResponse.ok) {
-    throw new Error(`Packet PDF returned HTTP ${pdfResponse.status}: ${pdfBytes.toString("utf8")}`);
+    throw new Error(`Packet PDF retrieval failed: ${JSON.stringify({
+      selectedIssueId: issueId,
+      readiness,
+      buildSelectedIssueIds: built.packet.metadata?.selectedIssueIds ?? [],
+      packetId: created.packetId,
+      packetStatus: created.status,
+      pdf: diagnostics,
+    })}`);
   }
   if (!contentType.includes("application/pdf")) {
-    throw new Error(`Packet PDF content-type was ${contentType || "missing"}, expected application/pdf.`);
+    throw new Error(`Packet PDF content-type was invalid: ${JSON.stringify(diagnostics)}`);
   }
   if (pdfBytes.subarray(0, 4).toString("utf8") !== "%PDF") {
-    throw new Error("Packet PDF response did not start with %PDF.");
+    throw new Error(`Packet PDF response did not start with %PDF: ${JSON.stringify(diagnostics)}`);
   }
   if (pdfBytes.byteLength < 1000) {
-    throw new Error(`Packet PDF was unexpectedly small: ${pdfBytes.byteLength} bytes.`);
+    throw new Error(`Packet PDF was unexpectedly small: ${JSON.stringify(diagnostics)}`);
   }
 
   return {
     packetId: created.packetId,
     packetStatus: created.status,
+    selectedIssueId: issueId,
+    buildSelectedIssueIds: built.packet.metadata?.selectedIssueIds ?? [],
+    pdfStatus: pdfResponse.status,
+    pdfContentType: contentType,
     pdfByteLength: pdfBytes.byteLength,
+    pdfStartsWithPdf: true,
     readiness,
   };
 }
@@ -967,11 +1040,13 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
       ? await (async () => {
           const candidate = await selectPacketReadyFinding(api);
           const packet = await validateBuildCreateAndDownloadPacket(api, candidate.issueId);
-          return { candidate, packet, skipped: false as const };
+          const nonOwnerPacketPdfDenial = await assertNonOwnerPacketPdfDenied(nonOwnerApi, packet.packetId);
+          return { candidate, packet, nonOwnerPacketPdfDenial, skipped: false as const };
         })()
       : {
           candidate: null,
           packet: null,
+          nonOwnerPacketPdfDenial: null,
           skipped: true as const,
           reason: "CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET=true was not set.",
         };
@@ -1046,9 +1121,15 @@ export async function runSmoke(config: Extract<SmokeConfig, { status: "ready" }>
         reason: packetReview.skipped ? packetReview.reason : null,
         packetId: packetReview.packet?.packetId ?? null,
         status: packetReview.packet?.packetStatus ?? null,
+        selectedIssueId: packetReview.packet?.selectedIssueId ?? null,
+        buildSelectedIssueIds: packetReview.packet?.buildSelectedIssueIds ?? [],
+        pdfHttpStatus: packetReview.packet?.pdfStatus ?? null,
+        pdfContentType: packetReview.packet?.pdfContentType ?? null,
         pdfByteLength: packetReview.packet?.pdfByteLength ?? null,
+        pdfStartsWithPdf: packetReview.packet?.pdfStartsWithPdf ?? null,
         packetReady: packetReview.packet?.readiness.packetReady ?? null,
         eligibleFindingIds: packetReview.packet?.readiness.eligibleFindingIds ?? [],
+        nonOwnerAccess: packetReview.nonOwnerPacketPdfDenial,
       },
       cleanupStatus,
       actorCleanup: actors.map((actor) => ({

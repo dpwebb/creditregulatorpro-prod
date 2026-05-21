@@ -26,6 +26,7 @@
     "smoke:runtime-bridge-mapping": "tsx scripts/staging-runtime-bridge-mapping-smoke.ts",
     "smoke:runtime-bridge-mapping-ui": "tsx scripts/staging-runtime-bridge-mapping-ui-smoke.ts",
     "smoke:auth-workflow": "tsx scripts/staging-auth-workflow-smoke.ts",
+    "smoke:auth-workflow:packet": "tsx scripts/staging-auth-packet-workflow-smoke.ts",
     "smoke:outcome-tracking": "tsx scripts/staging-outcome-tracking-smoke.ts",
     "smoke:outcome-fixture-setup": "tsx scripts/staging-outcome-tracking-fixture-setup.ts",
     "smoke:outcome-admin-review": "tsx scripts/staging-outcome-admin-review-smoke.ts",

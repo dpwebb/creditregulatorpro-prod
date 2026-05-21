@@ -35,6 +35,24 @@ const STANDARD_FONT_FALLBACK: Record<RobotoFontStyle, string> = {
 
 const FONT_FETCH_TIMEOUT_MS = 8000;
 const FONT_FETCH_MAX_ATTEMPTS = 2;
+const REMOTE_FONT_FETCH_ENV = "CRP_PDF_REMOTE_FONT_FETCH";
+
+let remoteFontFallbackWarned = false;
+
+function isRemoteFontFetchEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return String(env[REMOTE_FONT_FETCH_ENV] ?? "").trim().toLowerCase() === "true";
+}
+
+function fallbackFontDictionary(): TFontDictionary {
+  return {
+    Roboto: {
+      normal: STANDARD_FONT_FALLBACK.normal,
+      bold: STANDARD_FONT_FALLBACK.bold,
+      italics: STANDARD_FONT_FALLBACK.italics,
+      bolditalics: STANDARD_FONT_FALLBACK.bolditalics,
+    },
+  };
+}
 
 const fetchWithTimeout = async (url: string, timeoutMs: number): Promise<Response> => {
   const controller = new AbortController();
@@ -115,6 +133,11 @@ export async function ensureRobotoFonts(): Promise<TFontDictionary> {
       continue;
     }
 
+    if (!isRemoteFontFetchEnabled()) {
+      failedStyles.push(style);
+      continue;
+    }
+
     try {
       const fontBuffer = await downloadFontBuffer(config.url, config.filename);
       fs.writeFileSync(tmpPath, fontBuffer);
@@ -127,22 +150,28 @@ export async function ensureRobotoFonts(): Promise<TFontDictionary> {
   }
 
   if (failedStyles.length > 0) {
-    console.warn(
-      `[pdfServerUtils] Falling back to standard PDF fonts for styles: ${failedStyles.join(", ")}`
-    );
+    if (!remoteFontFallbackWarned) {
+      const reason = isRemoteFontFetchEnabled()
+        ? `Unable to load Roboto styles: ${failedStyles.join(", ")}`
+        : `${REMOTE_FONT_FETCH_ENV}=true is not set and packaged Roboto fonts are unavailable`;
+      console.warn(`[pdfServerUtils] ${reason}. Falling back to standard PDF fonts.`);
+      remoteFontFallbackWarned = true;
+    }
     for (const style of failedStyles) {
       result[style] = STANDARD_FONT_FALLBACK[style];
     }
   }
 
-  return {
-    Roboto: {
-      normal: result.normal,
-      bold: result.bold,
-      italics: result.italics,
-      bolditalics: result.bolditalics,
-    },
-  };
+  return Object.values(result).some((value) => value.length === 0)
+    ? fallbackFontDictionary()
+    : {
+        Roboto: {
+          normal: result.normal,
+          bold: result.bold,
+          italics: result.italics,
+          bolditalics: result.bolditalics,
+        },
+      };
 }
 
 /**

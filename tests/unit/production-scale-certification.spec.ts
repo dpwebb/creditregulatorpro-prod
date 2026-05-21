@@ -104,6 +104,10 @@ describe("production-scale certification report", () => {
           id: "authenticatedUploadResults",
           command: "pnpm run smoke:auth-workflow",
         }),
+        expect.objectContaining({
+          id: "authenticatedPacketPdf",
+          command: "pnpm run smoke:auth-workflow:packet",
+        }),
       ]),
     );
   });

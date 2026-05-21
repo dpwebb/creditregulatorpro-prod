@@ -27,6 +27,11 @@ export const REQUIRED_CERTIFICATION_GATES = [
     command: 'pnpm run smoke:auth-workflow',
   },
   {
+    id: 'authenticatedPacketPdf',
+    label: 'Authenticated packet readiness/create/PDF smoke',
+    command: 'pnpm run smoke:auth-workflow:packet',
+  },
+  {
     id: 'deterministicIngestion',
     label: 'Deterministic ingestion report',
     command: 'pnpm run test:deterministic-ingestion-report',
