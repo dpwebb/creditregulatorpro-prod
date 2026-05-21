@@ -1,15 +1,13 @@
 // @vitest-environment node
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import pdfParse from "pdf-parse";
 
 import {
   applyRecipientOverrideToPacketContent,
   generatePacketContentPdfBase64,
 } from "../../helpers/packetPdfContent";
-import {
-  buildDisputePacketPdfLetterText,
-  generateDisputePacketPDF,
-} from "../../helpers/disputePacketPdf";
+import { generateDisputePacketPDF } from "../../helpers/disputePacketPdf";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
 const originalFetch = globalThis.fetch;
@@ -43,6 +41,11 @@ function buildPacket() {
       },
     ],
   });
+}
+
+async function extractPdfText(base64: string): Promise<string> {
+  const data = await pdfParse(Buffer.from(base64, "base64") as any);
+  return data.text.replace(/\s+/g, " ").trim();
 }
 
 describe("simple dispute packet PDF", () => {
@@ -132,7 +135,7 @@ describe("simple dispute packet PDF", () => {
       reportArtifactIds: [77],
     });
 
-    const text = buildDisputePacketPdfLetterText(packet).replace(/\s+/g, " ").trim();
+    const text = await extractPdfText(await generateDisputePacketPDF(packet));
 
     expect(text).toContain("Disputed Account");
     expect(text).toContain("Company reporting the account");
