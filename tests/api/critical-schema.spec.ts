@@ -15,7 +15,7 @@ import { MAX_UPLOAD_FILE_NAME_LENGTH } from "../../helpers/uploadPayloadValidati
 
 const pdfBase64 = Buffer.from("%PDF-1.4\n%%EOF", "utf8").toString("base64");
 const idImageDataUrl =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lEQP2wAAAABJRU5ErkJggg==";
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4AWMAgv8AAQQBAP8H9UQAAAAASUVORK5CYII=";
 
 describe("critical API schema contracts", () => {
   it("validates auth login and registration boundaries", () => {

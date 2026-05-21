@@ -1,7 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
+import jpeg from "jpeg-js";
 import { sql } from "kysely";
+import { PNG } from "pngjs";
 
 import { db } from "./db";
 import { BusinessRuleError } from "./endpointErrorHandler";
@@ -100,6 +102,7 @@ function validateIdentificationUpload(input: ConsumerIdentificationUploadInput) 
   }
 
   const bytes = decodeBase64File(input.fileDataBase64);
+  assertRenderableConsumerIdentificationImage(fileType, bytes);
 
   return {
     fileType,
@@ -107,6 +110,24 @@ function validateIdentificationUpload(input: ConsumerIdentificationUploadInput) 
     sha256: createHash("sha256").update(bytes).digest("hex"),
     safeFileName: sanitizeFileName(input.fileName),
   };
+}
+
+export function assertRenderableConsumerIdentificationImage(fileType: string, bytes: Buffer): void {
+  try {
+    if (fileType === "image/png") {
+      PNG.sync.read(bytes);
+      return;
+    }
+
+    if (fileType === "image/jpeg") {
+      jpeg.decode(bytes, { useTArray: true });
+      return;
+    }
+  } catch {
+    throw new BusinessRuleError("Identification image must be a readable PNG or JPEG file");
+  }
+
+  throw new BusinessRuleError("Upload a PNG or JPEG image of your identification");
 }
 
 export function ensureConsumerIdentificationSchema(): Promise<void> {
@@ -305,6 +326,7 @@ export async function getConsumerIdentificationPdfAttachment(userId: number): Pr
 } | null> {
   const file = await readConsumerIdentificationFile(userId);
   if (!file) return null;
+  assertRenderableConsumerIdentificationImage(file.fileType, file.bytes);
 
   return {
     fileName: file.fileName,

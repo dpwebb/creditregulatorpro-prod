@@ -26,7 +26,8 @@ vi.mock("../../helpers/auditLogger", () => ({
 
 import { handle as uploadConsumerIdentification } from "../../endpoints/user/identification_POST";
 
-const pngBase64 = Buffer.from("synthetic-png-identification", "utf8").toString("base64");
+const pngBase64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4AWMAgv8AAQQBAP8H9UQAAAAASUVORK5CYII=";
 
 function currentUser() {
   return {

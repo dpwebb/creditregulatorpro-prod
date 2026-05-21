@@ -1,6 +1,6 @@
 import { schema } from "./pdf_GET.schema";
 import { db } from "../../helpers/db";
-import { handleEndpointError, OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
+import { BusinessRuleError, handleEndpointError, OriginNotAllowedError } from "../../helpers/endpointErrorHandler";
 import { validateOrigin } from "../../helpers/domainGuard";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 import { readStoredPdf } from "../../helpers/documentStorage";
@@ -53,6 +53,13 @@ async function getOptionalIdentificationPdfAttachment(userId: number): Promise<I
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       console.warn(
         `[packet-pdf] Saved consumer identification file is missing for user ${userId}; rendering packet without the ID attachment.`,
+      );
+      return null;
+    }
+
+    if (error instanceof BusinessRuleError) {
+      console.warn(
+        `[packet-pdf] Saved consumer identification file is not renderable for user ${userId}; rendering packet without the ID attachment.`,
       );
       return null;
     }

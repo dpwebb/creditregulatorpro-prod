@@ -8,6 +8,8 @@ import { generateDisputePacketPDF } from "../../helpers/disputePacketPdf";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
 const originalFetch = globalThis.fetch;
+const validIdentificationImage =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4AWMAgv8AAQQBAP8H9UQAAAAASUVORK5CYII=";
 
 function buildPacket() {
   return buildSimpleDisputePacketContent({
@@ -52,7 +54,10 @@ describe("simple dispute packet PDF", () => {
   });
 
   it("generates a downloadable PDF for a credit bureau packet", async () => {
-    const base64 = await generateDisputePacketPDF(buildPacket(), "11", "22");
+    const packet = buildPacket();
+    packet.consumerIdentificationImage = validIdentificationImage;
+    packet.consumerIdentificationFileName = "synthetic-id.png";
+    const base64 = await generateDisputePacketPDF(packet, "11", "22");
     const bytes = Buffer.from(base64, "base64");
 
     expect(bytes.subarray(0, 4).toString("utf8")).toBe("%PDF");
