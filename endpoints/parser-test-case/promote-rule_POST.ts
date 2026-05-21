@@ -8,8 +8,11 @@ import { ensureParserTestAdjudicationSchema } from "../../helpers/parserTestAdju
 import { ensureParserRulePromotionSchema } from "../../helpers/parserRulePromotionSchema";
 import {
   applyParserExtractionRules,
+  filterParserExtractionRulesForBureau,
   MISSING_TRADELINE_FIELD_RULE,
+  parserExtractionRuleConfigWithPromotionEvidence,
   parserExtractionRuleConfigToJson,
+  parserExtractionRuleSemanticConfig,
   ParserExtractionRuleLike,
   SOURCE_LABEL_TO_TRADELINE_FIELD_RULE,
 } from "../../helpers/parserExtractionRules";
@@ -25,7 +28,7 @@ import { schema, OutputType } from "./promote-rule_POST.schema";
 
 type ParserDecisionRecord = Record<string, unknown>;
 
-type DerivedRule =
+export type DerivedRule =
   | {
       supported: true;
       ruleType: string;
@@ -41,7 +44,10 @@ type DerivedRule =
       message: string;
     };
 
-type EvaluationFailure = { id: number; name: string; reason: string };
+export type EvaluationFailure = { id: number; name: string; reason: string };
+
+export const PARSER_RULE_REGRESSION_EVIDENCE_VERSION = "parser-rule-regression-evidence-v1";
+export const TEST_ONLY_REGRESSION_BYPASS_FLAG = "CRP_TEST_ALLOW_PARSER_RULE_REGRESSION_BYPASS";
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -70,6 +76,98 @@ function stableJson(value: unknown): string {
     .sort()
     .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
     .join(",")}}`;
+}
+
+export type ParserRuleRegressionEvidence = {
+  version: typeof PARSER_RULE_REGRESSION_EVIDENCE_VERSION;
+  promotedAt: string;
+  promotedBy: number;
+  testCaseId: number;
+  decisionId: string;
+  candidateId: number;
+  targetValidation: {
+    passed: boolean;
+    reason: string | null;
+  };
+  regressionGate: {
+    required: boolean;
+    bypassed: boolean;
+    passed: boolean;
+    beforeFailed: number;
+    afterFailed: number;
+    newFailures: EvaluationFailure[];
+  };
+};
+
+export function isExplicitTestOnlyRegressionBypassAllowed(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return env.NODE_ENV === "test" && env[TEST_ONLY_REGRESSION_BYPASS_FLAG] === "true";
+}
+
+export function assertRegressionGateRequired(
+  input: { runRegressionGate?: boolean },
+  env: Record<string, string | undefined> = process.env,
+): void {
+  if (input.runRegressionGate === false && !isExplicitTestOnlyRegressionBypassAllowed(env)) {
+    throw new BusinessRuleError(
+      "Parser rule promotion requires automated regression evidence before activation.",
+      400,
+    );
+  }
+}
+
+export function findNewRegressionFailures(
+  beforeFailures: EvaluationFailure[],
+  afterFailures: EvaluationFailure[],
+): EvaluationFailure[] {
+  const beforeFailureIds = new Set(beforeFailures.map((failure) => failure.id));
+  return afterFailures.filter((failure) => !beforeFailureIds.has(failure.id));
+}
+
+export function buildParserRuleRegressionEvidence(params: {
+  promotedAt?: string;
+  promotedBy: number;
+  testCaseId: number;
+  decisionId: string;
+  candidateId: number;
+  targetValidation: { passed: boolean; reason: string | null };
+  beforeFailures: EvaluationFailure[];
+  afterFailures: EvaluationFailure[];
+  newFailures: EvaluationFailure[];
+  regressionGateRequired: boolean;
+}): ParserRuleRegressionEvidence {
+  return {
+    version: PARSER_RULE_REGRESSION_EVIDENCE_VERSION,
+    promotedAt: params.promotedAt ?? new Date().toISOString(),
+    promotedBy: params.promotedBy,
+    testCaseId: params.testCaseId,
+    decisionId: params.decisionId,
+    candidateId: params.candidateId,
+    targetValidation: params.targetValidation,
+    regressionGate: {
+      required: params.regressionGateRequired,
+      bypassed: !params.regressionGateRequired,
+      passed: params.newFailures.length === 0,
+      beforeFailed: params.beforeFailures.length,
+      afterFailed: params.afterFailures.length,
+      newFailures: params.newFailures,
+    },
+  };
+}
+
+export function assertParserRuleRegressionGatePassed(
+  evidence: ParserRuleRegressionEvidence,
+): void {
+  if (!evidence.targetValidation.passed) {
+    throw new BusinessRuleError("Rule candidate did not make the originating parser test pass.", 400);
+  }
+  if (!evidence.regressionGate.passed) {
+    throw new BusinessRuleError(
+      "Rule candidate cannot be activated because automated parser regression evidence failed.",
+      400,
+    );
+  }
 }
 
 function preferredTradelineExpectations(approved: unknown, fallback: unknown): unknown {
@@ -240,6 +338,30 @@ function buildTransientRule(
   };
 }
 
+export function buildPromotedParserExtractionRuleValues(params: {
+  testCase: Pick<Selectable<ParserTestCase>, "bureau">;
+  rule: Extract<DerivedRule, { supported: true }>;
+  candidateId: number;
+  userId: number;
+  regressionEvidence: ParserRuleRegressionEvidence;
+}) {
+  return {
+    bureau: params.testCase.bureau || "Unknown",
+    ruleType: params.rule.ruleType,
+    fieldPath: params.rule.fieldPath,
+    targetField: params.rule.targetField,
+    config: parserExtractionRuleConfigWithPromotionEvidence(
+      params.rule.config,
+      params.regressionEvidence as unknown as Record<string, unknown>,
+    ),
+    isActive: true,
+    priority: 100,
+    description: params.rule.description,
+    createdFromCandidateId: params.candidateId,
+    createdBy: params.userId,
+  };
+}
+
 async function evaluateTestCase(
   testCase: Selectable<ParserTestCase>,
   extraRules: ParserExtractionRuleLike[] = [],
@@ -251,9 +373,13 @@ async function evaluateTestCase(
       parserMode: "deterministic",
     },
   );
+  const matchingExtraRules = filterParserExtractionRulesForBureau(
+    extraRules,
+    parseResult.sourceBureau?.bureauName || testCase.bureau,
+  );
   const effectiveParseResult =
-    extraRules.length > 0
-      ? applyParserExtractionRules(parseResult, extraRules).parseResult
+    matchingExtraRules.length > 0
+      ? applyParserExtractionRules(parseResult, matchingExtraRules).parseResult
       : parseResult;
 
   const expectedConsumerInfo = testCase.approvedConsumerInfo ?? testCase.expectedConsumerInfo;
@@ -287,7 +413,7 @@ async function evaluateTestCase(
   return { passed, reason };
 }
 
-async function evaluateAllTestCases(): Promise<EvaluationFailure[]> {
+async function evaluateAllTestCases(extraRules: ParserExtractionRuleLike[] = []): Promise<EvaluationFailure[]> {
   const testCases = await db
     .selectFrom("parserTestCase")
     .selectAll()
@@ -296,7 +422,7 @@ async function evaluateAllTestCases(): Promise<EvaluationFailure[]> {
 
   for (const testCase of testCases) {
     try {
-      const result = await evaluateTestCase(testCase);
+      const result = await evaluateTestCase(testCase, extraRules);
       if (!result.passed) {
         failures.push({
           id: testCase.id,
@@ -330,8 +456,10 @@ async function findExistingActiveRule(
     .where("isActive", "=", true)
     .execute();
 
-  const wantedConfig = stableJson(rule.config);
-  return candidates.find((candidate) => stableJson(candidate.config) === wantedConfig) || null;
+  const wantedConfig = stableJson(parserExtractionRuleSemanticConfig(rule.config));
+  return candidates.find((candidate) =>
+    stableJson(parserExtractionRuleSemanticConfig(candidate.config)) === wantedConfig
+  ) || null;
 }
 
 export async function handle(request: Request) {
@@ -342,7 +470,8 @@ export async function handle(request: Request) {
     }
 
     const input = schema.parse(JSON.parse(await request.text()));
-    const runRegressionGate = input.runRegressionGate ?? true;
+    assertRegressionGateRequired(input);
+    const regressionGateRequired = input.runRegressionGate !== false;
 
     await ensureParserTestAdjudicationSchema();
     await ensureParserRulePromotionSchema();
@@ -436,51 +565,31 @@ export async function handle(request: Request) {
       return new Response(JSON.stringify(output), { headers: { "Content-Type": "application/json" } });
     }
 
-    const beforeFailures = runRegressionGate ? await evaluateAllTestCases() : [];
-    const existingRule = await findExistingActiveRule(testCase, supportedRule);
-    const activeRule = existingRule || (await db
-      .insertInto("parserExtractionRule")
-      .values({
-        bureau: testCase.bureau || "Unknown",
-        ruleType: supportedRule.ruleType,
-        fieldPath: supportedRule.fieldPath,
-        targetField: supportedRule.targetField,
-        config: parserExtractionRuleConfigToJson(supportedRule.config),
-        isActive: true,
-        priority: 100,
-        description: supportedRule.description,
-        createdFromCandidateId: insertedCandidate.id,
-        createdBy: user.id,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow());
+    const beforeFailures = regressionGateRequired ? await evaluateAllTestCases() : [];
+    const afterFailures = regressionGateRequired ? await evaluateAllTestCases([transientRule]) : [];
+    const newFailures = findNewRegressionFailures(beforeFailures, afterFailures);
+    const regressionEvidence = buildParserRuleRegressionEvidence({
+      promotedBy: user.id,
+      testCaseId: testCase.id,
+      decisionId: input.decisionId,
+      candidateId: insertedCandidate.id,
+      targetValidation,
+      beforeFailures,
+      afterFailures,
+      newFailures,
+      regressionGateRequired,
+    });
 
-    const afterFailures = runRegressionGate ? await evaluateAllTestCases() : [];
-    const beforeFailureIds = new Set(beforeFailures.map((failure) => failure.id));
-    const newFailures = afterFailures.filter((failure) => !beforeFailureIds.has(failure.id));
-
-    if (newFailures.length > 0 && !existingRule) {
-      await db
-        .updateTable("parserExtractionRule")
-        .set({
-          isActive: false,
-          updatedAt: new Date(),
-        })
-        .where("id", "=", activeRule.id)
-        .execute();
-
+    if (!regressionEvidence.regressionGate.passed) {
       await db
         .updateTable("parserRuleCandidate")
         .set({
           status: "failed_regression",
-          activatedRuleId: activeRule.id,
+          activatedRuleId: null,
           validationSummary: normalizeDecisionValue({
             targetValidation,
-            regressionGate: {
-              beforeFailed: beforeFailures.length,
-              afterFailed: afterFailures.length,
-              newFailures,
-            },
+            regressionGate: regressionEvidence.regressionGate,
+            regressionEvidence,
           }) as Json,
           updatedAt: new Date(),
         })
@@ -493,19 +602,30 @@ export async function handle(request: Request) {
           status: "failed_regression",
           ruleType: insertedCandidate.ruleType,
           ruleConfig: insertedCandidate.ruleConfig,
-          activatedRuleId: activeRule.id,
+          activatedRuleId: null,
         },
         activated: false,
-        message: "Rule candidate was rolled back because it introduced new parser-test failures.",
+        message: "Rule candidate was not activated because it introduced new parser-test failures.",
         targetValidation,
-        regressionGate: {
-          beforeFailed: beforeFailures.length,
-          afterFailed: afterFailures.length,
-          newFailures,
-        },
+        regressionGate: regressionEvidence.regressionGate,
       };
       return new Response(JSON.stringify(output), { headers: { "Content-Type": "application/json" } });
     }
+
+    assertParserRuleRegressionGatePassed(regressionEvidence);
+
+    const existingRule = await findExistingActiveRule(testCase, supportedRule);
+    const activeRule = existingRule || (await db
+      .insertInto("parserExtractionRule")
+      .values(buildPromotedParserExtractionRuleValues({
+        testCase,
+        rule: supportedRule,
+        candidateId: insertedCandidate.id,
+        userId: user.id,
+        regressionEvidence,
+      }))
+      .returningAll()
+      .executeTakeFirstOrThrow());
 
     await db
       .updateTable("parserRuleCandidate")
@@ -514,13 +634,8 @@ export async function handle(request: Request) {
         activatedRuleId: activeRule.id,
         validationSummary: normalizeDecisionValue({
           targetValidation,
-          regressionGate: runRegressionGate
-            ? {
-                beforeFailed: beforeFailures.length,
-                afterFailed: afterFailures.length,
-                newFailures,
-              }
-            : null,
+          regressionGate: regressionEvidence.regressionGate,
+          regressionEvidence,
           reusedExistingRule: Boolean(existingRule),
         }) as Json,
         updatedAt: new Date(),
@@ -565,13 +680,9 @@ export async function handle(request: Request) {
         ? EXISTING_ACTIVE_RULE_COVERAGE_MESSAGE
         : "Parser rule promoted and activated.",
       targetValidation,
-      ...(runRegressionGate
+      ...(regressionGateRequired
         ? {
-            regressionGate: {
-              beforeFailed: beforeFailures.length,
-              afterFailed: afterFailures.length,
-              newFailures,
-            },
+            regressionGate: regressionEvidence.regressionGate,
           }
         : {}),
     };

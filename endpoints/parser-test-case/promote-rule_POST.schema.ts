@@ -23,6 +23,9 @@ export type OutputType = {
     reason: string | null;
   };
   regressionGate?: {
+    required?: boolean;
+    bypassed?: boolean;
+    passed?: boolean;
     beforeFailed: number;
     afterFailed: number;
     newFailures: Array<{ id: number; name: string; reason: string }>;

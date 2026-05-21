@@ -3,10 +3,12 @@ import { db } from "./db";
 import { Json, ParserExtractionRule } from "./schema";
 import { ensureParserRulePromotionSchema } from "./parserRulePromotionSchema";
 import { ComprehensiveParseResult, ParsedTradeline } from "./reportParserTypes";
+import { sha256HexOfJson } from "./reportBinaryUtils";
 import { sanitizeCreditorName } from "./tradelineBasicInfoExtractors";
 
 export const SOURCE_LABEL_TO_TRADELINE_FIELD_RULE = "source_label_to_tradeline_field";
 export const MISSING_TRADELINE_FIELD_RULE = "missing_tradeline_field";
+export const PARSER_RULE_PROMOTION_EVIDENCE_CONFIG_KEY = "__promotionEvidence";
 
 const DEFAULT_MISSING_FIELD_VALUES = [
   "",
@@ -28,6 +30,16 @@ export interface ParserExtractionRuleApplication {
   appliedRuleIds: number[];
 }
 
+export interface AppliedParserRuleProvenance {
+  id: number;
+  governanceVersion: string | null;
+  createdFromCandidateId: number | null;
+  regressionEvidenceSha256: string | null;
+  regressionGatePassed: boolean | null;
+  targetValidationPassed: boolean | null;
+  promotedAt: string | null;
+}
+
 function normalizeBureau(value: string | null | undefined): string {
   return String(value || "")
     .toLowerCase()
@@ -46,6 +58,64 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+export function parserExtractionRuleSemanticConfig(config: unknown): Record<string, unknown> {
+  const record = asRecord(config);
+  const { [PARSER_RULE_PROMOTION_EVIDENCE_CONFIG_KEY]: _promotionEvidence, ...semanticConfig } = record;
+  return semanticConfig;
+}
+
+export function parserExtractionRuleConfigWithPromotionEvidence(
+  config: Record<string, unknown>,
+  promotionEvidence: Record<string, unknown>,
+): Json {
+  return parserExtractionRuleConfigToJson({
+    ...config,
+    [PARSER_RULE_PROMOTION_EVIDENCE_CONFIG_KEY]: promotionEvidence,
+  });
+}
+
+export function extractParserRulePromotionEvidence(config: unknown): Record<string, unknown> | null {
+  const evidence = asRecord(config)[PARSER_RULE_PROMOTION_EVIDENCE_CONFIG_KEY];
+  return evidence && typeof evidence === "object" && !Array.isArray(evidence)
+    ? evidence as Record<string, unknown>
+    : null;
+}
+
+export function buildAppliedParserRuleProvenance(
+  activeRules: Array<ParserExtractionRuleLike & {
+    createdFromCandidateId?: number | null;
+    config: unknown;
+  }>,
+  appliedRuleIds: number[],
+): AppliedParserRuleProvenance[] {
+  const applied = new Set(appliedRuleIds);
+  return activeRules
+    .filter((rule) => applied.has(rule.id))
+    .sort((a, b) => a.id - b.id)
+    .map((rule) => {
+      const evidence = extractParserRulePromotionEvidence(rule.config);
+      const regressionGate = asRecord(evidence?.regressionGate);
+      const targetValidation = asRecord(evidence?.targetValidation);
+      return {
+        id: rule.id,
+        governanceVersion: typeof evidence?.version === "string" ? evidence.version : null,
+        createdFromCandidateId: rule.createdFromCandidateId ?? null,
+        regressionEvidenceSha256: evidence ? sha256HexOfJson(evidence) : null,
+        regressionGatePassed: typeof regressionGate.passed === "boolean" ? regressionGate.passed : null,
+        targetValidationPassed:
+          typeof targetValidation.passed === "boolean" ? targetValidation.passed : null,
+        promotedAt: typeof evidence?.promotedAt === "string" ? evidence.promotedAt : null,
+      };
+    });
+}
+
+export function filterParserExtractionRulesForBureau<T extends ParserExtractionRuleLike>(
+  rules: T[],
+  bureauName: string | null | undefined,
+): T[] {
+  return rules.filter((rule) => bureauMatches(rule.bureau, bureauName));
 }
 
 function escapeRegExp(value: string): string {

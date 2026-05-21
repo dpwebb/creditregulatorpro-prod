@@ -15,7 +15,9 @@ import {
 } from "./deterministicReplayValidator";
 import {
   applyParserExtractionRules,
+  buildAppliedParserRuleProvenance,
   loadActiveParserExtractionRules,
+  type AppliedParserRuleProvenance,
 } from "./parserExtractionRules";
 import {
   extractRawParserFieldBaseline,
@@ -66,6 +68,7 @@ export interface CanonicalExtractionProvenance {
   aiFallbackCanonicalEligibility: "disabled";
   attempts: CanonicalExtractionAttempt[];
   fieldReconciliation: ParserPipelineFieldAudit;
+  appliedParserRules: AppliedParserRuleProvenance[];
 }
 
 export interface CanonicalCreditReportExtraction {
@@ -401,6 +404,7 @@ export async function extractCanonicalCreditReport(
   let selectedParserQuality = selected.parserQuality;
   const rawFieldBaseline = extractRawParserFieldBaseline(selected.rawText);
   const appliedParserRuleIds: number[] = [];
+  let activeParserRuleProvenance: AppliedParserRuleProvenance[] = [];
 
   try {
     const activeRules = await loadActiveParserExtractionRules(
@@ -422,6 +426,10 @@ export async function extractCanonicalCreditReport(
         });
       }
     }
+    activeParserRuleProvenance = buildAppliedParserRuleProvenance(
+      activeRules,
+      appliedParserRuleIds,
+    );
   } catch (error) {
     console.warn(
       "[Canonical Extractor] Active parser extraction rules could not be loaded. Continuing with built-in parser output.",
@@ -501,6 +509,7 @@ export async function extractCanonicalCreditReport(
       aiFallbackCanonicalEligibility: "disabled",
       attempts,
       fieldReconciliation: fieldReconciliation.audit,
+      appliedParserRules: activeParserRuleProvenance,
     },
   };
 }

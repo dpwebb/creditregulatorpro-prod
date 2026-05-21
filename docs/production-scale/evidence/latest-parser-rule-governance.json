@@ -1,0 +1,145 @@
+{
+  "evidenceType": "parser-rule-governance",
+  "generatedAt": "2026-05-21T04:58:17.5921391-03:00",
+  "currentHead": "fd4db77ece9d8dbc001efe83ff8a0b05c03fc173",
+  "auditTarget": "P1-6 Parser rule promotion can bypass regression gates while mutating canonical truth.",
+  "CERTIFYING": false,
+  "certifyingReason": "Automated local simulation, static source verification, and regression proof only; no live production admin workflow certification is claimed.",
+  "implementation": {
+    "patchedFiles": [
+      "endpoints/parser-test-case/promote-rule_POST.ts",
+      "endpoints/parser-test-case/promote-rule_POST.schema.ts",
+      "helpers/parserExtractionRules.tsx",
+      "helpers/canonicalCreditReportExtractor.tsx",
+      "tests/unit/parser-rule-governance.spec.ts",
+      "docs/production-scale/evidence/latest-parser-rule-governance.md",
+      "docs/production-scale/evidence/latest-parser-rule-governance.json"
+    ],
+    "preservedSubsystems": [
+      "deterministic parser extraction",
+      "helpers/parserExtractionRules.tsx rule application",
+      "helpers/canonicalCreditReportExtractor.tsx canonical output shape",
+      "admin parser-test correction workflow",
+      "deterministic ingestion replay",
+      "violation search behavior"
+    ],
+    "runtimeGate": {
+      "runRegressionGateFalseRejectedByDefault": true,
+      "testOnlyBypassRequiresNodeEnvTest": true,
+      "testOnlyBypassFlag": "CRP_TEST_ALLOW_PARSER_RULE_REGRESSION_BYPASS"
+    },
+    "activationGuard": {
+      "usesTransientRuleForRegression": true,
+      "activeRuleInsertAfterRegressionPass": true,
+      "failedRegressionActivatedRuleId": null
+    },
+    "evidenceStorage": {
+      "location": "parserExtractionRule.config.__promotionEvidence",
+      "version": "parser-rule-regression-evidence-v1",
+      "semanticRuleMatchingIgnoresGovernanceMetadata": true
+    },
+    "canonicalProvenance": {
+      "field": "provenance.appliedParserRules",
+      "includesGovernanceVersion": true,
+      "includesRegressionEvidenceSha256": true,
+      "canonicalOutputShapeChanged": false
+    }
+  },
+  "automatedProofs": [
+    {
+      "name": "production-mode simulation rejects runRegressionGate false",
+      "test": "tests/unit/parser-rule-governance.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "passing regression gate activates rule and stores evidence",
+      "test": "tests/unit/parser-rule-governance.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "failing regression gate does not activate rule",
+      "test": "tests/unit/parser-rule-governance.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "canonical extraction provenance shows active rule evidence/version where supported",
+      "test": "tests/unit/parser-rule-governance.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "existing parser extraction and parser-test production parser tests pass",
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/parser-rule-governance.spec.ts tests/unit/parser-extraction-rules.spec.ts tests/unit/parser-rule-promotion-decision.spec.ts tests/unit/parser-test-production-parser.spec.ts",
+      "result": "PASS"
+    },
+    {
+      "name": "deterministic ingestion report passes",
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "result": "PASS"
+    },
+    {
+      "name": "full repository check passes",
+      "command": "pnpm run check",
+      "result": "PASS"
+    }
+  ],
+  "commands": [
+    {
+      "command": "git status --short",
+      "result": "PASS",
+      "summary": "Clean before checkpoint."
+    },
+    {
+      "command": "git add .; git commit -m \"checkpoint before codex task\"",
+      "result": "PASS",
+      "summary": "No checkpoint commit created because the working tree was clean."
+    },
+    {
+      "command": "pnpm exec tsc --noEmit --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/parser-rule-governance.spec.ts tests/unit/parser-extraction-rules.spec.ts tests/unit/parser-rule-promotion-decision.spec.ts tests/unit/parser-test-production-parser.spec.ts",
+      "result": "PASS",
+      "summary": "4 files, 15 tests"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "summary": "Git reported only LF-to-CRLF working-copy warnings."
+    },
+    {
+      "command": "pnpm exec vitest run tests/api tests/unit --runInBand",
+      "result": "FAIL",
+      "summary": "Vitest 4.1.5 rejects unsupported option --runInBand before tests run."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api tests/unit",
+      "result": "PASS",
+      "summary": "189 files, 1429 tests"
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "result": "PASS",
+      "summary": "11 fixtures; replay stable; violationSearchPreserved true"
+    },
+    {
+      "command": "pnpm run check",
+      "result": "FAIL",
+      "summary": "First run hit a Vitest worker-fork unhandled error after unit tests reported pass/skipped."
+    },
+    {
+      "command": "pnpm run test:unit",
+      "result": "PASS",
+      "summary": "206 files passed, 1 skipped, 1523 tests passed"
+    },
+    {
+      "command": "pnpm run check",
+      "result": "PASS",
+      "summary": "build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation-correction checks"
+    }
+  ],
+  "residualRisk": [
+    "Live admin promotion against the staging database was not manually exercised by design.",
+    "Existing active parser rules that predate this change may not have __promotionEvidence; newly promoted rules must carry automated regression evidence."
+  ]
+}
