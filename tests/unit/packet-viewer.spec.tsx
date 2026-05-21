@@ -61,7 +61,7 @@ const readyMessage =
 const plainErrorMessage =
   "Could not load this letter. Please try again, or contact support if the problem continues.";
 const internalPdfTerms =
-  /rendering is content-based|cache|cache-miss|internal render|system diagnostic/i;
+  /PDF rendering is content-based|rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|\bcache\b|internal render|system diagnostic/i;
 
 function packet(overrides: Partial<PacketDetail> = {}): PacketDetail {
   return {
@@ -106,7 +106,6 @@ describe("PacketViewer PDF status wording", () => {
     expect(screen.getByText(readyMessage)).toBeInTheDocument();
     expect(screen.getByTestId("pdf-viewer")).toHaveTextContent("/_api/packet/pdf?packetId=601");
     expect(visibleText).not.toMatch(internalPdfTerms);
-    expect(visibleText).not.toMatch(/PDF rendering is content-based/i);
   });
 
   it("shows a plain-language error without leaking render/cache diagnostics", () => {

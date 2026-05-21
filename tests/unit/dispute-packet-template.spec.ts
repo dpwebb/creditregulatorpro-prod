@@ -7,6 +7,9 @@ import {
 } from "../../helpers/disputePacketTemplate";
 import { evaluatePacketReadinessForIssues } from "../../helpers/disputePacketService";
 
+const forbiddenConsumerPacketOutput =
+  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+
 describe("simple dispute packet template", () => {
   it("builds a neutral credit bureau packet without direct furnisher instructions", () => {
     const packet = buildSimpleDisputePacketContent({
@@ -66,7 +69,7 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Requested action:");
     expect(letterBody).toContain("Please investigate this item with the company that supplied the information");
     expect(letterBody).toContain("Sincerely,");
-    expect(letterBody).not.toMatch(/tradeline|report artifact|artifact|source report|field:|PIPEDA_4_5|Expected:\s*Not known/i);
+    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
     expect(serialized).not.toContain("123456789012");
     expect(serialized).not.toContain("123 456 789");
     expect(serialized).toContain("SIN: [masked]");
@@ -108,7 +111,7 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain(
       "Please provide documentation showing your authority to collect or report this account",
     );
-    expect(letterBody).not.toMatch(/tradeline|report artifact|artifact|source report|field:|PIPEDA_|Expected:\s*Not known/i);
+    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
   it("marks unsupported items for manual review", () => {
@@ -170,11 +173,11 @@ describe("simple dispute packet template", () => {
           tradelineId: 222,
           creditorCollectorName: "Sample Bank",
           accountNumber: "reau",
-          disputedField: "lastReportedDate",
+          disputedField: "LasReportedDate",
           reportedValue: "2012-08-21T00:00:00.000Z",
           expectedValue: "Not known",
           issueType: "BALANCE_CALCULATION_VIOLATION",
-          explanation: "PIPEDA_4_5 source report #77 field: lastReportedDate tradelineId: 222",
+          explanation: "PIPEDA_4_5 source report #77 field: Lastreporteddate tradelineId: 222",
           evidenceReference: "reportArtifactId: 77; tradelineId: 222; field: lastReportedDate; page 4",
         },
       ],
@@ -228,12 +231,15 @@ describe("simple dispute packet template", () => {
     expect(letterBody).toContain("Report date: Aug 21, 2012");
     expect(letterBody).toContain("Disputed Account");
     expect(letterBody).toContain("Company reporting the account: Sample Bank");
+    expect(letterBody).toContain("Date last reported");
     expect(letterBody).toContain("Information disputed: Date last reported");
     expect(letterBody).toContain("Reported value: Aug 21, 2012");
     expect(letterBody).toContain("Account: Account identifier unavailable");
     expect(letterBody).toContain("Requested result: Verify the correct information");
+    expect(letterBody).toContain("Requested action:");
+    expect(letterBody).toContain("Please investigate this item");
     expect(letterBody).not.toMatch(/account ending reau/i);
-    expect(letterBody).not.toMatch(/tradeline|report artifact|artifact|source report|field:|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|2012-08-21T00:00:00\.000Z|lastReportedDate|Expected:\s*Not known/i);
+    expect(letterBody).not.toMatch(forbiddenConsumerPacketOutput);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);
     expect(packet.metadata.selectedIssueIds).toEqual([111]);
     expect(packet.metadata.internalReferences?.[0]).toMatchObject({

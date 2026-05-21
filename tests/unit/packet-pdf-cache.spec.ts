@@ -161,6 +161,8 @@ describe("packet PDF cache", () => {
     expect(result.cacheHit).toBe(false);
     expect(result.base64Pdf).toBe(base64Pdf);
     expect(result.storageUrl).toMatch(/^local:packet-pdfs\/10\/601\/download-[a-f0-9]{64}\.pdf$/);
+    expect(result.cacheKey).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.objectName).toBe(`packet-pdfs/10/601/download-${result.cacheKey}.pdf`);
     expect(result.cacheAccessDurationMs).toBeGreaterThanOrEqual(0);
     expect(result.renderDurationMs).toEqual(expect.any(Number));
     expect(renderBase64).toHaveBeenCalledTimes(1);
@@ -194,6 +196,9 @@ describe("packet PDF cache", () => {
 
     expect(result.cacheHit).toBe(true);
     expect(result.base64Pdf).toBe(base64Pdf);
+    expect(result.cacheKey).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.objectName).toBe(`packet-pdfs/10/601/download-${result.cacheKey}.pdf`);
+    expect(result.storageUrl).toBe(`local:${result.objectName}`);
     expect(result.cacheAccessDurationMs).toBeGreaterThanOrEqual(0);
     expect(result.renderDurationMs).toBeNull();
     expect(renderBase64).not.toHaveBeenCalled();

@@ -7,6 +7,9 @@ import {
 } from "../../helpers/disputePacketTemplate";
 import { buildDisputePacketPdfLetterText } from "../../helpers/disputePacketPdf";
 
+const forbiddenConsumerPacketOutput =
+  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+
 describe("packet preview display content", () => {
   it("builds recipient-facing preview text from the humanized letter path", () => {
     const packet = buildSimpleDisputePacketContent({
@@ -73,15 +76,18 @@ describe("packet preview display content", () => {
     expect(combined).toContain("Information disputed: Date last reported");
     expect(combined).toContain("Reported value: Aug 21, 2012");
     expect(combined).toContain("Requested result: Verify the correct information");
+    expect(combined).toContain("Requested action:");
     expect(pdfLetterText).toContain("Disputed Account");
     expect(pdfLetterText).toContain("Company reporting the account: Rogers Communications");
     expect(pdfLetterText).toContain("Account: Account number not provided on report");
     expect(pdfLetterText).toContain("Information I am disputing: Date last reported");
     expect(pdfLetterText).toContain("What the report shows: Aug 21, 2012");
+    expect(pdfLetterText).toContain("What I am requesting");
+    expect(pdfLetterText).toContain("Please verify this information and correct or remove it if it cannot be supported.");
     expect(preview.attachmentChecklist.length).toBeGreaterThan(0);
     expect(preview.evidenceSummary.length).toBeGreaterThan(0);
-    expect(combined).not.toMatch(/tradeline|artifact|source report|field:|PIPEDA_|2012-08-21T|lastReportedDate|sourceReportArtifactId|Account ending reau|Expected:\s*Not known/i);
-    expect(pdfLetterText).not.toMatch(/tradeline|artifact|source report|field:|PIPEDA_|2012-08-21T|lastReportedDate|sourceReportArtifactId|Account ending reau|Expected:\s*Not known/i);
+    expect(combined).not.toMatch(forbiddenConsumerPacketOutput);
+    expect(pdfLetterText).not.toMatch(forbiddenConsumerPacketOutput);
     expect(packet.metadata.internalReferences?.[0]).toMatchObject({
       reportArtifactId: 77,
       regulationIds: ["PIPEDA_4_5"],

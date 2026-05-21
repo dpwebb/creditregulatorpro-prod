@@ -13,6 +13,8 @@ import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemp
 const originalFetch = globalThis.fetch;
 const validIdentificationImage =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4AWMAgv8AAQQBAP8H9UQAAAAASUVORK5CYII=";
+const forbiddenConsumerPacketOutput =
+  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|currentBalance|sourceReportArtifactId|reportArtifactId|tradelineId|referenceId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
 
 function buildPacket() {
   return buildSimpleDisputePacketContent({
@@ -158,13 +160,13 @@ describe("simple dispute packet PDF", () => {
     expect(text).toContain("Company reporting the account");
     expect(text).toContain("Account: Account ending 3333");
     expect(text).toContain("Account: Account number not provided on report");
+    expect(text).toContain("Date last reported");
     expect(text).toContain("Information I am disputing: Date last reported");
     expect(text).toContain("What the report shows: Aug 21, 2012");
+    expect(text).toContain("What I am requesting");
     expect(text).toContain("What I am requesting: Please verify this information and correct or remove it if it cannot be supported.");
     expect(text).not.toMatch(/Creditor\/collector|Requested action\s+Account\s+Field\s+Reported\s+Expected/i);
-    expect(text).not.toMatch(/tradeline|artifact|field:|source report|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION/i);
-    expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
-    expect(text).not.toMatch(/lastReportedDate|currentBalance|sourceReportArtifactId|reportArtifactId|tradelineId|referenceId|Account ending reau|Expected:\s*Not known/i);
+    expect(text).not.toMatch(forbiddenConsumerPacketOutput);
     expect(packet.metadata.reportArtifactIds).toEqual([77]);
     expect(packet.metadata.internalReferences?.[0]).toMatchObject({
       reportArtifactId: 77,

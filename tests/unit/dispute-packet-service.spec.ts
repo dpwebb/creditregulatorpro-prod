@@ -59,6 +59,9 @@ const rawTechnicalDetails = {
   },
 };
 
+const forbiddenConsumerPacketOutput =
+  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+
 const reportArtifactData = {
   evidenceLocationIndex: {
     "evidence-last-reported": {
@@ -124,10 +127,6 @@ function readyState(): PacketReadinessResult {
   };
 }
 
-function forbiddenConsumerTextPattern(): RegExp {
-  return /tradeline|artifact|source report #|field:|PIPEDA_|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau/i;
-}
-
 describe("dispute packet service consumer/internal separation", () => {
   it("keeps raw IDs in metadata and evidence while body-facing text stays humanized", () => {
     const row = sourceRow();
@@ -167,12 +166,14 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(bodyText).toContain("Company reporting the account: Synthetic Bank");
     expect(bodyText).toContain("Information disputed: Date last reported");
     expect(bodyText).toContain("Information I am disputing: Date last reported");
+    expect(bodyText).toContain("What the report shows: Aug 21, 2012");
+    expect(bodyText).toContain("What I am requesting: Please verify this information and correct or remove it if it cannot be supported.");
     expect(bodyText).toContain("Aug 21, 2012");
     expect(bodyText).toContain(
       "Requested result: Verify the correct information, or remove/update the item if it cannot be supported.",
     );
     expect(bodyText).not.toContain("Expected: Not known");
-    expect(bodyText).not.toMatch(forbiddenConsumerTextPattern());
+    expect(bodyText).not.toMatch(forbiddenConsumerPacketOutput);
 
     expect(packet.disputedItems[0]).toMatchObject({
       issueId: 111,
@@ -203,6 +204,13 @@ describe("dispute packet service consumer/internal separation", () => {
         }),
       ],
     });
+    expect(packet.metadata.internalReferences?.[0]?.findingId).toBe(row.issueId);
+    expect(packet.evidenceLocations?.[String(row.issueId)]).toEqual([
+      expect.objectContaining({
+        evidenceId: "evidence-last-reported",
+        fieldKey: "lastReportedDate",
+      }),
+    ]);
 
     const evidenceSnapshot = buildPacketFindingEvidenceLocationSnapshot({
       packet,
@@ -243,6 +251,8 @@ describe("dispute packet service consumer/internal separation", () => {
     );
     expect(readiness).toMatchObject({
       packetReady: true,
+      blockers: [],
+      warnings: [],
       eligibleFindingIds: [111],
       reasonCodes: [],
     });
@@ -256,5 +266,28 @@ describe("dispute packet service consumer/internal separation", () => {
     expect(nonOwnerReadiness.reasonCodes).toContain("UNAUTHORIZED_FINDING");
     expect(nonOwnerReadiness.eligibleFindingIds).toEqual([]);
     expect(nonOwnerReadiness.ineligibleFindingIds).toEqual([111]);
+
+    const missingEvidenceReadiness = evaluatePacketReadinessForIssues(
+      owner,
+      { packetType: "credit_bureau", selectedIssueIds: [row.issueId], recipientBureauId: 33 },
+      [{ ...issue, evidenceReference: "Needs manual review" }],
+    );
+    expect(missingEvidenceReadiness.packetReady).toBe(false);
+    expect(missingEvidenceReadiness.warnings).toEqual([]);
+    expect(missingEvidenceReadiness.blockers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          findingId: 111,
+          code: "MISSING_REQUIRED_EVIDENCE",
+        }),
+        expect.objectContaining({
+          findingId: 111,
+          code: "MANUAL_REVIEW_REQUIRED",
+        }),
+      ]),
+    );
+    expect(missingEvidenceReadiness.reasonCodes).toEqual(
+      expect.arrayContaining(["MISSING_REQUIRED_EVIDENCE", "MANUAL_REVIEW_REQUIRED"]),
+    );
   });
 });

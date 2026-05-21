@@ -96,6 +96,9 @@ import PacketsPage, { parseInitialPacketIssueId } from "../../pages/packets";
 import { buildCreatePacketRouteForFinding } from "../../components/TradelineComplianceHub";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
+const forbiddenConsumerPacketOutput =
+  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_|BALANCE_CALCULATION_VIOLATION|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|sourceReportArtifactId|reportArtifactId|tradelineId|Account ending reau|Expected:\s*Not known|PDF rendering is content-based|render\/cache|render and cache|cache retrieval|cache-miss|internal render|system diagnostic/i;
+
 function candidate(issueId: number, name = "Maple Bank Visa"): DisputePacketCandidate {
   return {
     issueId,
@@ -266,10 +269,11 @@ describe("packet create dialog routing", () => {
     expect(previewText).toContain("Reported value: Aug 21, 2012");
     expect(previewText).toContain("Reason for dispute:");
     expect(previewText).toContain("Requested action:");
+    expect(previewText).toContain("Requested result: Verify the correct information");
     expect(previewText).toContain("Evidence summary");
     expect(previewText).toContain("Attachment checklist");
     expect(previewText).not.toContain("Rogers Communications: LasReportedDate - verify and provide basis");
-    expect(previewText).not.toMatch(/tradeline|artifact|source report|field:|PIPEDA_|2012-08-21T|LasReportedDate|sourceReportArtifactId|Account ending reau|Expected:\s*Not known/i);
+    expect(previewText).not.toMatch(forbiddenConsumerPacketOutput);
   });
 
   it("does not preselect a missing or ineligible originating finding", async () => {

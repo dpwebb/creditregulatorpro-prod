@@ -11,6 +11,9 @@ import {
   PACKET_REQUESTED_RESULT_FALLBACK,
 } from "../../helpers/disputePacketHumanization";
 
+const forbiddenConsumerPacketTerms =
+  /tradeline|artifact|report artifact|source report #|field:|PIPEDA_4_5|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z|LasReportedDate|Lastreporteddate|lastReportedDate|Account ending reau|Expected:\s*Not known/i;
+
 describe("dispute packet humanization display helpers", () => {
   it("turns internal field keys into readable labels", () => {
     expect(formatPacketFieldLabel("LasReportedDate")).toBe("Date last reported");
@@ -69,6 +72,28 @@ describe("dispute packet humanization display helpers", () => {
 
     expect(display).toContain("the applicable reporting requirements");
     expect(display).not.toMatch(/PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION/);
+  });
+
+  it("formats hostile packet display inputs into consumer-readable equivalents", () => {
+    const display = [
+      formatPacketFieldLabel("tradelines[0].LasReportedDate"),
+      formatPacketFieldLabel("Lastreporteddate"),
+      formatPacketDisplayValue("lastReportedDate", "2012-08-21T00:00:00.000Z"),
+      formatPacketDisplayValue("accountNumber", "reau"),
+      formatPacketExpectedValue("lastReportedDate", "Expected: Not known"),
+      formatPacketConsumerEvidenceReference({
+        evidenceReference:
+          "source report #77; field: LasReportedDate; reportArtifactId: 77; tradelineId: 222; referenceId: PIPEDA_4_5; page 4",
+      }),
+      redactPacketSensitiveText("PIPEDA_4_5 report artifact #77 tradelineId: 222 field: Lastreporteddate"),
+    ].join("\n");
+
+    expect(display).toContain("Date last reported");
+    expect(display).toContain("Aug 21, 2012");
+    expect(display).toContain("Account identifier unavailable");
+    expect(display).toContain(PACKET_REQUESTED_RESULT_FALLBACK);
+    expect(display).toContain("Relevant report section for Date last reported on page 4.");
+    expect(display).not.toMatch(forbiddenConsumerPacketTerms);
   });
 
   it("does not treat a field label alone as linked evidence", () => {
