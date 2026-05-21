@@ -103,6 +103,25 @@ const CRITICAL_INGEST_STAGES: IngestStageKey[] = [
   "replay_payload_stored",
 ];
 
+const INGEST_STAGE_KEY_ALIASES: Record<string, IngestStageKey> = {
+  artifact_stored: "artifact_stored",
+  artifactStored: "artifact_stored",
+  extraction_snapshot_stored: "extraction_snapshot_stored",
+  extractionSnapshotStored: "extraction_snapshot_stored",
+  canonical_mapping_stored: "canonical_mapping_stored",
+  canonicalMappingStored: "canonical_mapping_stored",
+  evidence_index_stored: "evidence_index_stored",
+  evidenceIndexStored: "evidence_index_stored",
+  compliance_scan_stored: "compliance_scan_stored",
+  complianceScanStored: "compliance_scan_stored",
+  replay_payload_stored: "replay_payload_stored",
+  replayPayloadStored: "replay_payload_stored",
+  comprehensive_sidecar_stored: "comprehensive_sidecar_stored",
+  comprehensiveSidecarStored: "comprehensive_sidecar_stored",
+  report_promoted_complete: "report_promoted_complete",
+  reportPromotedComplete: "report_promoted_complete",
+};
+
 function recordFromJson(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -112,10 +131,16 @@ function recordFromJson(value: unknown): Record<string, unknown> {
 function existingStagePersistence(value: unknown): IngestStagePersistence {
   const record = recordFromJson(value);
   const stages = recordFromJson(record.stages);
+  const normalizedStages: Partial<Record<IngestStageKey, IngestStageRecord>> = {};
+  for (const [rawKey, rawStage] of Object.entries(stages)) {
+    const stageKey = INGEST_STAGE_KEY_ALIASES[rawKey];
+    if (!stageKey) continue;
+    normalizedStages[stageKey] = rawStage as IngestStageRecord;
+  }
   return {
     version: 1,
     criticalStages: CRITICAL_INGEST_STAGES,
-    stages: stages as Partial<Record<IngestStageKey, IngestStageRecord>>,
+    stages: normalizedStages,
   };
 }
 

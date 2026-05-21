@@ -127,6 +127,38 @@ describe("ingest stage persistence guard", () => {
     expect(evaluateIngestStageCompletion(data).ok).toBe(true);
   });
 
+  it("accepts camelized stage keys returned from persisted JSON", () => {
+    const camelizedData = {
+      canonicalOutput,
+      replayHash: "synthetic-replay-hash",
+      replayPayload: {
+        replayHash: "synthetic-replay-hash",
+        canonicalOutput,
+      },
+      ingestStagePersistence: {
+        version: 1,
+        criticalStages: [
+          "artifact_stored",
+          "extraction_snapshot_stored",
+          "canonical_mapping_stored",
+          "evidence_index_stored",
+          "compliance_scan_stored",
+          "replay_payload_stored",
+        ],
+        stages: {
+          artifactStored: { status: "stored", updatedAt: "2026-05-21T12:00:00.000Z" },
+          extractionSnapshotStored: { status: "stored", updatedAt: "2026-05-21T12:00:00.000Z" },
+          canonicalMappingStored: { status: "stored", updatedAt: "2026-05-21T12:00:00.000Z" },
+          evidenceIndexStored: { status: "stored", updatedAt: "2026-05-21T12:00:00.000Z" },
+          complianceScanStored: { status: "stored", updatedAt: "2026-05-21T12:00:00.000Z" },
+          replayPayloadStored: { status: "stored", updatedAt: "2026-05-21T12:00:00.000Z" },
+        },
+      },
+    };
+
+    expect(evaluateIngestStageCompletion(camelizedData).ok).toBe(true);
+  });
+
   it("upserts pass extraction rows so ingest retries do not fail on existing pass records", () => {
     const ingestCore = source("helpers/ingestCorePipeline.tsx");
     const upsertSource = ingestCore.slice(
