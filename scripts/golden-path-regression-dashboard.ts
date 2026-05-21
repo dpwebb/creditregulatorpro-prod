@@ -310,7 +310,8 @@ function validatePacketGeneration(violation: DetectedViolation) {
   assert.equal(packet.version, "simple-dispute-packet-v1");
   assert.equal(packet.disputedItems.length, 1);
   assert.equal(packet.disputedItems[0].needsManualReview, false);
-  assert(packet.evidenceList[0].includes("report artifact 9001"));
+  assert.equal(packet.evidenceList[0], "Relevant report section for Balance reported.");
+  assert(!/artifact|tradeline|field:|9001/i.test(packet.evidenceList.join(" ")));
   assert.equal(packet.metadata.reportArtifactIds[0], 9001);
 
   return packet;

@@ -42,8 +42,11 @@ describe("simple dispute packet template", () => {
 
     expect(packet.title).toBe("Credit Bureau Dispute Packet");
     expect(packet.disputedItems[0].maskedAccountNumber).toBe("Account ending 9012");
+    expect(packet.disputedItems[0].disputedField).toBe("Balance reported");
     expect(packet.disputedItems[0].requestedAction).toBe("correct balance");
-    expect(packet.disputedItems[0].evidenceReference).toContain("Source report #7");
+    expect(packet.disputedItems[0].evidenceReference).toBe("Relevant report section for Balance reported on page 2.");
+    expect(packet.disputedItems[0].evidenceReference).not.toMatch(/artifact|field:|#7/i);
+    expect(packet.metadata.reportArtifactIds).toEqual([7]);
     expect(packet.disputedItems[0].explanation).toContain("supplied by Sample Bank");
     expect(packet.disputedItems[0].explanation).not.toMatch(/contact the furnisher/i);
     expect(serialized).not.toContain("123456789012");
@@ -116,7 +119,8 @@ describe("simple dispute packet template", () => {
 
   it("masks account numbers consistently", () => {
     expect(maskAccountNumber("123456789")).toBe("Account ending 6789");
-    expect(maskAccountNumber("")).toBe("Account number not provided");
-    expect(maskAccountNumber("not reported")).toBe("Account number not provided");
+    expect(maskAccountNumber("")).toBe("Account number not provided on report");
+    expect(maskAccountNumber("not reported")).toBe("Account number not provided on report");
+    expect(maskAccountNumber("reau")).toBe("Account identifier unavailable");
   });
 });

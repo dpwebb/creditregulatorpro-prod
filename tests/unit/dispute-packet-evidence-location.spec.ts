@@ -82,9 +82,9 @@ describe("packet evidence location metadata", () => {
     const enrichedPacket = evidenceLocations ? { ...basePacket, evidenceLocations } : basePacket;
 
     expect(enrichedPacket.disputedItems[0].evidenceReference).toBe(
-      "Source report #7; field: balance; page 2",
+      "Relevant report section for Balance reported on page 2.",
     );
-    expect(enrichedPacket.evidenceList).toEqual(["Source report #7; field: balance; page 2"]);
+    expect(enrichedPacket.evidenceList).toEqual(["Relevant report section for Balance reported on page 2."]);
     expect(enrichedPacket.evidenceLocations?.["10"]).toEqual([
       expect.objectContaining({
         evidenceId: "evidence-balance",
@@ -165,9 +165,9 @@ describe("packet evidence location metadata", () => {
     );
 
     expect(enrichedPacket.disputedItems[0].evidenceReference).toBe(
-      "Source report #7; field: balance; page 2",
+      "Relevant report section for Balance reported on page 2.",
     );
-    expect(enrichedPacket.evidenceList).toEqual(["Source report #7; field: balance; page 2"]);
+    expect(enrichedPacket.evidenceList).toEqual(["Relevant report section for Balance reported on page 2."]);
     expect(enrichedPacket.evidenceLocations?.["10"][0]).toMatchObject({
       evidenceId: "evidence-balance",
       boundingBox: {

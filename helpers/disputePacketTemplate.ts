@@ -1,5 +1,14 @@
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
 import type { EvidenceLocationSummary } from "./evidenceLocationIndex";
+import {
+  formatPacketAccountIdentifier,
+  formatPacketConsumerEvidenceReference,
+  formatPacketDisplayDateOrNull,
+  formatPacketDisplayValue,
+  formatPacketExpectedValue,
+  formatPacketFieldLabel,
+  redactPacketSensitiveText,
+} from "./disputePacketHumanization";
 
 export const DISPUTE_PACKET_VERSION = "simple-dispute-packet-v1" as const;
 
@@ -132,14 +141,7 @@ function isPlaceholder(value: unknown): boolean {
 }
 
 export function formatPacketDate(value: Date | string | null | undefined): string | null {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-CA", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  return formatPacketDisplayDateOrNull(value);
 }
 
 export function labelizeIssueType(value: string | null | undefined): string {
@@ -153,49 +155,15 @@ export function labelizeIssueType(value: string | null | undefined): string {
 }
 
 export function maskAccountNumber(value: unknown): string {
-  if (isPlaceholder(value)) return "Account number not provided";
-  const cleaned = String(value ?? "").replace(/[^A-Za-z0-9]/g, "");
-  if (!cleaned || isPlaceholder(cleaned)) return "Account number not provided";
-  const last = cleaned.slice(-4);
-  return `Account ending ${last}`;
+  return formatPacketAccountIdentifier(value);
 }
 
 export function redactSensitiveText(value: unknown, accountNumber?: string | null): string {
-  let output = value instanceof Date ? formatPacketDate(value) ?? "" : String(value ?? "");
-
-  output = output
-    .replace(/\bSIN\s*[:#]?\s*\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/gi, "SIN: [masked]")
-    .replace(/\bS\.?I\.?N\.?\s*[:#]?\s*\d{3}[-\s]?\d{3}[-\s]?\d{3}\b/gi, "SIN: [masked]")
-    .replace(/\b\d{3}[-\s]\d{3}[-\s]\d{3}\b/g, "[masked SIN]");
-
-  if (accountNumber) {
-    const raw = String(accountNumber).trim();
-    if (raw.length >= 4) {
-      output = output.split(raw).join(maskAccountNumber(raw));
-    }
-    const normalized = raw.replace(/[^A-Za-z0-9]/g, "");
-    if (normalized.length > 4) {
-      output = output.split(normalized).join(maskAccountNumber(normalized));
-    }
-  }
-
-  return output.replace(/\s+/g, " ").trim();
-}
-
-function safeValue(value: unknown, accountNumber?: string | null): string {
-  if (value == null || value === "") return "Not known";
-  return redactSensitiveText(value, accountNumber) || "Not known";
+  return redactPacketSensitiveText(value, accountNumber);
 }
 
 function safeFieldValue(fieldName: string | null | undefined, value: unknown, accountNumber?: string | null): string {
-  const normalizedField = String(fieldName ?? "").toLowerCase();
-  if (normalizedField.includes("account")) {
-    return maskAccountNumber(value ?? accountNumber);
-  }
-  if (normalizedField.includes("sin") || normalizedField.includes("social insurance")) {
-    return "[masked]";
-  }
-  return safeValue(value, accountNumber);
+  return formatPacketDisplayValue(fieldName, value, accountNumber);
 }
 
 export function actionForIssue(issueType: string | null | undefined, packetType: DisputePacketType): PacketRequestedAction {
@@ -249,12 +217,17 @@ function buildItemExplanation(item: SimpleDisputedItemInput, packetType: Dispute
 }
 
 function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: DisputePacketType): SimpleDisputedItem {
-  const evidenceReference = redactSensitiveText(item.evidenceReference, item.accountNumber);
+  const rawDisputedField = hasText(item.disputedField)
+    ? item.disputedField
+    : "Account information";
+  const disputedField = formatPacketFieldLabel(rawDisputedField);
+  const evidenceReference = formatPacketConsumerEvidenceReference({
+    evidenceReference: item.evidenceReference,
+    fieldName: rawDisputedField,
+    accountNumber: item.accountNumber,
+  });
   const needsManualReview = !evidenceReference || evidenceReference.toLowerCase() === "needs manual review";
   const issueType = labelizeIssueType(item.issueType);
-  const disputedField = hasText(item.disputedField)
-    ? redactSensitiveText(item.disputedField)
-    : "Account information";
 
   return {
     issueId: item.issueId ?? null,
@@ -267,8 +240,8 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
       : redactSensitiveText(item.sourceFurnisherName),
     maskedAccountNumber: maskAccountNumber(item.accountNumber),
     disputedField,
-    reportedValue: safeFieldValue(disputedField, item.reportedValue, item.accountNumber),
-    correctedExpectedValue: safeFieldValue(disputedField, item.expectedValue, item.accountNumber),
+    reportedValue: safeFieldValue(rawDisputedField, item.reportedValue, item.accountNumber),
+    correctedExpectedValue: formatPacketExpectedValue(rawDisputedField, item.expectedValue, item.accountNumber),
     issueType,
     explanation: buildItemExplanation(item, packetType),
     evidenceReference: needsManualReview ? "Needs manual review" : evidenceReference,

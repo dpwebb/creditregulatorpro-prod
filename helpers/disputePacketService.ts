@@ -17,6 +17,7 @@ import {
   type SimpleDisputePacketContent,
   type SimpleDisputedItemInput,
 } from "./disputePacketTemplate";
+import { formatPacketConsumerEvidenceReference } from "./disputePacketHumanization";
 import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 import {
   resolveEvidenceLocation,
@@ -262,29 +263,27 @@ function issueTypeForRow(row: IssueRow): string {
 
 function evidenceReferenceForRow(row: IssueRow, details: Record<string, unknown>): string {
   const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
-  const parts: string[] = [];
   const reportArtifactId =
     evidence && typeof evidence.reportArtifactId === "number"
       ? evidence.reportArtifactId
       : row.reportArtifactId;
-
-  if (reportArtifactId) parts.push(`Source report #${reportArtifactId}`);
-
-  const fieldName = evidence ? firstText(evidence, ["fieldName", "field"]) : null;
-  if (fieldName) parts.push(`field: ${labelizeIssueType(fieldName)}`);
-
+  const fieldName = firstKnownText([
+    evidence ? firstText(evidence, ["fieldName", "field"]) : null,
+    firstText(details, ["fieldName", "canonicalField", "field", "sourceField", "disputedField"]),
+  ]);
   const pageNumber = evidence ? Number(evidence.pageNumber ?? evidence.page) : Number(details.pageNumber ?? details.page);
-  if (Number.isFinite(pageNumber) && pageNumber > 0) parts.push(`page ${pageNumber}`);
-
   const snippet = firstKnownText([
     evidence ? firstText(evidence, ["textSnippet", "excerpt"]) : null,
     firstText(details, ["textSnippet", "evidenceSnippet", "excerpt"]),
   ]);
-  if (snippet) parts.push(`excerpt: ${redactSensitiveText(snippet, row.accountNumber).slice(0, 180)}`);
 
-  if (parts.length > 0) return parts.join("; ");
-  if (row.sourceText && row.sourceText.trim()) return `Source report text for tradeline #${row.tradelineId}`;
-  return "Needs manual review";
+  return formatPacketConsumerEvidenceReference({
+    fieldName,
+    pageNumber: Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : null,
+    excerpt: snippet,
+    accountNumber: row.accountNumber,
+    hasSourceReport: Boolean(reportArtifactId || row.sourceText?.trim()),
+  });
 }
 
 export interface PacketEvidenceLocationSource {
