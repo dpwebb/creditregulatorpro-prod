@@ -53,6 +53,22 @@ export interface PipelineParams {
 
 const COMPLIANCE_SCAN_CONCURRENCY = 4;
 
+type CompletedPassExtractionValues = {
+  channelGuess?: string | null;
+  channelConfidence?: number | null;
+  bureauContext?: Json | null;
+  consumerProfile?: Json | null;
+  portalSummary?: Json | null;
+  accounts?: Json | null;
+  inquiriesCreditRelated?: Json | null;
+  inquiriesOther?: Json | null;
+  insolvencyPublicRecords?: Json | null;
+  rawEvidence?: Json | null;
+  conflicts?: Json | null;
+  missingRequiredFields?: Json | null;
+  qualityNotes?: Json | null;
+};
+
 export type IngestStageKey =
   | "artifact_stored"
   | "extraction_snapshot_stored"
@@ -187,6 +203,67 @@ export function replayPayloadMatchesCanonicalState(data: unknown): boolean {
   if (typeof artifactData.replayHash !== "string" || typeof replayPayload.replayHash !== "string") return false;
   if (artifactData.replayHash !== replayPayload.replayHash) return false;
   return stableCanonicalJson(artifactData.canonicalOutput) === stableCanonicalJson(replayPayload.canonicalOutput);
+}
+
+function toPersistedJson(value: unknown): Json {
+  return JSON.parse(JSON.stringify(value)) as Json;
+}
+
+async function upsertCompletedPassExtraction(
+  reportArtifactId: number,
+  pass: "A" | "A_FULL",
+  values: CompletedPassExtractionValues,
+): Promise<void> {
+  const now = new Date();
+  const row = {
+    reportArtifactId,
+    pass,
+    status: "completed" as const,
+    startedAt: now,
+    completedAt: now,
+    channelGuess: values.channelGuess ?? null,
+    channelConfidence: values.channelConfidence ?? null,
+    bureauContext: values.bureauContext ?? null,
+    consumerProfile: values.consumerProfile ?? null,
+    portalSummary: values.portalSummary ?? null,
+    accounts: values.accounts ?? null,
+    inquiriesCreditRelated: values.inquiriesCreditRelated ?? null,
+    inquiriesOther: values.inquiriesOther ?? null,
+    insolvencyPublicRecords: values.insolvencyPublicRecords ?? null,
+    rawEvidence: values.rawEvidence ?? null,
+    conflicts: values.conflicts ?? null,
+    missingRequiredFields: values.missingRequiredFields ?? null,
+    qualityNotes: values.qualityNotes ?? null,
+    errorMessage: null,
+    errorDetails: null,
+  };
+
+  await db
+    .insertInto("passExtraction")
+    .values(row)
+    .onConflict((oc) =>
+      oc.columns(["reportArtifactId", "pass"]).doUpdateSet({
+        status: "completed",
+        startedAt: (eb) => eb.ref("excluded.startedAt"),
+        completedAt: (eb) => eb.ref("excluded.completedAt"),
+        channelGuess: (eb) => eb.ref("excluded.channelGuess"),
+        channelConfidence: (eb) => eb.ref("excluded.channelConfidence"),
+        bureauContext: (eb) => eb.ref("excluded.bureauContext"),
+        consumerProfile: (eb) => eb.ref("excluded.consumerProfile"),
+        portalSummary: (eb) => eb.ref("excluded.portalSummary"),
+        accounts: (eb) => eb.ref("excluded.accounts"),
+        inquiriesCreditRelated: (eb) => eb.ref("excluded.inquiriesCreditRelated"),
+        inquiriesOther: (eb) => eb.ref("excluded.inquiriesOther"),
+        insolvencyPublicRecords: (eb) => eb.ref("excluded.insolvencyPublicRecords"),
+        rawEvidence: (eb) => eb.ref("excluded.rawEvidence"),
+        conflicts: (eb) => eb.ref("excluded.conflicts"),
+        missingRequiredFields: (eb) => eb.ref("excluded.missingRequiredFields"),
+        qualityNotes: (eb) => eb.ref("excluded.qualityNotes"),
+        errorMessage: null,
+        errorDetails: null,
+      })
+    )
+    .execute();
 }
 
 async function updateIngestStage(
@@ -654,65 +731,31 @@ export async function executeIngestPipeline({
     extraction: fullExtraction
   };
 
-  const passARecord = await db
-    .insertInto("passExtraction")
-    .values({
-      reportArtifactId: artifactId,
-      pass: "A",
-      status: "pending",
-      startedAt: new Date(),
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
+  await upsertCompletedPassExtraction(artifactId, "A", {
+    channelGuess: passAExtraction.channel_guess,
+    channelConfidence: null,
+    bureauContext: toPersistedJson(passAExtraction.bureau_context),
+    consumerProfile: toPersistedJson(passAExtraction.consumer_profile),
+    rawEvidence: toPersistedJson(passAExtraction.raw_evidence),
+    conflicts: toPersistedJson(passAExtraction.conflicts),
+    missingRequiredFields: toPersistedJson(passAExtraction.missing_required_fields),
+    qualityNotes: toPersistedJson(passAExtraction.quality_notes),
+  });
 
-  await db
-    .updateTable("passExtraction")
-    .set({
-      status: "completed",
-      completedAt: new Date(),
-      channelGuess: passAExtraction.channel_guess,
-      channelConfidence: null,
-      bureauContext: JSON.parse(JSON.stringify(passAExtraction.bureau_context)) as Json,
-      consumerProfile: JSON.parse(JSON.stringify(passAExtraction.consumer_profile)) as Json,
-      rawEvidence: JSON.parse(JSON.stringify(passAExtraction.raw_evidence)) as Json,
-      conflicts: JSON.parse(JSON.stringify(passAExtraction.conflicts)) as Json,
-      missingRequiredFields: JSON.parse(JSON.stringify(passAExtraction.missing_required_fields)) as Json,
-      qualityNotes: JSON.parse(JSON.stringify(passAExtraction.quality_notes)) as Json,
-    })
-    .where("id", "=", passARecord.id)
-    .execute();
-
-  const fullRecord = await db
-    .insertInto("passExtraction")
-    .values({
-      reportArtifactId: artifactId,
-      pass: "A_FULL",
-      status: "pending",
-      startedAt: new Date(),
-    })
-    .returning("id")
-    .executeTakeFirstOrThrow();
-
-  await db
-    .updateTable("passExtraction")
-    .set({
-      status: "completed",
-      completedAt: new Date(),
-      channelGuess: fullExtraction.channel_guess,
-      bureauContext: JSON.parse(JSON.stringify(fullExtraction.bureau_context)) as Json,
-      consumerProfile: JSON.parse(JSON.stringify(fullExtraction.consumer_profile)) as Json,
-      portalSummary: JSON.parse(JSON.stringify(fullExtraction.portal_summary)) as Json,
-      accounts: JSON.parse(JSON.stringify(fullExtraction.accounts)) as Json,
-      inquiriesCreditRelated: JSON.parse(JSON.stringify(fullExtraction.inquiries_credit_related)) as Json,
-      inquiriesOther: JSON.parse(JSON.stringify(fullExtraction.inquiries_other)) as Json,
-      insolvencyPublicRecords: JSON.parse(JSON.stringify(fullExtraction.insolvency_public_records)) as Json,
-      rawEvidence: JSON.parse(JSON.stringify(fullExtraction.raw_evidence)) as Json,
-      conflicts: JSON.parse(JSON.stringify(fullExtraction.conflicts)) as Json,
-      missingRequiredFields: JSON.parse(JSON.stringify(fullExtraction.missing_required_fields)) as Json,
-      qualityNotes: JSON.parse(JSON.stringify(fullExtraction.quality_notes)) as Json,
-    })
-    .where("id", "=", fullRecord.id)
-    .execute();
+  await upsertCompletedPassExtraction(artifactId, "A_FULL", {
+    channelGuess: fullExtraction.channel_guess,
+    bureauContext: toPersistedJson(fullExtraction.bureau_context),
+    consumerProfile: toPersistedJson(fullExtraction.consumer_profile),
+    portalSummary: toPersistedJson(fullExtraction.portal_summary),
+    accounts: toPersistedJson(fullExtraction.accounts),
+    inquiriesCreditRelated: toPersistedJson(fullExtraction.inquiries_credit_related),
+    inquiriesOther: toPersistedJson(fullExtraction.inquiries_other),
+    insolvencyPublicRecords: toPersistedJson(fullExtraction.insolvency_public_records),
+    rawEvidence: toPersistedJson(fullExtraction.raw_evidence),
+    conflicts: toPersistedJson(fullExtraction.conflicts),
+    missingRequiredFields: toPersistedJson(fullExtraction.missing_required_fields),
+    qualityNotes: toPersistedJson(fullExtraction.quality_notes),
+  });
 
   send({ type: "progress", stage: "unified_extraction_completed", percent: 75 });
   await Promise.resolve();

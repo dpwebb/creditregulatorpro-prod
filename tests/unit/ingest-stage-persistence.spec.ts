@@ -127,6 +127,20 @@ describe("ingest stage persistence guard", () => {
     expect(evaluateIngestStageCompletion(data).ok).toBe(true);
   });
 
+  it("upserts pass extraction rows so ingest retries do not fail on existing pass records", () => {
+    const ingestCore = source("helpers/ingestCorePipeline.tsx");
+    const upsertSource = ingestCore.slice(
+      ingestCore.indexOf("async function upsertCompletedPassExtraction"),
+      ingestCore.indexOf("async function updateIngestStage"),
+    );
+
+    expect(upsertSource).toContain('.insertInto("passExtraction")');
+    expect(upsertSource).toContain('.columns(["reportArtifactId", "pass"]).doUpdateSet');
+    expect(upsertSource).toContain('status: "completed"');
+    expect(upsertSource).toContain('errorMessage: null');
+    expect(upsertSource).toContain('errorDetails: null');
+  });
+
   it("keeps final report promotion atomic with stage verification", () => {
     const ingestCore = source("helpers/ingestCorePipeline.tsx");
     const promotionSource = ingestCore.slice(
