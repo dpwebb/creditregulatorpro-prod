@@ -1,0 +1,82 @@
+{
+  "reportName": "packet-pdf-cache-miss-concurrency",
+  "generatedAt": "2026-05-21T05:19:08.2024232-03:00",
+  "currentHead": "7f4414eb47dd63e04a2cdabba3bb2310fad06974",
+  "auditTarget": "P1-7 Packet PDF cache-miss timeout does not cancel underlying render work.",
+  "evidenceType": "AUTOMATED_LOCAL_SIMULATION",
+  "liveExternalProviderCallsMade": 0,
+  "certifying": false,
+  "CERTIFYING": false,
+  "productionReadyClaim": "not-production-certified",
+  "summary": {
+    "packetPdfOutputBehaviorChanged": false,
+    "cacheHitBehaviorChanged": false,
+    "timeoutSlotReleasedEarly": false,
+    "uncontrolledRenderWorkPrevented": true,
+    "exactRequestedRunInBandCommandSupported": false,
+    "compatibleVitestSuitePassed": true,
+    "packetPdfCacheMissProofPassed": true,
+    "repositoryCheckPassed": true
+  },
+  "commands": [
+    {
+      "command": "pnpm exec tsc --noEmit --pretty false",
+      "status": "PASS",
+      "notes": "TypeScript compilation passed."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts",
+      "status": "PASS",
+      "notes": "Targeted packet PDF and packet-adjacent unit coverage passed: 4 files, 20 tests."
+    },
+    {
+      "command": "pnpm run packet-pdf:cache-miss-proof",
+      "status": "PASS",
+      "notes": "Refreshed latest-packet-pdf-cache-miss-proof artifacts; no live providers."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "notes": "Whitespace check passed with line-ending warnings only."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit tests/api --runInBand",
+      "status": "FAIL",
+      "notes": "Vitest 4.1.5 rejected unsupported option --runInBand before running tests."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit tests/api",
+      "status": "PASS",
+      "notes": "Compatible full unit/API suite passed: 189 files, 1431 tests."
+    },
+    {
+      "command": "pnpm run check",
+      "status": "PASS",
+      "notes": "Build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation correction checks passed."
+    }
+  ],
+  "automatedCoverage": {
+    "timedOutRenderKeepsSlotUntilUnderlyingPromiseSettles": true,
+    "concurrentCacheMissesDoNotExceedConfiguredConcurrency": true,
+    "repeatedTimeoutSimulationDoesNotAccumulateUncontrolledRenderWork": true,
+    "successfulRenderCachesAndReturnsPdf": true,
+    "duplicateConcurrentCacheMissesCollapse": true,
+    "packetPdfCacheMissProofPasses": true
+  },
+  "boundaries": {
+    "patchedExistingHelpers": [
+      "helpers/packetPdfCache.ts",
+      "helpers/packetPdfCacheMissEnvelope.ts"
+    ],
+    "packetGenerationReplaced": false,
+    "packetContentChanged": false,
+    "evidenceReferencesChanged": false,
+    "cacheKeySemanticsChanged": false,
+    "liveExternalCallsUsed": false
+  },
+  "proofArtifacts": {
+    "markdown": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md",
+    "json": "docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json"
+  },
+  "residualRisk": "This evidence is based on local automated simulation and static repository checks. It does not certify broad production-at-scale readiness."
+}

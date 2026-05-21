@@ -25,15 +25,25 @@ export type PacketPdfCacheMissEnvelopeMetrics = PacketPdfCacheMissEnvelopeConfig
   maxWaitMs: number;
 };
 
+export type PacketPdfCacheMissTaskContext = {
+  signal: AbortSignal;
+  isTimedOut: () => boolean;
+};
+
 type RenderWaiter = {
   queuedAt: number;
   resolve: (release: () => void) => void;
 };
 
+type InFlightEntry<T = unknown> = {
+  clientPromise: Promise<T>;
+  slotPromise: Promise<unknown>;
+};
+
 const state = {
   activeRenders: 0,
   waiters: [] as RenderWaiter[],
-  inFlight: new Map<string, Promise<unknown>>(),
+  inFlight: new Map<string, InFlightEntry>(),
   startedCount: 0,
   completedCount: 0,
   failedCount: 0,
@@ -174,22 +184,54 @@ export async function runBoundedPacketPdfCacheMiss<T>(
   task: () => Promise<T>,
   config: PacketPdfCacheMissEnvelopeConfig = getPacketPdfCacheMissEnvelopeConfig(),
 ): Promise<T> {
-  const existing = state.inFlight.get(cacheKey) as Promise<T> | undefined;
+  const existing = state.inFlight.get(cacheKey) as InFlightEntry<T> | undefined;
   if (existing) {
     state.collapsedCount += 1;
-    return existing;
+    return existing.clientPromise;
   }
 
   const promise = runNewCacheMissTask(task, config);
-  state.inFlight.set(cacheKey, promise);
+  const entry: InFlightEntry<T> = {
+    clientPromise: promise,
+    slotPromise: promise,
+  };
+  state.inFlight.set(cacheKey, entry);
 
   try {
     return await promise;
   } finally {
-    if (state.inFlight.get(cacheKey) === promise) {
+    if (state.inFlight.get(cacheKey) === entry) {
       state.inFlight.delete(cacheKey);
     }
   }
+}
+
+export function runBoundedPacketPdfCacheMissWithTimeout<T>(
+  cacheKey: string,
+  task: (context: PacketPdfCacheMissTaskContext) => Promise<T>,
+  timeoutMs: number,
+  config: PacketPdfCacheMissEnvelopeConfig = getPacketPdfCacheMissEnvelopeConfig(),
+  options: {
+    onStarted?: () => Promise<void> | void;
+  } = {},
+): Promise<T> {
+  const existing = state.inFlight.get(cacheKey) as InFlightEntry<T> | undefined;
+  if (existing) {
+    state.collapsedCount += 1;
+    return existing.clientPromise;
+  }
+
+  const entry = runNewCacheMissTaskWithTimeout(task, timeoutMs, config, options);
+  state.inFlight.set(cacheKey, entry);
+  entry.slotPromise
+    .finally(() => {
+      if (state.inFlight.get(cacheKey) === entry) {
+        state.inFlight.delete(cacheKey);
+      }
+    })
+    .catch(() => undefined);
+
+  return entry.clientPromise;
 }
 
 async function runNewCacheMissTask<T>(task: () => Promise<T>, config: PacketPdfCacheMissEnvelopeConfig): Promise<T> {
@@ -209,6 +251,84 @@ async function runNewCacheMissTask<T>(task: () => Promise<T>, config: PacketPdfC
   } finally {
     release?.();
   }
+}
+
+function runNewCacheMissTaskWithTimeout<T>(
+  task: (context: PacketPdfCacheMissTaskContext) => Promise<T>,
+  timeoutMs: number,
+  config: PacketPdfCacheMissEnvelopeConfig,
+  options: {
+    onStarted?: () => Promise<void> | void;
+  },
+): InFlightEntry<T> {
+  let resolveClient!: (value: T) => void;
+  let rejectClient!: (error: unknown) => void;
+  let clientSettled = false;
+  let timedOut = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const abortController = new AbortController();
+
+  const clientPromise = new Promise<T>((resolve, reject) => {
+    resolveClient = resolve;
+    rejectClient = reject;
+  });
+
+  const settleClient = (settle: () => void): void => {
+    if (clientSettled) return;
+    clientSettled = true;
+    settle();
+  };
+
+  const slotPromise = (async () => {
+    let release: (() => void) | null = null;
+    try {
+      release = await acquireRenderSlot(config);
+      state.startedCount += 1;
+      await options.onStarted?.();
+
+      timeout = setTimeout(() => {
+        timedOut = true;
+        const timeoutError = new PacketPdfCacheMissTimeoutError(timeoutMs);
+        abortController.abort(timeoutError);
+        state.timeoutCount += 1;
+        state.failedCount += 1;
+        settleClient(() => rejectClient(timeoutError));
+      }, timeoutMs);
+
+      try {
+        const result = await task({
+          signal: abortController.signal,
+          isTimedOut: () => timedOut,
+        });
+        if (timeout) clearTimeout(timeout);
+        if (!timedOut) {
+          state.completedCount += 1;
+          settleClient(() => resolveClient(result));
+        }
+      } catch (error) {
+        if (timeout) clearTimeout(timeout);
+        if (!timedOut) {
+          state.failedCount += 1;
+          settleClient(() => rejectClient(error));
+        }
+      }
+    } catch (error) {
+      if (timeout) clearTimeout(timeout);
+      if (!clientSettled) {
+        state.failedCount += 1;
+        settleClient(() => rejectClient(error));
+      }
+    } finally {
+      release?.();
+    }
+  })();
+
+  slotPromise.catch(() => undefined);
+
+  return {
+    clientPromise,
+    slotPromise,
+  };
 }
 
 export function getPacketPdfCacheMissEnvelopeMetrics(

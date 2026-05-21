@@ -395,4 +395,93 @@ describe("packet PDF cache", () => {
       PACKET_PDF_RENDER_FAILED_EVENT,
     ]);
   });
+
+  it("does not release a timed-out non-abortable render slot until the render promise settles", async () => {
+    process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT = "2";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS = "30";
+    const firstRender = deferred<string>();
+    const firstRenderBase64 = vi.fn(() => firstRender.promise);
+    const secondRenderBase64 = vi.fn(async () => Buffer.from("%PDF-second-after-timeout").toString("base64"));
+
+    const first = getOrRenderPacketPdfBase64({
+      packetId: 609,
+      userId: 10,
+      purpose: "download",
+      packetContent: packetContent("Held timeout slot."),
+      renderBase64: firstRenderBase64,
+    });
+    await vi.waitFor(() => expect(firstRenderBase64).toHaveBeenCalledTimes(1));
+    await expect(first).rejects.toThrow(PacketPdfCacheMissTimeoutError);
+
+    let metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(metrics.activeRenders).toBe(1);
+    expect(metrics.inFlightKeys).toBe(1);
+    expect(metrics.timeoutCount).toBe(1);
+
+    const second = getOrRenderPacketPdfBase64({
+      packetId: 610,
+      userId: 10,
+      purpose: "download",
+      packetContent: packetContent("Queued behind timed-out render."),
+      renderBase64: secondRenderBase64,
+    });
+    await delay(50);
+    expect(secondRenderBase64).not.toHaveBeenCalled();
+    expect(getPacketPdfCacheMissEnvelopeMetrics().queuedWaiters).toBe(1);
+
+    firstRender.resolve(Buffer.from("%PDF-first-too-late").toString("base64"));
+    await vi.waitFor(() => expect(secondRenderBase64).toHaveBeenCalledTimes(1));
+    await second;
+
+    metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(metrics.activeRenders).toBe(0);
+    expect(metrics.inFlightKeys).toBe(0);
+    expect(metrics.maxActiveObserved).toBe(1);
+    expect(mocks.uploadPdf).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not accumulate uncontrolled render work after repeated timeout pressure", async () => {
+    process.env.CRP_PACKET_PDF_CACHE_MISS_MAX_CONCURRENCY = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_PENDING_LIMIT = "1";
+    process.env.CRP_PACKET_PDF_CACHE_MISS_TIMEOUT_MS = "25";
+    const firstRender = deferred<string>();
+    const firstRenderBase64 = vi.fn(() => firstRender.promise);
+    const rejectedRenderBase64 = vi.fn(async () => Buffer.from("%PDF-should-not-render").toString("base64"));
+
+    const first = getOrRenderPacketPdfBase64({
+      packetId: 611,
+      userId: 10,
+      purpose: "download",
+      packetContent: packetContent("Timeout pressure first render."),
+      renderBase64: firstRenderBase64,
+    });
+    await vi.waitFor(() => expect(firstRenderBase64).toHaveBeenCalledTimes(1));
+    await expect(first).rejects.toThrow(PacketPdfCacheMissTimeoutError);
+
+    const rejected = await Promise.allSettled(
+      [612, 613, 614].map((packetId) =>
+        getOrRenderPacketPdfBase64({
+          packetId,
+          userId: 10,
+          purpose: "download",
+          packetContent: packetContent(`Timeout pressure rejected ${packetId}.`),
+          renderBase64: rejectedRenderBase64,
+        }),
+      ),
+    );
+
+    expect(rejected.every((result) => result.status === "rejected")).toBe(true);
+    expect(rejectedRenderBase64).not.toHaveBeenCalled();
+    let metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(metrics.activeRenders).toBe(1);
+    expect(metrics.overloadRejectedCount).toBe(3);
+    expect(metrics.maxActiveObserved).toBe(1);
+
+    firstRender.resolve(Buffer.from("%PDF-first-too-late").toString("base64"));
+    await vi.waitFor(() => expect(getPacketPdfCacheMissEnvelopeMetrics().activeRenders).toBe(0));
+    metrics = getPacketPdfCacheMissEnvelopeMetrics();
+    expect(metrics.inFlightKeys).toBe(0);
+    expect(mocks.uploadPdf).not.toHaveBeenCalled();
+  });
 });
