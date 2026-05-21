@@ -1,10 +1,15 @@
+// @vitest-environment node
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   applyRecipientOverrideToPacketContent,
   generatePacketContentPdfBase64,
 } from "../../helpers/packetPdfContent";
-import { generateDisputePacketPDF } from "../../helpers/disputePacketPdf";
+import {
+  buildDisputePacketPdfLetterText,
+  generateDisputePacketPDF,
+} from "../../helpers/disputePacketPdf";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 
 const originalFetch = globalThis.fetch;
@@ -81,5 +86,65 @@ describe("simple dispute packet PDF", () => {
     expect(packet.recipient.name).toBe("Sample Collections");
     expect(packet.recipient.address.join(" ")).toContain("10 Agency Rd");
     expect(bytes.subarray(0, 4).toString("utf8")).toBe("%PDF");
+  });
+
+  it("renders readable account blocks without internal packet terms", async () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion report artifact #77",
+      reportDate: "2012-08-21T00:00:00.000Z",
+      dateGenerated: "2026-05-21T00:00:00.000Z",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations", "3115 Harvester Road"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St", "Halifax, NS B3H 0A1"],
+      },
+      disputedItems: [
+        {
+          issueId: 111,
+          tradelineId: 222,
+          creditorCollectorName: "Sample Bank",
+          accountNumber: "555544443333",
+          disputedField: "lastReportedDate",
+          reportedValue: "2012-08-21T00:00:00.000Z",
+          expectedValue: "Not known",
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          explanation: "PIPEDA_4_5 source report #77 field: lastReportedDate tradelineId: 222",
+          evidenceReference: "source report #77; field: lastReportedDate; reportArtifactId: 77; tradelineId: 222",
+        },
+        {
+          issueId: 112,
+          tradelineId: 223,
+          creditorCollectorName: "Sample Collector",
+          accountNumber: "reau",
+          disputedField: "currentBalance",
+          reportedValue: "$400",
+          expectedValue: null,
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          explanation: "Review the balance shown on source report #77.",
+          evidenceReference: "source report #77; field: currentBalance",
+        },
+      ],
+      reportArtifactIds: [77],
+    });
+
+    const text = buildDisputePacketPdfLetterText(packet).replace(/\s+/g, " ").trim();
+
+    expect(text).toContain("Disputed Account");
+    expect(text).toContain("Company reporting the account");
+    expect(text).toContain("Account: Account ending 3333");
+    expect(text).toContain("Account: Account number not provided on report");
+    expect(text).toContain("Information I am disputing: Date last reported");
+    expect(text).toContain("What the report shows: Aug 21, 2012");
+    expect(text).toContain("What I am requesting: Please verify this information and correct or remove it if it cannot be supported.");
+    expect(text).not.toMatch(/tradeline|artifact|field:|source report|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION/i);
+    expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+    expect(text).not.toMatch(/lastReportedDate|currentBalance|Account ending reau|Expected:\s*Not known/i);
+    expect(packet.metadata.reportArtifactIds).toEqual([77]);
+    expect(packet.disputedItems.map((item) => item.tradelineId)).toEqual([222, 223]);
   });
 });

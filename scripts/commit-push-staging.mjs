@@ -291,4 +291,4 @@ if (refreshLocalAfterPush) {
   console.log("Skipping localhost database refresh (--skip-local-refresh).");
 }
 
-console.log("commit-push completed after GitHub Actions verification.");
+console.log("COMPLETE: commit-push completed after GitHub Actions verification.");
