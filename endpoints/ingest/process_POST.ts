@@ -9,6 +9,7 @@ import {
   type IngestProcessingJobRecord,
   type IngestProcessingJobStatus,
 } from "../../helpers/ingestProcessingQueueService";
+import { buildIngestUploadStatusView } from "../../helpers/ingestUploadStatusPresenter";
 import { schema } from "./process_POST.schema";
 
 const PROCESS_SOURCE = "authenticated_ingest_process";
@@ -96,18 +97,26 @@ function messageForJob(job: IngestProcessingJobRecord, duplicate: boolean): stri
 }
 
 function queueOutput(job: IngestProcessingJobRecord, duplicate: boolean) {
-  const processingStatus = processingStatusForJob(job.status);
+  const statusView = buildIngestUploadStatusView({
+    artifactId: job.reportArtifactId,
+    artifactProcessingStatus: processingStatusForJob(job.status),
+    job,
+  });
   return {
-    ok: job.status !== "dead_lettered" && job.status !== "canceled",
-    queued: job.status !== "succeeded",
+    ok: statusView.ok,
+    queued: statusView.workerRequired,
     artifactId: job.reportArtifactId,
     storageUrl: String(job.reportArtifactId),
     jobId: job.id,
     queueStatus: job.status,
-    processingStatus,
-    workerRequired: job.status !== "succeeded",
+    processingStatus: statusView.processingStatus,
+    uploadStatus: statusView.status,
+    nextAction: statusView.nextAction,
+    userMessage: statusView.userMessage,
+    diagnosticCode: statusView.diagnosticCode,
+    workerRequired: statusView.workerRequired,
     duplicate,
-    retryAt: job.status === "failed" ? job.runAfter : null,
+    retryAt: statusView.retryAt,
     errorCode: job.lastErrorCode,
     errorReason: job.lastErrorReason,
     message: messageForJob(job, duplicate),
@@ -225,30 +234,16 @@ export async function handle(request: Request) {
         jobId: job.id,
         queueStatus: job.status,
         processingStatus: output.processingStatus,
+        uploadStatus: output.uploadStatus,
+        nextAction: output.nextAction,
+        userMessage: output.userMessage,
+        diagnosticCode: output.diagnosticCode,
         workerRequired: output.workerRequired,
         duplicate,
         retryAt: output.retryAt,
         errorCode: output.errorCode,
         errorReason: output.errorReason,
       });
-
-      if (job.status === "dead_lettered") {
-        send({
-          type: "error",
-          error: output.errorReason || "Report processing needs operator review before retry.",
-          code: output.errorCode || "INGEST_JOB_DEAD_LETTERED",
-        });
-        return;
-      }
-
-      if (job.status === "canceled") {
-        send({
-          type: "error",
-          error: output.errorReason || "Report processing was canceled.",
-          code: output.errorCode || "INGEST_JOB_CANCELED",
-        });
-        return;
-      }
 
       send({ type: "complete", data: output });
     } catch (error) {

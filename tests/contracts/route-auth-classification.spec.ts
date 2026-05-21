@@ -90,6 +90,7 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
     "endpoints/hidden-risk/list_GET.ts",
     "endpoints/ingest/process_POST.ts",
     "endpoints/ingest/report_POST.ts",
+    "endpoints/ingest/status_GET.ts",
     "endpoints/legal-authority/search_GET.ts",
     "endpoints/licensed-agency/ai-verify_POST.ts",
     "endpoints/licensed-agency/check_GET.ts",
@@ -455,7 +456,7 @@ describe("route auth classification contract", () => {
     expect(unclassifiedHandlers).toEqual([]);
     expect(classifiedHandlers).toEqual(endpointHandlers());
     expect(classifiedHandlers).toEqual(serverRouteHandlers());
-    expect(classifiedHandlers).toHaveLength(285);
+    expect(classifiedHandlers).toHaveLength(286);
   });
 
   it("pins the public route inventory so changes require explicit contract updates", () => {

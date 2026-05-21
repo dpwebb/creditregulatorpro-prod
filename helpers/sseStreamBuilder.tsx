@@ -30,6 +30,10 @@ export interface SSEStatusEvent {
   jobId?: number;
   queueStatus?: string;
   processingStatus?: string;
+  uploadStatus?: string;
+  nextAction?: string;
+  userMessage?: string;
+  diagnosticCode?: string;
   workerRequired?: boolean;
   duplicate?: boolean;
   retryAt?: string | null;

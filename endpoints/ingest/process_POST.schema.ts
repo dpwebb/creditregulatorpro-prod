@@ -2,6 +2,10 @@ import { z } from "zod";
 import { ParsedTradeline } from "../../helpers/reportParser";
 import type { DeterministicNormalizedReport } from "../../helpers/deterministicCreditReportPipeline";
 import type { DeterministicReplayValidation } from "../../helpers/deterministicReplayValidator";
+import type {
+  IngestUploadNextAction,
+  IngestUploadStatus,
+} from "../../helpers/ingestUploadStatusPresenter";
 
 export const schema = z.object({
   artifactId: z.number()
@@ -17,6 +21,10 @@ export type QueuedProcessingOutputType = {
   jobId: number;
   queueStatus: "queued" | "running" | "failed" | "dead_lettered" | "canceled" | "succeeded" | string;
   processingStatus: string;
+  uploadStatus?: IngestUploadStatus;
+  nextAction?: IngestUploadNextAction;
+  userMessage?: string;
+  diagnosticCode?: string;
   workerRequired: boolean;
   duplicate: boolean;
   retryAt: string | null;

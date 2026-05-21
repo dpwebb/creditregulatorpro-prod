@@ -591,6 +591,16 @@ function hasUniqueViolation(error: unknown): boolean {
   );
 }
 
+function isMissingQueueTable(error: unknown): boolean {
+  const candidate = error as { code?: string; message?: string; cause?: { code?: string; message?: string } };
+  return (
+    candidate?.code === "42P01" ||
+    candidate?.cause?.code === "42P01" ||
+    /relation .*ingest_processing_job.* does not exist/i.test(candidate?.message ?? "") ||
+    /relation .*ingest_processing_job.* does not exist/i.test(candidate?.cause?.message ?? "")
+  );
+}
+
 function normalizeError(error: unknown): { code: string; reason: string; permanent: boolean } {
   if (error instanceof IngestProcessingQueueError) {
     return {
@@ -907,6 +917,25 @@ export async function getLatestIngestProcessingJobForArtifact(
     limit 1
   `.execute(db);
   return result.rows[0] ? mapJobRow(result.rows[0]) : null;
+}
+
+export async function getLatestIngestProcessingJobForArtifactReadOnly(
+  reportArtifactId: number,
+): Promise<IngestProcessingJobRecord | null> {
+  const safeArtifactId = requiredNumber(reportArtifactId, "reportArtifactId");
+  try {
+    const result = await sql<QueueRow>`
+      select *
+      from public.ingest_processing_job
+      where report_artifact_id = ${safeArtifactId}
+      order by created_at desc, id desc
+      limit 1
+    `.execute(db);
+    return result.rows[0] ? mapJobRow(result.rows[0]) : null;
+  } catch (error) {
+    if (isMissingQueueTable(error)) return null;
+    throw error;
+  }
 }
 
 export async function enqueueIngestProcessingJob(

@@ -33,6 +33,8 @@ const mocks = vi.hoisted(() => ({
   handleIngestProcess: vi.fn(),
   enqueueIngestProcessingJob: vi.fn(),
   getLatestIngestProcessingJobByIdempotencyKey: vi.fn(),
+  getLatestIngestProcessingJobForArtifact: vi.fn(),
+  getLatestIngestProcessingJobForArtifactReadOnly: vi.fn(),
   updateArtifactProcessingStatus: vi.fn(),
   validateOrigin: vi.fn(),
   runParserLabStage: vi.fn(),
@@ -63,6 +65,8 @@ vi.mock("../../helpers/ingestReportHandler", () => ({
 vi.mock("../../helpers/ingestProcessingQueueService", () => ({
   enqueueIngestProcessingJob: mocks.enqueueIngestProcessingJob,
   getLatestIngestProcessingJobByIdempotencyKey: mocks.getLatestIngestProcessingJobByIdempotencyKey,
+  getLatestIngestProcessingJobForArtifact: mocks.getLatestIngestProcessingJobForArtifact,
+  getLatestIngestProcessingJobForArtifactReadOnly: mocks.getLatestIngestProcessingJobForArtifactReadOnly,
 }));
 
 vi.mock("../../helpers/ingestProcessingStatus", () => ({
@@ -104,6 +108,7 @@ vi.mock("../../helpers/anonymousCompliancePreview", () => ({
 import { handle as submitReport } from "../../endpoints/ingest/report_POST";
 import { handle as submitAnonymousReport } from "../../endpoints/ingest/anonymous-report_POST";
 import { handle as processReport } from "../../endpoints/ingest/process_POST";
+import { handle as getIngestStatus } from "../../endpoints/ingest/status_GET";
 import { handle as listReportArtifacts } from "../../endpoints/report-artifact/list_GET";
 import {
   REPORT_ARTIFACT_LIST_DEFAULT_LIMIT,
@@ -418,6 +423,8 @@ beforeEach(() => {
     });
   });
   mocks.getLatestIngestProcessingJobByIdempotencyKey.mockResolvedValue(null);
+  mocks.getLatestIngestProcessingJobForArtifact.mockResolvedValue(null);
+  mocks.getLatestIngestProcessingJobForArtifactReadOnly.mockResolvedValue(null);
   mocks.enqueueIngestProcessingJob.mockResolvedValue({
     status: "queued",
     job: ingestJobRow(),
@@ -625,6 +632,9 @@ describe("report ingest lifecycle endpoints", () => {
           jobId: 9101,
           queueStatus: "queued",
           processingStatus: "queued",
+          uploadStatus: "queued_waiting_for_worker",
+          nextAction: "wait_for_worker",
+          diagnosticCode: "INGEST_QUEUED_WAITING_FOR_WORKER",
           workerRequired: true,
         }),
         expect.objectContaining({
@@ -636,6 +646,8 @@ describe("report ingest lifecycle endpoints", () => {
             storageUrl: "701",
             jobId: 9101,
             queueStatus: "queued",
+            uploadStatus: "queued_waiting_for_worker",
+            userMessage: "Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.",
           }),
         }),
       ]),
@@ -699,7 +711,9 @@ describe("report ingest lifecycle endpoints", () => {
           queued: true,
           duplicate: true,
           queueStatus: "failed",
-          errorReason: "Synthetic transient queue failure.",
+          uploadStatus: "failed",
+          nextAction: "check_status",
+          diagnosticCode: "INGEST_PROCESSING_FAILED",
         }),
       }),
     ]));
@@ -720,16 +734,131 @@ describe("report ingest lifecycle endpoints", () => {
     expect(deadLetter.status).toBe(200);
     const deadLetterEvents = await readSseEvents(deadLetter);
     expect(deadLetterEvents).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "status", queueStatus: "dead_lettered" }),
       expect.objectContaining({
-        type: "error",
-        code: "INGEST_ARTIFACT_BYTES_MISSING",
-        error: "Queued report artifact has no stored PDF bytes.",
+        type: "status",
+        queueStatus: "dead_lettered",
+        uploadStatus: "manual_review_required",
+        nextAction: "manual_review",
+        diagnosticCode: "INGEST_ARTIFACT_BYTES_MISSING",
+      }),
+      expect.objectContaining({
+        type: "complete",
+        data: expect.objectContaining({
+          ok: false,
+          queued: false,
+          queueStatus: "dead_lettered",
+          uploadStatus: "manual_review_required",
+          nextAction: "manual_review",
+          diagnosticCode: "INGEST_ARTIFACT_BYTES_MISSING",
+        }),
       }),
     ]));
     expect(mocks.enqueueIngestProcessingJob).toHaveBeenCalledTimes(1);
     expect(mocks.handleIngestProcess).not.toHaveBeenCalled();
     expect(JSON.stringify([retryEvents, deadLetterEvents])).not.toMatch(/packetReady|packetWording|runtimeBridge|adminOverride/i);
+  });
+
+  it("returns owner-scoped safe upload processing status without raw report data", async () => {
+    mocks.getLatestIngestProcessingJobForArtifactReadOnly.mockResolvedValueOnce(ingestJobRow({ status: "queued" }));
+    queueResults(
+      {
+        first: artifactRow({
+          id: 701,
+          userId: 10,
+          data: {
+            rawReportText: "SYNTHETIC_RAW_REPORT_TEXT_SHOULD_NOT_APPEAR",
+            bytesBase64: "JVBERi0xLjQKRAW_BASE64_SHOULD_NOT_APPEAR",
+          },
+        }),
+      },
+    );
+
+    const response = await getIngestStatus(getRequest("/_api/ingest/status?artifactId=701"));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual(expect.objectContaining({
+      ok: true,
+      artifactId: 701,
+      jobId: 9101,
+      status: "queued_waiting_for_worker",
+      queueStatus: "queued",
+      processingStatus: "queued",
+      nextAction: "wait_for_worker",
+      diagnosticCode: "INGEST_QUEUED_WAITING_FOR_WORKER",
+      workerRequired: true,
+      canLeavePage: true,
+      canCheckStatus: true,
+    }));
+    expect(body.userMessage).toBe("Your report was received and is waiting for processing. You can leave this page; we'll update your account when processing completes.");
+    responseTextIsPrivacySafe(body);
+    expect(mocks.getLatestIngestProcessingJobForArtifactReadOnly).toHaveBeenCalledWith(701);
+    expect(mocks.operations.map((operation) => operation.kind)).toEqual(["select"]);
+    expect(mocks.updateArtifactProcessingStatus).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes completed, failed, manual-review, and stale upload status states", async () => {
+    const cases = [
+      {
+        job: ingestJobRow({ status: "succeeded" }),
+        expected: {
+          ok: true,
+          status: "completed",
+          nextAction: "review_results",
+          diagnosticCode: "INGEST_PROCESSING_COMPLETED",
+        },
+      },
+      {
+        job: ingestJobRow({ status: "failed", lastErrorCode: "INGEST_PROCESSING_FAILED", runAfter: "2026-01-01T00:05:00.000Z" }),
+        expected: {
+          ok: false,
+          status: "failed",
+          nextAction: "check_status",
+          diagnosticCode: "INGEST_PROCESSING_FAILED",
+        },
+      },
+      {
+        job: ingestJobRow({ status: "dead_lettered", lastErrorCode: "INGEST_ARTIFACT_BYTES_MISSING" }),
+        expected: {
+          ok: false,
+          status: "manual_review_required",
+          nextAction: "manual_review",
+          diagnosticCode: "INGEST_ARTIFACT_BYTES_MISSING",
+        },
+      },
+      {
+        job: ingestJobRow({ status: "running", lockedUntil: "2020-01-01T00:00:00.000Z" }),
+        expected: {
+          ok: true,
+          status: "stale",
+          nextAction: "check_status",
+          diagnosticCode: "INGEST_PROCESSING_STALE",
+        },
+      },
+    ];
+
+    for (const testCase of cases) {
+      mocks.operations.length = 0;
+      mocks.queryQueue.length = 0;
+      mocks.getLatestIngestProcessingJobForArtifactReadOnly.mockResolvedValueOnce(testCase.job);
+      queueResults({ first: artifactRow({ id: 701, userId: 10, processingStatus: "processing" }) });
+
+      const response = await getIngestStatus(getRequest("/_api/ingest/status?artifactId=701"));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body).toEqual(expect.objectContaining(testCase.expected));
+      responseTextIsPrivacySafe(body);
+    }
+  });
+
+  it("denies non-owner upload processing status before queue inspection", async () => {
+    queueResults({ first: artifactRow({ id: 702, userId: 99 }) });
+
+    const denied = await getIngestStatus(getRequest("/_api/ingest/status?artifactId=702"));
+
+    expect(denied.status).toBe(403);
+    await expect(denied.json()).resolves.toEqual({ error: "Unauthorized access to artifact" });
+    expect(mocks.getLatestIngestProcessingJobForArtifactReadOnly).not.toHaveBeenCalled();
   });
 
   it("lists report artifacts using current user scoping and compact synthetic metadata", async () => {

@@ -418,6 +418,14 @@
   text-align: center;
 }
 
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-2);
+}
+
 @media (max-width: 768px) {
   .card {
     padding: var(--spacing-4);
