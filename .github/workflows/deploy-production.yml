@@ -208,6 +208,7 @@ jobs:
           PRODUCTION_SSH_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
           PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
           PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT || '22' }}
+          PRODUCTION_SSH_HOST_KEY_SHA256: ${{ secrets.PRODUCTION_SSH_HOST_KEY_SHA256 || vars.PRODUCTION_SSH_HOST_KEY_SHA256 || '' }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
@@ -291,7 +292,70 @@ jobs:
           PY
           chmod 600 ~/.ssh/production_deploy_key
           ssh-keygen -y -f ~/.ssh/production_deploy_key >/dev/null
-          ssh-keyscan -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
+          if [ -z "${PRODUCTION_SSH_HOST_KEY_SHA256:-}" ]; then
+            echo "Refusing production deploy: PRODUCTION_SSH_HOST_KEY_SHA256 is required for fail-closed SSH host trust."
+            exit 1
+          fi
+
+          known_hosts_tmp="$(mktemp)"
+          scanned_fingerprints_tmp="$(mktemp)"
+          expected_fingerprints_tmp="$(mktemp)"
+          cleanup_production_ssh_host_key_files() {
+            [ -z "${known_hosts_tmp:-}" ] || rm -f "$known_hosts_tmp"
+            [ -z "${scanned_fingerprints_tmp:-}" ] || rm -f "$scanned_fingerprints_tmp"
+            [ -z "${expected_fingerprints_tmp:-}" ] || rm -f "$expected_fingerprints_tmp"
+          }
+          trap cleanup_production_ssh_host_key_files EXIT
+
+          normalize_expected_ssh_host_fingerprints() {
+            printf '%s\n' "$1" | tr ',;' '\n' | grep -Eo 'SHA256:[A-Za-z0-9+/=]+' | sort -u || true
+          }
+
+          scan_production_known_hosts() {
+            local target_file="$1"
+            : > "$target_file"
+            if ssh-keyscan -4 -T 15 -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST" > "$target_file" 2>/dev/null && [ -s "$target_file" ]; then
+              return 0
+            fi
+            : > "$target_file"
+            if ssh-keyscan -T 15 -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST" > "$target_file" 2>/dev/null && [ -s "$target_file" ]; then
+              return 0
+            fi
+            return 1
+          }
+
+          verify_production_ssh_host_key() {
+            local target_file="$1"
+            normalize_expected_ssh_host_fingerprints "$PRODUCTION_SSH_HOST_KEY_SHA256" > "$expected_fingerprints_tmp"
+            if [ ! -s "$expected_fingerprints_tmp" ]; then
+              echo "Refusing production deploy: PRODUCTION_SSH_HOST_KEY_SHA256 must include at least one SHA256: host key fingerprint."
+              return 1
+            fi
+
+            ssh-keygen -lf "$target_file" -E sha256 | awk '{print $2}' | sort -u > "$scanned_fingerprints_tmp"
+            if grep -Fx -f "$expected_fingerprints_tmp" "$scanned_fingerprints_tmp" >/dev/null; then
+              echo "Production SSH host key fingerprint verified before writing known_hosts."
+              return 0
+            fi
+
+            echo "Refusing production deploy: scanned SSH host key fingerprint does not match PRODUCTION_SSH_HOST_KEY_SHA256."
+            return 1
+          }
+
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if scan_production_known_hosts "$known_hosts_tmp"; then
+              verify_production_ssh_host_key "$known_hosts_tmp"
+              cat "$known_hosts_tmp" >> ~/.ssh/known_hosts
+              known_hosts_tmp=""
+              break
+            fi
+            echo "Production SSH host key scan attempt ${attempt}/8 failed; retrying."
+            sleep 10
+          done
+          if [ -n "$known_hosts_tmp" ]; then
+            echo "Failed to collect production SSH host key after retries. Confirm PRODUCTION_HOST/PRODUCTION_SSH_PORT and network ACLs; deploy did not start."
+            exit 1
+          fi
 
       - name: Deploy selected commit
         id: deploy_remote

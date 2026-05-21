@@ -1,0 +1,279 @@
+{
+  "reportName": "ssh-host-key-pinning",
+  "generatedAt": "2026-05-21T09:32:52.753Z",
+  "currentHead": "87f3e0b338f7fdb15f1a63c7105ec8c03acedefd",
+  "branch": "staging",
+  "auditTarget": "P2-1 SSH host key trust uses runtime ssh-keyscan.",
+  "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
+  "status": "passed",
+  "certifying": false,
+  "CERTIFYING": false,
+  "liveDeploymentRequired": false,
+  "liveExternalProviderCallsMade": 0,
+  "validationCommandSummary": {
+    "requestedRunInBandSupported": false,
+    "allCompatibleValidationPassed": true,
+    "CERTIFYING": false
+  },
+  "commandResults": [
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "notes": "Git reported line-ending warnings only."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit --runInBand",
+      "status": "failed",
+      "exitCode": 1,
+      "notes": "Vitest 4.1.5 rejects the unsupported --runInBand option before test execution."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit",
+      "status": "passed",
+      "testFiles": 156,
+      "tests": 1139
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-ssh-host-key-pinning.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/deploy-production-workflow.spec.ts",
+      "status": "passed",
+      "testFiles": 3,
+      "tests": 27
+    },
+    {
+      "command": "pnpm run deploy:ssh-host-key-pinning -- --write-evidence --json",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run check",
+      "status": "passed"
+    }
+  ],
+  "requiredConfiguration": {
+    "production": "PRODUCTION_SSH_HOST_KEY_SHA256",
+    "staging": "STAGING_SSH_HOST_KEY_SHA256",
+    "format": "One or more SHA256: SSH host key fingerprints, separated by commas, semicolons, whitespace, or newlines.",
+    "valuesIncluded": false
+  },
+  "simulations": [
+    {
+      "environment": "production",
+      "status": "failed",
+      "reason": "missing-expected-fingerprint",
+      "knownHostsWritten": false,
+      "certifying": false,
+      "CERTIFYING": false,
+      "events": [
+        {
+          "action": "scan-host-key",
+          "scannedCount": 1
+        },
+        {
+          "action": "fail-closed",
+          "reason": "missing-expected-fingerprint"
+        }
+      ]
+    },
+    {
+      "environment": "production",
+      "status": "failed",
+      "reason": "fingerprint-mismatch",
+      "knownHostsWritten": false,
+      "certifying": false,
+      "CERTIFYING": false,
+      "events": [
+        {
+          "action": "scan-host-key",
+          "scannedCount": 1
+        },
+        {
+          "action": "fail-closed",
+          "reason": "fingerprint-mismatch"
+        }
+      ]
+    },
+    {
+      "environment": "production",
+      "status": "passed",
+      "reason": "fingerprint-matched",
+      "knownHostsWritten": true,
+      "certifying": false,
+      "CERTIFYING": false,
+      "events": [
+        {
+          "action": "scan-host-key",
+          "scannedCount": 2
+        },
+        {
+          "action": "verify-fingerprint",
+          "result": "matched"
+        },
+        {
+          "action": "write-known-hosts",
+          "result": "after-verification"
+        }
+      ]
+    },
+    {
+      "environment": "staging",
+      "status": "passed",
+      "reason": "fingerprint-matched",
+      "knownHostsWritten": true,
+      "certifying": false,
+      "CERTIFYING": false,
+      "events": [
+        {
+          "action": "scan-host-key",
+          "scannedCount": 1
+        },
+        {
+          "action": "verify-fingerprint",
+          "result": "matched"
+        },
+        {
+          "action": "write-known-hosts",
+          "result": "after-verification"
+        }
+      ]
+    }
+  ],
+  "workflowValidation": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "production requires expected SSH host fingerprint",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "production compares scanned key to expected fingerprint",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "staging supports the same expected fingerprint verifier",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "ssh-keyscan remains collection only",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "production known_hosts is written only after verification",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "staging known_hosts is written only after verifier gate",
+        "passed": true,
+        "status": "passed"
+      },
+      {
+        "name": "shell blocks pass bash -n",
+        "passed": true,
+        "status": "passed",
+        "stagingFailedLines": [],
+        "productionFailedLines": []
+      }
+    ],
+    "failedChecks": [],
+    "bashSyntax": {
+      "staging": {
+        "status": "passed",
+        "blockCount": 5,
+        "results": [
+          {
+            "line": 60,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 111,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 181,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 206,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 366,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      },
+      "production": {
+        "status": "passed",
+        "blockCount": 6,
+        "results": [
+          {
+            "line": 66,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 117,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 187,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 212,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 373,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 558,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    }
+  },
+  "summary": {
+    "productionMissingExpectedFails": true,
+    "mismatchFails": true,
+    "matchPasses": true,
+    "knownHostsWrittenAfterVerification": true,
+    "shellBlocksBashSyntaxPassed": true
+  },
+  "validation": {
+    "ok": true,
+    "errors": []
+  },
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-ssh-host-key-pinning.md",
+    "json": "docs/production-scale/evidence/latest-ssh-host-key-pinning.json"
+  }
+}

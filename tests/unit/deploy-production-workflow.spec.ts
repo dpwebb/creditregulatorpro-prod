@@ -89,6 +89,24 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain('"Cookie: ${invalid_session_cookie}"');
   });
 
+  it("pins the production SSH host key before writing known_hosts", () => {
+    const source = workflowSource();
+    const prepareSshBlock = source.match(/- name: Prepare SSH[\s\S]*?\n      - name: Deploy selected commit/)?.[0] ?? "";
+
+    expect(prepareSshBlock).toContain("PRODUCTION_SSH_HOST_KEY_SHA256");
+    expect(prepareSshBlock).toContain("Refusing production deploy: PRODUCTION_SSH_HOST_KEY_SHA256 is required");
+    expect(prepareSshBlock).toContain("scan_production_known_hosts() {");
+    expect(prepareSshBlock).toContain("verify_production_ssh_host_key() {");
+    expect(prepareSshBlock).toContain('ssh-keygen -lf "$target_file" -E sha256');
+    expect(prepareSshBlock).toContain('grep -Fx -f "$expected_fingerprints_tmp" "$scanned_fingerprints_tmp"');
+    expect(prepareSshBlock).toContain('ssh-keyscan -4 -T 15 -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST"');
+    expect(prepareSshBlock).toContain('ssh-keyscan -T 15 -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST"');
+    expect(prepareSshBlock.indexOf('verify_production_ssh_host_key "$known_hosts_tmp"')).toBeLessThan(
+      prepareSshBlock.indexOf('cat "$known_hosts_tmp" >> ~/.ssh/known_hosts'),
+    );
+    expect(prepareSshBlock).not.toContain('ssh-keyscan -p "$PRODUCTION_SSH_PORT" "$PRODUCTION_HOST" >> ~/.ssh/known_hosts');
+  });
+
   it("does not run staging-only synthetic admin response smokes in production", () => {
     const source = workflowSource();
 

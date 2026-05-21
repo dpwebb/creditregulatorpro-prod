@@ -71,6 +71,13 @@ describe("staging deploy workflow health gate", () => {
     const prepareSshBlock = source.match(/- name: Prepare SSH[\s\S]*?\n      - name: Deploy selected commit/)?.[0] ?? "";
 
     expect(prepareSshBlock).toContain("scan_staging_known_hosts() {");
+    expect(prepareSshBlock).toContain("STAGING_SSH_HOST_KEY_SHA256");
+    expect(prepareSshBlock).toContain("verify_staging_ssh_host_key_if_configured");
+    expect(prepareSshBlock).toContain('ssh-keygen -lf "$target_file" -E sha256');
+    expect(prepareSshBlock).toContain('grep -Fx -f "$expected_fingerprints_tmp" "$scanned_fingerprints_tmp"');
+    expect(prepareSshBlock.indexOf('verify_staging_ssh_host_key_if_configured "$known_hosts_tmp"')).toBeLessThan(
+      prepareSshBlock.indexOf('cat "$known_hosts_tmp" >> ~/.ssh/known_hosts'),
+    );
     expect(prepareSshBlock).toContain('ssh-keyscan -4 -T 15 -p "$STAGING_SSH_PORT" "$STAGING_HOST"');
     expect(prepareSshBlock).toContain('ssh-keyscan -T 15 -p "$STAGING_SSH_PORT" "$STAGING_HOST"');
     expect(prepareSshBlock).toContain("for attempt in 1 2 3 4 5 6 7 8; do");

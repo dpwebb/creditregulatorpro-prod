@@ -202,6 +202,7 @@ jobs:
           STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY != '' && secrets.STAGING_SSH_PRIVATE_KEY || secrets.STAGING_SSH_KEY }}
           STAGING_HOST: ${{ secrets.STAGING_HOST }}
           STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT || '22' }}
+          STAGING_SSH_HOST_KEY_SHA256: ${{ secrets.STAGING_SSH_HOST_KEY_SHA256 || vars.STAGING_SSH_HOST_KEY_SHA256 || '' }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
@@ -286,6 +287,42 @@ jobs:
           chmod 600 ~/.ssh/staging_deploy_key
           ssh-keygen -y -f ~/.ssh/staging_deploy_key >/dev/null
           known_hosts_tmp="$(mktemp)"
+          scanned_fingerprints_tmp="$(mktemp)"
+          expected_fingerprints_tmp="$(mktemp)"
+          cleanup_staging_ssh_host_key_files() {
+            [ -z "${known_hosts_tmp:-}" ] || rm -f "$known_hosts_tmp"
+            [ -z "${scanned_fingerprints_tmp:-}" ] || rm -f "$scanned_fingerprints_tmp"
+            [ -z "${expected_fingerprints_tmp:-}" ] || rm -f "$expected_fingerprints_tmp"
+          }
+          trap cleanup_staging_ssh_host_key_files EXIT
+
+          normalize_expected_ssh_host_fingerprints() {
+            printf '%s\n' "$1" | tr ',;' '\n' | grep -Eo 'SHA256:[A-Za-z0-9+/=]+' | sort -u || true
+          }
+
+          verify_staging_ssh_host_key_if_configured() {
+            local target_file="$1"
+            if [ -z "${STAGING_SSH_HOST_KEY_SHA256:-}" ]; then
+              echo "Staging SSH host key pin is not configured. Continuing for staging compatibility; configure STAGING_SSH_HOST_KEY_SHA256 to enforce host key pinning."
+              return 0
+            fi
+
+            normalize_expected_ssh_host_fingerprints "$STAGING_SSH_HOST_KEY_SHA256" > "$expected_fingerprints_tmp"
+            if [ ! -s "$expected_fingerprints_tmp" ]; then
+              echo "Refusing staging deploy: STAGING_SSH_HOST_KEY_SHA256 must include at least one SHA256: host key fingerprint."
+              return 1
+            fi
+
+            ssh-keygen -lf "$target_file" -E sha256 | awk '{print $2}' | sort -u > "$scanned_fingerprints_tmp"
+            if grep -Fx -f "$expected_fingerprints_tmp" "$scanned_fingerprints_tmp" >/dev/null; then
+              echo "Staging SSH host key fingerprint verified before writing known_hosts."
+              return 0
+            fi
+
+            echo "Refusing staging deploy: scanned SSH host key fingerprint does not match STAGING_SSH_HOST_KEY_SHA256."
+            return 1
+          }
+
           scan_staging_known_hosts() {
             local target_file="$1"
             : > "$target_file"
@@ -300,8 +337,8 @@ jobs:
           }
           for attempt in 1 2 3 4 5 6 7 8; do
             if scan_staging_known_hosts "$known_hosts_tmp"; then
+              verify_staging_ssh_host_key_if_configured "$known_hosts_tmp"
               cat "$known_hosts_tmp" >> ~/.ssh/known_hosts
-              rm -f "$known_hosts_tmp"
               known_hosts_tmp=""
               break
             fi
@@ -309,7 +346,6 @@ jobs:
             sleep 10
           done
           if [ -n "$known_hosts_tmp" ]; then
-            rm -f "$known_hosts_tmp"
             echo "Failed to collect staging SSH host key after retries. Confirm STAGING_HOST/STAGING_SSH_PORT and network ACLs; deploy did not start."
             exit 1
           fi
