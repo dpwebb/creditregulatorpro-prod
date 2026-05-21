@@ -5,7 +5,19 @@ import { describe, expect, it } from "vitest";
 const workflowSource = () =>
   readFileSync(join(process.cwd(), ".github", "workflows", "deploy-staging.yml"), "utf8");
 
+const composeSource = () => readFileSync(join(process.cwd(), "docker-compose.yml"), "utf8");
+
 describe("staging deploy workflow health gate", () => {
+  it("scopes the staging compose project without removing unrelated orphan containers", () => {
+    const workflow = workflowSource();
+    const compose = composeSource();
+
+    expect(compose).toMatch(/^name: creditregulatorpro-staging\s+services:/);
+    expect(compose).toContain("container_name: creditregulatorpro-staging");
+    expect(workflow).toContain("docker compose up -d --build --force-recreate creditregulatorpro-staging");
+    expect(workflow).not.toContain("--remove-orphans");
+  });
+
   it("fails fast on unsupported Vite NODE_ENV production entries without mutating env files", () => {
     const source = workflowSource();
     const driftBlock = source.match(/assert_no_unsupported_vite_node_env\(\) \{[\s\S]*?\n            \}/)?.[0] ?? "";
