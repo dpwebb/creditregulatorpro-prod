@@ -123,11 +123,16 @@ function warningOnlyMigrationGateEvidence() {
     status: "warning-only",
     policyPath: "docs/production-scale/migration-governance-policy.json",
     policyMode: "warning-only",
+    CERTIFYING: false,
     releaseGateAccepted: false,
+    productionPromotionGateAccepted: false,
+    temporaryAllowlistActive: false,
     runtimeEnsureResidualImpact: "warning-only",
     releaseBlockingFindings: [],
     warningOnlyFindings: [{ category: "approved-runtime-ensure-residual" }],
     waivedFindings: [],
+    temporaryAllowlistFindings: [],
+    reviewedAdditiveFindings: [],
     blockerCoverage: {
       migrationGovernance: false,
       acceptedReleaseBlocking: false,
@@ -155,7 +160,9 @@ function acceptedReleaseBlockingMigrationGateEvidence() {
     ...warningOnlyMigrationGateEvidence(),
     status: "accepted-release-blocking",
     policyMode: "release-blocking",
+    CERTIFYING: true,
     releaseGateAccepted: true,
+    productionPromotionGateAccepted: true,
     runtimeEnsureResidualImpact: "release-blocking",
     warningOnlyFindings: [],
     blockerCoverage: {
@@ -1029,7 +1036,7 @@ describe("production promotion evidence pack", () => {
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
-  it("classifies blocker 10 policy-closed with accepted formal migration gate waiver", () => {
+  it("keeps blocker 10 partial when migration gate has a temporary non-certifying allowlist", () => {
     const migrationGateEvidence = buildMigrationGateReport({
       rootDir: process.cwd(),
       generatedAt: "2026-05-20T12:00:00.000Z",
@@ -1043,18 +1050,20 @@ describe("production promotion evidence pack", () => {
     });
     const blocker10 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 10);
 
-    expect(migrationGateEvidence.status).toBe("accepted-formal-waiver");
+    expect(migrationGateEvidence.status).toBe("accepted-temporary-allowlist");
     expect(report.migrationGateEvidence).toMatchObject({
-      policyMode: "waived",
+      policyMode: "release-blocking",
+      CERTIFYING: false,
       releaseGateAccepted: true,
-      formalWaiver: {
-        accepted: true,
-      },
+      productionPromotionGateAccepted: true,
+      temporaryAllowlistActive: true,
       blockerCoverage: {
-        migrationGovernance: true,
+        migrationGovernance: false,
+        productionPromotionGate: true,
+        temporaryAllowlistActive: true,
       },
     });
-    expect(blocker10?.classification).toBe("waived with explicit reason");
+    expect(blocker10?.classification).toBe("partial");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 

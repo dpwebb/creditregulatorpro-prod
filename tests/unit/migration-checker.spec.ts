@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -25,6 +26,10 @@ describe("migration checker", () => {
     });
     expect(validateMigrationGovernanceReport(report)).toEqual({ ok: true, errors: [] });
     expect(report.reportName).toBe("migration-governance-drift-evidence");
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.certification).toMatchObject({
+      CERTIFYING: false,
+    });
     expect(report.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(report.evidenceTimestamp).toBe(report.generatedAt);
     expect(report.branch).toBeTruthy();
@@ -47,9 +52,14 @@ describe("migration checker", () => {
     expect(report.migrationLedgerEntries.map((entry) => entry.path)).toContain(
       "migrations/0000-runtime-schema-inventory.md",
     );
-    expect(report.releaseSummary.checkerMode).toBe("release-visible-reporting-only");
-    expect(report.releaseSummary.governanceStatus).toBe("partial");
-    expect(report.releaseSummary.hardDeployGateEnabled).toBe(false);
+    expect(report.migrationLedgerEntries.map((entry) => entry.path)).toContain(
+      "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+    );
+    expect(report.releaseSummary.checkerMode).toBe("production-promotion-gate-inventory");
+    expect(report.releaseSummary.governanceStatus).toBe("promotion-gate-inventory-current");
+    expect(report.releaseSummary.hardDeployGateEnabled).toBe(true);
+    expect(report.releaseSummary.hardProductionPromotionGateEnabled).toBe(true);
+    expect(report.releaseSummary.productionPromotionGateCommand).toBe("pnpm run migrations:gate");
     expect(report.findings.some((finding) => finding.releaseImpact === "warning-only")).toBe(true);
   });
 
@@ -84,7 +94,7 @@ describe("migration checker", () => {
       expect(rendered).toContain("Unknown source: helpers/untrackedSchema.ts");
       expect(rendered).toContain("Unledgered source: helpers/untrackedSchema.ts");
       expect(rendered).toContain("[release-blocking] unknown-schema-mutation-source: helpers/untrackedSchema.ts");
-      expect(rendered).toContain("Run check:migrations as a non-blocking informational report only");
+      expect(rendered).toContain("Production promotion gate must fail");
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -221,8 +231,14 @@ describe("migration checker", () => {
   it("release evidence references migration governance output", () => {
     const registry = JSON.parse(readFileSync(path.join(process.cwd(), "docs", "production-scale", "blocker-registry.json"), "utf8"));
     const blocker10 = registry.blockers.find((blocker: { number: number }) => blocker.number === 10);
+    const currentHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    }).trim();
+    const report = scanMigrationState({ rootDir: process.cwd() });
 
     expect(blocker10.currentStatus).toBe("partial");
+    expect(report.commit).toBe(currentHead);
     expect(blocker10.allowedProofCommands).toEqual(expect.arrayContaining([
       "pnpm run check:migrations",
       "pnpm run migrations:evidence",

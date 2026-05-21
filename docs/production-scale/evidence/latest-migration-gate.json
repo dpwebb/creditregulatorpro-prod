@@ -1,14 +1,17 @@
 {
   "reportName": "migration-governance-release-gate",
   "evidenceType": "MIGRATION_GATE_EVIDENCE",
-  "generatedAt": "2026-05-21T00:20:18.719Z",
+  "generatedAt": "2026-05-21T09:59:24.131Z",
   "branch": "staging",
-  "commit": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
+  "commit": "ae7fe40bbb6af8e3716681e6157466bf38f13d92",
   "policyPath": "docs/production-scale/migration-governance-policy.json",
   "policyName": "production-scale-migration-governance-policy",
-  "policyMode": "waived",
-  "status": "accepted-formal-waiver",
+  "policyMode": "release-blocking",
+  "status": "accepted-temporary-allowlist",
+  "CERTIFYING": false,
   "releaseGateAccepted": true,
+  "productionPromotionGateAccepted": true,
+  "temporaryAllowlistActive": true,
   "checkerValidation": {
     "ok": true,
     "errors": []
@@ -20,86 +23,139 @@
     "unledgeredSchemaMutationSourceCount": 0,
     "missingExpectedSourceCount": 0,
     "missingExpectedInventoryEntryCount": 0,
-    "runtimeEnsureResidualCount": 13
+    "runtimeEnsureResidualCount": 13,
+    "convertedRuntimeEnsureResidualCount": 1,
+    "temporaryAllowlistRuntimeEnsureResidualCount": 12
   },
   "approvedRuntimeEnsureInventory": [
     {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "status": "converted-reviewed-additive",
+      "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "productionPromotionAuthorized": true,
+      "cutoverRequired": false,
+      "reason": "Highest-risk production ingest queue runtime ensure path is now represented by a reviewed additive migration while the runtime ensure remains as compatibility redundancy."
+    },
+    {
       "path": "helpers/aiAssistRunStore.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
     },
     {
       "path": "helpers/consumerIdentification.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
-    },
-    {
-      "path": "helpers/ingestProcessingQueueSchema.ts",
-      "status": "approved-residual",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
     }
   ],
   "allowedBootstrapScripts": [
@@ -132,356 +188,507 @@
     {
       "pattern": "unapproved bootstrap mutation source",
       "reason": "Bootstrap DDL must remain explicitly approved and non-production."
+    },
+    {
+      "pattern": "unauthorized runtime ensure source",
+      "reason": "Production promotion must fail when a runtime ensure path is neither converted nor time-bound on the temporary allowlist."
     }
   ],
   "releaseGateRequirements": [
     "Run pnpm run check:migrations.",
     "Run pnpm run migrations:evidence.",
     "Run pnpm run migrations:gate.",
+    "Run the production promotion script gate before pushing to the production repository.",
     "Unknown schema mutation source count must be zero.",
     "Unledgered schema mutation source count must be zero.",
     "Missing expected source count must be zero.",
     "Missing expected inventory entry count must be zero.",
     "Bootstrap mutation sources must be limited to allowedBootstrapScripts.",
+    "Unauthorized runtime ensure source count must be zero.",
+    "Converted runtime ensure entries must reference reviewed additive migration files.",
+    "Temporary runtime ensure allowlist entries must include ownerRole, reason, expiresOn, and CERTIFYING:false.",
     "The gate must remain non-mutating and must not connect to a database.",
-    "Runtime ensure residuals must stay visible until reviewed additive migration cutover completes."
+    "CERTIFYING must remain false while any temporary runtime ensure allowlist entry is active."
   ],
   "waiverRequirements": [
-    "currentMode must be waived.",
-    "formalWaiver.status must be approved.",
-    "formalWaiver.reason must identify the migration/runtime ensure residual being waived.",
-    "formalWaiver.approvedByRole must identify an accountable operator or release role.",
-    "formalWaiver.acceptedAt must be recorded.",
-    "formalWaiver.expiresOn must be recorded and not expired.",
-    "The waiver cannot permit unknown, unledgered, missing, or unapproved schema mutation sources."
+    "Formal waiver mode is not the current production promotion gate policy.",
+    "Any future waiver must be explicit, expiring, non-mutating, and unable to authorize unknown, unledgered, missing, or unapproved schema mutation sources."
   ],
   "futureCutoverProcedure": [
-    "Select one runtime ensure source and create a reviewed additive ledger migration entry.",
+    "Select one remaining temporary runtime ensure source and create a reviewed additive migration entry.",
     "Name affected tables, indexes, runtime ensure function, rollback notes, and verification commands.",
     "Keep the runtime ensure function active until redundant-additive behavior is proven.",
     "Only remove or narrow an ensure path in a separate task with focused tests for that runtime path.",
-    "After all residuals are migrated or intentionally retained, switch currentMode to release-blocking in a reviewed policy update."
+    "Remove each temporary allowlist entry before its expiresOn date or the production promotion gate will fail."
   ],
   "formalWaiver": {
-    "accepted": true,
-    "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
-    "approvedByRole": "Release governance owner",
-    "acceptedAt": "2026-05-20T00:00:00.000Z",
-    "expiresOn": "2026-08-20",
-    "errors": []
+    "accepted": false,
+    "reason": null,
+    "approvedByRole": null,
+    "acceptedAt": null,
+    "expiresOn": null,
+    "errors": [
+      "Policy mode is not waived."
+    ]
   },
   "approvedRuntimeResiduals": [
     {
       "path": "helpers/aiAssistRunStore.ts",
       "description": "AI assist run audit table ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/consumerIdentification.ts",
       "description": "Consumer identification document table ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "description": "Dispute packet findings table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/ingestProcessingQueueSchema.ts",
       "description": "Ingest processing job and event table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "reviewed-additive"
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "description": "Outcome comparison and finding outcome table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "description": "Parser rule promotion table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "description": "Parser test adjudication table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "description": "Parser training archive table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "description": "Regulation reconciliation candidate table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "description": "Regulation registry and mapping table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "description": "Regulation runtime bridge mapping table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
       "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "description": "Violation correction and regulation reference table/index ensure.",
-      "impact": "formally-waived"
+      "impact": "temporary-allowlist"
     }
   ],
-  "runtimeEnsureResidualImpact": "formally-waived",
+  "convertedRuntimeResiduals": [
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "description": "Ingest processing job and event table/index ensure.",
+      "impact": "reviewed-additive",
+      "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "simulation": {
+        "ok": true,
+        "migrationPath": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+        "statementCount": 11,
+        "tableCount": 13,
+        "indexCount": 8,
+        "createdTables": [
+          "public.ingest_processing_job",
+          "public.ingest_processing_job_event",
+          "public.ingest_processing_worker_heartbeat"
+        ],
+        "createdIndexes": [
+          "idx_ingest_processing_job_active_idempotency_unique",
+          "idx_ingest_processing_job_artifact_status",
+          "idx_ingest_processing_job_event_job_created_at",
+          "idx_ingest_processing_job_event_type_created_at",
+          "idx_ingest_processing_job_locked_until",
+          "idx_ingest_processing_job_status_run_after",
+          "idx_ingest_processing_job_user_created_at",
+          "idx_ingest_processing_worker_heartbeat_source_seen"
+        ],
+        "destructiveStatementDetected": false
+      }
+    }
+  ],
+  "temporaryAllowlistResiduals": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "description": "AI assist run audit table ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "description": "Consumer identification document table ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "description": "Dispute packet findings table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "description": "Outcome comparison and finding outcome table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "description": "Parser rule promotion table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "description": "Parser test adjudication table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "description": "Parser training archive table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "description": "Regulation reconciliation candidate table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "description": "Regulation registry and mapping table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "description": "Regulation runtime bridge mapping table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "description": "Violation correction and regulation reference table/index ensure.",
+      "impact": "temporary-allowlist",
+      "reason": "Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding.",
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false
+    }
+  ],
+  "runtimeEnsureResidualImpact": "temporary-allowlist",
   "findings": [
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/aiAssistRunStore.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "AI assist run audit table ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/consumerIdentification.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Consumer identification document table ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Dispute packet findings table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "converted-runtime-ensure-residual",
       "sourcePath": "helpers/ingestProcessingQueueSchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
-      "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Ingest processing job and event table/index ensure."
+      "title": "Runtime ensure source has a reviewed additive migration",
+      "impact": "reviewed-additive",
+      "status": "converted",
+      "recommendation": "Keep the runtime ensure path as redundant compatibility until a separate task narrows it.",
+      "detail": "Ingest processing job and event table/index ensure. Reviewed migration: migrations/0001-ingest-processing-queue-reviewed-additive.sql"
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/outcomeTrackingSchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Outcome comparison and finding outcome table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/parserRulePromotionSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Parser rule promotion table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Parser test adjudication table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/parserTestTrainingArchive.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Parser training archive table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Regulation reconciliation candidate table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/regulationRegistrySchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Regulation registry and mapping table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Regulation runtime bridge mapping table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/responseDocumentSchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/violationCorrectionSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Violation correction and regulation reference table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
     }
   ],
   "releaseBlockingFindings": [],
   "warningOnlyFindings": [],
-  "waivedFindings": [
+  "waivedFindings": [],
+  "temporaryAllowlistFindings": [
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/aiAssistRunStore.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "AI assist run audit table ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/consumerIdentification.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Consumer identification document table ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Dispute packet findings table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
     },
     {
-      "category": "approved-runtime-ensure-residual",
-      "sourcePath": "helpers/ingestProcessingQueueSchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
-      "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Ingest processing job and event table/index ensure."
-    },
-    {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/outcomeTrackingSchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Outcome comparison and finding outcome table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/parserRulePromotionSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Parser rule promotion table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Parser test adjudication table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/parserTestTrainingArchive.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Parser training archive table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Regulation reconciliation candidate table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/regulationRegistrySchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Regulation registry and mapping table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Regulation runtime bridge mapping table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/responseDocumentSchema.ts",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
     },
     {
-      "category": "approved-runtime-ensure-residual",
+      "category": "temporary-runtime-ensure-allowlist",
       "sourcePath": "helpers/violationCorrectionSchema.tsx",
-      "title": "Approved runtime ensure residual remains active",
-      "impact": "formally-waived",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "temporary-allowlist",
       "status": "present",
-      "recommendation": "Keep this residual visible until the reviewed additive migration ledger cutover is complete.",
-      "detail": "Violation correction and regulation reference table/index ensure."
+      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
+    }
+  ],
+  "reviewedAdditiveFindings": [
+    {
+      "category": "converted-runtime-ensure-residual",
+      "sourcePath": "helpers/ingestProcessingQueueSchema.ts",
+      "title": "Runtime ensure source has a reviewed additive migration",
+      "impact": "reviewed-additive",
+      "status": "converted",
+      "recommendation": "Keep the runtime ensure path as redundant compatibility until a separate task narrows it.",
+      "detail": "Ingest processing job and event table/index ensure. Reviewed migration: migrations/0001-ingest-processing-queue-reviewed-additive.sql"
     }
   ],
   "blockerCoverage": {
-    "migrationGovernance": true,
-    "acceptedReleaseBlocking": false,
-    "acceptedFormalWaiver": true
+    "migrationGovernance": false,
+    "productionPromotionGate": true,
+    "temporaryAllowlistActive": true,
+    "acceptedReleaseBlocking": true,
+    "acceptedFormalWaiver": false
   },
   "safety": {
     "nonMutating": true,

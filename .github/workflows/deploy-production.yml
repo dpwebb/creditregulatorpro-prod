@@ -162,6 +162,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Migration governance production promotion gate
+        run: pnpm run migrations:gate
+
       - name: Build + internal regression checks
         run: pnpm run check
 

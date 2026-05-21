@@ -9,6 +9,7 @@ import {
   validateMigrationGateReport,
   writeMigrationGateEvidence,
 } from "../../scripts/migration-gate.mjs";
+import { simulateReviewedMigrationFreshDatabase } from "../../scripts/reviewed-migration-simulator.mjs";
 
 const generatedAt = "2026-05-20T12:00:00.000Z";
 
@@ -33,16 +34,17 @@ function bootstrapSource() {
 }
 
 function policy({
-  currentMode = "waived",
+  currentMode = "release-blocking",
   runtimePaths = ["helpers/knownSchema.ts"],
   bootstrapPaths = [] as string[],
-  waiver = true,
+  runtimeEntries = null as null | Array<Record<string, unknown>>,
+  waiver = false,
 } = {}) {
   return {
     schemaVersion: 1,
     policyName: "fixture-policy",
     currentMode,
-    approvedRuntimeEnsureInventory: runtimePaths.map((sourcePath) => ({ path: sourcePath })),
+    approvedRuntimeEnsureInventory: runtimeEntries ?? runtimePaths.map((sourcePath) => ({ path: sourcePath })),
     allowedBootstrapScripts: bootstrapPaths.map((sourcePath) => ({ path: sourcePath })),
     forbiddenMutationPatterns: [{ pattern: "drop table/index" }],
     releaseGateRequirements: ["Run pnpm run migrations:gate."],
@@ -202,7 +204,7 @@ describe("migration gate", () => {
       expect(releaseBlockingReport.releaseBlockingFindings).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            category: "approved-runtime-ensure-residual",
+            category: "unauthorized-runtime-ensure-source",
             sourcePath: "helpers/knownSchema.ts",
             impact: "release-blocking",
           }),
@@ -219,7 +221,7 @@ describe("migration gate", () => {
       writeKnownRuntimeFixture(rootDir);
       const report = buildMigrationGateReport({
         rootDir,
-        policy: policy(),
+        policy: policy({ currentMode: "waived", waiver: true }),
         scanRoots: ["helpers"],
         ledgerDir: "migrations",
         expectedSources: knownRuntimeSource(),
@@ -230,7 +232,9 @@ describe("migration gate", () => {
       const json = JSON.parse(readFileSync(path.join(rootDir, outputs.jsonPath), "utf8"));
 
       expect(report.status).toBe("accepted-formal-waiver");
-      expect(report.blockerCoverage.migrationGovernance).toBe(true);
+      expect(report.CERTIFYING).toBe(false);
+      expect(report.blockerCoverage.productionPromotionGate).toBe(true);
+      expect(report.blockerCoverage.migrationGovernance).toBe(false);
       expect(report.safety).toMatchObject({
         nonMutating: true,
         requiresDatabase: false,
@@ -247,12 +251,145 @@ describe("migration gate", () => {
     }
   });
 
+  it("reports approved temporary allowlist entries as non-certifying production promotion evidence", () => {
+    const rootDir = tempRoot();
+    try {
+      writeKnownRuntimeFixture(rootDir);
+      const report = buildMigrationGateReport({
+        rootDir,
+        policy: policy({
+          currentMode: "release-blocking",
+          runtimeEntries: [{
+            path: "helpers/knownSchema.ts",
+            status: "temporary-production-allowlist",
+            reason: "Runtime ensure residual is temporarily authorized until additive migration cutover.",
+            ownerRole: "Release governance owner",
+            expiresOn: "2026-08-20",
+            CERTIFYING: false,
+          }],
+        }),
+        scanRoots: ["helpers"],
+        ledgerDir: "migrations",
+        expectedSources: knownRuntimeSource(),
+        generatedAt,
+      });
+
+      expect(report.status).toBe("accepted-temporary-allowlist");
+      expect(report.releaseGateAccepted).toBe(true);
+      expect(report.productionPromotionGateAccepted).toBe(true);
+      expect(report.CERTIFYING).toBe(false);
+      expect(report.blockerCoverage).toMatchObject({
+        productionPromotionGate: true,
+        migrationGovernance: false,
+        temporaryAllowlistActive: true,
+      });
+      expect(report.temporaryAllowlistResiduals).toEqual([
+        expect.objectContaining({
+          path: "helpers/knownSchema.ts",
+          CERTIFYING: false,
+        }),
+      ]);
+      expect(report.findings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: "temporary-runtime-ensure-allowlist",
+            impact: "temporary-allowlist",
+            sourcePath: "helpers/knownSchema.ts",
+          }),
+        ]),
+      );
+      expect(validateMigrationGateReport(report)).toEqual({ ok: true, errors: [] });
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails production-mode governance for invalid temporary allowlist entries", () => {
+    const rootDir = tempRoot();
+    try {
+      writeKnownRuntimeFixture(rootDir);
+      const report = buildMigrationGateReport({
+        rootDir,
+        policy: policy({
+          currentMode: "release-blocking",
+          runtimeEntries: [{
+            path: "helpers/knownSchema.ts",
+            status: "temporary-production-allowlist",
+            reason: "Runtime ensure residual is temporarily authorized until additive migration cutover.",
+            ownerRole: "Release governance owner",
+            expiresOn: "2026-01-01",
+            CERTIFYING: false,
+          }],
+        }),
+        scanRoots: ["helpers"],
+        ledgerDir: "migrations",
+        expectedSources: knownRuntimeSource(),
+        generatedAt,
+      });
+
+      expect(report.status).toBe("failed");
+      expect(report.releaseBlockingFindings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: "invalid-temporary-runtime-allowlist",
+            sourcePath: "helpers/knownSchema.ts",
+            impact: "release-blocking",
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("applies the converted ingest queue migration cleanly to a fresh platform schema simulation", () => {
+    const result = simulateReviewedMigrationFreshDatabase({
+      rootDir: process.cwd(),
+      migrationPath: "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.destructiveStatementDetected).toBe(false);
+    expect(result.createdTables).toEqual(expect.arrayContaining([
+      "public.ingest_processing_job",
+      "public.ingest_processing_job_event",
+      "public.ingest_processing_worker_heartbeat",
+    ]));
+    expect(result.createdIndexes).toEqual(expect.arrayContaining([
+      "idx_ingest_processing_job_active_idempotency_unique",
+      "idx_ingest_processing_job_status_run_after",
+      "idx_ingest_processing_worker_heartbeat_source_seen",
+    ]));
+  });
+
+  it("current production policy keeps the gate hard but non-certifying while allowlist entries remain", () => {
+    const report = buildMigrationGateReport({
+      rootDir: process.cwd(),
+      generatedAt,
+    });
+
+    expect(report.status).toBe("accepted-temporary-allowlist");
+    expect(report.releaseGateAccepted).toBe(true);
+    expect(report.productionPromotionGateAccepted).toBe(true);
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.convertedRuntimeResiduals.map((source: { path: string }) => source.path)).toContain(
+      "helpers/ingestProcessingQueueSchema.ts",
+    );
+    expect(report.temporaryAllowlistResiduals.length).toBeGreaterThan(0);
+    expect(validateMigrationGateReport(report)).toEqual({ ok: true, errors: [] });
+  });
+
   it("exposes the package command and avoids DB imports", () => {
     const packageJson = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
     const script = readFileSync(path.join(process.cwd(), "scripts", "migration-gate.mjs"), "utf8");
+    const promoteScript = readFileSync(path.join(process.cwd(), "scripts", "promote-production.mjs"), "utf8");
+    const productionWorkflow = readFileSync(path.join(process.cwd(), ".github", "workflows", "deploy-production.yml"), "utf8");
 
     expect(packageJson.scripts["migrations:gate"]).toBe("node scripts/migration-gate.mjs");
     expect(script).toContain("Migration gate is static and non-mutating");
     expect(script).not.toMatch(/from\s+["']\.\.\/helpers\/db["']/);
+    expect(promoteScript).toContain("Running migration governance production promotion gate");
+    expect(productionWorkflow).toContain("Migration governance production promotion gate");
+    expect(productionWorkflow).toContain("pnpm run migrations:gate");
   });
 });

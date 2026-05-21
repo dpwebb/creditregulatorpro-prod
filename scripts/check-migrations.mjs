@@ -431,6 +431,7 @@ export function scanMigrationState({
 
   return {
     reportName: "migration-governance-drift-evidence",
+    CERTIFYING: false,
     generatedAt,
     evidenceTimestamp: generatedAt,
     branch: safeGit(["branch", "--show-current"], rootDir),
@@ -460,23 +461,30 @@ export function scanMigrationState({
     missingExpectedInventoryEntries,
     findings,
     releaseSummary: {
-      checkerMode: "release-visible-reporting-only",
-      governanceStatus: "partial",
+      checkerMode: "production-promotion-gate-inventory",
+      governanceStatus: hasOpenInventoryRisk ? "blocked" : "promotion-gate-inventory-current",
       releaseBlockingFindings,
       warningOnlyFindings,
-      hardDeployGateEnabled: false,
+      hardDeployGateEnabled: true,
+      hardProductionPromotionGateEnabled: true,
+      productionPromotionGateCommand: "pnpm run migrations:gate",
       runtimeEnsureResidualCount: runtimeEnsureFunctions.filter((source) => source.exists).length,
       unknownSchemaMutationSourceCount: unknownSchemaMutationSources.length,
       unledgeredSchemaMutationSourceCount: unledgeredSchemaMutationSources.length,
       missingExpectedSourceCount: missingExpectedSources.length,
       missingExpectedInventoryEntryCount: missingExpectedInventoryEntries.length,
     },
+    certification: {
+      CERTIFYING: false,
+      reason:
+        "check:migrations is an inventory evidence command. Production certification requires migrations:gate with CERTIFYING:true and no active temporary runtime ensure allowlist entries.",
+    },
     recommendation: hasOpenInventoryRisk
       ? "Resolve release-blocking migration inventory findings before treating schema governance as complete; keep this checker non-mutating and release-visible."
       : "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
     deployGateRecommendation: hasOpenInventoryRisk
-      ? "Run check:migrations as a non-blocking informational report only; resolve missing, unknown, or unledgered schema mutation sources before enabling a hard deployment gate."
-      : "Run check:migrations as a non-blocking informational report only until a later audited task explicitly wires a stable hard deployment gate.",
+      ? "Production promotion gate must fail until missing, unknown, or unledgered schema mutation sources are resolved."
+      : "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible and non-certifying until converted.",
   };
 }
 
@@ -486,6 +494,7 @@ export function renderMigrationReport(report) {
     "",
     "Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.",
     `Generated at: ${report.generatedAt}`,
+    `CERTIFYING:${report.CERTIFYING ? "true" : "false"}`,
     `Current branch: ${report.branch}`,
     `Current commit hash: ${report.commit}`,
     `Scan roots: ${report.scanRoots.join(", ")}`,
@@ -495,6 +504,7 @@ export function renderMigrationReport(report) {
     `Release-blocking findings: ${report.releaseSummary.releaseBlockingFindings}`,
     `Warning-only findings: ${report.releaseSummary.warningOnlyFindings}`,
     `Hard deploy gate enabled: ${report.releaseSummary.hardDeployGateEnabled ? "yes" : "no"}`,
+    `Production promotion gate command: ${report.releaseSummary.productionPromotionGateCommand}`,
     "",
     "## Runtime Ensure Functions",
     ...report.knownRuntimeEnsureSources.map((source) =>
@@ -557,6 +567,7 @@ export function renderMigrationReport(report) {
 export function validateMigrationGovernanceReport(report) {
   const errors = [];
   if (report.reportName !== "migration-governance-drift-evidence") errors.push("reportName is missing or invalid.");
+  if (report.CERTIFYING !== false) errors.push("inventory report must remain CERTIFYING:false.");
   if (!report.generatedAt || !report.evidenceTimestamp) errors.push("generatedAt/evidenceTimestamp is required.");
   if (!report.branch || !report.commit) errors.push("branch and commit are required.");
   if (report.safety?.nonMutating !== true) errors.push("checker must be non-mutating.");

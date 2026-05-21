@@ -554,7 +554,8 @@ function classifyBlocker(
     blocker.number === 10 &&
     migrationGateEvidence?.blockerCoverage?.migrationGovernance === true &&
     migrationGateEvidence?.policyMode === "release-blocking" &&
-    migrationGateEvidence?.releaseGateAccepted === true
+    migrationGateEvidence?.releaseGateAccepted === true &&
+    migrationGateEvidence?.CERTIFYING === true
   ) {
     return "fixed with automated evidence";
   }
@@ -1186,11 +1187,16 @@ export function buildProductionPromotionPackReport({
       status: migrationGate.status,
       policyPath: migrationGate.policyPath,
       policyMode: migrationGate.policyMode,
+      CERTIFYING: migrationGate.CERTIFYING === true,
       releaseGateAccepted: migrationGate.releaseGateAccepted === true,
+      productionPromotionGateAccepted: migrationGate.productionPromotionGateAccepted === true,
+      temporaryAllowlistActive: migrationGate.temporaryAllowlistActive === true,
       runtimeEnsureResidualImpact: migrationGate.runtimeEnsureResidualImpact,
       releaseBlockingFindings: migrationGate.releaseBlockingFindings?.length ?? 0,
       warningOnlyFindings: migrationGate.warningOnlyFindings?.length ?? 0,
       waivedFindings: migrationGate.waivedFindings?.length ?? 0,
+      temporaryAllowlistFindings: migrationGate.temporaryAllowlistFindings?.length ?? 0,
+      reviewedAdditiveFindings: migrationGate.reviewedAdditiveFindings?.length ?? 0,
       blockerCoverage: migrationGate.blockerCoverage,
       formalWaiver: {
         accepted: migrationGate.formalWaiver?.accepted === true,
@@ -1268,7 +1274,7 @@ export function buildProductionPromotionPackReport({
       "Historical raw report remediation requires accepted sanitized operator evidence.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
-      "Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
+      "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",
       "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
       "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
       "Codex must not promote readiness classification beyond the evidence in this pack.",
@@ -1446,6 +1452,7 @@ export function validatePromotionPackReport(report) {
   if (blocker10?.classification === "fixed with automated evidence") {
     if (
       migrationGate?.policyMode !== "release-blocking" ||
+      migrationGate?.CERTIFYING !== true ||
       migrationGate?.releaseGateAccepted !== true ||
       migrationGate?.blockerCoverage?.migrationGovernance !== true ||
       migrationGate?.releaseBlockingFindings !== 0 ||
@@ -1894,7 +1901,10 @@ export function renderPromotionPackMarkdown(report) {
     "",
     `- Status: ${report.migrationGateEvidence.status}`,
     `- Policy mode: ${report.migrationGateEvidence.policyMode}`,
+    `- CERTIFYING:${report.migrationGateEvidence.CERTIFYING ? "true" : "false"}`,
     `- Release gate accepted: ${report.migrationGateEvidence.releaseGateAccepted ? "yes" : "no"}`,
+    `- Production promotion gate accepted: ${report.migrationGateEvidence.productionPromotionGateAccepted ? "yes" : "no"}`,
+    `- Temporary allowlist active: ${report.migrationGateEvidence.temporaryAllowlistActive ? "yes" : "no"}`,
     `- Runtime ensure residual impact: ${report.migrationGateEvidence.runtimeEnsureResidualImpact}`,
     `- Release-blocking findings: ${report.migrationGateEvidence.releaseBlockingFindings}`,
     `- Formal waiver accepted: ${report.migrationGateEvidence.formalWaiver?.accepted ? "yes" : "no"}`,

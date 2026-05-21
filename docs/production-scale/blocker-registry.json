@@ -578,7 +578,7 @@
         "migrations/0000-runtime-schema-inventory.md"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
       "proofCategories": [
         "automated-local"
       ],
@@ -594,7 +594,7 @@
         "runtime DDL changes",
         "schema mutation without review",
         "production DB introspection",
-        "policy closure without release-blocking mode or formal waiver",
+        "policy closure while temporary runtime ensure allowlist entries remain active",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
@@ -611,8 +611,8 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "waiverReason": "Runtime ensure residuals are formally policy-waived until reviewed additive migration ledger cutover completes; migrations:gate still fails closed for unknown, missing, unledgered, or unapproved schema mutation sources.",
-      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time."
+      "waiverReason": null,
+      "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time."
     },
     {
       "number": 11,

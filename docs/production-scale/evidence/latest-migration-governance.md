@@ -1,16 +1,18 @@
 # Migration Governance Drift Evidence
 
 Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.
-Generated at: 2026-05-21T02:33:15.306Z
+Generated at: 2026-05-21T09:58:38.213Z
+CERTIFYING:false
 Current branch: staging
-Current commit hash: f8939b4f19636413646ff6b223dddbb1411c9c1c
+Current commit hash: ae7fe40bbb6af8e3716681e6157466bf38f13d92
 Scan roots: helpers, scripts, endpoints/migration
 Ledger directory: migrations
-Checker mode: release-visible-reporting-only
-Governance status: partial
+Checker mode: production-promotion-gate-inventory
+Governance status: promotion-gate-inventory-current
 Release-blocking findings: 0
 Warning-only findings: 18
-Hard deploy gate enabled: no
+Hard deploy gate enabled: yes
+Production promotion gate command: pnpm run migrations:gate
 
 ## Runtime Ensure Functions
 - helpers/aiAssistRunStore.ts (present): AI assist run audit table ensure.
@@ -38,12 +40,14 @@ Hard deploy gate enabled: no
 
 ## Migration Ledger Entries
 - migrations/0000-runtime-schema-inventory.md (2777 bytes)
+- migrations/0001-ingest-processing-queue-reviewed-additive.md (1419 bytes)
+- migrations/0001-ingest-processing-queue-reviewed-additive.sql (5004 bytes)
 
 ## Detected Schema Mutation Sources
 - helpers/aiAssistRunStore.ts: 3 matched schema mutation pattern(s)
 - helpers/consumerIdentification.ts: 2 matched schema mutation pattern(s)
 - helpers/disputePacketFindingsSchema.tsx: 7 matched schema mutation pattern(s)
-- helpers/ingestProcessingQueueSchema.ts: 11 matched schema mutation pattern(s)
+- helpers/ingestProcessingQueueSchema.ts: 13 matched schema mutation pattern(s)
 - helpers/outcomeTrackingSchema.ts: 27 matched schema mutation pattern(s)
 - helpers/parserRulePromotionSchema.tsx: 5 matched schema mutation pattern(s)
 - helpers/parserTestAdjudicationSchema.tsx: 1 matched schema mutation pattern(s)
@@ -86,4 +90,4 @@ Hard deploy gate enabled: no
 Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.
 
 ## Deploy Gate Recommendation
-Run check:migrations as a non-blocking informational report only until a later audited task explicitly wires a stable hard deployment gate.
+Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible and non-certifying until converted.

@@ -1,9 +1,10 @@
 {
   "reportName": "migration-governance-drift-evidence",
-  "generatedAt": "2026-05-21T02:33:15.306Z",
-  "evidenceTimestamp": "2026-05-21T02:33:15.306Z",
+  "CERTIFYING": false,
+  "generatedAt": "2026-05-21T09:58:38.213Z",
+  "evidenceTimestamp": "2026-05-21T09:58:38.213Z",
   "branch": "staging",
-  "commit": "f8939b4f19636413646ff6b223dddbb1411c9c1c",
+  "commit": "ae7fe40bbb6af8e3716681e6157466bf38f13d92",
   "safety": {
     "nonMutating": true,
     "requiresDatabase": false,
@@ -414,48 +415,58 @@
         },
         {
           "line": 95,
+          "pattern": "create table",
+          "excerpt": "create table if not exists public.ingest_processing_worker_heartbeat ("
+        },
+        {
+          "line": 104,
           "pattern": "alter table",
           "excerpt": "alter table public.ingest_processing_job_event"
         },
         {
-          "line": 99,
+          "line": 108,
           "pattern": "alter table",
           "excerpt": "alter table public.ingest_processing_job_event"
-        },
-        {
-          "line": 121,
-          "pattern": "create index",
-          "excerpt": "create unique index if not exists idx_ingest_processing_job_active_idempotency_unique"
-        },
-        {
-          "line": 126,
-          "pattern": "create index",
-          "excerpt": "create index if not exists idx_ingest_processing_job_status_run_after"
         },
         {
           "line": 130,
           "pattern": "create index",
+          "excerpt": "create unique index if not exists idx_ingest_processing_job_active_idempotency_unique"
+        },
+        {
+          "line": 135,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_job_status_run_after"
+        },
+        {
+          "line": 139,
+          "pattern": "create index",
           "excerpt": "create index if not exists idx_ingest_processing_job_artifact_status"
         },
         {
-          "line": 134,
+          "line": 143,
           "pattern": "create index",
           "excerpt": "create index if not exists idx_ingest_processing_job_user_created_at"
         },
         {
-          "line": 138,
+          "line": 147,
           "pattern": "create index",
           "excerpt": "create index if not exists idx_ingest_processing_job_locked_until"
         },
         {
-          "line": 142,
+          "line": 151,
           "pattern": "create index",
           "excerpt": "create index if not exists idx_ingest_processing_job_event_job_created_at"
         },
         {
-          "line": 146,
+          "line": 155,
           "pattern": "create index",
           "excerpt": "create index if not exists idx_ingest_processing_job_event_type_created_at"
+        },
+        {
+          "line": 159,
+          "pattern": "create index",
+          "excerpt": "create index if not exists idx_ingest_processing_worker_heartbeat_source_seen"
         }
       ]
     },
@@ -1546,6 +1557,14 @@
     {
       "path": "migrations/0000-runtime-schema-inventory.md",
       "bytes": 2777
+    },
+    {
+      "path": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "bytes": 1419
+    },
+    {
+      "path": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "bytes": 5004
     }
   ],
   "unknownSchemaMutationSources": [],
@@ -1717,19 +1736,25 @@
     }
   ],
   "releaseSummary": {
-    "checkerMode": "release-visible-reporting-only",
-    "governanceStatus": "partial",
+    "checkerMode": "production-promotion-gate-inventory",
+    "governanceStatus": "promotion-gate-inventory-current",
     "releaseBlockingFindings": 0,
     "warningOnlyFindings": 18,
-    "hardDeployGateEnabled": false,
+    "hardDeployGateEnabled": true,
+    "hardProductionPromotionGateEnabled": true,
+    "productionPromotionGateCommand": "pnpm run migrations:gate",
     "runtimeEnsureResidualCount": 13,
     "unknownSchemaMutationSourceCount": 0,
     "unledgeredSchemaMutationSourceCount": 0,
     "missingExpectedSourceCount": 0,
     "missingExpectedInventoryEntryCount": 0
   },
+  "certification": {
+    "CERTIFYING": false,
+    "reason": "check:migrations is an inventory evidence command. Production certification requires migrations:gate with CERTIFYING:true and no active temporary runtime ensure allowlist entries."
+  },
   "recommendation": "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
-  "deployGateRecommendation": "Run check:migrations as a non-blocking informational report only until a later audited task explicitly wires a stable hard deployment gate.",
+  "deployGateRecommendation": "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible and non-certifying until converted.",
   "validation": {
     "ok": true,
     "errors": []

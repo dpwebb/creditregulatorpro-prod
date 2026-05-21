@@ -1,86 +1,137 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "policyName": "production-scale-migration-governance-policy",
-  "currentMode": "waived",
-  "modeDescription": "The migration gate is active and fails closed for unknown, missing, unledgered, or unapproved schema mutation sources. Existing approved runtime ensure residuals are formally waived until reviewed additive ledger cutover completes.",
+  "currentMode": "release-blocking",
+  "modeDescription": "The migration gate is a hard non-mutating production promotion gate. Unauthorized runtime ensure paths fail promotion. Temporary allowlist entries must include owner, reason, expiry, and CERTIFYING:false; production migration governance cannot be certified while any temporary allowlist entry remains active.",
   "approvedRuntimeEnsureInventory": [
     {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "status": "converted-reviewed-additive",
+      "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "productionPromotionAuthorized": true,
+      "cutoverRequired": false,
+      "reason": "Highest-risk production ingest queue runtime ensure path is now represented by a reviewed additive migration while the runtime ensure remains as compatibility redundancy."
+    },
+    {
       "path": "helpers/aiAssistRunStore.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
     },
     {
       "path": "helpers/consumerIdentification.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
-    },
-    {
-      "path": "helpers/ingestProcessingQueueSchema.ts",
-      "status": "approved-residual",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
-      "status": "approved-residual",
+      "status": "temporary-production-allowlist",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
-      "cutoverRequired": true
+      "ownerRole": "Release governance owner",
+      "expiresOn": "2026-06-30",
+      "CERTIFYING": false,
+      "cutoverRequired": true,
+      "reason": "Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
     }
   ],
   "allowedBootstrapScripts": [
@@ -113,53 +164,44 @@
     {
       "pattern": "unapproved bootstrap mutation source",
       "reason": "Bootstrap DDL must remain explicitly approved and non-production."
+    },
+    {
+      "pattern": "unauthorized runtime ensure source",
+      "reason": "Production promotion must fail when a runtime ensure path is neither converted nor time-bound on the temporary allowlist."
     }
   ],
   "releaseGateRequirements": [
     "Run pnpm run check:migrations.",
     "Run pnpm run migrations:evidence.",
     "Run pnpm run migrations:gate.",
+    "Run the production promotion script gate before pushing to the production repository.",
     "Unknown schema mutation source count must be zero.",
     "Unledgered schema mutation source count must be zero.",
     "Missing expected source count must be zero.",
     "Missing expected inventory entry count must be zero.",
     "Bootstrap mutation sources must be limited to allowedBootstrapScripts.",
+    "Unauthorized runtime ensure source count must be zero.",
+    "Converted runtime ensure entries must reference reviewed additive migration files.",
+    "Temporary runtime ensure allowlist entries must include ownerRole, reason, expiresOn, and CERTIFYING:false.",
     "The gate must remain non-mutating and must not connect to a database.",
-    "Runtime ensure residuals must stay visible until reviewed additive migration cutover completes."
+    "CERTIFYING must remain false while any temporary runtime ensure allowlist entry is active."
   ],
   "waiverRequirements": [
-    "currentMode must be waived.",
-    "formalWaiver.status must be approved.",
-    "formalWaiver.reason must identify the migration/runtime ensure residual being waived.",
-    "formalWaiver.approvedByRole must identify an accountable operator or release role.",
-    "formalWaiver.acceptedAt must be recorded.",
-    "formalWaiver.expiresOn must be recorded and not expired.",
-    "The waiver cannot permit unknown, unledgered, missing, or unapproved schema mutation sources."
+    "Formal waiver mode is not the current production promotion gate policy.",
+    "Any future waiver must be explicit, expiring, non-mutating, and unable to authorize unknown, unledgered, missing, or unapproved schema mutation sources."
   ],
-  "formalWaiver": {
-    "status": "approved",
-    "reason": "Approved runtime ensure residuals remain active while the additive migration ledger cutover is performed one workstream at a time; the gate blocks unknown, unledgered, missing, and unapproved mutation sources during the waiver window.",
-    "approvedByRole": "Release governance owner",
-    "acceptedAt": "2026-05-20T00:00:00.000Z",
-    "expiresOn": "2026-08-20",
-    "conditions": [
-      "Do not remove runtime ensure paths without a focused migration task and tests.",
-      "Do not add ad hoc DDL outside approved inventory.",
-      "Do not mutate production as part of gate validation.",
-      "Keep migrations:gate evidence attached to promotion decisions."
-    ]
-  },
   "futureCutoverProcedure": [
-    "Select one runtime ensure source and create a reviewed additive ledger migration entry.",
+    "Select one remaining temporary runtime ensure source and create a reviewed additive migration entry.",
     "Name affected tables, indexes, runtime ensure function, rollback notes, and verification commands.",
     "Keep the runtime ensure function active until redundant-additive behavior is proven.",
     "Only remove or narrow an ensure path in a separate task with focused tests for that runtime path.",
-    "After all residuals are migrated or intentionally retained, switch currentMode to release-blocking in a reviewed policy update."
+    "Remove each temporary allowlist entry before its expiresOn date or the production promotion gate will fail."
   ],
   "safety": {
     "nonMutating": true,
     "productionMutationForbidden": true,
     "runtimeDdlNotChangedByPolicy": true,
-    "databaseConnectionForbidden": true
+    "databaseConnectionForbidden": true,
+    "destructiveMigrationForbidden": true
   }
 }

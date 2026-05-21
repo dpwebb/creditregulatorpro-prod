@@ -87,6 +87,9 @@ if (!skipStagingGate) {
   console.log("Skipping staging validation gate (--skip-staging-gate).");
 }
 
+console.log("Running migration governance production promotion gate...");
+run(process.execPath, ["scripts/migration-gate.mjs"], { stdio: "inherit" });
+
 console.log("Running build check...");
 if (process.platform === "win32") {
   run("cmd.exe", ["/d", "/s", "/c", "pnpm run check"], { stdio: "inherit" });
