@@ -9,17 +9,26 @@ describe("production deploy workflow verification", () => {
   it("runs full internal checks before production deploy while preserving rollback selection", () => {
     const source = workflowSource();
 
+    expect(source).toContain("resolve-target:");
+    expect(source).toContain("Resolve and validate TARGET_SHA");
     expect(source).toContain("rollback_sha:");
-    expect(source).toContain("Check out repository for target validation");
+    expect(source).toContain("Check out repository for target resolution");
+    expect(source).toContain("Check out target repository");
+    expect(source).toContain("Verify validation checkout target SHA");
     expect(source).toContain("fetch-depth: 0");
     expect(source).toContain("ROLLBACK_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha || '' }}");
     expect(source).toContain('if ! printf \'%s\' "$rollback_sha" | grep -Eq \'^[0-9a-fA-F]{40}$\'; then');
     expect(source).toContain('target_sha="$(printf \'%s\' "$rollback_sha" | tr \'[:upper:]\' \'[:lower:]\')"');
     expect(source).toContain('git cat-file -e "$target_sha^{commit}"');
+    expect(source).toContain('git merge-base --is-ancestor "$target_sha" "origin/${APPROVED_BRANCH}"');
+    expect(source).toContain("ref: ${{ needs.resolve-target.outputs.target_sha }}");
+    expect(source).toContain('validation_sha="$(git rev-parse HEAD)"');
     expect(source).toContain("Build + internal regression checks");
     expect(source).toContain("run: pnpm run check");
     expect(source).toContain("pnpm run build");
-    expect(source).toContain("needs: check");
+    expect(source).toContain("needs: resolve-target");
+    expect(source).toContain("- resolve-target");
+    expect(source).toContain("- check");
   });
 
   it("verifies the selected production checkout SHA before building the container", () => {
@@ -97,7 +106,7 @@ describe("production deploy workflow verification", () => {
     const verifyStepIndex = source.indexOf("- name: Verify production health");
 
     expect(source).toContain("rollback_sha:");
-    expect(source).toContain('TARGET_SHA: ${{ steps.target.outputs.sha }}');
+    expect(source).toContain('TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}');
     expect(source).toContain('Refusing production deploy: TARGET_SHA must be a validated lowercase full commit SHA.');
     expect(source).toContain('Refusing production deploy: remote TARGET_SHA is invalid.');
     expect(source).toContain('bash -s -- \\');
@@ -107,6 +116,14 @@ describe("production deploy workflow verification", () => {
     expect(source).not.toContain("TARGET_SHA='$TARGET_SHA'");
     expect(deployStepIndex).toBeGreaterThan(-1);
     expect(verifyStepIndex).toBeGreaterThan(deployStepIndex);
+  });
+
+  it("passes the production compose file explicitly without mutating the remote checkout", () => {
+    const source = workflowSource();
+
+    expect(source).toContain("Production deploy evidence: target_sha=${TARGET_SHA} checked_out_sha=${deployed_sha} compose_file=docker-compose.production.yml.");
+    expect(source).toContain("docker compose -f docker-compose.production.yml up -d --build creditregulatorpro creditregulatorpro-ingest-worker");
+    expect(source).not.toContain("cp docker-compose.production.yml docker-compose.yml");
   });
 
   it("keeps production ingest worker execution default-off and manual only", () => {

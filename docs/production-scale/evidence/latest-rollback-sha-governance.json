@@ -1,0 +1,258 @@
+{
+  "reportName": "rollback-sha-governance",
+  "generatedAt": "2026-05-21T08:40:01.613Z",
+  "currentHead": "12d0e9bf3b51dd5adf2739324b6226666c415bfd",
+  "branch": "staging",
+  "auditTargets": [
+    "P1-1 Rollback SHA validation tests the workflow ref, not the rollback target.",
+    "P2-2 Remote deployment mutates working tree and staging lacks post-checkout SHA verification."
+  ],
+  "evidenceType": "AUTOMATED_STATIC_WORKFLOW_CHECK",
+  "certifying": false,
+  "CERTIFYING": false,
+  "status": "passed",
+  "liveDeploymentRequired": false,
+  "liveExternalProviderCallsMade": 0,
+  "workflows": [
+    {
+      "workflow": "staging",
+      "path": ".github/workflows/deploy-staging.yml",
+      "approvedBranch": "staging",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "TARGET_SHA is resolved before validation jobs",
+          "status": "passed",
+          "passed": true,
+          "resolveIndex": 1300,
+          "checkIndex": 3645
+        },
+        {
+          "name": "rollback_sha is strict 40-hex and passed through env",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "TARGET_SHA must be reachable from the approved branch",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "validation checkout must equal TARGET_SHA",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "deploy evidence target SHA must equal deploy target SHA",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "remote checkout verifies HEAD equals TARGET_SHA",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "run shell blocks pass bash -n",
+          "status": "passed",
+          "passed": true,
+          "blockCount": 5,
+          "failedLines": []
+        }
+      ],
+      "failedChecks": [],
+      "bashSyntax": {
+        "status": "passed",
+        "blockCount": 5,
+        "results": [
+          {
+            "line": 60,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 111,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 181,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 205,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 330,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    },
+    {
+      "workflow": "production",
+      "path": ".github/workflows/deploy-production.yml",
+      "approvedBranch": "main",
+      "status": "passed",
+      "checks": [
+        {
+          "name": "TARGET_SHA is resolved before validation jobs",
+          "status": "passed",
+          "passed": true,
+          "resolveIndex": 1542,
+          "checkIndex": 3881
+        },
+        {
+          "name": "rollback_sha is strict 40-hex and passed through env",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "TARGET_SHA must be reachable from the approved branch",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "validation checkout must equal TARGET_SHA",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "deploy evidence target SHA must equal deploy target SHA",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "remote checkout verifies HEAD equals TARGET_SHA",
+          "status": "passed",
+          "passed": true
+        },
+        {
+          "name": "run shell blocks pass bash -n",
+          "status": "passed",
+          "passed": true,
+          "blockCount": 6,
+          "failedLines": []
+        },
+        {
+          "name": "production compose file is passed explicitly",
+          "status": "passed",
+          "passed": true
+        }
+      ],
+      "failedChecks": [],
+      "bashSyntax": {
+        "status": "passed",
+        "blockCount": 6,
+        "results": [
+          {
+            "line": 66,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 117,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 187,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 211,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 308,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          },
+          {
+            "line": 473,
+            "exitCode": 0,
+            "passed": true,
+            "stderr": ""
+          }
+        ],
+        "failed": []
+      }
+    }
+  ],
+  "summary": {
+    "resolveTargetBeforeValidation": true,
+    "strictRollbackShaValidation": true,
+    "approvedBranchReachability": true,
+    "validationCheckoutEqualsTarget": true,
+    "remoteCheckoutEqualsTarget": true,
+    "explicitProductionComposeFile": true,
+    "shellBlocksBashSyntaxPassed": true
+  },
+  "commands": [
+    {
+      "command": "pnpm run deploy:rollback-sha-governance -- --json",
+      "status": "PASS",
+      "notes": "Static workflow validator passed for staging and production."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-sha-governance.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/production-deployment-parity-evidence.spec.ts",
+      "status": "PASS",
+      "notes": "Focused workflow governance tests passed: 4 files, 31 tests."
+    },
+    {
+      "command": "pnpm run deploy:rollback-sha-governance -- --write-evidence --json",
+      "status": "PASS",
+      "notes": "Generated this rollback SHA governance evidence."
+    },
+    {
+      "command": "pnpm run production-deployment-parity:evidence -- --json",
+      "status": "PASS",
+      "notes": "Existing production deployment parity evidence accepted the new target SHA controls."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "notes": "Whitespace check passed with line-ending warnings only."
+    },
+    {
+      "command": "pnpm exec vitest run tests/unit --runInBand",
+      "status": "FAIL",
+      "notes": "Vitest 4.1.5 rejected unsupported option --runInBand before running tests."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit",
+      "status": "PASS",
+      "notes": "Compatible unit suite passed: 154 files, 1124 tests."
+    },
+    {
+      "command": "pnpm run check",
+      "status": "PASS",
+      "notes": "Build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation correction checks passed."
+    }
+  ],
+  "validation": {
+    "ok": true,
+    "errors": []
+  },
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-rollback-sha-governance.md",
+    "json": "docs/production-scale/evidence/latest-rollback-sha-governance.json"
+  }
+}

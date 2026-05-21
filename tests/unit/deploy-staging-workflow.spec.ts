@@ -35,16 +35,35 @@ describe("staging deploy workflow health gate", () => {
   it("validates rollback SHA locally before staging deploy and avoids raw SSH env assignment", () => {
     const source = workflowSource();
 
-    expect(source).toContain("Check out repository for target validation");
+    expect(source).toContain("resolve-target:");
+    expect(source).toContain("Resolve and validate TARGET_SHA");
+    expect(source).toContain("Check out repository for target resolution");
+    expect(source).toContain("Check out target repository");
+    expect(source).toContain("Verify validation checkout target SHA");
     expect(source).toContain("fetch-depth: 0");
     expect(source).toContain("ROLLBACK_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha || '' }}");
     expect(source).toContain('if ! printf \'%s\' "$rollback_sha" | grep -Eq \'^[0-9a-fA-F]{40}$\'; then');
     expect(source).toContain('target_sha="$(printf \'%s\' "$rollback_sha" | tr \'[:upper:]\' \'[:lower:]\')"');
     expect(source).toContain('git cat-file -e "$target_sha^{commit}"');
+    expect(source).toContain('git merge-base --is-ancestor "$target_sha" "origin/${APPROVED_BRANCH}"');
+    expect(source).toContain("ref: ${{ needs.resolve-target.outputs.target_sha }}");
+    expect(source).toContain('validation_sha="$(git rev-parse HEAD)"');
     expect(source).toContain('Refusing staging deploy: TARGET_SHA must be a validated lowercase full commit SHA.');
     expect(source).toContain('Refusing staging deploy: remote TARGET_SHA is invalid.');
     expect(source).toContain('bash -s -- \\');
     expect(source).not.toContain("TARGET_SHA='$TARGET_SHA'");
+  });
+
+  it("verifies the selected staging checkout SHA on the remote host", () => {
+    const source = workflowSource();
+
+    expect(source).toContain('git checkout --force "$TARGET_SHA"');
+    expect(source).toContain('deployed_sha="$(git rev-parse HEAD)"');
+    expect(source).toContain('target_sha="$(git rev-parse "$TARGET_SHA")"');
+    expect(source).toContain('if [ "$deployed_sha" != "$target_sha" ]; then');
+    expect(source).toContain("Staging checkout SHA mismatch");
+    expect(source).toContain("Staging checkout verified");
+    expect(source).toContain("Staging deploy evidence: target_sha=${TARGET_SHA} checked_out_sha=${deployed_sha} compose_file=docker-compose.yml.");
   });
 
   it("retries staging SSH host-key collection without falling back to unchecked deploy", () => {

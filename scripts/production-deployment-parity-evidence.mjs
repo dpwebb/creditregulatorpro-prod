@@ -294,18 +294,28 @@ export function validateProductionDeployWorkflowParity(workflowText) {
   const checks = [
     staticCheck(
       "rollback SHA workflow_dispatch input required for rollback",
-      workflowText.includes("rollback_sha:") &&
+      workflowText.includes("resolve-target:") &&
+        workflowText.includes("Resolve and validate TARGET_SHA") &&
+        workflowText.includes("rollback_sha:") &&
         workflowText.includes("Commit SHA to deploy for rollback") &&
         workflowText.includes("ROLLBACK_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback_sha || '' }}") &&
         workflowText.includes('rollback_sha="${ROLLBACK_SHA_INPUT:-}"') &&
         workflowText.includes("grep -Eq '^[0-9a-fA-F]{40}$'") &&
         workflowText.includes('target_sha="$(printf \'%s\' "$rollback_sha" | tr \'[:upper:]\' \'[:lower:]\')"') &&
         workflowText.includes('git cat-file -e "$target_sha^{commit}"') &&
+        workflowText.includes('git merge-base --is-ancestor "$target_sha" "origin/${APPROVED_BRANCH}"') &&
         workflowText.includes('echo "sha=$target_sha" >> "$GITHUB_OUTPUT"'),
     ),
     staticCheck(
       "selected rollback SHA is deployed and verified",
-      workflowText.includes("TARGET_SHA: ${{ steps.target.outputs.sha }}") &&
+      workflowText.includes("needs: resolve-target") &&
+        workflowText.includes("ref: ${{ needs.resolve-target.outputs.target_sha }}") &&
+        workflowText.includes("TARGET_SHA: ${{ needs.resolve-target.outputs.target_sha }}") &&
+        workflowText.includes("Verify validation checkout target SHA") &&
+        workflowText.includes('validation_sha="$(git rev-parse HEAD)"') &&
+        workflowText.includes("Production validation checkout SHA mismatch") &&
+        workflowText.includes('evidence_target_sha="$(git rev-parse HEAD)"') &&
+        workflowText.includes("Production deploy target evidence SHA mismatch") &&
         workflowText.includes("ssh -i ~/.ssh/production_deploy_key") &&
         workflowText.includes("bash -s --") &&
         workflowText.includes('TARGET_SHA="${1:?missing target sha}"') &&
@@ -314,6 +324,7 @@ export function validateProductionDeployWorkflowParity(workflowText) {
         workflowText.includes('deployed_sha="$(git rev-parse HEAD)"') &&
         workflowText.includes('target_sha="$(git rev-parse "$TARGET_SHA")') &&
         workflowText.includes("Production checkout SHA mismatch") &&
+        workflowText.includes("Production deploy evidence: target_sha=${TARGET_SHA}") &&
         !workflowText.includes("TARGET_SHA='$TARGET_SHA'"),
     ),
     staticCheck(
