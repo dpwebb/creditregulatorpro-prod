@@ -82,10 +82,16 @@ export function formatPacketFieldLabel(value: unknown): string {
   const normalized = normalizedFieldKey(value);
 
   if (isInternalReferenceField(value)) return "Supporting reference";
-  if (normalized === "lasreporteddate" || normalized === "lastreporteddate") return "Date last reported";
-  if (normalized === "reporteddate" || normalized === "datereported") return "Date reported by the bureau";
+  if (normalized === "lasreporteddate" || normalized === "lastreporteddate" || normalized === "datelastreported") {
+    return "Date last reported";
+  }
+  if (normalized === "reporteddate" || normalized === "datereported" || normalized === "datereportedbythebureau") {
+    return "Date reported by the bureau";
+  }
   if (normalized === "accountnumber" || normalized === "account") return "Account";
-  if (normalized === "balance" || normalized === "currentbalance") return "Balance reported";
+  if (normalized === "balance" || normalized === "currentbalance" || normalized === "balancereported") {
+    return "Balance reported";
+  }
   if (
     normalized === "name" ||
     normalized.includes("creditor") ||

@@ -101,6 +101,18 @@ export interface SimpleDisputePacketContent {
     selectedIssueIds: number[];
     reportArtifactIds: number[];
     generatedByUserId?: number | null;
+    internalReferences?: Array<{
+      findingId: number;
+      violationId: number;
+      tradelineId: number | null;
+      reportArtifactId: number | null;
+      evidenceIds: string[];
+      regulationIds: string[];
+      ruleIds: string[];
+      fieldKey?: string | null;
+      sourceField?: string | null;
+      readiness?: Record<string, unknown>;
+    }>;
   };
   signatureImage?: string | null;
   consumerIdentificationImage?: string | null;

@@ -16,10 +16,13 @@ describe("dispute packet humanization display helpers", () => {
     expect(formatPacketFieldLabel("Lastreporteddate")).toBe("Date last reported");
     expect(formatPacketFieldLabel("lastReportedDate")).toBe("Date last reported");
     expect(formatPacketFieldLabel("last_reported_date")).toBe("Date last reported");
+    expect(formatPacketFieldLabel("Date last reported")).toBe("Date last reported");
     expect(formatPacketFieldLabel("reportedDate")).toBe("Date reported by the bureau");
     expect(formatPacketFieldLabel("dateReported")).toBe("Date reported by the bureau");
+    expect(formatPacketFieldLabel("Date reported by the bureau")).toBe("Date reported by the bureau");
     expect(formatPacketFieldLabel("account_number")).toBe("Account");
     expect(formatPacketFieldLabel("currentBalance")).toBe("Balance reported");
+    expect(formatPacketFieldLabel("Balance reported")).toBe("Balance reported");
     expect(formatPacketFieldLabel("creditorName")).toBe("Company reporting the account");
     expect(formatPacketFieldLabel("customInternalCamelKey")).toBe("Custom Internal Camel Key");
   });

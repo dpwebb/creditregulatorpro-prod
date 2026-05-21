@@ -17,7 +17,12 @@ import {
   type SimpleDisputePacketContent,
   type SimpleDisputedItemInput,
 } from "./disputePacketTemplate";
-import { formatPacketConsumerEvidenceReference } from "./disputePacketHumanization";
+import {
+  formatPacketConsumerEvidenceReference,
+  formatPacketDisplayValue,
+  formatPacketExpectedValue,
+  formatPacketFieldLabel,
+} from "./disputePacketHumanization";
 import { evaluateViolationPacketConfidenceGate } from "./violationPacketConfidenceGate";
 import {
   resolveEvidenceLocation,
@@ -165,6 +170,49 @@ type IssueRow = {
   sourceText: string | null;
 };
 
+export type PacketConsumerDisputedItemSource = Pick<
+  IssueRow,
+  | "issueId"
+  | "issueUserExplanation"
+  | "issueRecommendedAction"
+  | "issueViolationCategory"
+  | "issueDisputeVector"
+  | "issueTechnicalDetails"
+  | "tradelineId"
+  | "accountNumber"
+  | "creditorName"
+  | "balance"
+  | "currentBalance"
+  | "creditLimit"
+  | "highCredit"
+  | "amountPastDue"
+  | "status"
+  | "openedDate"
+  | "dateClosed"
+  | "dateOfFirstDelinquency"
+  | "dateOfLastPayment"
+  | "lastActivityDate"
+  | "lastReportedDate"
+  | "collectionAgencyName"
+  | "originalCreditorName"
+  | "reportArtifactId"
+  | "sourceText"
+>;
+
+export type PacketInternalReferenceSource = Pick<
+  IssueRow,
+  | "issueId"
+  | "issueTechnicalDetails"
+  | "tradelineId"
+  | "reportArtifactId"
+  | "reportArtifactData"
+  | "sourceText"
+>;
+
+export type PacketInternalReferenceMetadata = NonNullable<
+  SimpleDisputePacketContent["metadata"]["internalReferences"]
+>[number];
+
 type RecipientRecord = {
   name: string;
   addressLine1: string | null;
@@ -229,7 +277,7 @@ function toPacketDate(value: Date | null): string | null {
   return value.toISOString();
 }
 
-function fieldFromDetails(row: IssueRow, details: Record<string, unknown>): string | null {
+function fieldFromDetails(details: Record<string, unknown>): string | null {
   const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
   return firstKnownText([
     firstText(details, ["fieldName", "canonicalField", "field", "sourceField", "disputedField"]),
@@ -237,7 +285,7 @@ function fieldFromDetails(row: IssueRow, details: Record<string, unknown>): stri
   ]);
 }
 
-function valueFromTradeline(row: IssueRow, fieldName: string | null): unknown {
+function valueFromTradeline(row: PacketConsumerDisputedItemSource, fieldName: string | null): unknown {
   const normalized = String(fieldName ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
   if (normalized.includes("accountnumber")) return row.accountNumber;
@@ -257,11 +305,11 @@ function valueFromTradeline(row: IssueRow, fieldName: string | null): unknown {
   return null;
 }
 
-function issueTypeForRow(row: IssueRow): string {
+function issueTypeForRow(row: PacketConsumerDisputedItemSource): string {
   return firstKnownText([row.issueViolationCategory, row.issueDisputeVector]) ?? "reporting_issue";
 }
 
-function evidenceReferenceForRow(row: IssueRow, details: Record<string, unknown>): string {
+function evidenceReferenceForRow(row: PacketConsumerDisputedItemSource, details: Record<string, unknown>): string {
   const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
   const reportArtifactId =
     evidence && typeof evidence.reportArtifactId === "number"
@@ -364,7 +412,7 @@ function hasSameIdSet(left: number[], right: number[]): boolean {
   );
 }
 
-function reportArtifactIdForRow(row: IssueRow): number | null {
+function reportArtifactIdForRow(row: PacketInternalReferenceSource): number | null {
   const details = parseDetails(row.issueTechnicalDetails);
   const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
   const evidenceReportArtifactId = Number(evidence?.reportArtifactId ?? evidence?.sourceReportArtifactId);
@@ -548,6 +596,72 @@ function evidenceIdsFromDetails(details: Record<string, unknown>): string[] {
   ].filter((id): id is string => Boolean(id))));
 }
 
+function stringValuesFrom(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap(stringValuesFrom);
+  }
+  const id = stringIdValue(value);
+  return id ? [id] : [];
+}
+
+function collectStringValues(records: Array<Record<string, unknown> | null | undefined>, keys: string[]): string[] {
+  return Array.from(new Set(
+    records.flatMap((record) => record ? keys.flatMap((key) => stringValuesFrom(record[key])) : []),
+  ));
+}
+
+function internalRuleRecords(details: Record<string, unknown>): Array<Record<string, unknown> | null> {
+  const deterministicRule = objectValue(details.deterministicRule);
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(deterministicRule?.evidence);
+  return [
+    details,
+    deterministicRule,
+    evidence,
+    objectValue(details.evidenceLocation),
+    objectValue(evidence?.evidenceLocation),
+    objectValue(deterministicRule?.evidenceLocation),
+    objectValue(objectValue(deterministicRule?.evidence)?.evidenceLocation),
+  ];
+}
+
+export function buildPacketInternalReferenceMetadata(
+  row: PacketInternalReferenceSource,
+  readiness?: PacketReadinessResult,
+): PacketInternalReferenceMetadata {
+  const details = parseDetails(row.issueTechnicalDetails);
+  const evidence = objectValue(details.evidenceLink) ?? objectValue(objectValue(details.deterministicRule)?.evidence);
+  const records = internalRuleRecords(details);
+
+  return {
+    findingId: row.issueId,
+    violationId: row.issueId,
+    tradelineId: row.tradelineId,
+    reportArtifactId: reportArtifactIdForRow(row),
+    evidenceIds: evidenceIdsFromDetails(details),
+    regulationIds: collectStringValues(records, [
+      "regulationId",
+      "regulationIds",
+      "referenceId",
+      "referenceIds",
+      "legalReferenceId",
+      "legalReferenceIds",
+      "authorityId",
+      "authorityIds",
+    ]),
+    ruleIds: collectStringValues(records, [
+      "ruleId",
+      "ruleIds",
+      "deterministicRuleId",
+      "runtimeRuleId",
+    ]),
+    fieldKey: firstText(details, ["fieldKey", "canonicalFieldKey"]) ??
+      (evidence ? firstText(evidence, ["fieldKey", "canonicalFieldKey"]) : null),
+    sourceField: firstText(details, ["sourceField", "canonicalField", "disputedField"]) ??
+      (evidence ? firstText(evidence, ["sourceField", "canonicalField", "field"]) : null),
+    readiness: readiness ? readinessSnapshotForIssue(readiness, row.issueId) : undefined,
+  };
+}
+
 function resolveReportArtifactLocationByEvidenceIds(
   context: EvidenceLocationLookupContext,
   request: EvidenceLocationRequest,
@@ -638,6 +752,20 @@ function readinessSnapshotForIssue(readiness: PacketReadinessResult, issueId: nu
     warningCodes: readiness.warnings
       .filter((warning) => warning.findingId === undefined || warning.findingId === issueId)
       .map((warning) => warning.code),
+  };
+}
+
+export function attachInternalPacketMetadata(
+  packet: SimpleDisputePacketContent,
+  rows: PacketInternalReferenceSource[],
+  readiness: PacketReadinessResult,
+): SimpleDisputePacketContent {
+  return {
+    ...packet,
+    metadata: {
+      ...packet.metadata,
+      internalReferences: rows.map((row) => buildPacketInternalReferenceMetadata(row, readiness)),
+    },
   };
 }
 
@@ -1012,9 +1140,21 @@ function candidateFromRow(row: IssueRow, packetType: DisputePacketType = "credit
   };
 }
 
-function toDisputedItemInput(row: IssueRow, packetType: DisputePacketType): SimpleDisputedItemInput {
+function consumerDisputeReasonForRow(row: PacketConsumerDisputedItemSource, packetType: DisputePacketType): string {
+  void row;
+  if (packetType === "collection_agency") {
+    return "I am asking you to verify whether this collection account information is accurate, complete, and supported by records showing the authority to collect or report this account.";
+  }
+  return "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
+}
+
+export function buildConsumerDisputedItemInput(
+  row: PacketConsumerDisputedItemSource,
+  packetType: DisputePacketType,
+): SimpleDisputedItemInput {
   const details = parseDetails(row.issueTechnicalDetails);
-  const fieldName = fieldFromDetails(row, details);
+  const fieldName = fieldFromDetails(details);
+  const displayFieldName = formatPacketFieldLabel(fieldName ?? "Account information");
   const reportedValue =
     firstText(details, ["reportedValue", "actualValue", "detectedValue", "currentValue", "reportedAs"]) ??
     valueFromTradeline(row, fieldName) as string | number | Date | null;
@@ -1030,14 +1170,18 @@ function toDisputedItemInput(row: IssueRow, packetType: DisputePacketType): Simp
     creditorCollectorName: packetType === "collection_agency" ? collectionName : creditorName,
     sourceFurnisherName: packetType === "credit_bureau" ? firstKnownText([row.creditorName, row.originalCreditorName]) : row.originalCreditorName,
     accountNumber: row.accountNumber,
-    disputedField: fieldName ?? "Account information",
-    reportedValue,
-    expectedValue,
+    disputedField: displayFieldName,
+    reportedValue: formatPacketDisplayValue(fieldName ?? displayFieldName, reportedValue, row.accountNumber),
+    expectedValue: formatPacketExpectedValue(fieldName ?? displayFieldName, expectedValue, row.accountNumber),
     issueType: issueTypeForRow(row),
-    explanation: row.issueUserExplanation ?? row.issueRecommendedAction,
+    explanation: consumerDisputeReasonForRow(row, packetType),
     evidenceReference: evidenceReferenceForRow(row, details),
     requestedAction: actionForIssue(issueTypeForRow(row), packetType),
   };
+}
+
+function toDisputedItemInput(row: IssueRow, packetType: DisputePacketType): SimpleDisputedItemInput {
+  return buildConsumerDisputedItemInput(row, packetType);
 }
 
 function addressLinesFromRecipient(recipient: RecipientRecord): string[] {
@@ -1378,7 +1522,7 @@ export async function buildDisputePacketPreview(
       ? "Collection agency account information"
       : `${firstRow.bureauName || "Credit Bureau"} credit report`;
 
-  const packet = attachEvidenceLocationsToPacket(buildSimpleDisputePacketContent({
+  const packet = attachEvidenceLocationsToPacket(attachInternalPacketMetadata(buildSimpleDisputePacketContent({
     packetType: input.packetType,
     reportType,
     reportDate,
@@ -1391,7 +1535,7 @@ export async function buildDisputePacketPreview(
     disputedItems: rows.map((row) => toDisputedItemInput(row, input.packetType)),
     reportArtifactIds: rows.map((row) => row.reportArtifactId),
     generatedByUserId: user.id,
-  }), rows);
+  }), rows, readiness), rows);
 
   return {
     packet,

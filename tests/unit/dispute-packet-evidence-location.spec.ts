@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  attachInternalPacketMetadata,
+  buildConsumerDisputedItemInput,
   buildPacketFindingEvidenceLocationSnapshot,
   buildPacketEvidenceLocationsForIssues,
   evaluatePacketReadinessForIssues,
 } from "../../helpers/disputePacketService";
-import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
+import {
+  buildConsumerDisputePacketLetterText,
+  buildSimpleDisputePacketContent,
+} from "../../helpers/disputePacketTemplate";
 
 const provenance = {
   deterministicPipelineVersion: "test-v1",
@@ -49,6 +54,124 @@ function packet() {
 }
 
 describe("packet evidence location metadata", () => {
+  it("separates service-built consumer wording from internal metadata references", () => {
+    const source = {
+      issueId: 111,
+      issueUserExplanation: "PIPEDA_4_5 source report #77 field: lastReportedDate tradelineId: 222",
+      issueRecommendedAction: "Expected: Not known",
+      issueViolationCategory: "BALANCE_CALCULATION_VIOLATION",
+      issueDisputeVector: null,
+      issueTechnicalDetails: {
+        fieldName: "lastReportedDate",
+        reportedValue: "2012-08-21T00:00:00.000Z",
+        expectedValue: "Not known",
+        regulationIds: ["PIPEDA_4_5"],
+        deterministicRule: {
+          ruleId: "RULE_BALANCE_1",
+          evidence: {
+            reportArtifactId: 77,
+            evidenceId: "ev-77",
+            fieldKey: "lastReportedDate",
+            sourceField: "tradelines[0].lastReportedDate",
+          },
+        },
+      },
+      tradelineId: 222,
+      accountNumber: "reau",
+      creditorName: "Sample Bank",
+      balance: null,
+      currentBalance: null,
+      creditLimit: null,
+      highCredit: null,
+      amountPastDue: null,
+      status: null,
+      openedDate: null,
+      dateClosed: null,
+      dateOfFirstDelinquency: null,
+      dateOfLastPayment: null,
+      lastActivityDate: null,
+      lastReportedDate: new Date("2012-08-21T00:00:00.000Z"),
+      collectionAgencyName: null,
+      originalCreditorName: "Original Bank",
+      reportArtifactId: 77,
+      reportArtifactData: null,
+      sourceText: "Raw source text remains internal.",
+    };
+    const readiness = evaluatePacketReadinessForIssues(
+      { id: 1, role: "user" },
+      { packetType: "credit_bureau", selectedIssueIds: [111] },
+      [
+        {
+          issueId: 111,
+          userId: 1,
+          tradelineId: 222,
+          bureauId: 30,
+          userStatus: "active",
+          validationStatus: "PENDING",
+          technicalDetails: {
+            extractionConfidenceGate: {
+              status: "confirmed",
+              packetReady: true,
+              confidenceScore: 95,
+              requiresManualReview: false,
+              reasonCodes: [],
+            },
+          },
+          evidenceReference: "Relevant report section for Date last reported.",
+          packetTypes: ["credit_bureau"],
+        },
+      ],
+    );
+    const packet = attachInternalPacketMetadata(
+      buildSimpleDisputePacketContent({
+        packetType: "credit_bureau",
+        reportType: "TransUnion credit report",
+        reportDate: "2012-08-21T00:00:00.000Z",
+        recipient: {
+          type: "credit_bureau",
+          name: "TransUnion Canada",
+          address: ["Consumer Relations"],
+        },
+        consumer: {
+          name: "Test Consumer",
+          address: ["1 Main St"],
+        },
+        disputedItems: [buildConsumerDisputedItemInput(source, "credit_bureau")],
+        reportArtifactIds: [77],
+        generatedByUserId: 1,
+      }),
+      [source],
+      readiness,
+    );
+    const body = buildConsumerDisputePacketLetterText(packet);
+
+    expect(body).toContain("Company reporting the account: Sample Bank");
+    expect(body).toContain("Account: Account identifier unavailable");
+    expect(body).toContain("Information disputed: Date last reported");
+    expect(body).toContain("Reported value: Aug 21, 2012");
+    expect(body).not.toMatch(/tradeline|artifact|source report #|field:|PIPEDA_|2012-08-21T|lastReportedDate|Account ending reau|Expected:\s*Not known/i);
+    expect(packet.metadata.selectedIssueIds).toEqual([111]);
+    expect(packet.metadata.reportArtifactIds).toEqual([77]);
+    expect(packet.metadata.internalReferences).toEqual([
+      expect.objectContaining({
+        findingId: 111,
+        violationId: 111,
+        tradelineId: 222,
+        reportArtifactId: 77,
+        evidenceIds: ["ev-77"],
+        regulationIds: ["PIPEDA_4_5"],
+        ruleIds: ["RULE_BALANCE_1"],
+        fieldKey: "lastReportedDate",
+        sourceField: "tradelines[0].lastReportedDate",
+        readiness: expect.objectContaining({
+          packetReady: true,
+          findingEligible: true,
+        }),
+      }),
+    ]);
+    expect(readiness.packetReady).toBe(true);
+  });
+
   it("builds structured evidence location metadata without changing readable evidence references", () => {
     const basePacket = packet();
     const evidenceLocations = buildPacketEvidenceLocationsForIssues([
