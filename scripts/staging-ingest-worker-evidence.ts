@@ -495,7 +495,7 @@ async function captureWorkerRun(options: WorkerCliOptions): Promise<{ exitCode: 
 
 function workerCommand(options: StagingEvidenceOptions): string {
   const mode = options.apply ? "--apply" : "--dry-run";
-  return `pnpm run ingest:worker -- ${mode} --max-jobs ${options.maxJobs} --concurrency 1 --worker-id ${options.workerId} --source ${options.source}`;
+  return `pnpm run ingest:worker ${mode} --max-jobs ${options.maxJobs} --concurrency 1 --worker-id ${options.workerId} --source ${options.source}`;
 }
 
 export function validateStagingIngestWorkerEvidenceReport(report: any): { ok: boolean; errors: string[] } {

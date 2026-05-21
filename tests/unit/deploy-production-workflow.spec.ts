@@ -177,7 +177,7 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("Running read-only bounded production ingest worker dry-run.");
     expect(source).toContain("Production ingest worker evidence: mode=dry-run max_jobs=${PRODUCTION_INGEST_WORKER_MAX_JOBS} mutates_queue=false.");
     expect(source).toContain(
-      "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+      "pnpm run ingest:worker --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
     );
     expect(source).toContain("explicit-bounded-production-ingest-worker-apply");
     expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_ONE_SHOT=true");
@@ -185,7 +185,7 @@ describe("production deploy workflow verification", () => {
     expect(source).toContain("CRP_PRODUCTION_INGEST_WORKER_OPERATOR=\"$PRODUCTION_INGEST_WORKER_OPERATOR\"");
     expect(source).toContain("Production ingest worker evidence: mode=apply max_jobs=${PRODUCTION_INGEST_WORKER_MAX_JOBS} failure_stops_workflow=true.");
     expect(source).toContain(
-      "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+      "pnpm run ingest:worker --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
     );
     expect(source).not.toContain("--max-jobs 100");
     expect(source).not.toContain("--concurrency 2");

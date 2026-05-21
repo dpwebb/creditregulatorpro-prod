@@ -13,9 +13,9 @@ export const PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_MD_PATH =
   "docs/production-scale/evidence/production-worker-queue-depth-evidence.md";
 
 export const PRODUCTION_WORKER_DRY_RUN_COMMAND =
-  "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process";
+  "pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process";
 export const PRODUCTION_WORKER_APPLY_COMMAND =
-  "pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process";
+  "pnpm run ingest:worker --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process";
 export const PRODUCTION_WORKER_APPLY_CONFIRMATION = "explicit-bounded-production-ingest-worker-apply";
 export const PRODUCTION_WORKER_MAX_JOBS_LIMIT = 5;
 

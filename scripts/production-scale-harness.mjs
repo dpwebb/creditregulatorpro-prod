@@ -73,7 +73,7 @@ const PRODUCTION_SCALE_SECTIONS = [
     ],
     commands: [
       "pnpm run baseline:production-scale-local -- --simulated",
-      "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+      "pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1",
     ],
   },
   {
@@ -83,7 +83,7 @@ const PRODUCTION_SCALE_SECTIONS = [
       "Worker concurrency remains one unless a later safe concurrency task explicitly changes it.",
       "Harness self-check verifies its own bounded concurrency scheduler does not exceed the configured cap.",
     ],
-    commands: ["pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1"],
+    commands: ["pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1"],
   },
   {
     key: "ocrFallbackPath",

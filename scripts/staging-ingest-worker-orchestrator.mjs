@@ -6,7 +6,7 @@ export const MAX_STAGING_INGEST_WORKER_MAX_JOBS = 10;
 export const DEFAULT_STAGING_INGEST_WORKER_CONCURRENCY = 1;
 export const DEFAULT_STAGING_INGEST_WORKER_ID = "staging-ingest-orchestrator";
 export const DEFAULT_STAGING_CONTAINER_NAME = "creditregulatorpro-staging";
-export const DEFAULT_STAGING_INGEST_WORKER_SOURCE = "staging_ingest_worker";
+export const DEFAULT_STAGING_INGEST_WORKER_SOURCE = "authenticated_ingest_process";
 
 const SAFE_TOKEN_PATTERN = /^[a-zA-Z0-9_.:-]{1,120}$/;
 const SAFE_CONTAINER_PATTERN = /^[a-zA-Z0-9_.-]{1,120}$/;
@@ -64,8 +64,8 @@ function assertEnvironmentGate(env) {
 
 function assertStagingSafeSource(source) {
   const safeSource = safeToken(source, "--source");
-  if (!/(staging|synthetic|evidence)/i.test(safeSource)) {
-    fail("--source must explicitly reference staging, synthetic, or evidence.");
+  if (safeSource !== "authenticated_ingest_process" && !/(staging|synthetic|evidence)/i.test(safeSource)) {
+    fail("--source must be authenticated_ingest_process or explicitly reference staging, synthetic, or evidence.");
   }
   return safeSource;
 }
@@ -83,7 +83,7 @@ function printHelp() {
     "  --max-jobs <1-10>                 Maximum jobs for this run. Default: 5.",
     "  --concurrency <1>                 Worker concurrency. Only 1 is supported.",
     "  --worker-id <safe-token>          Worker ID passed to the ingest worker.",
-    "  --source <safe-token>             Staging-safe source scope. Default: staging_ingest_worker.",
+    "  --source <safe-token>             Staging-safe source scope. Default: authenticated_ingest_process.",
     "  --container-name <safe-name>      Staging container name. Default: creditregulatorpro-staging.",
     "",
     "The container command injects CRP_ENV=staging, checks database env presence,",
@@ -175,7 +175,7 @@ export function buildStagingIngestWorkerShellCommand(options) {
     "set -euo pipefail",
     'if [ "${CRP_ENV:-}" != "staging" ]; then echo "Refusing staging ingest worker: CRP_ENV must be staging."; exit 1; fi',
     'if [ -z "${FLOOT_DATABASE_URL:-${STAGING_DATABASE_URL:-${DATABASE_URL:-}}}" ]; then echo "Refusing staging ingest worker: database environment is missing."; exit 1; fi',
-    `pnpm run ingest:worker -- ${modeFlag} --max-jobs ${maxJobs} --concurrency ${concurrency} --worker-id ${workerId} --source ${source}`,
+    `pnpm run ingest:worker ${modeFlag} --max-jobs ${maxJobs} --concurrency ${concurrency} --worker-id ${workerId} --source ${source}`,
   ].join("\n");
 }
 

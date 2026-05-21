@@ -27,7 +27,7 @@ describe("staging ingest worker orchestrator", () => {
     expect(dockerArgs).toContain("CRP_ENV=staging");
     expect(dockerArgs).toContain(DEFAULT_STAGING_CONTAINER_NAME);
     expect(dockerArgs.join(" ")).toContain(
-      "pnpm run ingest:worker -- --dry-run --max-jobs 5 --concurrency 1 --worker-id staging-ingest-orchestrator --source staging_ingest_worker",
+      "pnpm run ingest:worker --dry-run --max-jobs 5 --concurrency 1 --worker-id staging-ingest-orchestrator --source authenticated_ingest_process",
     );
   });
 
@@ -48,7 +48,7 @@ describe("staging ingest worker orchestrator", () => {
     expect(shellCommand).toContain('if [ "${CRP_ENV:-}" != "staging" ]; then');
     expect(shellCommand).toContain("database environment is missing");
     expect(shellCommand).toContain(
-      "pnpm run ingest:worker -- --apply --max-jobs 5 --concurrency 1 --worker-id staging-manual-ingest --source staging_ingest_evidence_manual",
+      "pnpm run ingest:worker --apply --max-jobs 5 --concurrency 1 --worker-id staging-manual-ingest --source staging_ingest_evidence_manual",
     );
     expect(shellCommand).not.toMatch(/%PDF|JVBERi0|raw report text|raw pdf text|extracted text/i);
   });
@@ -63,8 +63,10 @@ describe("staging ingest worker orchestrator", () => {
     expect(() => parseStagingIngestWorkerArgs(["--concurrency", "2"], {})).toThrow(/between 1 and 1/i);
     expect(() => parseStagingIngestWorkerArgs(["--worker-id", "postgres://secret"], {}))
       .toThrow(/safe internal token/i);
-    expect(() => parseStagingIngestWorkerArgs(["--source", "authenticated_ingest_process"], {}))
-      .toThrow(/staging, synthetic, or evidence/i);
+    expect(parseStagingIngestWorkerArgs(["--source", "authenticated_ingest_process"], {}))
+      .toMatchObject({ source: "authenticated_ingest_process" });
+    expect(() => parseStagingIngestWorkerArgs(["--source", "authenticated_uploads"], {}))
+      .toThrow(/authenticated_ingest_process or explicitly reference staging, synthetic, or evidence/i);
   });
 
   it("invokes docker exec without exposing ports or compose changes", () => {

@@ -47,4 +47,4 @@ services:
     command:
       - sh
       - -c
-      - while true; do pnpm run ingest:worker -- --apply --max-jobs "$${INGEST_WORKER_MAX_JOBS:-5}" --concurrency 1 --worker-id creditregulatorpro-staging-ingest-worker --source authenticated_ingest_process; sleep "$${INGEST_WORKER_POLL_SECONDS:-15}"; done
+      - while true; do pnpm run ingest:worker --apply --max-jobs "$${INGEST_WORKER_MAX_JOBS:-5}" --concurrency 1 --worker-id creditregulatorpro-staging-ingest-worker --source authenticated_ingest_process; sleep "$${INGEST_WORKER_POLL_SECONDS:-15}"; done

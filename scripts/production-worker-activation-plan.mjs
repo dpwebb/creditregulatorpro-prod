@@ -58,7 +58,7 @@ function buildReport() {
     dryRunProcedure: {
       mutatesQueue: false,
       command:
-        "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+        "pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
       workflowInput: "run_ingest_worker_dry_run=true",
     },
     applyProcedure: {
@@ -77,7 +77,7 @@ function buildReport() {
         "CRP_PRODUCTION_INGEST_WORKER_OPERATOR=<safe-token>",
       ],
       command:
-        "pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+        "pnpm run ingest:worker --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
     },
     rollbackStopProcedure: [
       "Do not rerun workflow_dispatch with worker inputs.",

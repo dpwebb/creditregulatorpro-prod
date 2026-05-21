@@ -529,7 +529,7 @@ jobs:
                   -e PRODUCTION_INGEST_WORKER_MAX_JOBS="$PRODUCTION_INGEST_WORKER_MAX_JOBS" \
                   creditregulatorpro-app bash -lc '
                     set -euo pipefail
-                    pnpm run ingest:worker -- --dry-run --max-jobs "$PRODUCTION_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process
+                    pnpm run ingest:worker --dry-run --max-jobs "$PRODUCTION_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process
                   '
                 return 0
               fi
@@ -553,7 +553,7 @@ jobs:
                 -e CRP_PRODUCTION_INGEST_WORKER_OPERATOR="$PRODUCTION_INGEST_WORKER_OPERATOR" \
                 creditregulatorpro-app bash -lc '
                   set -euo pipefail
-                  pnpm run ingest:worker -- --apply --max-jobs "$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process
+                  pnpm run ingest:worker --apply --max-jobs "$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process
                 '
             }
 

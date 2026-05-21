@@ -24,7 +24,7 @@ on:
         required: false
         type: string
       ingest_worker_source:
-        description: "Required staging-safe queue source scope. Must be a safe token containing staging, synthetic, or evidence."
+        description: "Required staging-safe queue source scope. Must be authenticated_ingest_process or a safe token containing staging, synthetic, or evidence."
         required: false
         type: string
       ingest_worker_staging_ack:
@@ -404,8 +404,8 @@ jobs:
               echo "Refusing staging ingest worker input: ingest_worker_source must be a safe token."
               exit 1
             fi
-            if ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eiq '(staging|synthetic|evidence)'; then
-              echo "Refusing staging ingest worker input: ingest_worker_source must be explicitly staging-safe."
+            if [ "${STAGING_INGEST_WORKER_SOURCE:-}" != "authenticated_ingest_process" ] && ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eiq '(staging|synthetic|evidence)'; then
+              echo "Refusing staging ingest worker input: ingest_worker_source must be authenticated_ingest_process or explicitly staging-safe."
               exit 1
             fi
           fi
@@ -1003,8 +1003,8 @@ jobs:
                 echo "Refusing staging ingest worker: source must be a safe token."
                 exit 1
               fi
-              if ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eiq '(staging|synthetic|evidence)'; then
-                echo "Refusing staging ingest worker: source must be explicitly staging-safe."
+              if [ "${STAGING_INGEST_WORKER_SOURCE:-}" != "authenticated_ingest_process" ] && ! printf '%s' "${STAGING_INGEST_WORKER_SOURCE:-}" | grep -Eiq '(staging|synthetic|evidence)'; then
+                echo "Refusing staging ingest worker: source must be authenticated_ingest_process or explicitly staging-safe."
                 exit 1
               fi
 
@@ -1029,7 +1029,7 @@ jobs:
                 if [ "${STAGING_INGEST_WORKER_MODE:-}" = "apply" ]; then
                   mode_flag="--apply"
                 fi
-                pnpm run ingest:worker -- "$mode_flag" --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"
+                pnpm run ingest:worker "$mode_flag" --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"
               '
             }
 

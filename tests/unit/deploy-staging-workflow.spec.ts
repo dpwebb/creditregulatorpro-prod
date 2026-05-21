@@ -127,9 +127,9 @@ describe("staging deploy workflow health gate", () => {
     expect(source).toContain('if [ "${CRP_ENV:-}" != "staging" ]; then');
     expect(source).toContain("database environment is missing");
     expect(source).toContain("ingest_worker_max_jobs must be explicitly set to 1-10");
-    expect(source).toContain("ingest_worker_source must be explicitly staging-safe");
+    expect(source).toContain("ingest_worker_source must be authenticated_ingest_process or explicitly staging-safe");
     expect(source).toContain(
-      'pnpm run ingest:worker -- "$mode_flag" --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"',
+      'pnpm run ingest:worker "$mode_flag" --max-jobs "$STAGING_INGEST_WORKER_MAX_JOBS" --concurrency 1 --worker-id staging-deploy-ingest-worker --source "$STAGING_INGEST_WORKER_SOURCE"',
     );
     expect(source).not.toContain("--max-jobs 100 --concurrency 1 --worker-id staging-deploy-ingest-worker");
   });
