@@ -4,247 +4,225 @@
 
 **Overall status: LIMITED**
 
-The original audit result was **BLOCKED** because the authenticated consumer credit-report upload-to-results path was not proven. Remediation on 2026-05-21 made the staging synthetic authenticated smoke worker-aware, verified artifact ownership, waited for terminal ingest status, proved same-consumer `upload-results`, proved non-owner denial, and added the smoke to `production-scale:certify`. A later packet-included staging smoke exposed packet PDF HTTP `502`; that P1 packet PDF issue is now remediated with live staging evidence and included in certification. This report remains **LIMITED** rather than `READY` because it is an audit/remediation addendum, not a full manual-free production launch approval.
+Authenticated consumer credit-report upload-to-results is proven on live staging for the audited runtime commit `eb2d9dd598450d2c26631bd77fe781fd509a5b6f`. The current proof registered and logged in synthetic consumer users, uploaded generated credit-report PDFs through the real staging auth/API path, verified report artifact ownership, observed worker-backed ingest jobs reach terminal `completed`, retrieved same-owner `upload-results` with 2 synthetic tradelines and 6 actionable findings, verified non-owner denial with HTTP `403`, then proved packet readiness/create/PDF retrieval with HTTP `200` `application/pdf` and non-owner packet PDF denial. The result remains **LIMITED**, not `READY`, because this audit did not fully live-browser-smoke every frontend page and did not run a synthetic admin role through every admin-only correction/evidence/regulation function.
 
-Current repo: `C:\Users\webbd\Projects\creditregulatorpro-staging`
+This audit distinguishes API/runtime success from UI success. The deployed staging API/runtime path is proven for authenticated upload-to-results and packet PDF. Frontend display behavior is partially proven by existing component/unit tests and route inventory, but not by a full deployed browser automation run in this audit.
+
+Repository: `C:\Users\webbd\Projects\creditregulatorpro-staging`
 
 Branch: `staging`
 
-Original commit audited: `e685d871789f29a3978a23dfafc509ff1afef368`
-
-Remediation base HEAD: `95a0367f718b560343a891487e31b0e818391b4b`
+Audited runtime commit: `eb2d9dd598450d2c26631bd77fe781fd509a5b6f`
 
 Audit date: `2026-05-21`
 
-## Original Primary Proof
+## Primary Proof Point
 
-Command:
+Authenticated upload-to-results is **proven**.
+
+Live staging proof command:
 
 ```powershell
-$env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='investigative-audit-2026-05-21'; pnpm run smoke:auth-workflow
+$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='investigative-function-audit-rerun-2026-05-21'; pnpm run smoke:auth-workflow
 ```
 
-Result: **FAIL**, exit code 1.
+Result: **PASS**, exit code `0`.
 
 Evidence:
 
-- Staging host was reachable: `curl.exe -k -I https://staging.creditregulatorpro.com` returned HTTP `200 OK`.
-- The smoke self-registered and logged in a synthetic consumer.
-- The smoke uploaded a generated text-based TransUnion PDF.
-- The smoke cleaned up the synthetic user afterward: `Registered user ID: 129. Cleanup status: deleted.`
-- The user-facing result retrieval failed: `Expected at least 2 synthetic tradelines, found 0.`
+- Synthetic owner user: `156`.
+- Artifact: `494`, `ownerUserId: 156`, `organizationId: null`, `sha256Present: true`.
+- Ingest job: `35`, polled from `queued_waiting_for_worker` to terminal `completed`.
+- Queue result: `queueStatus: succeeded`, `processingStatus: completed`, `diagnosticCode: INGEST_PROCESSING_COMPLETED`.
+- Upload-results: `bureauName: TransUnion Canada`, `region: CA`, `platformScope: Canadian Credit Bureau Compliance`, `totalTradelines: 2`, `actionableCount: 6`.
+- Non-owner retrieval: denied with HTTP `403`.
+- Cleanup: owner user `156` and non-owner user `157` deleted; purge reported 1 report artifact, 2 tradelines, and 1 stored file.
 
-Conclusion: upload acceptance alone is not enough. The authenticated consumer did not receive usable results through the retrieval surface in this executable proof.
-
-## Remediation Addendum
-
-Root cause: `scripts/staging-auth-workflow-smoke.ts` treated `/_api/ingest/process` as if it always returned completed parser output. In staging, request-bound ingest is correctly disabled and the endpoint can return a queued worker-required status. The smoke immediately queried `/_api/upload-results/get` before the worker reached a terminal state, so the user-facing result surface returned 0 tradelines even though the worker could complete moments later.
-
-Bounded fix:
-
-- `scripts/staging-auth-workflow-smoke.ts` now polls `/_api/ingest/status` until `completed` or a bounded terminal failure state, logs compact status diagnostics, verifies artifact owner equals the authenticated user, verifies same-consumer upload-results, creates a second consumer, proves non-owner denial, and cleans up both synthetic users.
-- Packet build/PDF checks are now explicit opt-in via `CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET=true` so the P0 upload-results certification cannot be masked by an unrelated packet PDF gateway failure. Packet PDF remains covered by `pnpm run packet-pdf:cache-miss-proof`.
-- `scripts/production-scale-certification.mjs` now includes `pnpm run smoke:auth-workflow` as the required `authenticatedUploadResults` gate.
-
-Post-fix executable proof:
+Packet-included live staging proof command:
 
 ```powershell
-$env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='auth-upload-results-proof-2026-05-21'; pnpm run smoke:auth-workflow
+$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='investigative-function-audit-packet-2026-05-21'; pnpm run smoke:auth-workflow:packet
 ```
 
-Result: **PASS**, exit code 0.
+Result: **PASS**, exit code `0`.
 
 Evidence:
 
-- Synthetic authenticated owner: user `136`.
-- Artifact owner proof: artifact `478`, `ownerUserId: 136`, `sha256Present: true`.
-- Worker/orchestration proof: job `27` polled `queued_waiting_for_worker` to terminal `completed` with `queueStatus: succeeded` and `diagnosticCode: INGEST_PROCESSING_COMPLETED`.
-- Upload-results proof: same owner retrieved `TransUnion Canada`, `region: CA`, `totalTradelines: 2`, `actionableCount: 6`.
-- Non-owner denial proof: second synthetic user denied on `/_api/upload-results/get` with HTTP `403`.
-- Cleanup proof: owner user `136` and non-owner user `137` both self-deleted; owner purge included `reportArtifacts: 1`, `tradelines: 2`, `storedFiles: 1`.
+- Synthetic owner user: `158`.
+- Artifact: `495`, `ownerUserId: 158`, `sha256Present: true`.
+- Ingest job: `36`, polled through `queued_waiting_for_worker`, `processing`, and terminal `completed`.
+- Upload-results: `totalTradelines: 2`, `actionableCount: 6`.
+- Selected finding: `4946`, tradeline `561`, issue type `Balance Calculation Violation`.
+- Packet readiness: `packetReady: true`, `eligibleFindingIds: [4946]`, no blockers.
+- Packet create/build: packet `144`, status `generated`, selected issue preserved.
+- Packet PDF: HTTP `200`, content type `application/pdf`, `pdfByteLength: 7307`, `%PDF` header proof true.
+- Non-owner upload-results and packet PDF retrieval: denied with HTTP `403`.
+- Cleanup: owner user `158` and non-owner user `159` deleted.
 
 Certification proof:
 
 ```powershell
-$env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='production-scale-cert-auth-upload-2026-05-21'; pnpm run production-scale:certify
+$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='investigative-function-audit-certify-2026-05-21'; pnpm run production-scale:certify
 ```
 
-Result: **PASS**, exit code 0. The generated certification evidence reports `CERTIFYING:true`, gate `authenticatedUploadResults: passed`, no failed gates, no stale gates, and no skipped gates. Inside that certification run, synthetic owner user `138` uploaded artifact `479`, job `28` reached terminal `completed`, upload-results returned `totalTradelines: 2`, non-owner access returned HTTP `403`, and synthetic users `138` and `139` were deleted.
+Result: **PASS**, exit code `0`; `docs/production-scale/evidence/latest-production-scale-certification.json` reported `CERTIFYING:true` for target SHA `eb2d9dd598450d2c26631bd77fe781fd509a5b6f`.
 
-## Packet PDF Remediation Addendum
+Certification evidence included:
 
-Root cause: the packet PDF endpoint `GET /_api/packet/pdf?packetId=...` attached the synthetic saved consumer identification image to simple packet content before rendering. The smoke's prior PNG data URL was syntactically base64 but not a decodable PNG. `pdfmake`/`png-js` threw `Z_DATA_ERROR: incorrect data check` while embedding that image, escaping as a process-level render crash and surfacing through staging as HTTP `502 Bad Gateway`. The first bounded font/cache-miss patch removed request-time remote font fetching but did not fix the crash; the second bounded patch replaced the corrupt synthetic ID image with a valid PNG and added readable PNG/JPEG validation for consumer identification uploads and packet attachment reads.
+- `authenticatedUploadResults`: owner user `160`, artifact `497`, job `38`, terminal `completed`, 2 tradelines, 6 actionable findings, non-owner `403`.
+- `authenticatedPacketPdf`: owner user `162`, artifact `498`, job `39`, selected finding `4981`, packet `145`, PDF HTTP `200`, `application/pdf`, 7297 bytes, `%PDF` header proof, non-owner packet PDF `403`.
 
-Files changed:
+## Function Inventory Summary
 
-- `helpers/pdfServerUtils.tsx`
-- `helpers/pdfGenerator.tsx`
-- `helpers/consumerIdentification.ts`
-- `endpoints/packet/pdf_GET.ts`
-- `scripts/staging-auth-workflow-smoke.ts`
-- `scripts/staging-auth-packet-workflow-smoke.ts`
-- `scripts/mock-user-lifecycle-e2e.ts`
-- `scripts/production-scale-certification.mjs`
-- `package.json`
-- Packet PDF/auth smoke/consumer identification tests.
+Inventory source paths inspected:
 
-Live staging packet proof:
-
-```powershell
-$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='packet-pdf-fix-2026-05-21b'; pnpm run smoke:auth-workflow:packet
-```
-
-Result: **PASS**, exit code 0.
-
-Evidence:
-
-- Authenticated owner user `148`; artifact `490`; `ownerUserId: 148`; `sha256Present: true`.
-- Ingest job `31` reached terminal `completed`, `queueStatus: succeeded`, `diagnosticCode: INGEST_PROCESSING_COMPLETED`.
-- Upload-results returned `totalTradelines: 2` and `actionableCount: 6`.
-- Packet readiness selected finding `4881`, `packetReady: true`, `eligibleFindingIds: [4881]`.
-- Packet build preserved `selectedIssueIds: [4881]`.
-- Packet create returned packet `141`, status `generated`.
-- Packet PDF request returned HTTP `200`, `content-type: application/pdf`, `pdfByteLength: 8364`, and `%PDF` header proof.
-- Non-owner upload-results and packet PDF retrieval both returned HTTP `403`.
-- Synthetic owner and non-owner users were deleted.
-
-Certification proof:
-
-```powershell
-$env:STAGING_BASE_URL='https://staging.creditregulatorpro.com'; $env:CRP_AUTH_WORKFLOW_SMOKE='true'; $env:CRP_AUTH_WORKFLOW_SMOKE_RUN_ID='production-scale-cert-packet-pdf-2026-05-21b'; pnpm run production-scale:certify
-```
-
-Result: **PASS**, exit code 0. `latest-production-scale-certification.json` reports current HEAD `2e4bcb2bafd4ba9d7834b20c00885b421a95fb68`, `CERTIFYING:true`, and passed gates for both `authenticatedUploadResults` and `authenticatedPacketPdf`. Inside the certification run, the packet proof selected finding `4920`, created packet `143`, downloaded an `application/pdf` response with HTTP `200`, `pdfByteLength: 7314`, `%PDF` header proof, and non-owner PDF denial `403`.
-
-## What Previous Audits Likely Missed
-
-Previous readiness work heavily proved deterministic parser behavior, endpoint contracts, owner checks, mocked lifecycle behavior, and local/simulated worker gates. Those checks are valuable, but they did not require a synthetic logged-in consumer to pass through the deployed staging auth/session/upload/process/retrieve path and prove usable `upload-results`, then continue through packet readiness/create/PDF retrieval with the same owner session. Those gaps are now closed by requiring `pnpm run smoke:auth-workflow` and `pnpm run smoke:auth-workflow:packet` in `production-scale:certify`.
-
-## Commands Run
-
-| Command | Result | Evidence |
-| --- | --- | --- |
-| `git status --short --branch` | PASS | Clean `staging...origin/staging` before edits. |
-| `git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD` | PASS | Repo, branch, and commit identified. |
-| `curl.exe -k -I https://staging.creditregulatorpro.com` | PASS | HTTP `200 OK`. |
-| `pnpm run smoke:auth-workflow` with staging synthetic auth env | FAIL | Authenticated upload-results returned 0 tradelines. |
-| `pnpm run test:golden-path` | PASS | Synthetic upload payload, parse, canonical map, violations, evidence, packet, PDF all passed locally. |
-| `pnpm exec vitest run ... --poolOptions...` | FAIL | Unsupported local Vitest option; rerun without unsupported option passed. |
-| `pnpm exec vitest run tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts` | PASS | 3 files, 46 tests passed. |
-| `pnpm run test:deterministic-ingestion-report` | PASS | 11 fixtures passed; violation search preserved. |
-| `pnpm run ingest:worker:simulated-proof` | PASS, non-certifying for staging | Simulated queue drained 2 succeeded and 1 dead-lettered; script states bounded staging queue-drain proof remains required. |
-| `pnpm run packet-pdf:cache-miss-proof` | PASS | Cache-miss proof completed. |
-| `pnpm run check:migrations` | PASS exit, non-certifying evidence | 0 release blockers, 18 warning-only runtime ensure entries; output says `CERTIFYING:false`. |
-| `git diff --check` | PASS | No whitespace errors after audit files were added. |
-| JSON parse check | PASS | `investigative-function-audit-2026-05-21.json` parsed successfully. |
-| `pnpm run check` | PASS | Build, unit suite, golden path, deterministic ingestion, parser regression, tradeline internal, and violation correction checks passed. |
-| `pnpm exec vitest run tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/production-scale-certification.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts` | PASS | 4 files, 55 tests passed after remediation. |
-| `pnpm run smoke:auth-workflow` with staging synthetic auth env | PASS | Artifact `478`, owner `136`, job `27` completed, upload-results had 2 tradelines, non-owner denied 403, cleanup deleted both users. |
-| `pnpm run production-scale:certify` with staging synthetic auth env | PASS | `CERTIFYING:true`; `authenticatedUploadResults` gate passed with artifact `479`, owner `138`, job `28`, 2 tradelines, non-owner denied 403. |
-| `pnpm run smoke:auth-workflow:packet` before ID-image fix | FAIL | Endpoint `GET /_api/packet/pdf?packetId=140` returned HTTP `502`; readiness/build/create had passed for selected finding `4868`; cleanup also hit `502`. |
-| `pnpm exec vitest run tests/unit/consumer-identification-image-validation.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/production-scale-certification.spec.ts tests/api/consumer-identification-upload-boundary.spec.ts tests/api/critical-schema.spec.ts` | PASS | 6 files, 31 tests passed; corrupt PNG rejected and valid ID packet PDF rendered. |
-| `pnpm run smoke:auth-workflow:packet` after ID-image fix | PASS | Artifact `490`, owner `148`, job `31` completed, finding `4881` ready, packet `141`, PDF HTTP `200`, `application/pdf`, 8364 bytes, non-owner PDF denied `403`. |
-| `pnpm run production-scale:certify` with staging synthetic auth env after packet fix | PASS | `CERTIFYING:true`; `authenticatedUploadResults` and `authenticatedPacketPdf` passed; certification packet proof selected finding `4920`, packet `143`, PDF HTTP `200`, `application/pdf`, 7314 bytes, non-owner PDF denied `403`. |
+- Server and route registration: `server.ts`, `endpoints/**`.
+- Auth/session: `endpoints/auth/**`, `helpers/getServerUserSession`, `helpers/ingestSessionResolver`.
+- Upload/ingest: `endpoints/ingest/report_POST.ts`, `endpoints/ingest/process_POST.ts`, `endpoints/ingest/status_GET.ts`, `helpers/ingestReportHandler`, `helpers/ingestCorePipeline.tsx`, `helpers/comprehensiveReportStorage.tsx`, `helpers/ingestProcessingQueueService.ts`, `scripts/ingest-processing-worker.ts`.
+- Retrieval/display: `endpoints/upload-results/get_GET.ts`, `pages/upload.tsx`, `pages/upload-results.$artifactId.tsx`, `tests/unit/upload-processing-status-ui.spec.tsx`.
+- Parser/canonical: `helpers/canonicalCreditReportExtractor.tsx`, `helpers/parserExtractionRules.tsx`, parser test-case endpoints.
+- Compliance/evidence/regulation: `helpers/complianceScanner.tsx`, `endpoints/evidence/**`, `helpers/hashChain.tsx`, `endpoints/regulation-registry/**`.
+- Packet: `endpoints/packet/**`, `helpers/disputePacketService.ts`, `helpers/packetPdfCache.ts`, `helpers/disputePacketPdf.ts`, packet lifecycle tests and packet PDF proof script.
+- Admin: `endpoints/admin/**`, `endpoints/admin/violation-correction/**`, `helpers/violationCorrectionManager.tsx`.
+- Response documents: `endpoints/responses/**`, response worker/orchestration scripts and tests.
+- Readiness/deploy/certification: `scripts/production-scale-certification.mjs`, deploy/static evidence scripts, production-scale evidence docs.
 
 ## Verification Matrix
 
-| Function | Role/state | Entry point | Expected behavior and persistence | Retrieval/display requirement | Existing tests found | Audit command/evidence | Result | Risk | Failure mode | Remediation task |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Public app health | anonymous | `/` | App serves shell | Browser/API reachable | deploy workflow probes | `curl -k -I` returned 200 | PASS | P3 | none | Keep health probes. |
-| Registration | anonymous | `/_api/auth/register_with_password` | Creates user, password, account rows, session | User can login/session | auth workflow smoke spec | staging smoke created synthetic user 129 | PASS | P1 | not independently isolated from later failure | Keep synthetic cleanup mandatory. |
-| Login/session | consumer | `/_api/auth/login_with_password`, `/_api/auth/session` | Session cookie resolves user role `user` | Auth-only routes accept same cookie | auth route tests, smoke harness | staging smoke progressed past login/session | PASS | P1 | none observed | Add session ID trace to smoke evidence without secrets. |
-| Consumer upload artifact creation | authenticated consumer | `/_api/ingest/report` | Validates PDF, stores artifact owned by user | Artifact ID returned | `report-ingest-lifecycle-endpoint.spec.ts` | remediation smoke proved artifact `478` owner `136`; certification smoke proved artifact `479` owner `138` | PASS | P0 | remediated | Keep artifact owner proof in certification gate. |
-| Ingest process enqueue | authenticated consumer | `/_api/ingest/process` | Enqueues durable job; staging must not inline heavy work | User receives queued/processing/completed state | API lifecycle tests | remediation smoke polled job `27` queued -> completed; certification smoke polled job `28` queued -> running -> completed | PASS | P0 | remediated | Keep terminal status polling in smoke. |
-| Worker lifecycle | worker/admin | `scripts/ingest-processing-worker.ts`, queue tables | Claim, heartbeat, process, retry/dead-letter | Status visible to user/admin | worker simulation, queue tests | staging smoke observed terminal completed queue jobs; simulated proof also passed | PASS | P0 | remediated for synthetic staging upload-results path | Add broader queue-depth dashboard evidence separately. |
-| Canonical extraction | system | `helpers/canonicalCreditReportExtractor.tsx` | Deterministic extraction, no AI fallback in product path | Canonical state stored on artifact | deterministic ingestion report | 11 fixtures passed | PASS | P1 | not proven for staging uploaded artifact | Tie staging smoke to canonical output evidence. |
-| Parser rule application | admin/system | parser test/promote endpoints, canonical extractor | Regression-gated active rules | Provenance visible where supported | parser governance tests | existing scoped tests found; not rerun broadly | PARTIAL | P1 | not live-smoked | Add parser-rule provenance assertion to ingest audit fixture. |
-| DocStrange/LLM fallback | system | deterministic extractor/fallback flags | No live provider calls in tests; deterministic path preserved | Fallback must not overwrite truth silently | deterministic tests | static inspection shows `allowAiFallback:false` in ingest | PASS | P2 | no live fallback tested by design | Keep provider calls disabled in certification. |
-| Report storage | system | `helpers/ingestArtifactCreator.tsx`, `helpers/reportArtifactStorage.ts` | Store PDF reference, not raw DB bytes | `reportArtifact` and storage reference retrievable | storage durability tests | not rerun full durability here | PARTIAL | P1 | staging artifact storage not independently verified in failed smoke | Include artifact storage reference in auth smoke evidence. |
-| Tradeline persistence | system | `helpers/ingestTradelinePersistence` | Persist tradeline rows linked to artifact/user | `upload-results` returns count/findings | golden path, API upload-results tests | remediation smoke and certification smoke each returned 2 tradelines for the authenticated owner | PASS | P0 | remediated | Keep tradeline count assertion at `>= 2`. |
-| Violation scanning | system | `helpers/complianceScanner.tsx` | Scan persisted tradelines; preserve manual findings | Findings retrievable and packet-ready if applicable | compliance/persistence tests | remediation smoke returned `actionableCount: 6`; golden path passed | PASS | P1 | remediated for synthetic staging upload-results path | Add separate evidence-link detail assertion later. |
-| Evidence enrichment | system/admin | evidence endpoints/helpers | Evidence links and hash ledger | Evidence retrievable by owner/admin | evidence API tests | scoped existing tests passed previously; not direct staged | PARTIAL | P2 | no staging evidence proof for uploaded artifact | Add evidence-link assertion to smoke after findings exist. |
-| Regulation/reference linking | system/admin | regulation registry, violation evidence | Findings include references | Consumer/admin sees references as references, not legal conclusions | deterministic/golden tests | golden path violation evidence passed | PASS | P2 | not staging-live | Keep in parser/violation regression gate. |
-| Upload-results retrieval | authenticated owner/admin | `/_api/upload-results/get`, `/upload-results/:artifactId` | Owner gets results; non-owner denied; admin per intended scope | UI shows status/results/actionable failure | API tests, UI status tests | owner got 2 tradelines; non-owner denied 403 | PASS | P0 | remediated | Keep owner/non-owner proof in certification gate. |
-| UI upload status clarity | authenticated consumer | `/upload` | Queued/processing/stalled/completed are clear | No indefinite 99%/queued confusion | `upload-processing-status-ui.spec.tsx` | unit UI status tests passed | PARTIAL | P1 | component passes, but deployed UI not browser-smoked in auth flow | Add automated Playwright/HTTP UI smoke for synthetic user state. |
-| Auth boundary regression | owner, non-owner, admin | report/upload/packet endpoints | Owner scoped, non-owner denied, admin intentional | Wrong owner cannot see data | route auth and API lifecycle tests | staging smoke created second synthetic user and upload-results returned 403 | PASS | P1 | remediated for upload-results; packet non-owner remains covered elsewhere | Extend packet-specific staging denial separately if needed. |
-| Packet recommendation/readiness | authenticated owner | `/_api/packet/recommend`, `validate-readiness` | Eligible findings become packet candidates | Warnings/blockers shown | packet lifecycle endpoint tests | packet-included staging smoke selected finding `4881` and certification selected finding `4920`; readiness returned `packetReady: true` | PASS | P1 | remediated | Keep packet-included staging smoke in certification. |
-| Packet build/create/PDF | authenticated owner/admin | packet endpoints/PDF | Create persisted packet, PDF downloadable | PDF bytes returned to owner | packet lifecycle and PDF proof tests | live staging packet smoke created packet `141`, PDF HTTP `200`, `application/pdf`, 8364 bytes, `%PDF`; certification created packet `143`, PDF HTTP `200`, 7314 bytes, non-owner denied `403` | PASS | P1 | remediated corrupt ID image crash | Keep image validation and packet PDF owner/non-owner proof. |
-| Packet lifecycle | owner/admin | packet list/get/update/status | Scope enforced; lifecycle preserved | User sees own packets only | packet tests | not directly staged | PARTIAL | P2 | not live-smoked | Add owner/non-owner packet smoke. |
-| Admin dashboards | admin | `/admin-*`, admin endpoints | Admin-only metrics and queues visible | Operator can see queue/status | admin endpoint/unit tests | static inventory only in this audit | PARTIAL | P2 | not dynamically role-smoked | Add synthetic admin dashboard smoke with no PII. |
-| Admin violation correction | admin | correction endpoints/manager | Transactional finalization/training/audit | Operator-visible status | correction tests | static inventory only in this audit | PARTIAL | P2 | no live admin correction smoke | Add synthetic correction finalization smoke. |
-| Admin correction canonicalization | admin/system | `helpers/violationCorrectionManager.tsx` | Only explicit correction-as-truth behavior | Audit metadata retained | correction tests | not rerun here | PARTIAL | P2 | no staging proof | Keep behind admin test data only. |
-| Parser-test persistence | admin | parser-test-case endpoints | Persist cases, promote only gated rules | Provenance available | parser unit/API tests | static inventory only | PARTIAL | P2 | no live admin smoke | Add non-mutating parser-test smoke. |
-| Response document processing | user/admin | responses endpoints/workers | Capture/process response metadata append-only | Admin/user surfaces show outcome | response soak and docs | response soak passed locally | PASS | P2 | not related to failed credit upload | Keep as separate gate. |
-| Dead-letter/retry/stale jobs | worker/admin | queue service/admin queue | Stale/dead-letter visible and retryable | User/admin sees safe state | API lifecycle tests | local tests passed; staging proof absent | PARTIAL | P1 | current staging failure may be worker/stale-related | Include queue/job state in auth smoke evidence. |
-| Deployment/staging assumptions | workflow | GitHub Actions, compose, worker scripts | Staging has worker path and post-deploy checks | Evidence should include target SHA and auth workflow | workflow tests, certification | `production-scale:certify` now includes and passed `authenticatedUploadResults` and `authenticatedPacketPdf` | PASS | P1 | remediated for certification gate | Keep staging smoke environment configured for certification runs. |
+| Function | Role/state required | Entry point | Expected behavior | Persistence side effects | Retrieval/display behavior | Existing tests found | Audit command/evidence | Result | Risk | Failure mode | Recommended remediation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Public landing/health | Anonymous | `/`, static app shell | App reachable over HTTPS | None | HTTP 200/app shell | Deploy health checks | Staging smoke reached host; cert gates ran against staging | PASS | P3 | None observed | Keep deploy health probes. |
+| Registration | Anonymous | `/_api/auth/register_with_password` | Create synthetic consumer | `users`, auth/password/session/account rows | Session usable after login | Auth smoke specs | Live smokes registered users `156`, `158`, `160`, `162` | PASS | P1 | None observed | Keep synthetic cleanup assertions. |
+| Login/session | Consumer | `/_api/auth/login_with_password`, `/_api/auth/session` | Resolve logged-in user and role | Session row/cookie | Auth-only endpoints accept same cookie | Auth/session API tests | Live smokes used same session through upload/results/packet | PASS | P1 | None observed | Add non-secret session proof to future evidence. |
+| Consumer credit report upload | Consumer | `/_api/ingest/report` | Accept generated PDF | Report artifact row and stored file reference | Artifact ID returned | API lifecycle tests | Artifact `494` owner `156`; artifact `495` owner `158` | PASS | P0 | None observed | Keep owner proof mandatory. |
+| Credit report artifact ownership | Consumer/admin | `/_api/report-artifact/get` | Owner gets own artifact; wrong owner denied downstream | Artifact `userId` and storage digest retained | Upload-results/packet use artifact owner | Report artifact tests | `ownerUserId` matched session user in live smokes | PASS | P0 | None observed | Assert ownership before result retrieval. |
+| Ingest process endpoint | Consumer | `/_api/ingest/process` | Enqueue durable job; staging does not silently inline heavy work | Ingest job row/events; artifact status updates | Process response exposes queued/worker status | Ingest lifecycle tests | Job `35` and `36` observed through status endpoint | PASS | P0 | None observed | Keep bounded terminal polling. |
+| Worker/queue lifecycle | Worker/system | `scripts/ingest-processing-worker.ts`, queue service | Claim, heartbeat, process, succeed/fail/dead-letter | Queue status/events and worker liveness | User/admin can see status | Worker simulation and API tests | Live jobs reached `completed`; simulated proof drained synthetic queue | PASS | P1 | Staging worker liveness proven only through active jobs, not standalone dashboard | Add live queue liveness snapshot evidence. |
+| Ingest status endpoint | Consumer | `/_api/ingest/status` | Owner-scoped terminal/non-terminal state | Read-only | Prevent indefinite queued/99 percent confusion | Status UI/unit/API tests | Polled queued/processing/completed states on live staging | PASS | P0 | None observed | Keep stale/no-worker terminal failures loud. |
+| Canonical extraction | System | `helpers/canonicalCreditReportExtractor.tsx` | Deterministic canonical output | Canonical/replay payload on artifact | Downstream tradelines/results reflect canonical state | Golden path, deterministic report | 11 fixtures passed; live upload produced tradelines | PASS | P1 | Live smoke does not expose full canonical JSON detail | Add canonical field snapshot to smoke evidence. |
+| Deterministic extraction path | System | Parser helpers | No live provider calls required | Extracted structured fields | Fixture expected fields present | Golden/deterministic tests | `pnpm run test:golden-path`, `pnpm run test:deterministic-ingestion-report` passed | PASS | P1 | None observed | Keep provider-free certification. |
+| DocStrange/LLM fallback | System | Extractor fallback controls | Fallback must be bounded and non-live in tests | None in this audit | Must not overwrite deterministic truth | Legacy AI isolation tests | Certification uses deterministic tests only; no live provider calls | PARTIAL | P2 | Fallback not live-tested by design | Keep disabled unless explicit automated mock coverage is added. |
+| Parser-rule application | Admin/system | Parser mapping/test-case endpoints | Regression-gated promotion | Parser rule metadata/provenance | Canonical extraction should show supported provenance | Parser governance tests | Scoped tests not individually rerun outside certification/unit suite | PARTIAL | P2 | No live admin parser promotion smoke | Add synthetic non-production parser promotion smoke. |
+| Parser-test persistence | Admin | `endpoints/parser-test-case/**` | Persist/adjudicate cases | Parser test rows/training archive | Admin page reads cases | Parser unit/API tests | Route inventory plus unit suite in `pnpm run check` | PARTIAL | P2 | No deployed admin UI smoke | Add admin parser-test E2E smoke. |
+| Report storage | System | Storage helpers/artifact creator | Durable artifact reference and digest | Stored file and `reportArtifact` metadata | Owner can process/retrieve results | Storage durability tests | Live smokes proved `sha256Present`; cert storage durability passed | PASS | P1 | Raw storage backend not manually inspected | Keep storage contract gate. |
+| Tradeline/account persistence | System | Ingest persistence helpers | Persist tradelines under owner/artifact | `tradeline` rows and artifact links | Upload-results returns expected count | Golden/API tests | Live smokes returned 2 tradelines | PASS | P0 | None observed | Keep `>=2` synthetic tradeline assertion. |
+| Violation scanning | System | `helpers/complianceScanner.tsx` | Scan persisted tradelines | Finding rows linked to tradelines | Findings/actionable counts visible | Compliance/golden tests | Live smokes returned 6 actionable findings | PASS | P1 | Evidence-link details not checked live | Add rule/evidence/regulation detail assertion. |
+| Evidence enrichment | Consumer/admin/system | `endpoints/evidence/**`, hash chain helpers | Append-only evidence and owner scope | Evidence events and hash chain | Evidence retrievable per role/scope | Evidence ledger tests | Certification evidence ledger gate passed | PASS | P2 | Not live-attached to staging upload artifact | Add live finding evidence-link assertion. |
+| Regulation/reference linking | Admin/system | Regulation registry endpoints/helpers | Findings carry references without overclaiming legal conclusions | Registry/mapping rows | Consumer/admin surfaces show references | Regulation tests/golden path | Golden path passed violation reference checks | PASS | P2 | Not live-admin-smoked | Add synthetic regulation registry admin smoke. |
+| Readiness validation | Consumer/admin | `/_api/packet/validate-readiness` | Eligible findings pass; blockers explicit | Read-only | User sees blockers/warnings | Packet readiness tests | Live readiness selected finding `4946`; cert selected `4981` | PASS | P1 | None observed for eligible path | Add negative live readiness fixture later. |
+| Packet build/create | Consumer/admin | `/_api/packet/build`, `/_api/packet/create` | Build/create owner packet from eligible finding | Packet rows/finding links/evidence events | Owner can retrieve packet | Packet lifecycle tests | Packet `144` and `145` created as generated | PASS | P1 | None observed | Keep packet smoke in certification. |
+| Packet PDF retrieval | Consumer/admin | `/_api/packet/pdf` | Owner gets non-empty PDF; non-owner denied | PDF cache/storage when applicable | HTTP `application/pdf`, `%PDF` | Packet PDF tests/cache proof | Live PDF HTTP 200, 7307/7297 bytes; non-owner 403 | PASS | P1 | Previous 502 remediated | Keep corrupt image validation and live proof. |
+| Packet lifecycle/list | Consumer/admin | `/_api/packet/list`, get/update/status | Owner/org scope and lifecycle changes | Packet status/delivery rows | User sees own packets only | Packet scope/lifecycle tests | Certification unit/API gates passed | PASS | P2 | No separate live list UI smoke | Add packet list browser/API smoke. |
+| Consumer result display pages | Consumer | `/upload`, `/upload-results/:artifactId` | Clear status/results/actionable failure | Read-only | No blank/queued forever UI | Upload status UI unit tests | Unit tests passed; live API result proven | PARTIAL | P2 | No live browser UI automation in this audit | Add Playwright synthetic upload-results display smoke. |
+| Admin dashboards | Admin | `/admin-*`, admin endpoints | Admin-only visibility and queue/status surfaces | Read-only or audited writes | Admin sees operator state | Admin endpoint/unit/e2e tests | Scoped endpoint tests passed for reset/correction; no full live admin session | PARTIAL | P2 | No deployed admin role E2E proof | Add synthetic admin dashboard smoke. |
+| Admin reset user | Admin | `/_api/admin/reset-user` | Admin can reset user data with audit | Cascade cleanup/audit | Admin receives counts | `admin-reset-user-endpoint.spec.ts` | Scoped Vitest passed | PASS | P2 | Not live-admin-smoked | Add staging admin reset smoke using synthetic user only. |
+| Admin violation correction | Admin | `endpoints/admin/violation-correction/**`, manager | Transactional correction/training/audit | Correction, training, audit rows | Admin sees status | Correction endpoint/unit tests | Scoped Vitest and `pnpm run check` correction regressions passed | PASS | P2 | Not live-admin-smoked | Add synthetic correction finalization smoke. |
+| Admin correction truth/canonicalization | Admin/system | `helpers/violationCorrectionManager.tsx` | Correction-as-truth only where explicit | Audit/training metadata | Downstream canonicalization consistent | Correction truth tests | `pnpm run check` passed violation correction regression | PARTIAL | P2 | No live staging correction-as-truth proof | Add fixture-only staging admin correction smoke. |
+| Response-document processing | Consumer/admin/system | `endpoints/responses/**`, response worker scripts | Capture/process responses, retry/dead-letter/stale states | Response event/job rows | Admin/user status surfaces | Response API/soak tests | Response soak passed with duplicate/retry/dead-letter/stale observations | PASS | P2 | No live mailbox/provider integration by design | Keep no-live-provider constraint. |
+| Dead-letter/retry/stale job handling | Worker/admin | Queue services/admin queue endpoints | Stale/dead-letter visible and actionable | Job state/events | User/admin safe terminal states | Queue tests and soak scripts | Response soak and ingest worker simulated proof passed | PASS | P1 | Ingest dead-letter not live-smoked on staging | Add live-safe synthetic stale job read-only check. |
+| Health endpoints/deploy assumptions | Operator | Workflows, compose, certification scripts | Staging/prod deploy gates prove target SHA and smokes | Evidence docs | Operators see certifying/non-certifying status | Workflow/static tests | `production-scale:certify` passed with current target SHA | PASS | P1 | None observed | Keep exact SHA action evidence. |
+| Production-scale certification | CI/operator | `pnpm run production-scale:certify` | Fails if any required gate fails/stale/skipped | Evidence markdown/JSON | `CERTIFYING:true/false` unambiguous | Certification tests | Certification passed with no failed/stale/skipped gates | PASS | P1 | None observed | Keep auth upload and packet gates mandatory. |
+| Migration governance | CI/operator | `pnpm run check:migrations`, `migrations:gate` | Unauthorized runtime ensure paths release-visible | Evidence docs | Promotion gate status visible | Migration checker tests | `check:migrations` passed with 0 release blockers and 18 warning-only entries | PARTIAL | P2 | Warning-only residual runtime ensure entries remain | Continue converting runtime ensure paths to additive migrations. |
+| Public/support/subscription/ancillary flows | Mixed | Support, subscription, lead, legal authority endpoints | Role-scoped ancillary behavior | Various rows | UI/API per function | Route contracts/API tests | Covered by contracts/API/check, not individually live-smoked | PARTIAL | P3 | Not core-audited live | Add scoped smoke only for release-critical ancillary flows. |
 
-## Critical Findings
+## Commands Run
 
-### P0 - Authenticated Upload-To-Results Failed On Staging - Remediated
+| Command | Result | Summary |
+| --- | --- | --- |
+| `git status --short --branch` | PASS | Branch `staging...origin/staging`; unrelated untracked `docs/IMG_1433.jpeg` was not staged. |
+| `git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git remote -v` | PASS | Repo, branch, remote, and audited HEAD identified. |
+| Route/helper/script/test inventory reads | PASS | Inspected package scripts, endpoints, server route registration, ingest/status/results/packet/admin/response paths, and existing audit docs. |
+| `pnpm run smoke:auth-workflow` with staging auth env | PASS | Artifact `494`, owner `156`, job `35` completed, 2 tradelines, 6 actionable findings, non-owner `403`. |
+| `pnpm run smoke:auth-workflow:packet` with staging env | PASS | Finding `4946`, packet `144`, PDF HTTP `200`, `application/pdf`, 7307 bytes, non-owner PDF `403`. |
+| `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-auth-workflow-smoke.spec.ts tests/unit/production-scale-certification.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts tests/api/packet-lifecycle-endpoint.spec.ts tests/api/admin-reset-user-endpoint.spec.ts tests/api/admin-violation-correction-endpoint.spec.ts tests/api/response-document-endpoint.spec.ts` | PASS | 8 files, 102 tests passed. |
+| `pnpm run test:golden-path` | PASS | Upload, parse, canonical map, anomaly detect, violation detect, evidence bind, packet generate, PDF download all passed. |
+| `pnpm run test:deterministic-ingestion-report` | PASS | 11 fixtures passed; replay stable; violation search preserved. |
+| `pnpm run ingest:worker:simulated-proof` | PASS | Synthetic queue drained: 2 succeeded, 1 dead-lettered; non-certifying by design. |
+| `pnpm run packet-pdf:cache-miss-proof` | PASS | Packet PDF cache-miss evidence regenerated. |
+| `pnpm run response:soak-check` | PASS | Duplicate collapse, retry backlog, dead-letter, stale-running, replay dry run, retention preview, cleanup all observed. |
+| `pnpm run check:migrations` | PASS/PARTIAL | Exit 0, 0 release blockers; evidence says `CERTIFYING:false` for warning-only runtime ensure residuals. |
+| `pnpm run production-scale:certify` with staging auth env | PASS | `CERTIFYING:true`; includes authenticated upload-results and packet PDF gates. |
 
-The original audit found that the deployed staging app accepted the synthetic authenticated upload path but did not produce usable `upload-results`. The remediation found this was a smoke/orchestration proof gap: the script assumed synchronous completion even though staging correctly queues worker-backed processing. After polling `/_api/ingest/status` to terminal `completed`, the same authenticated flow produced 2 tradelines and 6 actionable findings for the owner.
+## Tests Added Or Reused
 
-Implicated paths:
+No new tests were added in this audit pass. The audit reused and dynamically executed existing staging smokes, scoped Vitest suites, golden path, deterministic ingestion, worker simulation, response soak, packet PDF proof, migration governance, and production-scale certification.
+
+## Failures Found
+
+No open P0 or P1 failure was reproduced in this audit pass.
+
+Historical failures that remain documented because previous audits missed them:
+
+- P0 historical: authenticated upload-to-results originally returned 0 tradelines because the smoke read results before worker completion. Remediated by worker-aware terminal status polling and certification inclusion.
+- P1 historical: packet PDF live staging returned HTTP `502` on corrupt synthetic ID image attachment. Remediated by readable image validation/fallback and packet smoke certification inclusion.
+
+Current residual gaps:
+
+- P2: Deployed browser UI is not fully smoke-tested for the upload and upload-results display path. API/runtime proof is strong, and unit UI tests pass, but the actual browser display path was not run with a synthetic authenticated user in this audit.
+- P2: Live admin role workflows for parser-test persistence, regulation registry, evidence management, violation correction finalization, and reset-user were not all exercised through deployed admin UI/API with a synthetic admin. Scoped endpoint/unit tests passed.
+- P2: Migration governance still reports warning-only runtime ensure sources. The hard gate has zero release blockers, but residual runtime ensure entries remain release-visible.
+- P3: Ancillary non-core surfaces such as support tickets, subscriptions, lead reminders, and some analytics views were inventoried and covered by route/API/build suites, but not individually live-smoked.
+
+## Root-Cause Hypotheses For Residual Gaps
+
+- Browser UI gap: the current certification path is API/script-first. It proves auth cookies, endpoints, persistence, queue status, upload-results data, and packet PDF bytes, but it does not render the deployed React pages in a browser.
+- Admin live gap: current admin coverage is mostly API/unit/script coverage. A synthetic admin setup path exists in tests, but this audit did not use a live staging admin credential or create one.
+- Migration warning gap: runtime ensure helpers are intentionally still present for compatibility. The governance checker reports them as known warning-only sources until each is converted into an additive reviewed migration.
+
+## Files And Code Paths Implicated
+
+Core verified paths:
 
 - `scripts/staging-auth-workflow-smoke.ts`
+- `scripts/staging-auth-packet-workflow-smoke.ts`
+- `scripts/production-scale-certification.mjs`
+- `endpoints/auth/register_with_password_POST.ts`
+- `endpoints/auth/login_with_password_POST.ts`
+- `endpoints/auth/session_GET.ts`
 - `endpoints/ingest/report_POST.ts`
 - `endpoints/ingest/process_POST.ts`
-- `helpers/ingestProcessingQueueService.ts`
-- `scripts/ingest-processing-worker.ts`
 - `endpoints/ingest/status_GET.ts`
+- `endpoints/report-artifact/get_GET.ts`
 - `endpoints/upload-results/get_GET.ts`
+- `helpers/ingestProcessingQueueService.ts`
+- `helpers/ingestCorePipeline.tsx`
+- `helpers/complianceScanner.tsx`
+- `endpoints/packet/recommend_GET.ts`
+- `endpoints/packet/validate-readiness_POST.ts`
+- `endpoints/packet/build_POST.ts`
+- `endpoints/packet/create_POST.ts`
+- `endpoints/packet/pdf_GET.ts`
+- `helpers/disputePacketService.ts`
+- `helpers/packetPdfCache.ts`
+
+Partially verified or future-work paths:
+
 - `pages/upload.tsx`
 - `pages/upload-results.$artifactId.tsx`
+- `pages/packets.tsx`
+- `pages/admin-*`
+- `endpoints/admin/**`
+- `endpoints/parser-test-case/**`
+- `endpoints/regulation-registry/**`
+- `endpoints/evidence/**`
+- `helpers/violationCorrectionManager.tsx`
+- Runtime schema ensure helpers listed by `pnpm run check:migrations`.
 
-Remediated root cause:
+## Specific Remediation Prompts
 
-- The auth smoke assumed synchronous completion while `process_POST` now returns queued status in staging/production.
-- The smoke now treats queued process output as non-terminal and verifies worker completion before reading upload-results.
-- The smoke now proves artifact ownership, same-owner result retrieval, non-owner denial, and cleanup.
+1. Add an authenticated Playwright staging smoke for `/upload` and `/upload-results/:artifactId` that reuses the synthetic auth workflow, verifies the same artifact/status/result data in the rendered browser UI, and fails on blank, queued forever, 99 percent, or generic failure displays.
+2. Add a synthetic staging admin smoke that creates or uses a safe admin test identity, then verifies admin reset-user, violation correction detail/finalization dry run, evidence list, regulation registry list, and parser-test list without mutating real user data.
+3. Extend the live staging auth smoke to record a compact canonical field snapshot and at least one violation evidence/regulation reference for the selected synthetic finding.
+4. Continue migration governance hardening by converting the remaining warning-only runtime ensure sources into additive reviewed migrations, one helper family at a time.
 
-### P1 - Certification Gate Did Not Prove The Core Consumer Workflow - Remediated
+## Gaps Not Tested And Why
 
-`production-scale:certify` now includes `pnpm run smoke:auth-workflow` as `authenticatedUploadResults`. The post-fix certification run passed with `CERTIFYING:true` and no failed, stale, or skipped gates.
+- Manual browser testing was intentionally not used. The request requires automated evidence only.
+- Live external provider calls were intentionally not used. The audit relied on deterministic fixtures, staging API smokes, local tests, dry runs, and simulations.
+- Real consumer PII was intentionally not used. The staging smokes generated synthetic users and PDFs and cleaned them up.
+- Full admin UI browser coverage was not run because this pass did not create or use a live staging admin browser session.
+- Production deploy/rollback was not live-tested because the request forbids live deploy testing; static workflow checks and simulations are used instead.
 
-Implicated path: `scripts/production-scale-certification.mjs`.
+## What Previous Audits Likely Missed
 
-### P1 - Auth Smoke Was Not Worker-Aware Enough - Remediated
-
-The auth workflow smoke now calls `/_api/ingest/process`, polls `/_api/ingest/status` until `completed`, `failed`, `manual_review_required`, `stalled_no_worker_heartbeat`, `stale`, or timeout, then verifies upload-results only after terminal success.
-
-Implicated path: `scripts/staging-auth-workflow-smoke.ts`.
-
-### P1 - Packet-Included Staging Smoke Hit Packet PDF 502 - Remediated
-
-The failing endpoint was `GET /_api/packet/pdf?packetId=...`. The live staging smoke proved readiness/build/create succeeded before PDF retrieval, then the endpoint returned HTTP `502` and subsequent cleanup requests also received `502`, indicating a render-time process crash. The bounded fix validates consumer identification images as readable PNG/JPEG before storage/read attachment, renders corrupt existing ID attachments as optional/missing for simple packet downloads, replaces the smoke's corrupt synthetic PNG with a valid generated PNG, and includes `pnpm run smoke:auth-workflow:packet` in `production-scale:certify`. Live staging now returns HTTP `200` `application/pdf` for owner packet PDF retrieval and HTTP `403` for non-owner PDF retrieval.
-
-## Lower-Risk Findings
-
-- **P2:** `check:migrations` exits successfully but prints `CERTIFYING:false` because 18 warning-only runtime ensure inventory items remain. This is visible governance debt, not the immediate upload blocker.
-- **P2:** UI component tests prove queued/stale/failure copy, but this remediation did not add a browser UI smoke with a synthetic authenticated user. API success must not be conflated with UI success.
-- **P2:** Admin correction, evidence, regulation, parser-test, and response-document surfaces have local tests, but no single staging function smoke covers those admin role paths end to end.
-
-## Remediation Prompts
-
-1. **Add browser-level synthetic upload status smoke**
-
-   ```text
-   Add an automated Playwright smoke for /upload using a synthetic authenticated session. It must verify that queued, processing, stalled/no-worker, failed/manual-review, and completed states render clear next actions, and that completed upload navigates to /upload-results/:artifactId. No manual browser testing and no real PII.
-   ```
-
-2. **Add synthetic admin role smoke**
-
-   ```text
-   Add a synthetic admin role smoke for correction, evidence, regulation, parser-test, and queue dashboard surfaces. Use no real PII and do not mutate production references except through existing test-only or staging-safe admin paths.
-   ```
-
-## Gaps Not Fully Tested
-
-- Live browser UI was not exercised because this remediation prioritized non-interactive API/runtime proof for the P0 path.
-- Admin dashboards/correction/parser-test surfaces were inventoried and mapped to existing tests, but not staged with a synthetic admin in this run.
-- Two pre-fix packet-included failed smoke attempts left generated synthetic users unconfirmed because cleanup hit staging gateway errors after packet PDF 502. The passing focused smoke and certification smoke both deleted their synthetic owner and non-owner users.
-- No live external provider calls or live deploys were run.
-
-## Verdict
-
-**LIMITED.** The P0 authenticated consumer credit-report upload-to-results path and the P1 live staging packet readiness/create/PDF retrieval path are now proven by executable staging and certification evidence. This report does not independently mark every admin or browser UI function `READY`; those remain separate follow-up surfaces.
+Previous audits over-weighted route presence, parser/unit success, and local/simulated proofs. The missed failure was that a logged-in consumer could upload a report but receive no usable results because the proof path did not wait for the real staging worker boundary and did not verify same-owner `upload-results`. The next missed failure was similar: upload-results passed, but the live packet PDF path failed on the deployed render route while local/cache proof still passed. The current audit treats those as baseline risks and therefore requires live staging synthetic authenticated evidence for both upload-results and packet PDF.
