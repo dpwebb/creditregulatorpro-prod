@@ -1,0 +1,922 @@
+{
+  "schemaVersion": 1,
+  "planName": "bounded-production-scale-remediation-plan",
+  "sourceAudit": "docs/production-at-scale-audit-2026-05-21.md",
+  "sourceAuditDate": "2026-05-21",
+  "createdDate": "2026-05-21",
+  "repository": "C:/Users/webbd/Projects/creditregulatorpro-staging",
+  "certifying": false,
+  "certificationStatement": "CERTIFYING:false",
+  "scope": "Bounded implementation plan only. Patch existing files, services, workflows, and tests where practical. Preserve current architecture, operations, deterministic parsing, violation search, public API behavior unless fail-closed behavior is required, and the current Vitest/script validation framework.",
+  "completionRule": {
+    "noTaskCompleteWithoutAutomatedEvidence": true,
+    "acceptedEvidenceTypes": [
+      "Vitest tests",
+      "static workflow checks",
+      "dry-run scripts",
+      "mocked simulations",
+      "local or staging-safe evidence scripts"
+    ],
+    "forbiddenCompletionEvidence": [
+      "manual browser testing",
+      "manual deploy testing",
+      "manual queue draining",
+      "human interaction",
+      "dashboard PASS alone",
+      "stale promotion packs",
+      "simulated proof represented as production proof",
+      "live external provider calls"
+    ],
+    "productionReadyClaimRule": "If a production-ready claim cannot be automated, output CERTIFYING:false."
+  },
+  "globalValidationCommands": [
+    "git diff --check",
+    "pnpm exec vitest run tests/unit --runInBand",
+    "pnpm run check:migrations"
+  ],
+  "groups": [
+    {
+      "key": "P0",
+      "title": "P0 evidence/artifact blockers",
+      "findings": [
+        {
+          "id": "P0-1",
+          "title": "Evidence Ledger Allows Caller-Supplied Hashes, Updates, And Deletes",
+          "severity": "P0 Critical",
+          "existingFilesToPatch": [
+            "endpoints/evidence/create_POST.schema.ts",
+            "endpoints/evidence/create_POST.ts",
+            "endpoints/evidence/update_POST.ts",
+            "endpoints/evidence/delete_POST.ts",
+            "helpers/hashChain.tsx",
+            "helpers/evidenceEventLedger.ts",
+            "tests/api/evidence-privacy-endpoint.spec.ts",
+            "tests/unit/evidence-event-ledger.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing evidence_event table, packet/tradeline ownership checks, hashChain verification semantics, evidence list response shape, packet evidence consumers, and bureau communication transaction pattern.",
+          "smallestSafeImplementationPath": [
+            "Remove or ignore caller-supplied hash fields from normal evidence create behavior.",
+            "Add a thin append-only evidence ledger helper that computes previousHash and currentHash server-side inside a transaction.",
+            "Convert update/delete routes into correction or retraction event writers while preserving route compatibility where possible.",
+            "Keep any raw mutation behind admin-only audited remediation with a required reason."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Client hash fields cannot set persisted hashes.",
+            "Concurrent append simulation creates a valid ordered chain.",
+            "Update/delete append correction or retraction events without mutating original rows.",
+            "verifyChain succeeds for valid chains and fails for tampering.",
+            "Non-owner evidence attempts remain denied."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-event-ledger.spec.ts tests/api/evidence-privacy-endpoint.spec.ts",
+            "pnpm run test:contracts",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Normal evidence writes are append-only and server-hashed.",
+            "Existing consumers can still list and use evidence events.",
+            "Automated tests prove raw updates/deletes no longer rewrite evidence truth.",
+            "CERTIFYING:false remains unless current promotion evidence includes the ledger proof."
+          ],
+          "regressionRisks": [
+            "Packet generation may depend on prior evidence row shape.",
+            "Existing UI update/delete affordances may expect mutation semantics.",
+            "Chain ordering can race without a real transaction boundary."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P0-2",
+          "title": "Artifact Storage Is Not Certifiably Durable Across Deploys Or Rollbacks",
+          "severity": "P0 Critical",
+          "existingFilesToPatch": [
+            "helpers/gcsStorage.ts",
+            "helpers/documentStorage.ts",
+            "docker-compose.yml",
+            "docker-compose.production.yml",
+            "Dockerfile",
+            ".github/workflows/deploy-production.yml",
+            ".github/workflows/deploy-staging.yml",
+            "scripts/storage-durability-preflight.mjs",
+            "tests/unit/storage-durability-preflight.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing local: storage URLs, object names, report artifact storage, packet PDF storage, document storage reads, and object-storage fallback behavior.",
+          "smallestSafeImplementationPath": [
+            "Add a deploy preflight that fails closed unless storage is object-backed or the local root is an explicit persistent mount.",
+            "Add a synthetic sentinel write/read/delete proof that never touches consumer artifacts.",
+            "Add static workflow validation proving the preflight runs before container replacement.",
+            "Document the storage contract without exposing environment values."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Production-like local ephemeral path is rejected.",
+            "Explicit mounted root passes with mocked sentinel IO.",
+            "Object-storage mode passes without live provider calls.",
+            "Deploy workflow static test proves preflight precedes container replacement."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-durability-preflight.spec.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/report-artifact-storage.spec.ts tests/unit/evidence-attachment-storage.spec.ts tests/unit/packet-pdf-cache.spec.ts",
+            "pnpm run production-scale:promotion-pack",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Production-like deploys fail before replacement when artifact storage durability cannot be proven automatically.",
+            "Existing local: artifacts remain readable.",
+            "No live provider calls are introduced.",
+            "Evidence output explicitly states whether storage proof is certifying."
+          ],
+          "regressionRisks": [
+            "Misclassifying local development storage as production can block dev workflows.",
+            "Compose mount edits can affect deployment paths.",
+            "Sentinel cleanup must not delete real artifact prefixes."
+          ],
+          "certifying": false
+        }
+      ]
+    },
+    {
+      "key": "P1",
+      "title": "P1 queue, persistence, deploy, parser, packet blockers",
+      "findings": [
+        {
+          "id": "P1-1",
+          "title": "Rollback SHA Validation Tests The Workflow Ref, Not The Rollback Target",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            ".github/workflows/deploy-production.yml",
+            ".github/workflows/deploy-staging.yml",
+            "tests/unit/deploy-production-workflow.spec.ts",
+            "tests/unit/deploy-staging-workflow.spec.ts",
+            "tests/unit/production-deployment-parity-evidence.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing workflow dispatch inputs, target SHA output, health checks, production-safe privacy probes, staging smokes, and deploy branch policy.",
+          "smallestSafeImplementationPath": [
+            "Resolve TARGET_SHA before any validation job that claims rollback readiness.",
+            "Checkout the exact target SHA for validation and evidence generation.",
+            "Prove target SHA reachability from the approved branch.",
+            "Fail evidence generation when reported target SHA differs from git rev-parse HEAD."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Workflow static test proves rollback dispatch validation uses steps.target.outputs.sha.",
+            "Workflow static test proves target reachability is checked.",
+            "Deployment parity evidence embeds and validates target SHA."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/production-deployment-parity-evidence.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Rollback validation and deploy target are the same SHA in automated evidence.",
+            "Normal deploys continue to use the triggering SHA.",
+            "A mismatched evidence SHA fails closed."
+          ],
+          "regressionRisks": [
+            "Workflow permissions or checkout depth can prevent reachability checks.",
+            "Evidence scripts may need target SHA plumbing."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-2",
+          "title": "Deployment Replaces Containers Without Automatic Rollback Or Blue-Green Safety",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            ".github/workflows/deploy-production.yml",
+            ".github/workflows/deploy-staging.yml",
+            "scripts/production-deployment-parity-evidence.mjs",
+            "tests/unit/deploy-production-workflow.spec.ts",
+            "tests/unit/deploy-staging-workflow.spec.ts"
+          ],
+          "subsystemToPreserve": "Current single-host Docker Compose deployment, health-check URLs, privacy denial probes, and staging/production separation.",
+          "smallestSafeImplementationPath": [
+            "Capture previous SHA/container or image before replacement.",
+            "Add a failure trap that restores the previous known-good state when post-deploy health fails.",
+            "Keep blue-green as optional future work and first implement bounded automatic rollback.",
+            "Ensure rollback commands do not expose secrets and do not execute during local tests."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Workflow static test proves previous SHA capture occurs before deploy.",
+            "Workflow static test proves failure path calls rollback before workflow exit.",
+            "Evidence script test reports rollback capability as non-certifying when missing."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/production-deployment-parity-evidence.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "A failed post-deploy health check has an automated rollback path.",
+            "Static workflow tests prove ordering.",
+            "Evidence reports prior SHA and rollback readiness without manual deploy testing."
+          ],
+          "regressionRisks": [
+            "Rollback can conflict with non-backward-compatible migrations.",
+            "Health-check timing changes can cause false rollbacks."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-3",
+          "title": "Request-Bound Immediate Ingest Processing Reintroduces High-Cost Work Into The HTTP Path",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            "endpoints/ingest/process_POST.ts",
+            "helpers/ingestProcessingQueueService.ts",
+            "scripts/ingest-processing-worker.ts",
+            "tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+            "tests/api/ingest-processing-worker.spec.ts",
+            "tests/unit/ingest-processing-queue-boundary.spec.ts",
+            "tests/unit/ingest-processing-worker-script.spec.ts"
+          ],
+          "subsystemToPreserve": "Durable ingest queue records, idempotency behavior, SSE-compatible status responses, executeIngestPipeline worker path, deterministic parser behavior, and current violation-search behavior.",
+          "smallestSafeImplementationPath": [
+            "Limit the HTTP endpoint to validation, enqueue/attach, and status streaming in staging/production.",
+            "Move immediate processing behind a non-production flag that fails closed in staging/production.",
+            "Use existing queue service metrics for liveness and backpressure.",
+            "Preserve upload response contracts except where fail-closed behavior is required."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Production-like endpoint test proves executeIngestPipeline is not called by the request path.",
+            "Local/demo flag test proves immediate mode is unavailable unless explicitly non-production.",
+            "Duplicate submission still collapses to the active job.",
+            "SSE/status output remains compatible for queued/running/retry/dead-letter states."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/api/report-ingest-lifecycle-endpoint.spec.ts tests/api/ingest-processing-worker.spec.ts tests/unit/ingest-processing-queue-boundary.spec.ts tests/unit/ingest-processing-worker-script.spec.ts",
+            "pnpm run test:deterministic-ingestion-report",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Staging/production request path cannot execute parser/OCR/compliance work inline.",
+            "Queue idempotency and worker processing still work.",
+            "Automated tests prove the boundary."
+          ],
+          "regressionRisks": [
+            "Upload UI may rely on immediate completion events.",
+            "Existing lifecycle tests may encode current request-bound behavior.",
+            "A missing worker in staging must surface as fail-closed status."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-4",
+          "title": "Ingest Persistence Allows Partial Writes And Replay Drift",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            "helpers/ingestCorePipeline.tsx",
+            "helpers/comprehensiveReportStorage.tsx",
+            "helpers/ingestStagePersistence.ts",
+            "tests/unit/deterministic-replay-validator.spec.ts",
+            "tests/unit/ingest-response-canonical-consistency.spec.ts",
+            "tests/unit/ingest-stage-persistence.spec.ts"
+          ],
+          "subsystemToPreserve": "executeIngestPipeline, canonical parser output, report artifact compatibility, replay payload format, evidence indexes, compliance scan outputs, and packet readiness inputs.",
+          "smallestSafeImplementationPath": [
+            "Define atomic stage boundaries for parser output, canonical mapping, evidence indexes, compliance results, replay payload, and final status.",
+            "Use transactions for promotion from staged output to active report state.",
+            "Represent optional non-critical write failures as explicit degraded state with queue/operator visibility.",
+            "Keep old records readable and avoid destructive migration."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Failure after parser output does not mark final status complete.",
+            "Failure during compliance persistence preserves previous active state.",
+            "Replay validator proves persisted truth matches staged canonical output.",
+            "Optional degraded writes are visible without changing canonical truth."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-stage-persistence.spec.ts tests/unit/deterministic-replay-validator.spec.ts tests/unit/ingest-response-canonical-consistency.spec.ts tests/unit/deterministic-credit-report-pipeline.spec.ts",
+            "pnpm run test:deterministic-ingestion-report",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Active report state is promoted only after required stage writes succeed.",
+            "Failures leave retryable or degraded state with automated proof.",
+            "Deterministic replay remains stable."
+          ],
+          "regressionRisks": [
+            "Transaction scope can become too large for heavy parsing outputs.",
+            "Existing storage functions may assume best-effort behavior.",
+            "Old partial records must remain readable."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-5",
+          "title": "Compliance Findings Can Be Deleted Before Replacement Inserts Succeed",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            "helpers/complianceScanner.tsx",
+            "tests/unit/compliance-detector-metro2-ruleset.spec.ts",
+            "tests/unit/compliance-finding-normalizer.spec.ts",
+            "tests/unit/compliance-findings-atomic-persist.spec.ts"
+          ],
+          "subsystemToPreserve": "Current detector logic, manual/admin finding preservation, active auto-generated finding semantics, packet readiness consumers, and violation-search behavior.",
+          "smallestSafeImplementationPath": [
+            "Wrap delete and replacement insert in one transaction.",
+            "Prefer insert into a staged replacement set followed by an atomic active-set swap.",
+            "On any insert failure, preserve the previous active auto-generated set and record degraded scan state."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Insert failure after delete point preserves previous active findings.",
+            "Manual/admin findings remain untouched.",
+            "Successful replacement yields exactly the new generated set.",
+            "Packet readiness sees old complete set or new complete set, never partial."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/compliance-findings-atomic-persist.spec.ts tests/unit/compliance-detector-metro2-ruleset.spec.ts tests/unit/compliance-finding-normalizer.spec.ts tests/unit/violation-search-preservation.spec.ts",
+            "pnpm run test:violation-corrections",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Compliance replacement is all-or-nothing.",
+            "Manual/admin records are preserved.",
+            "Automated failure injection proves no partial deletion."
+          ],
+          "regressionRisks": [
+            "Existing tests may expect insert failures to be swallowed.",
+            "Transaction semantics can differ between test DB and production DB."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-6",
+          "title": "Parser Rule Promotion Can Bypass Regression Gates While Mutating Canonical Truth",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            "helpers/parserExtractionRules.tsx",
+            "helpers/canonicalCreditReportExtractor.tsx",
+            "endpoints/parser-test-case/promote-rule_POST.schema.ts",
+            "endpoints/parser-test-case/promote-rule_POST.ts",
+            "tests/unit/parser-rule-promotion-decision.spec.ts",
+            "tests/unit/parser-extraction-rules.spec.ts",
+            "tests/api/report-ingest-lifecycle-endpoint.spec.ts"
+          ],
+          "subsystemToPreserve": "DB-backed parser extraction rules, canonical extractor flow, admin rule promotion workflow, deterministic parser AI-disabled boundary, and current violation-search behavior.",
+          "smallestSafeImplementationPath": [
+            "Reject runRegressionGate:false outside test-only contexts unless audited break-glass is explicitly implemented.",
+            "Store regression gate evidence metadata with the promoted rule.",
+            "Refuse active rule activation without passing gate evidence.",
+            "Keep parser logic deterministic and do not introduce AI fallback."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Non-test promotion with runRegressionGate:false is rejected.",
+            "Test-only bypass remains isolated from staging/production env.",
+            "Active rule activation requires stored passing gate evidence.",
+            "Canonical extraction still applies approved active rules deterministically."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/parser-rule-promotion-decision.spec.ts tests/unit/parser-extraction-rules.spec.ts tests/unit/deterministic-phase1-parser-path.spec.ts tests/unit/deterministic-ingestion-lockdown.spec.ts",
+            "pnpm run test:deterministic-ingestion-report",
+            "pnpm run test:credit-regression",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "No active parser truth change can bypass automated regression evidence.",
+            "Existing approved parser rule behavior remains stable.",
+            "Evidence captures rule ID, target cases, command, result, and commit."
+          ],
+          "regressionRisks": [
+            "Admin parser tooling may send runRegressionGate explicitly.",
+            "Old promoted rules may lack evidence metadata and need compatibility handling."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-7",
+          "title": "Packet PDF Cache-Miss Timeout Does Not Cancel Underlying Render Work",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            "helpers/packetPdfCache.ts",
+            "helpers/packetPdfCacheMissEnvelope.ts",
+            "endpoints/packet/pdf_GET.ts",
+            "endpoints/packet/send-first-class_POST.ts",
+            "endpoints/packet/send-registered_POST.ts",
+            "tests/unit/packet-pdf-cache.spec.ts",
+            "tests/api/packet-lifecycle-endpoint.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing packet PDF bytes, content-addressed cache keys, packet PDF evidence events, route responses, and packet readiness behavior.",
+          "smallestSafeImplementationPath": [
+            "If renderer abort is unavailable, keep the cache-miss concurrency slot occupied until the render promise settles.",
+            "Emit degraded async-render or retry-after state instead of releasing capacity while work continues.",
+            "Keep cache hits fast and unchanged.",
+            "Avoid out-of-process rendering until bounded slot behavior is proven insufficient."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Timed-out render promise keeps capacity occupied until settlement.",
+            "New cache misses are rejected or queued while timed-out work remains running.",
+            "Cache hit behavior bypasses the miss envelope.",
+            "Render failure evidence records sanitized failure data."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts tests/api/packet-lifecycle-endpoint.spec.ts tests/api/packet-delivery-status-endpoint.spec.ts",
+            "pnpm run packet-pdf:cache-miss-proof",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Timeout cannot create more concurrent render work than the configured envelope.",
+            "Existing PDF content and cache-hit behavior remain unchanged.",
+            "Automated cache-miss proof reflects cancellation or slot semantics."
+          ],
+          "regressionRisks": [
+            "Holding slots longer can increase visible retry-after responses.",
+            "Tests must avoid relying on real long PDF renders."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P1-8",
+          "title": "Current Queue State Shows Critical Staleness And No Drained-Queue Proof",
+          "severity": "P1 High",
+          "existingFilesToPatch": [
+            "scripts/operator-dashboard.ts",
+            "scripts/ingest-processing-worker.ts",
+            "helpers/ingestProcessingQueueService.ts",
+            "scripts/production-worker-readiness-evidence.mjs",
+            "tests/unit/operator-regression-dashboard.spec.ts",
+            "tests/unit/production-worker-readiness-evidence.spec.ts",
+            "tests/api/ingest-processing-worker.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing durable queue, dry-run default worker, bounded apply guards, remediation actions, append-only queue events, and operator dashboard categories.",
+          "smallestSafeImplementationPath": [
+            "Add worker heartbeat and oldest queued age SLO evidence through existing queue metrics.",
+            "Add stale queue fail-closed status to readiness evidence.",
+            "Add simulated queue-drain proof and staging-safe proof path while separating simulated/staging proof from production certification.",
+            "Do not require manual queue draining."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Worker heartbeat events update liveness without processing real jobs.",
+            "Dashboard fails when oldest queued age exceeds SLO and no heartbeat exists.",
+            "Simulated queue drain proves scoped jobs leave no eligible queued remainder.",
+            "Readiness evidence remains CERTIFYING:false when only simulated proof exists."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts tests/unit/production-worker-readiness-evidence.spec.ts tests/api/ingest-processing-worker.spec.ts tests/unit/ingest-worker-simulated-proof.spec.ts",
+            "pnpm run ingest:worker:simulated-proof",
+            "pnpm run operator:dashboard",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Queue liveness is visible and automated.",
+            "Stale queue state blocks promotion evidence.",
+            "No manual drain is required to close local/staging proof."
+          ],
+          "regressionRisks": [
+            "Local queues with old jobs can keep dashboard failing.",
+            "Heartbeat records must not be mistaken for processed jobs."
+          ],
+          "certifying": false
+        }
+      ]
+    },
+    {
+      "key": "P2",
+      "title": "P2 governance and auditability gaps",
+      "findings": [
+        {
+          "id": "P2-1",
+          "title": "SSH Host Key Trust Uses Runtime ssh-keyscan",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            ".github/workflows/deploy-production.yml",
+            ".github/workflows/deploy-staging.yml",
+            "tests/unit/deploy-production-workflow.spec.ts",
+            "tests/unit/deploy-staging-workflow.spec.ts"
+          ],
+          "subsystemToPreserve": "SSH-based deployment and existing GitHub environment separation; do not create or print secrets, deploy keys, or host credentials.",
+          "smallestSafeImplementationPath": [
+            "Add host key fingerprint verification before adding scanned keys to known_hosts.",
+            "Read expected fingerprints from GitHub environment configuration without creating credentials in code.",
+            "Fail closed if expected fingerprint configuration is absent in production-like deploys.",
+            "Keep local static tests mocked and non-networked."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Workflow static test proves scanned keys are compared to expected fingerprint.",
+            "Missing expected fingerprint fails production deploy setup.",
+            "Mismatched fingerprint fails before SSH commands."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Production-like SSH setup cannot trust runtime scan alone.",
+            "No secret values are printed.",
+            "Evidence reports CERTIFYING:false if host fingerprint configuration cannot be verified automatically."
+          ],
+          "regressionRisks": [
+            "GitHub environments must provide expected fingerprints before deploy can pass.",
+            "Rotated host keys require controlled config update."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-2",
+          "title": "Remote Deployment Mutates Working Tree And Staging Lacks Post-Checkout SHA Verification",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            ".github/workflows/deploy-production.yml",
+            ".github/workflows/deploy-staging.yml",
+            "tests/unit/deploy-production-workflow.spec.ts",
+            "tests/unit/deploy-staging-workflow.spec.ts"
+          ],
+          "subsystemToPreserve": "Current compose services, remote checkout path, target SHA deploy flow, and staging/production health checks.",
+          "smallestSafeImplementationPath": [
+            "Stop copying docker-compose.production.yml over docker-compose.yml.",
+            "Call Docker Compose with -f docker-compose.production.yml for production.",
+            "Add staging post-checkout git rev-parse HEAD equality verification matching production.",
+            "Add static workflow checks for both behaviors."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Production workflow test fails if compose file copy returns.",
+            "Staging workflow test proves checked out SHA equals TARGET_SHA.",
+            "Deploy parity evidence records compose file mode and SHA verification."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts tests/unit/deploy-staging-workflow.spec.ts tests/unit/production-deployment-parity-evidence.spec.ts",
+            "pnpm run production-deployment-parity:evidence",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Remote checkout remains unmutated by compose file copying.",
+            "Staging and production both verify deployed SHA.",
+            "Existing deploy service names remain unchanged."
+          ],
+          "regressionRisks": [
+            "Remote Docker Compose commands may rely on the old copied file name.",
+            "Staging parity changes can expose existing remote drift."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-3",
+          "title": "Bureau Communication Attachment Hashes Base64 Text, Not Decoded Bytes",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            "endpoints/evidence/bureau-communication_POST.ts",
+            "helpers/reportBinaryUtils.tsx",
+            "tests/api/evidence-privacy-endpoint.spec.ts",
+            "tests/unit/bureau-communication-attachment-hash.spec.ts"
+          ],
+          "subsystemToPreserve": "Bureau communication ownership checks, attachment storage path, evidence event creation, response classification, obligation/packet updates, and storage metadata.",
+          "smallestSafeImplementationPath": [
+            "Replace string hash of fileDataBase64 with sha256HexOfBase64Payload.",
+            "Store byte digest and MIME/size metadata in attachment metadata.",
+            "Keep old metadata readable."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Equivalent base64 encodings and data URL formatting produce the same byte hash.",
+            "Different bytes produce different hashes.",
+            "Attachment storage still returns existing metadata shape."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/bureau-communication-attachment-hash.spec.ts tests/api/evidence-privacy-endpoint.spec.ts tests/unit/evidence-attachment-storage.spec.ts",
+            "pnpm run test:api",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Attachment evidence hash matches decoded bytes.",
+            "Existing bureau communication route behavior remains intact.",
+            "Tests prove no live external provider calls."
+          ],
+          "regressionRisks": [
+            "Existing records hashed as base64 text will not match new byte digest.",
+            "Downstream displays may assume old metadata key names."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-4",
+          "title": "Migration Governance Remains Partial And Runtime Schema Ensures Mask Drift",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            "docs/production-scale/evidence/latest-migration-governance.md",
+            "scripts/check-migrations.mjs",
+            "helpers/parserRulePromotionSchema.tsx",
+            "migrations/0000-runtime-schema-inventory.md",
+            "tests/unit/migration-checker.spec.ts",
+            "tests/unit/migration-gate.spec.ts"
+          ],
+          "subsystemToPreserve": "Current non-mutating migration checker, migration ledger convention, runtime ensure compatibility during cutover, and existing schema behavior.",
+          "smallestSafeImplementationPath": [
+            "Convert runtime ensure paths into reviewed additive migrations one subsystem per task.",
+            "Keep runtime ensure functions in compatibility mode until matching migration proof exists.",
+            "Enable hard migration gate only after warning-only paths are closed or explicitly waived with automated evidence."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Checker identifies converted ensure path as migration-backed.",
+            "Migration gate fails when unknown runtime schema mutation is present.",
+            "Runtime ensure compatibility remains no-op or idempotent after migration."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts tests/unit/migration-gate.spec.ts",
+            "pnpm run check:migrations",
+            "pnpm run migrations:evidence",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Each converted schema path has a reviewed ledger entry and automated proof.",
+            "Hard gate is not enabled until automated evidence supports it.",
+            "Schema behavior is unchanged except for reviewed additive migrations."
+          ],
+          "regressionRisks": [
+            "Duplicating runtime ensure DDL and migrations can cause drift.",
+            "A hard gate enabled too early can block deploys."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-5",
+          "title": "Evidence Hash Chain Semantics Are Inconsistent Across Packet And General Evidence Paths",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            "helpers/disputePacketService.ts",
+            "endpoints/evidence/create_POST.ts",
+            "helpers/hashChain.tsx",
+            "helpers/evidenceEventLedger.ts",
+            "tests/unit/dispute-packet-evidence-location.spec.ts",
+            "tests/unit/evidence-event-ledger.spec.ts"
+          ],
+          "subsystemToPreserve": "Packet generation, packet evidence event content, packet readiness, evidence list behavior, and hash-chain verification API.",
+          "smallestSafeImplementationPath": [
+            "Route packet-generated evidence and general evidence through the same append-only ledger helper.",
+            "Keep event payloads compatible while standardizing previousHash and currentHash.",
+            "Add correction/retraction event types instead of direct mutation."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Packet generation event chains from the same helper as general evidence.",
+            "Mixed packet/general evidence sequence verifies with verifyChain.",
+            "Existing packet evidence details remain present."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-event-ledger.spec.ts tests/unit/dispute-packet-evidence-location.spec.ts tests/unit/dispute-packet-template.spec.ts",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "All normal evidence producers use one append-only chain path.",
+            "Packet evidence is still generated and visible.",
+            "Hash-chain proof is automated."
+          ],
+          "regressionRisks": [
+            "Packet service may run inside broader transactions and need helper transaction injection.",
+            "Existing generated evidence snapshots may need intentional updates."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-6",
+          "title": "Operational Evidence Is Stale Or Explicitly Non-Certifying In Multiple Places",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            "docs/production-scale/evidence/latest-production-promotion-pack.md",
+            "docs/production-scale/evidence/latest-production-promotion-pack.json",
+            "scripts/production-promotion-pack.mjs",
+            "scripts/operator-dashboard.ts",
+            "tests/unit/production-promotion-pack.spec.ts",
+            "tests/unit/operator-regression-dashboard.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing production-scale evidence framework, blocker registry, promotion-pack command, dashboard result categories, and no-production-mutation safety boundary.",
+          "smallestSafeImplementationPath": [
+            "Add current HEAD, target environment, evidence freshness timestamp, queue liveness status, and CERTIFYING output.",
+            "Fail promotion evidence when generated evidence is stale relative to target SHA.",
+            "Keep simulated, staging-only, and human-required proof categories distinct."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Promotion pack rejects stale evidence SHA.",
+            "Pack emits CERTIFYING:false when unresolved, simulated-only, stale, or human-required proof remains.",
+            "Queue liveness failure prevents certification."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts tests/unit/operator-regression-dashboard.spec.ts tests/unit/production-scale-blocker-evidence.spec.ts",
+            "pnpm run production-scale:promotion-pack",
+            "pnpm run production-scale:evidence",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Freshness and certification state are machine-readable.",
+            "Stale docs cannot be mistaken for current certification.",
+            "No production mutation or live provider calls occur."
+          ],
+          "regressionRisks": [
+            "Existing evidence files may become intentionally failing until regenerated.",
+            "Stakeholder docs may need updated references to new fields."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-7",
+          "title": "Pull Request Regression Guardrail Is Too Narrow For A Compliance-Critical Platform",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            ".github/workflows/pr-regression-guardrails.yml",
+            ".github/workflows/pr-production-risk-guardrails.yml",
+            "tests/unit/production-readiness-gate.spec.ts",
+            "tests/contracts/route-auth-classification.spec.ts",
+            "tests/unit/pr-regression-workflow.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing fast golden-path PR guard and current package scripts.",
+          "smallestSafeImplementationPath": [
+            "Add a separate required risk workflow for contracts, API tests, deterministic ingestion, migration governance, packet PDF cache proof, and static workflow checks.",
+            "Keep long soak or measured load runs scheduled/pre-promotion if too expensive for every PR.",
+            "Avoid adding secrets or live provider calls."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Static workflow test proves required commands are present.",
+            "Static workflow test proves no production mutation or live provider call commands are added.",
+            "Existing route-auth contract suite remains referenced."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/pr-regression-workflow.spec.ts tests/contracts/route-auth-classification.spec.ts tests/contracts/route-endpoint-surface.spec.ts",
+            "pnpm run test:contracts",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "PR guardrails cover more than the happy path.",
+            "Heavy checks are placed in the appropriate PR or pre-promotion lane.",
+            "Static tests lock workflow intent."
+          ],
+          "regressionRisks": [
+            "CI runtime may increase.",
+            "Required workflow naming changes can affect branch protection outside the repo."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-8",
+          "title": "Admin Correction Finalization Performs Multi-Step Truth Changes Without A Single Transaction",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            "helpers/violationCorrectionManager.tsx",
+            "tests/api/admin-violation-correction-endpoint.spec.ts",
+            "tests/unit/violation-correction-deterministic-truth.spec.ts",
+            "tests/unit/violation-correction-artifact-scope.spec.ts",
+            "tests/unit/violation-correction-finalization-transaction.spec.ts"
+          ],
+          "subsystemToPreserve": "Correction validation requirements, regulation reference checks, training example payload shape, correction detail response shape, and admin-only workflow.",
+          "smallestSafeImplementationPath": [
+            "Wrap finalization status update, training upsert, and audit metadata writes in one transaction where possible.",
+            "If training generation must remain asynchronous, write explicit pending/degraded state before completion.",
+            "Do not change canonical violation conclusions without test evidence and audit trail."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Failure after status update rolls back finalization.",
+            "Training upsert failure leaves correction non-final or degraded, not silently complete.",
+            "Existing successful finalization detail remains compatible."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/violation-correction-finalization-transaction.spec.ts tests/unit/violation-correction-deterministic-truth.spec.ts tests/unit/violation-correction-artifact-scope.spec.ts tests/api/admin-violation-correction-endpoint.spec.ts",
+            "pnpm run test:violation-corrections",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Finalization truth changes are atomic or visibly degraded.",
+            "Existing admin correction flows still pass.",
+            "No silent canonical truth change occurs."
+          ],
+          "regressionRisks": [
+            "Current helper functions may rely on global db and need transaction-aware injection.",
+            "Training upsert compatibility with existing rows must be preserved."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P2-9",
+          "title": "Upload UI Communicates Queue State, But Backend Liveness Is Not Guaranteed",
+          "severity": "P2 Medium",
+          "existingFilesToPatch": [
+            "pages/upload.tsx",
+            "endpoints/ingest/process_POST.ts",
+            "helpers/ingestProcessingQueueService.ts",
+            "tests/unit/frontend-production-readiness-ux.spec.ts",
+            "tests/unit/upload-processing-status-ui.spec.tsx",
+            "tests/api/report-ingest-lifecycle-endpoint.spec.ts"
+          ],
+          "subsystemToPreserve": "Current upload UI flow, server upload limits, queued/running/retry/dead-letter status language, and consumer-safe wording.",
+          "smallestSafeImplementationPath": [
+            "Add backend worker liveness and oldest queued age to status payloads.",
+            "Display user-safe remediation/fail-closed language when no worker heartbeat exists.",
+            "Avoid legal conclusions or technical jargon in consumer-facing copy.",
+            "Keep validation automated through React/Vitest tests."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "UI renders fail-closed support/remediation state when worker liveness is absent.",
+            "UI does not tell users to wait indefinitely when oldest queued age exceeds threshold.",
+            "Normal queued/running/complete states remain unchanged."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/frontend-production-readiness-ux.spec.ts tests/unit/upload-processing-status-ui.spec.tsx tests/api/report-ingest-lifecycle-endpoint.spec.ts",
+            "pnpm run test:golden-path",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "User-facing upload state reflects backend worker liveness.",
+            "Copy stays consumer-safe and non-legal-conclusive.",
+            "Automated UI tests cover all new states."
+          ],
+          "regressionRisks": [
+            "Extra status fields must remain backward-compatible.",
+            "Fail-closed copy can increase support contacts if thresholds are too aggressive."
+          ],
+          "certifying": false
+        }
+      ]
+    },
+    {
+      "key": "P3",
+      "title": "P3 performance/scale improvements",
+      "findings": [
+        {
+          "id": "P3-1",
+          "title": "Frontend Bundle Size Is Large And Not A Hard Gate",
+          "severity": "P3 Low",
+          "existingFilesToPatch": [
+            "package.json",
+            "vite.config.ts",
+            "scripts/runtime-size-report.mjs",
+            "docs/production-scale/runtime-size-threshold-policy.json",
+            "tests/unit/runtime-size-report-script.spec.ts",
+            "tests/unit/runtime-size-policy-acceptance.spec.ts"
+          ],
+          "subsystemToPreserve": "Current Vite build, route behavior, runtime-size reporting, and warning-only policy unless a later audited task enables a hard gate.",
+          "smallestSafeImplementationPath": [
+            "Add or refine bundle reporting for admin/parser/PDF-heavy chunks.",
+            "Introduce route-level code splitting incrementally without changing routing semantics.",
+            "Keep thresholds warning-only until automated runtime evidence justifies a hard gate."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Runtime-size report captures chunk names and sizes.",
+            "Policy reports warning-only status as non-certifying.",
+            "Build succeeds after code splitting."
+          ],
+          "commandsToRun": [
+            "pnpm run build",
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts tests/unit/runtime-size-policy-acceptance.spec.ts",
+            "pnpm run report:runtime-size",
+            "pnpm run check:runtime-size",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Bundle risk is measured with current evidence.",
+            "Any splitting is route-compatible and covered by build/tests.",
+            "Performance claim remains non-certifying until hard gate evidence exists."
+          ],
+          "regressionRisks": [
+            "Lazy loading can break admin/parser/PDF routes.",
+            "Chunking can hide rather than reduce total shipped code."
+          ],
+          "certifying": false
+        },
+        {
+          "id": "P3-2",
+          "title": "Packet List Query Uses Client-Side Filtering For Ownership/Organization Context",
+          "severity": "P3 Low",
+          "existingFilesToPatch": [
+            "helpers/packetQueries.tsx",
+            "endpoints/packet/list_GET.ts",
+            "endpoints/packet/list_GET.schema.ts",
+            "tests/api/packet-lifecycle-endpoint.spec.ts",
+            "tests/unit/packet-query-scope.spec.ts"
+          ],
+          "subsystemToPreserve": "Existing packet ownership checks, packet list response shape, pagination behavior, and client-side defensive filtering as display protection only.",
+          "smallestSafeImplementationPath": [
+            "Prove packet list APIs enforce user/org scope server-side.",
+            "Add or tighten server-side pagination while retaining current client filtering as a secondary guard.",
+            "Avoid changing packet generation, packet PDF, or evidence behavior."
+          ],
+          "automatedSimulationTestsToAdd": [
+            "Non-owner cannot receive another user's packet in list results.",
+            "Organization-scoped listing returns only authorized packets.",
+            "Client filtering remains present but is not the authorization boundary."
+          ],
+          "commandsToRun": [
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-query-scope.spec.ts tests/api/packet-lifecycle-endpoint.spec.ts tests/api/support-role-privacy-matrix.spec.ts",
+            "pnpm run test:api",
+            "git diff --check"
+          ],
+          "doneCriteria": [
+            "Packet list scope is enforced server-side with tests.",
+            "Client filtering remains defensive and documented.",
+            "Packet list performance does not overfetch beyond configured bounds."
+          ],
+          "regressionRisks": [
+            "Existing organization/admin list workflows may rely on broader query behavior.",
+            "Pagination changes can affect UI expectations."
+          ],
+          "certifying": false
+        }
+      ]
+    }
+  ],
+  "implementationOrder": [
+    "Close P0 evidence ledger and artifact durability blockers first.",
+    "Close P1 request-bound ingest, queue liveness, persistence atomicity, compliance atomicity, parser gate, packet cache-miss, and rollback/deploy blockers before any broader production claim.",
+    "Close P2 governance and auditability gaps with static workflow tests and machine-readable evidence.",
+    "Treat P3 items as performance/scale hardening after P0/P1 blockers are automated."
+  ]
+}
