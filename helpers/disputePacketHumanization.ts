@@ -12,6 +12,9 @@ const PLACEHOLDER_VALUES = new Set([
   "unknown creditor",
   "unknown collector",
   "not known",
+  "expected: not known",
+  "expected value: not known",
+  "corrected expected value: not known",
   "not reported",
   "not provided",
   "not available",
@@ -36,7 +39,8 @@ function hasText(value: unknown): value is string {
 
 function isPlaceholder(value: unknown): boolean {
   if (value == null) return true;
-  return PLACEHOLDER_VALUES.has(String(value).trim().toLowerCase());
+  const normalized = String(value).trim().toLowerCase().replace(/\s+/g, " ");
+  return PLACEHOLDER_VALUES.has(normalized);
 }
 
 function fieldKeySegment(value: unknown): string {

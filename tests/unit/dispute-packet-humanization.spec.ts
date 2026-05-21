@@ -4,6 +4,7 @@ import {
   formatPacketAccountIdentifier,
   formatPacketConsumerEvidenceReference,
   formatPacketDisplayDate,
+  formatPacketDisplayValue,
   formatPacketExpectedValue,
   formatPacketFieldLabel,
   redactPacketSensitiveText,
@@ -20,10 +21,13 @@ describe("dispute packet humanization display helpers", () => {
     expect(formatPacketFieldLabel("reportedDate")).toBe("Date reported by the bureau");
     expect(formatPacketFieldLabel("dateReported")).toBe("Date reported by the bureau");
     expect(formatPacketFieldLabel("Date reported by the bureau")).toBe("Date reported by the bureau");
+    expect(formatPacketFieldLabel("accountNumber")).toBe("Account");
     expect(formatPacketFieldLabel("account_number")).toBe("Account");
+    expect(formatPacketFieldLabel("balance")).toBe("Balance reported");
     expect(formatPacketFieldLabel("currentBalance")).toBe("Balance reported");
     expect(formatPacketFieldLabel("Balance reported")).toBe("Balance reported");
     expect(formatPacketFieldLabel("creditorName")).toBe("Company reporting the account");
+    expect(formatPacketFieldLabel("collector_company_name")).toBe("Company reporting the account");
     expect(formatPacketFieldLabel("customInternalCamelKey")).toBe("Custom Internal Camel Key");
   });
 
@@ -38,12 +42,17 @@ describe("dispute packet humanization display helpers", () => {
     expect(formatPacketAccountIdentifier("reau")).toBe("Account identifier unavailable");
     expect(formatPacketAccountIdentifier(null)).toBe("Account number not provided on report");
     expect(formatPacketAccountIdentifier("not reported")).toBe("Account number not provided on report");
+    expect(formatPacketDisplayValue("accountNumber", null)).toBe("Account number not provided on report");
   });
 
   it("does not emit Expected: Not known when no reliable corrected value exists", () => {
     const display = formatPacketExpectedValue("balance", "Not known");
     expect(display).toBe(PACKET_REQUESTED_RESULT_FALLBACK);
     expect(display).not.toMatch(/Expected:\s*Not known|Not known/i);
+
+    const prefixedDisplay = formatPacketExpectedValue("balance", "Expected: Not known");
+    expect(prefixedDisplay).toBe(PACKET_REQUESTED_RESULT_FALLBACK);
+    expect(prefixedDisplay).not.toMatch(/Expected:\s*Not known|Not known/i);
   });
 
   it("returns consumer-safe evidence references without raw internal IDs", () => {
