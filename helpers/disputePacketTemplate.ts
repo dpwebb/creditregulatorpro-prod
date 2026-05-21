@@ -1,6 +1,7 @@
 import { sanitizeComplianceNeutralText } from "./violationCorrectionValidation";
 import type { EvidenceLocationSummary } from "./evidenceLocationIndex";
 import {
+  PACKET_REQUESTED_RESULT_FALLBACK,
   formatPacketAccountIdentifier,
   formatPacketConsumerEvidenceReference,
   formatPacketDisplayDateOrNull,
@@ -11,6 +12,8 @@ import {
 } from "./disputePacketHumanization";
 
 export const DISPUTE_PACKET_VERSION = "simple-dispute-packet-v1" as const;
+export const DISPUTE_PACKET_CONSUMER_SUBJECT =
+  "Request to investigate and correct credit report information";
 
 export const DISPUTE_PACKET_TYPES = [
   "credit_bureau",
@@ -166,6 +169,36 @@ function safeFieldValue(fieldName: string | null | undefined, value: unknown, ac
   return formatPacketDisplayValue(fieldName, value, accountNumber);
 }
 
+function safeAccountDisplay(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (/^Account number not provided on report$/i.test(raw)) return "Account number not provided on report";
+  if (/^Account identifier unavailable$/i.test(raw)) return "Account identifier unavailable";
+  return maskAccountNumber(raw);
+}
+
+function safeLetterFieldLabel(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "Account information";
+  if (
+    /[_:./-]/.test(raw) ||
+    /[a-z][A-Z]/.test(raw) ||
+    /artifact|tradeline|reference|rule\s*id/i.test(raw)
+  ) {
+    return formatPacketFieldLabel(raw);
+  }
+  return redactSensitiveText(raw);
+}
+
+function hasReliableExpectedValue(value: unknown): value is string {
+  const raw = String(value ?? "").trim();
+  const normalized = raw.toLowerCase();
+  return Boolean(raw) &&
+    normalized !== PACKET_REQUESTED_RESULT_FALLBACK.toLowerCase() &&
+    normalized !== "information not provided on report" &&
+    normalized !== "account number not provided on report" &&
+    normalized !== "account identifier unavailable";
+}
+
 export function actionForIssue(issueType: string | null | undefined, packetType: DisputePacketType): PacketRequestedAction {
   const normalized = String(issueType ?? "").toUpperCase();
 
@@ -200,20 +233,20 @@ export function actionForIssue(issueType: string | null | undefined, packetType:
 function buildItemExplanation(item: SimpleDisputedItemInput, packetType: DisputePacketType): string {
   const neutralExplanation = sanitizeComplianceNeutralText(item.explanation) ?? null;
   const sourceName = hasText(item.sourceFurnisherName) ? item.sourceFurnisherName.trim() : null;
+  const explanationPrefix = neutralExplanation
+    ? `${redactSensitiveText(neutralExplanation, item.accountNumber)} `
+    : "";
+  const sourceSentence = packetType === "credit_bureau" && sourceName
+    ? `The company identified in the report is ${redactSensitiveText(sourceName)}. `
+    : "";
+  const verificationRequest =
+    "I am asking you to verify whether this information is accurate, complete, and supported by the records used to report this account.";
 
-  if (neutralExplanation) {
-    const redacted = redactSensitiveText(neutralExplanation, item.accountNumber);
-    if (packetType === "credit_bureau" && sourceName) {
-      return `${redacted} The disputed information appears to have been supplied by ${redactSensitiveText(sourceName)}. I am asking the Credit Bureau to investigate, verify, and correct or remove this information if it cannot be substantiated.`;
-    }
-    return redacted;
+  if (packetType === "collection_agency") {
+    return `${explanationPrefix}${verificationRequest} Please provide documentation showing your authority to collect or report this account, including the original creditor, balance claimed, account dates, and supporting records. If the information cannot be supported, please correct it or remove it from my credit report.`;
   }
 
-  if (packetType === "credit_bureau" && sourceName) {
-    return `The disputed information appears to have been supplied by ${redactSensitiveText(sourceName)}. I am asking the Credit Bureau to investigate, verify, and correct or remove this information if it cannot be substantiated.`;
-  }
-
-  return "This item needs review because the reported information may be incomplete, inconsistent, or unsupported by the available report data.";
+  return `${explanationPrefix}${sourceSentence}${verificationRequest} Please investigate this item with the company that supplied the information and provide the basis for any information you continue to report. If the information cannot be verified, please correct it or remove it from my credit report.`;
 }
 
 function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: DisputePacketType): SimpleDisputedItem {
@@ -251,19 +284,16 @@ function normalizeDisputedItem(item: SimpleDisputedItemInput, packetType: Disput
 }
 
 function buildOpening(packetType: DisputePacketType): string {
-  if (packetType === "collection_agency") {
-    return "I am asking for a clear review of the collection account information listed below. Please confirm the collection details and correct any information that cannot be supported.";
-  }
-
-  return "I am disputing the items listed below on my credit report. Please investigate, verify the basis for the reporting, and correct or remove any information that cannot be substantiated.";
+  void packetType;
+  return "I am writing to dispute the following information on my credit report.";
 }
 
 function buildRequestedActionSummary(packetType: DisputePacketType): string {
   if (packetType === "collection_agency") {
-    return "Please clarify the collection authority and account details, and correct or remove any information that cannot be supported.";
+    return "Please provide documentation showing your authority to collect or report this account, including the original creditor, balance claimed, account dates, and supporting records, and correct or remove any information that cannot be substantiated.";
   }
 
-  return "Please investigate the disputed information, verify the basis for reporting, and correct or remove inaccurate or unsupported information.";
+  return "Please investigate this item with the company that supplied the information, provide the basis for any information you continue to report, and correct or remove any information that cannot be substantiated.";
 }
 
 function buildAttachmentChecklist(items: SimpleDisputedItem[]): string[] {
@@ -278,6 +308,76 @@ function buildAttachmentChecklist(items: SimpleDisputedItem[]): string[] {
   }
 
   return checklist;
+}
+
+function pushNonEmpty(lines: string[], ...values: Array<string | null | undefined>): void {
+  for (const value of values) {
+    if (value && value.trim()) {
+      lines.push(redactSensitiveText(value));
+    }
+  }
+}
+
+function buildItemLetterBlock(item: SimpleDisputedItem, packet: SimpleDisputePacketContent): string[] {
+  const fieldLabel = safeLetterFieldLabel(item.disputedField);
+  const accountDisplay = safeAccountDisplay(item.maskedAccountNumber);
+  const reportedValue = formatPacketDisplayValue(fieldLabel, item.reportedValue, item.maskedAccountNumber);
+  const requestedResult = hasReliableExpectedValue(item.correctedExpectedValue)
+    ? `Expected value: ${redactSensitiveText(item.correctedExpectedValue)}`
+    : PACKET_REQUESTED_RESULT_FALLBACK;
+
+  return [
+    "Disputed Account",
+    `Company reporting the account: ${redactSensitiveText(item.creditorCollectorName)}`,
+    `Account: ${accountDisplay}`,
+    `Information disputed: ${fieldLabel}`,
+    `Reported value: ${reportedValue}`,
+    requestedResult,
+    "",
+    "Reason for dispute:",
+    redactSensitiveText(item.explanation, item.maskedAccountNumber),
+    "",
+    "Requested action:",
+    redactSensitiveText(packet.requestedActionSummary),
+  ];
+}
+
+export function buildConsumerDisputePacketLetterText(packet: SimpleDisputePacketContent): string {
+  const lines: string[] = [];
+
+  pushNonEmpty(lines, packet.dateGenerated);
+  lines.push("");
+  pushNonEmpty(lines, packet.recipient.name, ...packet.recipient.address);
+  lines.push("");
+  lines.push(`Re: ${DISPUTE_PACKET_CONSUMER_SUBJECT}`);
+  lines.push("");
+  lines.push("Consumer:");
+  pushNonEmpty(
+    lines,
+    packet.consumer.name,
+    ...packet.consumer.address,
+    packet.consumer.phone ? `Phone: ${packet.consumer.phone}` : null,
+    packet.consumer.email ? `Email: ${packet.consumer.email}` : null,
+  );
+  lines.push("");
+  lines.push("Credit report reviewed:");
+  pushNonEmpty(lines, packet.reportType);
+  lines.push(`Report date: ${packet.reportDate ?? "Information not provided on report"}`);
+  lines.push("");
+  lines.push(redactSensitiveText(packet.openingParagraph) || "I am writing to dispute the following information on my credit report.");
+  lines.push("");
+
+  for (const item of packet.disputedItems) {
+    lines.push(...buildItemLetterBlock(item, packet));
+    lines.push("");
+  }
+
+  lines.push("Sincerely,");
+  lines.push("");
+  lines.push("________________________________");
+  pushNonEmpty(lines, packet.consumer.name);
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export function buildSimpleDisputePacketContent(input: BuildSimpleDisputePacketInput): SimpleDisputePacketContent {
@@ -322,7 +422,7 @@ export function buildSimpleDisputePacketContent(input: BuildSimpleDisputePacketI
     requestedActionSummary: buildRequestedActionSummary(input.packetType),
     evidenceList,
     attachmentChecklist: buildAttachmentChecklist(disputedItems),
-    signatureLine: "Signature: ________________________________    Date: __________________",
+    signatureLine: `Sincerely,\n\n________________________________\n${redactSensitiveText(input.consumer.name)}`,
     metadata: {
       selectedIssueIds,
       reportArtifactIds,

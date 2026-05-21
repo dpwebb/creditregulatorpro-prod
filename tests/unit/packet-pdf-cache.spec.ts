@@ -91,6 +91,7 @@ function packetContent(note = "Synthetic compact evidence reference.") {
         reportedValue: "$200",
         expectedValue: "$100",
         issueType: "BALANCE_CALCULATION_VIOLATION",
+        explanation: note,
         evidenceReference: note,
       },
     ],

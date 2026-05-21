@@ -6,6 +6,7 @@ import {
   formatPacketDisplayDate,
   formatPacketExpectedValue,
   formatPacketFieldLabel,
+  redactPacketSensitiveText,
   PACKET_REQUESTED_RESULT_FALLBACK,
 } from "../../helpers/disputePacketHumanization";
 
@@ -49,6 +50,13 @@ describe("dispute packet humanization display helpers", () => {
 
     expect(display).toBe("Relevant report section for Balance reported on page 2.");
     expect(display).not.toMatch(/tradeline|artifact|field:|reportArtifactId|tradelineId|#7|#20/i);
+  });
+
+  it("redacts standalone raw reference IDs from consumer text", () => {
+    const display = redactPacketSensitiveText("Review under PIPEDA_4_5 and BALANCE_CALCULATION_VIOLATION.");
+
+    expect(display).toContain("the applicable reporting requirements");
+    expect(display).not.toMatch(/PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION/);
   });
 
   it("does not treat a field label alone as linked evidence", () => {

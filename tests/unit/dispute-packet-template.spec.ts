@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildConsumerDisputePacketLetterText,
   buildSimpleDisputePacketContent,
   maskAccountNumber,
 } from "../../helpers/disputePacketTemplate";
@@ -39,6 +40,7 @@ describe("simple dispute packet template", () => {
     });
 
     const serialized = JSON.stringify(packet);
+    const letterBody = buildConsumerDisputePacketLetterText(packet);
 
     expect(packet.title).toBe("Credit Bureau Dispute Packet");
     expect(packet.disputedItems[0].maskedAccountNumber).toBe("Account ending 9012");
@@ -47,8 +49,18 @@ describe("simple dispute packet template", () => {
     expect(packet.disputedItems[0].evidenceReference).toBe("Relevant report section for Balance reported on page 2.");
     expect(packet.disputedItems[0].evidenceReference).not.toMatch(/artifact|field:|#7/i);
     expect(packet.metadata.reportArtifactIds).toEqual([7]);
-    expect(packet.disputedItems[0].explanation).toContain("supplied by Sample Bank");
+    expect(packet.disputedItems[0].explanation).toContain("company identified in the report is Sample Bank");
     expect(packet.disputedItems[0].explanation).not.toMatch(/contact the furnisher/i);
+    expect(letterBody).toContain("Re: Request to investigate and correct credit report information");
+    expect(letterBody).toContain("Disputed Account");
+    expect(letterBody).toContain("Company reporting the account: Sample Bank");
+    expect(letterBody).toContain("Account: Account ending 9012");
+    expect(letterBody).toContain("Information disputed: Balance reported");
+    expect(letterBody).toContain("Reported value: $900");
+    expect(letterBody).toContain("Expected value: $0");
+    expect(letterBody).toContain("Please investigate this item with the company that supplied the information");
+    expect(letterBody).toContain("Sincerely,");
+    expect(letterBody).not.toMatch(/tradeline|report artifact|artifact|source report #|field:|PIPEDA_4_5|Expected:\s*Not known/i);
     expect(serialized).not.toContain("123456789012");
     expect(serialized).not.toContain("123 456 789");
     expect(serialized).toContain("SIN: [masked]");
@@ -83,7 +95,10 @@ describe("simple dispute packet template", () => {
 
     expect(packet.title).toBe("Collection Agency Clarification/Dispute Packet");
     expect(packet.disputedItems[0].requestedAction).toBe("clarify collection authority/details");
-    expect(packet.openingParagraph).toMatch(/clear review/i);
+    expect(packet.openingParagraph).toMatch(/credit report/i);
+    expect(buildConsumerDisputePacketLetterText(packet)).toContain(
+      "Please provide documentation showing your authority to collect or report this account",
+    );
   });
 
   it("marks unsupported items for manual review", () => {
@@ -122,5 +137,52 @@ describe("simple dispute packet template", () => {
     expect(maskAccountNumber("")).toBe("Account number not provided on report");
     expect(maskAccountNumber("not reported")).toBe("Account number not provided on report");
     expect(maskAccountNumber("reau")).toBe("Account identifier unavailable");
+  });
+
+  it("builds consumer-facing letter text without internal identifiers", () => {
+    const packet = buildSimpleDisputePacketContent({
+      packetType: "credit_bureau",
+      reportType: "TransUnion report artifact #77",
+      reportDate: "2012-08-21T00:00:00.000Z",
+      recipient: {
+        type: "credit_bureau",
+        name: "TransUnion Canada",
+        address: ["Consumer Relations"],
+      },
+      consumer: {
+        name: "Test Consumer",
+        address: ["1 Main St"],
+        email: "test@example.com",
+      },
+      disputedItems: [
+        {
+          issueId: 111,
+          tradelineId: 222,
+          creditorCollectorName: "Sample Bank",
+          accountNumber: "reau",
+          disputedField: "lastReportedDate",
+          reportedValue: "2012-08-21T00:00:00.000Z",
+          expectedValue: "Not known",
+          issueType: "BALANCE_CALCULATION_VIOLATION",
+          explanation: "PIPEDA_4_5 source report #77 field: lastReportedDate tradelineId: 222",
+          evidenceReference: "reportArtifactId: 77; tradelineId: 222; field: lastReportedDate; page 4",
+        },
+      ],
+      reportArtifactIds: [77],
+      generatedByUserId: 333,
+    });
+
+    const letterBody = buildConsumerDisputePacketLetterText(packet);
+
+    expect(letterBody).toContain("Report date: Aug 21, 2012");
+    expect(letterBody).toContain("Information disputed: Date last reported");
+    expect(letterBody).toContain("Reported value: Aug 21, 2012");
+    expect(letterBody).toContain("Account: Account identifier unavailable");
+    expect(letterBody).toContain("Requested result: Verify the correct information");
+    expect(letterBody).not.toMatch(/account ending reau/i);
+    expect(letterBody).not.toMatch(/tradeline|report artifact|artifact|source report #|field:|PIPEDA_4_5|BALANCE_CALCULATION_VIOLATION|2012-08-21T00:00:00\.000Z|lastReportedDate|Expected:\s*Not known/i);
+    expect(packet.metadata.reportArtifactIds).toEqual([77]);
+    expect(packet.metadata.selectedIssueIds).toEqual([111]);
+    expect(packet.disputedItems[0].tradelineId).toBe(222);
   });
 });

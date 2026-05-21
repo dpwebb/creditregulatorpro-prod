@@ -202,7 +202,9 @@ export function redactPacketSensitiveText(value: unknown, accountNumber?: string
     .replace(/\b(?:source\s+report|report\s+artifact|artifact)\s*(?:id|#)?\s*[:#]?\s*[A-Za-z0-9._-]+\b/gi, "source report")
     .replace(/\btradeline\s*(?:id|#)?\s*[:#]?\s*[A-Za-z0-9._-]+\b/gi, "account record")
     .replace(/\b(?:sourceReportArtifactId|reportArtifactId|tradelineId|evidenceId|canonicalEvidenceId|ruleId|referenceId)\s*[:#]?\s*[A-Za-z0-9._-]+\b/gi, "supporting reference")
-    .replace(/\bfield\s*:\s*/gi, "reported item ")
+    .replace(/\b[A-Z][A-Z0-9]+(?:_[A-Z0-9]+)+\b/g, "the applicable reporting requirements")
+    .replace(/\b(?:lastReportedDate|Lastreporteddate|LasReportedDate|reportedDate|dateReported|accountNumber|currentBalance)\b/g, (match) => formatPacketFieldLabel(match))
+    .replace(/\bfield\s*:\s*[^;,.]+/gi, "reported item")
     .replace(/\s+/g, " ")
     .trim();
 }
