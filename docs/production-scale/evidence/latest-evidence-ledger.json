@@ -1,0 +1,82 @@
+{
+  "reportName": "evidence-ledger-remediation-evidence",
+  "generatedAt": "2026-05-21T05:20:12.2044194Z",
+  "branch": "staging",
+  "currentHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
+  "scope": [
+    "P0-1 Evidence ledger allows caller-supplied hashes, updates, and deletes",
+    "P2-5 Evidence hash-chain semantics are inconsistent across packet and general evidence paths"
+  ],
+  "certifying": false,
+  "certificationStatement": "CERTIFYING:false",
+  "summary": {
+    "appendOnlyHelperAdded": true,
+    "callerSuppliedHashesAcceptedByCreateSchema": false,
+    "callerSuppliedHashesIgnoredAtRuntime": true,
+    "updateMutatesOriginalEvent": false,
+    "deleteDeletesOriginalEvent": false,
+    "packetGeneratedEvidenceUsesAppendOnlyHelper": true,
+    "liveExternalCalls": false,
+    "manualTestingRequired": false
+  },
+  "commands": [
+    {
+      "command": "git diff --check",
+      "result": "PASS",
+      "notes": "No whitespace errors. Git emitted CRLF working-copy warnings only."
+    },
+    {
+      "command": "pnpm exec vitest run tests/api tests/unit --runInBand",
+      "result": "FAIL",
+      "notes": "Vitest 4 rejected unknown option --runInBand; no tests ran under that exact command."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api tests/unit",
+      "result": "PASS",
+      "testFilesPassed": 185,
+      "testsPassed": 1401
+    },
+    {
+      "command": "pnpm run test:contracts",
+      "result": "PASS",
+      "testFilesPassed": 2,
+      "testsPassed": 14
+    },
+    {
+      "command": "pnpm run check",
+      "result": "PASS",
+      "notes": "Build, golden path, unit, deterministic ingestion, credit regression, tradeline internal, and violation correction checks passed."
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-event-ledger.spec.ts tests/api/evidence-privacy-endpoint.spec.ts",
+      "result": "PASS",
+      "testFilesPassed": 2,
+      "testsPassed": 28
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts",
+      "result": "PASS",
+      "testFilesPassed": 4,
+      "testsPassed": 17
+    },
+    {
+      "command": "pnpm exec tsc --noEmit --pretty false",
+      "result": "PASS"
+    }
+  ],
+  "automatedEvidenceCoverage": {
+    "createRejectsOrIgnoresCallerHashes": true,
+    "serverComputedHashesVerifyWithHashChainHelper": true,
+    "updateAppendsCorrectionWithoutMutatingOriginal": true,
+    "deleteAppendsRetractionWithoutDeletingOriginal": true,
+    "packetGeneratedEvidenceUsesSameAppendOnlySemantics": true,
+    "nonOwnerAccessDenied": true,
+    "tamperedSimulationFailsVerification": true,
+    "existingPacketGenerationTestsPass": true
+  },
+  "nonCertifyingReasons": [
+    "The exact requested --runInBand validation command is incompatible with the installed Vitest CLI.",
+    "This is local automated evidence only and does not certify live production historical evidence rows.",
+    "Other non-target evidence producers remain outside this bounded patch unless separately remediated."
+  ]
+}

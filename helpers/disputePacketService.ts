@@ -22,6 +22,7 @@ import {
   resolveEvidenceLocation,
   type EvidenceLocationSummary,
 } from "./evidenceLocationIndex";
+import { appendEvidenceEvent } from "./evidenceEventLedger";
 
 export interface DisputePacketRecipientInput {
   name?: string | null;
@@ -1446,26 +1447,14 @@ export async function createDisputePacketRecord(
       .values(buildDisputePacketFindingRows(preview, packet.id, packet.status ?? "generated", user.id, now))
       .execute();
 
-    const eventData = {
+    await appendEvidenceEvent({
       packetId: packet.id,
-      packetType,
-      selectedIssueIds: preview.packet.metadata.selectedIssueIds,
-      creditorObligationTestId: preview.linkedFindingId,
-      generatedAt: now.toISOString(),
-    };
-
-    await trx
-      .insertInto("evidenceEvent")
-      .values({
-        packetId: packet.id,
-        eventType: "PACKET_GENERATED",
-        description: `${preview.packet.title} generated from selected report issue(s).`,
-        previousHash: null,
-        currentHash: hashEvent(eventData),
-        at: now,
-        region: "CA",
-      })
-      .execute();
+      eventType: "PACKET_GENERATED",
+      description: `${preview.packet.title} generated from selected report issue(s).`,
+      organizationId: user.organizationId,
+      region: "CA",
+      at: now,
+    }, trx);
 
     await trx
       .insertInto("auditLog")

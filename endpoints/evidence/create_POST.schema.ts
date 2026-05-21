@@ -8,8 +8,6 @@ export const schema = z.object({
   eventType: z.string().min(1, "Event type is required"),
   description: z.string().min(1, "Description is required"),
   statuteVersionId: z.number().optional().nullable(),
-  previousHash: z.string().optional().nullable(),
-  currentHash: z.string().optional().nullable(),
 });
 
 export type InputType = z.infer<typeof schema>;

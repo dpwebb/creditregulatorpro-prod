@@ -8,6 +8,8 @@ import {
   EVIDENCE_ATTACHMENT_UPLOAD_MAX_BYTES,
   getUploadRequestBodyMaxBytes,
 } from "../../helpers/uploadPayloadValidation";
+import { buildEvidenceEventHashPayload } from "../../helpers/evidenceEventLedger";
+import { chain as hashChain } from "../../helpers/hashChain";
 
 type QueryResult = {
   execute?: unknown[];
@@ -404,13 +406,19 @@ describe("evidence privacy and ownership endpoints", () => {
   });
 
   it("creates evidence only for owned packets and denies non-owner create before writing state", async () => {
-    queueResults({ first: { id: 601, userId: 10 } }, { firstOrThrow: evidenceEvent() });
+    queueResults(
+      { first: { id: 601, userId: 10 } },
+      { first: { currentHash: "previous-synthetic-hash" } },
+      { firstOrThrow: evidenceEvent() },
+    );
 
     const response = await createEvidence(
       postRequest("/_api/evidence/create", {
         packetId: 601,
         eventType: "SYNTHETIC_EVIDENCE_EVENT",
         description: "Synthetic evidence record.",
+        previousHash: "caller-supplied-previous-hash",
+        currentHash: "caller-supplied-current-hash",
       }),
     );
 
@@ -423,7 +431,14 @@ describe("evidence privacy and ownership endpoints", () => {
       description: "Synthetic evidence record.",
       organizationId: 1000,
       region: "CA",
+      previousHash: "previous-synthetic-hash",
     });
+    const inserted = valuesFor("evidenceEvent")[0] as Record<string, unknown>;
+    expect(inserted.currentHash).not.toBe("caller-supplied-current-hash");
+    expect(inserted.previousHash).not.toBe("caller-supplied-previous-hash");
+    expect(inserted.currentHash).toBe(
+      hashChain(String(inserted.previousHash), buildEvidenceEventHashPayload(inserted as any)),
+    );
     expectNoSensitiveLeak(body);
 
     mocks.operations.length = 0;
@@ -484,11 +499,19 @@ describe("evidence privacy and ownership endpoints", () => {
     expect(mocks.db.transaction).not.toHaveBeenCalled();
   });
 
-  it("updates and deletes owned evidence without audit-log overexposure under the current contract", async () => {
+  it("appends correction and retraction events for owned evidence without mutating the original rows", async () => {
     queueResults(
-      { first: { id: 501, packetId: 601 } },
+      { first: evidenceEvent({ id: 501, packetId: 601, description: "Original synthetic evidence." }) },
       { first: { id: 601, userId: 10 } },
-      { firstOrThrow: evidenceEvent({ description: "Synthetic updated evidence." }) },
+      { first: { currentHash: "previous-correction-hash" } },
+      {
+        firstOrThrow: evidenceEvent({
+          id: 777,
+          eventType: "EVIDENCE_EVENT_CORRECTED",
+          description: "Correction for evidence event #501: description: Synthetic updated evidence.",
+          previousHash: "previous-correction-hash",
+        }),
+      },
     );
 
     const updateResponse = await updateEvidence(
@@ -500,20 +523,64 @@ describe("evidence privacy and ownership endpoints", () => {
 
     expect(updateResponse.status).toBe(200);
     await expect(updateResponse.json()).resolves.toMatchObject({
-      event: expect.objectContaining({ id: 501, description: "Synthetic updated evidence." }),
+      appendOnly: true,
+      originalEventId: 501,
+      event: expect.objectContaining({
+        id: 777,
+        eventType: "EVIDENCE_EVENT_CORRECTED",
+        packetId: 601,
+      }),
     });
-    expect(setFor("evidenceEvent")[0]).toEqual({ description: "Synthetic updated evidence." });
+    expect(mocks.db.updateTable).not.toHaveBeenCalled();
+    const correction = valuesFor("evidenceEvent")[0] as Record<string, unknown>;
+    expect(correction).toMatchObject({
+      packetId: 601,
+      eventType: "EVIDENCE_EVENT_CORRECTED",
+      previousHash: "previous-correction-hash",
+    });
+    expect(correction.description).toContain("Synthetic updated evidence.");
+    expect(correction.currentHash).toBe(
+      hashChain(String(correction.previousHash), buildEvidenceEventHashPayload(correction as any)),
+    );
     expect(mocks.logAudit).not.toHaveBeenCalled();
 
     mocks.operations.length = 0;
-    queueResults({ first: { id: 501, packetId: 601 } }, { first: { id: 601, userId: 10 } }, {}, {});
+    queueResults(
+      { first: evidenceEvent({ id: 501, packetId: 601, description: "Original synthetic evidence." }) },
+      { first: { id: 601, userId: 10 } },
+      { first: { currentHash: "previous-retraction-hash" } },
+      {
+        firstOrThrow: evidenceEvent({
+          id: 778,
+          eventType: "EVIDENCE_EVENT_RETRACTED",
+          previousHash: "previous-retraction-hash",
+        }),
+      },
+    );
     const deleteResponse = await deleteEvidenceEvent(postRequest("/_api/evidence/delete", { id: 501 }));
 
     expect(deleteResponse.status).toBe(200);
-    await expect(deleteResponse.json()).resolves.toEqual({ success: true });
+    await expect(deleteResponse.json()).resolves.toMatchObject({
+      success: true,
+      appendOnly: true,
+      originalEventId: 501,
+      event: expect.objectContaining({
+        id: 778,
+        eventType: "EVIDENCE_EVENT_RETRACTED",
+        packetId: 601,
+      }),
+    });
     expect(mocks.db.transaction).toHaveBeenCalled();
-    expect(whereValues("evidenceEventId")).toContainEqual(["evidenceEventId", "=", 501]);
-    expect(whereValues("id")).toContainEqual(["id", "=", 501]);
+    expect(mocks.db.deleteFrom).not.toHaveBeenCalled();
+    const retraction = valuesFor("evidenceEvent")[0] as Record<string, unknown>;
+    expect(retraction).toMatchObject({
+      packetId: 601,
+      eventType: "EVIDENCE_EVENT_RETRACTED",
+      previousHash: "previous-retraction-hash",
+    });
+    expect(retraction.currentHash).toBe(
+      hashChain(String(retraction.previousHash), buildEvidenceEventHashPayload(retraction as any)),
+    );
     expect(mocks.logAudit).not.toHaveBeenCalled();
   });
 

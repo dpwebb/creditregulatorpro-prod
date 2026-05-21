@@ -2,6 +2,7 @@ import { schema, OutputType } from "./delete_POST.schema";
 
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { appendEvidenceEvent } from "../../helpers/evidenceEventLedger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 
 export async function handle(request: Request) {
@@ -14,7 +15,7 @@ export async function handle(request: Request) {
     // Fetch the evidence event to check ownership
     const evidenceEvent = await db
       .selectFrom("evidenceEvent")
-      .select(["id", "packetId"])
+      .selectAll()
       .where("id", "=", input.id)
       .executeTakeFirst();
 
@@ -44,22 +45,25 @@ export async function handle(request: Request) {
       }
     }
 
-    await db.transaction().execute(async (trx) => {
-      // Remove referencing rows in packet_compliance_audit first to satisfy FK constraint
-      await trx
-        .deleteFrom("packetComplianceAudit")
-        .where("evidenceEventId", "=", input.id)
-        .execute();
+    const result = await db.transaction().execute((trx) =>
+      appendEvidenceEvent({
+        packetId: evidenceEvent.packetId,
+        eventType: "EVIDENCE_EVENT_RETRACTED",
+        description: `Retraction for evidence event #${input.id}: original event remains in the append-only ledger.`,
+        statuteVersionId: evidenceEvent.statuteVersionId,
+        organizationId: user.organizationId,
+        region: evidenceEvent.region ?? "CA",
+      }, trx),
+    );
 
-      await trx
-        .deleteFrom("evidenceEvent")
-        .where("id", "=", input.id)
-        .execute();
-    });
+    console.log(`Evidence event retraction appended: originalId=${input.id}, retractionId=${result.id}, userId=${user.id}`);
 
-    console.log(`Evidence event deleted: id=${input.id}, userId=${user.id}`);
-
-    return new Response(JSON.stringify({ success: true } satisfies OutputType));
+    return new Response(JSON.stringify({
+      success: true,
+      event: result,
+      originalEventId: input.id,
+      appendOnly: true,
+    } satisfies OutputType));
   } catch (error) {
     console.error("evidence/delete_POST error:", error instanceof Error ? error.message : error);
     return handleEndpointError(error);

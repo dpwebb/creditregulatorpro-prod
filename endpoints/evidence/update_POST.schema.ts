@@ -15,6 +15,8 @@ export type InputType = z.infer<typeof schema>;
 
 export type OutputType = {
   event: Selectable<EvidenceEvent>;
+  originalEventId?: number;
+  appendOnly?: boolean;
 };
 
 export const postEvidenceUpdate = async (body: InputType, init?: RequestInit): Promise<OutputType> => {

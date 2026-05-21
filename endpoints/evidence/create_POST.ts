@@ -2,6 +2,7 @@ import { schema, OutputType } from "./create_POST.schema";
 
 import { db } from "../../helpers/db";
 import { handleEndpointError } from "../../helpers/endpointErrorHandler";
+import { appendEvidenceEvent } from "../../helpers/evidenceEventLedger";
 import { getServerUserSession } from "../../helpers/getServerUserSession";
 
 export async function handle(request: Request) {
@@ -28,21 +29,16 @@ export async function handle(request: Request) {
       }
     }
 
-    const result = await db
-      .insertInto("evidenceEvent")
-      .values({
-        packetId: input.packetId,
+    const result = await db.transaction().execute((trx) =>
+      appendEvidenceEvent({
+        packetId: input.packetId ?? null,
         eventType: input.eventType,
         description: input.description,
-        statuteVersionId: input.statuteVersionId,
-        previousHash: input.previousHash,
-        currentHash: input.currentHash,
+        statuteVersionId: input.statuteVersionId ?? null,
         organizationId: user.organizationId,
-        region: "CA", // Enforce CA region
-        at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+        region: "CA",
+      }, trx),
+    );
 
     console.log(`Evidence event created: id=${result.id}, packetId=${result.packetId}, userId=${user.id}`);
 

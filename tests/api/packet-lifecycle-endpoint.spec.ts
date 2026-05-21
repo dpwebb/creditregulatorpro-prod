@@ -6,6 +6,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import type { DB } from "../../helpers/schema";
 import type { User } from "../../helpers/User";
 import { ensureConsumerIdentificationSchema } from "../../helpers/consumerIdentification";
+import { buildEvidenceEventHashPayload } from "../../helpers/evidenceEventLedger";
+import { verifyChain } from "../../helpers/hashChain";
 import { buildSimpleDisputePacketContent } from "../../helpers/disputePacketTemplate";
 import { assertSafeLocalDatabaseUrl } from "../utils/localDbHarness";
 
@@ -701,6 +703,36 @@ describeIfLocalDb("packet lifecycle endpoints", () => {
     expect(persistedContent.disputedItems).toEqual(
       expect.arrayContaining([expect.objectContaining({ issueId: fixture.readyIssueId })]),
     );
+
+    const packetEvidenceEvents = await db
+      .selectFrom("evidenceEvent")
+      .select([
+        "id",
+        "packetId",
+        "eventType",
+        "description",
+        "statuteVersionId",
+        "organizationId",
+        "region",
+        "at",
+        "previousHash",
+        "currentHash",
+      ])
+      .where("packetId", "=", createdPacket.packetId)
+      .orderBy("id", "asc")
+      .execute();
+    const generatedEvidenceEvent = packetEvidenceEvents.find((event) => event.eventType === "PACKET_GENERATED");
+    expect(generatedEvidenceEvent).toMatchObject({
+      packetId: createdPacket.packetId,
+      eventType: "PACKET_GENERATED",
+      previousHash: expect.any(String),
+      currentHash: expect.any(String),
+    });
+    expect(verifyChain(packetEvidenceEvents.map((event) => ({
+      previousHash: event.previousHash,
+      currentHash: event.currentHash ?? "",
+      payload: buildEvidenceEventHashPayload(event),
+    }))).valid).toBe(true);
 
     const linkedRows = await db
       .selectFrom("disputePacketFindings")

@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { Hash } from "lucide-react";
 import { Button } from "./Button";
 import { Input } from "./Input";
 import { Textarea } from "./Textarea";
@@ -28,8 +27,6 @@ const createEventSchema = z.object({
   description: z.string().min(1, "Description is required"),
   packetId: z.number().nullable().optional(),
   statuteId: z.number().nullable().optional(),
-  previousHash: z.string().nullable().optional(),
-  currentHash: z.string().nullable().optional(),
 });
 
 type CreateEventFormValues = z.infer<typeof createEventSchema>;
@@ -51,8 +48,6 @@ export const EvidenceEventCreateDialog = ({
       description: "",
       packetId: null,
       statuteId: null,
-      previousHash: "",
-      currentHash: "",
     },
   });
 
@@ -64,8 +59,6 @@ export const EvidenceEventCreateDialog = ({
         packetId: values.packetId ?? undefined,
         // Mapping statuteId from form to statuteVersionId expected by the API
         statuteVersionId: values.statuteId ?? undefined,
-        previousHash: values.previousHash ?? undefined,
-        currentHash: values.currentHash ?? undefined,
       },
       {
         onSuccess: () => {
@@ -76,8 +69,6 @@ export const EvidenceEventCreateDialog = ({
             description: "",
             packetId: null,
             statuteId: null,
-            previousHash: "",
-            currentHash: "",
           });
         },
         onError: (err) => {
@@ -155,40 +146,6 @@ export const EvidenceEventCreateDialog = ({
                       form.setValues(prev => ({ ...prev, statuteId: val }));
                     }}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </div>
-
-            <div className={styles.formRow}>
-              <FormItem name="previousHash" className={styles.flex1}>
-                <FormLabel>Previous Hash (Optional)</FormLabel>
-                <FormControl>
-                  <div className={styles.inputWithIcon}>
-                    <Hash size={14} className={styles.inputIcon} />
-                    <Input 
-                      placeholder="SHA-256" 
-                      className={styles.hashInput}
-                      value={form.values.previousHash ?? ""}
-                      onChange={(e) => form.setValues(prev => ({ ...prev, previousHash: e.target.value }))}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-
-              <FormItem name="currentHash" className={styles.flex1}>
-                <FormLabel>Current Hash (Optional)</FormLabel>
-                <FormControl>
-                  <div className={styles.inputWithIcon}>
-                    <Hash size={14} className={styles.inputIcon} />
-                    <Input 
-                      placeholder="SHA-256" 
-                      className={styles.hashInput}
-                      value={form.values.currentHash ?? ""}
-                      onChange={(e) => form.setValues(prev => ({ ...prev, currentHash: e.target.value }))}
-                    />
-                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

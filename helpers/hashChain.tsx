@@ -27,7 +27,7 @@ export interface VerificationResult {
  * @param payload The data payload to include in the hash.
  * @returns The resulting hex string of the SHA256 hash.
  */
-export function chain(prev: string | undefined, payload: unknown): string {
+export function chain(prev: string | null | undefined, payload: unknown): string {
   const previousHash = prev || "GENESIS";
   const payloadString = JSON.stringify(payload);
   const dataToHash = previousHash + payloadString;
@@ -61,7 +61,7 @@ export function verifyChain(entries: HashChainEntry[]): VerificationResult {
     // Verify the hash of the current entry
     const prev = entry.previousHash ?? undefined;
     const expectedCurrentHash = chain(prev, entry.payload);
-    
+
     if (entry.currentHash !== expectedCurrentHash) {
       return {
         valid: false,
