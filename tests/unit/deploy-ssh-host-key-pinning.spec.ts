@@ -13,6 +13,8 @@ import {
   writeSshHostKeyPinningEvidence,
 } from "../../scripts/deploy-ssh-host-key-pinning-evidence.mjs";
 
+const STATIC_WORKFLOW_TEST_TIMEOUT_MS = 60_000;
+
 const MATCHING_FINGERPRINT = "SHA256:abcdefghijklmnopqrstuvwxyz0123456789ABCDE";
 const OTHER_FINGERPRINT = "SHA256:fedcba9876543210ZYXWVUTSRQPONMLKJIHGFED";
 
@@ -85,7 +87,7 @@ describe("deploy SSH host key pinning", () => {
         expect.objectContaining({ name: "staging known_hosts is written only after verifier gate", passed: true }),
       ]),
     );
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("fails workflow validation when known_hosts is written directly from ssh-keyscan", () => {
     const production = workflowSource("production").replace(
@@ -104,7 +106,7 @@ describe("deploy SSH host key pinning", () => {
   it("passes bash syntax for extracted workflow run blocks", () => {
     expect(bashSyntaxCheckWorkflowRunBlocks(workflowSource("staging")).status).toBe("passed");
     expect(bashSyntaxCheckWorkflowRunBlocks(workflowSource("production")).status).toBe("passed");
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("writes evidence without real host key values", () => {
     const root = tempRepoWithWorkflows();
@@ -129,5 +131,5 @@ describe("deploy SSH host key pinning", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 });

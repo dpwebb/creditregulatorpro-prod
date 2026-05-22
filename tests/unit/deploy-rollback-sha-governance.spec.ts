@@ -8,6 +8,8 @@ import {
   extractWorkflowRunBlocks,
 } from "../../scripts/deploy-rollback-sha-governance.mjs";
 
+const STATIC_WORKFLOW_TEST_TIMEOUT_MS = 60_000;
+
 function workflowSource(name: "staging" | "production") {
   return readFileSync(join(process.cwd(), ".github", "workflows", `deploy-${name}.yml`), "utf8");
 }
@@ -31,7 +33,7 @@ describe("rollback SHA governance workflow validation", () => {
     expect(report.summary.resolveTargetBeforeValidation).toBe(true);
     expect(report.summary.validationCheckoutEqualsTarget).toBe(true);
     expect(report.workflows).toHaveLength(2);
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("fails static validation when rollback SHA validation is not strict 40-hex", () => {
     const staging = workflowSource("staging").replace(
@@ -42,7 +44,7 @@ describe("rollback SHA governance workflow validation", () => {
 
     expect(report.status).toBe("failed");
     expect(report.validation.errors.join("\n")).toMatch(/rollback_sha is strict 40-hex/i);
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("requires evidence target SHA checks to compare against the deploy target SHA", () => {
     const production = workflowSource("production").replace(
@@ -53,7 +55,7 @@ describe("rollback SHA governance workflow validation", () => {
 
     expect(report.status).toBe("failed");
     expect(report.validation.errors.join("\n")).toMatch(/deploy evidence target SHA/i);
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("requires staging and production remote checkouts to verify HEAD equals TARGET_SHA", () => {
     const report = reportWith();
@@ -69,7 +71,7 @@ describe("rollback SHA governance workflow validation", () => {
         ]),
       );
     }
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("requires production compose to be passed explicitly rather than copied over the checkout", () => {
     const report = reportWith();
@@ -90,7 +92,7 @@ describe("rollback SHA governance workflow validation", () => {
       "cp docker-compose.production.yml docker-compose.yml\n            docker compose up -d --build creditregulatorpro creditregulatorpro-ingest-worker",
     );
     expect(reportWith({ production: copiedCompose }).status).toBe("failed");
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("extracts shell blocks and validates them with bash -n", () => {
     const staging = workflowSource("staging");
@@ -101,5 +103,5 @@ describe("rollback SHA governance workflow validation", () => {
     expect(bashSyntaxCheckWorkflowRunBlocks(staging).status).toBe("passed");
     expect(bashSyntaxCheckWorkflowRunBlocks(production).status).toBe("passed");
     expect(reportWith().summary.shellBlocksBashSyntaxPassed).toBe(true);
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 });

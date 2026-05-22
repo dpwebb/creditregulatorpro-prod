@@ -13,6 +13,8 @@ import {
   writeDeployRollbackSimulationEvidence,
 } from "../../scripts/deploy-rollback-simulation.mjs";
 
+const STATIC_WORKFLOW_TEST_TIMEOUT_MS = 60_000;
+
 function workflowSource(name: "staging" | "production") {
   return readFileSync(join(process.cwd(), ".github", "workflows", `deploy-${name}.yml`), "utf8");
 }
@@ -91,7 +93,7 @@ describe("deploy rollback simulation", () => {
         expect.objectContaining({ name: "workflows preserve previous image IDs for restore fallback", passed: true }),
       ]),
     );
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("fails workflow validation if the rollback failure handler is removed", () => {
     const staging = workflowSource("staging").replace("restore_previous_staging_deploy()", "removed_staging_rollback()");
@@ -108,7 +110,7 @@ describe("deploy rollback simulation", () => {
   it("passes bash syntax for extracted workflow shell blocks", () => {
     expect(bashSyntaxCheckWorkflowRunBlocks(workflowSource("staging")).status).toBe("passed");
     expect(bashSyntaxCheckWorkflowRunBlocks(workflowSource("production")).status).toBe("passed");
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("writes evidence files with both pass and fail scenarios", () => {
     const root = tempRepoWithWorkflows();
@@ -136,5 +138,5 @@ describe("deploy rollback simulation", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 });

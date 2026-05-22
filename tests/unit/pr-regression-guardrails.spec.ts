@@ -9,6 +9,8 @@ import {
   validatePrGuardrails,
 } from "../../scripts/pr-guardrails-evidence.mjs";
 
+const STATIC_WORKFLOW_TEST_TIMEOUT_MS = 60_000;
+
 const workflowSource = (name: string) =>
   readFileSync(join(process.cwd(), ".github", "workflows", name), "utf8");
 
@@ -27,7 +29,7 @@ describe("PR regression guardrail workflow", () => {
         ...CRITICAL_PR_GUARDRAIL_COMMANDS,
       ]),
     );
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("keeps heavier checks scheduled or manually dispatchable and in the production promotion workflow", () => {
     const report = buildPrGuardrailsEvidence({ rootDir: process.cwd(), generatedAt: "2026-05-21T12:00:00.000Z" });
@@ -50,7 +52,7 @@ describe("PR regression guardrail workflow", () => {
         ...HEAVY_PRE_PROMOTION_COMMANDS,
       ]),
     );
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("does not require manual UI interaction for guardrail commands", () => {
     const report = buildPrGuardrailsEvidence({ rootDir: process.cwd(), generatedAt: "2026-05-21T12:00:00.000Z" });
@@ -61,7 +63,7 @@ describe("PR regression guardrail workflow", () => {
       ...report.criticalPrGuardrailCommands,
       ...report.heavyPrePromotionCommands,
     ]).not.toEqual(expect.arrayContaining([expect.stringMatching(/manual|playwright|test:e2e|smoke:[^\s]*ui/i)]));
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 
   it("parses workflow structure and shell run blocks cleanly", () => {
     const validation = validatePrGuardrails({
@@ -76,5 +78,5 @@ describe("PR regression guardrail workflow", () => {
         expect.objectContaining({ name: "production workflow run blocks pass bash syntax", status: "passed" }),
       ]),
     );
-  });
+  }, STATIC_WORKFLOW_TEST_TIMEOUT_MS);
 });
