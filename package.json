@@ -91,6 +91,8 @@
     "staging-owner-denial-smoke:evidence": "node scripts/staging-owner-denial-smoke.mjs",
     "production:readiness": "tsx scripts/production-readiness-report.ts",
     "production:machine-proofs": "node scripts/production-machine-proof-orchestrator.mjs",
+    "production-proof:preflight": "node scripts/production-proof-preflight.mjs",
+    "production-proof:real-evidence": "node scripts/production-proof-real-evidence.mjs",
     "operator:dashboard": "tsx scripts/operator-regression-dashboard.ts",
     "task:scope": "tsx scripts/task-scope-report.ts",
     "baseline:staging-scale": "node scripts/staging-scale-baseline.mjs",
