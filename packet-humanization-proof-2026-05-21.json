@@ -1,0 +1,159 @@
+{
+  "reportName": "packet-humanization-proof",
+  "date": "2026-05-21",
+  "generatedAt": "2026-05-21T23:59:04.4138825Z",
+  "status": "PASS",
+  "commitUnderTest": "cad8540d0b30d1b093c20b5986b9a79f1ae71158",
+  "filesChanged": [
+    "tests/unit/packet-humanization-flow-proof.spec.ts",
+    "packet-humanization-proof-2026-05-21.md",
+    "packet-humanization-proof-2026-05-21.json"
+  ],
+  "fixture": {
+    "creditorCollectorName": "Rogers Communications",
+    "fieldKeys": [
+      "LasReportedDate",
+      "lastReportedDate"
+    ],
+    "sourceReportedDate": "2012-08-21T00:00:00.000Z",
+    "invalidAccountSource": "reau",
+    "internalReferenceIds": [
+      "PIPEDA_4_5",
+      "BALANCE_CALCULATION_VIOLATION"
+    ],
+    "reportArtifactId": 7701,
+    "tradelineId": 2201,
+    "findingId": 4201
+  },
+  "commands": [
+    {
+      "command": "pnpm run test:unit -- tests/unit/packet-humanization-flow-proof.spec.ts",
+      "status": "PASS",
+      "detail": "1 file, 1 test. Exercises Rogers fixture, preview, simulated create, PDF retrieval response, metadata, readiness, and ownership denial."
+    },
+    {
+      "command": "pnpm run test:unit -- tests/unit/packet-humanization-flow-proof.spec.ts tests/unit/dispute-packet-humanization.spec.ts tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/dispute-packet-service.spec.ts tests/unit/dispute-packet-evidence-location.spec.ts tests/unit/packet-preview-display.spec.ts tests/unit/packet-create-dialog-routing.spec.tsx tests/unit/packet-viewer.spec.tsx tests/unit/packet-pdf-cache.spec.ts tests/unit/packet-readiness.spec.ts tests/unit/packet-lifecycle.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts tests/api/packet-lifecycle-endpoint.spec.ts tests/api/packet-delivery-status-endpoint.spec.ts",
+      "status": "PASS",
+      "detail": "15 files, 91 tests."
+    },
+    {
+      "command": "pnpm run smoke:auth-workflow",
+      "status": "SKIPPED",
+      "detail": "First guard run skipped because CRP_AUTH_WORKFLOW_SMOKE=true is required."
+    },
+    {
+      "command": "CRP_AUTH_WORKFLOW_SMOKE=true STAGING_BASE_URL=https://staging.creditregulatorpro.com pnpm run smoke:auth-workflow",
+      "status": "PASS",
+      "detail": "Synthetic staging user flow completed; parser/upload succeeded; non-owner upload-results access denied with HTTP 403; synthetic users cleaned up."
+    },
+    {
+      "command": "CRP_AUTH_WORKFLOW_SMOKE=true STAGING_BASE_URL=https://staging.creditregulatorpro.com pnpm run smoke:auth-workflow:packet",
+      "status": "PASS",
+      "detail": "Readiness/build/create/PDF retrieval succeeded on staging; packet PDF HTTP 200 application/pdf %PDF 6341 bytes; non-owner packet PDF denied with HTTP 403; synthetic users cleaned up."
+    },
+    {
+      "command": "pnpm run test:golden-path",
+      "status": "PASS",
+      "detail": "Upload, parse, canonical map, anomaly detect, violation detect, evidence bind, packet generate, and PDF download passed."
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "status": "PASS",
+      "detail": "11 fixtures; replay stable; required evidence coverage 100%; violation search preserved."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "detail": "No whitespace errors before report generation; rerun after report generation before commit."
+    }
+  ],
+  "assertionsAdded": [
+    "Readiness validation returns packetReady true, no blockers, no warnings, selected finding eligible, and no reason codes.",
+    "Violation packet confidence gate remains packet-ready with blockerCode null and confidence score 99.",
+    "Non-owner readiness validation fails with UNAUTHORIZED_FINDING.",
+    "Packet preview letter text is built from the same consumer letter template path.",
+    "Simulated created packet preserves packet ID, generated status, owner user ID, and creditor obligation/finding linkage.",
+    "PDF bytes start with %PDF.",
+    "Simulated PDF retrieval response returns HTTP 200, Content-Type application/pdf, and non-trivial content length.",
+    "Preview, PDF letter text, and extracted PDF text contain Disputed Account, Company reporting the account, Date last reported, Aug 21, 2012, and Rogers Communications.",
+    "Preview contains Account: Account identifier unavailable, Information disputed: Date last reported, Reported value: Aug 21, 2012, Reason for dispute, Requested action, and plain-language dispute reason.",
+    "PDF text contains Account: Account number not provided on report, Information I am disputing: Date last reported, What the report shows: Aug 21, 2012, What I am requesting, and Please verify this information and correct or remove it if it cannot be supported.",
+    "Consumer-facing preview/PDF text does not contain forbidden internal/debug terms.",
+    "Packet disputed item preserves selected issue ID and tradeline ID while displaying humanized field/value/account text.",
+    "Packet metadata preserves selected issue IDs, report artifact IDs, generated-by user ID, internal references, evidence IDs, regulation IDs, rule IDs, raw field key, raw source field, and readiness metadata.",
+    "Evidence location snapshot preserves evidence ID, field key, source field, page number, and rule ID.",
+    "Parser/source truth remains unchanged: account source reau, source date 2012-08-21T00:00:00.000Z, raw reference PIPEDA_4_5, and raw deterministic rule BALANCE_CALCULATION_VIOLATION."
+  ],
+  "consumerForbiddenTermsChecked": [
+    "tradeline",
+    "artifact",
+    "report artifact",
+    "source report #",
+    "field:",
+    "PIPEDA_4_5",
+    "BALANCE_CALCULATION_VIOLATION",
+    "ISO timestamp patterns",
+    "LasReportedDate",
+    "Lastreporteddate",
+    "lastReportedDate",
+    "sourceReportArtifactId",
+    "reportArtifactId",
+    "tradelineId",
+    "Account ending reau",
+    "Expected: Not known",
+    "PDF rendering is content-based",
+    "render/cache",
+    "render and cache",
+    "cache retrieval",
+    "cache-miss",
+    "internal render",
+    "system diagnostic"
+  ],
+  "positiveConsumerAssertions": [
+    "Disputed Account",
+    "Company reporting the account",
+    "Date last reported",
+    "Aug 21, 2012",
+    "Rogers Communications",
+    "Account identifier unavailable",
+    "Account number not provided on report",
+    "Information disputed: Date last reported",
+    "Information I am disputing: Date last reported",
+    "What the report shows: Aug 21, 2012",
+    "What I am requesting",
+    "Please verify this information and correct or remove it if it cannot be supported.",
+    "Plain-language dispute reason",
+    "Requested action"
+  ],
+  "preservationChecks": {
+    "metadataEvidenceAuditability": [
+      "metadata.selectedIssueIds includes source finding",
+      "metadata.reportArtifactIds includes source report artifact ID",
+      "metadata.internalReferences preserves finding ID, violation ID, tradeline ID, report artifact ID, evidence IDs, regulation IDs, rule IDs, field key, source field, and readiness metadata",
+      "evidenceLocations and buildPacketFindingEvidenceLocationSnapshot preserve evidence ID, source field, page number, and rule ID",
+      "disputed item remains tied to original issue/finding and tradeline"
+    ],
+    "readinessSecurity": [
+      "same-user readiness passes",
+      "non-owner readiness fails with UNAUTHORIZED_FINDING",
+      "staging smoke confirms non-owner upload-results denial with HTTP 403",
+      "packet-enabled staging smoke confirms non-owner packet PDF denial with HTTP 403"
+    ],
+    "parserViolation": [
+      "deterministic ingestion report passed",
+      "golden path passed parse, canonical map, anomaly detect, violation detect, evidence bind, packet generate, and PDF download",
+      "proof test asserts raw parser/source values are not mutated by display humanization"
+    ],
+    "pdfRetrieval": [
+      "simulated proof PDF starts with %PDF",
+      "simulated proof PDF retrieval response uses application/pdf",
+      "packet-enabled staging smoke returned packet PDF HTTP 200 application/pdf %PDF 6341 bytes"
+    ]
+  },
+  "remainingRisks": [
+    "The Rogers fixture is simulated, not a live staging upload fixture.",
+    "The live staging packet smoke uses the existing synthetic TransUnion collapsed fixture and proves endpoint-level readiness/build/create/PDF/ownership behavior.",
+    "Consumer-facing text extraction is based on pdf-parse; visual PDF layout was not manually inspected.",
+    "No parser, violation, readiness, ownership, or packet backend logic was changed by this proof."
+  ]
+}
