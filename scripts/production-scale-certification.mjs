@@ -488,14 +488,14 @@ export async function buildProductionScaleCertificationReport(options = {}) {
       gateResults.push({
         id: gate.id,
         label: gate.label,
-        command: gate.command ?? 'manual-only gate',
+        command: gate.command ?? 'non-automated gate',
         status: 'skipped',
         startedAt: runStartedAtDate.toISOString(),
         completedAt: runStartedAtDate.toISOString(),
         durationMs: 0,
         exitCode: null,
         evidencePath: gate.evidencePath ?? null,
-        notes: ['gate requires human action and cannot certify automatically'],
+        notes: ['gate is non-automated and cannot certify production-at-scale'],
       });
       continue;
     }
@@ -653,7 +653,7 @@ export async function buildProductionScaleCertificationReport(options = {}) {
     stagingOnlyProofGates,
     certifying,
     CERTIFYING: certifying,
-    certificationRule: 'CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.',
+    certificationRule: 'CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/non-automated, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.',
     liveExternalServicesRequired: false,
     liveDeploysRequired: false,
     manualTestingRequired: false,

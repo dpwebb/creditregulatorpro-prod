@@ -9,7 +9,6 @@
     "fixed",
     "simulated-proof-only",
     "staging-proof-only",
-    "requires-human-proof",
     "waived"
   ],
   "proofCategories": [
@@ -17,7 +16,7 @@
     "simulated",
     "staging",
     "read-only-production",
-    "human-observed"
+    "machine-attested"
   ],
   "recognizedEvidenceCommands": [
     "pnpm run production-scale:evidence",
@@ -35,9 +34,10 @@
     "pnpm run test:regression-dashboard",
     "pnpm run test:deterministic-ingestion-report",
     "pnpm run operator:dashboard",
-    "pnpm run check:restore-drill-evidence",
-    "pnpm run restore:accept-human-evidence",
-    "pnpm run restore:evidence:current-check",
+    "pnpm run restore:machine-proof",
+    "pnpm run restore:machine-proof:validate",
+    "pnpm run retention:archive-restore-machine-proof",
+    "pnpm run retention:archive-restore-machine-proof:validate",
     "pnpm run retention:archive-restore:simulated",
     "pnpm run check:migrations",
     "pnpm run migrations:evidence",
@@ -51,6 +51,8 @@
     "pnpm run runtime-size:policy-acceptance",
     "pnpm run alerts:dry-run",
     "pnpm run alerts:exclusion:validate",
+    "pnpm run alerting:machine-proof",
+    "pnpm run alerting:machine-proof:validate",
     "pnpm run response:ops-readiness-evidence",
     "pnpm run response-ops:readiness-evidence",
     "pnpm run response:soak-check",
@@ -66,6 +68,8 @@
     "pnpm run production-worker:runtime-proof",
     "pnpm run production-worker:runtime-proof-template",
     "pnpm run production-worker:readiness-evidence",
+    "pnpm run production-worker:machine-proof",
+    "pnpm run production-worker:machine-proof:validate",
     "pnpm run staging:ingest-worker -- --dry-run",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-pdf-cache.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts",
@@ -79,6 +83,9 @@
     "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
+    "pnpm run storage:raw-report-machine-inventory",
+    "pnpm run storage:raw-report-machine-remediation-proof",
+    "pnpm run storage:raw-report-machine-proof:validate",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/high-growth-list-limits.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/api/ocr-extract-upload-limit-endpoint.spec.ts",
@@ -101,6 +108,8 @@
     "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-backup-restore-checklist.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
     "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
+    "pnpm run migrations:machine-proof",
+    "pnpm run migrations:machine-proof:validate",
     "git diff --check",
     "pnpm run production-scale:promotion-pack",
     "pnpm run production-deployment-parity:evidence",
@@ -125,20 +134,18 @@
         "scripts/staging-backup-restore-checklist.mjs",
         "scripts/restore-evidence-acceptance.mjs"
       ],
-      "currentStatus": "requires-human-proof",
-      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "currentStatus": "partial",
+      "proofTypeRequired": "Non-interactive sanitized restore machine proof with isolated target, RPO/RTO, post-restore checks, cleanup, and rollback verification.",
       "proofCategories": [
-        "human-observed",
+        "machine-attested",
         "automated-local",
         "simulated"
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
         "pnpm run restore:evidence:template",
-        "pnpm run restore:evidence:acceptance",
-        "pnpm run check:restore-drill-evidence",
-        "pnpm run restore:accept-human-evidence",
-        "pnpm run restore:evidence:current-check",
+        "pnpm run restore:machine-proof",
+        "pnpm run restore:machine-proof:validate",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
         "pnpm run response:soak-check"
@@ -152,7 +159,7 @@
       ],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": true,
-      "humanProofRequired": true,
+      "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
         "docs/production-scale/evidence/restore-evidence-template.md",
@@ -171,7 +178,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence."
+      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof."
     },
     {
       "number": 2,
@@ -235,7 +242,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence."
+      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production canary proof with explicit non-interactive proof flags and record queue-depth before/after evidence."
     },
     {
       "number": 3,
@@ -391,16 +398,19 @@
         "scripts/storage-raw-report-remediation-plan.mjs"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
+      "proofTypeRequired": "Non-interactive sanitized raw report byte remediation machine proof with reliable DB connectivity, sanitized inventory, remediation policy verification, and no raw bytes or PII.",
       "proofCategories": [
         "automated-local",
         "staging",
-        "human-observed"
+        "machine-attested"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
         "pnpm run storage:raw-report-remediation-plan",
         "pnpm run storage:raw-report-remediation-acceptance",
+        "pnpm run storage:raw-report-machine-inventory",
+        "pnpm run storage:raw-report-machine-remediation-proof",
+        "pnpm run storage:raw-report-machine-proof:validate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/report-artifact-storage.spec.ts",
@@ -415,12 +425,12 @@
         "raw report bytes in evidence",
         "raw base64, raw report text, PII, secrets, signed URLs, or database URLs in evidence",
         "dry-run plan represented as completed remediation",
-        "operator acceptance without approval, backup acknowledgement, compatibility checks, and post-remediation counts",
+        "non-machine acceptance without reliable DB inventory, compatibility checks, and post-remediation counts",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": false,
-      "humanProofRequired": true,
+      "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/report-artifact-storage.md",
         "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
@@ -434,7 +444,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed."
+      "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands."
     },
     {
       "number": 7,
@@ -484,11 +494,10 @@
         "scripts/response-ops-readiness-evidence.mjs"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "Operator-ready evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, manual fallback, and unresolved alerting risk without enabling live operations.",
+      "proofTypeRequired": "Machine-readable evidence for disabled live scheduler, backfill readiness, purge/archive readiness, dashboard/soak references, automated fallback controls, and unresolved alerting risk without enabling live operations.",
       "proofCategories": [
         "automated-local",
         "staging",
-        "human-observed",
         "simulated"
       ],
       "allowedProofCommands": [
@@ -524,7 +533,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production."
+      "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and automated fallback controls without mutating production."
     },
     {
       "number": 9,
@@ -538,15 +547,17 @@
         "scripts/response-ops-readiness-evidence.mjs"
       ],
       "currentStatus": "simulated-proof-only",
-      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
+      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; non-interactive alerting machine proof with live synthetic delivery or a policy-approved automated exclusion remains required for operations.",
       "proofCategories": [
         "automated-local",
         "simulated",
-        "human-observed"
+        "machine-attested"
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
         "pnpm run alerts:exclusion:validate",
+        "pnpm run alerting:machine-proof",
+        "pnpm run alerting:machine-proof:validate",
         "pnpm run response-ops:readiness-evidence",
         "pnpm run response:ops-readiness-evidence",
         "pnpm run operator:dashboard",
@@ -558,7 +569,7 @@
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
         "real external delivery",
-        "formal exclusion without operator acknowledgement",
+        "formal exclusion without machine-verifiable policy acceptance",
         "PII alert payloads",
         "provider credentials",
         "dashboard PASS alone"
@@ -582,7 +593,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used."
+      "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof."
     },
     {
       "number": 10,
@@ -646,8 +657,7 @@
       "proofTypeRequired": "Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.",
       "proofCategories": [
         "automated-local",
-        "read-only-production",
-        "human-observed"
+        "read-only-production"
       ],
       "allowedProofCommands": [
         "pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts",
@@ -671,7 +681,7 @@
       ],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": false,
-      "humanProofRequired": true,
+      "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json",
@@ -971,8 +981,7 @@
       "currentStatus": "partial",
       "proofTypeRequired": "Runtime-size report plus accepted policy acceptance evidence. Warning-only closure must be an explicit formal waiver with governed WARN/WAIVED rows; release-blocking closure must have no exceeded thresholds.",
       "proofCategories": [
-        "automated-local",
-        "human-observed"
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run build",
@@ -1061,8 +1070,7 @@
       "proofCategories": [
         "automated-local",
         "staging",
-        "read-only-production",
-        "human-observed"
+        "read-only-production"
       ],
       "allowedProofCommands": [
         "pnpm run test:contracts",
@@ -1082,7 +1090,7 @@
       ],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": false,
-      "humanProofRequired": true,
+      "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/production-at-scale-endpoint-auth-appendix.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -1171,19 +1179,18 @@
         "scripts/retention-archive-restore-simulated.mjs"
       ],
       "currentStatus": "partial",
-      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but non-interactive sanitized retention archive/restore machine proof remains required.",
       "proofCategories": [
         "automated-local",
         "simulated",
-        "human-observed"
+        "machine-attested"
       ],
       "allowedProofCommands": [
         "pnpm run retention:archive-restore:simulated",
+        "pnpm run retention:archive-restore-machine-proof",
+        "pnpm run retention:archive-restore-machine-proof:validate",
         "pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts",
-        "pnpm run check:restore-drill-evidence",
-        "pnpm run restore:accept-human-evidence",
-        "pnpm run restore:evidence:current-check",
         "pnpm run operator:dashboard"
       ],
       "forbiddenProofTypes": [
@@ -1195,7 +1202,7 @@
       ],
       "productionMutationForbidden": true,
       "simulatedProofAcceptable": true,
-      "humanProofRequired": true,
+      "humanProofRequired": false,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
         "docs/production-scale/evidence/human-restore-drill-evidence.md",
@@ -1209,7 +1216,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim."
+      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof."
     },
     {
       "number": 23,
@@ -1296,7 +1303,7 @@
         "scripts/operator-regression-dashboard.ts"
       ],
       "currentStatus": "fixed",
-      "proofTypeRequired": "Dashboard and promotion-pack reports distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.",
+      "proofTypeRequired": "Dashboard and promotion-pack reports distinguish PASS, FAIL, SKIP, SIMULATED, and MACHINE_REQUIRED while recording exact commands, skipped checks, and dashboard PASS limitation.",
       "proofCategories": [
         "automated-local"
       ],
@@ -1326,7 +1333,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS."
+      "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/MACHINE_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS."
     }
   ]
 }

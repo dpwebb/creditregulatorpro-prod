@@ -715,7 +715,7 @@ export function renderSimulatedIngestWorkerProofMarkdown(report: Awaited<ReturnT
     `Commit: \`${report.commit}\``,
     `Simulation ID: \`${report.simulationId}\``,
     `Status: ${report.status}`,
-    "Human-observed or staged production-safe queue-drain proof still required: yes",
+    "Machine-attested production-safe queue-drain proof still required: yes",
     "",
     "## SIMULATED Queue Scope",
     "",
@@ -833,7 +833,7 @@ async function main() {
   console.log(`JSON: ${outputs.jsonPath}`);
   console.log(`Synthetic queue depth before: ${renderDepth(report.queueDepth.before)}`);
   console.log(`Synthetic queue depth after: ${renderDepth(report.queueDepth.after)}`);
-  console.log("Human-observed or bounded staging queue-drain proof remains required.");
+  console.log("Machine-attested or bounded staging queue-drain proof remains required.");
   if (options.json) console.log(JSON.stringify(report, null, 2));
 }
 

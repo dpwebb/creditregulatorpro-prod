@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { ProductionObservabilityMetrics, ThresholdStatus } from "../helpers/productionObservabilityMetrics";
 
-export type DashboardStatus = "PASS" | "FAIL" | "SKIP" | "SIMULATED" | "HUMAN_REQUIRED" | "MANUAL" | "OPEN" | "INFO";
+export type DashboardStatus = "PASS" | "FAIL" | "SKIP" | "SIMULATED" | "MACHINE_REQUIRED" | "MANUAL" | "OPEN" | "INFO";
 
 export type DashboardCheck = {
   name: string;
@@ -82,7 +82,7 @@ export const DASHBOARD_RELEASE_EVIDENCE_STATUS_MEANINGS: Record<DashboardStatus,
   FAIL: "check failed or required release state is unsafe",
   SKIP: "available local check was not run in this dashboard invocation",
   SIMULATED: "synthetic or dry-run proof exists, but it is not production proof",
-  HUMAN_REQUIRED: "operator-observed or signed proof is required outside this dashboard",
+  MACHINE_REQUIRED: "non-interactive machine-attested proof is required outside this dashboard",
   MANUAL: "gated smoke or operator step requiring explicit context",
   OPEN: "known scale-readiness gap",
   INFO: "release context or non-runtime safety note",
@@ -677,8 +677,8 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         ),
         check(
           "Response scheduler activation conditions",
-          "HUMAN_REQUIRED",
-          "Runbook-backed scheduler proof: live daemon activation is not automatic; operators must first pass dry-run orchestration, response soak, dashboard, and response tests, then use only an explicit bounded --run invocation with max-job and lock-scope evidence. Human-observed scheduler evidence is still required for a live-operations claim.",
+          "MACHINE_REQUIRED",
+          "Runbook-backed scheduler proof: live daemon activation is not automatic; automated proof must first pass dry-run orchestration, response soak, dashboard, and response tests, then use only an explicit bounded --run invocation with max-job and lock-scope evidence. Machine-attested scheduler evidence is still required for a live-operations claim.",
           {
             command: "pnpm run response:worker-orchestrate -- --dry-run",
           },
@@ -775,16 +775,16 @@ export function buildOperatorDashboard(options: BuildDashboardOptions = {}) {
         ),
         check(
           "Response purge/archive readiness",
-          "HUMAN_REQUIRED",
-          "Runbook-backed lifecycle proof: retention dry-run identifies eligible terminal records and protected stale/dead-letter records, while apply remains explicit, actor-attributed, append-only, and does not physically purge or archive response-processing history. Physical purge/archive remains unproven and human-governed.",
+          "MACHINE_REQUIRED",
+          "Runbook-backed lifecycle proof: retention dry-run identifies eligible terminal records and protected stale/dead-letter records, while apply remains explicit, actor-attributed, append-only, and does not physically purge or archive response-processing history. Physical purge/archive remains unproven until machine-attested.",
           {
             command: "pnpm run response:lifecycle -- --dry-run",
           },
         ),
         check(
           "Response historical backfill plan",
-          "HUMAN_REQUIRED",
-          "Runbook-backed replay proof: dry-run reports replayable and non-replayable records with reason counts; apply requires explicit confirmation and actor attribution, and records without sanitized stored summaries remain non-replayable without rehydrating raw response text. Historical backfill execution remains operator-proof required.",
+          "MACHINE_REQUIRED",
+          "Runbook-backed replay proof: dry-run reports replayable and non-replayable records with reason counts; apply requires explicit confirmation and actor attribution, and records without sanitized stored summaries remain non-replayable without rehydrating raw response text. Historical backfill execution remains machine-proof required.",
           {
             command: "pnpm run response:replay -- --dry-run",
           },
@@ -1012,10 +1012,10 @@ function flattenChecks(categories: DashboardCategory[]): DashboardCheck[] {
 }
 
 function buildSummary(categories: DashboardCategory[]) {
-  const summary = { pass: 0, fail: 0, skip: 0, simulated: 0, humanRequired: 0, manual: 0, open: 0, info: 0 };
+  const summary = { pass: 0, fail: 0, skip: 0, simulated: 0, machineRequired: 0, manual: 0, open: 0, info: 0 };
   for (const item of flattenChecks(categories)) {
-    const key = item.status === "HUMAN_REQUIRED"
-      ? "humanRequired"
+    const key = item.status === "MACHINE_REQUIRED"
+      ? "machineRequired"
       : item.status.toLowerCase() as keyof typeof summary;
     summary[key] += 1;
   }
@@ -1038,10 +1038,10 @@ export function buildDashboardReleaseEvidenceSemantics(categories: DashboardCate
     exactCommands,
     skipCount: summary.skip,
     simulatedCount: summary.simulated,
-    humanRequiredCount: summary.humanRequired,
+    machineRequiredCount: summary.machineRequired,
     skippedChecksVisible: summary.skip > 0,
     simulatedProofVisible: summary.simulated > 0,
-    humanRequiredProofVisible: summary.humanRequired > 0,
+    machineRequiredProofVisible: summary.machineRequired > 0,
   };
 }
 
@@ -1152,7 +1152,7 @@ export function renderDashboard(report: ReturnType<typeof buildOperatorDashboard
     "- Dashboard PASS alone is not sufficient release evidence.",
     "- SKIP rows remain visible and are not treated as PASS.",
     "- SIMULATED rows are not production proof.",
-    "- HUMAN_REQUIRED rows require operator-observed or signed proof outside this dashboard.",
+    "- MACHINE_REQUIRED rows require non-interactive machine-attested proof outside this dashboard.",
     "- Exact commands must be recorded for release evidence.",
   );
 

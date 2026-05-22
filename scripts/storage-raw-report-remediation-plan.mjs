@@ -305,14 +305,14 @@ function buildCategoryRows(inventoryEvidence) {
       field: "storage_url",
       category: "legacy-inline-pdf-candidates",
       estimatedRows: reportArtifact.possibleInlineBase64Rows,
-      remediationAction: "Operator-approved copy to report-artifact storage reference after checksum verification; keep legacy resolver compatibility during rollout.",
+      remediationAction: "Machine-attested bounded copy to report-artifact storage reference after checksum verification; keep legacy resolver compatibility during rollout.",
     },
     {
       table: "report_artifact",
       field: "storage_url",
       category: "data-url-inline-pdf-candidates",
       estimatedRows: reportArtifact.dataUrlBase64Rows,
-      remediationAction: "Operator-approved normalize data URL payload to storage reference after validation; preserve rollback snapshot.",
+      remediationAction: "Machine-attested bounded normalize data URL payload to storage reference after validation; preserve rollback snapshot.",
     },
     {
       table: "report_artifact",
@@ -329,14 +329,14 @@ function buildCategoryRows(inventoryEvidence) {
       field: "storage_url",
       category: "legacy-inline-attachment-candidates",
       estimatedRows: evidenceAttachment.possibleInlineBase64Rows,
-      remediationAction: "Operator-approved copy to evidence attachment storage reference after checksum verification; keep legacy resolver compatibility during rollout.",
+      remediationAction: "Machine-attested bounded copy to evidence attachment storage reference after checksum verification; keep legacy resolver compatibility during rollout.",
     },
     {
       table: "evidence_attachment",
       field: "storage_url",
       category: "data-url-inline-attachment-candidates",
       estimatedRows: evidenceAttachment.dataUrlBase64Rows,
-      remediationAction: "Operator-approved normalize data URL payload to storage reference after validation; preserve rollback snapshot.",
+      remediationAction: "Machine-attested bounded normalize data URL payload to storage reference after validation; preserve rollback snapshot.",
     },
     {
       table: "evidence_attachment",
@@ -372,7 +372,7 @@ export function buildStorageRawReportRemediationPlanReport({
   const inventory = inventoryEvidence ?? readInventorySummary(rootDir);
   const categories = buildCategoryRows(inventory);
   const inventoryReady = inventory.exists && inventory.countsReliable;
-  const status = inventoryReady ? "planned-awaiting-operator-approval" : inventory.exists ? "inventory-unreliable" : "inventory-missing";
+  const status = inventoryReady ? "planned-awaiting-machine-proof" : inventory.exists ? "inventory-unreliable" : "inventory-missing";
   const affectedTables = Array.from(new Set(categories.filter((item) => item.estimatedRows === null || item.estimatedRows > 0).map((item) => item.table)));
 
   return {
@@ -409,41 +409,41 @@ export function buildStorageRawReportRemediationPlanReport({
     remediationCategories: categories,
     remediationPlan: {
       dryRunOnly: true,
-      applySeparation: "This script never applies remediation; operator-run apply proof must be submitted separately.",
+      applySeparation: "This script never applies remediation; a separate non-interactive machine proof must certify any bounded apply.",
       mutationCommandAvailable: false,
       productionMutationAllowed: false,
       inventoryReliableRequiredForAcceptance: true,
       steps: [
         "Confirm a current staging-safe sanitized inventory exists and counts are reliable.",
-        "Take a fresh backup before any operator-approved remediation.",
-        "Use an approved process to copy inline bytes to storage references in bounded batches with checksum verification.",
+        "Take a fresh backup before any bounded remediation.",
+        "Use a machine-attested process to copy inline bytes to storage references in bounded batches with checksum verification.",
         "Retain old inline compatibility until post-remediation read-path checks pass.",
         "Record pre/post aggregate counts only; do not record raw storageUrl values or raw bytes.",
-        "Submit sanitized operator acceptance evidence for blocker 6 review.",
+        "Submit sanitized machine-attested acceptance evidence for blocker 6 review.",
       ],
     },
     rollbackStrategy: [
       "Do not delete historical rows during remediation.",
-      "Capture a pre-remediation backup and row-count snapshot before any operator-run process.",
+      "Capture a pre-remediation backup and row-count snapshot before any bounded remediation process.",
       "Use transaction-bounded batches so failed batches can be rolled back independently.",
       "Preserve legacy inline resolver compatibility until post-remediation validation is complete.",
       "If validation fails, restore affected storage_url values from the approved backup/snapshot and rerun compatibility checks.",
     ],
-    operatorApprovalRequirements: [
-      "Named operator or role approves the plan before execution.",
-      "Approval references the sanitized inventory and this dry-run plan evidence.",
-      "Approval confirms no raw PII, raw report bytes, signed URLs, storage secrets, or database URLs are included in evidence.",
-      "Approval confirms Codex will not run production mutation.",
-      "Approval records bounded batch size, rollback owner, and validation owner.",
+    machineProofRequirements: [
+      "Machine proof references the sanitized inventory and this dry-run plan evidence.",
+      "Machine proof confirms no raw PII, raw report bytes, signed URLs, storage secrets, or database URLs are included in evidence.",
+      "Machine proof confirms this planning command did not run production mutation.",
+      "Machine proof records bounded batch size, rollback verification, and validation result.",
+      "Machine proof is non-interactive and does not require operator acknowledgement or manual approval.",
     ],
     backupPrerequisite:
-      "A fresh backup and restore-readiness acknowledgement are required before any operator-approved remediation process runs.",
+      "A fresh backup and machine restore-readiness proof are required before any bounded remediation process certifies.",
     postRemediationValidationSteps: [
       "Rerun pnpm run storage:raw-report-inventory and compare aggregate counts only.",
       "Verify legacy inline reportArtifact records remain readable through resolveReportArtifactPdfBase64 compatibility tests.",
       "Verify legacy inline evidenceAttachment records remain readable through resolveEvidenceAttachmentBase64 compatibility tests.",
       "Run pnpm run test:api and focused storage compatibility tests.",
-      "Submit sanitized acceptance evidence with post-remediation counts and signed acknowledgement.",
+      "Submit sanitized machine acceptance evidence with post-remediation counts.",
     ],
     blockerCoverage: {
       blocker6GovernedWorkflowPrepared: inventoryReady,
@@ -452,7 +452,7 @@ export function buildStorageRawReportRemediationPlanReport({
     acceptancePolicy: {
       reliableInventoryRequired: true,
       dryRunPlanIsNotCompleteRemediation: true,
-      operatorApplyProofRequired: true,
+      machineApplyProofRequired: true,
       productionProofRequiresAcceptedProductionEvidence: true,
       stagingInventoryIsStagingProofOnly: true,
     },
@@ -471,7 +471,7 @@ export function buildStorageRawReportRemediationPlanReport({
       "This command does not delete historical rows.",
       "This command does not migrate production data.",
       "This command does not print raw base64, raw PDFs, raw report text, PII, storage secrets, signed URLs, or database URLs.",
-      "Blocker 6 remains remediation-required until sanitized operator acceptance evidence is submitted and accepted.",
+      "Blocker 6 remains remediation-required until sanitized machine acceptance evidence is submitted and accepted.",
     ],
     outputPaths: {
       markdown: RAW_REPORT_REMEDIATION_PLAN_MD_PATH,
@@ -535,9 +535,9 @@ export function renderStorageRawReportRemediationPlanMarkdown(report) {
         `| ${item.table} | ${item.field} | ${item.category} | ${countLabel(item.estimatedRows)} | ${item.remediationAction} |`,
     ),
     "",
-    "## Operator Approval Requirements",
+    "## Machine Proof Requirements",
     "",
-    ...report.operatorApprovalRequirements.map((item) => `- ${item}`),
+    ...report.machineProofRequirements.map((item) => `- ${item}`),
     "",
     "## Backup Prerequisite",
     "",
@@ -615,7 +615,7 @@ function validateRawReportRemediationPlanEvidence(plan, inventoryValidation) {
     if (plan.dryRunOnly !== true || plan.productionMutationRefused !== true) {
       errors.push("Remediation plan must be dry-run only and production-mutation-refusing.");
     }
-    if (plan.status !== "planned-awaiting-operator-approval") {
+    if (plan.status !== "planned-awaiting-machine-proof") {
       errors.push("Remediation plan must be based on reliable inventory before acceptance can close remediation.");
     }
     if (plan.inventoryEvidence?.countsReliable !== true || plan.inventoryEvidence?.validation?.accepted !== true) {
@@ -664,14 +664,14 @@ export function validateRawReportRemediationAcceptanceEvidence(
   if (isPlaceholderValue(evidence?.evidenceId)) {
     errors.push("evidenceId is required and cannot be a placeholder.");
   }
-  if (evidence?.evidenceType !== "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION") {
-    errors.push("evidenceType must be HUMAN_OBSERVED_RAW_REPORT_REMEDIATION.");
+  if (evidence?.evidenceType !== "MACHINE_ATTESTED_RAW_REPORT_REMEDIATION") {
+    errors.push("evidenceType must be MACHINE_ATTESTED_RAW_REPORT_REMEDIATION.");
   }
   if (evidence?.environment !== "production") {
     errors.push("environment must be production for blocker 6 production remediation proof.");
   }
-  if (!["apply", "operator-applied", "completed-operator-apply"].includes(String(evidence?.remediationMode ?? ""))) {
-    errors.push("remediationMode must record an operator-applied remediation, not a dry-run.");
+  if (!["apply", "machine-applied", "completed-machine-apply", "approved-bounded"].includes(String(evidence?.remediationMode ?? ""))) {
+    errors.push("remediationMode must record a machine-attested bounded remediation, not a dry-run.");
   }
   if (evidence?.dryRunOnly === true || evidence?.dryRunOnlyRemediation === true) {
     errors.push("Dry-run-only remediation evidence cannot close production raw-report remediation.");
@@ -679,10 +679,13 @@ export function validateRawReportRemediationAcceptanceEvidence(
   if (/\bsimulated\b/i.test(String(evidence?.evidenceType ?? "")) || evidence?.simulatedEvidence === true) {
     errors.push("SIMULATED evidence cannot be accepted as blocker 6 remediation proof.");
   }
+  if (evidence?.operatorAcknowledgementSigned === true || evidence?.remediationPerformedByOperatorOrApprovedProcess === true) {
+    errors.push("Legacy operator acknowledgement or operator-applied proof is not accepted; use machine-attested remediation proof.");
+  }
 
   const requiredTextFields = [
-    ["operatorNameOrRole", "operatorNameOrRole"],
-    ["approvedAt", "approvedAt"],
+    ["machineActorId", "machineActorId"],
+    ["machineProofGeneratedAt", "machineProofGeneratedAt"],
     ["performedAt", "performedAt"],
     ["inventoryEvidencePath", "inventoryEvidencePath"],
     ["remediationPlanEvidencePath", "remediationPlanEvidencePath"],
@@ -702,14 +705,17 @@ export function validateRawReportRemediationAcceptanceEvidence(
   const requiredBooleans = [
     ["inventoryRun", true],
     ["reliableInventoryAccepted", true],
-    ["remediationPlanApproved", true],
-    ["remediationPerformedByOperatorOrApprovedProcess", true],
+    ["remediationPlanPolicySatisfied", true],
+    ["remediationPerformedByMachineProcess", true],
     ["remediationApplied", true],
     ["oldInlineCompatibilityTested", true],
     ["sanitizedEvidence", true],
     ["postRemediationCountsRecorded", true],
-    ["backupRestorePrerequisiteAcknowledged", true],
-    ["operatorAcknowledgementSigned", true],
+    ["backupRestorePrerequisiteVerified", true],
+    ["nonInteractive", true],
+    ["machineAttested", true],
+    ["humanObserved", false],
+    ["manualApprovalRequired", false],
     ["historicalInlineRowsResolved", true],
     ["noRawSensitiveValuesAppearInEvidence", true],
     ["productionDataMutatedByCodex", false],
@@ -952,7 +958,7 @@ export function renderRawReportRemediationAcceptanceMarkdown(report) {
   if (report.validation?.errors?.length) {
     lines.push(...report.validation.errors.map((error) => `- ${error}`));
   } else {
-    lines.push("- Sanitized operator remediation evidence passed strict acceptance validation.");
+    lines.push("- Sanitized machine remediation evidence passed strict acceptance validation.");
   }
 
   lines.push(

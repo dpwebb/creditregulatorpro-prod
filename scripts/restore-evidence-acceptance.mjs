@@ -214,7 +214,7 @@ function detectEvidenceKind(value) {
   if (/\bsimulated\b/.test(text) || value?.simulatedOnly === true) return "simulated";
   if (/\bchecklist[-_ ]?only\b/.test(text) || value?.checklistOnly === true) return "checklist-only";
   if (/\btemplate[-_ ]?only\b/.test(text) || value?.templateOnly === true) return "template-only";
-  return "human-observed";
+  return "sanitized-legacy";
 }
 
 export function validateRestoreEvidenceSubmission(evidence, {
@@ -277,7 +277,12 @@ export function validateRestoreEvidenceSubmission(evidence, {
   const postRestoreChecks = validatePostRestoreChecks(evidence, errors);
   const evidenceAttachments = validateAttachments(rootDir, evidence, errors);
 
-  if (evidence.humanObserved !== true) errors.push("humanObserved must be true.");
+  if (evidence.humanObserved === true) {
+    errors.push("humanObserved evidence is legacy and cannot be accepted as production certification proof; use restore:machine-proof.");
+  }
+  if (evidence.manualApprovalRequired === true) {
+    errors.push("manualApprovalRequired must be false for production certification proof.");
+  }
   if (evidence.restoreCompleted !== true) errors.push("restoreCompleted must be true.");
   addRequiredBooleanError(errors, evidence.attestations?.noRawReportBytesPrinted, "attestations.noRawReportBytesPrinted");
   addRequiredBooleanError(errors, evidence.attestations?.noPiiPrinted, "attestations.noPiiPrinted");
@@ -336,7 +341,8 @@ export function buildRestoreEvidenceTemplate({ generatedAt = new Date().toISOStr
     environment: "production",
     restoreType: "dump/restore",
     approvedEquivalentReason: null,
-    humanObserved: true,
+    humanObserved: false,
+    manualApprovalRequired: false,
     restoreCompleted: true,
     operatorId: "OPS1",
     timestamp: "2026-05-22T00:00:00Z",
@@ -392,14 +398,14 @@ export function renderRestoreEvidenceTemplateMarkdown(template = buildRestoreEvi
     "",
     "Status: Template only. This is not accepted restore proof.",
     "",
-    "Submit a filled JSON artifact using the same field names. The acceptance script records only sanitized summaries and never performs a dump or restore.",
+    "Legacy manual submissions are non-certifying. Production certification must use restore:machine-proof with non-interactive machine attestation.",
     "",
     "## Required Fields",
     "",
     "- evidenceId",
     "- environment: staging or production",
     "- restoreType: dump/restore, backup restore, archive restore, or approved equivalent",
-    "- operatorId: initials or opaque operator ID only",
+    "- operatorId: legacy opaque ID only; not accepted as production certification proof",
     "- timestamp",
     "- sourceBackupIdentifier",
     "- targetRestoreEnvironment",
@@ -640,7 +646,7 @@ function printHelp() {
   console.log([
     "Usage: node scripts/restore-evidence-acceptance.mjs [options]",
     "",
-    "Validates sanitized human-observed restore evidence and writes latest-restore-acceptance.{json,md}.",
+    "Validates legacy sanitized restore evidence as non-certifying and writes latest-restore-acceptance.{json,md}.",
     "This command does not dump, restore, access backups, or mutate production.",
     "",
     "Options:",

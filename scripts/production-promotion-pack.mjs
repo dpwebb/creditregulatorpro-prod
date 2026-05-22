@@ -145,6 +145,7 @@ import {
 } from "./retention-archive-restore-machine-proof.mjs";
 
 import { validateMachineProofForConfig } from "./lib/machineProofScript.mjs";
+import { MACHINE_PROOF_BLOCKER_REQUIREMENTS as POLICY_MACHINE_PROOF_BLOCKER_REQUIREMENTS } from "./lib/productionMachineProofPolicy.mjs";
 
 import {
   collectDashboardEvidence,
@@ -277,13 +278,9 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run storage:raw-report-machine-remediation-proof",
   "pnpm run storage:durability-contract",
   "pnpm run check:migrations",
-  "pnpm run check:restore-drill-evidence",
   "pnpm run migrations:gate",
   "pnpm run migrations:machine-proof",
   "pnpm run deploy:rollback-simulation",
-  "pnpm run restore:evidence:acceptance",
-  "pnpm run restore:accept-human-evidence",
-  "pnpm run restore:evidence:current-check",
   "pnpm run restore:machine-proof",
   "pnpm run alerting:machine-proof",
   "pnpm run retention:archive-restore-machine-proof",
@@ -295,8 +292,6 @@ export const REQUIRED_PROMOTION_COMMANDS = [
 export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run production-scale:evidence",
   "pnpm run restore:drill:simulated",
-  "pnpm run restore:evidence:acceptance",
-  "pnpm run restore:evidence:current-check",
   "pnpm run ingest:worker:simulated-proof",
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run baseline:production-scale-local -- --simulated",
@@ -326,6 +321,13 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run check:runtime-size",
   "pnpm run runtime-size:policy-acceptance",
 ];
+
+const LEGACY_HUMAN_PROOF_COMMANDS = new Set([
+  "pnpm run check:restore-drill-evidence",
+  "pnpm run restore:accept-human-evidence",
+  "pnpm run restore:evidence:acceptance",
+  "pnpm run restore:evidence:current-check",
+]);
 
 const OUTPUT_BY_COMMAND = {
   "pnpm run production-scale:evidence": [
@@ -503,75 +505,14 @@ const OUTPUT_BY_COMMAND = {
 const CLASSIFICATIONS = new Set([
   "fixed with automated evidence",
   "fixed with staging evidence",
-  "fixed with human-observed evidence",
   "simulated proof only",
   "machine proof required",
-  "human proof required",
   "waived with explicit reason",
   "partial",
   "open",
 ]);
 
-const MACHINE_PROOF_BLOCKER_REQUIREMENTS = {
-  1: {
-    proofTypeRequired:
-      "Non-interactive sanitized restore machine proof with isolated target, RPO/RTO, post-restore checks, cleanup, and rollback verification.",
-    proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: ["pnpm run restore:machine-proof", "pnpm run restore:machine-proof:validate"],
-    recommendedNextAction:
-      "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
-  },
-  2: {
-    proofTypeRequired:
-      "Non-interactive sanitized production worker runtime machine proof with bounded queue processing, queue depth before/after, liveness, counts, cleanup, and stop/rollback verification.",
-    proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: [
-      "pnpm run production-worker:machine-proof",
-      "pnpm run production-worker:machine-proof:validate",
-    ],
-    recommendedNextAction:
-      "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
-  },
-  6: {
-    proofTypeRequired:
-      "Non-interactive sanitized raw report byte remediation machine proof with reliable DB connectivity, sanitized inventory, remediation policy verification, and no raw bytes or PII.",
-    proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: [
-      "pnpm run storage:raw-report-machine-inventory",
-      "pnpm run storage:raw-report-machine-remediation-proof",
-      "pnpm run storage:raw-report-machine-proof:validate",
-    ],
-    recommendedNextAction:
-      "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
-  },
-  9: {
-    proofTypeRequired:
-      "Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.",
-    proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: ["pnpm run alerting:machine-proof", "pnpm run alerting:machine-proof:validate"],
-    recommendedNextAction:
-      "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
-  },
-  10: {
-    proofTypeRequired:
-      "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
-    proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: ["pnpm run migrations:machine-proof", "pnpm run migrations:machine-proof:validate"],
-    recommendedNextAction:
-      "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
-  },
-  22: {
-    proofTypeRequired:
-      "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
-    proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: [
-      "pnpm run retention:archive-restore-machine-proof",
-      "pnpm run retention:archive-restore-machine-proof:validate",
-    ],
-    recommendedNextAction:
-      "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
-  },
-};
+const MACHINE_PROOF_BLOCKER_REQUIREMENTS = POLICY_MACHINE_PROOF_BLOCKER_REQUIREMENTS;
 
 function normalizeRelativePath(value) {
   return String(value ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -918,7 +859,7 @@ function classifyBlocker(
     productionWorkerReadinessEvidence?.blockerCoverage?.productionIngestRuntime === true &&
     productionWorkerReadinessEvidence?.acceptedProductionRunEvidence?.accepted === true
   ) {
-    return "fixed with human-observed evidence";
+    return "machine proof required";
   }
   if (
     blocker.number === 2 &&
@@ -948,7 +889,7 @@ function classifyBlocker(
     restoreEvidenceAcceptance?.currentOperationalProof === true &&
     restoreEvidenceAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill === true
   ) {
-    return "fixed with human-observed evidence";
+    return "machine proof required";
   }
   if (
     blocker.number === 6 &&
@@ -956,7 +897,7 @@ function classifyBlocker(
     rawReportRemediationAcceptance?.productionProof === true &&
     rawReportRemediationAcceptance?.blockerCoverage?.historicalRawReportBytes === true
   ) {
-    return "fixed with human-observed evidence";
+    return "machine proof required";
   }
   if (
     blocker.number === 8 &&
@@ -973,7 +914,7 @@ function classifyBlocker(
       responseOpsReadinessEvidence?.alerting?.status === "formally-excluded"
     )
   ) {
-    return "fixed with human-observed evidence";
+    return "machine proof required";
   }
   if (
     blocker.number === 10 &&
@@ -1037,12 +978,12 @@ function classifyBlocker(
     restoreEvidenceAcceptance?.currentOperationalProof === true &&
     restoreEvidenceAcceptance?.blockerCoverage?.retentionArchiveRestore === true
   ) {
-    return "fixed with human-observed evidence";
+    return "machine proof required";
   }
   if (blocker.currentStatus === "waived") return "waived with explicit reason";
   if (blocker.currentStatus === "open") return "open";
   if (blocker.currentStatus === "requires-human-proof" || blocker.humanProofRequired === true) {
-    return "human proof required";
+    return MACHINE_PROOF_BLOCKER_REQUIREMENTS[blocker.number] ? "machine proof required" : "partial";
   }
   if (blocker.currentStatus === "simulated-proof-only") return "simulated proof only";
   if (blocker.currentStatus === "staging-proof-only") return "fixed with staging evidence";
@@ -1097,7 +1038,10 @@ function buildCommandList(rootDir, registry, packageJson) {
   const commandSet = new Set([
     ...REQUIRED_PROMOTION_COMMANDS,
     ...OPTIONAL_EVIDENCE_COMMANDS.filter((command) => commandAvailability(command, scripts)),
-    ...registryCommands.filter((command) => command.startsWith("pnpm run ") || command === "git diff --check"),
+    ...registryCommands.filter((command) =>
+      !LEGACY_HUMAN_PROOF_COMMANDS.has(command) &&
+      (command.startsWith("pnpm run ") || command === "git diff --check")
+    ),
   ]);
   return Array.from(commandSet).map((command) => commandResultSummary(command, rootDir, scripts));
 }
@@ -1374,7 +1318,6 @@ function readinessClassification(classifiedBlockers) {
 
   const criticalOrHighUnresolved = unresolved.filter((blocker) => ["Critical", "High"].includes(blocker.severity));
   const humanOrSimulated = unresolved.filter((blocker) =>
-    blocker.classification === "human proof required" ||
     blocker.classification === "simulated proof only" ||
     blocker.classification === "machine proof required",
   );
@@ -1389,7 +1332,7 @@ function readinessClassification(classifiedBlockers) {
   return {
     value: "limited beta",
     canPromoteProductionAtScale: false,
-    reason: "Critical/high, machine-required, simulated-only, human-required, partial, or open blockers remain.",
+    reason: "Critical/high, machine-required, simulated-only, partial, or open blockers remain.",
   };
 }
 
@@ -1583,35 +1526,11 @@ export function buildProductionPromotionPackReport({
       forbiddenProofTypes: blocker.forbiddenProofTypes ?? [],
       relatedEvidenceOutputPaths: blocker.relatedEvidenceOutputPaths ?? [],
       recommendedNextAction: machineRequirement?.recommendedNextAction ?? blocker.recommendedNextAction,
-      humanProofRequired: machineRequirement ? false : blocker.humanProofRequired === true,
+      humanProofRequired: false,
       machineProofRequired: Boolean(machineRequirement) && classification !== "fixed with automated evidence",
       missingRuntimeInputs: machineRuntimeInputsForBlocker(blocker.number, machineProofs),
       simulatedProofAcceptable: blocker.simulatedProofAcceptable === true,
-      acceptedHumanEvidence:
-        classification === "fixed with human-observed evidence"
-          ? {
-              evidencePath:
-                blocker.number === 2 || blocker.number === 11
-                  ? workerReadinessEvidence.acceptedProductionRunEvidence?.evidencePath
-                  : blocker.number === 6
-                    ? rawReportRemediationEvidence.evidencePath
-                  : blocker.number === 9
-                    ? responseOpsEvidence.alerting?.exclusionValidation?.evidencePath ?? responseOpsEvidence.alerting?.liveAlertProof?.evidencePath
-                  : blocker.number === 10
-                    ? migrationGate.policyPath
-                  : acceptedHumanRestoreEvidence.evidencePath,
-              acceptedAt:
-                blocker.number === 2 || blocker.number === 11
-                  ? workerReadinessEvidence.generatedAt
-                  : blocker.number === 6
-                    ? rawReportRemediationEvidence.generatedAt
-                  : blocker.number === 9
-                    ? responseOpsEvidence.generatedAt
-                  : blocker.number === 10
-                    ? migrationGate.generatedAt
-                  : acceptedHumanRestoreEvidence.generatedAt,
-            }
-          : null,
+      legacyManualEvidenceIgnored: blocker.humanProofRequired === true || blocker.currentStatus === "requires-human-proof",
       waiverReason: waiverReason(blocker),
     };
   });
@@ -1966,7 +1885,7 @@ export function buildProductionPromotionPackReport({
         confirmationString: workerActivationEvidence.applyMode?.confirmationString,
         maxJobs: workerActivationEvidence.applyMode?.maxJobs,
       },
-      futureOperatorRunFields: workerActivationEvidence.futureOperatorRunFields,
+      futureMachineRunFields: workerActivationEvidence.futureMachineRunFields,
       stagingWorkerEvidence: workerActivationEvidence.stagingWorkerEvidence,
       staticValidation: {
         status: workerActivationEvidence.staticValidation?.status ?? "unknown",
@@ -2203,7 +2122,7 @@ export function buildProductionPromotionPackReport({
     },
     simulatedProofOnlyChecks: classifiedBlockers.filter((blocker) => blocker.classification === "simulated proof only"),
     stagingProofOnlyChecks: classifiedBlockers.filter((blocker) => blocker.currentStatus === "staging-proof-only"),
-    humanRequiredProof: classifiedBlockers.filter((blocker) => blocker.classification === "human proof required"),
+    humanRequiredProof: [],
     machineRequiredProof: classifiedBlockers.filter((blocker) => blocker.classification === "machine proof required"),
     waivers: classifiedBlockers.filter((blocker) => blocker.classification === "waived with explicit reason"),
     readinessClassification: readiness,
@@ -2251,6 +2170,9 @@ export function validatePromotionPackReport(report) {
   for (const blocker of blockers) {
     if (!CLASSIFICATIONS.has(blocker.classification)) {
       errors.push(`Blocker ${blocker.number} has invalid classification ${blocker.classification}.`);
+    }
+    if (/human/i.test(String(blocker.classification ?? ""))) {
+      errors.push(`Blocker ${blocker.number} uses a human-proof classification, which is not allowed for production certification.`);
     }
     if (blocker.classification === "waived with explicit reason" && !blocker.waiverReason) {
       errors.push(`Blocker ${blocker.number} is waived without an explicit waiver reason.`);
@@ -2345,7 +2267,7 @@ export function validatePromotionPackReport(report) {
   }
   for (const blocker of blockers.filter((entry) => entry.classification === "machine proof required")) {
     if (blocker.humanProofRequired === true) {
-      errors.push(`Blocker ${blocker.number} cannot be both machine-proof-required and human-proof-required.`);
+      errors.push(`Blocker ${blocker.number} cannot require disallowed manual proof while machine proof is required.`);
     }
   }
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
@@ -2362,25 +2284,6 @@ export function validatePromotionPackReport(report) {
   const blocker20 = blockers.find((blocker) => blocker.number === 20);
   const blocker21 = blockers.find((blocker) => blocker.number === 21);
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
-  if (blocker2?.classification === "fixed with human-observed evidence") {
-    if (
-      workerRuntimeProof?.accepted !== true ||
-      workerRuntimeProof?.productionProof !== true ||
-      workerRuntimeProof?.currentOperationalProof !== true ||
-      workerRuntimeProof?.dryRunOnly === true ||
-      workerRuntimeProof?.blockerCoverage?.productionIngestRuntime !== true ||
-      workerRuntimeProof?.validation?.sensitiveFindings?.length > 0 ||
-      workerReadiness?.acceptedProductionRunEvidence?.accepted !== true ||
-      workerReadiness?.acceptedProductionRunEvidence?.runtimeProofAccepted !== true ||
-      workerReadiness?.blockerCoverage?.productionIngestRuntime !== true ||
-      workerReadiness?.safety?.productionJobsProcessedByCodex === true ||
-      workerActivation?.productionWorkerDefaultOff !== true ||
-      workerActivation?.productionActivationDeferred !== true ||
-      workerActivation?.explicitActivationInputsRequired !== true
-    ) {
-      errors.push("Blocker 2 cannot be production-ready without accepted production worker runtime proof.");
-    }
-  }
   if (blocker1?.classification === "fixed with automated evidence" && machineProofs.restore?.accepted !== true) {
     errors.push("Blocker 1 cannot be fixed with automated evidence without certifying restore machine proof.");
   }
@@ -2471,49 +2374,18 @@ export function validatePromotionPackReport(report) {
       errors.push("Blocker 11 cannot be fixed without current production-safe probe and rollback evidence.");
     }
   }
-  if (blocker11?.classification === "human proof required") {
-    errors.push("Blocker 11 must remain partial until production workflow parity and rollback evidence are present.");
-  }
-  if (blocker6?.classification === "fixed with human-observed evidence") {
-    const rawReportAcceptance = report.rawReportRemediationAcceptance;
-    if (
-      rawReportAcceptance?.accepted !== true ||
-      rawReportAcceptance?.productionProof !== true ||
-      rawReportAcceptance?.blockerCoverage?.historicalRawReportBytes !== true ||
-      rawReportAcceptance?.linkedEvidence?.reliableInventoryAccepted !== true ||
-      rawReportAcceptance?.linkedEvidence?.remediationPlanAccepted !== true ||
-      rawReportAcceptance?.validation?.inventoryAccepted !== true ||
-      rawReportAcceptance?.validation?.remediationPlanAccepted !== true ||
-      rawReportAcceptance?.validation?.sensitiveFindings?.length > 0 ||
-      rawReportAcceptance?.safety?.productionDataMutatedByCodex === true ||
-      rawReportAcceptance?.safety?.codexPerformedRemediation === true
-    ) {
-      errors.push("Blocker 6 cannot be classified fixed without accepted production operator remediation evidence linked to reliable sanitized inventory.");
-    }
-  }
   if (blocker8?.classification === "fixed with automated evidence") {
     if (
       responseOpsReadiness?.blockerCoverage?.responseOperationsMaturity !== true ||
       responseOpsReadiness?.liveSchedulerStatus !== "disabled" ||
-      !["operator-controlled-deferred", "ready", "staging-evidenced"].includes(responseOpsReadiness?.backfillReadinessStatus) ||
-      !["operator-controlled-deferred", "ready", "staging-evidenced"].includes(responseOpsReadiness?.purgeArchiveReadinessStatus) ||
+      !["machine-controlled-deferred", "ready", "staging-evidenced"].includes(responseOpsReadiness?.backfillReadinessStatus) ||
+      !["machine-controlled-deferred", "ready", "staging-evidenced"].includes(responseOpsReadiness?.purgeArchiveReadinessStatus) ||
       responseOpsReadiness?.safety?.liveSchedulerEnabledByCodex === true ||
       responseOpsReadiness?.safety?.productionDataMutated === true ||
       responseOpsReadiness?.safety?.productionRecordsPurgedOrArchived === true ||
       responseOpsReadiness?.safety?.responseQueueSemanticsChanged === true
     ) {
-      errors.push("Blocker 8 cannot be fixed without accepted response ops readiness and non-mutating operator controls.");
-    }
-  }
-  if (blocker9?.classification === "fixed with human-observed evidence") {
-    if (
-      responseOpsReadiness?.blockerCoverage?.observabilityAlerting !== true ||
-      !["live-evidenced", "formally-excluded"].includes(responseOpsReadiness?.alertingStatus) ||
-      responseOpsReadiness?.alertingAcceptanceAccepted !== true ||
-      responseOpsReadiness?.safety?.dryRunAlertsAreLiveProof === true ||
-      responseOpsReadiness?.safety?.liveAlertsSentByCodex === true
-    ) {
-      errors.push("Blocker 9 cannot be fixed without live alert proof or accepted formal alert exclusion.");
+      errors.push("Blocker 8 cannot be fixed without accepted response ops readiness and non-mutating machine controls.");
     }
   }
   if (blocker10?.classification === "fixed with automated evidence") {
@@ -2660,32 +2532,6 @@ export function validatePromotionPackReport(report) {
       errors.push("Blocker 21 fixed status requires visible dashboard SKIP count and must not treat SKIP as PASS.");
     }
   }
-  if (blocker1?.classification === "fixed with human-observed evidence") {
-    if (
-      restoreAcceptance?.accepted !== true ||
-      restoreAcceptance?.productionProof !== true ||
-      restoreAcceptance?.currentOperationalProof !== true ||
-      restoreAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
-      restoreAcceptance?.validation?.evidenceKind !== "human-observed" ||
-      restoreAcceptance?.validation?.stale === true ||
-      restoreAcceptance?.validation?.sensitiveFindings?.length > 0
-    ) {
-      errors.push("Blocker 1 cannot be classified fixed without current accepted production restore evidence.");
-    }
-  }
-  if (blocker22?.classification === "fixed with human-observed evidence") {
-    if (
-      restoreAcceptance?.accepted !== true ||
-      restoreAcceptance?.productionProof !== true ||
-      restoreAcceptance?.currentOperationalProof !== true ||
-      restoreAcceptance?.blockerCoverage?.retentionArchiveRestore !== true ||
-      restoreAcceptance?.validation?.evidenceKind !== "human-observed" ||
-      restoreAcceptance?.validation?.stale === true ||
-      restoreAcceptance?.validation?.sensitiveFindings?.length > 0
-    ) {
-      errors.push("Blocker 22 cannot be classified fixed without current accepted production archive restore evidence.");
-    }
-  }
   if (restoreAcceptance?.accepted === true) {
     if (
       restoreAcceptance?.safety?.runsDump === true ||
@@ -2701,21 +2547,10 @@ export function validatePromotionPackReport(report) {
     }
   }
   if (restoreReadiness?.currentOperationalProof === true) {
-    if (
-      restoreReadiness?.stale === true ||
-      restoreReadiness?.simulatedOnly === true ||
-      restoreReadiness?.evidenceType !== "HUMAN-OBSERVED" ||
-      restoreReadiness?.safety?.runsDump === true ||
-      restoreReadiness?.safety?.runsRestore === true ||
-      restoreReadiness?.safety?.accessesProductionBackups === true ||
-      restoreReadiness?.safety?.modifiesProduction === true ||
-      restoreReadiness?.safety?.acceptsSimulatedEvidenceAsProductionProof === true
-    ) {
-      errors.push("Restore readiness current proof is unsafe or not human-observed.");
-    }
+    errors.push("Legacy restore readiness current proof is not accepted as production certification proof; use restore machine proof.");
   }
   if (humanAcceptance?.validation?.simulatedOnlySubmission === true && humanAcceptance?.accepted === true) {
-    errors.push("SIMULATED-only human evidence submission was accepted.");
+    errors.push("SIMULATED-only legacy restore evidence submission was accepted.");
   }
   if (report.safety?.simulatedProofIsProductionProof === true) {
     errors.push("Promotion pack misclassifies simulated proof as production proof.");
@@ -2855,7 +2690,7 @@ export function renderPromotionPackMarkdown(report) {
     }`,
     "- Staging restore evidence is recorded but not counted as production proof.",
     "",
-    "## Human Restore Drill Evidence Acceptance",
+    "## Legacy Restore Drill Evidence (Non-Certifying)",
     "",
     `- Status: ${report.humanRestoreDrillEvidenceAcceptance.status}`,
     `- Accepted: ${report.humanRestoreDrillEvidenceAcceptance.accepted ? "yes" : "no"}`,
@@ -2866,7 +2701,7 @@ export function renderPromotionPackMarkdown(report) {
     `- Blocker 22 coverage: ${
       report.humanRestoreDrillEvidenceAcceptance.blockerCoverage?.retentionArchiveRestore ? "accepted" : "not accepted"
     }`,
-    `- SIMULATED-only submitted as human proof: ${
+    `- SIMULATED-only submitted as legacy proof: ${
       report.humanRestoreDrillEvidenceAcceptance.validation?.simulatedOnlySubmission ? "yes" : "no"
     }`,
     "",
@@ -2875,7 +2710,7 @@ export function renderPromotionPackMarkdown(report) {
     `- Status: ${report.restoreReadinessCheck.status}`,
     `- Current operational proof: ${report.restoreReadinessCheck.currentOperationalProof ? "yes" : "no"}`,
     `- Evidence type: ${report.restoreReadinessCheck.evidenceType}`,
-    `- Human-observed: ${report.restoreReadinessCheck.humanObserved ? "yes" : "no"}`,
+    `- Legacy observed flag: ${report.restoreReadinessCheck.humanObserved ? "yes" : "no"}`,
     `- SIMULATED-only: ${report.restoreReadinessCheck.simulatedOnly ? "yes" : "no"}`,
     `- Stale: ${report.restoreReadinessCheck.stale ? "yes" : "no"}`,
     `- Restore date/time: ${report.restoreReadinessCheck.restoreDateTime ?? "not available"}`,
@@ -2967,8 +2802,8 @@ export function renderPromotionPackMarkdown(report) {
     }`,
     `- Dry-run mutates queue: ${report.productionWorkerActivationEvidence.dryRun?.mutatesQueue ? "yes" : "no"}`,
     `- Future queue depth before/after: ${
-      report.productionWorkerActivationEvidence.futureOperatorRunFields?.queueDepthBefore ?? "required"
-    }/${report.productionWorkerActivationEvidence.futureOperatorRunFields?.queueDepthAfter ?? "required"}`,
+      report.productionWorkerActivationEvidence.futureMachineRunFields?.queueDepthBefore ?? "required"
+    }/${report.productionWorkerActivationEvidence.futureMachineRunFields?.queueDepthAfter ?? "required"}`,
     "- This activation evidence does not close blocker 2 without accepted production queue-depth evidence.",
     "",
     "## Staging Ingest Worker Evidence",
@@ -3114,7 +2949,7 @@ export function renderPromotionPackMarkdown(report) {
       report.responseOpsReadinessEvidence.safety?.responseQueueSemanticsChanged ? "yes" : "no"
     }`,
     "",
-    "## Human-Required Proof",
+    "## Disallowed Manual Proof Dependencies",
     "",
     ...renderBlockerRows(report.humanRequiredProof),
     "",

@@ -131,25 +131,28 @@ function writeAcceptedInventoryAndPlan(rootDir: string) {
 function validAcceptanceEvidence(overrides: Record<string, unknown> = {}) {
   return {
     evidenceId: "RRR-UNIT-001",
-    evidenceType: "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
+    evidenceType: "MACHINE_ATTESTED_RAW_REPORT_REMEDIATION",
     environment: "production",
-    remediationMode: "operator-applied",
+    remediationMode: "machine-applied",
     dryRunOnly: false,
-    operatorNameOrRole: "Compliance operations lead",
-    approvedAt: "2026-05-20T14:00:00.000Z",
+    machineActorId: "RAW_REPORT_MACHINE_RUNNER_1",
+    machineProofGeneratedAt: "2026-05-20T14:00:00.000Z",
     performedAt: "2026-05-20T15:00:00.000Z",
     inventoryEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
     remediationPlanEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
     inventoryRun: true,
     reliableInventoryAccepted: true,
-    remediationPlanApproved: true,
-    remediationPerformedByOperatorOrApprovedProcess: true,
+    remediationPlanPolicySatisfied: true,
+    remediationPerformedByMachineProcess: true,
     remediationApplied: true,
     oldInlineCompatibilityTested: true,
     sanitizedEvidence: true,
     postRemediationCountsRecorded: true,
-    backupRestorePrerequisiteAcknowledged: true,
-    operatorAcknowledgementSigned: true,
+    backupRestorePrerequisiteVerified: true,
+    nonInteractive: true,
+    machineAttested: true,
+    humanObserved: false,
+    manualApprovalRequired: false,
     historicalInlineRowsResolved: true,
     noRawSensitiveValuesAppearInEvidence: true,
     productionDataMutatedByCodex: false,
@@ -216,17 +219,17 @@ describe("storage raw report remediation plan", () => {
     ).toThrow(/production-like environment/i);
   });
 
-  it("acceptance fails without operator approval", () => {
+  it("acceptance fails without machine policy satisfaction", () => {
     const validation = validateRawReportRemediationAcceptanceEvidence(
       validAcceptanceEvidence({
-        remediationPlanApproved: false,
-        operatorAcknowledgementSigned: false,
+        remediationPlanPolicySatisfied: false,
+        machineAttested: false,
       }),
     );
 
     expect(validation.accepted).toBe(false);
-    expect(validation.errors.join("\n")).toMatch(/remediationPlanApproved must be true/);
-    expect(validation.errors.join("\n")).toMatch(/operatorAcknowledgementSigned must be true/);
+    expect(validation.errors.join("\n")).toMatch(/remediationPlanPolicySatisfied must be true/);
+    expect(validation.errors.join("\n")).toMatch(/machineAttested must be true/);
   });
 
   it("acceptance fails with secrets, PII, or raw values", () => {
@@ -240,7 +243,7 @@ describe("storage raw report remediation plan", () => {
     expect(validation.sensitiveFindings).toEqual(expect.arrayContaining(["database-url", "raw-pdf-bytes", "obvious-email-pii"]));
   });
 
-  it("acceptance remains not-submitted until a sanitized operator artifact exists", () => {
+  it("acceptance remains not-submitted until a sanitized machine artifact exists", () => {
     const rootDir = makeTempRoot();
     const report = buildRawReportRemediationAcceptanceReport({
       rootDir,
@@ -311,7 +314,7 @@ describe("storage raw report remediation plan", () => {
     expect(report.validation.errors.join("\n")).toMatch(/remediationApplied must be true/i);
   });
 
-  it("accepts sanitized operator evidence for blocker 6 coverage", () => {
+  it("accepts sanitized machine evidence for blocker 6 coverage", () => {
     const rootDir = makeTempRoot();
     writeAcceptedInventoryAndPlan(rootDir);
     const report = buildRawReportRemediationAcceptanceReport({

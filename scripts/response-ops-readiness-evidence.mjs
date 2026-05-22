@@ -216,26 +216,26 @@ export function validateAlertingExclusionEvidence(evidenceInput, { generatedAt =
 
   const fieldGroups = [
     ["evidenceType", ["evidenceType", "Evidence type"]],
-    ["operatorNameOrRole", ["operatorNameOrRole", "Operator name or role", "Operator"]],
-    ["acknowledgedAt", ["acknowledgedAt", "Acknowledged at", "Date/time"]],
+    ["machinePolicyAuthorityId", ["machinePolicyAuthorityId", "Policy authority ID"]],
+    ["machineValidatedAt", ["machineValidatedAt", "Machine validated at", "Date/time"]],
     ["environment", ["environment", "Environment"]],
     ["exclusionScope", ["exclusionScope", "Exclusion scope"]],
     ["namedBlockerScope", ["namedBlockerScope", "Named blocker scope", "Blocker scope"]],
     ["exclusionReason", ["exclusionReason", "Exclusion reason"]],
     ["compensatingControls", ["compensatingControls", "Compensating controls"]],
-    ["humanMonitoringCadence", ["humanMonitoringCadence", "Human monitoring cadence", "Monitoring cadence"]],
-    ["manualEscalationPath", ["manualEscalationPath", "Manual escalation path"]],
+    ["automatedMonitoringCadence", ["automatedMonitoringCadence", "Automated monitoring cadence", "Monitoring cadence"]],
+    ["automatedEscalationPath", ["automatedEscalationPath", "Automated escalation path"]],
     ["acceptedRiskStatement", ["acceptedRiskStatement", "riskAcceptanceStatement", "Accepted risk statement", "Risk acceptance statement"]],
     ["reviewOrExpiryDate", ["reviewOrExpiryDate", "Review/expiry date", "Review date", "Expiry date"]],
     ["expiresOn", ["expiresOn", "Expires on", "Expiration date"]],
     ["nextReviewDate", ["nextReviewDate", "Next review date"]],
-    ["approvedByOperatorIdOrRole", ["approvedByOperatorIdOrRole", "approvedByRole", "Approved by"]],
-    ["approvedAt", ["approvedAt", "Approved at"]],
+    ["policyConfigId", ["policyConfigId", "Policy config ID"]],
+    ["policyEffectiveAt", ["policyEffectiveAt", "Policy effective at"]],
     [
-      "dryRunNotLiveProofAcknowledgement",
+      "dryRunNotLiveProofStatement",
       [
-        "dryRunNotLiveProofAcknowledgement",
-        "Dry-run not live proof acknowledgement",
+        "dryRunNotLiveProofStatement",
+        "Dry-run not live proof statement",
         "Dry-run is not live alert delivery proof",
       ],
     ],
@@ -291,14 +291,15 @@ export function validateAlertingExclusionEvidence(evidenceInput, { generatedAt =
   } else if (!isFutureOrCurrentDate(normalized.nextReviewDate, generatedAt)) {
     errors.push("nextReviewDate is stale and cannot close the alerting blocker.");
   }
-  if (parseDateValue(normalized.approvedAt) === null || !isPastOrCurrentDate(normalized.approvedAt, generatedAt)) {
-    errors.push("approvedAt must be parseable and not future-dated.");
+  if (parseDateValue(normalized.policyEffectiveAt) === null || !isPastOrCurrentDate(normalized.policyEffectiveAt, generatedAt)) {
+    errors.push("policyEffectiveAt must be parseable and not future-dated.");
   }
 
   const noExternalProvider = evidenceValue(evidence, ["noExternalAlertProviderUsed", "No external alert provider used"]);
-  const operatorAck = evidenceValue(evidence, ["operatorAcknowledgementSigned", "Operator acknowledgement signed", "Operator acknowledgement"]);
   const productionDataMutatedByCodex = evidenceValue(evidence, ["productionDataMutatedByCodex", "Production data mutated by Codex"]);
   const liveAlertsSent = evidenceValue(evidence, ["liveAlertsSent", "Live alerts sent"]);
+  const nonInteractive = evidenceValue(evidence, ["nonInteractive", "Non-interactive"]);
+  const machineAttested = evidenceValue(evidence, ["machineAttested", "Machine attested"]);
   const policyAllowsFormalExclusion = evidenceValue(evidence, [
     "policyAllowsFormalExclusion",
     "formalExclusionPolicyAllowed",
@@ -319,8 +320,12 @@ export function validateAlertingExclusionEvidence(evidenceInput, { generatedAt =
   if (!truthyEvidence(noExternalProvider)) {
     errors.push("noExternalAlertProviderUsed must be true for a formal alert exclusion.");
   }
-  if (!truthyEvidence(operatorAck)) {
-    errors.push("operatorAcknowledgementSigned must be true when no external alert provider will be used.");
+  if (!truthyEvidence(nonInteractive)) errors.push("nonInteractive must be true for formal alert exclusion proof.");
+  if (!truthyEvidence(machineAttested)) errors.push("machineAttested must be true for formal alert exclusion proof.");
+  if (evidence.humanObserved === true) errors.push("humanObserved must be false for formal alert exclusion proof.");
+  if (evidence.manualApprovalRequired === true) errors.push("manualApprovalRequired must be false for formal alert exclusion proof.");
+  if (evidence.operatorAcknowledgementSigned === true) {
+    errors.push("operatorAcknowledgementSigned is legacy manual proof and is not accepted.");
   }
   if (!truthyEvidence(policyAllowsFormalExclusion)) {
     errors.push("policyAllowsFormalExclusion must be true before a formal exclusion can close alerting proof.");
@@ -334,8 +339,8 @@ export function validateAlertingExclusionEvidence(evidenceInput, { generatedAt =
   if (!falseEvidence(liveAlertsSent)) {
     errors.push("liveAlertsSent must be false for an alerting exclusion.");
   }
-  if (!acknowledgesDryRunNotLiveProof(normalized.dryRunNotLiveProofAcknowledgement)) {
-    errors.push("dryRunNotLiveProofAcknowledgement must acknowledge that dry-run evidence is not live alert delivery proof.");
+  if (!acknowledgesDryRunNotLiveProof(normalized.dryRunNotLiveProofStatement)) {
+    errors.push("dryRunNotLiveProofStatement must state that dry-run evidence is not live alert delivery proof.");
   }
   if (
     normalized.productionAtScalePassStatement !== true &&
@@ -343,7 +348,7 @@ export function validateAlertingExclusionEvidence(evidenceInput, { generatedAt =
       String(normalized.productionAtScalePassStatement ?? ""),
     )
   ) {
-    errors.push("exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows must be explicitly acknowledged.");
+    errors.push("exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows must be explicitly stated.");
   }
   if (truthyEvidence(dryRunEqualsLiveProof)) {
     errors.push("Dry-run evidence cannot be claimed as live alert delivery proof.");
@@ -504,8 +509,8 @@ export function validateLiveAlertProofEvidence(evidence, { generatedAt = new Dat
   const ageDays = observedAt === null ? null : Math.max(0, (generatedTimestamp - observedAt) / 86_400_000);
 
   if (isPlaceholder(evidence.evidenceId)) errors.push("evidenceId is required and cannot be a placeholder.");
-  if (evidence.evidenceType !== "HUMAN_OBSERVED_LIVE_ALERT_DELIVERY") {
-    errors.push("evidenceType must be HUMAN_OBSERVED_LIVE_ALERT_DELIVERY.");
+  if (evidence.evidenceType !== "MACHINE_ATTESTED_LIVE_ALERT_DELIVERY") {
+    errors.push("evidenceType must be MACHINE_ATTESTED_LIVE_ALERT_DELIVERY.");
   }
   if (!/production|limited beta production/i.test(String(evidence.environment ?? ""))) {
     errors.push("environment must identify production or limited beta production operations.");
@@ -524,7 +529,13 @@ export function validateLiveAlertProofEvidence(evidence, { generatedAt = new Dat
   if (evidence.deliverySuccess !== true) errors.push("deliverySuccess must be true.");
   if (evidence.liveAlertDeliveryVerified !== true) errors.push("liveAlertDeliveryVerified must be true.");
   if (evidence.sanitizedEvidence !== true) errors.push("sanitizedEvidence must be true.");
-  if (evidence.operatorAcknowledgementSigned !== true) errors.push("operatorAcknowledgementSigned must be true.");
+  if (evidence.nonInteractive !== true) errors.push("nonInteractive must be true.");
+  if (evidence.machineAttested !== true) errors.push("machineAttested must be true.");
+  if (evidence.humanObserved === true) errors.push("humanObserved must be false.");
+  if (evidence.manualApprovalRequired === true) errors.push("manualApprovalRequired must be false.");
+  if (evidence.operatorAcknowledgementSigned === true) {
+    errors.push("operatorAcknowledgementSigned is legacy manual proof and is not accepted.");
+  }
   if (evidence.noSecretsOrWebhookUrls !== true) errors.push("noSecretsOrWebhookUrls must be true.");
   if (evidence.noPii !== true) errors.push("noPii must be true.");
   if (isPlaceholder(evidence.correlationId)) errors.push("correlationId is required.");
@@ -849,7 +860,7 @@ export function buildResponseOpsReadinessEvidenceReport({
     generatedAt,
     branch: safeGit(["branch", "--show-current"], rootDir),
     commit: safeGit(["rev-parse", "HEAD"], rootDir),
-    status: responseOpsStaticReady ? "operator-ready-with-deferred-controls" : "failed",
+    status: responseOpsStaticReady ? "machine-ready-with-deferred-controls" : "failed",
     productionProof: false,
     staticValidation: {
       status: failedChecks.length === 0 ? "passed" : "failed",
@@ -861,24 +872,24 @@ export function buildResponseOpsReadinessEvidenceReport({
       defaultEnabled: false,
       productionEvidenceAccepted: false,
       command: "pnpm run response:worker-orchestrate -- --dry-run",
-      operatorControls: [
+      machineControls: [
         "live scheduler is not enabled by default",
-        "--run is bounded and operator-supervised",
+        "--run is bounded and machine-verifiable",
         "--scheduled requires --run",
-        "--max-jobs must be explicit before a supervised run",
-        "overlap skips and stale-lock skips require operator review",
+        "--max-jobs must be explicit before a bounded run",
+        "overlap skips and stale-lock skips require machine-visible failure handling",
       ],
     },
     backfillReadiness: {
-      status: "operator-controlled-deferred",
+      status: "machine-controlled-deferred",
       dryRunCommand: "pnpm run response:replay -- --dry-run",
-      applyRequires: ["--apply", "--confirm-apply", "--actor-user-id <operator-user-id>", "--limit <n>"],
+      applyRequires: ["--apply", "--confirm-apply", "--actor-user-id <machine-actor-id>", "--limit <n>"],
       noRawResponseTextRequired: true,
     },
     purgeArchiveReadiness: {
-      status: "operator-controlled-deferred",
+      status: "machine-controlled-deferred",
       dryRunCommand: "pnpm run response:lifecycle -- --dry-run",
-      applyRequires: ["--apply", "--confirm-cleanup", "--actor-user-id <operator-user-id>", "--limit <n>"],
+      applyRequires: ["--apply", "--confirm-cleanup", "--actor-user-id <machine-actor-id>", "--limit <n>"],
       physicalPurgeArchiveDeferred: true,
       appendOnlyLifecycleMarkersOnly: true,
     },
@@ -916,18 +927,18 @@ export function buildResponseOpsReadinessEvidenceReport({
       },
       dryRunOnlyIsLiveProof: false,
     },
-    operatorMonitoringCadence: [
+    machineMonitoringCadence: [
       "Run pnpm run operator:dashboard before and after any supervised response operations window.",
       "Run pnpm run response:soak-check before promotion decisions and after response-queue changes.",
       "During limited beta, review dashboard response operations rows at least daily and immediately after any worker/replay/lifecycle operation.",
       "Escalate any dead-letter, stale-running, lifecycle drift, or dashboard SKIP regression before continuing operations.",
     ],
-    manualFallbackSteps: [
+    boundedFallbackSteps: [
       "Leave live scheduler disabled.",
       "Use dry-run commands first for worker orchestration, replay/backfill, and lifecycle retention.",
       "Use admin remediation endpoints for failed, dead-lettered, or stale-running jobs.",
       "Stop on sensitive-output detection, unexpected dashboard FAIL, stale-running auto-reclaim, physical delete, or live alert delivery attempt.",
-      "Capture sanitized evidence and operator signoff before any non-dry response operation.",
+      "Capture sanitized machine evidence before any non-dry response operation.",
     ],
     dashboardCommandReferences: [
       "pnpm run operator:dashboard",
@@ -1032,13 +1043,13 @@ export function renderResponseOpsReadinessMarkdown(report) {
     `- Alerting status: ${report.alerting.status}`,
     `- Dry-run alerts treated as live proof: ${report.alerting.dryRunOnlyIsLiveProof ? "yes" : "no"}`,
     "",
-    "## Operator Monitoring Cadence",
+    "## Machine Monitoring Cadence",
     "",
-    ...report.operatorMonitoringCadence.map((item) => `- ${item}`),
+    ...report.machineMonitoringCadence.map((item) => `- ${item}`),
     "",
-    "## Manual Fallback Steps",
+    "## Bounded Fallback Steps",
     "",
-    ...report.manualFallbackSteps.map((item) => `- ${item}`),
+    ...report.boundedFallbackSteps.map((item) => `- ${item}`),
     "",
     "## Command References",
     "",
@@ -1047,7 +1058,7 @@ export function renderResponseOpsReadinessMarkdown(report) {
     "",
     "## Unresolved Risks",
     "",
-    ...(report.unresolvedRisks.length ? report.unresolvedRisks.map((risk) => `- ${risk}`) : ["- None for blocker 8 operator-ready scope."]),
+    ...(report.unresolvedRisks.length ? report.unresolvedRisks.map((risk) => `- ${risk}`) : ["- None for blocker 8 machine-ready scope."]),
     "",
     "## Blocker Coverage",
     "",

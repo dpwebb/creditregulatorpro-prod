@@ -1,20 +1,26 @@
 # Production Worker Runtime Machine Proof
 
-Generated at: 2026-05-22T12:46:14.770Z
+Generated at: 2026-05-22T13:46:14.570Z
 Evidence type: PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF
 Environment: production
-Commit: `79af5282d400136dd75aa3d9d952799a37b92d32`
+Commit: `a7bae388efa0edb1ebbf40fecee760bde4db6c1e`
 Generator: `scripts/production-worker-machine-proof.mjs`
 Command: `pnpm run production-worker:machine-proof`
+Blocker ID: L10-P1-003
+Branch: `staging`
+Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T12:46:14.770Z
+Expires at: 2026-05-23T13:46:14.570Z
 
 ## Safety
 
 - Non-interactive: yes
 - Machine-attested: yes
 - Human interaction required: no
+- Human observed: no
+- Manual approval required: no
+- Dry-run only: no
 - Production mutation: synthetic-canary-cleaned-up
 - Secrets printed: no
 - PII printed: no

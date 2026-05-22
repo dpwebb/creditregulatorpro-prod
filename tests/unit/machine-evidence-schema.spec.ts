@@ -36,6 +36,9 @@ describe("machine evidence schema", () => {
       errors: [],
     });
     expect(evidence.humanInteractionRequired).toBe(false);
+    expect(evidence.humanObserved).toBe(false);
+    expect(evidence.manualApprovalRequired).toBe(false);
+    expect(evidence.policyVersion).toBe("production-machine-proof-policy-2026-05-22");
   });
 
   it("rejects simulated-only production proof", () => {
@@ -94,6 +97,21 @@ describe("machine evidence schema", () => {
 
     expect(validateMachineEvidence(evidence, { now: NOW }).errors).toEqual(
       expect.arrayContaining(["humanInteractionRequired must be false."]),
+    );
+  });
+
+  it("rejects evidence that depends on human observation or manual approval", () => {
+    const evidence = {
+      ...validEvidence(),
+      humanObserved: true,
+      manualApprovalRequired: true,
+    };
+
+    expect(validateMachineEvidence(evidence, { now: NOW }).errors).toEqual(
+      expect.arrayContaining([
+        "humanObserved must be false.",
+        "manualApprovalRequired must be false.",
+      ]),
     );
   });
 });

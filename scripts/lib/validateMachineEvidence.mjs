@@ -6,6 +6,7 @@ import {
   PRODUCTION_MUTATION_MODES,
   repoPath,
 } from "./productionEvidenceSchema.mjs";
+import { PRODUCTION_MACHINE_PROOF_POLICY_VERSION } from "./productionMachineProofPolicy.mjs";
 import { findSensitiveEvidenceValues } from "./sanitizeProductionEvidence.mjs";
 
 const STRICT_SHA_RE = /^[a-f0-9]{40}$/i;
@@ -18,6 +19,7 @@ export function validateMachineEvidence(evidence, {
   expectedEvidenceType = null,
   now = new Date().toISOString(),
   requireCertifying = true,
+  productionRuntimeProofRequired = false,
 } = {}) {
   const errors = [];
   const sensitiveFindings = findSensitiveEvidenceValues(evidence);
@@ -38,10 +40,24 @@ export function validateMachineEvidence(evidence, {
   if (expectedEvidenceType && evidence.evidenceType !== expectedEvidenceType) {
     errors.push(`evidenceType must be ${expectedEvidenceType}.`);
   }
-  for (const field of ["evidenceType", "environment", "generatedAt", "commitHash", "generatorScript", "command", "expiresAt"]) {
+  for (const field of [
+    "evidenceType",
+    "blockerId",
+    "environment",
+    "generatedAt",
+    "commitHash",
+    "branch",
+    "generatorScript",
+    "command",
+    "expiresAt",
+    "policyVersion",
+  ]) {
     if (typeof evidence[field] !== "string" || !evidence[field].trim()) {
       errors.push(`${field} is required.`);
     }
+  }
+  if (evidence.policyVersion !== PRODUCTION_MACHINE_PROOF_POLICY_VERSION) {
+    errors.push(`policyVersion must be ${PRODUCTION_MACHINE_PROOF_POLICY_VERSION}.`);
   }
   if (!STRICT_SHA_RE.test(String(evidence.commitHash ?? ""))) {
     errors.push("commitHash must be a strict 40-hex commit hash.");
@@ -49,9 +65,20 @@ export function validateMachineEvidence(evidence, {
   if (!isTrue(evidence.nonInteractive)) errors.push("nonInteractive must be true.");
   if (!isTrue(evidence.machineAttested)) errors.push("machineAttested must be true.");
   if (evidence.humanInteractionRequired !== false) errors.push("humanInteractionRequired must be false.");
+  if (evidence.humanObserved !== false) errors.push("humanObserved must be false.");
+  if (evidence.manualApprovalRequired !== false) errors.push("manualApprovalRequired must be false.");
   if (evidence.generatedManually === true) errors.push("generated manually evidence is rejected.");
   if (evidence.simulatedOnly === true && evidence.environment === "production") {
     errors.push("simulated-only evidence cannot be production proof.");
+  } else if (evidence.environment === "production" && evidence.simulatedOnly !== false) {
+    errors.push("simulatedOnly must be false for production proof.");
+  }
+  if (evidence.environment === "production" && evidence.dryRunOnly !== false) {
+    errors.push(
+      productionRuntimeProofRequired
+        ? "dryRunOnly must be false for production runtime proof."
+        : "dryRunOnly must be false for production proof.",
+    );
   }
   if (!PRODUCTION_MUTATION_MODES.has(String(evidence.productionMutation ?? ""))) {
     errors.push("productionMutation has an invalid value.");
@@ -117,6 +144,7 @@ export function validateMachineEvidenceFile({
   expectedEvidenceType = null,
   now = new Date().toISOString(),
   requireCertifying = true,
+  productionRuntimeProofRequired = false,
 } = {}) {
   const evidence = readMachineEvidenceFile(rootDir, evidencePath);
   if (!evidence) {
@@ -129,6 +157,11 @@ export function validateMachineEvidenceFile({
       evidence: null,
     };
   }
-  const validation = validateMachineEvidence(evidence, { expectedEvidenceType, now, requireCertifying });
+  const validation = validateMachineEvidence(evidence, {
+    expectedEvidenceType,
+    now,
+    requireCertifying,
+    productionRuntimeProofRequired,
+  });
   return { ...validation, evidence };
 }

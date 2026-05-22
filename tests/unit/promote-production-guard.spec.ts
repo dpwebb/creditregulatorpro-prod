@@ -40,7 +40,7 @@ function certifyingPack(overrides: Record<string, unknown> = {}) {
         number: 1,
         title: "Disaster recovery",
         severity: "P1",
-        classification: "fixed with human-observed evidence",
+        classification: "fixed with automated evidence",
       },
     ],
     unresolvedProductionBlockers: [],
@@ -173,6 +173,28 @@ describe("production promotion guard", () => {
     expect(output).not.toContain("X-Amz-Signature");
     expect(output).not.toContain("X-Amz-Credential");
     expect(output).not.toContain(signedUrl);
+  });
+
+  it("blocks promotion when a certifying-looking pack still contains human proof dependencies", () => {
+    const result = validatePromotionPackForProduction(
+      certifyingPack({
+        blockerClassifications: [
+          {
+            number: 1,
+            title: "Disaster recovery",
+            severity: "P1",
+            classification: "fixed with human-observed evidence",
+          },
+        ],
+      }),
+      { currentHead: HEAD },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toEqual(expect.arrayContaining([
+      "human-proof-dependency",
+      "open-p0-p1-blockers",
+    ]));
   });
 
   it("wires the hard guard into package scripts, local promotion, and production CI preflight", () => {

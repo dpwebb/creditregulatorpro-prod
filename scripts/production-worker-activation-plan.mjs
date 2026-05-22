@@ -94,7 +94,7 @@ function buildReport() {
     },
     blockers: {
       blocker2: "partial; production worker activation is prepared but not activated or evidenced as production-fixed",
-      blocker11: "partial; production parity still requires rollback and human-observed production evidence",
+      blocker11: "partial; production parity still requires rollback and machine-attested production evidence",
     },
     outputPaths: {
       markdown: markdownPath,

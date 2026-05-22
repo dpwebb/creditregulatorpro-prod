@@ -3,6 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { machineProofRequirementForBlocker } from "./lib/productionMachineProofPolicy.mjs";
+
 export const DEFAULT_BLOCKER_REGISTRY_PATH = "docs/production-scale/blocker-registry.json";
 export const DEFAULT_AUDIT_PATH = "docs/production-at-scale-maximum-audit.md";
 export const DEFAULT_EVIDENCE_DIR = "docs/production-scale/evidence";
@@ -12,7 +14,7 @@ const OUTPUT_GROUPS = [
   { key: "simulated", title: "Simulated Evidence", category: "simulated" },
   { key: "staging", title: "Staging Evidence", category: "staging" },
   { key: "readOnlyProduction", title: "Read-Only Production Evidence", category: "read-only-production" },
-  { key: "humanObserved", title: "Human-Observed Evidence", category: "human-observed" },
+  { key: "machineAttested", title: "Machine-Attested Production Proof Requirements", category: "machine-attested" },
 ];
 
 const MACHINE_ATTESTED_PROOF_COMMANDS = [
@@ -134,20 +136,26 @@ function countBy(items, key) {
 }
 
 function blockerSummary(blocker) {
+  const machineRequirement = machineProofRequirementForBlocker(blocker.number);
   return {
     number: blocker.number,
     title: blocker.title,
     severity: blocker.severity,
     area: blocker.area,
-    currentStatus: blocker.currentStatus,
-    proofTypeRequired: blocker.proofTypeRequired,
-    allowedProofCommands: blocker.allowedProofCommands,
+    currentStatus: blocker.currentStatus === "requires-human-proof" ? "partial" : blocker.currentStatus,
+    proofTypeRequired: machineRequirement?.proofTypeRequired ?? blocker.proofTypeRequired,
+    allowedProofCommands: Array.from(new Set([
+      ...(blocker.allowedProofCommands ?? []),
+      ...(machineRequirement?.allowedProofCommands ?? []),
+    ])),
     forbiddenProofTypes: blocker.forbiddenProofTypes,
     productionMutationForbidden: blocker.productionMutationForbidden === true,
     simulatedProofAcceptable: blocker.simulatedProofAcceptable === true,
-    humanProofRequired: blocker.humanProofRequired === true,
+    humanProofRequired: false,
+    machineProofRequired: Boolean(machineRequirement),
+    proofCategories: machineRequirement?.proofCategories ?? blocker.proofCategories,
     relatedEvidenceOutputPaths: blocker.relatedEvidenceOutputPaths,
-    recommendedNextAction: blocker.recommendedNextAction,
+    recommendedNextAction: machineRequirement?.recommendedNextAction ?? blocker.recommendedNextAction,
   };
 }
 
@@ -213,10 +221,10 @@ export function validateBlockerRegistry(registry, auditRows = []) {
     }
     if (
       blocker.currentStatus === "fixed" &&
-      blocker.humanProofRequired !== true &&
+      !machineProofRequirementForBlocker(blocker.number) &&
       (!Array.isArray(blocker.allowedProofCommands) || !blocker.allowedProofCommands.some((command) => recognizedCommands.has(command)))
     ) {
-      errors.push(`Blocker ${blocker.number} cannot be fixed without recognized evidence commands or human proof.`);
+      errors.push(`Blocker ${blocker.number} cannot be fixed without recognized automated or machine proof commands.`);
     }
   }
 
@@ -365,11 +373,13 @@ export function buildProductionScaleEvidenceReport({
       commandExecutedByThisReport: false,
       blockers: blockers.filter((blocker) => {
         const source = loadedRegistry.blockers.find((item) => item.number === blocker.number);
-        return source?.proofCategories?.includes(group.category);
+        return group.category === "machine-attested"
+          ? Boolean(machineProofRequirementForBlocker(blocker.number)) || source?.proofCategories?.includes(group.category)
+          : source?.proofCategories?.includes(group.category);
       }),
     };
   }
-  evidence.readOnlyProduction.productionProof = "human-required-read-only";
+  evidence.readOnlyProduction.productionProof = "machine-proof-required-read-only";
   evidence.simulated.label = "SIMULATED";
   evidence.simulated.notice = "SIMULATED evidence is local/staging-safe only and is not production proof.";
 
@@ -490,7 +500,7 @@ export function renderProductionScaleEvidenceMarkdown(report) {
       lines.push("SIMULATED: Local or staging-safe simulated evidence is separated here and is never rendered as production proof.", "");
     }
     if (group.key === "readOnlyProduction") {
-      lines.push("No read-only production command is executed by this report. Any production evidence must be human-observed, sanitized, and non-mutating.", "");
+      lines.push("No read-only production command is executed by this report. Production certification requires non-interactive, machine-attested, sanitized, fresh proof.", "");
     }
     lines.push(...renderBlockerList(report.evidence[group.key].blockers, { simulated: group.key === "simulated" }), "");
   }

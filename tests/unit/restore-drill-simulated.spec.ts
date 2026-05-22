@@ -47,9 +47,9 @@ describe("simulated restore drill evidence", () => {
 
     expect(markdown).toContain("# SIMULATED Restore Drill Evidence");
     expect(markdown).toContain("SIMULATED evidence only");
-    expect(markdown).toContain("Human-observed restore proof still required: yes");
+    expect(markdown).toContain("Machine restore proof still required: yes");
     expect(json.evidenceType).toBe("SIMULATED");
-    expect(json.humanObservedRestoreProofStillRequired).toBe(true);
+    expect(json.machineRestoreProofStillRequired).toBe(true);
   });
 
   it("verifies synthetic post-restore markers and RPO/RTO values", () => {
@@ -80,7 +80,7 @@ describe("simulated restore drill evidence", () => {
     expect(markdown).toContain("Production backups accessed: no");
     expect(markdown).toContain("Production data mutated: no");
     expect(markdown).toContain("Live external providers connected: no");
-    expect(markdown).toContain("A human-observed restore drill with signed, sanitized evidence is still required");
+    expect(markdown).toContain("Non-interactive sanitized restore machine proof is required");
   });
 
   it("fails closed in production-like environments", () => {

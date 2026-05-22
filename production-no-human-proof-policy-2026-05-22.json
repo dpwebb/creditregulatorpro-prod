@@ -1,0 +1,284 @@
+{
+  "reportName": "production-no-human-proof-policy",
+  "generatedAt": "2026-05-22T13:50:25.031Z",
+  "auditSource": [
+    "production-at-scale-level-10-audit-2026-05-22.md",
+    "production-at-scale-level-10-audit-2026-05-22.json"
+  ],
+  "policyVersion": "production-machine-proof-policy-2026-05-22",
+  "objective": "Eliminate production-at-scale certification dependencies on human interaction, human-observed evidence, operator acknowledgement, manual approval, and checklist-only proof.",
+  "certificationResult": {
+    "CERTIFYING": false,
+    "canPromoteProductionAtScale": false,
+    "humanInteractionRequired": false,
+    "humanRequiredProofCount": 0,
+    "reason": "Production proof is now required as non-interactive machine-attested evidence. Certification remains false because required machine proof inputs are missing or a machine proof is non-certifying."
+  },
+  "policyImplemented": {
+    "humanInteractionAcceptedForProductionCertification": false,
+    "humanObservedEvidenceAcceptedForProductionCertification": false,
+    "manualApprovalAcceptedForProductionCertification": false,
+    "operatorAcknowledgementAcceptedForProductionCertification": false,
+    "checklistOnlyProofAcceptedForProductionCertification": false,
+    "machineProofRequired": true,
+    "failClosedOnMissingRuntimeInputs": true,
+    "simulatedOnlyProductionProofAccepted": false,
+    "dryRunOnlyRuntimeProofAccepted": false
+  },
+  "dependenciesFound": [
+    {
+      "dependency": "human-observed restore evidence",
+      "classification": "active gate converted to machine-proof requirement",
+      "paths": [
+        "scripts/restore-evidence-acceptance.mjs",
+        "scripts/staging-backup-restore-checklist.mjs",
+        "scripts/production-promotion-pack.mjs",
+        "docs/production-scale/blocker-registry.json"
+      ],
+      "resolution": "Legacy human restore evidence is rejected or ignored for production certification. Disaster recovery and retention blockers require restore machine proof files."
+    },
+    {
+      "dependency": "operator acknowledgement for production worker runtime proof",
+      "classification": "active validation gate converted to machine-proof requirement",
+      "paths": [
+        "scripts/production-worker-runtime-proof.mjs",
+        "scripts/production-worker-readiness-evidence.mjs",
+        "scripts/production-worker-activation-evidence.mjs"
+      ],
+      "resolution": "Worker proof validators now require nonInteractive and machineAttested fields and reject legacy operator acknowledgement fields."
+    },
+    {
+      "dependency": "operator acknowledgement or manual approval for response operations alert exclusion",
+      "classification": "active validation gate converted to machine-proof requirement",
+      "paths": [
+        "scripts/response-ops-readiness-evidence.mjs"
+      ],
+      "resolution": "Formal alert exclusions now require machine policy authority fields, nonInteractive, and machineAttested; live alert proof requires machine-attested delivery."
+    },
+    {
+      "dependency": "operator-applied raw report remediation acceptance",
+      "classification": "active validation gate converted to machine-proof requirement",
+      "paths": [
+        "scripts/storage-raw-report-remediation-plan.mjs"
+      ],
+      "resolution": "Raw report remediation completion now requires machine-attested bounded remediation evidence and rejects legacy operator acknowledgement fields."
+    },
+    {
+      "dependency": "requires-human-proof current status and humanProofRequired registry residuals",
+      "classification": "real promotion gate converted to machine-proof requirement",
+      "paths": [
+        "scripts/production-promotion-pack.mjs",
+        "scripts/production-scale-evidence.mjs",
+        "docs/production-scale/blocker-registry.json"
+      ],
+      "resolution": "Promotion pack classification maps residual human-proof registry states to machine proof required and reports no humanRequiredProof entries."
+    },
+    {
+      "dependency": "manual or human proof in promotion guard",
+      "classification": "real validation gate hardened",
+      "paths": [
+        "scripts/production-promotion-guard.mjs"
+      ],
+      "resolution": "Promotion guard fails closed if a certifying-looking pack contains human proof classifications, humanInteractionRequired, or humanRequiredProof entries."
+    },
+    {
+      "dependency": "HUMAN_REQUIRED dashboard semantics",
+      "classification": "report wording converted",
+      "paths": [
+        "scripts/operator-regression-dashboard.ts",
+        "scripts/alerts-dry-run.mjs",
+        "docs/production-scale/blocker-registry.json"
+      ],
+      "resolution": "Dashboard/report semantics now use MACHINE_REQUIRED for release evidence rows."
+    },
+    {
+      "dependency": "legacy leftover blocker closure audit text",
+      "classification": "historical audit helper only",
+      "paths": [
+        "scripts/leftover-blocker-closure-audit.mjs",
+        "tests/unit/leftover-blocker-closure-audit.spec.ts"
+      ],
+      "resolution": "Not wired into production-scale certification or production promotion. It remains historical closure-audit context and is not accepted as current certification proof."
+    },
+    {
+      "dependency": "human restore drill fixtures",
+      "classification": "test fixture",
+      "paths": [
+        "tests/fixtures/human-restore-drill-evidence.valid.md",
+        "tests/fixtures/human-restore-drill-evidence.invalid.md",
+        "tests/unit/staging-backup-restore-checklist.spec.ts",
+        "tests/unit/production-promotion-pack.spec.ts"
+      ],
+      "resolution": "Fixtures now prove legacy human evidence is rejected or ignored for certification."
+    },
+    {
+      "dependency": "generated evidence artifacts containing old text",
+      "classification": "evidence artifact",
+      "paths": [
+        "docs/production-scale/evidence/latest-*.json",
+        "docs/production-scale/evidence/latest-*.md"
+      ],
+      "resolution": "Regenerated current certification and promotion evidence reports no human proof required and exact missing machine inputs."
+    },
+    {
+      "dependency": "audit source references to human-observed proof",
+      "classification": "historical audit text only",
+      "paths": [
+        "production-at-scale-level-10-audit-2026-05-22.md",
+        "production-at-scale-level-10-audit-2026-05-22.json"
+      ],
+      "resolution": "Preserved as source audit history. Current repo policy supersedes these as production proof requirements."
+    }
+  ],
+  "activeGatesConverted": [
+    "production promotion pack blocker classification",
+    "production promotion guard",
+    "production-scale evidence blocker summary",
+    "production-scale certification evidence reporting",
+    "restore evidence acceptance and current-check legacy path",
+    "production worker runtime/readiness/activation evidence",
+    "alerting live proof and formal exclusion validation",
+    "raw report remediation acceptance validation",
+    "machine evidence schema and validators"
+  ],
+  "sharedPolicyFiles": [
+    "scripts/lib/productionMachineProofPolicy.mjs",
+    "scripts/lib/productionMachineProofSchema.mjs",
+    "scripts/lib/productionMachineProofSanitizer.mjs",
+    "scripts/lib/productionMachineProofValidator.mjs"
+  ],
+  "remainingOpenBlockers": [
+    {
+      "number": 1,
+      "id": "L10-P1-002",
+      "title": "Disaster recovery",
+      "classification": "machine proof required",
+      "missingMachineInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+      ]
+    },
+    {
+      "number": 2,
+      "id": "L10-P1-003",
+      "title": "Production ingest runtime",
+      "classification": "machine proof required",
+      "missingMachineInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+      ]
+    },
+    {
+      "number": 6,
+      "id": "L10-P1-004",
+      "title": "Historical raw report bytes",
+      "classification": "machine proof required",
+      "missingMachineInputs": [
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+      ]
+    },
+    {
+      "number": 9,
+      "id": "L10-P1-005",
+      "title": "Observability/alerting",
+      "classification": "machine proof required",
+      "missingMachineInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ]
+    },
+    {
+      "number": 10,
+      "id": "L10-P1-006",
+      "title": "Migration governance",
+      "classification": "machine proof required",
+      "missingMachineInputs": [],
+      "nonInputReason": "Migration machine proof is non-certifying because migration gate findings remain release-blocking."
+    },
+    {
+      "number": 22,
+      "id": "retention-archive-restore",
+      "title": "Retention archive/restore proof",
+      "classification": "machine proof required",
+      "missingMachineInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+      ]
+    }
+  ],
+  "missingMachineRuntimeInputs": [
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+  ],
+  "remainingMissingProofRunners": [],
+  "evidenceFilesGeneratedOrUpdated": [
+    "docs/production-scale/evidence/latest-production-scale-certification.json",
+    "docs/production-scale/evidence/latest-production-scale-certification.md",
+    "docs/production-scale/evidence/latest-certification-harness-fix.json",
+    "docs/production-scale/evidence/latest-certification-harness-fix.md",
+    "docs/production-scale/evidence/latest-production-promotion-pack.json",
+    "docs/production-scale/evidence/latest-production-promotion-pack.md",
+    "docs/production-scale/evidence/latest-restore-machine-proof.json",
+    "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+    "docs/production-scale/evidence/latest-migration-machine-proof.json",
+    "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json"
+  ],
+  "testsAddedOrUpdated": [
+    "tests/unit/machine-evidence-schema.spec.ts",
+    "tests/unit/machine-proof-scripts.spec.ts",
+    "tests/unit/production-promotion-pack.spec.ts",
+    "tests/unit/promote-production-guard.spec.ts",
+    "tests/unit/production-scale-blocker-evidence.spec.ts",
+    "tests/unit/production-worker-runtime-proof.spec.ts",
+    "tests/unit/production-worker-readiness-evidence.spec.ts",
+    "tests/unit/production-worker-activation-evidence.spec.ts",
+    "tests/unit/response-ops-readiness-evidence.spec.ts",
+    "tests/unit/storage-raw-report-remediation-plan.spec.ts",
+    "tests/unit/staging-backup-restore-checklist.spec.ts"
+  ],
+  "commandsRun": [
+    {
+      "command": "git status --short --branch",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run typecheck",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run build",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/machine-evidence-schema.spec.ts tests/unit/machine-proof-scripts.spec.ts tests/unit/production-promotion-pack.spec.ts tests/unit/production-scale-certification.spec.ts tests/unit/production-scale-blocker-evidence.spec.ts tests/unit/production-scale-harness.spec.ts tests/unit/production-worker-activation-evidence.spec.ts tests/unit/production-worker-readiness-evidence.spec.ts tests/unit/production-worker-runtime-proof.spec.ts tests/unit/promote-production-guard.spec.ts tests/unit/response-ops-readiness-evidence.spec.ts tests/unit/restore-evidence-acceptance.spec.ts tests/unit/staging-backup-restore-checklist.spec.ts tests/unit/storage-raw-report-remediation-plan.spec.ts tests/unit/operator-regression-dashboard.spec.ts",
+      "status": "passed",
+      "result": "15 files, 197 tests"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts",
+      "status": "failed",
+      "result": "All-at-once full Vitest run failed in unrelated API queue job-claim tests; repo check later passed because those API queue suites run isolated by the check script."
+    },
+    {
+      "command": "pnpm run check",
+      "status": "passed"
+    },
+    {
+      "command": "pnpm run production-scale:certify",
+      "status": "failed-closed",
+      "exitCode": 1,
+      "result": "CERTIFYING:false with humanInteractionRequired:false and missing machine runtime inputs."
+    },
+    {
+      "command": "pnpm run production-scale:promotion-pack",
+      "status": "passed",
+      "result": "Promotion pack generated with CERTIFYING:false, humanInteractionRequired:false, and no humanRequiredProof entries."
+    }
+  ],
+  "productionPromotionRecommendation": "Do not promote production. Promotion remains blocked until all required machine proof files certify true and migration machine proof is certifying."
+}

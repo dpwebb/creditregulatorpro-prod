@@ -1,14 +1,14 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T12:49:45.300Z
-Current HEAD: `79af5282d400136dd75aa3d9d952799a37b92d32`
-Target SHA: `79af5282d400136dd75aa3d9d952799a37b92d32`
+Generated: 2026-05-22T13:49:26.903Z
+Current HEAD: `a7bae388efa0edb1ebbf40fecee760bde4db6c1e`
+Target SHA: `a7bae388efa0edb1ebbf40fecee760bde4db6c1e`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
 ## Certification Rule
 
-CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.
+CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/non-automated, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.
 
 ## Gate Summary
 

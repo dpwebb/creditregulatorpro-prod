@@ -13,6 +13,7 @@ export const PRODUCTION_WORKER_MACHINE_PROOF_CONFIG = {
   command: "pnpm run production-worker:machine-proof",
   attestationEnv: "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
   productionMutation: "synthetic-canary-cleaned-up",
+  productionRuntimeProofRequired: true,
   blockerIdsClosedWhenCertifying: ["L10-P1-003"],
   requiredChecks: [
     "queue-depth-before-captured",
@@ -33,4 +34,3 @@ if (isMain(import.meta.url)) {
     process.exitCode = 1;
   });
 }
-

@@ -66,8 +66,8 @@ function simulatedCheck(name, marker, notes) {
 export function validateSimulatedRestoreDrillReport(report) {
   const errors = [];
   if (report.evidenceType !== "SIMULATED") errors.push("report evidenceType must be SIMULATED");
-  if (report.humanObservedRestoreProofStillRequired !== true) {
-    errors.push("humanObservedRestoreProofStillRequired must be true");
+  if (report.machineRestoreProofStillRequired !== true) {
+    errors.push("machineRestoreProofStillRequired must be true");
   }
   if (!report.syntheticBackupMetadata?.backupId) errors.push("synthetic backup metadata is missing backupId");
   if (!report.syntheticRestoreTargetMetadata?.targetId) errors.push("synthetic restore target metadata is missing targetId");
@@ -113,7 +113,7 @@ export function buildSimulatedRestoreDrillReport({
     commit,
     simulationId,
     status: "passed",
-    humanObservedRestoreProofStillRequired: true,
+    machineRestoreProofStillRequired: true,
     readinessClaim: "No production, broad-production, or production-at-scale readiness claim is made.",
     syntheticBackupMetadata: {
       evidenceType: "SIMULATED",
@@ -192,7 +192,7 @@ export function renderSimulatedRestoreDrillMarkdown(report) {
     `Commit: \`${report.commit}\``,
     `Simulation ID: \`${report.simulationId}\``,
     `Status: ${report.status}`,
-    `Human-observed restore proof still required: ${report.humanObservedRestoreProofStillRequired ? "yes" : "no"}`,
+    `Machine restore proof still required: ${report.machineRestoreProofStillRequired ? "yes" : "no"}`,
     "",
     "## SIMULATED Backup Metadata",
     "",
@@ -235,7 +235,7 @@ export function renderSimulatedRestoreDrillMarkdown(report) {
     "",
     "## Remaining Blocker",
     "",
-    "SIMULATED restore proof does not close the disaster recovery blocker. A human-observed restore drill with signed, sanitized evidence is still required before broader production or production-at-scale claims.",
+    "SIMULATED restore proof does not close the disaster recovery blocker. Non-interactive sanitized restore machine proof is required before broader production or production-at-scale claims.",
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -309,7 +309,7 @@ async function main() {
   console.log("SIMULATED evidence is not production proof and does not complete disaster recovery.");
   console.log(`Markdown: ${outputs.markdownPath}`);
   console.log(`JSON: ${outputs.jsonPath}`);
-  console.log("Human-observed restore proof remains required.");
+  console.log("Non-interactive restore machine proof remains required.");
   if (options.json) console.log(JSON.stringify(report, null, 2));
 }
 

@@ -127,13 +127,13 @@ export function validateProductionWorkerQueueDepthEvidence(evidence) {
   const processedJobs = safeNumber(evidence?.processedJobs);
 
   if (!evidence || typeof evidence !== "object") errors.push("Production worker evidence must be a JSON object.");
-  if (evidence?.evidenceType !== "HUMAN_OBSERVED_PRODUCTION_WORKER_RUN") {
-    errors.push("evidenceType must be HUMAN_OBSERVED_PRODUCTION_WORKER_RUN.");
+  if (evidence?.evidenceType !== "MACHINE_ATTESTED_PRODUCTION_WORKER_RUN") {
+    errors.push("evidenceType must be MACHINE_ATTESTED_PRODUCTION_WORKER_RUN.");
   }
   if (evidence?.environment !== "production") errors.push("environment must be production.");
   if (evidence?.mode !== "apply") errors.push("mode must be apply for production runtime readiness.");
-  if (evidence?.operatorProductionRunCompleted !== true) {
-    errors.push("operatorProductionRunCompleted must be true.");
+  if (evidence?.machineRuntimeRunCompleted !== true) {
+    errors.push("machineRuntimeRunCompleted must be true.");
   }
   if (!Number.isInteger(maxJobs) || maxJobs < 1 || maxJobs > PRODUCTION_WORKER_MAX_JOBS_LIMIT) {
     errors.push(`maxJobs must be an integer between 1 and ${PRODUCTION_WORKER_MAX_JOBS_LIMIT}.`);
@@ -153,8 +153,12 @@ export function validateProductionWorkerQueueDepthEvidence(evidence) {
     errors.push("productionJobsProcessedByCodex must be false.");
   }
   if (evidence?.sanitizedEvidence !== true) errors.push("sanitizedEvidence must be true.");
-  if (evidence?.operatorAcknowledgementSigned !== true) {
-    errors.push("operatorAcknowledgementSigned must be true.");
+  if (evidence?.nonInteractive !== true) errors.push("nonInteractive must be true.");
+  if (evidence?.machineAttested !== true) errors.push("machineAttested must be true.");
+  if (evidence?.humanObserved === true) errors.push("humanObserved evidence is not accepted as production worker proof.");
+  if (evidence?.manualApprovalRequired === true) errors.push("manualApprovalRequired must be false.");
+  if (evidence?.operatorAcknowledgementSigned === true) {
+    errors.push("operatorAcknowledgementSigned is legacy manual proof and is not accepted.");
   }
   if (evidence?.rollbackStopVerified !== true) errors.push("rollbackStopVerified must be true.");
   if (evidence?.workflowParityEvidencePresent !== true) {
@@ -341,7 +345,7 @@ export function buildProductionWorkerReadinessEvidenceReport({
     generatedAt,
     branch: safeGit(["branch", "--show-current"], rootDir),
     commit: safeGit(["rev-parse", "HEAD"], rootDir),
-    status: staticStatus === "passed" ? "prepared-awaiting-human-production-evidence" : "failed",
+    status: staticStatus === "passed" ? "prepared-awaiting-machine-production-evidence" : "failed",
     productionProof: acceptedProductionRunEvidence.accepted === true,
     staticValidation: {
       status: staticStatus,
@@ -380,14 +384,17 @@ export function buildProductionWorkerReadinessEvidenceReport({
       "If a one-shot worker is still running, stop the production application container or wait for the bounded command to exit.",
       "Inspect queue depth and dead-letter rows before any later apply attempt.",
     ],
-    futureHumanProductionRunFields: {
+    futureMachineProductionRunFields: {
       queueDepthBefore: null,
       queueDepthAfter: null,
       processedJobs: null,
       failureCount: null,
       workerExitCode: null,
       rollbackStopVerified: null,
-      operatorAcknowledgementSigned: null,
+      nonInteractive: null,
+      machineAttested: null,
+      humanObserved: false,
+      manualApprovalRequired: false,
       sanitizedEvidence: null,
     },
     runtimeProof: {
@@ -416,7 +423,7 @@ export function buildProductionWorkerReadinessEvidenceReport({
     blockerStatus: {
       blocker2: acceptedCoverage.productionIngestRuntime === true
         ? "production-ready-with-accepted-queue-depth-evidence"
-        : "human-operator-production-queue-depth-evidence-required",
+        : "machine-production-queue-depth-evidence-required",
       blocker11: acceptedCoverage.productionWorkflowParityAndRollback === true
         ? "production-workflow-parity-and-rollback-evidence-present"
         : "partial-production-workflow-parity-and-rollback-evidence-required",
@@ -486,7 +493,7 @@ export function renderProductionWorkerReadinessEvidenceMarkdown(report) {
     "",
     "## Future Human Production Run Fields",
     "",
-    ...Object.entries(report.futureHumanProductionRunFields).map(([key, value]) => `- ${key}: ${value ?? "required in future evidence"}`),
+    ...Object.entries(report.futureMachineProductionRunFields).map(([key, value]) => `- ${key}: ${value ?? "required in future machine evidence"}`),
     "",
     "## Runtime Proof Gate",
     "",

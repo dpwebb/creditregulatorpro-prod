@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { sanitizeProductionEvidenceValue } from "./sanitizeProductionEvidence.mjs";
+import { PRODUCTION_MACHINE_PROOF_POLICY_VERSION } from "./productionMachineProofPolicy.mjs";
 
 export const MACHINE_EVIDENCE_SCHEMA_VERSION = 1;
 
@@ -48,11 +49,15 @@ export function buildMachineEvidence({
   generatedAt = new Date().toISOString(),
   commitHash = null,
   rootDir = process.cwd(),
+  blockerId = null,
+  branch = null,
   generatorScript,
   command,
   nonInteractive = true,
   machineAttested = true,
   humanInteractionRequired = false,
+  humanObserved = false,
+  manualApprovalRequired = false,
   productionMutation = "none",
   secretsPrinted = false,
   piiPrinted = false,
@@ -66,10 +71,14 @@ export function buildMachineEvidence({
   sanitizedArtifacts = [],
   missingRuntimeInputs = [],
   simulatedOnly = false,
+  dryRunOnly = false,
   generatedManually = false,
+  policyVersion = PRODUCTION_MACHINE_PROOF_POLICY_VERSION,
   metadata = {},
 } = {}) {
   const resolvedCommit = commitHash ?? safeGit(["rev-parse", "HEAD"], rootDir);
+  const resolvedBranch = branch ?? safeGit(["branch", "--show-current"], rootDir);
+  const resolvedBlockerId = blockerId ?? evidenceType ?? "unknown";
   const normalizedStatus = MACHINE_EVIDENCE_STATUSES.has(String(status)) ? String(status) : "fail";
   const normalizedMutation = PRODUCTION_MUTATION_MODES.has(String(productionMutation))
     ? String(productionMutation)
@@ -87,19 +96,24 @@ export function buildMachineEvidence({
   return sanitizeProductionEvidenceValue({
     schemaVersion: MACHINE_EVIDENCE_SCHEMA_VERSION,
     evidenceType,
+    blockerId: resolvedBlockerId,
     environment,
     generatedAt,
     commitHash: resolvedCommit,
     currentCommitHash: resolvedCommit,
     currentHead: resolvedCommit,
     commit: resolvedCommit,
+    branch: resolvedBranch,
     generatorScript,
     command,
     nonInteractive,
     machineAttested,
     humanInteractionRequired,
+    humanObserved,
+    manualApprovalRequired,
     generatedManually,
     simulatedOnly,
+    dryRunOnly,
     productionMutation: normalizedMutation,
     secretsPrinted,
     piiPrinted,
@@ -114,6 +128,7 @@ export function buildMachineEvidence({
     failures: pass ? [] : normalizedFailures,
     sanitizedArtifacts: Array.isArray(sanitizedArtifacts) ? sanitizedArtifacts : [],
     missingRuntimeInputs: normalizedMissingInputs,
+    policyVersion,
     metadata,
   });
 }
@@ -128,6 +143,9 @@ export function renderMachineEvidenceMarkdown(evidence, title = "Production Mach
     `Commit: \`${evidence.commitHash}\``,
     `Generator: \`${evidence.generatorScript}\``,
     `Command: \`${evidence.command}\``,
+    `Blocker ID: ${evidence.blockerId ?? "not provided"}`,
+    `Branch: \`${evidence.branch ?? "unknown"}\``,
+    `Policy version: ${evidence.policyVersion ?? "missing"}`,
     `Status: ${evidence.status}`,
     `CERTIFYING:${evidence.certifying ? "true" : "false"}`,
     `Expires at: ${evidence.expiresAt}`,
@@ -137,6 +155,9 @@ export function renderMachineEvidenceMarkdown(evidence, title = "Production Mach
     `- Non-interactive: ${evidence.nonInteractive ? "yes" : "no"}`,
     `- Machine-attested: ${evidence.machineAttested ? "yes" : "no"}`,
     `- Human interaction required: ${evidence.humanInteractionRequired ? "yes" : "no"}`,
+    `- Human observed: ${evidence.humanObserved ? "yes" : "no"}`,
+    `- Manual approval required: ${evidence.manualApprovalRequired ? "yes" : "no"}`,
+    `- Dry-run only: ${evidence.dryRunOnly ? "yes" : "no"}`,
     `- Production mutation: ${evidence.productionMutation}`,
     `- Secrets printed: ${evidence.secretsPrinted ? "yes" : "no"}`,
     `- PII printed: ${evidence.piiPrinted ? "yes" : "no"}`,

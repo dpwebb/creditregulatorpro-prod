@@ -175,9 +175,9 @@ export function buildSimulatedAlertPayloads() {
       category: "restore_evidence_missing_warning",
       severity: "critical",
       title: "Restore evidence missing",
-      summary: "SIMULATED restore evidence warning indicates human-observed restore proof remains required.",
-      metric: { name: "human_restore_evidence_records", value: 0, threshold: 1, unit: "records" },
-      runbookAction: "Complete a human-observed restore drill with sanitized signed RPO/RTO evidence.",
+      summary: "SIMULATED restore evidence warning indicates non-interactive restore machine proof remains required.",
+      metric: { name: "machine_restore_evidence_records", value: 0, threshold: 1, unit: "records" },
+      runbookAction: "Run restore:machine-proof with sanitized machine-attested RPO/RTO evidence.",
     }),
     alertPayload({
       category: "dashboard_skip_warning",
@@ -282,7 +282,7 @@ export function buildAlertsDryRunReport({
     blockers: {
       blocker8ResponseOperations: "Partial/SIMULATED evidence only; live scheduler, physical purge/archive, and historical backfill are not proven complete.",
       blocker9Alerting: "SIMULATED dry-run/mock alert proof only; live external alert delivery remains disabled.",
-      blocker25DashboardSkipSemantics: "Dry-run includes dashboard skip warning; dashboard reporting must distinguish PASS, FAIL, SKIP, SIMULATED, and HUMAN_REQUIRED.",
+      blocker25DashboardSkipSemantics: "Dry-run includes dashboard skip warning; dashboard reporting must distinguish PASS, FAIL, SKIP, SIMULATED, and MACHINE_REQUIRED.",
     },
   };
 

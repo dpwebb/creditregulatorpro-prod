@@ -214,7 +214,7 @@ export function buildProductionWorkerActivationEvidenceReport({
       "If a one-shot worker is still running, stop the production application container or wait for the bounded command to exit.",
       "Inspect queue depth and dead-letter rows before any later apply attempt.",
     ],
-    futureOperatorRunFields: {
+    futureMachineRunFields: {
       queueDepthBefore: null,
       queueDepthAfter: null,
       processedJobs: null,
@@ -222,7 +222,10 @@ export function buildProductionWorkerActivationEvidenceReport({
       deadLetterCount: null,
       workerExitCode: null,
       rollbackStopVerified: null,
-      operatorAcknowledgementSigned: null,
+      nonInteractive: null,
+      machineAttested: null,
+      humanObserved: false,
+      manualApprovalRequired: false,
       sanitizedEvidence: null,
     },
     stagingWorkerEvidence,
@@ -237,7 +240,7 @@ export function buildProductionWorkerActivationEvidenceReport({
       releaseEvidenceExactCommands: true,
     },
     blockerStatus: {
-      blocker2: "human-operator-production-queue-depth-evidence-required",
+      blocker2: "machine-production-queue-depth-evidence-required",
       blocker11: "partial-production-workflow-parity-and-rollback-evidence-required",
       blocker21: "exact-release-evidence-command-references-present",
     },
@@ -312,7 +315,7 @@ export function renderProductionWorkerActivationEvidenceMarkdown(report) {
     "",
     "## Future Operator Run Fields",
     "",
-    ...Object.entries(report.futureOperatorRunFields).map(([key, value]) => `- ${key}: ${value ?? "required in future operator evidence"}`),
+    ...Object.entries(report.futureMachineRunFields).map(([key, value]) => `- ${key}: ${value ?? "required in future machine evidence"}`),
     "",
     "## Staging Worker Evidence",
     "",

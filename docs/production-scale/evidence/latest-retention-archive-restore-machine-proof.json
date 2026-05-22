@@ -1,19 +1,24 @@
 {
   "schemaVersion": 1,
   "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
+  "blockerId": "retention-archive-restore",
   "environment": "production",
-  "generatedAt": "2026-05-22T12:46:18.310Z",
-  "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
-  "currentCommitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
-  "currentHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
-  "commit": "79af5282d400136dd75aa3d9d952799a37b92d32",
+  "generatedAt": "2026-05-22T13:46:17.878Z",
+  "commitHash": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "currentCommitHash": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "currentHead": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "commit": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "branch": "staging",
   "generatorScript": "scripts/retention-archive-restore-machine-proof.mjs",
   "command": "pnpm run retention:archive-restore-machine-proof",
   "nonInteractive": true,
   "machineAttested": true,
   "humanInteractionRequired": false,
+  "humanObserved": false,
+  "manualApprovalRequired": false,
   "generatedManually": false,
   "simulatedOnly": false,
+  "dryRunOnly": false,
   "productionMutation": "synthetic-canary-cleaned-up",
   "secretsPrinted": false,
   "piiPrinted": false,
@@ -23,7 +28,7 @@
   "certifying": false,
   "CERTIFYING": false,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T12:46:18.310Z",
+  "expiresAt": "2026-05-23T13:46:17.878Z",
   "checks": [
     {
       "name": "safe-archive-candidate-selected",
@@ -76,6 +81,7 @@
   "missingRuntimeInputs": [
     "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
   ],
+  "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
     "blockerIdsClosedWhenCertifying": [
       "retention-archive-restore"

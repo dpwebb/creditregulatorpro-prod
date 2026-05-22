@@ -13,6 +13,7 @@ export const RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG = {
   command: "pnpm run retention:archive-restore-machine-proof",
   attestationEnv: "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
   productionMutation: "synthetic-canary-cleaned-up",
+  productionRuntimeProofRequired: true,
   blockerIdsClosedWhenCertifying: ["retention-archive-restore"],
   requiredChecks: [
     "safe-archive-candidate-selected",
@@ -32,4 +33,3 @@ if (isMain(import.meta.url)) {
     process.exitCode = 1;
   });
 }
-

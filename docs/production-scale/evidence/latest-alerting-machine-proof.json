@@ -1,19 +1,24 @@
 {
   "schemaVersion": 1,
   "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
+  "blockerId": "L10-P1-005",
   "environment": "production",
-  "generatedAt": "2026-05-22T12:46:16.391Z",
-  "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
-  "currentCommitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
-  "currentHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
-  "commit": "79af5282d400136dd75aa3d9d952799a37b92d32",
+  "generatedAt": "2026-05-22T13:46:15.962Z",
+  "commitHash": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "currentCommitHash": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "currentHead": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "commit": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "branch": "staging",
   "generatorScript": "scripts/alerting-machine-proof.mjs",
   "command": "pnpm run alerting:machine-proof",
   "nonInteractive": true,
   "machineAttested": true,
   "humanInteractionRequired": false,
+  "humanObserved": false,
+  "manualApprovalRequired": false,
   "generatedManually": false,
   "simulatedOnly": false,
+  "dryRunOnly": false,
   "productionMutation": "none",
   "secretsPrinted": false,
   "piiPrinted": false,
@@ -23,7 +28,7 @@
   "certifying": false,
   "CERTIFYING": false,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T12:46:16.391Z",
+  "expiresAt": "2026-05-23T13:46:15.962Z",
   "checks": [
     {
       "name": "synthetic-alert-triggered",
@@ -81,6 +86,7 @@
   "missingRuntimeInputs": [
     "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
   ],
+  "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
     "blockerIdsClosedWhenCertifying": [
       "L10-P1-005"

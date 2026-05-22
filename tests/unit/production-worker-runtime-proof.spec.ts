@@ -38,7 +38,7 @@ function validEvidence(overrides: Record<string, unknown> = {}) {
     environment: "production",
     mode: "apply",
     dryRunOnly: false,
-    operatorId: "OPS1",
+    machineActorId: "MACHINE_PROOF_RUNNER_1",
     timestamp: "2026-05-22T12:00:00.000Z",
     workerId: "production-bounded-ingest-worker",
     source: "authenticated_ingest_process",
@@ -84,9 +84,14 @@ function validEvidence(overrides: Record<string, unknown> = {}) {
       verified: true,
       evidenceSummary: "bounded worker stopped and rollback/stop procedure verified",
     },
-    operatorAcknowledgement: {
-      signed: true,
-      evidenceSummary: "operator attested sanitized runtime proof",
+    humanObserved: false,
+    manualApprovalRequired: false,
+    machineAttestation: {
+      nonInteractive: true,
+      machineAttested: true,
+      humanObserved: false,
+      manualApprovalRequired: false,
+      evidenceSummary: "machine attested sanitized runtime proof",
     },
     attestations: {
       noRawReportBytesPrinted: true,
@@ -189,9 +194,12 @@ describe("production worker runtime proof", () => {
     const evidencePath = writeEvidence(
       root,
       validEvidence({
-        operatorAcknowledgement: {
-          signed: true,
-          evidenceSummary: "operator saw consumer@example.org and password=super-secret-value",
+        machineAttestation: {
+          nonInteractive: true,
+          machineAttested: true,
+          humanObserved: false,
+          manualApprovalRequired: false,
+          evidenceSummary: "machine proof observed consumer@example.org and password=super-secret-value",
         },
         workerLivenessCheck: {
           observed: true,
@@ -237,7 +245,7 @@ describe("production worker runtime proof", () => {
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: {
-        summary: { pass: 10, fail: 0, skip: 2, simulated: 3, humanRequired: 2 },
+        summary: { pass: 10, fail: 0, skip: 2, simulated: 3, machineRequired: 2 },
         releaseEvidenceSemantics: {
           exactCommandsRequired: true,
           dashboardPassAloneSufficient: false,

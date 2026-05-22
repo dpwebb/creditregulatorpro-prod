@@ -516,22 +516,21 @@ export function validateRestoreDrillEvidenceText(text, options = {}) {
     : requiredFields.filter((field) => !missingFields.includes(field) && isPlaceholderOnlyValue(fieldValue(field, parsedFields)));
   const sensitiveFindings = scanRestoreDrillEvidenceSensitiveContent(text);
   const productionRestoreClaimed = detectsCompletedProductionRestoreClaim(text);
-  const missingOperatorProofFields = productionRestoreClaimed
-    ? RESTORE_DRILL_OPERATOR_PROOF_FIELDS.filter((field) => missingFields.includes(field) || isPlaceholderOnlyValue(fieldValue(field, parsedFields)))
-    : [];
+  const missingMachineProofFields = productionRestoreClaimed ? ["restore:machine-proof"] : [];
 
   return {
     ok:
       missingFields.length === 0 &&
       placeholderFields.length === 0 &&
       sensitiveFindings.length === 0 &&
-      missingOperatorProofFields.length === 0,
+      missingMachineProofFields.length === 0,
     templateOnly,
     missingFields,
     placeholderFields,
     sensitiveFindings,
     productionRestoreClaimed,
-    missingOperatorProofFields,
+    missingOperatorProofFields: [],
+    missingMachineProofFields,
     requiredFieldCount: requiredFields.length,
   };
 }
@@ -569,12 +568,8 @@ export function validateHumanRestoreDrillEvidenceText(text, options = {}) {
   const productionRestoreClaimed = detectsCompletedProductionRestoreClaim(source);
   const simulatedOnlySubmission = isSimulatedOnlyHumanEvidenceSubmission(source);
   const humanObservedEvidenceTypePresent = detectsHumanObservedEvidenceType(source);
-  const signedOperatorAcknowledgement = matchedFields.signedOperatorAcknowledgement?.value ?? "";
   const sanitizedEvidenceStatement = matchedFields.sanitizedEvidenceStatement?.value ?? "";
-  const missingOperatorProofFields =
-    productionRestoreClaimed && isPlaceholderOnlyValue(signedOperatorAcknowledgement)
-      ? ["Signed operator acknowledgement"]
-      : [];
+  const missingMachineProofFields = productionRestoreClaimed ? ["restore:machine-proof"] : [];
   const sanitizedStatementMissing =
     !sanitizedEvidenceStatement || !/\bsanitiz(?:ed|ation)\b/i.test(sanitizedEvidenceStatement);
 
@@ -583,40 +578,35 @@ export function validateHumanRestoreDrillEvidenceText(text, options = {}) {
   if (placeholderFields.length > 0) errors.push(`Placeholder-only values: ${placeholderFields.join(", ")}.`);
   if (invalidValueFields.length > 0) errors.push(`Invalid or incomplete values: ${invalidValueFields.join(", ")}.`);
   if (sensitiveFindings.length > 0) errors.push(`Sensitive content detected: ${sensitiveFindings.join(", ")}.`);
-  if (simulatedOnlySubmission) errors.push("SIMULATED-only evidence cannot be accepted as human-observed production proof.");
-  if (!humanObservedEvidenceTypePresent) errors.push("Evidence must explicitly identify HUMAN-OBSERVED proof type.");
-  if (missingOperatorProofFields.length > 0) {
-    errors.push(`Production restore claim lacks operator acknowledgement: ${missingOperatorProofFields.join(", ")}.`);
+  errors.push("Legacy human-observed restore evidence acceptance is retired; use restore:machine-proof.");
+  if (simulatedOnlySubmission) errors.push("SIMULATED-only evidence cannot be accepted as production proof.");
+  if (humanObservedEvidenceTypePresent) {
+    errors.push("HUMAN-OBSERVED restore evidence is legacy manual proof and cannot certify production.");
+  }
+  if (missingMachineProofFields.length > 0) {
+    errors.push(`Production restore claim lacks machine proof: ${missingMachineProofFields.join(", ")}.`);
   }
   if (sanitizedStatementMissing) errors.push("Evidence must explicitly state that the submitted evidence is sanitized.");
 
   return {
     ok: errors.length === 0,
     accepted: errors.length === 0,
-    evidenceType: simulatedOnlySubmission ? "SIMULATED" : humanObservedEvidenceTypePresent ? "HUMAN-OBSERVED" : "unknown",
+    evidenceType: simulatedOnlySubmission ? "SIMULATED" : humanObservedEvidenceTypePresent ? "LEGACY-HUMAN-OBSERVED" : "unknown",
     missingRequirements,
     placeholderFields,
     invalidValueFields,
     sensitiveFindings,
     productionRestoreClaimed,
-    missingOperatorProofFields,
+    missingOperatorProofFields: [],
+    missingMachineProofFields,
     simulatedOnlySubmission,
     humanObservedEvidenceTypePresent,
     sanitizedStatementMissing,
     matchedFields,
     blockerCoverage: {
       disasterRecoveryRestoreDrill:
-        errors.length === 0 &&
-        Boolean(
-          matchedFields.rpo &&
-            matchedFields.rto &&
-            matchedFields.authSession &&
-            matchedFields.packetPdf &&
-            matchedFields.responseQueue &&
-            matchedFields.cleanupLifecycle &&
-            matchedFields.rollbackCleanup,
-        ),
-      retentionArchiveRestore: errors.length === 0 && Boolean(matchedFields.retentionArchiveRestore),
+        false,
+      retentionArchiveRestore: false,
     },
     errors,
   };
@@ -795,7 +785,7 @@ export function buildRestoreEvidenceCurrentCheckReport({
     ...(humanAcceptance.validation?.errors ?? []),
   ];
   if (humanAcceptance.accepted === true && !restoreDateTime) {
-    validationErrors.push("Restore date/time could not be parsed from human-observed evidence.");
+    validationErrors.push("Restore date/time could not be parsed from restore evidence.");
   }
   if (futureDated) {
     validationErrors.push("Restore evidence date/time is future-dated relative to this readiness check.");
@@ -804,13 +794,14 @@ export function buildRestoreEvidenceCurrentCheckReport({
     validationErrors.push(`Sensitive content detected in restore evidence: ${Array.from(new Set(sensitiveFindings)).join(", ")}.`);
   }
 
-  const humanObserved = humanAcceptance.validation?.evidenceType === "HUMAN-OBSERVED";
+  const legacyHumanObserved = /HUMAN-OBSERVED/.test(String(humanAcceptance.validation?.evidenceType ?? ""));
+  const humanObserved = false;
   const simulatedOnly =
     humanAcceptance.validation?.simulatedOnlySubmission === true ||
     (humanAcceptance.status === "not-submitted" && simulatedEvidence.exists === true);
   const currentOperationalProof =
     humanAcceptance.accepted === true &&
-    humanObserved &&
+    false &&
     !simulatedOnly &&
     !stale &&
     !futureDated &&
@@ -818,15 +809,15 @@ export function buildRestoreEvidenceCurrentCheckReport({
     sensitiveFindings.length === 0;
 
   let status = "not-submitted";
-  if (currentOperationalProof) status = "current-human-observed";
-  else if (humanAcceptance.accepted === true && stale) status = "stale-human-observed";
+  if (currentOperationalProof) status = "current-machine-proof";
+  else if (humanAcceptance.accepted === true && stale) status = "stale-machine-proof";
   else if (humanAcceptance.status === "failed" || sensitiveFindings.length > 0 || futureDated) status = "failed";
   else if (simulatedOnly) status = "simulated-only";
 
   const unresolvedReasons = [];
-  if (!humanAcceptance.accepted) unresolvedReasons.push("No accepted sanitized human-observed restore evidence is available.");
+  if (!humanAcceptance.accepted) unresolvedReasons.push("No accepted sanitized machine restore proof is available.");
   if (simulatedOnly) unresolvedReasons.push("Available restore evidence is SIMULATED-only and cannot be production proof.");
-  if (stale) unresolvedReasons.push(`Human-observed restore evidence is stale: ${ageDays} days old; maximum allowed is ${maxAgeDays} days.`);
+  if (stale) unresolvedReasons.push(`Restore evidence is stale: ${ageDays} days old; maximum allowed is ${maxAgeDays} days.`);
   if (missingFields.length > 0) unresolvedReasons.push(`Missing required fields: ${missingFields.join(", ")}.`);
   if ((humanAcceptance.validation?.placeholderFields ?? []).length > 0) {
     unresolvedReasons.push(`Placeholder-only fields: ${humanAcceptance.validation.placeholderFields.join(", ")}.`);
@@ -835,7 +826,7 @@ export function buildRestoreEvidenceCurrentCheckReport({
     unresolvedReasons.push(`Incomplete result fields: ${humanAcceptance.validation.invalidValueFields.join(", ")}.`);
   }
   if (sensitiveFindings.length > 0) unresolvedReasons.push(`Sensitive findings: ${Array.from(new Set(sensitiveFindings)).join(", ")}.`);
-  if (futureDated) unresolvedReasons.push("Human-observed restore evidence is future-dated.");
+  if (futureDated) unresolvedReasons.push("Restore evidence is future-dated.");
 
   return {
     reportName: "restore-evidence-current-readiness-check",
@@ -847,6 +838,7 @@ export function buildRestoreEvidenceCurrentCheckReport({
     evidencePath: humanAcceptance.evidencePath,
     evidenceType: humanAcceptance.validation?.evidenceType ?? (simulatedEvidence.exists ? "SIMULATED" : "none"),
     humanObserved,
+    legacyHumanObserved,
     simulatedOnly,
     restoreDateTime,
     ageDays,
@@ -970,9 +962,9 @@ function printEvidenceValidationReport(report) {
     if (report.validation.sensitiveFindings.length > 0) {
       console.error(`[FAIL] Sensitive patterns found: ${report.validation.sensitiveFindings.join(", ")}`);
     }
-    if (report.validation.missingOperatorProofFields.length > 0) {
+    if (report.validation.missingMachineProofFields?.length > 0) {
       console.error(
-        `[FAIL] Production restore claim lacks operator proof fields: ${report.validation.missingOperatorProofFields.join(", ")}`,
+        `[FAIL] Production restore claim lacks machine proof: ${report.validation.missingMachineProofFields.join(", ")}`,
       );
     }
     return;
@@ -985,7 +977,7 @@ function printEvidenceValidationReport(report) {
 
 export function renderHumanRestoreDrillEvidenceAcceptanceMarkdown(report) {
   const lines = [
-    "# Human Restore Drill Evidence Acceptance",
+    "# Legacy Restore Drill Evidence Acceptance",
     "",
     `Generated at: ${report.generatedAt}`,
     `Status: ${report.status}`,
@@ -1008,7 +1000,7 @@ export function renderHumanRestoreDrillEvidenceAcceptanceMarkdown(report) {
   if (report.validation?.errors?.length) {
     lines.push(...report.validation.errors.map((error) => `- ${error}`));
   } else {
-    lines.push("- Human-observed evidence passed strict acceptance validation.");
+    lines.push("- Legacy restore evidence passed strict acceptance validation.");
   }
 
   lines.push(
@@ -1018,7 +1010,7 @@ export function renderHumanRestoreDrillEvidenceAcceptanceMarkdown(report) {
     "- This command does not dump or restore data.",
     "- This command does not access production backups.",
     "- This command does not mutate production.",
-    "- SIMULATED-only evidence is never accepted as human proof.",
+    "- SIMULATED-only or human-observed evidence is never accepted as production proof.",
   );
 
   return `${lines.join("\n")}\n`;
@@ -1041,13 +1033,14 @@ export function renderRestoreEvidenceCurrentCheckMarkdown(report) {
     `Status: ${report.status}`,
     `Current operational proof: ${report.currentOperationalProof ? "yes" : "no"}`,
     `Evidence type: ${report.evidenceType}`,
-    `Human-observed: ${report.humanObserved ? "yes" : "no"}`,
+    `Human-observed accepted: ${report.humanObserved ? "yes" : "no"}`,
+    `Legacy human-observed present: ${report.legacyHumanObserved ? "yes" : "no"}`,
     `SIMULATED-only: ${report.simulatedOnly ? "yes" : "no"}`,
     `Stale: ${report.stale ? "yes" : "no"}`,
     `Restore date/time: ${report.restoreDateTime ?? "not available"}`,
     `Evidence age days: ${report.ageDays ?? "not available"}`,
     `Maximum accepted age days: ${report.maxAgeDays}`,
-    `Human evidence path: ${report.evidencePath ?? "not submitted"}`,
+    `Legacy evidence path: ${report.evidencePath ?? "not submitted"}`,
     "",
     "## Required Field Status",
     "",
@@ -1077,7 +1070,7 @@ export function renderRestoreEvidenceCurrentCheckMarkdown(report) {
   if (report.validation?.unresolvedReasons?.length) {
     lines.push(...report.validation.unresolvedReasons.map((reason) => `- ${reason}`));
   } else {
-    lines.push("- Current sanitized human-observed restore evidence is accepted.");
+    lines.push("- Current sanitized machine restore proof is accepted.");
   }
 
   lines.push(
@@ -1112,13 +1105,13 @@ export function writeRestoreEvidenceCurrentCheckReport(report, { rootDir = proce
 
 function printHumanEvidenceAcceptanceReport(report, outputs = null) {
   if (report.status === "not-submitted") {
-    console.log("No human restore drill evidence artifact submitted.");
-    console.log("No blockers were closed. Submit a sanitized human-observed artifact before expecting acceptance.");
+    console.log("No legacy restore drill evidence artifact submitted.");
+    console.log("No blockers were closed. Submit sanitized machine restore proof before expecting acceptance.");
   } else if (report.status === "failed") {
-    console.error("Human restore drill evidence acceptance failed.");
+    console.error("Legacy restore drill evidence acceptance failed.");
     for (const error of report.validation?.errors ?? []) console.error(`[FAIL] ${error}`);
   } else {
-    console.log("Human restore drill evidence accepted.");
+    console.log("Legacy restore drill evidence accepted.");
     console.log(`Evidence path: ${report.evidencePath}`);
   }
   console.log(`Blocker 1 coverage: ${report.blockerCoverage?.disasterRecoveryRestoreDrill ? "accepted" : "not accepted"}`);
@@ -1134,7 +1127,8 @@ function printRestoreEvidenceCurrentCheckReport(report, outputs = null) {
   console.log(`Status: ${report.status}`);
   console.log(`Current operational proof: ${report.currentOperationalProof ? "yes" : "no"}`);
   console.log(`Evidence type: ${report.evidenceType}`);
-  console.log(`Human-observed: ${report.humanObserved ? "yes" : "no"}`);
+  console.log(`Human-observed accepted: ${report.humanObserved ? "yes" : "no"}`);
+  console.log(`Legacy human-observed present: ${report.legacyHumanObserved ? "yes" : "no"}`);
   console.log(`SIMULATED-only: ${report.simulatedOnly ? "yes" : "no"}`);
   console.log(`Stale: ${report.stale ? "yes" : "no"}`);
   if (report.validation?.unresolvedReasons?.length) {

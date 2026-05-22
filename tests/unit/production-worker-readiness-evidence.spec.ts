@@ -69,7 +69,7 @@ function makeReadinessTempRoot() {
 }
 
 describe("production worker readiness evidence", () => {
-  it("writes readiness evidence while leaving production runtime unresolved without operator queue-depth proof", () => {
+  it("writes readiness evidence while leaving production runtime unresolved without machine queue-depth proof", () => {
     const rootDir = makeReadinessTempRoot();
     const report = buildProductionWorkerReadinessEvidenceReport({
       rootDir,
@@ -83,7 +83,7 @@ describe("production worker readiness evidence", () => {
     });
     expect(existsSync(path.join(rootDir, outputs.markdownPath))).toBe(true);
     expect(existsSync(path.join(rootDir, outputs.jsonPath))).toBe(true);
-    expect(report.status).toBe("prepared-awaiting-human-production-evidence");
+    expect(report.status).toBe("prepared-awaiting-machine-production-evidence");
     expect(report.productionProof).toBe(false);
     expect(report.workerDefaultOff.defaultProductionDeployStartsWorker).toBe(false);
     expect(report.dryRun).toMatchObject({

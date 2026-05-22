@@ -80,7 +80,7 @@ describe("production worker activation evidence", () => {
         max: 5,
       },
     });
-    expect(report.futureOperatorRunFields).toMatchObject({
+    expect(report.futureMachineRunFields).toMatchObject({
       queueDepthBefore: null,
       queueDepthAfter: null,
     });

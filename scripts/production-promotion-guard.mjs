@@ -9,7 +9,6 @@ const BLOCKING_SEVERITIES = new Set(["p0", "p1", "critical", "high"]);
 const CLOSED_CLASSIFICATIONS = new Set([
   "fixed with automated evidence",
   "fixed with staging evidence",
-  "fixed with human-observed evidence",
   "waived with explicit reason",
 ]);
 
@@ -193,6 +192,15 @@ export function validatePromotionPackForProduction(report, {
       reasons,
       "open-p0-p1-blockers",
       `Promotion pack has ${openP0P1Blockers.length} open P0/P1 production blocker(s).`,
+    );
+  }
+  const humanProofClassifications = (Array.isArray(report?.blockerClassifications) ? report.blockerClassifications : [])
+    .filter((blocker) => /human/i.test(blockerClassification(blocker)));
+  if (humanProofClassifications.length > 0 || report?.humanInteractionRequired === true || (report?.humanRequiredProof?.length ?? 0) > 0) {
+    addReason(
+      reasons,
+      "human-proof-dependency",
+      "Promotion pack contains a human-proof dependency; production certification requires non-interactive machine proof.",
     );
   }
 

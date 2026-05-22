@@ -32,7 +32,8 @@ function validEvidence(overrides: Record<string, unknown> = {}) {
     evidenceId: "DR-20260522-001",
     environment: "production",
     restoreType: "archive restore",
-    humanObserved: true,
+    humanObserved: false,
+    manualApprovalRequired: false,
     restoreCompleted: true,
     operatorId: "OPS1",
     timestamp: "2026-05-22T12:00:00.000Z",
@@ -142,7 +143,7 @@ describe("restore evidence acceptance", () => {
       ok: true,
       errors: [],
       sensitiveFindings: [],
-      evidenceKind: "human-observed",
+      evidenceKind: "sanitized-legacy",
     });
   });
 
@@ -230,7 +231,7 @@ describe("restore evidence acceptance", () => {
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: {
-        summary: { pass: 10, fail: 0, skip: 2, simulated: 3, humanRequired: 2 },
+        summary: { pass: 10, fail: 0, skip: 2, simulated: 3, machineRequired: 2 },
         releaseEvidenceSemantics: {
           exactCommandsRequired: true,
           dashboardPassAloneSufficient: false,

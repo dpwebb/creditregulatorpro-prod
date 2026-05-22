@@ -40,7 +40,7 @@ function dashboardWithSkips(skip = 2) {
       fail: 0,
       skip,
       simulated: 3,
-      humanRequired: 2,
+      machineRequired: 2,
     },
     releaseEvidenceSemantics: {
       exactCommandsRequired: true,
@@ -154,25 +154,28 @@ function acceptedProductionWorkerRuntimeProof() {
 function acceptedRawReportRemediationEvidence() {
   return {
     evidenceId: "RRR-PROMO-001",
-    evidenceType: "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
+    evidenceType: "MACHINE_ATTESTED_RAW_REPORT_REMEDIATION",
     environment: "production",
-    remediationMode: "operator-applied",
+    remediationMode: "machine-applied",
     dryRunOnly: false,
-    operatorNameOrRole: "Compliance operations lead",
-    approvedAt: "2026-05-20T14:00:00.000Z",
+    machineActorId: "RAW_REPORT_MACHINE_RUNNER_1",
+    machineProofGeneratedAt: "2026-05-20T14:00:00.000Z",
     performedAt: "2026-05-20T15:00:00.000Z",
     inventoryEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
     remediationPlanEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
     inventoryRun: true,
     reliableInventoryAccepted: true,
-    remediationPlanApproved: true,
-    remediationPerformedByOperatorOrApprovedProcess: true,
+    remediationPlanPolicySatisfied: true,
+    remediationPerformedByMachineProcess: true,
     remediationApplied: true,
     oldInlineCompatibilityTested: true,
     sanitizedEvidence: true,
     postRemediationCountsRecorded: true,
-    backupRestorePrerequisiteAcknowledged: true,
-    operatorAcknowledgementSigned: true,
+    backupRestorePrerequisiteVerified: true,
+    nonInteractive: true,
+    machineAttested: true,
+    humanObserved: false,
+    manualApprovalRequired: false,
     historicalInlineRowsResolved: true,
     noRawSensitiveValuesAppearInEvidence: true,
     productionDataMutatedByCodex: false,
@@ -288,36 +291,39 @@ function dryRunAlertEvidence() {
 function acceptedAlertingExclusionEvidence() {
   return {
     evidenceType: "FORMAL_ALERTING_EXCLUSION",
-    operatorNameOrRole: "Compliance operations lead",
-    acknowledgedAt: "2026-05-20T12:00:00.000Z",
+    machinePolicyAuthorityId: "ALERTING_POLICY_CONFIG_1",
+    machineValidatedAt: "2026-05-20T12:00:00.000Z",
     environment: "limited beta production operations",
     exclusionScope: "External alert provider delivery for response operations",
     namedBlockerScope: "L10-P1-005 observability and alerting proof",
     noExternalAlertProviderUsed: true,
-    exclusionReason: "Human monitoring is the approved operating path for this limited beta release.",
+    exclusionReason: "Automated dashboard and soak controls are the configured operating path for this limited beta release.",
     compensatingControls: [
-      "Daily operator dashboard review",
+      "Daily dashboard machine check",
       "Response soak check before promotion decisions",
-      "Manual escalation for dead-letter, stale-running, and dashboard SKIP regressions",
+      "Configured escalation for dead-letter, stale-running, and dashboard SKIP regressions",
     ],
-    humanMonitoringCadence: "Daily dashboard review and immediate review after supervised response operations.",
-    manualEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
+    automatedMonitoringCadence: "Daily dashboard check and immediate check after bounded response operations.",
+    automatedEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
     acceptedRiskStatement: "The release governance owner accepts the residual risk of no external alert provider for this limited beta window.",
     reviewOrExpiryDate: "2026-08-20",
     expiresOn: "2026-08-20",
     nextReviewDate: "2026-06-20",
-    approvedByOperatorIdOrRole: "Release governance owner",
-    approvedAt: "2026-05-20T12:00:00.000Z",
+    policyConfigId: "alerting-exclusion-policy-2026-05",
+    policyEffectiveAt: "2026-05-20T12:00:00.000Z",
+    nonInteractive: true,
+    machineAttested: true,
+    humanObserved: false,
+    manualApprovalRequired: false,
     policyAllowsFormalExclusion: true,
     noPiiNoSecretsNoWebhookUrls: true,
-    dryRunNotLiveProofAcknowledgement: true,
+    dryRunNotLiveProofStatement: true,
     exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows:
       "This exclusion does not mean production-at-scale PASS unless policy allows that limited alerting-exclusion scope.",
     dashboardCommand: "pnpm run operator:dashboard",
     soakCommand: "pnpm run response:soak-check",
     alertsDryRunCommand: "pnpm run alerts:dry-run",
     alertsDryRunEvidencePath: "docs/production-scale/evidence/latest-alerts-dry-run.json",
-    operatorAcknowledgementSigned: true,
     liveAlertsSent: false,
     productionDataMutatedByCodex: false,
     sanitizedEvidenceStatement: "This evidence is sanitized and contains no PII, secrets, raw data, signed URLs, or credential URLs.",
@@ -1310,9 +1316,9 @@ describe("production promotion evidence pack", () => {
       expect(report.commandList).toContain(command);
     }
     expect(report.commandList).toContain("pnpm run production-scale:evidence");
-    expect(report.commandList).toContain("pnpm run restore:evidence:acceptance");
-    expect(report.commandList).toContain("pnpm run restore:accept-human-evidence");
-    expect(report.commandList).toContain("pnpm run restore:evidence:current-check");
+    expect(report.commandList).not.toContain("pnpm run restore:evidence:acceptance");
+    expect(report.commandList).not.toContain("pnpm run restore:accept-human-evidence");
+    expect(report.commandList).not.toContain("pnpm run restore:evidence:current-check");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
     expect(report.commandList).toContain("pnpm run production-deployment-parity:evidence");
@@ -1637,12 +1643,12 @@ describe("production promotion evidence pack", () => {
     const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
     const blocker22 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 22);
 
-    expect(humanRestoreEvidenceAcceptance.accepted).toBe(true);
+    expect(humanRestoreEvidenceAcceptance.accepted).toBe(false);
     expect(report.restoreReadinessCheck).toMatchObject({
-      status: "current-human-observed",
-      currentOperationalProof: true,
+      currentOperationalProof: false,
       stale: false,
-      evidenceType: "HUMAN-OBSERVED",
+      evidenceType: "LEGACY-HUMAN-OBSERVED",
+      humanObserved: false,
       simulatedOnly: false,
     });
     expect(report.restoreEvidenceAcceptance).toMatchObject({
@@ -1722,7 +1728,7 @@ describe("production promotion evidence pack", () => {
     });
     const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
 
-    expect(report.humanRestoreDrillEvidenceAcceptance.accepted).toBe(true);
+    expect(report.humanRestoreDrillEvidenceAcceptance.accepted).toBe(false);
     expect(report.restoreReadinessCheck.stale).toBe(true);
     expect(blocker1?.classification).toBe("machine proof required");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
@@ -2121,7 +2127,7 @@ describe("production promotion evidence pack", () => {
 
     expect(productionDeploymentParityEvidence.productionSafeProbeEvidence.accepted).toBe(true);
     expect(productionDeploymentParityEvidence.stagingOwnerDenialEvidenceReference.accepted).toBe(false);
-    expect(blocker20?.classification).toBe("human proof required");
+    expect(blocker20?.classification).toBe("partial");
   });
 
   it("closes blocker 8 only through non-mutating response ops readiness controls", () => {
@@ -2143,8 +2149,8 @@ describe("production promotion evidence pack", () => {
     expect(blocker8?.classification).toBe("fixed with automated evidence");
     expect(report.responseOpsReadinessEvidence).toMatchObject({
       liveSchedulerStatus: "disabled",
-      backfillReadinessStatus: "operator-controlled-deferred",
-      purgeArchiveReadinessStatus: "operator-controlled-deferred",
+      backfillReadinessStatus: "machine-controlled-deferred",
+      purgeArchiveReadinessStatus: "machine-controlled-deferred",
       responseSoakStatus: "command-available",
       safety: {
         productionDataMutated: false,

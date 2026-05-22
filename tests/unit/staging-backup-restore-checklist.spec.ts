@@ -250,7 +250,7 @@ describe("staging backup/restore checklist", () => {
     );
   });
 
-  it("rejects production restore completion claims without required operator fields", () => {
+  it("rejects production restore completion claims without machine proof", () => {
     const evidence = completeSyntheticFilledEvidence({
       "Operator identity": "TBD",
       "Officer acknowledgement": "TBD",
@@ -260,55 +260,54 @@ describe("staging backup/restore checklist", () => {
 
     expect(report.ok).toBe(false);
     expect(report.productionRestoreClaimed).toBe(true);
-    expect(report.missingOperatorProofFields).toEqual(
-      expect.arrayContaining(["Operator identity", "Officer acknowledgement", "Signoff"]),
-    );
+    expect(report.missingMachineProofFields).toEqual(expect.arrayContaining(["restore:machine-proof"]));
   });
 
-  it("accepts a valid sanitized human-observed fixture for blocker 1 and 22 coverage", () => {
+  it("rejects legacy human-observed fixture for blocker 1 and 22 coverage", () => {
     const report = buildHumanRestoreDrillEvidenceAcceptanceReport({
       evidencePath: "tests/fixtures/human-restore-drill-evidence.valid.md",
       generatedAt: "2026-05-20T12:00:00.000Z",
     });
 
-    expect(report.status).toBe("accepted");
-    expect(report.accepted).toBe(true);
+    expect(report.status).toBe("failed");
+    expect(report.accepted).toBe(false);
     expect(report.validation).toMatchObject({
-      ok: true,
-      evidenceType: "HUMAN-OBSERVED",
+      ok: false,
+      evidenceType: "LEGACY-HUMAN-OBSERVED",
       sensitiveFindings: [],
       simulatedOnlySubmission: false,
     });
+    expect(report.validation.errors.join("\n")).toMatch(/restore:machine-proof|legacy manual proof/i);
     expect(report.blockerCoverage).toEqual({
-      disasterRecoveryRestoreDrill: true,
-      retentionArchiveRestore: true,
+      disasterRecoveryRestoreDrill: false,
+      retentionArchiveRestore: false,
     });
   });
 
-  it("marks valid human restore evidence as current operational proof", () => {
+  it("does not mark legacy human restore evidence as current operational proof", () => {
     const report = buildRestoreEvidenceCurrentCheckReport({
       evidencePath: "tests/fixtures/human-restore-drill-evidence.valid.md",
       generatedAt: "2026-05-20T12:00:00.000Z",
     });
 
     expect(report).toMatchObject({
-      status: "current-human-observed",
-      currentOperationalProof: true,
+      status: "failed",
+      currentOperationalProof: false,
       stale: false,
-      evidenceType: "HUMAN-OBSERVED",
-      humanObserved: true,
+      evidenceType: "LEGACY-HUMAN-OBSERVED",
+      humanObserved: false,
+      legacyHumanObserved: true,
       simulatedOnly: false,
       blockerCoverage: {
-        disasterRecoveryRestoreDrill: true,
-        retentionArchiveRestore: true,
+        disasterRecoveryRestoreDrill: false,
+        retentionArchiveRestore: false,
       },
     });
     expect(report.requiredFields).toMatchObject({
       missing: [],
-      placeholders: [],
-      invalidValues: [],
       sensitiveFindings: [],
     });
+    expect(report.validation.unresolvedReasons.join("\n")).toMatch(/machine restore proof/i);
   });
 
   it("keeps simulated restore evidence simulated-only in the current check", () => {
@@ -483,7 +482,7 @@ describe("staging backup/restore checklist", () => {
     expect(report.errors.join("\n")).toMatch(/SIMULATED-only evidence cannot be accepted/i);
   });
 
-  it("marks otherwise accepted human restore evidence as stale when outside the max age window", () => {
+  it("keeps legacy human restore evidence non-certifying even when stale", () => {
     const stale = readFileSync(resolve("tests/fixtures/human-restore-drill-evidence.valid.md"), "utf8")
       .replace("| Drill date | 2026-05-20 | Synthetic date. |", "| Drill date | 2025-01-01 | Synthetic date. |")
       .replace(
@@ -499,10 +498,10 @@ describe("staging backup/restore checklist", () => {
       maxAgeDays: 90,
     });
 
-    expect(report.status).toBe("stale-human-observed");
+    expect(report.status).toBe("failed");
     expect(report.currentOperationalProof).toBe(false);
-    expect(report.stale).toBe(true);
-    expect(report.validation.unresolvedReasons.join("\n")).toMatch(/stale/i);
+    expect(report.stale).toBe(false);
+    expect(report.validation.unresolvedReasons.join("\n")).toMatch(/machine restore proof/i);
   });
 
   it("keeps restore drill docs free of secret-like values", () => {

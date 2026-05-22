@@ -69,20 +69,20 @@ describe("production-scale blocker evidence framework", () => {
     expect(validation.errors.join("\n")).toContain("Duplicate blocker number(s): 1");
   });
 
-  it("does not allow fixed status without recognized evidence or human proof", () => {
+  it("does not allow fixed status without recognized automated or machine proof", () => {
     const registry = registryClone();
-    registry.blockers[0] = {
-      ...registry.blockers[0],
+    const blocker = registry.blockers.find((entry: { number: number }) => entry.number === 7);
+    Object.assign(blocker, {
       currentStatus: "fixed",
       allowedProofCommands: [],
       humanProofRequired: false,
-    };
+    });
 
     const validation = validateBlockerRegistry(registry, parseAuditBlockerRows(auditText()));
 
     expect(validation.valid).toBe(false);
     expect(validation.errors.join("\n")).toContain(
-      "Blocker 1 cannot be fixed without recognized evidence commands or human proof",
+      "Blocker 7 cannot be fixed without recognized automated or machine proof commands.",
     );
   });
 

@@ -66,7 +66,7 @@ describe("simulated retention archive/restore evidence", () => {
     expect(markdown).toContain("SIMULATED-RETENTION-ARCHIVE-sim-retention-test-001");
     expect(markdown).toContain("SIMULATED-RETENTION-RESTORE-sim-retention-test-001");
     expect(json.evidenceType).toBe("SIMULATED");
-    expect(json.humanObservedPhysicalArchiveRestoreStillRequired).toBe(true);
+    expect(json.machinePhysicalArchiveRestoreProofStillRequired).toBe(true);
   });
 
   it("simulates non-destructive preview, archive write, restore verification, audit events, and apply guard", () => {
@@ -120,7 +120,7 @@ describe("simulated retention archive/restore evidence", () => {
     expect(markdown).toContain("not physical retention archive/restore completion");
     expect(markdown).toContain("Production data mutated: no");
     expect(markdown).toContain("Retention windows changed: no");
-    expect(markdown).toContain("Disaster recovery restore-drill proof remains a separate human-observed requirement");
+    expect(markdown).toContain("Disaster recovery restore proof remains a separate machine-attested requirement");
     expect(scanRetentionEvidenceSensitiveContent(`${markdown}\n${JSON.stringify(report)}`)).toEqual([]);
   });
 
@@ -145,7 +145,7 @@ describe("simulated retention archive/restore evidence", () => {
     expect(missingIds.errors.join("\n")).toContain("synthetic restore verification ID");
   });
 
-  it("rejects secrets, obvious PII, and production restore claims without human proof", () => {
+  it("rejects secrets, obvious PII, and production restore claims without machine proof", () => {
     const unsafe = validateRetentionArchiveRestoreEvidenceText([
       "Evidence type: SIMULATED",
       "Archive ID: SIMULATED-RETENTION-ARCHIVE-001",
@@ -158,8 +158,8 @@ describe("simulated retention archive/restore evidence", () => {
     expect(unsafe.ok).toBe(false);
     expect(unsafe.productionRestoreClaimed).toBe(true);
     expect(unsafe.sensitiveFindings).toEqual(expect.arrayContaining(["password-assignment", "obvious-email-pii"]));
-    expect(unsafe.missingHumanProofFields).toEqual(
-      expect.arrayContaining(["Operator identity", "Officer acknowledgement", "Signoff"]),
+    expect(unsafe.missingMachineProofFields).toEqual(
+      expect.arrayContaining(["machineAttested", "nonInteractive", "sanitizedArtifacts"]),
     );
   });
 });

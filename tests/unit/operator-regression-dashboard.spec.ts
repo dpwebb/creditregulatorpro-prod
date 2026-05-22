@@ -598,18 +598,18 @@ describe("operator regression dashboard", () => {
     expect(report.summary.manual).toBeGreaterThan(0);
   });
 
-  it("keeps dashboard SKIP, SIMULATED, and HUMAN_REQUIRED evidence states visible", () => {
+  it("keeps dashboard SKIP, SIMULATED, and MACHINE_REQUIRED evidence states visible", () => {
     const report = buildOperatorDashboard({ runGit: fakeGit(), fileExists: () => true });
     const rendered = renderDashboard(report);
 
     expect(report.summary.skip).toBeGreaterThan(0);
     expect(report.summary.simulated).toBeGreaterThan(0);
-    expect(report.summary.humanRequired).toBeGreaterThan(0);
+    expect(report.summary.machineRequired).toBeGreaterThan(0);
     expect(rendered).toContain("[SKIP] Golden Path");
     expect(rendered).toContain("[SIMULATED] Response external alert dry-run boundary");
-    expect(rendered).toContain("[HUMAN_REQUIRED] Response scheduler activation conditions");
+    expect(rendered).toContain("[MACHINE_REQUIRED] Response scheduler activation conditions");
     expect(rendered).toContain("- SIMULATED: synthetic or dry-run proof exists, but it is not production proof");
-    expect(rendered).toContain("- HUMAN_REQUIRED: operator-observed or signed proof is required outside this dashboard");
+    expect(rendered).toContain("- MACHINE_REQUIRED: non-interactive machine-attested proof is required outside this dashboard");
   });
 
   it("does not allow dashboard PASS semantics to hide skipped critical proof", () => {
@@ -622,7 +622,7 @@ describe("operator regression dashboard", () => {
     expect(semantics.exactCommandsRequired).toBe(true);
     expect(semantics.skippedChecksVisible).toBe(true);
     expect(semantics.simulatedProofVisible).toBe(true);
-    expect(semantics.humanRequiredProofVisible).toBe(true);
+    expect(semantics.machineRequiredProofVisible).toBe(true);
     expect(semantics.exactCommands).toContain("pnpm run alerts:dry-run");
     expect(semantics.exactCommands).toContain("pnpm run production-worker:readiness-evidence");
   });

@@ -226,7 +226,7 @@ export function renderStagingOwnerDenialSmokeMarkdown(report) {
     "- This is local/staging-only synthetic evidence, not production proof.",
     "- This smoke does not create production fixtures and does not mutate production data.",
     "- No real consumer PII, real credit reports, credentials, production database dumps, live mail delivery, or live external providers are used.",
-    "- Production-safe privacy depth remains partial until human-observed read-only production evidence is recorded.",
+    "- Production-safe privacy depth remains partial until non-interactive machine-attested production evidence is recorded.",
     "",
     "## Owner-Denial Checks",
     "",

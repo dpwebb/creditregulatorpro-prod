@@ -234,7 +234,7 @@ function inspectDockerCompose(rootDir) {
     productionWorkerCommandApplyLoopPresent: /while true; do pnpm run ingest:worker --apply/i.test(productionText),
     stagingWorkerServicePresent: /creditregulatorpro-staging-ingest-worker:/i.test(stagingText),
     composeRuntimeProofAccepted: false,
-    note: "Compose inspection is recorded for operator awareness only; compose configuration is not accepted as runtime proof.",
+    note: "Compose inspection is recorded for operational awareness only; compose configuration is not accepted as runtime proof.",
   };
 }
 
@@ -281,7 +281,12 @@ export function validateProductionWorkerRuntimeProofEvidence(evidence, {
   }
 
   const evidenceId = readRequiredString(evidence.evidenceId, errors, "evidenceId", SAFE_TOKEN_PATTERN);
-  const operatorId = readRequiredString(evidence.operatorId, errors, "operatorId", SAFE_OPERATOR_ID_PATTERN);
+  const machineActorId = readRequiredString(
+    evidence.machineActorId ?? evidence.operatorId,
+    errors,
+    "machineActorId",
+    SAFE_OPERATOR_ID_PATTERN,
+  );
   const workerId = readRequiredString(evidence.workerId, errors, "workerId", SAFE_TOKEN_PATTERN);
   const source = readRequiredString(evidence.source, errors, "source", SAFE_TOKEN_PATTERN);
   const observedAt = parseTimestamp(evidence.timestamp, errors);
@@ -330,10 +335,30 @@ export function validateProductionWorkerRuntimeProofEvidence(evidence, {
     errors.push("rollbackStopVerification.evidenceSummary is required.");
   }
 
-  const acknowledgement = isPlainObject(evidence.operatorAcknowledgement) ? evidence.operatorAcknowledgement : {};
-  requireTrue(acknowledgement.signed, errors, "operatorAcknowledgement.signed");
-  if (isPlaceholder(acknowledgement.evidenceSummary)) {
-    errors.push("operatorAcknowledgement.evidenceSummary is required.");
+  if (Object.prototype.hasOwnProperty.call(evidence, "operatorAcknowledgement")) {
+    errors.push("operatorAcknowledgement is legacy manual proof and is not accepted; use machineAttestation.");
+  }
+  if (evidence.operatorAcknowledgementSigned === true) {
+    errors.push("operatorAcknowledgementSigned is legacy manual proof and is not accepted.");
+  }
+  if (evidence.humanObserved === true) {
+    errors.push("humanObserved must be false for machine production worker proof.");
+  }
+  if (evidence.manualApprovalRequired === true) {
+    errors.push("manualApprovalRequired must be false for machine production worker proof.");
+  }
+
+  const machineAttestation = isPlainObject(evidence.machineAttestation) ? evidence.machineAttestation : {};
+  requireTrue(machineAttestation.nonInteractive, errors, "machineAttestation.nonInteractive");
+  requireTrue(machineAttestation.machineAttested, errors, "machineAttestation.machineAttested");
+  if (machineAttestation.humanObserved === true) {
+    errors.push("machineAttestation.humanObserved must be false.");
+  }
+  if (machineAttestation.manualApprovalRequired === true) {
+    errors.push("machineAttestation.manualApprovalRequired must be false.");
+  }
+  if (isPlaceholder(machineAttestation.evidenceSummary)) {
+    errors.push("machineAttestation.evidenceSummary is required.");
   }
 
   if (environment === "production") {
@@ -381,7 +406,7 @@ export function validateProductionWorkerRuntimeProofEvidence(evidence, {
     observedAt,
     ageDays,
     evidenceId,
-    operatorId,
+    machineActorId,
     workerId,
     source,
     maxJobs,
@@ -402,9 +427,12 @@ export function validateProductionWorkerRuntimeProofEvidence(evidence, {
       verified: rollback.verified === true,
       evidenceSummary: isPlaceholder(rollback.evidenceSummary) ? null : safeSummary(rollback.evidenceSummary),
     },
-    operatorAcknowledgement: {
-      signed: acknowledgement.signed === true,
-      evidenceSummary: isPlaceholder(acknowledgement.evidenceSummary) ? null : safeSummary(acknowledgement.evidenceSummary),
+    machineAttestation: {
+      nonInteractive: machineAttestation.nonInteractive === true,
+      machineAttested: machineAttestation.machineAttested === true,
+      humanObserved: machineAttestation.humanObserved === true,
+      manualApprovalRequired: machineAttestation.manualApprovalRequired === true,
+      evidenceSummary: isPlaceholder(machineAttestation.evidenceSummary) ? null : safeSummary(machineAttestation.evidenceSummary),
     },
     evidenceAttachments,
     sensitiveFindings,
@@ -457,7 +485,7 @@ export function buildProductionWorkerRuntimeProofTemplate({ generatedAt = new Da
     environment: "production",
     mode: "apply",
     dryRunOnly: false,
-    operatorId: "OPS1",
+    machineActorId: "MACHINE_PROOF_RUNNER_1",
     timestamp: "2026-05-22T00:00:00Z",
     workerId: "production-bounded-ingest-worker",
     source: PRODUCTION_WORKER_RUNTIME_SOURCE,
@@ -503,9 +531,14 @@ export function buildProductionWorkerRuntimeProofTemplate({ generatedAt = new Da
       verified: true,
       evidenceSummary: "sanitized stop/rollback verification summary",
     },
-    operatorAcknowledgement: {
-      signed: true,
-      evidenceSummary: "operator attested this is sanitized human-observed production worker runtime evidence",
+    humanObserved: false,
+    manualApprovalRequired: false,
+    machineAttestation: {
+      nonInteractive: true,
+      machineAttested: true,
+      humanObserved: false,
+      manualApprovalRequired: false,
+      evidenceSummary: "machine attested this is sanitized production worker runtime evidence",
     },
     attestations: {
       noRawReportBytesPrinted: true,
@@ -526,7 +559,7 @@ export function renderProductionWorkerRuntimeProofTemplateMarkdown(template = bu
     "",
     "Status: Template only. This is not accepted production worker runtime proof.",
     "",
-    "The operator must submit a sanitized filled JSON artifact after an explicitly guarded bounded production worker apply run. Dry-run, default-off, or deferred activation evidence is not accepted as production runtime proof.",
+    "A non-interactive machine proof runner must submit a sanitized filled JSON artifact after an explicitly guarded bounded production worker apply run. Dry-run, default-off, or deferred activation evidence is not accepted as production runtime proof.",
     "",
     "## Guarded Commands",
     "",
@@ -671,7 +704,7 @@ export function buildProductionWorkerRuntimeProofReport({
     mode: validation.mode,
     dryRunOnly: validation.dryRunOnly,
     evidenceId: validation.evidenceId,
-    operatorId: validation.operatorId,
+    machineActorId: validation.machineActorId,
     workerId: validation.workerId,
     source: validation.source,
     observedAt: validation.observedAt,
@@ -686,7 +719,7 @@ export function buildProductionWorkerRuntimeProofReport({
     workerExitCode: validation.workerExitCode,
     workerLivenessCheck: validation.workerLivenessCheck,
     rollbackStopVerification: validation.rollbackStopVerification,
-    operatorAcknowledgement: validation.operatorAcknowledgement,
+    machineAttestation: validation.machineAttestation,
     evidenceAttachments: validation.evidenceAttachments,
     validation: {
       ok: validation.ok,
@@ -733,7 +766,7 @@ export function renderProductionWorkerRuntimeProofMarkdown(report) {
     `Evidence path: \`${report.evidencePath ?? "not submitted"}\``,
     `Evidence ID: ${report.evidenceId ?? "not submitted"}`,
     `Environment: ${report.environment ?? "not submitted"}`,
-    `Operator ID: ${report.operatorId ?? "not submitted"}`,
+    `Machine actor ID: ${report.machineActorId ?? "not submitted"}`,
     `Worker ID: ${report.workerId ?? "not submitted"}`,
     `Source: ${report.source ?? "not submitted"}`,
     `Observed at: ${report.observedAt ?? "not submitted"}`,

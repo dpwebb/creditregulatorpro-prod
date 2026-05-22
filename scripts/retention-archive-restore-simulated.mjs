@@ -149,7 +149,7 @@ function simulateRestoreVerification(archive, eligibleRecords, simulationId) {
     verifiedRecordCount: verifiedRecords.filter((record) => record.verified).length,
     expectedRecordCount: eligibleRecords.length,
     verifiedRecords,
-    humanObservedPhysicalRestoreStillRequired: true,
+    machinePhysicalRestoreProofStillRequired: true,
   };
 }
 
@@ -240,45 +240,45 @@ function hasProductionRestoreClaim(text) {
 
 export function validateRetentionArchiveRestoreEvidenceText(text) {
   const source = String(text ?? "");
-  const evidenceTypeMatches = source.match(/\b(SIMULATED|HUMAN[- ]OBSERVED)\b/gi) ?? [];
+  const evidenceTypeMatches = source.match(/\b(SIMULATED|MACHINE[- ]ATTESTED)\b/gi) ?? [];
   const hasEvidenceType = evidenceTypeMatches.length > 0;
   const simulated = /\bSIMULATED\b/i.test(source);
-  const humanObserved = /\bHUMAN[- ]OBSERVED\b/i.test(source);
+  const machineAttested = /\bMACHINE[- ]ATTESTED\b/i.test(source);
   const sensitiveFindings = scanRetentionEvidenceSensitiveContent(source);
   const productionRestoreClaimed = hasProductionRestoreClaim(source);
   const syntheticArchiveIdPresent = /SIMULATED-RETENTION-ARCHIVE-[A-Za-z0-9_-]+/i.test(source);
   const syntheticRestoreIdPresent = /SIMULATED-RETENTION-RESTORE-[A-Za-z0-9_-]+/i.test(source);
-  const requiredHumanFields = ["Operator identity", "Officer acknowledgement", "Signoff"];
-  const missingHumanProofFields = productionRestoreClaimed && !humanObserved
-    ? requiredHumanFields
+  const requiredMachineFields = ["machineAttested", "nonInteractive", "sanitizedArtifacts"];
+  const missingMachineProofFields = productionRestoreClaimed && !machineAttested
+    ? requiredMachineFields
     : productionRestoreClaimed
-      ? requiredHumanFields.filter((field) => !new RegExp(field, "i").test(source))
+      ? requiredMachineFields.filter((field) => !new RegExp(field, "i").test(source))
       : [];
   const errors = [];
-  if (!hasEvidenceType) errors.push("Evidence must identify SIMULATED or HUMAN-OBSERVED proof type.");
+  if (!hasEvidenceType) errors.push("Evidence must identify SIMULATED or MACHINE-ATTESTED proof type.");
   if (simulated && !syntheticArchiveIdPresent) errors.push("SIMULATED evidence must include a synthetic archive ID.");
   if (simulated && !syntheticRestoreIdPresent) errors.push("SIMULATED evidence must include a synthetic restore verification ID.");
   if (sensitiveFindings.length > 0) errors.push(`Sensitive content detected: ${sensitiveFindings.join(", ")}.`);
-  if (productionRestoreClaimed && missingHumanProofFields.length > 0) {
-    errors.push(`Production retention restore/archive claim requires human proof fields: ${missingHumanProofFields.join(", ")}.`);
+  if (productionRestoreClaimed && missingMachineProofFields.length > 0) {
+    errors.push(`Production retention restore/archive claim requires machine proof fields: ${missingMachineProofFields.join(", ")}.`);
   }
   return {
     ok: errors.length === 0,
     errors,
-    evidenceType: simulated ? "SIMULATED" : humanObserved ? "HUMAN-OBSERVED" : "unknown",
+    evidenceType: simulated ? "SIMULATED" : machineAttested ? "MACHINE-ATTESTED" : "unknown",
     sensitiveFindings,
     productionRestoreClaimed,
     syntheticArchiveIdPresent,
     syntheticRestoreIdPresent,
-    missingHumanProofFields,
+    missingMachineProofFields,
   };
 }
 
 export function validateSimulatedRetentionArchiveRestoreReport(report) {
   const errors = [];
   if (report.evidenceType !== "SIMULATED") errors.push("report evidenceType must be SIMULATED");
-  if (report.humanObservedPhysicalArchiveRestoreStillRequired !== true) {
-    errors.push("humanObservedPhysicalArchiveRestoreStillRequired must be true");
+  if (report.machinePhysicalArchiveRestoreProofStillRequired !== true) {
+    errors.push("machinePhysicalArchiveRestoreProofStillRequired must be true");
   }
   if (!String(report.archive?.archiveId ?? "").startsWith("SIMULATED-RETENTION-ARCHIVE-")) {
     errors.push("archiveId must be synthetic");
@@ -334,8 +334,8 @@ export function buildSimulatedRetentionArchiveRestoreReport({
     simulationId,
     status: restoreVerification.status === "passed" && applyGuard.status === "passed" ? "passed" : "failed",
     readinessClaim: "No production, broad-production, or production-at-scale readiness claim is made.",
-    humanObservedPhysicalArchiveRestoreStillRequired: true,
-    relationToDisasterRecovery: "SIMULATED retention archive/restore proof is lifecycle recoverability evidence only. It is not a substitute for human-observed disaster recovery restore-drill evidence.",
+    machinePhysicalArchiveRestoreProofStillRequired: true,
+    relationToDisasterRecovery: "SIMULATED retention archive/restore proof is lifecycle recoverability evidence only. It is not a substitute for non-interactive disaster recovery restore machine proof.",
     syntheticRecords: records,
     preview,
     archive,
@@ -343,10 +343,10 @@ export function buildSimulatedRetentionArchiveRestoreReport({
     auditEvidence,
     applyGuard,
     validationRules: {
-      evidenceMustIdentifySimulatedOrHumanObserved: true,
+      evidenceMustIdentifySimulatedOrMachineAttested: true,
       simulatedEvidenceRequiresSyntheticArchiveAndRestoreIds: true,
       noRawPiiOrSecretsAllowed: true,
-      productionRestoreClaimsRequireHumanProof: true,
+      productionRestoreClaimsRequireMachineProof: true,
     },
     safety: {
       evidenceType: "SIMULATED",
@@ -394,7 +394,7 @@ export function renderSimulatedRetentionArchiveRestoreMarkdown(report) {
     `Simulation ID: \`${report.simulationId}\``,
     `Status: ${report.status}`,
     `Evidence type: ${report.evidenceType}`,
-    `Human-observed physical archive/restore still required: ${report.humanObservedPhysicalArchiveRestoreStillRequired ? "yes" : "no"}`,
+    `Machine physical archive/restore proof still required: ${report.machinePhysicalArchiveRestoreProofStillRequired ? "yes" : "no"}`,
     "",
     "## SIMULATED Retention Preview",
     "",
@@ -414,7 +414,7 @@ export function renderSimulatedRetentionArchiveRestoreMarkdown(report) {
     "",
     `- Restore verification ID: \`${report.restoreVerification.restoreVerificationId}\``,
     `- Verified synthetic records: ${report.restoreVerification.verifiedRecordCount}/${report.restoreVerification.expectedRecordCount}`,
-    "- Human-observed physical restore still required: yes",
+    "- Machine physical restore proof still required: yes",
     "",
     "## SIMULATED Audit Evidence",
     "",
@@ -440,7 +440,7 @@ export function renderSimulatedRetentionArchiveRestoreMarkdown(report) {
     "",
     "## Remaining Requirement",
     "",
-    "Blocker 22 remains partial. SIMULATED retention archive/restore proof does not replace human-observed physical archive/restore lifecycle evidence. Disaster recovery restore-drill proof remains a separate human-observed requirement.",
+    "Blocker 22 remains partial. SIMULATED retention archive/restore proof does not replace non-interactive machine-attested archive/restore lifecycle evidence. Disaster recovery restore proof remains a separate machine-attested requirement.",
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -519,7 +519,7 @@ async function main() {
   console.log("SIMULATED evidence is not production proof and does not complete physical retention recoverability.");
   console.log(`Markdown: ${outputs.markdownPath}`);
   console.log(`JSON: ${outputs.jsonPath}`);
-  console.log("Human-observed physical archive/restore evidence remains required.");
+  console.log("Non-interactive archive/restore machine proof remains required.");
   if (options.json) console.log(JSON.stringify(report, null, 2));
 }
 

@@ -8,6 +8,7 @@ import {
   repoPath,
   writeMachineEvidenceOutputs,
 } from "./productionEvidenceSchema.mjs";
+import { machineProofBlockerIdForConfig } from "./productionMachineProofPolicy.mjs";
 import { findSensitiveEvidenceValues } from "./sanitizeProductionEvidence.mjs";
 import { validateMachineEvidence, validateMachineEvidenceFile } from "./validateMachineEvidence.mjs";
 
@@ -114,6 +115,7 @@ export function validateMachineProofForConfig(config, evidence, options = {}) {
     expectedEvidenceType: config.evidenceType,
     now: options.now,
     requireCertifying: options.requireCertifying ?? true,
+    productionRuntimeProofRequired: config.productionRuntimeProofRequired === true,
   });
   const domainErrors = validation.ok || evidence
     ? configuredMachineProofValidationErrors(config, evidence)
@@ -151,9 +153,15 @@ export function buildAttestedMachineProofReport(config, {
   if (attestation) {
     if (attestation.nonInteractive !== true) failures.push({ code: "non-interactive-missing", message: "Attestation nonInteractive must be true." });
     if (attestation.machineAttested !== true) failures.push({ code: "machine-attested-missing", message: "Attestation machineAttested must be true." });
+    if (attestation.humanObserved === true) failures.push({ code: "human-observed-attestation", message: "Human-observed attestations are rejected as production certification proof." });
+    if (attestation.manualApprovalRequired === true) failures.push({ code: "manual-approval-attestation", message: "Manual approval cannot be a production certification dependency." });
+    if (attestation.humanInteractionRequired === true) failures.push({ code: "human-interaction-attestation", message: "Human interaction cannot be required for production certification proof." });
     if (attestation.generatedManually === true) failures.push({ code: "manual-attestation", message: "Generated manually attestations are rejected." });
     if (attestation.simulatedOnly === true && (attestation.environment ?? "production") === "production") {
       failures.push({ code: "simulated-production-proof", message: "Simulated-only attestation cannot certify production proof." });
+    }
+    if (attestation.dryRunOnly === true && (attestation.environment ?? "production") === "production") {
+      failures.push({ code: "dry-run-production-proof", message: "Dry-run-only attestation cannot certify production proof." });
     }
     if (attestation.status !== "pass") failures.push({ code: "attestation-not-pass", message: "Attestation status must be pass." });
     if (attestation.certifying !== true && attestation.CERTIFYING !== true) {
@@ -180,11 +188,13 @@ export function buildAttestedMachineProofReport(config, {
   return buildMachineEvidence({
     rootDir,
     evidenceType: config.evidenceType,
+    blockerId: machineProofBlockerIdForConfig(config),
     generatedAt,
     commitHash: env.CRP_MACHINE_EVIDENCE_COMMIT_HASH ?? null,
     generatorScript: config.generatorScript,
     command: config.command,
     productionMutation: config.productionMutation ?? "none",
+    dryRunOnly: attestation?.dryRunOnly === true,
     status: certifying ? "pass" : "fail",
     certifying,
     checks,
@@ -242,6 +252,7 @@ export async function runMachineProofValidationCli(config, argv = process.argv.s
     rootDir: options.rootDir,
     evidencePath: config.jsonPath,
     expectedEvidenceType: config.evidenceType,
+    productionRuntimeProofRequired: config.productionRuntimeProofRequired === true,
   });
   const domainErrors = result.evidence ? configuredMachineProofValidationErrors(config, result.evidence) : [];
   const validatedResult = {

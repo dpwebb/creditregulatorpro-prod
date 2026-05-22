@@ -101,6 +101,7 @@ export function buildMigrationMachineProofReport({
   return buildMachineEvidence({
     rootDir,
     evidenceType: MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE,
+    blockerId: MIGRATION_MACHINE_PROOF_CONFIG.blockerIdsClosedWhenCertifying[0],
     generatedAt,
     generatorScript: MIGRATION_MACHINE_PROOF_CONFIG.generatorScript,
     command: MIGRATION_MACHINE_PROOF_CONFIG.command,
