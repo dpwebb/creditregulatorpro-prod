@@ -1,9 +1,9 @@
 # Raw Report Byte Remediation Machine Proof
 
-Generated at: 2026-05-22T17:22:26.200Z
+Generated at: 2026-05-22T17:52:05.695Z
 Evidence type: RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF
 Environment: production
-Commit: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+Commit: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
 Generator: `scripts/storage-raw-report-machine-remediation-proof.mjs`
 Command: `pnpm run storage:raw-report-machine-remediation-proof`
 Blocker ID: L10-P1-004
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T17:22:26.200Z
+Expires at: 2026-05-23T17:52:05.695Z
 
 ## Safety
 

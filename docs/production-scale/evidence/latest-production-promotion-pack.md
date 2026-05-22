@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T17:28:03.643Z
+Generated at: 2026-05-22T17:59:05.264Z
 Current branch: `staging`
-Current commit hash: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
-Current HEAD: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+Current commit hash: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
+Current HEAD: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
 Target environment: `production`
-Target SHA: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+Target SHA: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -32,7 +32,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+- Target SHA: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
 - Missing required checks: none
 - Stale checks: productionScaleCertification, machineProofSummary, storageDurability, evidenceLedger, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, retentionArchiveRestoreMachineProof
 - Non-automated checks: none
@@ -42,19 +42,19 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Production-scale certification: non-certifying; status=missing; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:27:54.936Z; command=`pnpm run production-scale:certify`
-- Combined machine proof summary: non-certifying; status=missing; head=missing; timestamp=2026-05-22T17:22:21.947Z; command=`pnpm run production:machine-proofs`
-- Queue liveness: non-certifying; status=prepared-awaiting-machine-production-evidence; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:28:03.643Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:21:47.062Z; command=`pnpm run storage:durability-contract`
+- Production-scale certification: non-certifying; status=missing; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:58:56.575Z; command=`pnpm run production-scale:certify`
+- Combined machine proof summary: non-certifying; status=missing; head=missing; timestamp=2026-05-22T17:52:01.325Z; command=`pnpm run production:machine-proofs`
+- Queue liveness: non-certifying; status=prepared-awaiting-machine-production-evidence; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:59:05.264Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:51:24.052Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: CERTIFYING; status=accepted-release-blocking; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:28:03.643Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:22:11.853Z; command=`pnpm run deploy:rollback-simulation`
-- Disaster recovery restore machine proof: non-certifying; status=fail; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:22:22.884Z; command=`pnpm run restore:machine-proof`
-- Production worker runtime machine proof: non-certifying; status=fail; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:22:24.604Z; command=`pnpm run production-worker:machine-proof`
-- Raw report byte remediation machine proof: non-certifying; status=fail; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:22:26.200Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
-- Alerting observability machine proof: non-certifying; status=fail; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:22:27.647Z; command=`pnpm run alerting:machine-proof`
-- Migration governance machine proof: CERTIFYING; status=pass; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:28:03.643Z; command=`pnpm run migrations:machine-proof`
-- Retention archive restore machine proof: non-certifying; status=fail; head=5ad7b1dafa990cd0c7b9285797f514da29f4fec5; timestamp=2026-05-22T17:22:31.366Z; command=`pnpm run retention:archive-restore-machine-proof`
+- Migration governance: CERTIFYING; status=accepted-release-blocking; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:59:05.264Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:51:49.168Z; command=`pnpm run deploy:rollback-simulation`
+- Disaster recovery restore machine proof: non-certifying; status=fail; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:52:02.147Z; command=`pnpm run restore:machine-proof`
+- Production worker runtime machine proof: non-certifying; status=fail; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:52:03.889Z; command=`pnpm run production-worker:machine-proof`
+- Raw report byte remediation machine proof: non-certifying; status=fail; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:52:05.695Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
+- Alerting observability machine proof: non-certifying; status=fail; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:52:07.448Z; command=`pnpm run alerting:machine-proof`
+- Migration governance machine proof: CERTIFYING; status=pass; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:59:05.264Z; command=`pnpm run migrations:machine-proof`
+- Retention archive restore machine proof: non-certifying; status=fail; head=b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7; timestamp=2026-05-22T17:52:11.556Z; command=`pnpm run retention:archive-restore-machine-proof`
 
 ### Machine-Attested Proof Gates
 
@@ -85,7 +85,7 @@ Production-ready claim: **false**
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T17:28:03.643Z; completed=2026-05-22T17:28:03.643Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T17:59:05.264Z; completed=2026-05-22T17:59:05.264Z
 
 ## Command Result Summary
 

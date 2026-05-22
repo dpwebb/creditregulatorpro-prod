@@ -1,7 +1,7 @@
 # Production Machine Proof Summary
 
-Generated: 2026-05-22T17:22:21.947Z
-Commit: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+Generated: 2026-05-22T17:52:01.325Z
+Commit: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
 Branch: `staging`
 Policy version: `production-machine-proof-policy-2026-05-22`
 allMachineProofsCertifying:false

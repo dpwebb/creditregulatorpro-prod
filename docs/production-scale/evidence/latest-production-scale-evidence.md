@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-22T17:16:37.058Z
+Generated at: 2026-05-22T17:45:48.452Z
 Current branch: `staging`
-Current commit hash: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+Current commit hash: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20

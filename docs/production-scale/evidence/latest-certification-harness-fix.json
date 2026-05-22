@@ -1,8 +1,8 @@
 {
   "reportName": "certification-harness-fix",
-  "generatedAt": "2026-05-22T17:27:54.936Z",
-  "currentHead": "5ad7b1dafa990cd0c7b9285797f514da29f4fec5",
-  "targetSha": "5ad7b1dafa990cd0c7b9285797f514da29f4fec5",
+  "generatedAt": "2026-05-22T17:58:56.575Z",
+  "currentHead": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
+  "targetSha": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
   "status": "passed",
   "CERTIFYING": false,
   "productionProof": false,

@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-22T17:16:37.058Z",
+  "generatedAt": "2026-05-22T17:45:48.452Z",
   "branch": "staging",
-  "commit": "5ad7b1dafa990cd0c7b9285797f514da29f4fec5",
+  "commit": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -244,8 +244,8 @@
     "allMachineProofsCertifying": false,
     "CERTIFYING": false,
     "policyVersion": "production-machine-proof-policy-2026-05-22",
-    "generatedAt": "2026-05-22T17:16:09.048Z",
-    "commitHash": "5ad7b1dafa990cd0c7b9285797f514da29f4fec5",
+    "generatedAt": "2026-05-22T17:44:08.559Z",
+    "commitHash": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
     "openBlockers": [
       {
         "blockerId": "L10-P1-002",
