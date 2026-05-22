@@ -1,0 +1,184 @@
+{
+  "overallStatus": "LIMITED",
+  "auditDate": "2026-05-21",
+  "auditedCommitHash": "5359586150e4ebaa6f91c6a9f4342f86d5e54778",
+  "scope": "Bounded packet humanization/display changes only",
+  "filesChangedInAuditedScope": [
+    "components/PacketViewer.tsx",
+    "helpers/disputePacketHumanization.ts",
+    "helpers/disputePacketPdf.ts",
+    "helpers/disputePacketService.ts",
+    "helpers/disputePacketTemplate.ts",
+    "helpers/packetPreviewDisplay.ts",
+    "pages/packets.tsx",
+    "tests/unit/dispute-packet-humanization.spec.ts",
+    "tests/unit/dispute-packet-pdf.spec.ts",
+    "tests/unit/dispute-packet-service.spec.ts",
+    "tests/unit/dispute-packet-template.spec.ts",
+    "tests/unit/frontend-production-readiness-ux.spec.ts",
+    "tests/unit/packet-create-dialog-routing.spec.tsx",
+    "tests/unit/packet-humanization-flow-proof.spec.ts",
+    "tests/unit/packet-pdf-cache.spec.ts",
+    "tests/unit/packet-preview-display.spec.ts",
+    "tests/unit/packet-viewer.spec.tsx",
+    "packet-humanization-proof-2026-05-21.md",
+    "packet-humanization-proof-2026-05-21.json"
+  ],
+  "auditArtifactFiles": [
+    "packet-humanization-final-audit-2026-05-21.md",
+    "packet-humanization-final-audit-2026-05-21.json"
+  ],
+  "commandsRun": [
+    {
+      "command": "git status --short --branch",
+      "status": "PASS",
+      "result": "## staging...origin/staging"
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS",
+      "result": "No whitespace errors"
+    },
+    {
+      "command": "pnpm run test:unit -- tests/unit/dispute-packet-humanization.spec.ts tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/dispute-packet-service.spec.ts tests/unit/dispute-packet-evidence-location.spec.ts tests/unit/packet-preview-display.spec.ts tests/unit/packet-viewer.spec.tsx tests/unit/packet-humanization-flow-proof.spec.ts tests/unit/packet-create-dialog-routing.spec.tsx",
+      "status": "PASS",
+      "result": "9 files passed, 38 tests passed"
+    },
+    {
+      "command": "pnpm run test:unit -- tests/unit/packet-humanization-flow-proof.spec.ts tests/unit/dispute-packet-humanization.spec.ts tests/unit/dispute-packet-template.spec.ts tests/unit/dispute-packet-pdf.spec.ts tests/unit/dispute-packet-service.spec.ts tests/unit/dispute-packet-evidence-location.spec.ts tests/unit/packet-preview-display.spec.ts tests/unit/packet-create-dialog-routing.spec.tsx tests/unit/packet-viewer.spec.tsx tests/unit/packet-pdf-cache.spec.ts tests/unit/packet-readiness.spec.ts tests/unit/packet-lifecycle.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts tests/api/packet-lifecycle-endpoint.spec.ts tests/api/packet-delivery-status-endpoint.spec.ts",
+      "status": "PASS",
+      "result": "15 files passed, 91 tests passed"
+    },
+    {
+      "command": "CRP_AUTH_WORKFLOW_SMOKE=true STAGING_BASE_URL=https://staging.creditregulatorpro.com pnpm run smoke:auth-workflow:packet",
+      "status": "PASS",
+      "result": "Packet created, PDF returned application/pdf, non-owner packet PDF access denied with 403"
+    },
+    {
+      "command": "pnpm run test:golden-path",
+      "status": "PASS",
+      "result": "Upload, parse, canonical map, anomaly detect, violation detect, evidence bind, packet generate, and PDF download passed"
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "status": "PASS",
+      "result": "11 fixtures, replay stable, required evidence coverage 100 percent, violation search preserved"
+    },
+    {
+      "command": "pnpm run typecheck",
+      "status": "PASS",
+      "result": "tsc --noEmit completed"
+    },
+    {
+      "command": "pnpm run build",
+      "status": "PASS",
+      "result": "Vite production build completed"
+    },
+    {
+      "command": "pnpm run commit-push -- --message \"Finalize packet humanization audit\"",
+      "status": "FAIL",
+      "result": "Integrated pnpm run check failed in unrelated suites before commit/push; no packet humanization test failed"
+    },
+    {
+      "command": "pnpm run test:unit -- tests/api/response-processing-queue.spec.ts tests/api/ingest-processing-lifecycle-remediation-endpoint.spec.ts tests/unit/deploy-rollback-sha-governance.spec.ts tests/unit/deploy-rollback-simulation.spec.ts tests/unit/deploy-ssh-host-key-pinning.spec.ts tests/unit/pr-regression-guardrails.spec.ts",
+      "status": "FAIL",
+      "result": "2 queue/remediation files passed; 4 deploy/PR governance files timed out under the default 20 second Vitest timeout"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts --testTimeout=60000 tests/unit/deploy-rollback-sha-governance.spec.ts tests/unit/deploy-rollback-simulation.spec.ts tests/unit/deploy-ssh-host-key-pinning.spec.ts tests/unit/pr-regression-guardrails.spec.ts",
+      "status": "PASS",
+      "result": "4 files passed, 24 tests passed"
+    }
+  ],
+  "commandsNotRun": [
+    {
+      "command": "production-scale or promotion evidence commands",
+      "status": "NOT_RUN",
+      "reason": "Broader than the packet humanization audit, may write unrelated production-scale evidence artifacts, and no production promotion was requested"
+    }
+  ],
+  "auditQuestions": {
+    "consumerFacingPreviewAndPdfAvoidInternalDebugWording": "PASS",
+    "rawIdsPreservedInMetadataEvidenceAdminAuditPaths": "PASS",
+    "parserCanonicalViolationReadinessOwnershipEvidenceUnchanged": "PASS",
+    "accountIdentifiersSafelyDisplayed": "PASS",
+    "datesHumanReadable": "PASS",
+    "fieldLabelsHumanReadable": "PASS",
+    "expectedNotKnownRemovedFromUserFacingOutput": "PASS",
+    "pdfRenderCacheLanguageHiddenFromNormalUsers": "PASS",
+    "testsProveHumanizedOutputAndInternalTruthPreservation": "PASS",
+    "newRisksIntroduced": "LOW_PACKET_RISK_WITH_REPO_PREFLIGHT_LIMITATION"
+  },
+  "consumerFacingForbiddenTermsChecked": [
+    "tradeline",
+    "artifact",
+    "report artifact",
+    "source report #",
+    "field:",
+    "PIPEDA_4_5",
+    "BALANCE_CALCULATION_VIOLATION",
+    "ISO timestamp patterns",
+    "LasReportedDate",
+    "Lastreporteddate",
+    "lastReportedDate",
+    "sourceReportArtifactId",
+    "reportArtifactId",
+    "tradelineId",
+    "Account ending reau",
+    "Expected: Not known",
+    "PDF rendering is content-based",
+    "render/cache diagnostic language in normal-user view"
+  ],
+  "consumerFacingForbiddenTermResult": "PASS",
+  "positiveConsumerFacingTermsProven": [
+    "Disputed Account",
+    "Company reporting the account",
+    "Date last reported",
+    "Aug 21, 2012",
+    "Account number not provided on report",
+    "Account identifier unavailable",
+    "Account ending ####",
+    "Information disputed",
+    "Information I am disputing",
+    "What the report shows",
+    "Requested action",
+    "What I am requesting",
+    "Please verify this information and correct or remove it if it cannot be supported."
+  ],
+  "metadataEvidencePreservationResult": {
+    "status": "PASS",
+    "preserved": [
+      "selected finding linkage",
+      "report artifact IDs",
+      "tradeline IDs",
+      "evidence IDs",
+      "regulation/reference IDs",
+      "rule IDs",
+      "field keys",
+      "source fields",
+      "readiness snapshots",
+      "evidence location snapshots",
+      "packet finding rows",
+      "evidence event linkage"
+    ]
+  },
+  "readinessSecurityPreservationResult": {
+    "status": "PASS",
+    "preserved": [
+      "readiness blockers and warnings",
+      "manual-review gates",
+      "parser-uncertain gates",
+      "missing-evidence gates",
+      "same-user packet/PDF access",
+      "non-owner packet/PDF denial with 403",
+      "PDF retrieval content type application/pdf"
+    ]
+  },
+  "remainingRisks": [
+    "New bureau-specific field names may require future explicit label mapping, but current fallback titleizes unknown keys instead of emitting raw camelCase",
+    "Admin-only diagnostic surfaces can still show technical wording by design and must remain role-gated",
+    "Live staging smoke verifies PDF content type and access control; PDF text-level humanization is proven by unit/proof tests",
+    "Default full local pnpm run check currently has unrelated queue/deploy-governance instability; queue/remediation failures cleared in targeted rerun and deploy/PR governance tests passed with a 60 second timeout"
+  ],
+  "safeForStagingPromotion": "YES_FOR_PACKET_HUMANIZATION_WITH_REPO_PREFLIGHT_LIMITATION"
+}
