@@ -1,9 +1,9 @@
 # Disaster Recovery Restore Machine Proof
 
-Generated at: 2026-05-22T17:52:02.147Z
+Generated at: 2026-05-22T19:08:53.723Z
 Evidence type: DISASTER_RECOVERY_RESTORE_MACHINE_PROOF
 Environment: production
-Commit: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
+Commit: `9806da4014e26ea9ab3c6311e692287a398f8f37`
 Generator: `scripts/restore-machine-proof.mjs`
 Command: `pnpm run restore:machine-proof`
 Blocker ID: L10-P1-002
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T17:52:02.147Z
+Expires at: 2026-05-23T19:08:53.723Z
 
 ## Safety
 

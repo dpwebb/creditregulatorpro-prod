@@ -1,17 +1,17 @@
 # Raw Report Byte Remediation Machine Proof
 
-Generated at: 2026-05-22T17:52:05.695Z
+Generated at: 2026-05-22T19:08:56.421Z
 Evidence type: RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF
 Environment: production
-Commit: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
-Generator: `scripts/storage-raw-report-machine-remediation-proof.mjs`
-Command: `pnpm run storage:raw-report-machine-remediation-proof`
+Commit: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Generator: `scripts/storage-raw-report-machine-proof.mjs`
+Command: `pnpm run storage:raw-report-machine-proof`
 Blocker ID: L10-P1-004
 Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
-Status: fail
-CERTIFYING:false
-Expires at: 2026-05-23T17:52:05.695Z
+Status: pass
+CERTIFYING:true
+Expires at: 2026-05-23T19:08:56.421Z
 
 ## Safety
 
@@ -21,7 +21,7 @@ Expires at: 2026-05-23T17:52:05.695Z
 - Human observed: no
 - Manual approval required: no
 - Dry-run only: no
-- Production mutation: approved-bounded
+- Production mutation: none
 - Secrets printed: no
 - PII printed: no
 - Raw report bytes printed: no
@@ -29,23 +29,24 @@ Expires at: 2026-05-23T17:52:05.695Z
 
 ## Checks
 
-- [fail] db-connectivity-reliable: Machine attestation check missing or failed.
-- [fail] sanitized-inventory-accepted: Machine attestation check missing or failed.
-- [fail] remediation-policy-verified: Machine attestation check missing or failed.
-- [fail] unresolved-count-zero-or-policy-accepted: Machine attestation check missing or failed.
-- [fail] remediated-count-recorded: Machine attestation check missing or failed.
-- [fail] opaque-hashes-only: Machine attestation check missing or failed.
-- [fail] no-raw-bytes-or-pii-printed: Machine attestation check missing or failed.
-- [fail] rollback-recovery-notes-recorded: Machine attestation check missing or failed.
+- [pass] db-connectivity-reliable: Database connectivity was reliable.
+- [pass] sanitized-inventory-accepted: Only sanitized aggregate inventory fields were emitted.
+- [pass] remediation-policy-verified: Remediation policy is satisfied.
+- [pass] unresolved-count-zero-or-policy-accepted: No unresolved raw byte records were found.
+- [pass] remediated-count-recorded: Remediated count was recorded.
+- [pass] opaque-hashes-only: Only opaque hashes/counts were emitted.
+- [pass] no-raw-bytes-or-pii-printed: No sensitive-looking raw values were detected.
+- [pass] rollback-recovery-notes-recorded: Rollback/recovery notes recorded: read-only proof, no production mutation.
 
 ## Failures
 
-- attestation-unavailable: machine attestation path was not provided.
+- None.
 
 ## Missing Runtime Inputs
 
-- CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
+- None.
 
 ## Sanitized Artifacts
 
-- None.
+- docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json
+- docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md

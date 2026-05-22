@@ -1,8 +1,8 @@
 {
   "reportName": "certification-harness-fix",
-  "generatedAt": "2026-05-22T17:58:56.575Z",
-  "currentHead": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
-  "targetSha": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
+  "generatedAt": "2026-05-22T19:13:31.262Z",
+  "currentHead": "9806da4014e26ea9ab3c6311e692287a398f8f37",
+  "targetSha": "9806da4014e26ea9ab3c6311e692287a398f8f37",
   "status": "passed",
   "CERTIFYING": false,
   "productionProof": false,
@@ -66,7 +66,6 @@
     "failedGates": [
       "restoreMachineProof",
       "productionWorkerMachineProof",
-      "rawReportMachineProof",
       "alertingMachineProof",
       "retentionArchiveRestoreMachineProof",
       "machineProofSummary",
@@ -77,7 +76,6 @@
       "deployRollbackSimulation",
       "restoreMachineProof",
       "productionWorkerMachineProof",
-      "rawReportMachineProof",
       "alertingMachineProof",
       "retentionArchiveRestoreMachineProof",
       "machineProofSummary"

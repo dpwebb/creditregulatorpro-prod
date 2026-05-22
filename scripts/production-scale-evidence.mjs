@@ -31,7 +31,7 @@ const MACHINE_ATTESTED_PROOF_COMMANDS = [
   },
   {
     blocker: "L10-P1-004",
-    command: "pnpm run storage:raw-report-machine-remediation-proof",
+    command: "pnpm run storage:raw-report-machine-proof",
     jsonPath: "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
   },
   {

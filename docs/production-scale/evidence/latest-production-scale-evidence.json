@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-22T17:45:48.452Z",
+  "generatedAt": "2026-05-22T18:52:21.631Z",
   "branch": "staging",
-  "commit": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
+  "commit": "9806da4014e26ea9ab3c6311e692287a398f8f37",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -213,7 +213,7 @@
     },
     {
       "blocker": "L10-P1-004",
-      "command": "pnpm run storage:raw-report-machine-remediation-proof",
+      "command": "pnpm run storage:raw-report-machine-proof",
       "jsonPath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
       "evidencePresent": true
     },
@@ -244,8 +244,8 @@
     "allMachineProofsCertifying": false,
     "CERTIFYING": false,
     "policyVersion": "production-machine-proof-policy-2026-05-22",
-    "generatedAt": "2026-05-22T17:44:08.559Z",
-    "commitHash": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
+    "generatedAt": "2026-05-22T18:51:23.288Z",
+    "commitHash": "9806da4014e26ea9ab3c6311e692287a398f8f37",
     "openBlockers": [
       {
         "blockerId": "L10-P1-002",
@@ -331,32 +331,6 @@
         ]
       },
       {
-        "blockerId": "L10-P1-004",
-        "proofArea": "rawReport",
-        "label": "Raw report byte remediation",
-        "missingRuntimeInputs": [
-          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
-        ],
-        "reasons": [
-          "status must be pass for certifying machine evidence.",
-          "certifying must be true.",
-          "CERTIFYING must be true.",
-          "checks[0].status must be pass.",
-          "checks[1].status must be pass.",
-          "checks[2].status must be pass.",
-          "checks[3].status must be pass.",
-          "checks[4].status must be pass.",
-          "checks[5].status must be pass.",
-          "checks[6].status must be pass.",
-          "checks[7].status must be pass.",
-          "failures must be empty for certifying evidence.",
-          "missingRuntimeInputs must be empty for certifying evidence.",
-          "machine proof is missing a complete accepted check set (default: db-connectivity-reliable, sanitized-inventory-accepted, remediation-policy-verified, unresolved-count-zero-or-policy-accepted, remediated-count-recorded, opaque-hashes-only, no-raw-bytes-or-pii-printed, rollback-recovery-notes-recorded).",
-          "pnpm run storage:raw-report-machine-remediation-proof exited 1",
-          "pnpm run storage:raw-report-machine-proof:validate exited 1"
-        ]
-      },
-      {
         "blockerId": "L10-P1-005",
         "proofArea": "alerting",
         "label": "Alerting and observability",
@@ -436,12 +410,12 @@
           "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
           "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
           "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
-          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
           "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
           "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
           "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
           "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
-          "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+          "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
         ],
         "reasons": [
           "latest-production-promotion-pack.json has CERTIFYING !== true.",
@@ -449,7 +423,7 @@
           "Promotion certification checks are not certifying.",
           "Latest machine proof summary is not certifying.",
           "Promotion pack does not allow production-at-scale promotion.",
-          "Promotion pack has 4 open P0/P1 production blocker(s).",
+          "Promotion pack has 3 open P0/P1 production blocker(s).",
           "Promotion certification has staleChecks.",
           "Promotion certification has failedChecks.",
           "Promotion pack audit commit reference is stale.",
@@ -467,12 +441,12 @@
       "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
       "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
       "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
-      "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
       "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
       "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
       "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
       "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
-      "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+      "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
+      "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
     ],
     "humanInteractionRequired": false,
     "simulatedOnlyProofCount": 0,
@@ -733,7 +707,7 @@
             "pnpm run storage:raw-report-remediation-plan",
             "pnpm run storage:raw-report-remediation-acceptance",
             "pnpm run storage:raw-report-machine-inventory",
-            "pnpm run storage:raw-report-machine-remediation-proof",
+            "pnpm run storage:raw-report-machine-proof",
             "pnpm run storage:raw-report-machine-proof:validate",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
@@ -2213,7 +2187,7 @@
             "pnpm run storage:raw-report-remediation-plan",
             "pnpm run storage:raw-report-remediation-acceptance",
             "pnpm run storage:raw-report-machine-inventory",
-            "pnpm run storage:raw-report-machine-remediation-proof",
+            "pnpm run storage:raw-report-machine-proof",
             "pnpm run storage:raw-report-machine-proof:validate",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
@@ -2743,7 +2717,7 @@
             "pnpm run storage:raw-report-remediation-plan",
             "pnpm run storage:raw-report-remediation-acceptance",
             "pnpm run storage:raw-report-machine-inventory",
-            "pnpm run storage:raw-report-machine-remediation-proof",
+            "pnpm run storage:raw-report-machine-proof",
             "pnpm run storage:raw-report-machine-proof:validate",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",
@@ -3105,7 +3079,7 @@
         "pnpm run storage:raw-report-remediation-plan",
         "pnpm run storage:raw-report-remediation-acceptance",
         "pnpm run storage:raw-report-machine-inventory",
-        "pnpm run storage:raw-report-machine-remediation-proof",
+        "pnpm run storage:raw-report-machine-proof",
         "pnpm run storage:raw-report-machine-proof:validate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-remediation-plan.spec.ts",

@@ -2,9 +2,9 @@
 
 SIMULATED evidence only. This is synthetic local proof and is not production worker activation, not production queue proof, and not production-at-scale readiness.
 
-Generated at: 2026-05-22T17:51:28.641Z
+Generated at: 2026-05-22T19:08:29.127Z
 Branch: `staging`
-Commit: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
+Commit: `9806da4014e26ea9ab3c6311e692287a398f8f37`
 Simulation ID: `SIMULATED-INGEST-WORKER-QUEUE-DRAIN`
 Status: passed
 Machine-attested production-safe queue-drain proof still required: yes

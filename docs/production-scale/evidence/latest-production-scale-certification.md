@@ -1,8 +1,8 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T17:58:56.575Z
-Current HEAD: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
-Target SHA: `b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7`
+Generated: 2026-05-22T19:13:31.262Z
+Current HEAD: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Target SHA: `9806da4014e26ea9ab3c6311e692287a398f8f37`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
@@ -32,7 +32,7 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 | Deploy rollback simulation | STALE | `pnpm run deploy:rollback-simulation --write-evidence --json` |
 | Disaster recovery restore machine proof | FAILED | `pnpm run restore:machine-proof` |
 | Production ingest worker runtime machine proof | FAILED | `pnpm run production-worker:machine-proof` |
-| Historical raw report byte remediation machine proof | FAILED | `pnpm run storage:raw-report-machine-remediation-proof` |
+| Historical raw report byte remediation machine proof | PASS | `pnpm run storage:raw-report-machine-proof` |
 | Alerting and observability machine proof | FAILED | `pnpm run alerts:machine-proof` |
 | Migration governance machine proof | PASS | `pnpm run migrations:machine-proof` |
 | Retention archive restore machine proof | FAILED | `pnpm run retention:archive-restore-machine-proof` |
@@ -44,7 +44,6 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 
 - restoreMachineProof
 - productionWorkerMachineProof
-- rawReportMachineProof
 - alertingMachineProof
 - retentionArchiveRestoreMachineProof
 - machineProofSummary
@@ -61,7 +60,6 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - CRP_PRODUCTION_WORKER_LIVENESS_ACCESS
 - CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS
 - CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS
-- CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
 - CRP_ALERTING_MACHINE_ATTESTATION_JSON
 - CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
 - CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS
@@ -74,7 +72,6 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - deployRollbackSimulation
 - restoreMachineProof
 - productionWorkerMachineProof
-- rawReportMachineProof
 - alertingMachineProof
 - retentionArchiveRestoreMachineProof
 - machineProofSummary
@@ -108,7 +105,7 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - `pnpm run deploy:rollback-simulation --write-evidence --json`
 - `pnpm run restore:machine-proof`
 - `pnpm run production-worker:machine-proof`
-- `pnpm run storage:raw-report-machine-remediation-proof`
+- `pnpm run storage:raw-report-machine-proof`
 - `pnpm run alerts:machine-proof`
 - `pnpm run migrations:machine-proof`
 - `pnpm run retention:archive-restore-machine-proof`

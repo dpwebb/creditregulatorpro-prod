@@ -120,7 +120,7 @@ import {
   RAW_REPORT_MACHINE_PROOF_CONFIG,
   RAW_REPORT_MACHINE_PROOF_JSON_PATH,
   RAW_REPORT_MACHINE_PROOF_MD_PATH,
-} from "./storage-raw-report-machine-remediation-proof.mjs";
+} from "./storage-raw-report-machine-proof.mjs";
 
 import {
   RAW_REPORT_MACHINE_INVENTORY_JSON_PATH,
@@ -248,7 +248,7 @@ export const REQUIRED_CERTIFICATION_CHECKS = [
   {
     key: "rawReportMachineProof",
     label: "Raw report byte remediation machine proof",
-    command: "pnpm run storage:raw-report-machine-remediation-proof",
+    command: "pnpm run storage:raw-report-machine-proof",
     jsonPath: RAW_REPORT_MACHINE_PROOF_JSON_PATH,
   },
   {
@@ -298,7 +298,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run storage:raw-report-remediation-plan",
   "pnpm run storage:raw-report-remediation-acceptance",
   "pnpm run storage:raw-report-machine-inventory",
-  "pnpm run storage:raw-report-machine-remediation-proof",
+  "pnpm run storage:raw-report-machine-proof",
   "pnpm run storage:durability-contract",
   "pnpm run check:migrations",
   "pnpm run migrations:gate",
@@ -337,7 +337,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run staging-owner-denial-smoke:evidence",
   "pnpm run sensitive-list-endpoints:evidence",
   "pnpm run storage:raw-report-machine-inventory",
-  "pnpm run storage:raw-report-machine-remediation-proof",
+  "pnpm run storage:raw-report-machine-proof",
   "pnpm run restore:machine-proof",
   "pnpm run alerts:machine-proof",
   "pnpm run alerting:machine-proof",
@@ -497,7 +497,7 @@ const OUTPUT_BY_COMMAND = {
     RAW_REPORT_MACHINE_INVENTORY_MD_PATH,
     RAW_REPORT_MACHINE_INVENTORY_JSON_PATH,
   ],
-  "pnpm run storage:raw-report-machine-remediation-proof": [
+  "pnpm run storage:raw-report-machine-proof": [
     RAW_REPORT_MACHINE_PROOF_MD_PATH,
     RAW_REPORT_MACHINE_PROOF_JSON_PATH,
   ],

@@ -1,0 +1,151 @@
+{
+  "reportName": "machine-proof-runtime-input-remediation",
+  "generatedAt": "2026-05-22T19:18:00.000Z",
+  "commitHashAtReportGeneration": "9806da4014e26ea9ab3c6311e692287a398f8f37",
+  "branch": "staging",
+  "packageAliases": {
+    "storage:raw-report-machine-proof": {
+      "status": "added",
+      "command": "node scripts/storage-raw-report-machine-proof.mjs",
+      "scriptExists": true
+    },
+    "storage:raw-report-machine-proof:validate": {
+      "status": "already-present",
+      "command": "node scripts/storage-raw-report-machine-proof-validate.mjs",
+      "scriptExists": true
+    },
+    "production:machine-proofs": {
+      "status": "already-present",
+      "command": "node scripts/production-machine-proof-orchestrator.mjs",
+      "scriptExists": true
+    },
+    "production-scale:certify": {
+      "status": "already-present",
+      "command": "node scripts/production-scale-certification.mjs",
+      "scriptExists": true
+    },
+    "production-scale:promotion-pack": {
+      "status": "already-present",
+      "command": "node scripts/production-promotion-pack.mjs",
+      "scriptExists": true
+    }
+  },
+  "missingRuntimeInputsBeforeRemediation": [
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+    "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+    "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+    "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+    "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+    "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+    "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+    "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+  ],
+  "inputsAutoResolved": [
+    {
+      "inputName": "CRP_RAW_REPORT_DATABASE_ACCESS",
+      "resolved": true,
+      "resolvedFrom": "Existing FLOOT_DATABASE_URL env source name only; value was not printed or stored.",
+      "secret": true,
+      "sourceType": "env",
+      "productionMutationAllowed": false,
+      "canCertifyProduction": true
+    }
+  ],
+  "inputsStillMissing": [
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+    "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+    "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+    "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+    "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+    "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+    "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+  ],
+  "rawReportMachineProof": {
+    "exists": true,
+    "runs": true,
+    "certifying": true,
+    "dbConnectivity": "reliable",
+    "dbSource": "FLOOT_DATABASE_URL",
+    "totalRecordsInspected": 231,
+    "unresolvedRawByteCount": 0,
+    "remediatedCount": 5,
+    "productionMutation": "none",
+    "humanInteractionRequired": false,
+    "sensitiveValuesPrinted": false
+  },
+  "certificationStatus": {
+    "productionMachineProofsCertifying": false,
+    "productionScaleCertifying": false,
+    "promotionPackCertifying": false,
+    "productionPromotionSafe": false,
+    "humanInteractionRequired": false
+  },
+  "commandsRun": [
+    { "command": "git status --short --branch", "result": "pass", "classification": "status" },
+    { "command": "git diff --check", "result": "pass", "classification": "verification" },
+    { "command": "pnpm install --frozen-lockfile", "result": "pass", "classification": "verification" },
+    { "command": "pnpm run typecheck", "result": "pass", "classification": "verification" },
+    { "command": "pnpm run build", "result": "pass", "classification": "verification" },
+    { "command": "pnpm run check", "result": "pass", "classification": "verification" },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts",
+      "result": "fail",
+      "classification": "code defect / known full-suite concurrency isolation issue",
+      "failureSummary": "Concurrent full-suite run failed in response-processing-queue retry/dead-letter and response-worker-orchestration dry-run preview tests; pnpm run check isolates those suites and passed."
+    },
+    { "command": "pnpm run storage:raw-report-machine-proof", "result": "pass", "classification": "certifying raw-report machine proof" },
+    { "command": "pnpm run storage:raw-report-machine-proof:validate", "result": "pass", "classification": "certifying raw-report machine proof validation" },
+    {
+      "command": "pnpm run production:machine-proofs",
+      "result": "fail",
+      "classification": "expected fail-closed proof / production blocker",
+      "failureSummary": "Restore, production worker, alerting, and retention machine inputs remain missing."
+    },
+    { "command": "pnpm run production-scale:evidence", "result": "pass", "classification": "evidence generation" },
+    {
+      "command": "pnpm run production-scale:certify",
+      "result": "fail",
+      "classification": "expected fail-closed proof / production blocker",
+      "failureSummary": "Certification remains false because required restore, worker, alerting, and retention machine inputs are missing."
+    },
+    { "command": "pnpm run production-scale:promotion-pack", "result": "pass_non_certifying", "classification": "promotion pack generated; promotion blocked" },
+    { "command": "pnpm run production:readiness -- --json", "result": "pass_review_required", "classification": "readiness report" }
+  ],
+  "filesChanged": [
+    "package.json",
+    "scripts/storage-raw-report-machine-proof.mjs",
+    "scripts/storage-raw-report-machine-remediation-proof.mjs",
+    "scripts/production-machine-proof-orchestrator.mjs",
+    "scripts/production-scale-certification.mjs",
+    "scripts/production-scale-evidence.mjs",
+    "scripts/production-promotion-pack.mjs",
+    "scripts/lib/productionMachineProofPolicy.mjs",
+    "docs/production-scale/blocker-registry.json",
+    "docs/production-scale/evidence/machine-proof-runtime-input-contract.json",
+    "docs/production-scale/evidence/machine-proof-runtime-input-contract.md",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md",
+    "docs/production-scale/evidence/latest-machine-proof-summary.json",
+    "docs/production-scale/evidence/latest-production-scale-certification.json",
+    "docs/production-scale/evidence/latest-production-promotion-pack.json",
+    "tests/unit/machine-proof-scripts.spec.ts",
+    "tests/unit/production-promotion-pack.spec.ts"
+  ],
+  "workingTreeStatus": "dirty before remediation commit",
+  "recommendation": "Do not promote production. Add the remaining non-interactive restore, worker, alerting, and retention machine inputs, then rerun the Level 10 command set."
+}

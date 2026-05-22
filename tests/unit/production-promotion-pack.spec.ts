@@ -13,7 +13,7 @@ import {
 import { buildMachineEvidence } from "../../scripts/lib/productionEvidenceSchema.mjs";
 import { RESTORE_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/restore-machine-proof.mjs";
 import { PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/production-worker-machine-proof.mjs";
-import { RAW_REPORT_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/storage-raw-report-machine-remediation-proof.mjs";
+import { RAW_REPORT_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/storage-raw-report-machine-proof.mjs";
 import { ALERTING_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/alerting-machine-proof.mjs";
 import { MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/migration-machine-proof.mjs";
 import { RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/retention-archive-restore-machine-proof.mjs";
@@ -1273,6 +1273,26 @@ const RAW_REPORT_MACHINE_CHECKS = [
   "rollback-recovery-notes-recorded",
 ];
 
+function nonCertifyingRawReportMachineProof(targetSha = currentGitHead()) {
+  return machineProofEvidence({
+    evidenceType: RAW_REPORT_MACHINE_PROOF_EVIDENCE_TYPE,
+    targetSha,
+    generatedAt: PROMOTION_GATE_TIMESTAMP,
+    checks: RAW_REPORT_MACHINE_CHECKS.filter((check) => check !== "db-connectivity-reliable"),
+    metadata: {
+      databaseReliable: false,
+      sanitizedInventoryAccepted: false,
+      dbConnectivity: "unavailable",
+    },
+    overrides: {
+      status: "fail",
+      certifying: false,
+      missingRuntimeInputs: ["CRP_RAW_REPORT_DATABASE_ACCESS"],
+      failures: [{ code: "raw-report-db-access-missing", message: "fixture missing DB access" }],
+    },
+  });
+}
+
 const ALERTING_MACHINE_CHECKS = [
   "synthetic-alert-triggered",
   "alert-delivery-verified",
@@ -1610,7 +1630,7 @@ describe("production promotion evidence pack", () => {
             }),
             expect.objectContaining({
               key: "rawReportMachineProof",
-              command: "pnpm run storage:raw-report-machine-remediation-proof",
+              command: "pnpm run storage:raw-report-machine-proof",
             }),
             expect.objectContaining({
               key: "alertingMachineProof",
@@ -1709,7 +1729,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-plan");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-acceptance");
     expect(report.commandList).toContain("pnpm run storage:raw-report-machine-inventory");
-    expect(report.commandList).toContain("pnpm run storage:raw-report-machine-remediation-proof");
+    expect(report.commandList).toContain("pnpm run storage:raw-report-machine-proof");
     expect(report.commandList).toContain("pnpm run alerts:dry-run");
     expect(report.commandList).toContain("pnpm run alerts:exclusion:validate");
     expect(report.commandList).toContain("pnpm run alerts:machine-proof");
@@ -2533,7 +2553,13 @@ describe("production promotion evidence pack", () => {
   });
 
   it("keeps blocker 6 machine-required unless accepted machine proof exists", () => {
-    const report = buildPack();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      rawReportMachineProofEvidence: nonCertifyingRawReportMachineProof(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      env: {},
+    });
     const blocker6 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 6);
 
     expect(report.rawReportRemediationAcceptance).toMatchObject({
@@ -2557,6 +2583,7 @@ describe("production promotion evidence pack", () => {
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
       rawReportRemediationAcceptance,
+      rawReportMachineProofEvidence: nonCertifyingRawReportMachineProof(),
       generatedAt: "2026-05-20T12:00:00.000Z",
       env: {},
     });
@@ -2573,6 +2600,7 @@ describe("production promotion evidence pack", () => {
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
       rawReportRemediationAcceptance,
+      rawReportMachineProofEvidence: nonCertifyingRawReportMachineProof(),
       generatedAt: "2026-05-20T12:00:00.000Z",
       env: {},
     });

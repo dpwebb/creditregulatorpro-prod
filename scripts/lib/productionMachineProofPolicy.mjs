@@ -78,7 +78,7 @@ export const MACHINE_PROOF_BLOCKER_REQUIREMENTS = {
     proofCategories: ["machine-attested", "automated-local"],
     allowedProofCommands: [
       "pnpm run storage:raw-report-machine-inventory",
-      "pnpm run storage:raw-report-machine-remediation-proof",
+      "pnpm run storage:raw-report-machine-proof",
       "pnpm run storage:raw-report-machine-proof:validate",
     ],
     recommendedNextAction:

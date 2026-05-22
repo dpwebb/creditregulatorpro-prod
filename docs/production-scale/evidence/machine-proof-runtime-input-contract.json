@@ -1,490 +1,754 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "contractName": "machine-proof-runtime-input-contract",
+  "generatedAt": "2026-05-22T00:00:00.000Z",
   "generatedFrom": [
     "production-machine-certification-remediation-2026-05-22.json",
-    "docs/production-scale/evidence/latest-*-machine-proof.json"
+    "production-at-scale-level-10-machine-proof-reaudit-2026-05-22.json",
+    "docs/production-scale/evidence/latest-machine-proof-summary.json",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    "docs/production-scale/evidence/latest-production-promotion-pack.json"
   ],
   "humanObservedProofAllowed": false,
   "operatorAcknowledgementRequired": false,
+  "manualApprovalRequired": false,
   "defaultFailureMode": {
     "status": "fail",
     "certifying": false,
     "CERTIFYING": false,
-    "humanInteractionRequired": false,
-    "failureCode": "attestation-unavailable"
+    "humanInteractionRequired": false
   },
   "inputs": [
     {
+      "inputName": "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
       "name": "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+      "requiredByScript": "scripts/restore-machine-proof.mjs",
       "proofScript": "scripts/restore-machine-proof.mjs",
       "proofCommand": "pnpm run restore:machine-proof",
       "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-002",
+      "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "env var",
-        "valueType": "file path",
-        "cliOverride": "--attestation <path>"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Attestation file must be sanitized JSON.",
-        "Attestation must be nonInteractive:true and machineAttested:true.",
-        "Attestation must not be generated manually.",
-        "Attestation must not be simulated-only for production proof.",
-        "Restore target must be isolated from production.",
-        "RPO, RTO, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/stop, and target destruction checks must pass.",
-        "No secrets, PII, signed URLs, raw report text, or raw report bytes may appear."
+        "Path must reference sanitized non-interactive machine attestation JSON.",
+        "Attestation must be nonInteractive:true, machineAttested:true, humanObserved:false, and manualApprovalRequired:false.",
+        "Attestation must prove isolated restore target, RPO/RTO, post-restore checks, cleanup, rollback/stop, and no sensitive output."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
-        "humanInteractionRequired": false,
-        "message": "machine attestation path was not provided."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
       "name": "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+      "requiredByScript": "scripts/restore-machine-proof.mjs",
       "proofScript": "scripts/restore-machine-proof.mjs",
       "proofCommand": "pnpm run restore:machine-proof",
       "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-002",
+      "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized latest backup identifier"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Backup source must be selected non-interactively from the configured backup catalog.",
-        "Backup identifier must be opaque or hashed.",
-        "No backup credentials, database URLs, object URLs, signed URLs, raw report text, raw report bytes, or PII may appear."
+        "Backup identifier must be sanitized, opaque, or hashed.",
+        "No backup credentials, database URLs, signed URLs, raw report bytes, raw report text, or PII may appear."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_BACKUP_SOURCE"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_BACKUP_SOURCE"],
-        "humanInteractionRequired": false,
-        "message": "latest configured backup source was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
       "name": "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+      "requiredByScript": "scripts/restore-machine-proof.mjs",
       "proofScript": "scripts/restore-machine-proof.mjs",
       "proofCommand": "pnpm run restore:machine-proof",
       "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-002",
+      "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized isolated restore target identifier"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Restore target must be isolated from production and created non-interactively.",
-        "Restore target cleanup/destruction must be machine-attested.",
-        "No database URLs, credentials, production target names, signed URLs, raw report text, raw report bytes, or PII may appear."
+        "Restore target must be isolated from production and destroyed by the proof flow.",
+        "Only sanitized target identifiers may be recorded."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ISOLATED_TARGET"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ISOLATED_TARGET"],
-        "humanInteractionRequired": false,
-        "message": "isolated restore target was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
       "name": "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+      "requiredByScript": "scripts/restore-machine-proof.mjs",
       "proofScript": "scripts/restore-machine-proof.mjs",
       "proofCommand": "pnpm run restore:machine-proof",
       "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-002",
+      "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized synthetic restore fixture identifier"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Fixture must use synthetic credentials and a safe packet/PDF canary.",
-        "Fixture identifiers must be opaque or hashed.",
-        "No real user credentials, report text, raw report bytes, signed URLs, account numbers, or PII may appear."
+        "Fixture must be synthetic or sanitized and must not include real credentials, raw reports, account numbers, signed URLs, or PII."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_SAFE_FIXTURE"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_SAFE_FIXTURE"],
-        "humanInteractionRequired": false,
-        "message": "safe synthetic restore fixture was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
       "name": "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+      "requiredByScript": "scripts/production-worker-machine-proof.mjs",
       "proofScript": "scripts/production-worker-machine-proof.mjs",
       "proofCommand": "pnpm run production-worker:machine-proof",
       "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-003",
+      "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "env var",
-        "valueType": "file path",
-        "cliOverride": "--attestation <path>"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Attestation file must be sanitized JSON.",
-        "Attestation must be nonInteractive:true and machineAttested:true.",
-        "Attestation must not be generated manually.",
-        "Attestation must not be simulated-only for production proof.",
-        "Runtime proof must be bounded by max jobs.",
-        "Only synthetic or canary queue behavior may be processed.",
-        "Queue depth before/after, liveness, processed/failed/dead-letter/stale counts, worker stop/rollback, and canary cleanup checks must pass.",
-        "No secrets, PII, signed URLs, raw report text, raw report bytes, or artifact contents may appear."
+        "Only bounded synthetic/canary worker proof may mutate production.",
+        "Canary cleanup, queue counts, liveness, stop/rollback, and sensitive-output checks must pass."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"],
-        "humanInteractionRequired": false,
-        "message": "machine attestation path was not provided."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
       "name": "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+      "requiredByScript": "scripts/production-worker-machine-proof.mjs",
       "proofScript": "scripts/production-worker-machine-proof.mjs",
       "proofCommand": "pnpm run production-worker:machine-proof",
       "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-003",
+      "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized queue depth and count summary"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Queue access must record queue depth before and after the bounded proof.",
-        "Processed, failed, dead-letter, and stale counts must be aggregate integers only.",
-        "No job payload, artifact contents, report text, raw bytes, database URLs, signed URLs, secrets, or PII may appear."
+        "Queue depth before/after and processed/failed/dead-letter/stale counts must be aggregate-only.",
+        "No job payloads, artifacts, report text, raw bytes, signed URLs, secrets, or PII may appear."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_QUEUE_ACCESS"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_QUEUE_ACCESS"],
-        "humanInteractionRequired": false,
-        "message": "production worker queue depth and count proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
       "name": "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+      "requiredByScript": "scripts/production-worker-machine-proof.mjs",
       "proofScript": "scripts/production-worker-machine-proof.mjs",
       "proofCommand": "pnpm run production-worker:machine-proof",
       "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-003",
+      "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized worker service or heartbeat status"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Worker liveness must be machine-verifiable through service status or sanitized heartbeat evidence.",
-        "No credentials, host secrets, database URLs, signed URLs, report text, raw bytes, or PII may appear."
+        "Liveness status must be machine-verifiable and sanitized."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"],
-        "humanInteractionRequired": false,
-        "message": "production worker liveness proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
       "name": "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+      "requiredByScript": "scripts/production-worker-machine-proof.mjs",
       "proofScript": "scripts/production-worker-machine-proof.mjs",
       "proofCommand": "pnpm run production-worker:machine-proof",
       "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-003",
+      "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized synthetic/canary ingest job proof"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Only synthetic or canary ingest jobs may be created and processed.",
-        "Max jobs must be bounded to 1-5 and the proof must attest that only the canary job was processed.",
-        "Canary cleanup must be machine-attested.",
-        "No real user payload, artifact contents, report text, raw bytes, database URLs, signed URLs, secrets, or PII may appear."
+        "Canary job must be synthetic, bounded, processed by the proof flow, and cleaned up by the same proof flow."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"],
-        "humanInteractionRequired": false,
-        "message": "synthetic/canary ingest job processing and cleanup proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
       "name": "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+      "requiredByScript": "scripts/production-worker-machine-proof.mjs",
       "proofScript": "scripts/production-worker-machine-proof.mjs",
       "proofCommand": "pnpm run production-worker:machine-proof",
       "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-003",
+      "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized worker stop/rollback verification"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Stop/rollback proof must be non-interactive and machine-verifiable.",
-        "No secrets, infrastructure credentials, database URLs, report text, raw bytes, signed URLs, or PII may appear."
+        "Stop/rollback proof must be machine-verifiable and sanitized."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"],
-        "humanInteractionRequired": false,
-        "message": "production worker stop/rollback proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RAW_REPORT_DATABASE_ACCESS",
+      "name": "CRP_RAW_REPORT_DATABASE_ACCESS",
+      "requiredByScript": "scripts/storage-raw-report-machine-proof.mjs",
+      "proofScript": "scripts/storage-raw-report-machine-proof.mjs",
+      "proofCommand": "pnpm run storage:raw-report-machine-proof",
+      "validatorScript": "scripts/storage-raw-report-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-004",
+      "proofType": "raw-report-byte-remediation-machine-proof",
+      "secret": true,
+      "sourceType": "env",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Existing FLOOT_DATABASE_URL env convention was detected; value was not printed or stored.",
+      "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
+      "permitsMutation": false,
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
+      "safetyConstraints": [
+        "Database access must be read-only for proof execution.",
+        "The proof may use existing env declarations but must never print the DB URL, credentials, row payloads, raw report bytes, raw report text, signed URLs, full account numbers, or PII.",
+        "Accepted evidence must include only aggregate counts, opaque hashes, sanitized table status, and sanitizer results.",
+        "If DB access is unavailable or unreliable, evidence must be status:fail and certifying:false."
+      ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_DATABASE_ACCESS",
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+        ],
+        "humanInteractionRequired": false
+      },
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_DATABASE_ACCESS",
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+        ],
+        "humanInteractionRequired": false
+      }
+    },
+    {
+      "inputName": "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
       "name": "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+      "requiredByScript": "scripts/storage-raw-report-machine-inventory.mjs",
       "proofScript": "scripts/storage-raw-report-machine-inventory.mjs",
       "proofCommand": "pnpm run storage:raw-report-machine-inventory",
       "validatorScript": null,
+      "blockerId": "L10-P1-004",
+      "proofType": "raw-report-byte-inventory-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "env var",
-        "valueType": "file path",
-        "cliOverride": "--attestation <path>"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Attestation file must be sanitized JSON.",
-        "Attestation must be nonInteractive:true and machineAttested:true.",
-        "Reliable DB connectivity must be proven without printing connection details.",
-        "Only aggregate counts, opaque IDs, or hashes may appear.",
-        "Unresolved counts and remediation candidate counts must be recorded.",
-        "No secrets, PII, signed URLs, raw report text, raw report bytes, account numbers, or database URLs may appear."
+        "Inventory attestation must prove reliable DB connectivity and sanitized aggregate-only inventory."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"],
-        "humanInteractionRequired": false,
-        "message": "machine attestation path was not provided."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
       "name": "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
-      "proofScript": "scripts/storage-raw-report-machine-remediation-proof.mjs",
-      "proofCommand": "pnpm run storage:raw-report-machine-remediation-proof",
+      "requiredByScript": "scripts/storage-raw-report-machine-proof.mjs",
+      "proofScript": "scripts/storage-raw-report-machine-proof.mjs",
+      "proofCommand": "pnpm run storage:raw-report-machine-proof",
       "validatorScript": "scripts/storage-raw-report-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-004",
+      "proofType": "raw-report-byte-remediation-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "env var",
-        "valueType": "file path",
-        "cliOverride": "--attestation <path>"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-read-only",
+      "stagingSafe": false,
+      "productionReadOnly": true,
+      "productionCanary": false,
       "permitsMutation": false,
-      "productionMutationMode": "approved-bounded",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Proof script itself must not apply remediation or mutate storage.",
-        "Attestation file must be sanitized JSON.",
-        "Attestation must be nonInteractive:true and machineAttested:true.",
-        "Reliable DB connectivity and accepted sanitized inventory must be proven.",
-        "Remediation policy, unresolved count, remediated count, rollback/recovery notes, and opaque hash-only evidence checks must pass.",
-        "No secrets, PII, signed URLs, raw report text, raw report bytes, account numbers, or database URLs may appear."
+        "Attestation file must be sanitized and must not require human observation or manual approval.",
+        "Reliable inventory, remediation policy, unresolved count, remediated count, rollback notes, and no-sensitive-output checks must pass."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"],
-        "humanInteractionRequired": false,
-        "message": "machine attestation path was not provided."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
       "name": "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+      "requiredByScript": "scripts/alerting-machine-proof.mjs",
       "proofScript": "scripts/alerting-machine-proof.mjs",
       "proofCommand": "pnpm run alerts:machine-proof",
       "validatorScript": "scripts/alerting-machine-proof-validate.mjs",
+      "blockerId": "L10-P1-005",
+      "proofType": "alerting-observability-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "env var",
-        "valueType": "file path",
-        "cliOverride": "--attestation <path>"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": false,
-      "productionMutationMode": "none",
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Attestation file must be sanitized JSON.",
-        "Attestation must be nonInteractive:true and machineAttested:true.",
-        "Live proof must use a safe synthetic alert and sanitized channel/correlation identifiers.",
-        "Formal exclusion proof is accepted only when repo policy explicitly permits certifying exclusion.",
-        "Machine-verifiable acknowledgement may be used; operator acknowledgement is not required.",
+        "Proof must verify live synthetic alert delivery or an explicitly machine-valid unexpired policy exclusion.",
         "No webhook URLs, tokens, secrets, PII, signed URLs, raw report text, or raw report bytes may appear."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_ALERTING_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_ALERTING_MACHINE_ATTESTATION_JSON"],
-        "humanInteractionRequired": false,
-        "message": "machine attestation path was not provided."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
       "name": "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+      "requiredByScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofCommand": "pnpm run retention:archive-restore-machine-proof",
       "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "blockerId": "retention-archive-restore",
+      "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "env var",
-        "valueType": "file path",
-        "cliOverride": "--attestation <path>"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Attestation file must be sanitized JSON.",
-        "Attestation must be nonInteractive:true and machineAttested:true.",
-        "Attestation must not be simulated-only for production proof.",
-        "Only a safe archive candidate or synthetic/canary retention record may be used.",
-        "Archive selection or creation, archive metadata verification, isolated restore target, integrity, cleanup, rollback/recovery notes, and target destruction checks must pass.",
-        "No secrets, PII, signed URLs, raw report text, raw report bytes, or artifact contents may appear."
+        "Proof must use safe archive candidate or synthetic/canary record and attest cleanup.",
+        "No object credentials, signed URLs, raw report text, raw report bytes, secrets, account numbers, or PII may appear."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"],
-        "humanInteractionRequired": false,
-        "message": "machine attestation path was not provided."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
       "name": "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+      "requiredByScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofCommand": "pnpm run retention:archive-restore-machine-proof",
       "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "blockerId": "retention-archive-restore",
+      "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized archive selection, metadata, and restore integrity proof"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Archive access must use a safe archive candidate or synthetic/canary retention record.",
-        "Archive identifiers and manifest references must be opaque or hashed.",
-        "Archive metadata and restore integrity must be machine-verified.",
-        "No object credentials, signed URLs, database URLs, raw report text, raw report bytes, account numbers, secrets, or PII may appear."
+        "Archive selection, metadata, restore integrity, cleanup, and rollback checks must be machine-attested and sanitized."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"],
-        "humanInteractionRequired": false,
-        "message": "retention archive selection, metadata, or restore integrity proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
       "name": "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+      "requiredByScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofCommand": "pnpm run retention:archive-restore-machine-proof",
       "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "blockerId": "retention-archive-restore",
+      "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized isolated retention restore target identifier and cleanup status"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Restore target must be isolated from production and created non-interactively.",
-        "Temporary restore target destruction must be machine-attested.",
-        "No database URLs, credentials, production target names, signed URLs, raw report text, raw report bytes, account numbers, secrets, or PII may appear."
+        "Isolated retention restore target must be created, verified, and destroyed non-interactively."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"],
-        "humanInteractionRequired": false,
-        "message": "isolated retention restore target creation or destruction proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     },
     {
+      "inputName": "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
       "name": "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
+      "requiredByScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
       "proofCommand": "pnpm run retention:archive-restore-machine-proof",
       "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "blockerId": "retention-archive-restore",
+      "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "machine attestation field",
-        "valueType": "sanitized safe archive candidate or synthetic/canary retention record"
-      },
+      "sourceType": "file",
+      "canBeAutoResolved": false,
+      "autoResolutionAttempted": false,
+      "resolved": false,
+      "resolvedFrom": null,
       "safetyScope": "production-canary",
+      "stagingSafe": false,
+      "productionReadOnly": false,
+      "productionCanary": true,
       "permitsMutation": true,
-      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "productionMutationAllowed": true,
+      "canaryCleanupRequired": true,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
       "safetyConstraints": [
-        "Only a safe archive candidate or synthetic/canary retention record may be selected or created.",
-        "Any canary record must be cleaned up by the same proof flow.",
-        "Candidate identifiers must be opaque or hashed.",
-        "No real consumer PII, signed URLs, raw report text, raw report bytes, database URLs, account numbers, secrets, or service credentials may appear."
+        "Safe candidate must be synthetic/canary or otherwise non-sensitive and must be cleaned up when created by proof flow."
       ],
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"],
-        "humanInteractionRequired": false,
-        "message": "safe retention archive candidate proof was not machine-attested."
+        "humanInteractionRequired": false
       }
     }
   ],
   "repoConfigRequirements": [
     {
+      "inputName": "migration-governance-ledger-without-temporary-allowlist-residuals",
       "name": "migration-governance-ledger-without-temporary-allowlist-residuals",
+      "requiredByScript": "scripts/migration-machine-proof.mjs",
       "proofScript": "scripts/migration-machine-proof.mjs",
       "proofCommand": "pnpm run migrations:machine-proof",
+      "blockerId": "L10-P1-006",
+      "proofType": "migration-governance-machine-proof",
       "secret": false,
-      "supply": {
-        "type": "repo config",
-        "valueType": "migration governance ledger"
-      },
-      "safetyScope": "production-read-only",
+      "sourceType": "repo-config",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Committed migration governance ledger and gate evidence.",
       "permitsMutation": false,
-      "productionMutationMode": "none",
-      "safetyConstraints": [
-        "Migration machine proof must be static and non-mutating.",
-        "No active temporary runtime ensure allowlist residuals may remain.",
-        "No expired allowlist entries may remain.",
-        "No release-blocking migration governance findings may remain."
-      ],
+      "productionMutationAllowed": false,
+      "canaryCleanupRequired": false,
+      "canBeSubstitutedByStagingSafeProof": false,
+      "canCertifyProduction": true,
+      "failureModeIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": [],
+        "humanInteractionRequired": false
+      },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
         "missingRuntimeInputs": [],
-        "humanInteractionRequired": false,
-        "message": "migration gate remains non-certifying while temporary allowlist residuals are release-blocking."
+        "humanInteractionRequired": false
       }
     }
   ]

@@ -30,7 +30,7 @@ import {
 } from "./retention-archive-restore-machine-proof.mjs";
 import {
   RAW_REPORT_MACHINE_PROOF_CONFIG,
-} from "./storage-raw-report-machine-remediation-proof.mjs";
+} from "./storage-raw-report-machine-proof.mjs";
 import {
   normalizeRelativePath,
   repoPath,
@@ -51,6 +51,13 @@ export const MACHINE_PROOF_SUMMARY_JSON_PATH = "docs/production-scale/evidence/l
 export const MACHINE_PROOF_SUMMARY_MD_PATH = "docs/production-scale/evidence/latest-machine-proof-summary.md";
 
 const OUTPUT_TAIL_LIMIT = 6000;
+const MACHINE_INPUTS_CLOSED_BY_CERTIFYING_AREA = {
+  rawReport: [
+    "CRP_RAW_REPORT_DATABASE_ACCESS",
+    "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+  ],
+};
 
 function repoRootFromScript() {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -95,7 +102,7 @@ export function defaultMachineProofAreas() {
       kind: "machine-proof",
       config: RAW_REPORT_MACHINE_PROOF_CONFIG,
       commands: [
-        "pnpm run storage:raw-report-machine-remediation-proof",
+        "pnpm run storage:raw-report-machine-proof",
         "pnpm run storage:raw-report-machine-proof:validate",
       ],
     },
@@ -478,6 +485,62 @@ function buildOpenBlockers(proofResults) {
     }));
 }
 
+function buildMachineProofSummaryPayload({
+  generatedAt,
+  resolvedCommit,
+  resolvedBranch,
+  proofResults,
+  areas,
+}) {
+  const reconciledProofResults = reconcilePromotionGuardMissingInputs(proofResults);
+  const openBlockers = buildOpenBlockers(reconciledProofResults);
+  const safetySummary = buildSafetySummary(reconciledProofResults);
+  const productionMutationSummary = buildProductionMutationSummary(reconciledProofResults);
+  const allMachineProofsCertifying =
+    reconciledProofResults.length === areas.length &&
+    reconciledProofResults.every((result) => result.certifying === true) &&
+    safetySummary.humanInteractionRequired === false &&
+    safetySummary.manualApprovalRequired === false &&
+    safetySummary.humanObserved === false &&
+    safetySummary.noSecretsPiiRawBytesOrSignedUrlsPrinted === true;
+
+  return sanitizeProductionEvidenceValue({
+    reportName: "production-machine-proof-summary",
+    generatedAt,
+    commitHash: resolvedCommit,
+    branch: resolvedBranch,
+    policyVersion: PRODUCTION_MACHINE_PROOF_POLICY_VERSION,
+    allMachineProofsCertifying,
+    CERTIFYING: allMachineProofsCertifying,
+    proofResults: reconciledProofResults,
+    openBlockers,
+    missingRuntimeInputs: unique(reconciledProofResults.flatMap((result) => result.missingRuntimeInputs ?? [])),
+    sanitizedArtifacts: unique(reconciledProofResults.flatMap((result) =>
+      (result.sanitizedArtifacts ?? []).map((artifact) => artifact.path ?? artifact))),
+    safetySummary,
+    productionMutationSummary,
+  });
+}
+
+function reconcilePromotionGuardMissingInputs(proofResults) {
+  const closedInputs = new Set();
+  for (const result of proofResults) {
+    if (result.certifying !== true) continue;
+    for (const input of MACHINE_INPUTS_CLOSED_BY_CERTIFYING_AREA[result.key] ?? []) {
+      closedInputs.add(input);
+    }
+  }
+  if (closedInputs.size === 0) return proofResults;
+
+  return proofResults.map((result) => {
+    if (result.key !== "productionPromotionPackGuard") return result;
+    return {
+      ...result,
+      missingRuntimeInputs: (result.missingRuntimeInputs ?? []).filter((input) => !closedInputs.has(input)),
+    };
+  });
+}
+
 export async function buildProductionMachineProofSummary({
   rootDir = process.cwd(),
   generatedAt = new Date().toISOString(),
@@ -495,6 +558,15 @@ export async function buildProductionMachineProofSummary({
   const proofResults = [];
 
   for (const area of areas) {
+    if (area.kind === "promotion-guard" && runCommands) {
+      writeProductionMachineProofSummaryOutputs(buildMachineProofSummaryPayload({
+        generatedAt,
+        resolvedCommit,
+        resolvedBranch,
+        proofResults,
+        areas,
+      }), rootDir);
+    }
     const commandResults = await runAreaCommands(area, { rootDir, runCommands, runCommand, env });
     if (area.kind === "promotion-guard") {
       const { parsed: pack, errors } = readJsonIfPresent(rootDir, area.evidencePath);
@@ -511,32 +583,12 @@ export async function buildProductionMachineProofSummary({
     proofResults.push(buildMachineProofResult(area, evidence, errors, commandResults, now));
   }
 
-  const openBlockers = buildOpenBlockers(proofResults);
-  const safetySummary = buildSafetySummary(proofResults);
-  const productionMutationSummary = buildProductionMutationSummary(proofResults);
-  const allMachineProofsCertifying =
-    proofResults.length === areas.length &&
-    proofResults.every((result) => result.certifying === true) &&
-    safetySummary.humanInteractionRequired === false &&
-    safetySummary.manualApprovalRequired === false &&
-    safetySummary.humanObserved === false &&
-    safetySummary.noSecretsPiiRawBytesOrSignedUrlsPrinted === true;
-
-  return sanitizeProductionEvidenceValue({
-    reportName: "production-machine-proof-summary",
+  return buildMachineProofSummaryPayload({
     generatedAt,
-    commitHash: resolvedCommit,
-    branch: resolvedBranch,
-    policyVersion: PRODUCTION_MACHINE_PROOF_POLICY_VERSION,
-    allMachineProofsCertifying,
-    CERTIFYING: allMachineProofsCertifying,
+    resolvedCommit,
+    resolvedBranch,
     proofResults,
-    openBlockers,
-    missingRuntimeInputs: unique(proofResults.flatMap((result) => result.missingRuntimeInputs ?? [])),
-    sanitizedArtifacts: unique(proofResults.flatMap((result) =>
-      (result.sanitizedArtifacts ?? []).map((artifact) => artifact.path ?? artifact))),
-    safetySummary,
-    productionMutationSummary,
+    areas,
   });
 }
 

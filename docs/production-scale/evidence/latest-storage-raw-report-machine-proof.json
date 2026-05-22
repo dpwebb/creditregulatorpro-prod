@@ -3,14 +3,14 @@
   "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
   "blockerId": "L10-P1-004",
   "environment": "production",
-  "generatedAt": "2026-05-22T17:52:05.695Z",
-  "commitHash": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
-  "currentCommitHash": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
-  "currentHead": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
-  "commit": "b0c8de12b0d85ef47789ad35c7182ff1b6db4ca7",
+  "generatedAt": "2026-05-22T19:08:56.421Z",
+  "commitHash": "9806da4014e26ea9ab3c6311e692287a398f8f37",
+  "currentCommitHash": "9806da4014e26ea9ab3c6311e692287a398f8f37",
+  "currentHead": "9806da4014e26ea9ab3c6311e692287a398f8f37",
+  "commit": "9806da4014e26ea9ab3c6311e692287a398f8f37",
   "branch": "staging",
-  "generatorScript": "scripts/storage-raw-report-machine-remediation-proof.mjs",
-  "command": "pnpm run storage:raw-report-machine-remediation-proof",
+  "generatorScript": "scripts/storage-raw-report-machine-proof.mjs",
+  "command": "pnpm run storage:raw-report-machine-proof",
   "nonInteractive": true,
   "machineAttested": true,
   "humanInteractionRequired": false,
@@ -19,75 +19,107 @@
   "generatedManually": false,
   "simulatedOnly": false,
   "dryRunOnly": false,
-  "productionMutation": "approved-bounded",
+  "productionMutation": "none",
   "secretsPrinted": false,
   "piiPrinted": false,
   "rawReportBytesPrinted": false,
   "signedUrlsPrinted": false,
-  "status": "fail",
-  "certifying": false,
-  "CERTIFYING": false,
+  "status": "pass",
+  "certifying": true,
+  "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T17:52:05.695Z",
+  "expiresAt": "2026-05-23T19:08:56.421Z",
   "checks": [
     {
       "name": "db-connectivity-reliable",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "Database connectivity was reliable."
     },
     {
       "name": "sanitized-inventory-accepted",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "Only sanitized aggregate inventory fields were emitted."
     },
     {
       "name": "remediation-policy-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "Remediation policy is satisfied."
     },
     {
       "name": "unresolved-count-zero-or-policy-accepted",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "No unresolved raw byte records were found."
     },
     {
       "name": "remediated-count-recorded",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "Remediated count was recorded."
     },
     {
       "name": "opaque-hashes-only",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "Only opaque hashes/counts were emitted."
     },
     {
       "name": "no-raw-bytes-or-pii-printed",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "No sensitive-looking raw values were detected."
     },
     {
       "name": "rollback-recovery-notes-recorded",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "pass",
+      "summary": "Rollback/recovery notes recorded: read-only proof, no production mutation."
     }
   ],
-  "failures": [
+  "failures": [],
+  "sanitizedArtifacts": [
     {
-      "code": "attestation-unavailable",
-      "message": "machine attestation path was not provided."
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+      "type": "machine-proof-output"
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md",
+      "type": "machine-proof-output"
     }
   ],
-  "sanitizedArtifacts": [],
-  "missingRuntimeInputs": [
-    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
-  ],
+  "missingRuntimeInputs": [],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
     "blockerIdsClosedWhenCertifying": [
       "L10-P1-004"
     ],
-    "attestationPath": null,
-    "acceptedCheckSet": "default",
-    "sensitiveFindingCount": 0
+    "dbConnectivity": "reliable",
+    "databaseReliable": true,
+    "databaseUrlSource": "FLOOT_DATABASE_URL",
+    "rawConnectionDetailsStored": false,
+    "inventoryMethod": "read-only-aggregate-storage-url-scan",
+    "totalRecordsInspected": 231,
+    "unresolvedRawByteCount": 0,
+    "remediatedCount": 5,
+    "opaqueSampleHashes": [],
+    "remediationSatisfied": true,
+    "dryRunOnlyRemediationCompletion": false,
+    "tableCounts": [
+      {
+        "tableName": "report_artifact",
+        "available": true,
+        "totalRecords": 231,
+        "unresolvedRawByteCount": 0,
+        "remediatedCount": 5
+      },
+      {
+        "tableName": "evidence_attachment",
+        "available": true,
+        "totalRecords": 0,
+        "unresolvedRawByteCount": 0,
+        "remediatedCount": 0
+      }
+    ],
+    "sanitizerResult": {
+      "rawReportBytesPrinted": false,
+      "piiPrinted": false,
+      "signedUrlsPrinted": false,
+      "secretsPrinted": false
+    }
   }
 }

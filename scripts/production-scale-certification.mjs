@@ -118,7 +118,7 @@ export const REQUIRED_CERTIFICATION_GATES = [
   {
     id: 'rawReportMachineProof',
     label: 'Historical raw report byte remediation machine proof',
-    command: 'pnpm run storage:raw-report-machine-remediation-proof',
+    command: 'pnpm run storage:raw-report-machine-proof',
     evidencePath: 'docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json',
   },
   {

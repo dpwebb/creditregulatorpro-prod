@@ -14,7 +14,11 @@ import {
   validateRestoreMachineProofEvidence,
 } from "../../scripts/restore-machine-proof.mjs";
 import { PRODUCTION_WORKER_MACHINE_PROOF_CONFIG } from "../../scripts/production-worker-machine-proof.mjs";
-import { RAW_REPORT_MACHINE_PROOF_CONFIG } from "../../scripts/storage-raw-report-machine-remediation-proof.mjs";
+import {
+  RAW_REPORT_MACHINE_PROOF_CONFIG,
+  buildRawReportMachineProofEvidence,
+  buildRawReportMachineProofReport,
+} from "../../scripts/storage-raw-report-machine-proof.mjs";
 import { ALERTING_MACHINE_PROOF_CONFIG } from "../../scripts/alerting-machine-proof.mjs";
 import {
   MIGRATION_MACHINE_PROOF_CONFIG,
@@ -227,6 +231,132 @@ describe("machine proof scripts", () => {
 
     expect(report.CERTIFYING).toBe(true);
     expect(validateMachineProofForConfig(RAW_REPORT_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(true);
+  });
+
+  it("has a canonical raw report machine proof package alias that points to an existing script", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+    const alias = packageJson.scripts["storage:raw-report-machine-proof"];
+
+    expect(alias).toBe("node scripts/storage-raw-report-machine-proof.mjs");
+    expect(readFileSync("scripts/storage-raw-report-machine-proof.mjs", "utf8")).toMatch(/runRawReportMachineProofCli/);
+  });
+
+  it("reports missing raw report runtime inputs when database access is unavailable", async () => {
+    const report = await buildRawReportMachineProofReport({
+      rootDir: tempRoot(),
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.status).toBe("fail");
+    expect(report.humanInteractionRequired).toBe(false);
+    expect(report.humanObserved).toBe(false);
+    expect(report.manualApprovalRequired).toBe(false);
+    expect(report.missingRuntimeInputs).toEqual([
+      "CRP_RAW_REPORT_DATABASE_ACCESS",
+      "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+    ]);
+    expect(JSON.stringify(report)).not.toMatch(/human-observed|manual approval|operator acknowledgement/i);
+  });
+
+  it("does not certify raw report proof with unreliable inventory", () => {
+    const report = buildRawReportMachineProofEvidence({
+      rootDir: tempRoot(),
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      dbAccess: { sourceName: "DATABASE_URL" },
+      inventory: {
+        dbConnectivity: "unreliable",
+        inventoryMethod: "read-only-aggregate-storage-url-scan",
+        totalRecordsInspected: 0,
+        unresolvedRawByteCount: 0,
+        remediatedCount: 0,
+        opaqueSampleHashes: [],
+      },
+      failure: { code: "raw-report-db-unreliable", message: "fixture unreliable" },
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.metadata.dbConnectivity).toBe("unreliable");
+    expect(report.missingRuntimeInputs).toContain("CRP_RAW_REPORT_DATABASE_ACCESS");
+  });
+
+  it("accepts valid sanitized raw report machine fixture counts", () => {
+    const report = buildRawReportMachineProofEvidence({
+      rootDir: tempRoot(),
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      dbAccess: { sourceName: "DATABASE_URL" },
+      inventory: {
+        dbConnectivity: "reliable",
+        inventoryMethod: "read-only-aggregate-storage-url-scan",
+        totalRecordsInspected: 12,
+        unresolvedRawByteCount: 0,
+        remediatedCount: 12,
+        opaqueSampleHashes: [],
+        tableCounts: [
+          {
+            tableName: "report_artifact",
+            available: true,
+            totalRecords: 6,
+            unresolvedRawByteCount: 0,
+            remediatedCount: 6,
+          },
+        ],
+      },
+    });
+
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.metadata.rawConnectionDetailsStored).toBe(false);
+    expect(report.metadata.totalRecordsInspected).toBe(12);
+    expect(validateMachineProofForConfig(RAW_REPORT_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(true);
+  });
+
+  it("rejects raw report evidence with unresolved raw byte records", () => {
+    const report = buildRawReportMachineProofEvidence({
+      rootDir: tempRoot(),
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      dbAccess: { sourceName: "DATABASE_URL" },
+      inventory: {
+        dbConnectivity: "reliable",
+        inventoryMethod: "read-only-aggregate-storage-url-scan",
+        totalRecordsInspected: 3,
+        unresolvedRawByteCount: 1,
+        remediatedCount: 2,
+        opaqueSampleHashes: ["raw-report-count-00000001"],
+      },
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.failures).toEqual([
+      expect.objectContaining({ code: "raw-report-unresolved-raw-bytes" }),
+    ]);
+  });
+
+  it("rejects raw report attestation containing raw bytes, signed URLs, secrets, PII, or full account numbers", () => {
+    const root = tempRoot();
+    const attestationPath = writeAttestation(root, "raw-report-sensitive-attestation", RAW_REPORT_MACHINE_PROOF_CONFIG.requiredChecks, {
+      metadata: {
+        pdfBytes: "JVBERi0xLjQKJcTl8uXrp/Og0MTGCjEgMCBvYmoK",
+        signedUrl: "https://storage.example.test/report.pdf?X-Amz-Signature=abc123",
+        token: "sk-proj-rawreport123456789",
+        email: "consumer@example.test",
+        accountNumber: "1234567890123456",
+      },
+    });
+    const report = buildAttestedMachineProofReport(RAW_REPORT_MACHINE_PROOF_CONFIG, {
+      rootDir: root,
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      attestationPath,
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.failures).toEqual([
+      expect.objectContaining({ code: "sensitive-attestation" }),
+    ]);
   });
 
   it("rejects secret-like attestation values", () => {
@@ -508,7 +638,7 @@ describe("machine proof scripts", () => {
 
   it("documents every non-interactive runtime input in the contract", () => {
     const contract = JSON.parse(readFileSync("docs/production-scale/evidence/machine-proof-runtime-input-contract.json", "utf8"));
-    const inputNames = contract.inputs.map((input: { name: string }) => input.name);
+    const inputNames = contract.inputs.map((input: { inputName?: string; name: string }) => input.inputName ?? input.name);
 
     expect(contract.humanObservedProofAllowed).toBe(false);
     expect(contract.operatorAcknowledgementRequired).toBe(false);
@@ -519,6 +649,7 @@ describe("machine proof scripts", () => {
       "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
       "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
       "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+      "CRP_RAW_REPORT_DATABASE_ACCESS",
       "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
       "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
       "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
@@ -528,8 +659,22 @@ describe("machine proof scripts", () => {
       "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
     ]));
     for (const input of contract.inputs) {
-      expect(input.secret).toBe(false);
-      expect(input.failureIfMissing).toMatchObject({
+      expect(typeof input.secret).toBe("boolean");
+      expect(input).toEqual(expect.objectContaining({
+        inputName: expect.any(String),
+        requiredByScript: expect.any(String),
+        blockerId: expect.any(String),
+        proofType: expect.any(String),
+        sourceType: expect.any(String),
+        canBeAutoResolved: expect.any(Boolean),
+        autoResolutionAttempted: expect.any(Boolean),
+        resolved: expect.any(Boolean),
+        productionMutationAllowed: expect.any(Boolean),
+        canaryCleanupRequired: expect.any(Boolean),
+        canBeSubstitutedByStagingSafeProof: expect.any(Boolean),
+        canCertifyProduction: expect.any(Boolean),
+      }));
+      expect(input.failureModeIfMissing).toMatchObject({
         status: "fail",
         certifying: false,
         humanInteractionRequired: false,
