@@ -1,0 +1,83 @@
+{
+  "reportName": "certification-harness-fix",
+  "generatedAt": "2026-05-22T02:33:11.144Z",
+  "currentHead": "84e62e3389ffe961cbed264746959d33016d7c07",
+  "targetSha": "84e62e3389ffe961cbed264746959d33016d7c07",
+  "status": "passed",
+  "CERTIFYING": false,
+  "productionProof": false,
+  "stagingProof": true,
+  "productionCredentialsRequired": false,
+  "productionDataMutated": false,
+  "authSmokeHarness": {
+    "defaultBaseUrl": "https://staging.creditregulatorpro.com",
+    "envRequired": {
+      "STAGING_BASE_URL": "https://staging.creditregulatorpro.com",
+      "CRP_AUTH_WORKFLOW_SMOKE": "true"
+    },
+    "environmentInjected": true,
+    "gates": [
+      {
+        "gateId": "authenticatedUploadResults",
+        "command": "pnpm run smoke:auth-workflow",
+        "status": "passed",
+        "exitCode": 0,
+        "proofScope": "staging",
+        "stagingProof": true,
+        "productionProof": false,
+        "environment": {
+          "STAGING_BASE_URL": "https://staging.creditregulatorpro.com",
+          "CRP_AUTH_WORKFLOW_SMOKE": "true"
+        },
+        "notes": [
+          "staging-safe auth smoke environment resolved from default-staging-base-url",
+          "staging auth smoke evidence is staging proof only, not production runtime proof"
+        ]
+      },
+      {
+        "gateId": "authenticatedPacketPdf",
+        "command": "pnpm run smoke:auth-workflow:packet",
+        "status": "passed",
+        "exitCode": 0,
+        "proofScope": "staging",
+        "stagingProof": true,
+        "productionProof": false,
+        "environment": {
+          "STAGING_BASE_URL": "https://staging.creditregulatorpro.com",
+          "CRP_AUTH_WORKFLOW_SMOKE": "true",
+          "CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET": "true"
+        },
+        "notes": [
+          "staging-safe auth smoke environment resolved from default-staging-base-url",
+          "staging auth smoke evidence is staging proof only, not production runtime proof"
+        ]
+      }
+    ],
+    "failedGates": []
+  },
+  "rollbackGovernanceTimeout": {
+    "testPath": "tests/unit/deploy-rollback-sha-governance.spec.ts",
+    "configuredTimeoutMs": 60000,
+    "suiteSpecificTimeout": true,
+    "assertionsWeakened": false
+  },
+  "certificationResult": {
+    "CERTIFYING": false,
+    "failedGates": [],
+    "staleGates": [],
+    "skippedGates": [],
+    "stagingOnlyProofGates": [
+      "authenticatedUploadResults",
+      "authenticatedPacketPdf"
+    ]
+  },
+  "notes": [
+    "Staging auth smokes are staging proof only and are not production runtime proof.",
+    "This artifact does not close production promotion blockers.",
+    "Failing auth smoke command exit codes remain visible in the certification report."
+  ],
+  "outputs": {
+    "markdown": "docs/production-scale/evidence/latest-certification-harness-fix.md",
+    "json": "docs/production-scale/evidence/latest-certification-harness-fix.json"
+  }
+}

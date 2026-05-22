@@ -4,7 +4,11 @@ import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  AUTH_WORKFLOW_SMOKE_ENV,
+  DEFAULT_STAGING_AUTH_SMOKE_BASE_URL,
   REQUIRED_CERTIFICATION_GATES,
+  buildCertificationHarnessFixEvidence,
+  buildGateExecutionContext,
   buildProductionScaleCertificationReport,
   writeProductionScaleCertificationOutputs,
 } from "../../scripts/production-scale-certification.mjs";
@@ -59,16 +63,22 @@ function freshnessGate() {
   };
 }
 
-function runCommandWithFailures(failedGateIds: string[] = []) {
-  return async (command: string, options: { gate: { id: string } }) => ({
+function runCommandWithFailures(
+  failedGateIds: string[] = [],
+  onCommand: (command: string, options: { gate: { id: string }; env?: Record<string, string> }) => void = () => {},
+) {
+  return async (command: string, options: { gate: { id: string }; env?: Record<string, string> }) => {
+    onCommand(command, options);
+    return {
     command,
     exitCode: failedGateIds.includes(options.gate.id) ? 1 : 0,
     startedAt: "2026-05-21T12:00:01.000Z",
     completedAt: "2026-05-21T12:00:02.000Z",
     durationMs: 1000,
-    stdout: "",
-    stderr: "",
-  });
+      stdout: `stdout:${options.gate.id}`,
+      stderr: failedGateIds.includes(options.gate.id) ? `stderr:${options.gate.id}` : "",
+    };
+  };
 }
 
 async function buildMockReport(options: {
@@ -110,6 +120,203 @@ describe("production-scale certification report", () => {
         }),
       ]),
     );
+  });
+
+  it("injects staging-safe auth smoke environment for auth workflow commands", async () => {
+    const root = tempRepoRoot();
+    const calls: Array<{ gateId: string; env?: Record<string, string> }> = [];
+    const report = await buildProductionScaleCertificationReport({
+      repoRoot: root,
+      gates: [
+        gate("authenticatedUploadResults", "pnpm run smoke:auth-workflow"),
+        gate("authenticatedPacketPdf", "pnpm run smoke:auth-workflow:packet"),
+        freshnessGate(),
+      ],
+      requiredGateIds: ["authenticatedUploadResults", "authenticatedPacketPdf", "evidenceFreshness"],
+      runCommand: runCommandWithFailures([], (_command, options) => {
+        calls.push({ gateId: options.gate.id, env: options.env });
+      }),
+      currentHead: HEAD,
+      currentBranch: "staging",
+      targetSha: HEAD,
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+      env: {},
+    });
+
+    expect(calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          gateId: "authenticatedUploadResults",
+          env: expect.objectContaining({
+            [AUTH_WORKFLOW_SMOKE_ENV]: "true",
+            STAGING_BASE_URL: DEFAULT_STAGING_AUTH_SMOKE_BASE_URL,
+          }),
+        }),
+        expect.objectContaining({
+          gateId: "authenticatedPacketPdf",
+          env: expect.objectContaining({
+            [AUTH_WORKFLOW_SMOKE_ENV]: "true",
+            STAGING_BASE_URL: DEFAULT_STAGING_AUTH_SMOKE_BASE_URL,
+            CRP_AUTH_WORKFLOW_SMOKE_INCLUDE_PACKET: "true",
+          }),
+        }),
+      ]),
+    );
+    expect(report.gates.find((entry: { id: string }) => entry.id === "authenticatedUploadResults")).toMatchObject({
+      proofScope: "staging",
+      stagingProof: true,
+      productionProof: false,
+      environment: {
+        [AUTH_WORKFLOW_SMOKE_ENV]: "true",
+        STAGING_BASE_URL: DEFAULT_STAGING_AUTH_SMOKE_BASE_URL,
+      },
+    });
+  });
+
+  it("does not treat staging auth smokes as production runtime proof", async () => {
+    const root = tempRepoRoot();
+    const report = await buildMockReport({
+      repoRoot: root,
+      gates: [gate("authenticatedUploadResults", "pnpm run smoke:auth-workflow")],
+    });
+    const harnessFix = buildCertificationHarnessFixEvidence(report);
+    const authGate = report.gates.find((entry: { id: string }) => entry.id === "authenticatedUploadResults");
+    const exactCommand = report.exactCommandsRun.find(
+      (entry: { gateId: string }) => entry.gateId === "authenticatedUploadResults",
+    );
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.stagingOnlyProofGates).toEqual(["authenticatedUploadResults"]);
+    expect(authGate).toMatchObject({
+      proofScope: "staging",
+      stagingProof: true,
+      productionProof: false,
+      productionCredentialsRequired: false,
+      productionDataMutated: false,
+    });
+    expect(exactCommand).toMatchObject({
+      proofScope: "staging",
+      stagingProof: true,
+      productionProof: false,
+    });
+    expect(harnessFix).toMatchObject({
+      CERTIFYING: false,
+      productionProof: false,
+      stagingProof: true,
+      productionCredentialsRequired: false,
+      productionDataMutated: false,
+    });
+  });
+
+  it("preserves failing smoke command exit codes and records exact command results", async () => {
+    const root = tempRepoRoot();
+    const report = await buildProductionScaleCertificationReport({
+      repoRoot: root,
+      gates: [gate("authenticatedUploadResults", "pnpm run smoke:auth-workflow"), freshnessGate()],
+      requiredGateIds: ["authenticatedUploadResults", "evidenceFreshness"],
+      runCommand: async (command: string, options: { gate: { id: string } }) => ({
+        command,
+        exitCode: 7,
+        startedAt: "2026-05-21T12:00:01.000Z",
+        completedAt: "2026-05-21T12:00:02.000Z",
+        durationMs: 1000,
+        stdout: "smoke stdout",
+        stderr: "smoke stderr",
+      }),
+      currentHead: HEAD,
+      currentBranch: "staging",
+      targetSha: HEAD,
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+      env: {},
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.failedGates).toContain("authenticatedUploadResults");
+    expect(report.gates.find((entry: { id: string }) => entry.id === "authenticatedUploadResults")).toMatchObject({
+      status: "failed",
+      exitCode: 7,
+      stdoutTail: "smoke stdout",
+      stderrTail: "smoke stderr",
+      notes: expect.arrayContaining(["command exited with 7"]),
+    });
+    expect(report.exactCommandsRun).toContainEqual(
+      expect.objectContaining({
+        gateId: "authenticatedUploadResults",
+        command: "pnpm run smoke:auth-workflow",
+        status: "failed",
+        exitCode: 7,
+        proofScope: "staging",
+        stagingProof: true,
+        productionProof: false,
+      }),
+    );
+  });
+
+  it("fails closed instead of running auth smokes against unsafe hosts", async () => {
+    const root = tempRepoRoot();
+    let called = false;
+    const report = await buildProductionScaleCertificationReport({
+      repoRoot: root,
+      gates: [gate("authenticatedUploadResults", "pnpm run smoke:auth-workflow"), freshnessGate()],
+      requiredGateIds: ["authenticatedUploadResults", "evidenceFreshness"],
+      runCommand: async () => {
+        called = true;
+        return {
+          command: "pnpm run smoke:auth-workflow",
+          exitCode: 0,
+          startedAt: "2026-05-21T12:00:01.000Z",
+          completedAt: "2026-05-21T12:00:02.000Z",
+          durationMs: 1000,
+          stdout: "",
+          stderr: "",
+        };
+      },
+      currentHead: HEAD,
+      currentBranch: "staging",
+      targetSha: HEAD,
+      runStartedAt: RUN_STARTED_AT,
+      completedAt: RUN_COMPLETED_AT,
+      env: { STAGING_BASE_URL: "https://creditregulatorpro.com" },
+    });
+
+    expect(called).toBe(false);
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.failedGates).toContain("authenticatedUploadResults");
+    expect(report.gates.find((entry: { id: string }) => entry.id === "authenticatedUploadResults")).toMatchObject({
+      status: "failed",
+      exitCode: 1,
+      proofScope: "staging",
+      productionProof: false,
+    });
+  });
+
+  it("keeps package aliases explicit without creating false lint confidence", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+
+    expect(packageJson.scripts.test).toBe("pnpm run test:unit");
+    expect(packageJson.scripts.lint).toContain("No lint infrastructure is configured");
+    expect(packageJson.scripts.lint).toContain("process.exit(1)");
+    expect(packageJson.scripts.check).toContain("pnpm run test:unit:check");
+    expect(packageJson.scripts["test:unit:check"]).toContain("--testTimeout=60000");
+    expect(packageJson.scripts["test:unit:check"]).toContain("tests/api/response-processing-queue.spec.ts");
+    expect(packageJson.scripts["test:unit:check"]).toContain("tests/api/ingest-processing-worker.spec.ts");
+  });
+
+  it("builds direct gate context with staging defaults", () => {
+    const context = buildGateExecutionContext({ id: "authenticatedUploadResults" }, {});
+
+    expect(context).toMatchObject({
+      ok: true,
+      proofScope: "staging",
+      stagingProof: true,
+      productionProof: false,
+      env: {
+        [AUTH_WORKFLOW_SMOKE_ENV]: "true",
+        STAGING_BASE_URL: DEFAULT_STAGING_AUTH_SMOKE_BASE_URL,
+      },
+    });
   });
 
   it("marks CERTIFYING:false when a required gate is missing", async () => {

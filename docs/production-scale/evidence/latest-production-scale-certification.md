@@ -1,14 +1,14 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T00:45:03.277Z
-Current HEAD: `4da09d1b87f4641f938bae3f02618f1aa142072d`
-Target SHA: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Generated: 2026-05-22T02:33:11.144Z
+Current HEAD: `84e62e3389ffe961cbed264746959d33016d7c07`
+Target SHA: `84e62e3389ffe961cbed264746959d33016d7c07`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
 ## Certification Rule
 
-CERTIFYING:true only when every required automated gate passes and no gate is failed, stale, skipped, or manual-only.
+CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and no required auth smoke is staging-only proof.
 
 ## Gate Summary
 
@@ -16,8 +16,8 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 | --- | --- | --- |
 | Contract tests | PASS | `pnpm run test:contracts` |
 | API tests | PASS | `pnpm run test:api` |
-| Authenticated consumer upload-to-results smoke | FAILED | `pnpm run smoke:auth-workflow` |
-| Authenticated packet readiness/create/PDF smoke | FAILED | `pnpm run smoke:auth-workflow:packet` |
+| Authenticated consumer upload-to-results smoke | PASS | `pnpm run smoke:auth-workflow` |
+| Authenticated packet readiness/create/PDF smoke | PASS | `pnpm run smoke:auth-workflow:packet` |
 | Deterministic ingestion report | PASS | `pnpm run test:deterministic-ingestion-report` |
 | Response soak check | PASS | `pnpm run response:soak-check` |
 | Packet PDF cache-miss proof | PASS | `pnpm run packet-pdf:cache-miss-proof` |
@@ -27,14 +27,12 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
 | Rollback SHA workflow static check | PASS | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
 | Deploy rollback simulation | PASS | `pnpm run deploy:rollback-simulation --write-evidence --json` |
-| Application check | FAILED | `pnpm run check` |
+| Application check | PASS | `pnpm run check` |
 | Evidence freshness check | PASS | `internal evidence freshness check` |
 
 ## Failed Gates
 
-- authenticatedUploadResults
-- authenticatedPacketPdf
-- applicationCheck
+- None
 
 ## Stale Gates
 
@@ -43,6 +41,11 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 ## Skipped Gates
 
 - None
+
+## Staging-Only Proof Gates
+
+- authenticatedUploadResults
+- authenticatedPacketPdf
 
 ## Commands
 
