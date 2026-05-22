@@ -139,6 +139,7 @@ import {
   MIGRATION_MACHINE_PROOF_JSON_PATH,
   MIGRATION_MACHINE_PROOF_MD_PATH,
   buildMigrationMachineProofReport,
+  migrationMachineProofExtraValidation,
 } from "./migration-machine-proof.mjs";
 
 import {
@@ -768,6 +769,10 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
       sanitizedInventoryAccepted: evidence.metadata?.sanitizedInventoryAccepted === true,
       temporaryAllowlistActive: evidence.metadata?.temporaryAllowlistActive === true,
       releaseBlockingFindingCount: evidence.metadata?.releaseBlockingFindingCount ?? null,
+      unresolvedResidualCount: evidence.metadata?.unresolvedResidualCount ?? null,
+      expiredResidualCount: evidence.metadata?.expiredResidualCount ?? null,
+      missingMigrationLedgerStatusCount: evidence.metadata?.missingMigrationLedgerStatusCount ?? null,
+      residualStatuses: Array.isArray(evidence.metadata?.residualStatuses) ? evidence.metadata.residualStatuses : [],
     },
   };
 }
@@ -1473,7 +1478,7 @@ export function buildProductionPromotionPackReport({
       "Migration governance machine proof",
       MIGRATION_MACHINE_PROOF_CONFIG,
       loadedMigrationMachineProof,
-      undefined,
+      migrationMachineProofExtraValidation,
       generatedAt,
     ),
     retentionArchiveRestore: machineProofSummary(
@@ -2060,6 +2065,9 @@ export function buildProductionPromotionPackReport({
       waivedFindings: migrationGate.waivedFindings?.length ?? 0,
       temporaryAllowlistFindings: migrationGate.temporaryAllowlistFindings?.length ?? 0,
       reviewedAdditiveFindings: migrationGate.reviewedAdditiveFindings?.length ?? 0,
+      reviewedGovernedFindings: migrationGate.reviewedGovernedFindings?.length ?? 0,
+      residualMachineStatuses: migrationGate.residualMachineStatuses ?? [],
+      governedRuntimeResiduals: migrationGate.governedRuntimeResiduals ?? [],
       blockerCoverage: migrationGate.blockerCoverage,
       formalWaiver: {
         accepted: migrationGate.formalWaiver?.accepted === true,
@@ -2145,7 +2153,7 @@ export function buildProductionPromotionPackReport({
       "Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
-      "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",
+      "Migration governance requires a non-mutating production promotion gate; temporary runtime ensure allowlist entries cannot certify production promotion.",
       "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
       "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
       "Codex must not promote readiness classification beyond the evidence in this pack.",

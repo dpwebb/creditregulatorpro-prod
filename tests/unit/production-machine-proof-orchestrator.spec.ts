@@ -49,6 +49,8 @@ function validMachineProof(area: ReturnType<typeof defaultMachineProofAreas>[num
     ? restoreMachineProofMetadata()
     : area.key === "productionWorker"
       ? productionWorkerMachineProofMetadata()
+      : area.key === "migration"
+        ? migrationMachineProofMetadata()
       : {};
   return buildMachineEvidence({
     evidenceType: area.config.evidenceType,
@@ -149,6 +151,40 @@ function productionWorkerMachineProofMetadata() {
       status: "pass",
     },
     syntheticCanaryCleanupSucceeded: true,
+  };
+}
+
+function migrationMachineProofMetadata() {
+  return {
+    migrationGateStatus: "accepted-release-blocking",
+    migrationGateCertifying: true,
+    releaseGateAccepted: true,
+    temporaryAllowlistActive: false,
+    temporaryAllowlistResidualCount: 0,
+    acceptedTemporaryAllowlistBasis: false,
+    releaseBlockingFindingCount: 0,
+    expiredAllowlistFindingCount: 0,
+    expiredResidualCount: 0,
+    unresolvedResidualCount: 0,
+    missingMigrationLedgerStatusCount: 0,
+    residualStatuses: [
+      {
+        path: "helpers/ingestProcessingQueueSchema.ts",
+        status: "certifying",
+        classification: "ledgered additive migration",
+        ledgerEntry: "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+        ledgerStatus: "ledgered additive migration",
+        certifying: true,
+      },
+      {
+        path: "helpers/responseDocumentSchema.ts",
+        status: "certifying",
+        classification: "reviewed and governed",
+        ledgerEntry: "migrations/0002-machine-governed-runtime-residuals.md",
+        ledgerStatus: "reviewed and governed",
+        certifying: true,
+      },
+    ],
   };
 }
 

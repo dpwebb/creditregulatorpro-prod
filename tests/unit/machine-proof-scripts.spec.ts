@@ -19,6 +19,7 @@ import { ALERTING_MACHINE_PROOF_CONFIG } from "../../scripts/alerting-machine-pr
 import {
   MIGRATION_MACHINE_PROOF_CONFIG,
   buildMigrationMachineProofReport,
+  validateMigrationMachineProofEvidence,
 } from "../../scripts/migration-machine-proof.mjs";
 import { RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG } from "../../scripts/retention-archive-restore-machine-proof.mjs";
 
@@ -238,6 +239,78 @@ describe("machine proof scripts", () => {
 
     expect(report.CERTIFYING).toBe(false);
     expect(validateMachineProofForConfig(MIGRATION_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(false);
+  });
+
+  it("accepts migration proof only when residuals are ledgered or reviewed and governed", () => {
+    const report = buildMigrationMachineProofReport({
+      generatedAt: GENERATED_AT,
+      migrationGateEvidence: {
+        CERTIFYING: true,
+        releaseGateAccepted: true,
+        status: "accepted-release-blocking",
+        temporaryAllowlistActive: false,
+        temporaryAllowlistResiduals: [],
+        releaseBlockingFindings: [],
+        blockerCoverage: { migrationGovernance: true },
+        residualMachineStatuses: [
+          {
+            path: "helpers/ingestProcessingQueueSchema.ts",
+            status: "certifying",
+            classification: "ledgered additive migration",
+            ledgerEntry: "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+            ledgerStatus: "ledgered additive migration",
+            certifying: true,
+          },
+          {
+            path: "helpers/responseDocumentSchema.ts",
+            status: "certifying",
+            classification: "reviewed and governed",
+            ledgerEntry: "migrations/0002-machine-governed-runtime-residuals.md",
+            ledgerStatus: "reviewed and governed",
+            certifying: true,
+          },
+        ],
+        governedRuntimeResiduals: [{ path: "helpers/responseDocumentSchema.ts" }],
+        convertedRuntimeResiduals: [{ path: "helpers/ingestProcessingQueueSchema.ts" }],
+        safety: { nonMutating: true, requiresDatabase: false, mutatesDatabase: false, executesDdl: false },
+      },
+    });
+
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.metadata.residualStatuses.map((item: { classification: string }) => item.classification)).toEqual([
+      "ledgered additive migration",
+      "reviewed and governed",
+    ]);
+    expect(validateMigrationMachineProofEvidence(report, { now: NOW }).ok).toBe(true);
+  });
+
+  it("rejects migration proof that uses accepted-temporary-allowlist as certification basis", () => {
+    const report = buildMigrationMachineProofReport({
+      generatedAt: GENERATED_AT,
+      migrationGateEvidence: {
+        CERTIFYING: true,
+        releaseGateAccepted: true,
+        status: "accepted-temporary-allowlist",
+        temporaryAllowlistActive: false,
+        temporaryAllowlistResiduals: [],
+        releaseBlockingFindings: [],
+        blockerCoverage: { migrationGovernance: true },
+        residualMachineStatuses: [
+          {
+            path: "helpers/runtimeEnsure.ts",
+            status: "certifying",
+            classification: "reviewed and governed",
+            ledgerEntry: "migrations/0002-machine-governed-runtime-residuals.md",
+            ledgerStatus: "reviewed and governed",
+            certifying: true,
+          },
+        ],
+        safety: { nonMutating: true, requiresDatabase: false, mutatesDatabase: false, executesDdl: false },
+      },
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(validateMigrationMachineProofEvidence(report, { now: NOW }).errors.join("\n")).toMatch(/accepted-temporary-allowlist/i);
   });
 
   it("rejects simulated-only retention evidence", () => {

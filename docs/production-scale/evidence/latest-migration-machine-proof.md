@@ -1,17 +1,17 @@
 # Migration Governance Machine Proof
 
-Generated at: 2026-05-22T16:04:47.474Z
+Generated at: 2026-05-22T16:26:41.688Z
 Evidence type: MIGRATION_GOVERNANCE_MACHINE_PROOF
 Environment: production
-Commit: `23e393bf7d93fa843bae16f311b19dddf635ebb1`
+Commit: `d8e239e6115f4b1b917fe47558f3e0990162fb4e`
 Generator: `scripts/migration-machine-proof.mjs`
 Command: `pnpm run migrations:machine-proof`
 Blocker ID: L10-P1-006
 Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
-Status: fail
-CERTIFYING:false
-Expires at: 2026-05-23T16:04:47.474Z
+Status: pass
+CERTIFYING:true
+Expires at: 2026-05-23T16:26:41.688Z
 
 ## Safety
 
@@ -29,17 +29,18 @@ Expires at: 2026-05-23T16:04:47.474Z
 
 ## Checks
 
-- [fail] migration-gate-certifying: Migration release gate is CERTIFYING:true and accepted.
-- [fail] no-temporary-unresolved-allowlist: No active temporary runtime ensure allowlist residuals remain.
+- [pass] migration-gate-certifying: Migration release gate is CERTIFYING:true and accepted.
+- [pass] no-temporary-unresolved-allowlist: No active temporary runtime ensure allowlist residuals remain.
 - [pass] no-expired-allowlist: No expired temporary allowlist residuals are present.
-- [fail] no-release-blocking-findings: No release-blocking migration governance findings remain.
+- [pass] no-temporary-allowlist-certification-basis: Migration gate does not use accepted-temporary-allowlist as a certification basis.
+- [pass] residual-statuses-classified: Every migration residual has an exact machine-governed classification.
+- [pass] migration-ledger-status-present: Every certifying migration residual has ledger status and ledger entry evidence.
+- [pass] no-release-blocking-findings: No release-blocking migration governance findings remain.
 - [pass] non-mutating-gate: Migration proof is static, non-mutating, and does not require database access.
 
 ## Failures
 
-- migration-gate-certifying: Migration release gate is CERTIFYING:true and accepted.
-- no-temporary-unresolved-allowlist: No active temporary runtime ensure allowlist residuals remain.
-- no-release-blocking-findings: No release-blocking migration governance findings remain.
+- None.
 
 ## Missing Runtime Inputs
 

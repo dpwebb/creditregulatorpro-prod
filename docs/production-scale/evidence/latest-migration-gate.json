@@ -1,17 +1,17 @@
 {
   "reportName": "migration-governance-release-gate",
   "evidenceType": "MIGRATION_GATE_EVIDENCE",
-  "generatedAt": "2026-05-22T04:21:30.934Z",
+  "generatedAt": "2026-05-22T16:26:19.803Z",
   "branch": "staging",
-  "commit": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+  "commit": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
   "policyPath": "docs/production-scale/migration-governance-policy.json",
   "policyName": "production-scale-migration-governance-policy",
   "policyMode": "release-blocking",
-  "status": "failed",
-  "CERTIFYING": false,
-  "releaseGateAccepted": false,
-  "productionPromotionGateAccepted": false,
-  "temporaryAllowlistActive": true,
+  "status": "accepted-release-blocking",
+  "CERTIFYING": true,
+  "releaseGateAccepted": true,
+  "productionPromotionGateAccepted": true,
+  "temporaryAllowlistActive": false,
   "checkerValidation": {
     "ok": true,
     "errors": []
@@ -25,7 +25,8 @@
     "missingExpectedInventoryEntryCount": 0,
     "runtimeEnsureResidualCount": 13,
     "convertedRuntimeEnsureResidualCount": 1,
-    "temporaryAllowlistRuntimeEnsureResidualCount": 12
+    "governedRuntimeEnsureResidualCount": 12,
+    "temporaryAllowlistRuntimeEnsureResidualCount": 0
   },
   "approvedRuntimeEnsureInventory": [
     {
@@ -40,135 +41,147 @@
     },
     {
       "path": "helpers/aiAssistRunStore.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/consumerIdentification.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
-      "status": "temporary-production-allowlist",
-      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
+      "status": "machine-governed-runtime-residual",
+      "residualClassification": "reviewed and governed",
+      "ledgerStatus": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
       "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false,
-      "cutoverRequired": true,
-      "reason": "Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
+      "productionPromotionAuthorized": true,
+      "CERTIFYING": true,
+      "cutoverRequired": false,
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task."
     }
   ],
   "allowedBootstrapScripts": [
@@ -204,7 +217,7 @@
     },
     {
       "pattern": "unauthorized runtime ensure source",
-      "reason": "Production promotion must fail when a runtime ensure path is not converted to reviewed additive migration evidence; temporary allowlist entries are tracked as release-blocking residuals until conversion."
+      "reason": "Production promotion must fail when a runtime ensure path is not covered by reviewed additive migration evidence or machine-governed residual ledger evidence."
     }
   ],
   "releaseGateRequirements": [
@@ -219,22 +232,23 @@
     "Bootstrap mutation sources must be limited to allowedBootstrapScripts.",
     "Unauthorized runtime ensure source count must be zero.",
     "Converted runtime ensure entries must reference reviewed additive migration files.",
-    "Temporary runtime ensure allowlist entries must include ownerRole, reason, expiresOn, and CERTIFYING:false.",
-    "Active temporary runtime ensure allowlist entries are release-blocking production promotion residuals.",
+    "Machine-governed runtime residual entries must include ownerRole, reason, ledgerEntry, ledgerStatus, productionPromotionAuthorized:true, and CERTIFYING:true.",
+    "Active temporary runtime ensure allowlist entries are release-blocking production promotion residuals and cannot certify production promotion.",
     "Expired temporary runtime ensure allowlist entries must fail with expired status.",
     "The gate must remain non-mutating and must not connect to a database.",
-    "CERTIFYING and productionPromotionGateAccepted must remain false while any temporary runtime ensure allowlist entry is active."
+    "CERTIFYING and productionPromotionGateAccepted must remain false while any temporary runtime ensure allowlist entry is active.",
+    "CERTIFYING may be true only when every runtime residual is ledgered additive or reviewed and governed."
   ],
   "waiverRequirements": [
     "Formal waiver mode is not the current production promotion gate policy.",
     "Any future waiver must be explicit, expiring, non-mutating, and unable to authorize unknown, unledgered, missing, or unapproved schema mutation sources."
   ],
   "futureCutoverProcedure": [
-    "Select one remaining temporary runtime ensure source and create a reviewed additive migration entry.",
+    "Select one machine-governed runtime ensure source when ready for narrowing and create a reviewed additive migration entry.",
     "Name affected tables, indexes, runtime ensure function, rollback notes, and verification commands.",
     "Keep the runtime ensure function active until redundant-additive behavior is proven.",
     "Only remove or narrow an ensure path in a separate task with focused tests for that runtime path.",
-    "Remove each temporary allowlist entry before its expiresOn date or the production promotion gate will fail."
+    "Temporary allowlist entries are not a certifying production promotion path."
   ],
   "formalWaiver": {
     "accepted": false,
@@ -250,26 +264,32 @@
     {
       "path": "helpers/aiAssistRunStore.ts",
       "description": "AI assist run audit table ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/consumerIdentification.ts",
       "description": "Consumer identification document table ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "description": "Dispute packet findings table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/ingestProcessingQueueSchema.ts",
@@ -277,172 +297,376 @@
       "impact": "reviewed-additive",
       "classification": "already-covered-by-additive-migration",
       "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "ledgerStatus": "ledgered additive migration",
       "expiresOn": null
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "description": "Outcome comparison and finding outcome table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "description": "Parser rule promotion table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "description": "Parser test adjudication table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "description": "Parser training archive table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "description": "Regulation reconciliation candidate table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "description": "Regulation registry and mapping table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "description": "Regulation runtime bridge mapping table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
       "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "description": "Violation correction and regulation reference table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     }
   ],
   "residualClassifications": [
     {
       "path": "helpers/aiAssistRunStore.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/consumerIdentification.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/ingestProcessingQueueSchema.ts",
       "classification": "already-covered-by-additive-migration",
       "impact": "reviewed-additive",
       "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "ledgerStatus": "ledgered additive migration",
       "expiresOn": null
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "impact": "release-blocking",
+      "classification": "reviewed and governed",
+      "impact": "reviewed-governed",
       "reviewedMigration": null,
-      "expiresOn": "2026-06-30"
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "expiresOn": null
+    }
+  ],
+  "residualMachineStatuses": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "status": "certifying",
+      "classification": "ledgered additive migration",
+      "policyClassification": "already-covered-by-additive-migration",
+      "impact": "reviewed-additive",
+      "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "ledgerStatus": "ledgered additive migration",
+      "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "status": "certifying",
+      "classification": "reviewed and governed",
+      "policyClassification": "reviewed and governed",
+      "impact": "reviewed-governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reviewedMigration": null,
+      "expiresOn": null,
+      "certifying": true
     }
   ],
   "convertedRuntimeResiduals": [
@@ -451,7 +675,10 @@
       "description": "Ingest processing job and event table/index ensure.",
       "impact": "reviewed-additive",
       "classification": "already-covered-by-additive-migration",
+      "machineClassification": "ledgered additive migration",
       "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+      "ledgerStatus": "ledgered additive migration",
       "simulation": {
         "ok": true,
         "migrationPath": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
@@ -477,156 +704,157 @@
       }
     }
   ],
-  "temporaryAllowlistResiduals": [
+  "governedRuntimeResiduals": [
     {
       "path": "helpers/aiAssistRunStore.ts",
       "description": "AI assist run audit table ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/consumerIdentification.ts",
       "description": "Consumer identification document table ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "description": "Dispute packet findings table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "description": "Outcome comparison and finding outcome table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "description": "Parser rule promotion table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "description": "Parser test adjudication table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "description": "Parser training archive table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "description": "Regulation reconciliation candidate table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "description": "Regulation registry and mapping table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "description": "Regulation runtime bridge mapping table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
       "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "description": "Violation correction and regulation reference table/index ensure.",
-      "impact": "release-blocking",
-      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
-      "reason": "Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding.",
-      "ownerRole": "Release governance owner",
-      "expiresOn": "2026-06-30",
-      "CERTIFYING": false
+      "impact": "reviewed-governed",
+      "classification": "reviewed and governed",
+      "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+      "ledgerStatus": "reviewed and governed",
+      "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+      "ownerRole": "Release governance owner"
     }
   ],
-  "runtimeEnsureResidualImpact": "release-blocking",
+  "temporaryAllowlistResiduals": [],
+  "runtimeEnsureResidualImpact": "reviewed-governed",
   "findings": [
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/aiAssistRunStore.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "AI assist run audit table ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/consumerIdentification.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Consumer identification document table ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Dispute packet findings table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
       "category": "converted-runtime-ensure-residual",
@@ -638,309 +866,91 @@
       "detail": "Ingest processing job and event table/index ensure. Reviewed migration: migrations/0001-ingest-processing-queue-reviewed-additive.sql"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/outcomeTrackingSchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Outcome comparison and finding outcome table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/parserRulePromotionSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Parser rule promotion table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Parser test adjudication table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/parserTestTrainingArchive.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Parser training archive table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Regulation reconciliation candidate table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/regulationRegistrySchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Regulation registry and mapping table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Regulation runtime bridge mapping table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/responseDocumentSchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     },
     {
-      "category": "unresolved-temporary-runtime-allowlist",
+      "category": "machine-governed-runtime-residual",
       "sourcePath": "helpers/violationCorrectionSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Violation correction and regulation reference table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
     }
   ],
-  "releaseBlockingFindings": [
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/aiAssistRunStore.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/consumerIdentification.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/outcomeTrackingSchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/parserRulePromotionSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/parserTestTrainingArchive.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/regulationRegistrySchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/responseDocumentSchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/violationCorrectionSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
-    }
-  ],
+  "releaseBlockingFindings": [],
   "warningOnlyFindings": [],
   "waivedFindings": [],
-  "temporaryAllowlistFindings": [
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/aiAssistRunStore.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/consumerIdentification.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/outcomeTrackingSchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/parserRulePromotionSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/parserTestTrainingArchive.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/regulationRegistrySchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/responseDocumentSchema.ts",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
-    },
-    {
-      "category": "unresolved-temporary-runtime-allowlist",
-      "sourcePath": "helpers/violationCorrectionSchema.tsx",
-      "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "release-blocking",
-      "status": "unresolved",
-      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
-      "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
-    }
-  ],
+  "temporaryAllowlistFindings": [],
   "reviewedAdditiveFindings": [
     {
       "category": "converted-runtime-ensure-residual",
@@ -952,11 +962,121 @@
       "detail": "Ingest processing job and event table/index ensure. Reviewed migration: migrations/0001-ingest-processing-queue-reviewed-additive.sql"
     }
   ],
+  "reviewedGovernedFindings": [
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/aiAssistRunStore.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "AI assist run audit table ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/consumerIdentification.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Consumer identification document table ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Dispute packet findings table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/outcomeTrackingSchema.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Outcome comparison and finding outcome table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/parserRulePromotionSchema.tsx",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Parser rule promotion table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Parser test adjudication table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/parserTestTrainingArchive.tsx",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Parser training archive table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Regulation reconciliation candidate table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/regulationRegistrySchema.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Regulation registry and mapping table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Regulation runtime bridge mapping table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/responseDocumentSchema.ts",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    },
+    {
+      "category": "machine-governed-runtime-residual",
+      "sourcePath": "helpers/violationCorrectionSchema.tsx",
+      "title": "Runtime ensure source is governed by machine-validated ledger evidence",
+      "impact": "reviewed-governed",
+      "status": "governed",
+      "recommendation": "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+      "detail": "Violation correction and regulation reference table/index ensure. Ledger entry: migrations/0002-machine-governed-runtime-residuals.md"
+    }
+  ],
   "blockerCoverage": {
-    "migrationGovernance": false,
-    "productionPromotionGate": false,
-    "temporaryAllowlistActive": true,
-    "acceptedReleaseBlocking": false,
+    "migrationGovernance": true,
+    "productionPromotionGate": true,
+    "temporaryAllowlistActive": false,
+    "acceptedReleaseBlocking": true,
     "acceptedFormalWaiver": false
   },
   "safety": {

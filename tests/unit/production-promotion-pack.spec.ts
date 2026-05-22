@@ -19,7 +19,6 @@ import { MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/migration-m
 import { RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/retention-archive-restore-machine-proof.mjs";
 import { RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH } from "../../scripts/restore-evidence-acceptance.mjs";
 import { buildProductionDeploymentParityEvidenceReport } from "../../scripts/production-deployment-parity-evidence.mjs";
-import { buildMigrationGateReport } from "../../scripts/migration-gate.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
 import {
   buildAlertingExclusionValidationReport,
@@ -382,6 +381,53 @@ function acceptedReleaseBlockingMigrationGateEvidence() {
     blockerCoverage: {
       migrationGovernance: true,
       acceptedReleaseBlocking: true,
+      acceptedFormalWaiver: false,
+    },
+  };
+}
+
+function temporaryAllowlistMigrationGateEvidence() {
+  return {
+    ...warningOnlyMigrationGateEvidence(),
+    status: "failed",
+    policyMode: "release-blocking",
+    CERTIFYING: false,
+    releaseGateAccepted: false,
+    productionPromotionGateAccepted: false,
+    temporaryAllowlistActive: true,
+    runtimeEnsureResidualImpact: "release-blocking",
+    releaseBlockingFindings: [
+      {
+        category: "unresolved-temporary-runtime-allowlist",
+        title: "Temporary runtime ensure allowlist entry remains active",
+        impact: "release-blocking",
+        status: "unresolved",
+        sourcePath: "helpers/runtimeEnsure.ts",
+      },
+    ],
+    warningOnlyFindings: [],
+    temporaryAllowlistFindings: [
+      {
+        category: "unresolved-temporary-runtime-allowlist",
+        title: "Temporary runtime ensure allowlist entry remains active",
+        impact: "release-blocking",
+        status: "unresolved",
+        sourcePath: "helpers/runtimeEnsure.ts",
+      },
+    ],
+    temporaryAllowlistResiduals: [
+      {
+        path: "helpers/runtimeEnsure.ts",
+        impact: "release-blocking",
+        classification: "still-requires-temporary-acceptance-with-explicit-expiry",
+        CERTIFYING: false,
+      },
+    ],
+    blockerCoverage: {
+      migrationGovernance: false,
+      productionPromotionGate: false,
+      temporaryAllowlistActive: true,
+      acceptedReleaseBlocking: false,
       acceptedFormalWaiver: false,
     },
   };
@@ -897,7 +943,9 @@ function machineProofEvidence({
       ? { ...productionWorkerMachineProofMetadata(), ...metadata }
       : evidenceType === ALERTING_MACHINE_PROOF_EVIDENCE_TYPE
         ? { ...alertingMachineProofMetadata(), ...metadata }
-        : metadata;
+        : evidenceType === MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE
+          ? { ...migrationMachineProofMetadata(), ...metadata }
+          : metadata;
   const effectiveProductionMutation = evidenceType === PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE
     ? "synthetic-canary-cleaned-up"
     : "none";
@@ -1034,6 +1082,42 @@ function alertingMachineProofMetadata() {
   };
 }
 
+function migrationMachineProofMetadata() {
+  return {
+    migrationGateStatus: "accepted-release-blocking",
+    migrationGateCertifying: true,
+    releaseGateAccepted: true,
+    temporaryAllowlistActive: false,
+    temporaryAllowlistResidualCount: 0,
+    acceptedTemporaryAllowlistBasis: false,
+    releaseBlockingFindingCount: 0,
+    expiredAllowlistFindingCount: 0,
+    expiredResidualCount: 0,
+    unresolvedResidualCount: 0,
+    missingMigrationLedgerStatusCount: 0,
+    convertedRuntimeResidualCount: 1,
+    governedRuntimeResidualCount: 1,
+    residualStatuses: [
+      {
+        path: "helpers/ingestProcessingQueueSchema.ts",
+        status: "certifying",
+        classification: "ledgered additive migration",
+        ledgerEntry: "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+        ledgerStatus: "ledgered additive migration",
+        certifying: true,
+      },
+      {
+        path: "helpers/responseDocumentSchema.ts",
+        status: "certifying",
+        classification: "reviewed and governed",
+        ledgerEntry: "migrations/0002-machine-governed-runtime-residuals.md",
+        ledgerStatus: "reviewed and governed",
+        certifying: true,
+      },
+    ],
+  };
+}
+
 const WORKER_MACHINE_CHECKS = [
   "queue-depth-before-captured",
   "worker-liveness-verified",
@@ -1073,6 +1157,9 @@ const MIGRATION_MACHINE_CHECKS = [
   "migration-gate-certifying",
   "no-temporary-unresolved-allowlist",
   "no-expired-allowlist",
+  "no-temporary-allowlist-certification-basis",
+  "residual-statuses-classified",
+  "migration-ledger-status-present",
   "no-release-blocking-findings",
   "non-mutating-gate",
 ];
@@ -2168,10 +2255,7 @@ describe("production promotion evidence pack", () => {
   });
 
   it("keeps blocker 10 machine-required when migration gate has unresolved temporary allowlist residuals", () => {
-    const migrationGateEvidence = buildMigrationGateReport({
-      rootDir: process.cwd(),
-      generatedAt: "2026-05-20T12:00:00.000Z",
-    });
+    const migrationGateEvidence = temporaryAllowlistMigrationGateEvidence();
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),

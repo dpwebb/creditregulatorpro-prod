@@ -1,10 +1,10 @@
 # Migration Governance Drift Evidence
 
 Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.
-Generated at: 2026-05-22T15:46:07.506Z
+Generated at: 2026-05-22T16:26:14.185Z
 CERTIFYING:false
 Current branch: staging
-Current commit hash: 99b97e37f9326916b48161da4ac79ac762d7a026
+Current commit hash: d8e239e6115f4b1b917fe47558f3e0990162fb4e
 Scan roots: helpers, scripts, endpoints/migration
 Ledger directory: migrations
 Checker mode: production-promotion-gate-inventory
@@ -42,6 +42,7 @@ Production promotion gate command: pnpm run migrations:gate
 - migrations/0000-runtime-schema-inventory.md (2777 bytes)
 - migrations/0001-ingest-processing-queue-reviewed-additive.md (1419 bytes)
 - migrations/0001-ingest-processing-queue-reviewed-additive.sql (5004 bytes)
+- migrations/0002-machine-governed-runtime-residuals.md (1675 bytes)
 
 ## Detected Schema Mutation Sources
 - helpers/aiAssistRunStore.ts: 3 matched schema mutation pattern(s)
@@ -90,4 +91,4 @@ Production promotion gate command: pnpm run migrations:gate
 Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.
 
 ## Deploy Gate Recommendation
-Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible, non-certifying, and release-blocking until converted.
+Run migrations:gate and migrations:machine-proof as hard non-mutating production promotion gates; temporary allowlist entries cannot certify production promotion.

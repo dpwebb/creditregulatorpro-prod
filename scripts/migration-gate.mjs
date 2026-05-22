@@ -22,6 +22,11 @@ export const MIGRATION_GATE_JSON_PATH = `${DEFAULT_MIGRATION_EVIDENCE_DIR}/${MIG
 const VALID_POLICY_MODES = new Set(["warning-only", "release-blocking", "waived"]);
 const REFUSED_FLAGS = new Set(["--apply", "--execute", "--run-ddl", "--ddl", "--mutate", "--write-db"]);
 const CONVERTED_RUNTIME_STATUSES = new Set(["converted-additive", "converted-reviewed-additive"]);
+const GOVERNED_RUNTIME_STATUSES = new Set([
+  "machine-governed-runtime-residual",
+  "reviewed-governed-runtime-residual",
+  "reviewed-governed-additive-ledger",
+]);
 const TEMPORARY_RUNTIME_ALLOWLIST_STATUSES = new Set([
   "temporary-production-allowlist",
   "temporary-allowlist",
@@ -29,6 +34,11 @@ const TEMPORARY_RUNTIME_ALLOWLIST_STATUSES = new Set([
 ]);
 const RESIDUAL_CLASSIFICATIONS = Object.freeze({
   reviewedAdditive: "already-covered-by-additive-migration",
+  machineLedgeredAdditive: "ledgered additive migration",
+  reviewedGoverned: "reviewed and governed",
+  obsoleteRemoved: "obsolete and removed",
+  unresolved: "unresolved",
+  expired: "expired",
   needsLedger: "needs-new-additive-ledger-entry",
   temporaryWithExpiry: "still-requires-temporary-acceptance-with-explicit-expiry",
 });
@@ -106,6 +116,10 @@ function isConvertedRuntimeEntry(entry) {
   return CONVERTED_RUNTIME_STATUSES.has(runtimeEntryStatus(entry));
 }
 
+function isGovernedRuntimeEntry(entry) {
+  return GOVERNED_RUNTIME_STATUSES.has(runtimeEntryStatus(entry));
+}
+
 function isTemporaryRuntimeAllowlistEntry(entry) {
   return TEMPORARY_RUNTIME_ALLOWLIST_STATUSES.has(runtimeEntryStatus(entry));
 }
@@ -120,6 +134,14 @@ function runtimeEntryOwner(entry) {
 
 function runtimeEntryExpiry(entry) {
   return String(entry?.expiresOn ?? entry?.allowlistExpiresOn ?? entry?.expiry ?? "").trim();
+}
+
+function runtimeEntryLedgerEntry(entry) {
+  return normalizeRelativePath(entry?.ledgerEntry ?? entry?.migrationLedgerEntry ?? "");
+}
+
+function runtimeEntryLedgerStatus(entry) {
+  return String(entry?.ledgerStatus ?? entry?.governanceLedgerStatus ?? entry?.residualClassification ?? "").trim();
 }
 
 function validateTemporaryRuntimeAllowlistEntry(entry, generatedAt) {
@@ -166,6 +188,42 @@ function validateConvertedRuntimeMigrationEntry({ entry, sourcePath, rootDir }) 
     errors.push(error instanceof Error ? error.message : String(error));
   }
   return { reviewedMigration, simulation, errors };
+}
+
+function validateGovernedRuntimeResidualEntry({ entry, sourcePath, rootDir }) {
+  const errors = [];
+  const ledgerEntry = runtimeEntryLedgerEntry(entry);
+  const ledgerStatus = runtimeEntryLedgerStatus(entry);
+
+  if (!ledgerEntry) errors.push("machine-governed runtime residual requires ledgerEntry.");
+  if (!ledgerStatus) errors.push("machine-governed runtime residual requires ledgerStatus.");
+  if (ledgerStatus && ledgerStatus !== RESIDUAL_CLASSIFICATIONS.reviewedGoverned) {
+    errors.push(`machine-governed runtime residual ledgerStatus must be "${RESIDUAL_CLASSIFICATIONS.reviewedGoverned}".`);
+  }
+  if (!runtimeEntryReason(entry)) errors.push("machine-governed runtime residual reason is required.");
+  if (!runtimeEntryOwner(entry)) errors.push("machine-governed runtime residual ownerRole is required.");
+  if (entry?.productionPromotionAuthorized !== true) {
+    errors.push("machine-governed runtime residual requires productionPromotionAuthorized:true.");
+  }
+  if (entry?.CERTIFYING !== true) {
+    errors.push("machine-governed runtime residual requires CERTIFYING:true.");
+  }
+  if (entry?.humanObserved === true || entry?.manualApprovalRequired === true || entry?.humanInteractionRequired === true) {
+    errors.push("machine-governed runtime residual must not require human observation or manual approval.");
+  }
+  if (ledgerEntry) {
+    const absoluteLedgerPath = repoPath(rootDir, ledgerEntry);
+    if (!existsSync(absoluteLedgerPath)) {
+      errors.push(`machine-governed ledger entry is missing: ${ledgerEntry}.`);
+    } else {
+      const ledgerText = readFileSync(absoluteLedgerPath, "utf8");
+      if (!normalizeRelativePath(ledgerText).includes(normalizeRelativePath(sourcePath))) {
+        errors.push(`machine-governed ledger entry must mention runtime ensure source ${sourcePath}.`);
+      }
+    }
+  }
+
+  return { ledgerEntry, ledgerStatus, errors };
 }
 
 function finding({
@@ -357,6 +415,7 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
 
   const approvedRuntimeResiduals = migrationState.runtimeEnsureFunctions.filter((source) => source.exists && policyRuntimePaths.has(source.path));
   const convertedRuntimeResiduals = [];
+  const governedRuntimeResiduals = [];
   const temporaryAllowlistResiduals = [];
 
   for (const source of approvedRuntimeResiduals) {
@@ -405,6 +464,8 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
       convertedRuntimeResiduals.push({
         ...source,
         reviewedMigration: convertedValidation.reviewedMigration,
+        ledgerEntry: runtimeEntryLedgerEntry(entry) || convertedValidation.reviewedMigration,
+        ledgerStatus: RESIDUAL_CLASSIFICATIONS.machineLedgeredAdditive,
         simulation: convertedValidation.simulation,
         classification: RESIDUAL_CLASSIFICATIONS.reviewedAdditive,
       });
@@ -416,6 +477,40 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
         status: "converted",
         recommendation: "Keep the runtime ensure path as redundant compatibility until a separate task narrows it.",
         detail: `${source.description} Reviewed migration: ${convertedValidation.reviewedMigration}`,
+      }));
+      continue;
+    }
+
+    if (isGovernedRuntimeEntry(entry)) {
+      const governedValidation = validateGovernedRuntimeResidualEntry({ entry, sourcePath: source.path, rootDir });
+      if (governedValidation.errors.length > 0) {
+        findings.push(finding({
+          category: "invalid-machine-governed-runtime-residual",
+          sourcePath: source.path,
+          title: "Machine-governed runtime ensure source lacks valid ledger evidence",
+          impact: "release-blocking",
+          status: "unresolved",
+          recommendation: "Fix the machine-governed ledger entry before accepting production promotion.",
+          detail: governedValidation.errors.join("; "),
+        }));
+        continue;
+      }
+      governedRuntimeResiduals.push({
+        ...source,
+        ledgerEntry: governedValidation.ledgerEntry,
+        ledgerStatus: governedValidation.ledgerStatus,
+        classification: RESIDUAL_CLASSIFICATIONS.reviewedGoverned,
+        reason: runtimeEntryReason(entry),
+        ownerRole: runtimeEntryOwner(entry),
+      });
+      findings.push(finding({
+        category: "machine-governed-runtime-residual",
+        sourcePath: source.path,
+        title: "Runtime ensure source is governed by machine-validated ledger evidence",
+        impact: "reviewed-governed",
+        status: "governed",
+        recommendation: "Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.",
+        detail: `${source.description} Ledger entry: ${governedValidation.ledgerEntry}`,
       }));
       continue;
     }
@@ -466,7 +561,7 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
       title: "Runtime ensure source is not authorized for production promotion",
       impact: "release-blocking",
       status: "unauthorized",
-      recommendation: "Convert the source to a reviewed additive migration or add a temporary allowlist entry with reason, owner, expiry, and CERTIFYING:false.",
+      recommendation: "Convert the source to a reviewed additive migration or add machine-governed ledger evidence.",
       detail: source.description,
     }));
   }
@@ -477,18 +572,21 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
   const runtimeResidualImpact =
     hasRuntimeReleaseBlockingFinding
       ? "release-blocking"
-      : convertedRuntimeResiduals.length > 0
-        ? "reviewed-additive"
-        : policy.currentMode === "warning-only"
-          ? "warning-only"
-          : policy.currentMode === "waived"
-            ? "formally-waived"
-            : "none";
+      : governedRuntimeResiduals.length > 0
+        ? "reviewed-governed"
+        : convertedRuntimeResiduals.length > 0
+          ? "reviewed-additive"
+          : policy.currentMode === "warning-only"
+            ? "warning-only"
+            : policy.currentMode === "waived"
+              ? "formally-waived"
+              : "none";
 
   return {
     findings,
     approvedRuntimeResiduals,
     convertedRuntimeResiduals,
+    governedRuntimeResiduals,
     temporaryAllowlistResiduals,
     runtimeResidualImpact,
   };
@@ -520,6 +618,7 @@ export function buildMigrationGateReport({
     findings,
     approvedRuntimeResiduals,
     convertedRuntimeResiduals,
+    governedRuntimeResiduals,
     temporaryAllowlistResiduals,
     runtimeResidualImpact,
   } = buildGateFindings({
@@ -549,6 +648,7 @@ export function buildMigrationGateReport({
     /temporary.*allowlist/i.test(`${item.category} ${item.title}`),
   );
   const reviewedAdditiveFindings = findings.filter((item) => item.impact === "reviewed-additive");
+  const reviewedGovernedFindings = findings.filter((item) => item.impact === "reviewed-governed");
   const hasBlockingFindings = releaseBlockingFindings.length > 0;
   const acceptedReleaseBlocking = loadedPolicy.currentMode === "release-blocking" && !hasBlockingFindings;
   const acceptedFormalWaiver = loadedPolicy.currentMode === "waived" && formalWaiver.accepted && !hasBlockingFindings;
@@ -557,7 +657,7 @@ export function buildMigrationGateReport({
   const CERTIFYING =
     acceptedReleaseBlocking &&
     !temporaryAllowlistActive &&
-    approvedRuntimeResiduals.length === convertedRuntimeResiduals.length;
+    approvedRuntimeResiduals.length === convertedRuntimeResiduals.length + governedRuntimeResiduals.length;
   const status = hasBlockingFindings
     ? "failed"
     : acceptedReleaseBlocking
@@ -567,19 +667,54 @@ export function buildMigrationGateReport({
         : "warning-only";
   const approvedRuntimeResidualDetails = approvedRuntimeResiduals.map((source) => {
     const converted = convertedRuntimeResiduals.find((item) => item.path === source.path);
+    const governed = governedRuntimeResiduals.find((item) => item.path === source.path);
     const allowlisted = temporaryAllowlistResiduals.find((item) => item.path === source.path);
     const classification = converted
       ? RESIDUAL_CLASSIFICATIONS.reviewedAdditive
+      : governed
+        ? RESIDUAL_CLASSIFICATIONS.reviewedGoverned
       : allowlisted
         ? RESIDUAL_CLASSIFICATIONS.temporaryWithExpiry
         : RESIDUAL_CLASSIFICATIONS.needsLedger;
     return {
       path: source.path,
       description: source.description,
-      impact: converted ? "reviewed-additive" : allowlisted ? "release-blocking" : runtimeResidualImpact,
+      impact: converted ? "reviewed-additive" : governed ? "reviewed-governed" : allowlisted ? "release-blocking" : runtimeResidualImpact,
       classification,
       reviewedMigration: converted?.reviewedMigration ?? null,
+      ledgerEntry: converted?.ledgerEntry ?? governed?.ledgerEntry ?? null,
+      ledgerStatus: converted?.ledgerStatus ?? governed?.ledgerStatus ?? null,
       expiresOn: allowlisted?.expiresOn ?? null,
+    };
+  });
+  const residualMachineStatuses = approvedRuntimeResidualDetails.map((source) => {
+    const sourceFindings = findings.filter((item) => item.sourcePath === source.path);
+    const expired = sourceFindings.some((item) => /expired.*temporary.*allowlist/i.test(`${item.category} ${item.title}`));
+    const unresolved = sourceFindings.some((item) =>
+      item.impact === "release-blocking" && /temporary.*allowlist|runtime.*residual|runtime.*ensure|runtime.*migration/i.test(`${item.category} ${item.title}`),
+    );
+    const classification = expired
+      ? RESIDUAL_CLASSIFICATIONS.expired
+      : unresolved
+        ? RESIDUAL_CLASSIFICATIONS.unresolved
+        : source.impact === "reviewed-additive"
+          ? RESIDUAL_CLASSIFICATIONS.machineLedgeredAdditive
+          : source.impact === "reviewed-governed"
+            ? RESIDUAL_CLASSIFICATIONS.reviewedGoverned
+            : source.classification === RESIDUAL_CLASSIFICATIONS.needsLedger
+              ? RESIDUAL_CLASSIFICATIONS.unresolved
+              : source.classification;
+    return {
+      path: source.path,
+      status: expired ? "expired" : unresolved ? "unresolved" : "certifying",
+      classification,
+      policyClassification: source.classification,
+      impact: source.impact,
+      ledgerEntry: source.ledgerEntry,
+      ledgerStatus: source.ledgerStatus,
+      reviewedMigration: source.reviewedMigration,
+      expiresOn: source.expiresOn,
+      certifying: !expired && !unresolved,
     };
   });
 
@@ -607,6 +742,7 @@ export function buildMigrationGateReport({
       missingExpectedInventoryEntryCount: state.missingExpectedInventoryEntries?.length ?? 0,
       runtimeEnsureResidualCount: approvedRuntimeResiduals.length,
       convertedRuntimeEnsureResidualCount: convertedRuntimeResiduals.length,
+      governedRuntimeEnsureResidualCount: governedRuntimeResiduals.length,
       temporaryAllowlistRuntimeEnsureResidualCount: temporaryAllowlistResiduals.length,
     },
     approvedRuntimeEnsureInventory: loadedPolicy.approvedRuntimeEnsureInventory ?? [],
@@ -629,15 +765,31 @@ export function buildMigrationGateReport({
       classification: source.classification,
       impact: source.impact,
       reviewedMigration: source.reviewedMigration,
+      ledgerEntry: source.ledgerEntry,
+      ledgerStatus: source.ledgerStatus,
       expiresOn: source.expiresOn,
     })),
+    residualMachineStatuses,
     convertedRuntimeResiduals: convertedRuntimeResiduals.map((source) => ({
       path: source.path,
       description: source.description,
       impact: "reviewed-additive",
       classification: RESIDUAL_CLASSIFICATIONS.reviewedAdditive,
+      machineClassification: RESIDUAL_CLASSIFICATIONS.machineLedgeredAdditive,
       reviewedMigration: source.reviewedMigration,
+      ledgerEntry: source.ledgerEntry,
+      ledgerStatus: source.ledgerStatus,
       simulation: source.simulation,
+    })),
+    governedRuntimeResiduals: governedRuntimeResiduals.map((source) => ({
+      path: source.path,
+      description: source.description,
+      impact: "reviewed-governed",
+      classification: RESIDUAL_CLASSIFICATIONS.reviewedGoverned,
+      ledgerEntry: source.ledgerEntry,
+      ledgerStatus: source.ledgerStatus,
+      reason: source.reason,
+      ownerRole: source.ownerRole,
     })),
     temporaryAllowlistResiduals: temporaryAllowlistResiduals.map((source) => ({
       path: source.path,
@@ -656,6 +808,7 @@ export function buildMigrationGateReport({
     waivedFindings,
     temporaryAllowlistFindings,
     reviewedAdditiveFindings,
+    reviewedGovernedFindings,
     blockerCoverage: {
       migrationGovernance: CERTIFYING,
       productionPromotionGate: releaseGateAccepted,
@@ -717,6 +870,16 @@ export function validateMigrationGateReport(report) {
   if (report.temporaryAllowlistActive === true && report.CERTIFYING === true) {
     errors.push("CERTIFYING cannot be true while temporary runtime ensure allowlist entries remain active.");
   }
+  if (report.CERTIFYING === true && Array.isArray(report.residualMachineStatuses)) {
+    for (const residual of report.residualMachineStatuses) {
+      if (["unresolved", "expired"].includes(residual.status) || ["unresolved", "expired"].includes(residual.classification)) {
+        errors.push(`CERTIFYING cannot be true with ${residual.classification} migration residual ${residual.path}.`);
+      }
+      if (!residual.ledgerStatus || !residual.ledgerEntry) {
+        errors.push(`CERTIFYING migration residual ${residual.path} requires ledgerStatus and ledgerEntry.`);
+      }
+    }
+  }
   if (report.blockerCoverage?.migrationGovernance === true && report.releaseGateAccepted !== true) {
     errors.push("migration governance blocker coverage requires an accepted release gate.");
   }
@@ -746,6 +909,7 @@ export function renderMigrationGateReport(report) {
     `- Missing expected inventory entries: ${report.migrationStateSummary.missingExpectedInventoryEntryCount}`,
     `- Runtime ensure residuals: ${report.migrationStateSummary.runtimeEnsureResidualCount}`,
     `- Converted reviewed runtime ensure residuals: ${report.migrationStateSummary.convertedRuntimeEnsureResidualCount}`,
+    `- Machine-governed runtime ensure residuals: ${report.migrationStateSummary.governedRuntimeEnsureResidualCount}`,
     `- Temporary allowlist runtime ensure residuals: ${report.migrationStateSummary.temporaryAllowlistRuntimeEnsureResidualCount}`,
     `- Runtime ensure residual impact: ${report.runtimeEnsureResidualImpact}`,
     "",
@@ -769,7 +933,15 @@ export function renderMigrationGateReport(report) {
     "",
     ...(report.residualClassifications?.length
       ? report.residualClassifications.map((source) =>
-          `- ${source.path}: ${source.classification}; impact ${source.impact}; reviewed migration ${source.reviewedMigration ?? "n/a"}; expires ${source.expiresOn ?? "n/a"}`,
+          `- ${source.path}: ${source.classification}; impact ${source.impact}; ledger status ${source.ledgerStatus ?? "n/a"}; ledger ${source.ledgerEntry ?? "n/a"}; reviewed migration ${source.reviewedMigration ?? "n/a"}; expires ${source.expiresOn ?? "n/a"}`,
+        )
+      : ["- None."]),
+    "",
+    "## Machine Residual Statuses",
+    "",
+    ...(report.residualMachineStatuses?.length
+      ? report.residualMachineStatuses.map((source) =>
+          `- ${source.path}: ${source.classification}; status ${source.status}; ledger status ${source.ledgerStatus ?? "n/a"}; ledger ${source.ledgerEntry ?? "n/a"}`,
         )
       : ["- None."]),
     "",
@@ -777,6 +949,12 @@ export function renderMigrationGateReport(report) {
     "",
     ...(report.convertedRuntimeResiduals.length
       ? report.convertedRuntimeResiduals.map((source) => `- [${source.impact}] ${source.path}: ${source.reviewedMigration}`)
+      : ["- None."]),
+    "",
+    "## Machine-Governed Runtime Ensure Residuals",
+    "",
+    ...(report.governedRuntimeResiduals.length
+      ? report.governedRuntimeResiduals.map((source) => `- [${source.impact}] ${source.path}: ${source.ledgerEntry}; ledger status ${source.ledgerStatus}`)
       : ["- None."]),
     "",
     "## Temporary Runtime Ensure Allowlist",

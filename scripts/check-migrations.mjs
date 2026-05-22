@@ -477,14 +477,14 @@ export function scanMigrationState({
     certification: {
       CERTIFYING: false,
       reason:
-        "check:migrations is an inventory evidence command. Production certification requires migrations:gate with CERTIFYING:true and no active temporary runtime ensure allowlist entries.",
+        "check:migrations is an inventory evidence command. Production certification requires migrations:gate with CERTIFYING:true and migrations:machine-proof with exact machine-governed residual status.",
     },
     recommendation: hasOpenInventoryRisk
       ? "Resolve release-blocking migration inventory findings before treating schema governance as complete; keep this checker non-mutating and release-visible."
       : "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
     deployGateRecommendation: hasOpenInventoryRisk
       ? "Production promotion gate must fail until missing, unknown, or unledgered schema mutation sources are resolved."
-      : "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible, non-certifying, and release-blocking until converted.",
+      : "Run migrations:gate and migrations:machine-proof as hard non-mutating production promotion gates; temporary allowlist entries cannot certify production promotion.",
   };
 }
 

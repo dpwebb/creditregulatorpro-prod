@@ -3,11 +3,11 @@
   "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
   "blockerId": "L10-P1-006",
   "environment": "production",
-  "generatedAt": "2026-05-22T16:04:47.474Z",
-  "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-  "currentCommitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-  "currentHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-  "commit": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+  "generatedAt": "2026-05-22T16:26:41.688Z",
+  "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+  "currentCommitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+  "currentHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+  "commit": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
   "branch": "staging",
   "generatorScript": "scripts/migration-machine-proof.mjs",
   "command": "pnpm run migrations:machine-proof",
@@ -24,20 +24,20 @@
   "piiPrinted": false,
   "rawReportBytesPrinted": false,
   "signedUrlsPrinted": false,
-  "status": "fail",
-  "certifying": false,
-  "CERTIFYING": false,
+  "status": "pass",
+  "certifying": true,
+  "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T16:04:47.474Z",
+  "expiresAt": "2026-05-23T16:26:41.688Z",
   "checks": [
     {
       "name": "migration-gate-certifying",
-      "status": "fail",
+      "status": "pass",
       "summary": "Migration release gate is CERTIFYING:true and accepted."
     },
     {
       "name": "no-temporary-unresolved-allowlist",
-      "status": "fail",
+      "status": "pass",
       "summary": "No active temporary runtime ensure allowlist residuals remain."
     },
     {
@@ -46,8 +46,23 @@
       "summary": "No expired temporary allowlist residuals are present."
     },
     {
+      "name": "no-temporary-allowlist-certification-basis",
+      "status": "pass",
+      "summary": "Migration gate does not use accepted-temporary-allowlist as a certification basis."
+    },
+    {
+      "name": "residual-statuses-classified",
+      "status": "pass",
+      "summary": "Every migration residual has an exact machine-governed classification."
+    },
+    {
+      "name": "migration-ledger-status-present",
+      "status": "pass",
+      "summary": "Every certifying migration residual has ledger status and ledger entry evidence."
+    },
+    {
       "name": "no-release-blocking-findings",
-      "status": "fail",
+      "status": "pass",
       "summary": "No release-blocking migration governance findings remain."
     },
     {
@@ -56,20 +71,7 @@
       "summary": "Migration proof is static, non-mutating, and does not require database access."
     }
   ],
-  "failures": [
-    {
-      "code": "migration-gate-certifying",
-      "message": "Migration release gate is CERTIFYING:true and accepted."
-    },
-    {
-      "code": "no-temporary-unresolved-allowlist",
-      "message": "No active temporary runtime ensure allowlist residuals remain."
-    },
-    {
-      "code": "no-release-blocking-findings",
-      "message": "No release-blocking migration governance findings remain."
-    }
-  ],
+  "failures": [],
   "sanitizedArtifacts": [
     {
       "path": "docs/production-scale/evidence/latest-migration-gate.json",
@@ -82,12 +84,176 @@
     "blockerIdsClosedWhenCertifying": [
       "L10-P1-006"
     ],
-    "migrationGateStatus": "failed",
-    "migrationGateCertifying": false,
-    "releaseGateAccepted": false,
-    "temporaryAllowlistActive": true,
-    "temporaryAllowlistResidualCount": 12,
-    "releaseBlockingFindingCount": 12,
-    "expiredAllowlistFindingCount": 0
+    "migrationGateStatus": "accepted-release-blocking",
+    "migrationGateCertifying": true,
+    "releaseGateAccepted": true,
+    "temporaryAllowlistActive": false,
+    "temporaryAllowlistResidualCount": 0,
+    "acceptedTemporaryAllowlistBasis": false,
+    "releaseBlockingFindingCount": 0,
+    "expiredAllowlistFindingCount": 0,
+    "expiredResidualCount": 0,
+    "unresolvedResidualCount": 0,
+    "missingMigrationLedgerStatusCount": 0,
+    "residualStatuses": [
+      {
+        "path": "helpers/aiAssistRunStore.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/consumerIdentification.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/disputePacketFindingsSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/ingestProcessingQueueSchema.ts",
+        "status": "certifying",
+        "classification": "ledgered additive migration",
+        "policyClassification": "already-covered-by-additive-migration",
+        "impact": "reviewed-additive",
+        "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+        "ledgerStatus": "ledgered additive migration",
+        "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/outcomeTrackingSchema.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/parserRulePromotionSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/parserTestAdjudicationSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/parserTestTrainingArchive.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/regulationReconciliationCandidateService.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/regulationRegistrySchema.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/responseDocumentSchema.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/violationCorrectionSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      }
+    ],
+    "governedRuntimeResidualCount": 12,
+    "convertedRuntimeResidualCount": 1
   }
 }

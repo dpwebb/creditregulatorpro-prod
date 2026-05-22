@@ -8,6 +8,7 @@ import {
 } from "./alerting-machine-proof.mjs";
 import {
   MIGRATION_MACHINE_PROOF_CONFIG,
+  migrationMachineProofExtraValidation,
 } from "./migration-machine-proof.mjs";
 import {
   PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
@@ -111,6 +112,7 @@ export function defaultMachineProofAreas() {
       blockerId: "L10-P1-006",
       kind: "machine-proof",
       config: MIGRATION_MACHINE_PROOF_CONFIG,
+      extraValidation: migrationMachineProofExtraValidation,
       commands: ["pnpm run migrations:machine-proof", "pnpm run migrations:machine-proof:validate"],
     },
     {

@@ -101,11 +101,11 @@ export const MACHINE_PROOF_BLOCKER_REQUIREMENTS = {
   10: {
     blockerId: "L10-P1-006",
     proofTypeRequired:
-      "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+      "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.",
     proofCategories: ["machine-attested", "automated-local"],
     allowedProofCommands: ["pnpm run migrations:machine-proof", "pnpm run migrations:machine-proof:validate"],
     recommendedNextAction:
-      "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
+      "Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify.",
   },
   22: {
     blockerId: "retention-archive-restore",

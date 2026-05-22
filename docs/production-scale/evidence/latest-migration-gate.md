@@ -1,15 +1,15 @@
 # Migration Governance Release Gate
 
 Safety: non-mutating static source and policy validation only; no database connection, credentials, runtime DDL, or schema mutation.
-Generated at: 2026-05-22T04:21:30.934Z
+Generated at: 2026-05-22T16:26:19.803Z
 Branch: staging
-Commit: 72a2bbfa97df8498620613ed1e0bf3051735f04f
+Commit: d8e239e6115f4b1b917fe47558f3e0990162fb4e
 Policy: docs/production-scale/migration-governance-policy.json
 Policy mode: release-blocking
-Status: failed
-CERTIFYING:false
-Release gate accepted: no
-Production promotion gate accepted: no
+Status: accepted-release-blocking
+CERTIFYING:true
+Release gate accepted: yes
+Production promotion gate accepted: yes
 
 ## Gate Summary
 
@@ -19,8 +19,9 @@ Production promotion gate accepted: no
 - Missing expected inventory entries: 0
 - Runtime ensure residuals: 13
 - Converted reviewed runtime ensure residuals: 1
-- Temporary allowlist runtime ensure residuals: 12
-- Runtime ensure residual impact: release-blocking
+- Machine-governed runtime ensure residuals: 12
+- Temporary allowlist runtime ensure residuals: 0
+- Runtime ensure residual impact: reviewed-governed
 
 ## Formal Waiver
 
@@ -32,75 +33,95 @@ Production promotion gate accepted: no
 
 ## Approved Runtime Ensure Residuals
 
-- [release-blocking] helpers/aiAssistRunStore.ts: AI assist run audit table ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/consumerIdentification.ts: Consumer identification document table ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/disputePacketFindingsSchema.tsx: Dispute packet findings table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
+- [reviewed-governed] helpers/aiAssistRunStore.ts: AI assist run audit table ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/consumerIdentification.ts: Consumer identification document table ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/disputePacketFindingsSchema.tsx: Dispute packet findings table/index ensure.; classification reviewed and governed
 - [reviewed-additive] helpers/ingestProcessingQueueSchema.ts: Ingest processing job and event table/index ensure.; classification already-covered-by-additive-migration
-- [release-blocking] helpers/outcomeTrackingSchema.ts: Outcome comparison and finding outcome table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/parserRulePromotionSchema.tsx: Parser rule promotion table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/parserTestAdjudicationSchema.tsx: Parser test adjudication table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/parserTestTrainingArchive.tsx: Parser training archive table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/regulationReconciliationCandidateService.ts: Regulation reconciliation candidate table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/regulationRegistrySchema.ts: Regulation registry and mapping table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/regulationRuntimeBridgeMappingService.ts: Regulation runtime bridge mapping table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/responseDocumentSchema.ts: Response document, queue, orchestration, and lifecycle table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
-- [release-blocking] helpers/violationCorrectionSchema.tsx: Violation correction and regulation reference table/index ensure.; classification still-requires-temporary-acceptance-with-explicit-expiry
+- [reviewed-governed] helpers/outcomeTrackingSchema.ts: Outcome comparison and finding outcome table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/parserRulePromotionSchema.tsx: Parser rule promotion table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/parserTestAdjudicationSchema.tsx: Parser test adjudication table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/parserTestTrainingArchive.tsx: Parser training archive table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/regulationReconciliationCandidateService.ts: Regulation reconciliation candidate table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/regulationRegistrySchema.ts: Regulation registry and mapping table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/regulationRuntimeBridgeMappingService.ts: Regulation runtime bridge mapping table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/responseDocumentSchema.ts: Response document, queue, orchestration, and lifecycle table/index ensure.; classification reviewed and governed
+- [reviewed-governed] helpers/violationCorrectionSchema.tsx: Violation correction and regulation reference table/index ensure.; classification reviewed and governed
 
 ## Residual Classifications
 
-- helpers/aiAssistRunStore.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/consumerIdentification.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/disputePacketFindingsSchema.tsx: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/ingestProcessingQueueSchema.ts: already-covered-by-additive-migration; impact reviewed-additive; reviewed migration migrations/0001-ingest-processing-queue-reviewed-additive.sql; expires n/a
-- helpers/outcomeTrackingSchema.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/parserRulePromotionSchema.tsx: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/parserTestAdjudicationSchema.tsx: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/parserTestTrainingArchive.tsx: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/regulationReconciliationCandidateService.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/regulationRegistrySchema.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/regulationRuntimeBridgeMappingService.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/responseDocumentSchema.ts: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
-- helpers/violationCorrectionSchema.tsx: still-requires-temporary-acceptance-with-explicit-expiry; impact release-blocking; reviewed migration n/a; expires 2026-06-30
+- helpers/aiAssistRunStore.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/consumerIdentification.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/disputePacketFindingsSchema.tsx: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/ingestProcessingQueueSchema.ts: already-covered-by-additive-migration; impact reviewed-additive; ledger status ledgered additive migration; ledger migrations/0001-ingest-processing-queue-reviewed-additive.md; reviewed migration migrations/0001-ingest-processing-queue-reviewed-additive.sql; expires n/a
+- helpers/outcomeTrackingSchema.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/parserRulePromotionSchema.tsx: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/parserTestAdjudicationSchema.tsx: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/parserTestTrainingArchive.tsx: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/regulationReconciliationCandidateService.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/regulationRegistrySchema.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/regulationRuntimeBridgeMappingService.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/responseDocumentSchema.ts: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+- helpers/violationCorrectionSchema.tsx: reviewed and governed; impact reviewed-governed; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md; reviewed migration n/a; expires n/a
+
+## Machine Residual Statuses
+
+- helpers/aiAssistRunStore.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/consumerIdentification.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/disputePacketFindingsSchema.tsx: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/ingestProcessingQueueSchema.ts: ledgered additive migration; status certifying; ledger status ledgered additive migration; ledger migrations/0001-ingest-processing-queue-reviewed-additive.md
+- helpers/outcomeTrackingSchema.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/parserRulePromotionSchema.tsx: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/parserTestAdjudicationSchema.tsx: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/parserTestTrainingArchive.tsx: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/regulationReconciliationCandidateService.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/regulationRegistrySchema.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/regulationRuntimeBridgeMappingService.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/responseDocumentSchema.ts: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
+- helpers/violationCorrectionSchema.tsx: reviewed and governed; status certifying; ledger status reviewed and governed; ledger migrations/0002-machine-governed-runtime-residuals.md
 
 ## Converted Reviewed Runtime Ensure Residuals
 
 - [reviewed-additive] helpers/ingestProcessingQueueSchema.ts: migrations/0001-ingest-processing-queue-reviewed-additive.sql
 
+## Machine-Governed Runtime Ensure Residuals
+
+- [reviewed-governed] helpers/aiAssistRunStore.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/consumerIdentification.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/disputePacketFindingsSchema.tsx: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/outcomeTrackingSchema.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/parserRulePromotionSchema.tsx: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/parserTestAdjudicationSchema.tsx: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/parserTestTrainingArchive.tsx: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/regulationReconciliationCandidateService.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/regulationRegistrySchema.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/regulationRuntimeBridgeMappingService.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/responseDocumentSchema.ts: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+- [reviewed-governed] helpers/violationCorrectionSchema.tsx: migrations/0002-machine-governed-runtime-residuals.md; ledger status reviewed and governed
+
 ## Temporary Runtime Ensure Allowlist
 
-- [release-blocking/CERTIFYING:false] helpers/aiAssistRunStore.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation.
-- [release-blocking/CERTIFYING:false] helpers/consumerIdentification.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task.
-- [release-blocking/CERTIFYING:false] helpers/disputePacketFindingsSchema.tsx: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately.
-- [release-blocking/CERTIFYING:false] helpers/outcomeTrackingSchema.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior.
-- [release-blocking/CERTIFYING:false] helpers/parserRulePromotionSchema.tsx: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth.
-- [release-blocking/CERTIFYING:false] helpers/parserTestAdjudicationSchema.tsx: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction.
-- [release-blocking/CERTIFYING:false] helpers/parserTestTrainingArchive.tsx: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration.
-- [release-blocking/CERTIFYING:false] helpers/regulationReconciliationCandidateService.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings.
-- [release-blocking/CERTIFYING:false] helpers/regulationRegistrySchema.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth.
-- [release-blocking/CERTIFYING:false] helpers/regulationRuntimeBridgeMappingService.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior.
-- [release-blocking/CERTIFYING:false] helpers/responseDocumentSchema.ts: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task.
-- [release-blocking/CERTIFYING:false] helpers/violationCorrectionSchema.tsx: expires 2026-06-30; owner Release governance owner; classification still-requires-temporary-acceptance-with-explicit-expiry; reason Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding.
+- None.
 
 ## Gate Findings
 
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/aiAssistRunStore.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/consumerIdentification.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/disputePacketFindingsSchema.tsx (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/aiAssistRunStore.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/consumerIdentification.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/disputePacketFindingsSchema.tsx (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
 - [reviewed-additive] converted-runtime-ensure-residual: helpers/ingestProcessingQueueSchema.ts (converted) - Keep the runtime ensure path as redundant compatibility until a separate task narrows it.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/outcomeTrackingSchema.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/parserRulePromotionSchema.tsx (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/parserTestAdjudicationSchema.tsx (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/parserTestTrainingArchive.tsx (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/regulationReconciliationCandidateService.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/regulationRegistrySchema.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/regulationRuntimeBridgeMappingService.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/responseDocumentSchema.ts (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
-- [release-blocking] unresolved-temporary-runtime-allowlist: helpers/violationCorrectionSchema.tsx (unresolved) - Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/outcomeTrackingSchema.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/parserRulePromotionSchema.tsx (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/parserTestAdjudicationSchema.tsx (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/parserTestTrainingArchive.tsx (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/regulationReconciliationCandidateService.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/regulationRegistrySchema.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/regulationRuntimeBridgeMappingService.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/responseDocumentSchema.ts (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
+- [reviewed-governed] machine-governed-runtime-residual: helpers/violationCorrectionSchema.tsx (governed) - Keep the runtime ensure path as compatibility redundancy until a separate task narrows it.
 
 ## Future Cutover Procedure
 
-- Select one remaining temporary runtime ensure source and create a reviewed additive migration entry.
+- Select one machine-governed runtime ensure source when ready for narrowing and create a reviewed additive migration entry.
 - Name affected tables, indexes, runtime ensure function, rollback notes, and verification commands.
 - Keep the runtime ensure function active until redundant-additive behavior is proven.
 - Only remove or narrow an ensure path in a separate task with focused tests for that runtime path.
-- Remove each temporary allowlist entry before its expiresOn date or the production promotion gate will fail.
+- Temporary allowlist entries are not a certifying production promotion path.

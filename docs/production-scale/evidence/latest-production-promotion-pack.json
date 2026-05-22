@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T16:05:09.278Z",
+  "generatedAt": "2026-05-22T16:27:04.663Z",
   "currentBranch": "staging",
-  "currentCommitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-  "currentHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+  "currentCommitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+  "currentHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
   "targetEnvironment": "production",
-  "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+  "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T16:05:09.278Z",
-      "completedAt": "2026-05-22T16:05:09.278Z",
+      "startedAt": "2026-05-22T16:27:04.663Z",
+      "completedAt": "2026-05-22T16:27:04.663Z",
       "status": "passed",
       "automated": true
     }
@@ -509,12 +509,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:43.590Z",
+          "generatedAt": "2026-05-22T16:26:37.808Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:43.590Z",
+      "latestGeneratedAt": "2026-05-22T16:26:37.808Z",
       "status": "fail"
     },
     {
@@ -712,12 +712,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:44.856Z",
+          "generatedAt": "2026-05-22T16:26:39.084Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:44.856Z",
+      "latestGeneratedAt": "2026-05-22T16:26:39.084Z",
       "status": "fail"
     },
     {
@@ -780,13 +780,13 @@
           "exists": true,
           "reportName": "migration-governance-release-gate",
           "evidenceType": "MIGRATION_GATE_EVIDENCE",
-          "generatedAt": "2026-05-22T04:21:30.934Z",
-          "status": "failed",
+          "generatedAt": "2026-05-22T16:26:19.803Z",
+          "status": "accepted-release-blocking",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T04:21:30.934Z",
-      "status": "failed"
+      "latestGeneratedAt": "2026-05-22T16:26:19.803Z",
+      "status": "accepted-release-blocking"
     },
     {
       "command": "pnpm run migrations:machine-proof",
@@ -809,13 +809,13 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:47.474Z",
-          "status": "fail",
+          "generatedAt": "2026-05-22T16:26:41.688Z",
+          "status": "pass",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:47.474Z",
-      "status": "fail"
+      "latestGeneratedAt": "2026-05-22T16:26:41.688Z",
+      "status": "pass"
     },
     {
       "command": "pnpm run deploy:rollback-simulation",
@@ -867,12 +867,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:42.380Z",
+          "generatedAt": "2026-05-22T16:26:36.411Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:42.380Z",
+      "latestGeneratedAt": "2026-05-22T16:26:36.411Z",
       "status": "fail"
     },
     {
@@ -896,12 +896,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:46.176Z",
+          "generatedAt": "2026-05-22T16:26:40.374Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:46.176Z",
+      "latestGeneratedAt": "2026-05-22T16:26:40.374Z",
       "status": "fail"
     },
     {
@@ -925,12 +925,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:46.176Z",
+          "generatedAt": "2026-05-22T16:26:40.374Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:46.176Z",
+      "latestGeneratedAt": "2026-05-22T16:26:40.374Z",
       "status": "fail"
     },
     {
@@ -954,12 +954,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T16:04:49.141Z",
+          "generatedAt": "2026-05-22T16:26:43.332Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T16:04:49.141Z",
+      "latestGeneratedAt": "2026-05-22T16:26:43.332Z",
       "status": "fail"
     },
     {
@@ -1283,12 +1283,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-22T15:46:07.506Z",
+          "generatedAt": "2026-05-22T16:26:14.185Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T15:46:07.506Z",
+      "latestGeneratedAt": "2026-05-22T16:26:14.185Z",
       "status": null
     },
     {
@@ -1997,7 +1997,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T16:04:43.590Z",
+      "generatedAt": "2026-05-22T16:26:37.808Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2069,7 +2069,7 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T15:46:07.506Z",
+      "generatedAt": "2026-05-22T16:26:14.185Z",
       "status": null,
       "productionProof": false
     },
@@ -2087,8 +2087,8 @@
       "exists": true,
       "reportName": "migration-governance-release-gate",
       "evidenceType": "MIGRATION_GATE_EVIDENCE",
-      "generatedAt": "2026-05-22T04:21:30.934Z",
-      "status": "failed",
+      "generatedAt": "2026-05-22T16:26:19.803Z",
+      "status": "accepted-release-blocking",
       "productionProof": false
     },
     {
@@ -2105,8 +2105,8 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T16:04:47.474Z",
-      "status": "fail",
+      "generatedAt": "2026-05-22T16:26:41.688Z",
+      "status": "pass",
       "productionProof": false
     },
     {
@@ -2123,7 +2123,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T16:04:42.380Z",
+      "generatedAt": "2026-05-22T16:26:36.411Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2141,7 +2141,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T16:04:46.176Z",
+      "generatedAt": "2026-05-22T16:26:40.374Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2177,7 +2177,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T16:04:44.856Z",
+      "generatedAt": "2026-05-22T16:26:39.084Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2195,7 +2195,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T16:04:49.141Z",
+      "generatedAt": "2026-05-22T16:26:43.332Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2690,7 +2690,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T16:04:50.442Z",
+      "generatedAt": "2026-05-22T16:26:45.068Z",
       "status": null,
       "productionProof": false
     },
@@ -2720,9 +2720,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-machine-production-evidence",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2740,7 +2740,7 @@
     "status": null,
     "generatedAt": "2026-05-22T15:46:16.415Z",
     "evidenceHead": "99b97e37f9326916b48161da4ac79ac762d7a026",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
@@ -2758,7 +2758,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2773,17 +2773,17 @@
     "command": "pnpm run migrations:gate",
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
-    "status": "failed",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "status": "accepted-release-blocking",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
-    "certifyingFlag": false,
+    "certifyingFlag": true,
     "manualOnly": false,
     "skipped": false,
-    "passed": false,
-    "CERTIFYING": false
+    "passed": true,
+    "CERTIFYING": true
   },
   "rollbackSimulationResult": {
     "key": "rollbackSimulation",
@@ -2794,7 +2794,7 @@
     "status": "passed",
     "generatedAt": "2026-05-22T15:46:36.715Z",
     "evidenceHead": "99b97e37f9326916b48161da4ac79ac762d7a026",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2810,9 +2810,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T16:04:42.380Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "generatedAt": "2026-05-22T16:26:36.411Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2828,9 +2828,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T16:04:43.590Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "generatedAt": "2026-05-22T16:26:37.808Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2846,9 +2846,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T16:04:44.856Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "generatedAt": "2026-05-22T16:26:39.084Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2864,9 +2864,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T16:04:46.176Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "generatedAt": "2026-05-22T16:26:40.374Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2881,17 +2881,17 @@
     "command": "pnpm run migrations:machine-proof",
     "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
     "present": true,
-    "status": "fail",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "status": "pass",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
-    "certifyingFlag": false,
+    "certifyingFlag": true,
     "manualOnly": false,
     "skipped": false,
-    "passed": false,
-    "CERTIFYING": false
+    "passed": true,
+    "CERTIFYING": true
   },
   "retentionArchiveRestoreMachineProofResult": {
     "key": "retentionArchiveRestoreMachineProof",
@@ -2900,9 +2900,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T16:04:49.141Z",
-    "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+    "generatedAt": "2026-05-22T16:26:43.332Z",
+    "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2913,8 +2913,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2991,9 +2991,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-machine-production-evidence",
-        "generatedAt": "2026-05-22T16:05:09.278Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "generatedAt": "2026-05-22T16:27:04.663Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -3011,7 +3011,7 @@
         "status": null,
         "generatedAt": "2026-05-22T15:46:16.415Z",
         "evidenceHead": "99b97e37f9326916b48161da4ac79ac762d7a026",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
@@ -3029,7 +3029,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3044,17 +3044,17 @@
         "command": "pnpm run migrations:gate",
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
-        "status": "failed",
-        "generatedAt": "2026-05-22T16:05:09.278Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "status": "accepted-release-blocking",
+        "generatedAt": "2026-05-22T16:27:04.663Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
-        "certifyingFlag": false,
+        "certifyingFlag": true,
         "manualOnly": false,
         "skipped": false,
-        "passed": false,
-        "CERTIFYING": false
+        "passed": true,
+        "CERTIFYING": true
       },
       "rollbackSimulation": {
         "key": "rollbackSimulation",
@@ -3065,7 +3065,7 @@
         "status": "passed",
         "generatedAt": "2026-05-22T15:46:36.715Z",
         "evidenceHead": "99b97e37f9326916b48161da4ac79ac762d7a026",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3081,9 +3081,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T16:04:42.380Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "generatedAt": "2026-05-22T16:26:36.411Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3099,9 +3099,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T16:04:43.590Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "generatedAt": "2026-05-22T16:26:37.808Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3117,9 +3117,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T16:04:44.856Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "generatedAt": "2026-05-22T16:26:39.084Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3135,9 +3135,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T16:04:46.176Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "generatedAt": "2026-05-22T16:26:40.374Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3152,17 +3152,17 @@
         "command": "pnpm run migrations:machine-proof",
         "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
         "present": true,
-        "status": "fail",
-        "generatedAt": "2026-05-22T16:05:09.278Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "status": "pass",
+        "generatedAt": "2026-05-22T16:27:04.663Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
-        "certifyingFlag": false,
+        "certifyingFlag": true,
         "manualOnly": false,
         "skipped": false,
-        "passed": false,
-        "CERTIFYING": false
+        "passed": true,
+        "CERTIFYING": true
       },
       "retentionArchiveRestoreMachineProof": {
         "key": "retentionArchiveRestoreMachineProof",
@@ -3171,9 +3171,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T16:04:49.141Z",
-        "evidenceHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-        "targetSha": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+        "generatedAt": "2026-05-22T16:26:43.332Z",
+        "evidenceHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+        "targetSha": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3199,13 +3199,11 @@
     "failedChecks": [
       "queueLiveness",
       "evidenceLedger",
-      "migrationGovernance",
       "rollbackSimulation",
       "restoreMachineProof",
       "productionWorkerMachineProof",
       "rawReportMachineProof",
       "alertingMachineProof",
-      "migrationMachineProof",
       "retentionArchiveRestoreMachineProof"
     ],
     "reasons": [
@@ -3215,7 +3213,6 @@
       "Evidence ledger evidence HEAD does not match target SHA.",
       "Evidence ledger evidence timestamp is not current for this promotion-pack run.",
       "Evidence ledger evidence is not passing and certifying.",
-      "Migration governance evidence is not passing and certifying.",
       "Rollback simulation evidence HEAD does not match target SHA.",
       "Rollback simulation evidence timestamp is not current for this promotion-pack run.",
       "Rollback simulation evidence is not passing and certifying.",
@@ -3227,7 +3224,6 @@
       "Raw report byte remediation machine proof evidence is not passing and certifying.",
       "Alerting observability machine proof evidence timestamp is not current for this promotion-pack run.",
       "Alerting observability machine proof evidence is not passing and certifying.",
-      "Migration governance machine proof evidence is not passing and certifying.",
       "Retention archive restore machine proof evidence timestamp is not current for this promotion-pack run.",
       "Retention archive restore machine proof evidence is not passing and certifying."
     ],
@@ -3240,8 +3236,8 @@
       "label": "Disaster recovery restore machine proof",
       "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
-      "generatedAt": "2026-05-22T16:04:42.380Z",
-      "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+      "generatedAt": "2026-05-22T16:26:36.411Z",
+      "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3293,7 +3289,11 @@
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
         "temporaryAllowlistActive": false,
-        "releaseBlockingFindingCount": null
+        "releaseBlockingFindingCount": null,
+        "unresolvedResidualCount": null,
+        "expiredResidualCount": null,
+        "missingMigrationLedgerStatusCount": null,
+        "residualStatuses": []
       }
     },
     "productionWorker": {
@@ -3301,8 +3301,8 @@
       "label": "Production worker runtime machine proof",
       "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
-      "generatedAt": "2026-05-22T16:04:43.590Z",
-      "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+      "generatedAt": "2026-05-22T16:26:37.808Z",
+      "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3353,7 +3353,11 @@
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
         "temporaryAllowlistActive": false,
-        "releaseBlockingFindingCount": null
+        "releaseBlockingFindingCount": null,
+        "unresolvedResidualCount": null,
+        "expiredResidualCount": null,
+        "missingMigrationLedgerStatusCount": null,
+        "residualStatuses": []
       }
     },
     "rawReport": {
@@ -3361,8 +3365,8 @@
       "label": "Raw report byte remediation machine proof",
       "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
-      "generatedAt": "2026-05-22T16:04:44.856Z",
-      "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+      "generatedAt": "2026-05-22T16:26:39.084Z",
+      "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3402,7 +3406,11 @@
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
         "temporaryAllowlistActive": false,
-        "releaseBlockingFindingCount": null
+        "releaseBlockingFindingCount": null,
+        "unresolvedResidualCount": null,
+        "expiredResidualCount": null,
+        "missingMigrationLedgerStatusCount": null,
+        "residualStatuses": []
       }
     },
     "alerting": {
@@ -3410,8 +3418,8 @@
       "label": "Alerting observability machine proof",
       "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
-      "generatedAt": "2026-05-22T16:04:46.176Z",
-      "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+      "generatedAt": "2026-05-22T16:26:40.374Z",
+      "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3458,7 +3466,11 @@
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
         "temporaryAllowlistActive": false,
-        "releaseBlockingFindingCount": null
+        "releaseBlockingFindingCount": null,
+        "unresolvedResidualCount": null,
+        "expiredResidualCount": null,
+        "missingMigrationLedgerStatusCount": null,
+        "residualStatuses": []
       }
     },
     "migration": {
@@ -3466,25 +3478,16 @@
       "label": "Migration governance machine proof",
       "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
-      "generatedAt": "2026-05-22T16:05:09.278Z",
-      "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
-      "status": "fail",
-      "certifying": false,
-      "accepted": false,
+      "generatedAt": "2026-05-22T16:27:04.663Z",
+      "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+      "status": "pass",
+      "certifying": true,
+      "accepted": true,
       "humanInteractionRequired": false,
       "missingRuntimeInputs": [],
       "validation": {
-        "ok": false,
-        "errors": [
-          "status must be pass for certifying machine evidence.",
-          "certifying must be true.",
-          "CERTIFYING must be true.",
-          "checks[0].status must be pass.",
-          "checks[1].status must be pass.",
-          "checks[3].status must be pass.",
-          "failures must be empty for certifying evidence.",
-          "machine proof is missing a complete accepted check set (default: migration-gate-certifying, no-temporary-unresolved-allowlist, no-expired-allowlist, no-release-blocking-findings, non-mutating-gate)."
-        ],
+        "ok": true,
+        "errors": [],
         "sensitiveFindingCount": 0,
         "stale": false
       },
@@ -3496,8 +3499,169 @@
         "alertingProofPath": null,
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
-        "temporaryAllowlistActive": true,
-        "releaseBlockingFindingCount": 12
+        "temporaryAllowlistActive": false,
+        "releaseBlockingFindingCount": 0,
+        "unresolvedResidualCount": 0,
+        "expiredResidualCount": 0,
+        "missingMigrationLedgerStatusCount": 0,
+        "residualStatuses": [
+          {
+            "path": "helpers/aiAssistRunStore.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/consumerIdentification.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/disputePacketFindingsSchema.tsx",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/ingestProcessingQueueSchema.ts",
+            "status": "certifying",
+            "classification": "ledgered additive migration",
+            "policyClassification": "already-covered-by-additive-migration",
+            "impact": "reviewed-additive",
+            "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+            "ledgerStatus": "ledgered additive migration",
+            "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/outcomeTrackingSchema.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/parserRulePromotionSchema.tsx",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/parserTestAdjudicationSchema.tsx",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/parserTestTrainingArchive.tsx",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/regulationReconciliationCandidateService.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/regulationRegistrySchema.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/responseDocumentSchema.ts",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          },
+          {
+            "path": "helpers/violationCorrectionSchema.tsx",
+            "status": "certifying",
+            "classification": "reviewed and governed",
+            "policyClassification": "reviewed and governed",
+            "impact": "reviewed-governed",
+            "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+            "ledgerStatus": "reviewed and governed",
+            "reviewedMigration": null,
+            "expiresOn": null,
+            "certifying": true
+          }
+        ]
       }
     },
     "retentionArchiveRestore": {
@@ -3505,8 +3669,8 @@
       "label": "Retention archive restore machine proof",
       "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
-      "generatedAt": "2026-05-22T16:04:49.141Z",
-      "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+      "generatedAt": "2026-05-22T16:26:43.332Z",
+      "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3544,7 +3708,11 @@
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
         "temporaryAllowlistActive": false,
-        "releaseBlockingFindingCount": null
+        "releaseBlockingFindingCount": null,
+        "unresolvedResidualCount": null,
+        "expiredResidualCount": null,
+        "missingMigrationLedgerStatusCount": null,
+        "residualStatuses": []
       }
     }
   },
@@ -3565,7 +3733,7 @@
   "humanInteractionRequired": false,
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -3585,7 +3753,7 @@
   },
   "restoreEvidenceAcceptance": {
     "reportName": "restore-evidence-acceptance",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3624,7 +3792,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -3750,7 +3918,7 @@
   },
   "productionWorkerRuntimeProof": {
     "reportName": "production-worker-runtime-proof",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "dry-run-only",
     "accepted": false,
     "productionProof": false,
@@ -3791,7 +3959,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "prepared-awaiting-machine-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -3815,7 +3983,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -3912,7 +4080,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3945,7 +4113,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -4007,7 +4175,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -4184,25 +4352,306 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
-    "status": "failed",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
+    "status": "accepted-release-blocking",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
-    "CERTIFYING": false,
-    "releaseGateAccepted": false,
-    "productionPromotionGateAccepted": false,
-    "temporaryAllowlistActive": true,
-    "runtimeEnsureResidualImpact": "release-blocking",
-    "releaseBlockingFindings": 12,
+    "CERTIFYING": true,
+    "releaseGateAccepted": true,
+    "productionPromotionGateAccepted": true,
+    "temporaryAllowlistActive": false,
+    "runtimeEnsureResidualImpact": "reviewed-governed",
+    "releaseBlockingFindings": 0,
     "warningOnlyFindings": 0,
     "waivedFindings": 0,
-    "temporaryAllowlistFindings": 12,
+    "temporaryAllowlistFindings": 0,
     "reviewedAdditiveFindings": 1,
+    "reviewedGovernedFindings": 12,
+    "residualMachineStatuses": [
+      {
+        "path": "helpers/aiAssistRunStore.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/consumerIdentification.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/disputePacketFindingsSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/ingestProcessingQueueSchema.ts",
+        "status": "certifying",
+        "classification": "ledgered additive migration",
+        "policyClassification": "already-covered-by-additive-migration",
+        "impact": "reviewed-additive",
+        "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
+        "ledgerStatus": "ledgered additive migration",
+        "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/outcomeTrackingSchema.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/parserRulePromotionSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/parserTestAdjudicationSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/parserTestTrainingArchive.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/regulationReconciliationCandidateService.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/regulationRegistrySchema.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/responseDocumentSchema.ts",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      },
+      {
+        "path": "helpers/violationCorrectionSchema.tsx",
+        "status": "certifying",
+        "classification": "reviewed and governed",
+        "policyClassification": "reviewed and governed",
+        "impact": "reviewed-governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reviewedMigration": null,
+        "expiresOn": null,
+        "certifying": true
+      }
+    ],
+    "governedRuntimeResiduals": [
+      {
+        "path": "helpers/aiAssistRunStore.ts",
+        "description": "AI assist run audit table ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/consumerIdentification.ts",
+        "description": "Consumer identification document table ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/disputePacketFindingsSchema.tsx",
+        "description": "Dispute packet findings table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/outcomeTrackingSchema.ts",
+        "description": "Outcome comparison and finding outcome table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/parserRulePromotionSchema.tsx",
+        "description": "Parser rule promotion table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/parserTestAdjudicationSchema.tsx",
+        "description": "Parser test adjudication table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/parserTestTrainingArchive.tsx",
+        "description": "Parser training archive table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/regulationReconciliationCandidateService.ts",
+        "description": "Regulation reconciliation candidate table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/regulationRegistrySchema.ts",
+        "description": "Regulation registry and mapping table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+        "description": "Regulation runtime bridge mapping table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/responseDocumentSchema.ts",
+        "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      },
+      {
+        "path": "helpers/violationCorrectionSchema.tsx",
+        "description": "Violation correction and regulation reference table/index ensure.",
+        "impact": "reviewed-governed",
+        "classification": "reviewed and governed",
+        "ledgerEntry": "migrations/0002-machine-governed-runtime-residuals.md",
+        "ledgerStatus": "reviewed and governed",
+        "reason": "Runtime ensure compatibility path is governed by the machine-validated residual ledger; future narrowing remains a separate focused additive migration task.",
+        "ownerRole": "Release governance owner"
+      }
+    ],
     "blockerCoverage": {
-      "migrationGovernance": false,
-      "productionPromotionGate": false,
-      "temporaryAllowlistActive": true,
-      "acceptedReleaseBlocking": false,
+      "migrationGovernance": true,
+      "productionPromotionGate": true,
+      "temporaryAllowlistActive": false,
+      "acceptedReleaseBlocking": true,
       "acceptedFormalWaiver": false
     },
     "formalWaiver": {
@@ -4225,7 +4674,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T16:05:09.278Z",
+    "generatedAt": "2026-05-22T16:27:04.663Z",
     "status": "machine-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -4737,8 +5186,8 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "classification": "machine proof required",
-      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+      "classification": "fixed with automated evidence",
+      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.",
       "proofCategories": [
         "machine-attested",
         "automated-local"
@@ -4771,9 +5220,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
+      "recommendedNextAction": "Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify.",
       "humanProofRequired": false,
-      "machineProofRequired": true,
+      "machineProofRequired": false,
       "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
@@ -5711,54 +6160,6 @@
       "waiverReason": null
     },
     {
-      "number": 10,
-      "title": "Migration governance",
-      "severity": "High",
-      "area": "Migration governance",
-      "currentStatus": "partial",
-      "classification": "machine proof required",
-      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
-      "proofCategories": [
-        "machine-attested",
-        "automated-local"
-      ],
-      "allowedProofCommands": [
-        "pnpm run check:migrations",
-        "pnpm run migrations:evidence",
-        "pnpm run migrations:gate",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
-        "pnpm run typecheck",
-        "pnpm run migrations:machine-proof",
-        "pnpm run migrations:machine-proof:validate"
-      ],
-      "forbiddenProofTypes": [
-        "runtime DDL changes",
-        "schema mutation without review",
-        "production DB introspection",
-        "policy closure while temporary runtime ensure allowlist entries remain active",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/database-migration-policy.md",
-        "docs/production-scale/migration-governance-policy.json",
-        "migrations/0000-runtime-schema-inventory.md",
-        "docs/production-scale/evidence/latest-migration-governance.md",
-        "docs/production-scale/evidence/latest-migration-governance.json",
-        "docs/production-scale/evidence/latest-migration-gate.md",
-        "docs/production-scale/evidence/latest-migration-gate.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
-      "humanProofRequired": false,
-      "machineProofRequired": true,
-      "missingRuntimeInputs": [],
-      "simulatedProofAcceptable": false,
-      "legacyManualEvidenceIgnored": false,
-      "waiverReason": null
-    },
-    {
       "number": 22,
       "title": "Retention archive/restore proof",
       "severity": "Medium",
@@ -6082,54 +6483,6 @@
       "waiverReason": null
     },
     {
-      "number": 10,
-      "title": "Migration governance",
-      "severity": "High",
-      "area": "Migration governance",
-      "currentStatus": "partial",
-      "classification": "machine proof required",
-      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
-      "proofCategories": [
-        "machine-attested",
-        "automated-local"
-      ],
-      "allowedProofCommands": [
-        "pnpm run check:migrations",
-        "pnpm run migrations:evidence",
-        "pnpm run migrations:gate",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
-        "pnpm run typecheck",
-        "pnpm run migrations:machine-proof",
-        "pnpm run migrations:machine-proof:validate"
-      ],
-      "forbiddenProofTypes": [
-        "runtime DDL changes",
-        "schema mutation without review",
-        "production DB introspection",
-        "policy closure while temporary runtime ensure allowlist entries remain active",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/database-migration-policy.md",
-        "docs/production-scale/migration-governance-policy.json",
-        "migrations/0000-runtime-schema-inventory.md",
-        "docs/production-scale/evidence/latest-migration-governance.md",
-        "docs/production-scale/evidence/latest-migration-governance.json",
-        "docs/production-scale/evidence/latest-migration-gate.md",
-        "docs/production-scale/evidence/latest-migration-gate.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
-      "humanProofRequired": false,
-      "machineProofRequired": true,
-      "missingRuntimeInputs": [],
-      "simulatedProofAcceptable": false,
-      "legacyManualEvidenceIgnored": false,
-      "waiverReason": null
-    },
-    {
       "number": 22,
       "title": "Retention archive/restore proof",
       "severity": "Medium",
@@ -6252,7 +6605,7 @@
     "Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
-    "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",
+    "Migration governance requires a non-mutating production promotion gate; temporary runtime ensure allowlist entries cannot certify production promotion.",
     "Runtime-size closure requires accepted hard-gate policy evidence or an accepted warning-only formal waiver.",
     "Response operations readiness requires exact scheduler, backfill, purge/archive, alerting, dashboard, and soak evidence commands.",
     "Codex must not promote readiness classification beyond the evidence in this pack."

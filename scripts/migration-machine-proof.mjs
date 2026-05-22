@@ -8,11 +8,13 @@ import {
 } from "./lib/productionEvidenceSchema.mjs";
 import {
   parseMachineProofArgs,
+  validateMachineProofForConfig,
 } from "./lib/machineProofScript.mjs";
 import {
   buildMigrationGateReport,
   MIGRATION_GATE_JSON_PATH,
 } from "./migration-gate.mjs";
+import { readMachineEvidenceFile } from "./lib/validateMachineEvidence.mjs";
 
 export const MIGRATION_MACHINE_PROOF_JSON_PATH = "docs/production-scale/evidence/latest-migration-machine-proof.json";
 export const MIGRATION_MACHINE_PROOF_MD_PATH = "docs/production-scale/evidence/latest-migration-machine-proof.md";
@@ -31,6 +33,9 @@ export const MIGRATION_MACHINE_PROOF_CONFIG = {
     "migration-gate-certifying",
     "no-temporary-unresolved-allowlist",
     "no-expired-allowlist",
+    "no-temporary-allowlist-certification-basis",
+    "residual-statuses-classified",
+    "migration-ledger-status-present",
     "no-release-blocking-findings",
     "non-mutating-gate",
   ],
@@ -41,6 +46,96 @@ function passCheck(name, passed, summary) {
     name,
     status: passed ? "pass" : "fail",
     summary,
+  };
+}
+
+function residualStatusesFromGate(migrationGate) {
+  if (Array.isArray(migrationGate?.residualMachineStatuses)) return migrationGate.residualMachineStatuses;
+  const converted = Array.isArray(migrationGate?.convertedRuntimeResiduals) ? migrationGate.convertedRuntimeResiduals : [];
+  const governed = Array.isArray(migrationGate?.governedRuntimeResiduals) ? migrationGate.governedRuntimeResiduals : [];
+  const temporary = Array.isArray(migrationGate?.temporaryAllowlistResiduals) ? migrationGate.temporaryAllowlistResiduals : [];
+
+  return [
+    ...converted.map((source) => ({
+      path: source.path,
+      status: "certifying",
+      classification: "ledgered additive migration",
+      ledgerEntry: source.ledgerEntry ?? source.reviewedMigration ?? null,
+      ledgerStatus: source.ledgerStatus ?? "ledgered additive migration",
+      certifying: true,
+    })),
+    ...governed.map((source) => ({
+      path: source.path,
+      status: "certifying",
+      classification: "reviewed and governed",
+      ledgerEntry: source.ledgerEntry ?? null,
+      ledgerStatus: source.ledgerStatus ?? null,
+      certifying: true,
+    })),
+    ...temporary.map((source) => ({
+      path: source.path,
+      status: "unresolved",
+      classification: "unresolved",
+      ledgerEntry: source.ledgerEntry ?? null,
+      ledgerStatus: source.ledgerStatus ?? null,
+      certifying: false,
+    })),
+  ];
+}
+
+function migrationGateHasAcceptedTemporaryAllowlistBasis(migrationGate) {
+  return migrationGate?.status === "accepted-temporary-allowlist" ||
+    migrationGate?.releaseBasis === "accepted-temporary-allowlist" ||
+    migrationGate?.certificationBasis === "accepted-temporary-allowlist" ||
+    migrationGate?.metadata?.certificationBasis === "accepted-temporary-allowlist";
+}
+
+export function migrationMachineProofExtraValidation(evidence) {
+  const errors = [];
+  const metadata = evidence?.metadata ?? {};
+  const residualStatusesProvided = Array.isArray(metadata.residualStatuses);
+  const residualStatuses = residualStatusesProvided ? metadata.residualStatuses : [];
+
+  if (metadata.migrationGateStatus === "accepted-temporary-allowlist" || metadata.acceptedTemporaryAllowlistBasis === true) {
+    errors.push("migration machine proof cannot certify accepted-temporary-allowlist basis.");
+  }
+  if (metadata.temporaryAllowlistActive === true || Number(metadata.temporaryAllowlistResidualCount ?? 0) > 0) {
+    errors.push("migration machine proof cannot certify with temporary allowlist residuals.");
+  }
+  if (Number(metadata.unresolvedResidualCount ?? 0) > 0) {
+    errors.push("migration machine proof cannot certify unresolved residuals.");
+  }
+  if (Number(metadata.expiredAllowlistFindingCount ?? metadata.expiredResidualCount ?? 0) > 0) {
+    errors.push("migration machine proof cannot certify expired allowlist residuals.");
+  }
+  if (Number(metadata.missingMigrationLedgerStatusCount ?? 0) > 0) {
+    errors.push("migration machine proof requires ledgerStatus and ledgerEntry for every certifying residual.");
+  }
+  if (!residualStatusesProvided) {
+    errors.push("migration machine proof metadata.residualStatuses must be an array.");
+  } else {
+    for (const residual of residualStatuses) {
+      if (["unresolved", "expired"].includes(residual?.status) || ["unresolved", "expired"].includes(residual?.classification)) {
+        errors.push(`migration residual ${residual?.path ?? "unknown"} is ${residual?.classification ?? residual?.status}.`);
+      }
+      if (residual?.certifying === true && (!residual.ledgerStatus || !residual.ledgerEntry)) {
+        errors.push(`migration residual ${residual?.path ?? "unknown"} is missing migration ledger status.`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+export function validateMigrationMachineProofEvidence(evidence, options = {}) {
+  const validation = validateMachineProofForConfig(MIGRATION_MACHINE_PROOF_CONFIG, evidence, options);
+  const extraErrors = migrationMachineProofExtraValidation(evidence);
+  const errors = [...validation.errors, ...extraErrors];
+  return {
+    ...validation,
+    ok: errors.length === 0,
+    errors,
+    certifying: errors.length === 0 && evidence?.certifying === true && evidence?.CERTIFYING === true,
   };
 }
 
@@ -59,6 +154,14 @@ export function buildMigrationMachineProofReport({
   const expiredAllowlistCount = Array.isArray(migrationGate.releaseBlockingFindings)
     ? migrationGate.releaseBlockingFindings.filter((item) => /expired.*temporary.*allowlist/i.test(`${item.category} ${item.title}`)).length
     : 0;
+  const residualStatuses = residualStatusesFromGate(migrationGate);
+  const unresolvedResidualCount = residualStatuses.filter((item) =>
+    item.status === "unresolved" || item.classification === "unresolved").length;
+  const expiredResidualCount = residualStatuses.filter((item) =>
+    item.status === "expired" || item.classification === "expired").length;
+  const missingMigrationLedgerStatusCount = residualStatuses.filter((item) =>
+    item.certifying === true && (!item.ledgerStatus || !item.ledgerEntry)).length;
+  const acceptedTemporaryAllowlistBasis = migrationGateHasAcceptedTemporaryAllowlistBasis(migrationGate);
 
   const checks = [
     passCheck(
@@ -75,8 +178,26 @@ export function buildMigrationMachineProofReport({
     ),
     passCheck(
       "no-expired-allowlist",
-      expiredAllowlistCount === 0,
+      expiredAllowlistCount === 0 && expiredResidualCount === 0,
       "No expired temporary allowlist residuals are present.",
+    ),
+    passCheck(
+      "no-temporary-allowlist-certification-basis",
+      acceptedTemporaryAllowlistBasis === false,
+      "Migration gate does not use accepted-temporary-allowlist as a certification basis.",
+    ),
+    passCheck(
+      "residual-statuses-classified",
+      residualStatuses.every((item) =>
+        ["ledgered additive migration", "reviewed and governed", "obsolete and removed"].includes(item.classification)) &&
+        unresolvedResidualCount === 0 &&
+        expiredResidualCount === 0,
+      "Every migration residual has an exact machine-governed classification.",
+    ),
+    passCheck(
+      "migration-ledger-status-present",
+      missingMigrationLedgerStatusCount === 0,
+      "Every certifying migration residual has ledger status and ledger entry evidence.",
     ),
     passCheck(
       "no-release-blocking-findings",
@@ -118,10 +239,36 @@ export function buildMigrationMachineProofReport({
       releaseGateAccepted: migrationGate.releaseGateAccepted === true,
       temporaryAllowlistActive: migrationGate.temporaryAllowlistActive === true,
       temporaryAllowlistResidualCount: temporaryAllowlistCount,
+      acceptedTemporaryAllowlistBasis,
       releaseBlockingFindingCount: releaseBlockingCount,
       expiredAllowlistFindingCount: expiredAllowlistCount,
-    },
+      expiredResidualCount,
+      unresolvedResidualCount,
+      missingMigrationLedgerStatusCount,
+      residualStatuses,
+      governedRuntimeResidualCount: migrationGate.governedRuntimeResiduals?.length ?? 0,
+      convertedRuntimeResidualCount: migrationGate.convertedRuntimeResiduals?.length ?? 0,
+      },
   });
+}
+
+export async function runMigrationMachineProofValidationCli(argv = process.argv.slice(2)) {
+  const options = parseMachineProofArgs(argv.filter((arg) => arg !== "--no-write-evidence" && arg !== "--write-evidence"));
+  const evidence = readMachineEvidenceFile(options.rootDir, MIGRATION_MACHINE_PROOF_JSON_PATH);
+  const result = evidence
+    ? validateMigrationMachineProofEvidence(evidence)
+    : {
+        ok: false,
+        errors: [`Machine evidence file is missing: ${MIGRATION_MACHINE_PROOF_JSON_PATH}`],
+        evidence: null,
+      };
+  if (options.json) console.log(JSON.stringify(result, null, 2));
+  else if (result.ok) console.log(`${MIGRATION_MACHINE_PROOF_CONFIG.title} validation passed.`);
+  else {
+    console.error(`${MIGRATION_MACHINE_PROOF_CONFIG.title} validation failed.`);
+    for (const error of result.errors) console.error(`- ${error}`);
+  }
+  if (!result.ok) process.exitCode = 1;
 }
 
 export async function runMigrationMachineProofCli(argv = process.argv.slice(2)) {

@@ -400,6 +400,112 @@ describe("migration gate", () => {
     }
   });
 
+  it("passes production-mode governance when residuals are reviewed and governed by machine ledger", () => {
+    const rootDir = tempRoot();
+    try {
+      writeKnownRuntimeFixture(rootDir);
+      writeFileSync(
+        path.join(rootDir, "migrations", "0002-machine-governed-runtime-residuals.md"),
+        [
+          "# Machine-Governed Runtime Residual Ledger",
+          "",
+          "Ledger status: reviewed and governed",
+          "",
+          "- `helpers/knownSchema.ts`",
+          "",
+        ].join("\n"),
+      );
+
+      const report = buildMigrationGateReport({
+        rootDir,
+        policy: policy({
+          currentMode: "release-blocking",
+          runtimeEntries: [{
+            path: "helpers/knownSchema.ts",
+            status: "machine-governed-runtime-residual",
+            residualClassification: "reviewed and governed",
+            ledgerStatus: "reviewed and governed",
+            ledgerEntry: "migrations/0002-machine-governed-runtime-residuals.md",
+            ownerRole: "Release governance owner",
+            productionPromotionAuthorized: true,
+            CERTIFYING: true,
+            cutoverRequired: false,
+            reason: "Fixture runtime ensure residual is governed by the machine ledger.",
+          }],
+        }),
+        scanRoots: ["helpers"],
+        ledgerDir: "migrations",
+        expectedSources: knownRuntimeSource(),
+        generatedAt,
+      });
+
+      expect(report.status).toBe("accepted-release-blocking");
+      expect(report.CERTIFYING).toBe(true);
+      expect(report.temporaryAllowlistActive).toBe(false);
+      expect(report.governedRuntimeResiduals).toEqual([
+        expect.objectContaining({
+          path: "helpers/knownSchema.ts",
+          classification: "reviewed and governed",
+          ledgerStatus: "reviewed and governed",
+        }),
+      ]);
+      expect(report.residualMachineStatuses).toEqual([
+        expect.objectContaining({
+          path: "helpers/knownSchema.ts",
+          classification: "reviewed and governed",
+          status: "certifying",
+        }),
+      ]);
+      expect(validateMigrationGateReport(report)).toEqual({ ok: true, errors: [] });
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails machine-governed residuals that are missing ledger status", () => {
+    const rootDir = tempRoot();
+    try {
+      writeKnownRuntimeFixture(rootDir);
+      writeFileSync(
+        path.join(rootDir, "migrations", "0002-machine-governed-runtime-residuals.md"),
+        "- `helpers/knownSchema.ts`\n",
+      );
+
+      const report = buildMigrationGateReport({
+        rootDir,
+        policy: policy({
+          currentMode: "release-blocking",
+          runtimeEntries: [{
+            path: "helpers/knownSchema.ts",
+            status: "machine-governed-runtime-residual",
+            ledgerEntry: "migrations/0002-machine-governed-runtime-residuals.md",
+            ownerRole: "Release governance owner",
+            productionPromotionAuthorized: true,
+            CERTIFYING: true,
+            reason: "Fixture runtime ensure residual is missing ledger status.",
+          }],
+        }),
+        scanRoots: ["helpers"],
+        ledgerDir: "migrations",
+        expectedSources: knownRuntimeSource(),
+        generatedAt,
+      });
+
+      expect(report.status).toBe("failed");
+      expect(report.releaseBlockingFindings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            category: "invalid-machine-governed-runtime-residual",
+            sourcePath: "helpers/knownSchema.ts",
+            status: "unresolved",
+          }),
+        ]),
+      );
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
   it("applies the converted ingest queue migration cleanly to a fresh platform schema simulation", () => {
     const result = simulateReviewedMigrationFreshDatabase({
       rootDir: process.cwd(),
@@ -420,28 +526,26 @@ describe("migration gate", () => {
     ]));
   });
 
-  it("current production policy fails closed while allowlist entries remain", () => {
+  it("current production policy certifies with machine-governed runtime residuals", () => {
     const report = buildMigrationGateReport({
       rootDir: process.cwd(),
       generatedAt,
     });
 
-    expect(report.status).toBe("failed");
-    expect(report.releaseGateAccepted).toBe(false);
-    expect(report.productionPromotionGateAccepted).toBe(false);
-    expect(report.CERTIFYING).toBe(false);
-    expect(report.runtimeEnsureResidualImpact).toBe("release-blocking");
+    expect(report.status).toBe("accepted-release-blocking");
+    expect(report.releaseGateAccepted).toBe(true);
+    expect(report.productionPromotionGateAccepted).toBe(true);
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.runtimeEnsureResidualImpact).toBe("reviewed-governed");
     expect(report.convertedRuntimeResiduals.map((source: { path: string }) => source.path)).toContain(
       "helpers/ingestProcessingQueueSchema.ts",
     );
-    expect(report.temporaryAllowlistResiduals.length).toBeGreaterThan(0);
-    expect(report.releaseBlockingFindings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          category: "unresolved-temporary-runtime-allowlist",
-          impact: "release-blocking",
-        }),
-      ]),
+    expect(report.governedRuntimeResiduals.length).toBeGreaterThan(0);
+    expect(report.temporaryAllowlistResiduals).toEqual([]);
+    expect(report.releaseBlockingFindings).toEqual([]);
+    expect(report.residualMachineStatuses.every((source: { status: string }) => source.status === "certifying")).toBe(true);
+    expect(report.residualMachineStatuses.map((source: { classification: string }) => source.classification)).toEqual(
+      expect.arrayContaining(["ledgered additive migration", "reviewed and governed"]),
     );
     expect(validateMigrationGateReport(report)).toEqual({ ok: true, errors: [] });
   });
