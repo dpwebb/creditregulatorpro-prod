@@ -1,9 +1,9 @@
 {
   "reportName": "ingest-worker-simulated-queue-drain-proof",
   "evidenceType": "SIMULATED",
-  "generatedAt": "2026-05-22T02:29:28.267Z",
+  "generatedAt": "2026-05-22T02:48:23.108Z",
   "branch": "staging",
-  "commit": "84e62e3389ffe961cbed264746959d33016d7c07",
+  "commit": "35388f20d9c58282405602a7205a987ece110410",
   "simulationId": "SIMULATED-INGEST-WORKER-QUEUE-DRAIN",
   "status": "passed",
   "workerCommand": "pnpm run ingest:worker:simulated-proof",

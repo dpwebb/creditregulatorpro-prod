@@ -181,6 +181,7 @@ jobs:
           pnpm run deploy:rollback-simulation
           pnpm run production-scale:evidence
           pnpm run production-scale:promotion-pack
+          pnpm run production-scale:promotion-guard
 
   deploy:
     name: Deploy to production server

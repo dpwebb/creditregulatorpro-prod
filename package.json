@@ -93,6 +93,7 @@
     "production-scale:evidence": "node scripts/production-scale-evidence.mjs",
     "production-scale:certify": "node scripts/production-scale-certification.mjs",
     "production-scale:promotion-pack": "node scripts/production-promotion-pack.mjs",
+    "production-scale:promotion-guard": "node scripts/production-promotion-guard.mjs",
     "storage:raw-report-inventory": "tsx scripts/storage-raw-report-inventory.ts",
     "storage:raw-report-remediation-plan": "node scripts/storage-raw-report-remediation-plan.mjs",
     "storage:raw-report-remediation-acceptance": "node scripts/storage-raw-report-remediation-plan.mjs --acceptance",

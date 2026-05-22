@@ -1612,6 +1612,7 @@ export function buildProductionPromotionPackReport({
     humanRequiredProof: classifiedBlockers.filter((blocker) => blocker.classification === "human proof required"),
     waivers: classifiedBlockers.filter((blocker) => blocker.classification === "waived with explicit reason"),
     readinessClassification: readiness,
+    canPromoteProductionAtScale: readiness.canPromoteProductionAtScale,
     safety: {
       productionDataMutated: false,
       liveExternalProvidersCalled: false,
@@ -2042,6 +2043,9 @@ export function validatePromotionPackReport(report) {
   const unresolved = blockers.filter((blocker) => isUnresolvedClassification(blocker.classification));
   if (unresolved.length > 0 && report.readinessClassification?.value === "production-at-scale") {
     errors.push("Promotion pack claims production-at-scale readiness while unresolved blockers remain.");
+  }
+  if (report.canPromoteProductionAtScale !== report.readinessClassification?.canPromoteProductionAtScale) {
+    errors.push("Promotion pack canPromoteProductionAtScale must match readinessClassification.canPromoteProductionAtScale.");
   }
   return { valid: errors.length === 0, errors };
 }

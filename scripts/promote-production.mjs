@@ -90,6 +90,9 @@ if (!skipStagingGate) {
 console.log("Running migration governance production promotion gate...");
 run(process.execPath, ["scripts/migration-gate.mjs"], { stdio: "inherit" });
 
+console.log("Running production promotion evidence guard...");
+run(process.execPath, ["scripts/production-promotion-guard.mjs"], { stdio: "inherit" });
+
 console.log("Running build check...");
 if (process.platform === "win32") {
   run("cmd.exe", ["/d", "/s", "/c", "pnpm run check"], { stdio: "inherit" });

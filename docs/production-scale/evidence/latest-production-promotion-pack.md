@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T00:45:16.102Z
+Generated at: 2026-05-22T02:44:04.853Z
 Current branch: `staging`
-Current commit hash: `4da09d1b87f4641f938bae3f02618f1aa142072d`
-Current HEAD: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Current commit hash: `35388f20d9c58282405602a7205a987ece110410`
+Current HEAD: `35388f20d9c58282405602a7205a987ece110410`
 Target environment: `production`
-Target SHA: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Target SHA: `35388f20d9c58282405602a7205a987ece110410`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -30,7 +30,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+- Target SHA: `35388f20d9c58282405602a7205a987ece110410`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -39,15 +39,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=4da09d1b87f4641f938bae3f02618f1aa142072d; timestamp=2026-05-22T00:45:16.102Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=4da09d1b87f4641f938bae3f02618f1aa142072d; timestamp=2026-05-22T00:41:25.611Z; command=`pnpm run storage:durability-contract`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:44:04.853Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=84e62e3389ffe961cbed264746959d33016d7c07; timestamp=2026-05-22T02:29:25.245Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=4da09d1b87f4641f938bae3f02618f1aa142072d; timestamp=2026-05-22T00:45:16.102Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=4da09d1b87f4641f938bae3f02618f1aa142072d; timestamp=2026-05-22T00:41:45.008Z; command=`pnpm run deploy:rollback-simulation`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:44:04.853Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=84e62e3389ffe961cbed264746959d33016d7c07; timestamp=2026-05-22T02:29:47.348Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T00:45:16.102Z; completed=2026-05-22T00:45:16.102Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T02:44:04.853Z; completed=2026-05-22T02:44:04.853Z
 
 ## Command Result Summary
 
@@ -194,11 +194,11 @@ Production-ready claim: **false**
 - Status: accepted
 - Accepted: yes
 - Evidence path: `docs/production-scale/evidence/latest-load-measured.json`
-- Evidence type: MEASURED_LOCAL
+- Evidence type: MEASURED_STAGING_SAFE
 - Threshold mode: release-blocking
 - Threshold status: passed
 - Request count: 32
-- Latency p50/p95/max ms: 20.48/35.32/43.9
+- Latency p50/p95/max ms: 24.67/46/46.49
 - DB pool configured max: 3
 - DB pool observed signal: available
 - Rate limiter accepted/rejected: 2/22
@@ -218,7 +218,7 @@ Production-ready claim: **false**
 - Evidence path: `docs/production-scale/evidence/latest-runtime-size.json`
 - Runtime overall status: WARN
 - Runtime blocking failures: no
-- WARN rows governed: 7/7
+- WARN rows governed: 6/6
 - WAIVED rows with reasons: 1/1
 - Formal waiver accepted: yes
 - Blocker 18 hard-gate coverage: not accepted
@@ -306,7 +306,7 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-load-simulated.md` - present
 - `docs/production-scale/evidence/latest-load-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-load-measured.md` - present
-- `docs/production-scale/evidence/latest-load-measured.json` - present; evidenceType=MEASURED_LOCAL
+- `docs/production-scale/evidence/latest-load-measured.json` - present; evidenceType=MEASURED_STAGING_SAFE
 - `docs/production-scale/evidence/latest-alerts-dry-run.md` - present
 - `docs/production-scale/evidence/latest-alerts-dry-run.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-alerting-exclusion-validation.md` - present
