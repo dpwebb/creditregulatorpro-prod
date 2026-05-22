@@ -35,7 +35,7 @@ export const ALERTING_MACHINE_PROOF_CONFIG = {
         "formal-exclusion-file-validated",
         "policy-allows-certifying-exclusion",
         "compensating-controls-validated",
-        "operator-approval-machine-verified",
+        "repo-policy-approval-machine-verified",
         "exclusion-not-stale",
         "next-review-recorded",
         "exclusion-does-not-overclaim-production-pass",

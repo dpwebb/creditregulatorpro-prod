@@ -1,10 +1,10 @@
 # Packet PDF Cache-Miss Proof
 
-Generated: 2026-05-22T13:45:43.788Z
+Generated: 2026-05-22T14:32:21.360Z
 Evidence type: SIMULATED
 Strategy: bounded synchronous cache-miss envelope
 Branch: staging
-Commit: a7bae388efa0edb1ebbf40fecee760bde4db6c1e
+Commit: 419bcbb5ebf096f751b71bf4d940b292ea0e91e5
 
 > SIMULATED packet PDF cache-miss proof is not production-at-scale proof and did not send mail or call live providers.
 
@@ -44,7 +44,7 @@ Commit: a7bae388efa0edb1ebbf40fecee760bde4db6c1e
 - Synthetic cache-miss requests: 8
 - Synthetic cache hits after warmup: 2
 - Unique synthetic cache keys: 6
-- Render timing p50/p95/max ms: 47.09/50.22/50.22
+- Render timing p50/p95/max ms: 47.36/49.3/49.3
 - Failure behavior visible: yes
 
 ## Compatibility

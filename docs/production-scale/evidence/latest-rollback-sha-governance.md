@@ -1,7 +1,7 @@
 # Rollback SHA Governance Evidence
 
-Generated: 2026-05-22T13:46:05.485Z
-Current HEAD: a7bae388efa0edb1ebbf40fecee760bde4db6c1e
+Generated: 2026-05-22T14:32:49.183Z
+Current HEAD: 419bcbb5ebf096f751b71bf4d940b292ea0e91e5
 Status: passed
 CERTIFYING:false
 

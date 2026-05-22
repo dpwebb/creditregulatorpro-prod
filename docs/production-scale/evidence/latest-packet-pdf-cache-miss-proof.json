@@ -2,9 +2,9 @@
   "reportName": "packet-pdf-cache-miss-proof",
   "evidenceType": "SIMULATED",
   "strategy": "bounded synchronous cache-miss envelope",
-  "generatedAt": "2026-05-22T13:45:43.788Z",
+  "generatedAt": "2026-05-22T14:32:21.360Z",
   "branch": "staging",
-  "commit": "a7bae388efa0edb1ebbf40fecee760bde4db6c1e",
+  "commit": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
   "priorLoadEvidence": {
     "path": "docs/production-scale/evidence/latest-load-simulated.json",
     "exists": true,
@@ -28,15 +28,15 @@
     "parserOrOcrChanged": false
   },
   "simulation": {
-    "elapsedMs": 145.24,
+    "elapsedMs": 144.77,
     "totalSyntheticRequests": 10,
     "syntheticCacheMissRequests": 8,
     "syntheticCacheHitsAfterWarmup": 2,
     "uniqueSyntheticCacheKeys": 6,
     "renderTimingsMs": {
-      "p50": 47.09,
-      "p95": 50.22,
-      "max": 50.22
+      "p50": 47.36,
+      "p95": 49.3,
+      "max": 49.3
     },
     "maxSyntheticActiveRenders": 2,
     "failureBehaviorVisible": true
@@ -55,8 +55,8 @@
     "overloadRejectedCount": 0,
     "collapsedCount": 2,
     "maxActiveObserved": 2,
-    "totalWaitMs": 295.38,
-    "maxWaitMs": 97.4
+    "totalWaitMs": 289.57,
+    "maxWaitMs": 95.4
   },
   "warning": "SIMULATED packet PDF cache-miss proof is local capacity evidence. It is not production-at-scale proof and did not send mail or call live providers.",
   "outputPaths": {
