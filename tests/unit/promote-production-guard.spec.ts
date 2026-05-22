@@ -35,6 +35,53 @@ function certifyingPack(overrides: Record<string, unknown> = {}) {
       skippedChecks: [],
       failedChecks: [],
     },
+    machineProofSummary: {
+      CERTIFYING: true,
+      allMachineProofsCertifying: true,
+      missingRuntimeInputs: [],
+      openBlockers: [],
+      safetySummary: {
+        humanInteractionRequired: false,
+        humanObserved: false,
+        manualApprovalRequired: false,
+      },
+      proofResults: [
+        {
+          key: "restore",
+          certifying: true,
+          humanDependent: false,
+          humanInteractionRequired: false,
+          humanObserved: false,
+          manualApprovalRequired: false,
+          simulatedOnly: false,
+          validation: { stale: false },
+        },
+        {
+          key: "migration",
+          certifying: true,
+          humanDependent: false,
+          humanInteractionRequired: false,
+          humanObserved: false,
+          manualApprovalRequired: false,
+          simulatedOnly: false,
+          validation: { stale: false },
+        },
+      ],
+    },
+    machineProofs: {
+      migration: {
+        accepted: true,
+        metadata: {
+          temporaryAllowlistActive: false,
+          unresolvedResidualCount: 0,
+          expiredResidualCount: 0,
+        },
+      },
+    },
+    migrationGateEvidence: {
+      temporaryAllowlistActive: false,
+      status: "accepted-release-blocking",
+    },
     blockerClassifications: [
       {
         number: 1,
@@ -195,6 +242,84 @@ describe("production promotion guard", () => {
       "human-proof-dependency",
       "open-p0-p1-blockers",
     ]));
+  });
+
+  it("blocks promotion when a machine proof is stale", () => {
+    const result = validatePromotionPackForProduction(
+      certifyingPack({
+        machineProofSummary: {
+          CERTIFYING: false,
+          allMachineProofsCertifying: false,
+          proofResults: [
+            {
+              key: "restore",
+              certifying: false,
+              humanDependent: false,
+              simulatedOnly: false,
+              validation: { stale: true },
+            },
+          ],
+        },
+      }),
+      { currentHead: HEAD },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toEqual(expect.arrayContaining([
+      "non-certifying-machine-proof-summary",
+      "stale-machine-proof",
+    ]));
+  });
+
+  it("blocks promotion when a machine proof is simulated-only", () => {
+    const result = validatePromotionPackForProduction(
+      certifyingPack({
+        machineProofSummary: {
+          CERTIFYING: false,
+          allMachineProofsCertifying: false,
+          proofResults: [
+            {
+              key: "restore",
+              certifying: false,
+              humanDependent: false,
+              simulatedOnly: true,
+              validation: { stale: false },
+            },
+          ],
+        },
+      }),
+      { currentHead: HEAD },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toEqual(expect.arrayContaining([
+      "non-certifying-machine-proof-summary",
+      "simulated-machine-proof",
+    ]));
+  });
+
+  it("blocks promotion when migration temporary allowlist residuals remain unresolved", () => {
+    const result = validatePromotionPackForProduction(
+      certifyingPack({
+        machineProofs: {
+          migration: {
+            accepted: false,
+            metadata: {
+              temporaryAllowlistActive: true,
+              unresolvedResidualCount: 1,
+            },
+          },
+        },
+        migrationGateEvidence: {
+          temporaryAllowlistActive: true,
+          status: "accepted-temporary-allowlist",
+        },
+      }),
+      { currentHead: HEAD },
+    );
+
+    expect(result.allowed).toBe(false);
+    expect(result.reasons.map((reason) => reason.code)).toContain("unresolved-migration-allowlist");
   });
 
   it("wires the hard guard into package scripts, local promotion, and production CI preflight", () => {

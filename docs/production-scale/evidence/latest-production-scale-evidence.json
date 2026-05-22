@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-22T15:37:51.299Z",
+  "generatedAt": "2026-05-22T17:16:37.058Z",
   "branch": "staging",
-  "commit": "99b97e37f9326916b48161da4ac79ac762d7a026",
+  "commit": "5ad7b1dafa990cd0c7b9285797f514da29f4fec5",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -219,7 +219,7 @@
     },
     {
       "blocker": "L10-P1-005",
-      "command": "pnpm run alerting:machine-proof",
+      "command": "pnpm run alerts:machine-proof",
       "jsonPath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
       "evidencePresent": true
     },
@@ -236,6 +236,248 @@
       "evidencePresent": true
     }
   ],
+  "machineProofSummary": {
+    "path": "docs/production-scale/evidence/latest-machine-proof-summary.json",
+    "exists": true,
+    "readable": true,
+    "error": null,
+    "allMachineProofsCertifying": false,
+    "CERTIFYING": false,
+    "policyVersion": "production-machine-proof-policy-2026-05-22",
+    "generatedAt": "2026-05-22T17:16:09.048Z",
+    "commitHash": "5ad7b1dafa990cd0c7b9285797f514da29f4fec5",
+    "openBlockers": [
+      {
+        "blockerId": "L10-P1-002",
+        "proofArea": "restore",
+        "label": "Disaster recovery / restore",
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+          "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+          "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+          "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
+        ],
+        "reasons": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "checks[9].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: latest-backup-selected, isolated-restore-target-created, rpo-measured, rto-measured, post-restore-auth-session-check, post-restore-packet-pdf-retrieval-check, post-restore-response-queue-check, cleanup-lifecycle-check, rollback-stop-verification, isolated-restore-target-destroyed).",
+          "latest configured backup evidence is missing or not machine-selected.",
+          "isolated restore target evidence is missing or unsafe.",
+          "safe synthetic restore fixture evidence is missing.",
+          "measured RPO is required and must pass.",
+          "measured RTO is required and must pass.",
+          "post-restore auth/session proof is required.",
+          "post-restore packet PDF retrieval proof is required.",
+          "post-restore response queue state proof is required.",
+          "post-restore cleanup/lifecycle proof is required.",
+          "rollback/stop verification proof is required.",
+          "isolated restore target cleanup proof is required.",
+          "pnpm run restore:machine-proof exited 1",
+          "pnpm run restore:machine-proof:validate exited 1"
+        ]
+      },
+      {
+        "blockerId": "L10-P1-003",
+        "proofArea": "productionWorker",
+        "label": "Production ingest worker runtime",
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+          "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+          "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+          "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+          "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
+        ],
+        "reasons": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: queue-depth-before-captured, worker-liveness-verified, bounded-max-jobs-enforced, synthetic-or-canary-job-processed, queue-depth-after-captured, processed-count-captured, failed-dead-letter-stale-counts-captured, worker-stop-rollback-verified, canary-cleanup-verified).",
+          "queue depth before proof is required.",
+          "queue depth after proof is required.",
+          "worker service/liveness proof is required.",
+          "bounded max jobs proof is required.",
+          "synthetic/canary ingest job processing proof is required.",
+          "processed, failed, dead-letter, and stale counts are required.",
+          "processed count proof is required.",
+          "failed, dead-letter, and stale count proof is required.",
+          "synthetic/canary cleanup proof is required.",
+          "worker stop/rollback proof is required.",
+          "pnpm run production-worker:machine-proof exited 1",
+          "pnpm run production-worker:machine-proof:validate exited 1"
+        ]
+      },
+      {
+        "blockerId": "L10-P1-004",
+        "proofArea": "rawReport",
+        "label": "Raw report byte remediation",
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+        ],
+        "reasons": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: db-connectivity-reliable, sanitized-inventory-accepted, remediation-policy-verified, unresolved-count-zero-or-policy-accepted, remediated-count-recorded, opaque-hashes-only, no-raw-bytes-or-pii-printed, rollback-recovery-notes-recorded).",
+          "pnpm run storage:raw-report-machine-remediation-proof exited 1",
+          "pnpm run storage:raw-report-machine-proof:validate exited 1"
+        ]
+      },
+      {
+        "blockerId": "L10-P1-005",
+        "proofArea": "alerting",
+        "label": "Alerting and observability",
+        "missingRuntimeInputs": [
+          "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+        ],
+        "reasons": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (live-alert-delivery: synthetic-alert-triggered, alert-delivery-verified, sanitized-channel-id-recorded, correlation-id-recorded, machine-acknowledgment-verified, retry-or-failure-behavior-recorded, response-ops-readiness-verified, scheduler-status-verified, no-webhook-or-token-printed | certifying-formal-exclusion: formal-exclusion-file-validated, policy-allows-certifying-exclusion, compensating-controls-validated, response-ops-readiness-verified, scheduler-status-verified, repo-policy-approval-machine-verified, exclusion-not-stale, next-review-recorded, exclusion-does-not-overclaim-production-pass, no-webhook-or-token-printed).",
+          "pnpm run alerts:machine-proof exited 1",
+          "pnpm run alerts:machine-proof:validate exited 1"
+        ]
+      },
+      {
+        "blockerId": "retention-archive-restore",
+        "proofArea": "retentionArchiveRestore",
+        "label": "Retention archive/restore",
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+          "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+          "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+          "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+        ],
+        "reasons": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: safe-archive-candidate-selected, archive-created-or-selected, archive-metadata-verified, isolated-restore-target-created, archive-restore-integrity-verified, no-pii-exposed, lifecycle-cleanup-verified, rollback-recovery-notes-recorded, isolated-restore-target-destroyed).",
+          "safe retention archive candidate evidence is missing or unsafe.",
+          "archive selection or creation evidence is missing.",
+          "archive metadata verification proof is required.",
+          "isolated retention restore target evidence is missing or unsafe.",
+          "archive restore integrity verification proof is required.",
+          "retention proof must verify no PII was exposed.",
+          "lifecycle cleanup proof is required.",
+          "rollback/recovery verification proof is required.",
+          "isolated retention restore target destruction proof is required.",
+          "pnpm run retention:archive-restore-machine-proof exited 1",
+          "pnpm run retention:archive-restore-machine-proof:validate exited 1"
+        ]
+      },
+      {
+        "blockerId": "L10-P1-001",
+        "proofArea": "productionPromotionPackGuard",
+        "label": "Production promotion pack guard",
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+          "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+          "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+          "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+          "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+          "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+          "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+          "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+          "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+          "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+          "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+          "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+          "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+          "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+        ],
+        "reasons": [
+          "latest-production-promotion-pack.json has CERTIFYING !== true.",
+          "Promotion pack certifying flag is not true.",
+          "Promotion certification checks are not certifying.",
+          "Latest machine proof summary is not certifying.",
+          "Promotion pack does not allow production-at-scale promotion.",
+          "Promotion pack has 4 open P0/P1 production blocker(s).",
+          "Promotion certification has staleChecks.",
+          "Promotion certification has failedChecks.",
+          "Promotion pack audit commit reference is stale.",
+          "pnpm run production-scale:promotion-guard exited 1"
+        ]
+      }
+    ],
+    "missingRuntimeInputs": [
+      "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+      "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+      "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+      "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+      "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+      "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+      "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+      "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+      "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+      "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+      "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+      "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+      "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+      "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+      "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+    ],
+    "humanInteractionRequired": false,
+    "simulatedOnlyProofCount": 0,
+    "staleProofCount": 0
+  },
   "evidence": {
     "automatedLocal": {
       "title": "Automated Local Evidence",
@@ -632,7 +874,9 @@
             "pnpm run response:orchestration-check",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+            "pnpm run alerts:machine-proof",
+            "pnpm run alerts:machine-proof:validate"
           ],
           "forbiddenProofTypes": [
             "SIMULATED alert proof represented as live alert delivery",
@@ -666,7 +910,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof."
+          "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof."
         },
         {
           "number": 10,
@@ -674,7 +918,7 @@
           "severity": "High",
           "area": "Migration governance",
           "currentStatus": "partial",
-          "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+          "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.",
           "allowedProofCommands": [
             "pnpm run check:migrations",
             "pnpm run migrations:evidence",
@@ -711,7 +955,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof."
+          "recommendedNextAction": "Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify."
         },
         {
           "number": 11,
@@ -1198,7 +1442,7 @@
           "severity": "Medium",
           "area": "Retention archive/restore proof",
           "currentStatus": "partial",
-          "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
+          "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.",
           "allowedProofCommands": [
             "pnpm run retention:archive-restore:simulated",
             "pnpm run retention:archive-restore-machine-proof",
@@ -1235,7 +1479,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof."
+          "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof."
         },
         {
           "number": 23,
@@ -1622,7 +1866,9 @@
             "pnpm run response:orchestration-check",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+            "pnpm run alerts:machine-proof",
+            "pnpm run alerts:machine-proof:validate"
           ],
           "forbiddenProofTypes": [
             "SIMULATED alert proof represented as live alert delivery",
@@ -1656,7 +1902,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof."
+          "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof."
         },
         {
           "number": 16,
@@ -1755,7 +2001,7 @@
           "severity": "Medium",
           "area": "Retention archive/restore proof",
           "currentStatus": "partial",
-          "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
+          "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.",
           "allowedProofCommands": [
             "pnpm run retention:archive-restore:simulated",
             "pnpm run retention:archive-restore-machine-proof",
@@ -1792,7 +2038,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof."
+          "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof."
         }
       ],
       "label": "SIMULATED",
@@ -2557,7 +2803,9 @@
             "pnpm run response:orchestration-check",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
             "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+            "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+            "pnpm run alerts:machine-proof",
+            "pnpm run alerts:machine-proof:validate"
           ],
           "forbiddenProofTypes": [
             "SIMULATED alert proof represented as live alert delivery",
@@ -2591,7 +2839,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof."
+          "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof."
         },
         {
           "number": 10,
@@ -2599,7 +2847,7 @@
           "severity": "High",
           "area": "Migration governance",
           "currentStatus": "partial",
-          "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+          "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.",
           "allowedProofCommands": [
             "pnpm run check:migrations",
             "pnpm run migrations:evidence",
@@ -2636,7 +2884,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof."
+          "recommendedNextAction": "Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify."
         },
         {
           "number": 22,
@@ -2644,7 +2892,7 @@
           "severity": "Medium",
           "area": "Retention archive/restore proof",
           "currentStatus": "partial",
-          "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
+          "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.",
           "allowedProofCommands": [
             "pnpm run retention:archive-restore:simulated",
             "pnpm run retention:archive-restore-machine-proof",
@@ -2681,7 +2929,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof."
+          "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof."
         }
       ]
     }
@@ -2965,7 +3213,9 @@
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+        "pnpm run alerts:machine-proof",
+        "pnpm run alerts:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
@@ -2999,7 +3249,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof."
+      "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof."
     },
     {
       "number": 10,
@@ -3007,7 +3257,7 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.",
       "allowedProofCommands": [
         "pnpm run check:migrations",
         "pnpm run migrations:evidence",
@@ -3044,7 +3294,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof."
+      "recommendedNextAction": "Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify."
     },
     {
       "number": 11,
@@ -3362,7 +3612,7 @@
       "severity": "Medium",
       "area": "Retention archive/restore proof",
       "currentStatus": "partial",
-      "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
+      "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.",
       "allowedProofCommands": [
         "pnpm run retention:archive-restore:simulated",
         "pnpm run retention:archive-restore-machine-proof",
@@ -3399,7 +3649,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof."
+      "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof."
     },
     {
       "number": 23,

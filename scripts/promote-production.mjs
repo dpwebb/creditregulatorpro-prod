@@ -90,7 +90,7 @@ if (!skipStagingGate) {
 console.log("Running migration governance production promotion gate...");
 run(process.execPath, ["scripts/migration-gate.mjs"], { stdio: "inherit" });
 
-console.log("Running production promotion evidence guard...");
+console.log("Running production promotion evidence guard (CERTIFYING:true, canPromoteProductionAtScale:true, no open P0/P1 blockers, no stale/human-dependent proof)...");
 run(process.execPath, ["scripts/production-promotion-guard.mjs"], { stdio: "inherit" });
 
 console.log("Running build check...");

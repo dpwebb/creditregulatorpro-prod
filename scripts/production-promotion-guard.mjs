@@ -177,6 +177,13 @@ export function validatePromotionPackForProduction(report, {
   if (report.promotionCertification && report.promotionCertification.CERTIFYING !== true) {
     addReason(reasons, "non-certifying-promotion-checks", "Promotion certification checks are not certifying.");
   }
+  if (report.machineProofSummary) {
+    if (report.machineProofSummary.CERTIFYING !== true || report.machineProofSummary.allMachineProofsCertifying !== true) {
+      addReason(reasons, "non-certifying-machine-proof-summary", "Latest machine proof summary is not certifying.");
+    }
+  } else {
+    addReason(reasons, "missing-machine-proof-summary", "Promotion pack is missing latest machine proof summary.");
+  }
 
   const canPromoteProductionAtScale =
     Object.prototype.hasOwnProperty.call(report, "canPromoteProductionAtScale")
@@ -202,6 +209,36 @@ export function validatePromotionPackForProduction(report, {
       "human-proof-dependency",
       "Promotion pack contains a human-proof dependency; production certification requires non-interactive machine proof.",
     );
+  }
+
+  const machineProofs = Object.values(report?.machineProofs ?? {});
+  const summaryProofResults = Array.isArray(report?.machineProofSummary?.proofResults)
+    ? report.machineProofSummary.proofResults
+    : [];
+  const proofResults = [...machineProofs, ...summaryProofResults];
+  if (proofResults.some((proof) =>
+    proof?.humanDependent === true ||
+    proof?.humanInteractionRequired === true ||
+    proof?.humanObserved === true ||
+    proof?.manualApprovalRequired === true
+  )) {
+    addReason(reasons, "human-dependent-machine-proof", "At least one machine proof is human-dependent.");
+  }
+  if (proofResults.some((proof) => proof?.simulatedOnly === true)) {
+    addReason(reasons, "simulated-machine-proof", "At least one machine proof is simulated-only.");
+  }
+  if (proofResults.some((proof) => proof?.validation?.stale === true)) {
+    addReason(reasons, "stale-machine-proof", "At least one machine proof is stale.");
+  }
+  const migrationProof = report?.machineProofs?.migration;
+  if (
+    report?.migrationGateEvidence?.temporaryAllowlistActive === true ||
+    report?.migrationGateEvidence?.status === "accepted-temporary-allowlist" ||
+    migrationProof?.metadata?.temporaryAllowlistActive === true ||
+    Number(migrationProof?.metadata?.unresolvedResidualCount ?? 0) > 0 ||
+    Number(migrationProof?.metadata?.expiredResidualCount ?? 0) > 0
+  ) {
+    addReason(reasons, "unresolved-migration-allowlist", "Migration governance still has unresolved or expired temporary allowlist residuals.");
   }
 
   const heads = evidenceHeadFields(report);

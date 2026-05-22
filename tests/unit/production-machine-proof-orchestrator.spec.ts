@@ -258,6 +258,43 @@ function certifyingPromotionPack(overrides: Record<string, unknown> = {}) {
       skippedChecks: [],
       failedChecks: [],
     },
+    machineProofSummary: {
+      CERTIFYING: true,
+      allMachineProofsCertifying: true,
+      missingRuntimeInputs: [],
+      openBlockers: [],
+      safetySummary: {
+        humanInteractionRequired: false,
+        humanObserved: false,
+        manualApprovalRequired: false,
+      },
+      proofResults: [
+        {
+          key: "restore",
+          certifying: true,
+          humanDependent: false,
+          humanInteractionRequired: false,
+          humanObserved: false,
+          manualApprovalRequired: false,
+          simulatedOnly: false,
+          validation: { stale: false },
+        },
+      ],
+    },
+    machineProofs: {
+      migration: {
+        accepted: true,
+        metadata: {
+          temporaryAllowlistActive: false,
+          unresolvedResidualCount: 0,
+          expiredResidualCount: 0,
+        },
+      },
+    },
+    migrationGateEvidence: {
+      temporaryAllowlistActive: false,
+      status: "accepted-release-blocking",
+    },
     blockerClassifications: [
       {
         number: 1,

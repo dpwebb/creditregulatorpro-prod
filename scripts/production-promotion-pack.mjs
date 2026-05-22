@@ -165,6 +165,10 @@ export const DEFAULT_PROMOTION_PACK_MD = "docs/production-scale/evidence/latest-
 export const DEFAULT_PROMOTION_PACK_JSON = "docs/production-scale/evidence/latest-production-promotion-pack.json";
 export const DEFAULT_AUDIT_PATH = "docs/production-at-scale-maximum-audit.md";
 export const DEFAULT_REGISTRY_PATH = "docs/production-scale/blocker-registry.json";
+export const PRODUCTION_SCALE_CERTIFICATION_JSON_PATH =
+  "docs/production-scale/evidence/latest-production-scale-certification.json";
+export const MACHINE_PROOF_SUMMARY_JSON_PATH =
+  "docs/production-scale/evidence/latest-machine-proof-summary.json";
 export const STAGING_INGEST_WORKER_EVIDENCE_MD_PATH =
   "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md";
 export const STAGING_INGEST_WORKER_EVIDENCE_JSON_PATH =
@@ -187,6 +191,18 @@ export const DEPLOY_ROLLBACK_SIMULATION_MD_PATH =
   "docs/production-scale/evidence/latest-deploy-rollback-simulation.md";
 
 export const REQUIRED_CERTIFICATION_CHECKS = [
+  {
+    key: "productionScaleCertification",
+    label: "Production-scale certification",
+    command: "pnpm run production-scale:certify",
+    jsonPath: PRODUCTION_SCALE_CERTIFICATION_JSON_PATH,
+  },
+  {
+    key: "machineProofSummary",
+    label: "Combined machine proof summary",
+    command: "pnpm run production:machine-proofs",
+    jsonPath: MACHINE_PROOF_SUMMARY_JSON_PATH,
+  },
   {
     key: "queueLiveness",
     label: "Queue liveness",
@@ -256,6 +272,8 @@ export const REQUIRED_CERTIFICATION_CHECKS = [
 ];
 
 export const REQUIRED_PROMOTION_COMMANDS = [
+  "pnpm run production-scale:certify",
+  "pnpm run production:machine-proofs",
   "pnpm run typecheck",
   "pnpm run build",
   "pnpm run test:contracts",
@@ -1121,6 +1139,42 @@ function isPassedStatusText(value) {
 function checkPassedByKey(key, evidence, targetEnvironment) {
   if (!evidence || evidenceLooksManualOnly(evidence) || evidenceLooksSkipped(evidence)) return false;
 
+  if (key === "productionScaleCertification") {
+    return evidence.CERTIFYING === true &&
+      evidence.certifying === true &&
+      evidence.humanInteractionRequired !== true &&
+      Array.isArray(evidence.failedGates) &&
+      evidence.failedGates.length === 0 &&
+      Array.isArray(evidence.staleGates) &&
+      evidence.staleGates.length === 0 &&
+      Array.isArray(evidence.skippedGates) &&
+      evidence.skippedGates.length === 0 &&
+      Array.isArray(evidence.missingMachineRuntimeInputs) &&
+      evidence.missingMachineRuntimeInputs.length === 0;
+  }
+
+  if (key === "machineProofSummary") {
+    const proofResults = Array.isArray(evidence.proofResults) ? evidence.proofResults : [];
+    return evidence.CERTIFYING === true &&
+      evidence.allMachineProofsCertifying === true &&
+      proofResults.length > 0 &&
+      proofResults.every((proof) =>
+        proof?.certifying === true &&
+        proof?.humanDependent !== true &&
+        proof?.humanInteractionRequired !== true &&
+        proof?.humanObserved !== true &&
+        proof?.manualApprovalRequired !== true &&
+        proof?.simulatedOnly !== true &&
+        proof?.dryRunOnly !== true &&
+        proof?.validation?.stale !== true
+      ) &&
+      (!Array.isArray(evidence.openBlockers) || evidence.openBlockers.length === 0) &&
+      (!Array.isArray(evidence.missingRuntimeInputs) || evidence.missingRuntimeInputs.length === 0) &&
+      evidence.safetySummary?.humanInteractionRequired !== true &&
+      evidence.safetySummary?.humanObserved !== true &&
+      evidence.safetySummary?.manualApprovalRequired !== true;
+  }
+
   if (
     [
       "restoreMachineProof",
@@ -1358,6 +1412,8 @@ export function buildProductionPromotionPackReport({
   alertingMachineProofEvidence = null,
   migrationMachineProofEvidence = null,
   retentionArchiveRestoreMachineProofEvidence = null,
+  productionScaleCertificationEvidence = null,
+  machineProofSummaryEvidence = null,
   measuredLoadEvidenceAcceptance = null,
   runtimeSizePolicyAcceptance = null,
   certificationEvidence = {},
@@ -1441,6 +1497,10 @@ export function buildProductionPromotionPackReport({
     migrationMachineProofEvidence ?? buildMigrationMachineProofReport({ rootDir, generatedAt, migrationGateEvidence: migrationGate });
   const loadedRetentionArchiveRestoreMachineProof =
     retentionArchiveRestoreMachineProofEvidence ?? readJsonIfPresent(rootDir, RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH);
+  const loadedProductionScaleCertification =
+    productionScaleCertificationEvidence ?? readJsonIfPresent(rootDir, PRODUCTION_SCALE_CERTIFICATION_JSON_PATH);
+  const loadedMachineProofSummary =
+    machineProofSummaryEvidence ?? readJsonIfPresent(rootDir, MACHINE_PROOF_SUMMARY_JSON_PATH);
   const machineProofs = {
     restore: machineProofSummary(
       "restore",
@@ -1492,7 +1552,15 @@ export function buildProductionPromotionPackReport({
     ),
   };
   const missingMachineRuntimeInputs = unique(
-    Object.values(machineProofs).flatMap((proof) => proof?.missingRuntimeInputs ?? []),
+    [
+      ...Object.values(machineProofs).flatMap((proof) => proof?.missingRuntimeInputs ?? []),
+      ...(Array.isArray(loadedProductionScaleCertification?.missingMachineRuntimeInputs)
+        ? loadedProductionScaleCertification.missingMachineRuntimeInputs
+        : []),
+      ...(Array.isArray(loadedMachineProofSummary?.missingRuntimeInputs)
+        ? loadedMachineProofSummary.missingRuntimeInputs
+        : []),
+    ],
   );
   const measuredLoadAcceptance =
     measuredLoadEvidenceAcceptance ?? buildMeasuredLoadEvidenceAcceptance({ rootDir, generatedAt });
@@ -1611,6 +1679,8 @@ export function buildProductionPromotionPackReport({
     currentHead: commit,
     certificationEvidence,
     defaultEvidence: {
+      productionScaleCertification: loadedProductionScaleCertification,
+      machineProofSummary: loadedMachineProofSummary,
       queueLiveness: workerReadinessEvidence,
       migrationGovernance: migrationGate,
       restoreMachineProof: loadedRestoreMachineProof,
@@ -1621,7 +1691,17 @@ export function buildProductionPromotionPackReport({
       retentionArchiveRestoreMachineProof: loadedRetentionArchiveRestoreMachineProof,
     },
   });
-  const packCertifying = promotionCertification.CERTIFYING === true && readiness.canPromoteProductionAtScale === true;
+  const machineProofSummaryCertifying =
+    loadedMachineProofSummary?.CERTIFYING === true &&
+    loadedMachineProofSummary?.allMachineProofsCertifying === true;
+  const productionScaleCertificationCertifying =
+    loadedProductionScaleCertification?.CERTIFYING === true &&
+    loadedProductionScaleCertification?.certifying === true;
+  const packCertifying =
+    promotionCertification.CERTIFYING === true &&
+    readiness.canPromoteProductionAtScale === true &&
+    machineProofSummaryCertifying &&
+    productionScaleCertificationCertifying;
 
   const report = {
     reportName: "production-promotion-evidence-pack",
@@ -1671,7 +1751,22 @@ export function buildProductionPromotionPackReport({
     alertingMachineProofResult: promotionCertification.checks.alertingMachineProof,
     migrationMachineProofResult: promotionCertification.checks.migrationMachineProof,
     retentionArchiveRestoreMachineProofResult: promotionCertification.checks.retentionArchiveRestoreMachineProof,
+    productionScaleCertificationResult: promotionCertification.checks.productionScaleCertification,
+    machineProofSummaryResult: promotionCertification.checks.machineProofSummary,
     promotionCertification,
+    productionScaleCertification: loadedProductionScaleCertification ?? {
+      present: false,
+      path: PRODUCTION_SCALE_CERTIFICATION_JSON_PATH,
+      CERTIFYING: false,
+    },
+    machineProofSummary: loadedMachineProofSummary ?? {
+      present: false,
+      path: MACHINE_PROOF_SUMMARY_JSON_PATH,
+      allMachineProofsCertifying: false,
+      CERTIFYING: false,
+      missingRuntimeInputs: [],
+      openBlockers: [],
+    },
     machineProofs,
     missingMachineRuntimeInputs,
     humanInteractionRequired: false,
@@ -2209,6 +2304,8 @@ export function validatePromotionPackReport(report) {
     errors.push("Promotion pack is missing restore evidence acceptance details.");
   }
   for (const requiredKey of [
+    "productionScaleCertificationResult",
+    "machineProofSummaryResult",
     "queueLivenessStatus",
     "storageDurabilityResult",
     "evidenceLedgerResult",
@@ -2225,7 +2322,11 @@ export function validatePromotionPackReport(report) {
   }
   const expectedTopLevelCertifying =
     report.promotionCertification?.CERTIFYING === true &&
-    report.readinessClassification?.canPromoteProductionAtScale === true;
+    report.readinessClassification?.canPromoteProductionAtScale === true &&
+    report.productionScaleCertification?.CERTIFYING === true &&
+    report.productionScaleCertification?.certifying === true &&
+    report.machineProofSummary?.CERTIFYING === true &&
+    report.machineProofSummary?.allMachineProofsCertifying === true;
   if (report.CERTIFYING !== expectedTopLevelCertifying) {
     errors.push("Promotion pack top-level CERTIFYING must require both certifying evidence and production-at-scale readiness.");
   }
@@ -2263,6 +2364,8 @@ export function validatePromotionPackReport(report) {
   const measuredLoad = report.measuredLoadEvidenceAcceptance;
   const runtimeSize = report.runtimeSizePolicyAcceptance;
   const machineProofs = report.machineProofs ?? {};
+  const machineProofSummary = report.machineProofSummary ?? {};
+  const productionScaleCertification = report.productionScaleCertification ?? {};
   const topLevelMissingInputs = new Set(report.missingMachineRuntimeInputs ?? []);
   for (const proof of Object.values(machineProofs)) {
     for (const input of proof?.missingRuntimeInputs ?? []) {
@@ -2273,6 +2376,31 @@ export function validatePromotionPackReport(report) {
     if (proof?.humanInteractionRequired === true) {
       errors.push(`Machine proof ${proof.key ?? proof.label} must not require human interaction.`);
     }
+  }
+  for (const input of machineProofSummary.missingRuntimeInputs ?? []) {
+    if (!topLevelMissingInputs.has(input)) {
+      errors.push(`Machine proof summary missing runtime input is not surfaced at top level: ${input}.`);
+    }
+  }
+  if (machineProofSummary.CERTIFYING === true && machineProofSummary.allMachineProofsCertifying !== true) {
+    errors.push("Machine proof summary cannot certify unless allMachineProofsCertifying is true.");
+  }
+  if (report.CERTIFYING === true && machineProofSummary.safetySummary?.humanInteractionRequired === true) {
+    errors.push("Machine proof summary must not require human interaction.");
+  }
+  for (const proofResult of machineProofSummary.proofResults ?? []) {
+    if (report.CERTIFYING === true && (proofResult?.humanDependent === true || proofResult?.humanInteractionRequired === true)) {
+      errors.push(`Machine proof summary contains a human-dependent proof: ${proofResult.key ?? proofResult.label ?? "unknown"}.`);
+    }
+    if (report.CERTIFYING === true && proofResult?.simulatedOnly === true) {
+      errors.push(`Machine proof summary contains simulated-only proof: ${proofResult.key ?? proofResult.label ?? "unknown"}.`);
+    }
+    if (report.CERTIFYING === true && proofResult?.validation?.stale === true) {
+      errors.push(`Machine proof summary contains stale proof: ${proofResult.key ?? proofResult.label ?? "unknown"}.`);
+    }
+  }
+  if (productionScaleCertification.CERTIFYING === true && productionScaleCertification.certifying !== true) {
+    errors.push("Production-scale certification flags must agree before promotion pack can certify.");
   }
   for (const blocker of blockers.filter((entry) => entry.classification === "machine proof required")) {
     if (blocker.humanProofRequired === true) {

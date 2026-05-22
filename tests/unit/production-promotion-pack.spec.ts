@@ -922,6 +922,89 @@ function certifyingEvidence({
   };
 }
 
+function productionScaleCertificationEvidence({
+  targetSha = PROMOTION_GATE_TARGET_SHA,
+  generatedAt = PROMOTION_GATE_TIMESTAMP,
+  overrides = {},
+}: {
+  targetSha?: string;
+  generatedAt?: string;
+  overrides?: Record<string, unknown>;
+} = {}) {
+  return {
+    reportName: "production-scale-certification",
+    generatedAt,
+    currentHead: targetSha,
+    currentCommitHash: targetSha,
+    targetSha,
+    status: "passed",
+    certifying: true,
+    CERTIFYING: true,
+    failedGates: [],
+    staleGates: [],
+    skippedGates: [],
+    missingMachineRuntimeInputs: [],
+    humanInteractionRequired: false,
+    ...overrides,
+  };
+}
+
+function machineProofSummaryEvidence({
+  targetSha = PROMOTION_GATE_TARGET_SHA,
+  generatedAt = PROMOTION_GATE_TIMESTAMP,
+  overrides = {},
+}: {
+  targetSha?: string;
+  generatedAt?: string;
+  overrides?: Record<string, unknown>;
+} = {}) {
+  const proofResults = [
+    "restore",
+    "productionWorker",
+    "rawReport",
+    "alerting",
+    "migration",
+    "retentionArchiveRestore",
+    "productionPromotionPackGuard",
+  ].map((key) => ({
+    key,
+    certifying: true,
+    CERTIFYING: true,
+    humanDependent: false,
+    humanInteractionRequired: false,
+    humanObserved: false,
+    manualApprovalRequired: false,
+    simulatedOnly: false,
+    dryRunOnly: false,
+    validation: {
+      stale: false,
+      errors: [],
+    },
+  }));
+  return {
+    reportName: "production-machine-proof-summary",
+    generatedAt,
+    commitHash: targetSha,
+    currentHead: targetSha,
+    currentCommitHash: targetSha,
+    targetSha,
+    status: "passed",
+    certifying: true,
+    CERTIFYING: true,
+    allMachineProofsCertifying: true,
+    proofResults,
+    openBlockers: [],
+    missingRuntimeInputs: [],
+    safetySummary: {
+      humanInteractionRequired: false,
+      humanObserved: false,
+      manualApprovalRequired: false,
+      noSecretsPiiRawBytesOrSignedUrlsPrinted: true,
+    },
+    ...overrides,
+  };
+}
+
 function machineProofEvidence({
   evidenceType,
   targetSha = PROMOTION_GATE_TARGET_SHA,
@@ -1287,6 +1370,8 @@ function allPassingCertificationEvidence({
   overrides?: Record<string, unknown>;
 } = {}) {
   return {
+    productionScaleCertification: productionScaleCertificationEvidence({ targetSha, generatedAt }),
+    machineProofSummary: machineProofSummaryEvidence({ targetSha, generatedAt }),
     queueLiveness: certifyingEvidence({ targetSha, generatedAt }),
     storageDurability: certifyingEvidence({ targetSha, generatedAt }),
     evidenceLedger: certifyingEvidence({ targetSha, generatedAt }),
@@ -1338,6 +1423,41 @@ function allPassingCertificationEvidence({
     }),
     ...overrides,
   };
+}
+
+function buildFullValidPromotionPack(overrides: Record<string, unknown> = {}) {
+  const head = currentGitHead();
+  const alertingExclusionValidation = buildAlertingExclusionValidationReport({
+    rootDir: process.cwd(),
+    generatedAt: PROMOTION_GATE_TIMESTAMP,
+    alertingExclusionEvidence: acceptedAlertingExclusionEvidence(),
+  });
+  const responseOpsReadinessEvidence = buildResponseOpsReadinessEvidenceReport({
+    rootDir: process.cwd(),
+    generatedAt: PROMOTION_GATE_TIMESTAMP,
+    env: {},
+    alertingExclusionValidation,
+    alertsDryRunEvidence: dryRunAlertEvidence(),
+  });
+
+  return buildProductionPromotionPackReport({
+    rootDir: process.cwd(),
+    registry: allFixedRegistry(),
+    dashboardReport: dashboardWithSkips(),
+    productionDeploymentParityEvidence: acceptedDeploymentParityEvidence(),
+    measuredLoadEvidenceAcceptance: acceptedMeasuredLoadEvidenceAcceptance(),
+    runtimeSizePolicyAcceptance: acceptedHardGateRuntimeSizePolicyAcceptance(),
+    responseOpsReadinessEvidence,
+    migrationGateEvidence: acceptedReleaseBlockingMigrationGateEvidence(),
+    certificationEvidence: allPassingCertificationEvidence({ targetSha: head }),
+    productionScaleCertificationEvidence: productionScaleCertificationEvidence({ targetSha: head }),
+    machineProofSummaryEvidence: machineProofSummaryEvidence({ targetSha: head }),
+    ...allMachineProofEvidence({ targetSha: head }),
+    generatedAt: PROMOTION_GATE_TIMESTAMP,
+    env: {},
+    targetSha: head,
+    ...overrides,
+  });
 }
 
 describe("production promotion evidence pack", () => {
@@ -1452,6 +1572,14 @@ describe("production promotion evidence pack", () => {
         promotionCertification: expect.objectContaining({
           CERTIFYING: true,
           requiredChecks: expect.arrayContaining([
+            expect.objectContaining({
+              key: "productionScaleCertification",
+              command: "pnpm run production-scale:certify",
+            }),
+            expect.objectContaining({
+              key: "machineProofSummary",
+              command: "pnpm run production:machine-proofs",
+            }),
             expect.objectContaining({
               key: "queueLiveness",
               command: "pnpm run production-worker:readiness-evidence",
@@ -1903,34 +2031,7 @@ describe("production promotion evidence pack", () => {
   });
 
   it("can certify in a full valid machine-proof fixture", () => {
-    const head = currentGitHead();
-    const alertingExclusionValidation = buildAlertingExclusionValidationReport({
-      rootDir: process.cwd(),
-      generatedAt: PROMOTION_GATE_TIMESTAMP,
-      alertingExclusionEvidence: acceptedAlertingExclusionEvidence(),
-    });
-    const responseOpsReadinessEvidence = buildResponseOpsReadinessEvidenceReport({
-      rootDir: process.cwd(),
-      generatedAt: PROMOTION_GATE_TIMESTAMP,
-      env: {},
-      alertingExclusionValidation,
-      alertsDryRunEvidence: dryRunAlertEvidence(),
-    });
-    const report = buildProductionPromotionPackReport({
-      rootDir: process.cwd(),
-      registry: allFixedRegistry(),
-      dashboardReport: dashboardWithSkips(),
-      productionDeploymentParityEvidence: acceptedDeploymentParityEvidence(),
-      measuredLoadEvidenceAcceptance: acceptedMeasuredLoadEvidenceAcceptance(),
-      runtimeSizePolicyAcceptance: acceptedHardGateRuntimeSizePolicyAcceptance(),
-      responseOpsReadinessEvidence,
-      migrationGateEvidence: acceptedReleaseBlockingMigrationGateEvidence(),
-      certificationEvidence: allPassingCertificationEvidence({ targetSha: head }),
-      ...allMachineProofEvidence({ targetSha: head }),
-      generatedAt: PROMOTION_GATE_TIMESTAMP,
-      env: {},
-      targetSha: head,
-    });
+    const report = buildFullValidPromotionPack();
 
     expect(report.promotionCertification.CERTIFYING).toBe(true);
     expect(report.missingMachineRuntimeInputs).toEqual([]);
@@ -1938,6 +2039,171 @@ describe("production promotion evidence pack", () => {
     expect(report.readinessClassification.canPromoteProductionAtScale).toBe(true);
     expect(report.CERTIFYING).toBe(true);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps promotion pack non-certifying when the machine proof summary is stale", () => {
+    const head = currentGitHead();
+    const report = buildFullValidPromotionPack({
+      certificationEvidence: allPassingCertificationEvidence({
+        targetSha: head,
+        overrides: {
+          machineProofSummary: machineProofSummaryEvidence({
+            targetSha: head,
+            generatedAt: PROMOTION_GATE_TIMESTAMP,
+            overrides: {
+              proofResults: [
+                {
+                  key: "restore",
+                  certifying: true,
+                  humanDependent: false,
+                  simulatedOnly: false,
+                  validation: { stale: true, errors: ["stale"] },
+                },
+              ],
+              allMachineProofsCertifying: false,
+              CERTIFYING: false,
+              certifying: false,
+            },
+          }),
+        },
+      }),
+      machineProofSummaryEvidence: machineProofSummaryEvidence({
+        targetSha: head,
+        generatedAt: PROMOTION_GATE_TIMESTAMP,
+        overrides: {
+          proofResults: [
+            {
+              key: "restore",
+              certifying: true,
+              humanDependent: false,
+              simulatedOnly: false,
+              validation: { stale: true, errors: ["stale"] },
+            },
+          ],
+          allMachineProofsCertifying: false,
+          CERTIFYING: false,
+          certifying: false,
+        },
+      }),
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.promotionCertification.failedChecks).toContain("machineProofSummary");
+    expect(report.machineProofSummary.proofResults[0].validation.stale).toBe(true);
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps promotion pack non-certifying when any machine proof is human-dependent", () => {
+    const head = currentGitHead();
+    const humanSummary = machineProofSummaryEvidence({
+      targetSha: head,
+      overrides: {
+        allMachineProofsCertifying: false,
+        CERTIFYING: false,
+        certifying: false,
+        safetySummary: {
+          humanInteractionRequired: true,
+          humanObserved: false,
+          manualApprovalRequired: false,
+        },
+        proofResults: [
+          {
+            key: "restore",
+            certifying: false,
+            humanDependent: true,
+            humanInteractionRequired: true,
+            simulatedOnly: false,
+            validation: { stale: false, errors: ["human-dependent"] },
+          },
+        ],
+      },
+    });
+    const report = buildFullValidPromotionPack({
+      certificationEvidence: allPassingCertificationEvidence({
+        targetSha: head,
+        overrides: { machineProofSummary: humanSummary },
+      }),
+      machineProofSummaryEvidence: humanSummary,
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.machineProofSummary.safetySummary.humanInteractionRequired).toBe(true);
+    expect(report.machineProofSummary.proofResults[0].humanDependent).toBe(true);
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps promotion pack non-certifying when any machine proof is simulated-only", () => {
+    const head = currentGitHead();
+    const simulatedSummary = machineProofSummaryEvidence({
+      targetSha: head,
+      overrides: {
+        allMachineProofsCertifying: false,
+        CERTIFYING: false,
+        certifying: false,
+        proofResults: [
+          {
+            key: "restore",
+            certifying: false,
+            humanDependent: false,
+            simulatedOnly: true,
+            validation: { stale: false, errors: ["simulated-only"] },
+          },
+        ],
+      },
+    });
+    const report = buildFullValidPromotionPack({
+      certificationEvidence: allPassingCertificationEvidence({
+        targetSha: head,
+        overrides: { machineProofSummary: simulatedSummary },
+      }),
+      machineProofSummaryEvidence: simulatedSummary,
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.machineProofSummary.proofResults[0].simulatedOnly).toBe(true);
+    expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps promotion pack non-certifying when migration allowlist residuals remain unresolved", () => {
+    const head = currentGitHead();
+    const unresolvedMigration = machineProofEvidence({
+      evidenceType: MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE,
+      targetSha: head,
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      checks: MIGRATION_MACHINE_CHECKS,
+      metadata: {
+        temporaryAllowlistActive: true,
+        unresolvedResidualCount: 1,
+        residualStatuses: [
+          {
+            path: "helpers/runtimeEnsure.ts",
+            status: "unresolved",
+            classification: "unresolved",
+            certifying: false,
+          },
+        ],
+      },
+      overrides: {
+        status: "fail",
+        certifying: false,
+        missingRuntimeInputs: [],
+        failures: [{ code: "unresolved-allowlist", message: "temporary allowlist residual remains" }],
+      },
+    });
+    const report = buildFullValidPromotionPack({
+      migrationMachineProofEvidence: unresolvedMigration,
+      certificationEvidence: allPassingCertificationEvidence({
+        targetSha: head,
+        overrides: {
+          migrationMachineProof: unresolvedMigration,
+        },
+      }),
+    });
+    const blocker10 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 10);
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(blocker10?.classification).toBe("machine proof required");
+    expect(report.promotionCertification.failedChecks).toContain("migrationMachineProof");
   });
 
   it("does not close blocker 1 and 22 with legacy human-observed evidence alone", () => {

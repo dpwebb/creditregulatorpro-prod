@@ -8,6 +8,7 @@ const OUTPUT_MARKDOWN = 'docs/production-scale/evidence/latest-production-scale-
 const OUTPUT_JSON = 'docs/production-scale/evidence/latest-production-scale-certification.json';
 const HARNESS_FIX_OUTPUT_MARKDOWN = 'docs/production-scale/evidence/latest-certification-harness-fix.md';
 const HARNESS_FIX_OUTPUT_JSON = 'docs/production-scale/evidence/latest-certification-harness-fix.json';
+const MACHINE_PROOF_SUMMARY_JSON = 'docs/production-scale/evidence/latest-machine-proof-summary.json';
 const DEFAULT_TARGET_ENVIRONMENT = 'production-scale-local-certification';
 export const DEFAULT_STAGING_AUTH_SMOKE_BASE_URL = 'https://staging.creditregulatorpro.com';
 export const AUTH_WORKFLOW_SMOKE_ENV = 'CRP_AUTH_WORKFLOW_SMOKE';
@@ -17,6 +18,16 @@ const AUTH_SMOKE_GATE_IDS = new Set(['authenticatedUploadResults', 'authenticate
 const STAGING_AUTH_SMOKE_ALLOWED_HOSTS = new Set(['staging.creditregulatorpro.com', 'localhost', '127.0.0.1']);
 
 export const REQUIRED_CERTIFICATION_GATES = [
+  {
+    id: 'typecheck',
+    label: 'TypeScript typecheck',
+    command: 'pnpm run typecheck',
+  },
+  {
+    id: 'build',
+    label: 'Application build',
+    command: 'pnpm run build',
+  },
   {
     id: 'contracts',
     label: 'Contract tests',
@@ -36,6 +47,11 @@ export const REQUIRED_CERTIFICATION_GATES = [
     id: 'authenticatedPacketPdf',
     label: 'Authenticated packet readiness/create/PDF smoke',
     command: 'pnpm run smoke:auth-workflow:packet',
+  },
+  {
+    id: 'goldenPath',
+    label: 'Golden path regression',
+    command: 'pnpm run test:golden-path',
   },
   {
     id: 'deterministicIngestion',
@@ -122,6 +138,12 @@ export const REQUIRED_CERTIFICATION_GATES = [
     label: 'Retention archive restore machine proof',
     command: 'pnpm run retention:archive-restore-machine-proof',
     evidencePath: 'docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json',
+  },
+  {
+    id: 'machineProofSummary',
+    label: 'Combined production machine proof summary',
+    command: 'pnpm run production:machine-proofs',
+    evidencePath: MACHINE_PROOF_SUMMARY_JSON,
   },
   {
     id: 'applicationCheck',
@@ -363,6 +385,7 @@ export async function evaluateEvidenceFreshness(options) {
       result.generatedAt = generatedAt;
       result.nestedStatus = evidence.status ?? null;
       result.nestedCERTIFYING = evidence.CERTIFYING ?? evidence.certifying ?? null;
+      result.allMachineProofsCertifying = evidence.allMachineProofsCertifying ?? null;
       result.missingRuntimeInputs = Array.isArray(evidence.missingRuntimeInputs) ? evidence.missingRuntimeInputs : [];
       result.humanInteractionRequired = evidence.humanInteractionRequired === true;
 
@@ -384,6 +407,10 @@ export async function evaluateEvidenceFreshness(options) {
 
       if (!isPassedEvidenceStatus(evidence.status)) {
         result.reasons.push(`nested evidence status is ${evidence.status}`);
+      }
+      const nestedCertifying = evidence.CERTIFYING ?? evidence.certifying ?? evidence.allMachineProofsCertifying ?? null;
+      if (nestedCertifying !== null && nestedCertifying !== true) {
+        result.reasons.push('nested evidence is not certifying.');
       }
       if (result.missingRuntimeInputs.length > 0) {
         result.reasons.push(`missing machine runtime inputs: ${result.missingRuntimeInputs.join(', ')}`);

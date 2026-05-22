@@ -1,8 +1,8 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T14:36:49.094Z
-Current HEAD: `419bcbb5ebf096f751b71bf4d940b292ea0e91e5`
-Target SHA: `419bcbb5ebf096f751b71bf4d940b292ea0e91e5`
+Generated: 2026-05-22T17:27:54.936Z
+Current HEAD: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
+Target SHA: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
@@ -14,10 +14,13 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 
 | Gate | Status | Command |
 | --- | --- | --- |
+| TypeScript typecheck | PASS | `pnpm run typecheck` |
+| Application build | PASS | `pnpm run build` |
 | Contract tests | PASS | `pnpm run test:contracts` |
 | API tests | PASS | `pnpm run test:api` |
 | Authenticated consumer upload-to-results smoke | PASS | `pnpm run smoke:auth-workflow` |
 | Authenticated packet readiness/create/PDF smoke | PASS | `pnpm run smoke:auth-workflow:packet` |
+| Golden path regression | PASS | `pnpm run test:golden-path` |
 | Deterministic ingestion report | PASS | `pnpm run test:deterministic-ingestion-report` |
 | Response soak check | PASS | `pnpm run response:soak-check` |
 | Packet PDF cache-miss proof | PASS | `pnpm run packet-pdf:cache-miss-proof` |
@@ -25,14 +28,15 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 | Evidence ledger append-only tests | PASS | `pnpm run test:evidence-ledger` |
 | Storage durability simulation | PASS | `pnpm run storage:durability-contract` |
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
-| Rollback SHA workflow static check | PASS | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
-| Deploy rollback simulation | PASS | `pnpm run deploy:rollback-simulation --write-evidence --json` |
+| Rollback SHA workflow static check | STALE | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
+| Deploy rollback simulation | STALE | `pnpm run deploy:rollback-simulation --write-evidence --json` |
 | Disaster recovery restore machine proof | FAILED | `pnpm run restore:machine-proof` |
 | Production ingest worker runtime machine proof | FAILED | `pnpm run production-worker:machine-proof` |
 | Historical raw report byte remediation machine proof | FAILED | `pnpm run storage:raw-report-machine-remediation-proof` |
-| Alerting and observability machine proof | FAILED | `pnpm run alerting:machine-proof` |
-| Migration governance machine proof | FAILED | `pnpm run migrations:machine-proof` |
+| Alerting and observability machine proof | FAILED | `pnpm run alerts:machine-proof` |
+| Migration governance machine proof | PASS | `pnpm run migrations:machine-proof` |
 | Retention archive restore machine proof | FAILED | `pnpm run retention:archive-restore-machine-proof` |
+| Combined production machine proof summary | FAILED | `pnpm run production:machine-proofs` |
 | Application check | PASS | `pnpm run check` |
 | Evidence freshness check | FAILED | `internal evidence freshness check` |
 
@@ -42,26 +46,38 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - productionWorkerMachineProof
 - rawReportMachineProof
 - alertingMachineProof
-- migrationMachineProof
 - retentionArchiveRestoreMachineProof
+- machineProofSummary
 - evidenceFreshness
 
 ## Missing Machine Runtime Inputs
 
 - CRP_RESTORE_MACHINE_ATTESTATION_JSON
+- CRP_RESTORE_MACHINE_BACKUP_SOURCE
+- CRP_RESTORE_MACHINE_ISOLATED_TARGET
+- CRP_RESTORE_MACHINE_SAFE_FIXTURE
 - CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
+- CRP_PRODUCTION_WORKER_QUEUE_ACCESS
+- CRP_PRODUCTION_WORKER_LIVENESS_ACCESS
+- CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS
+- CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS
 - CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
 - CRP_ALERTING_MACHINE_ATTESTATION_JSON
 - CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
+- CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS
+- CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET
+- CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
 
 ## Stale Gates
 
+- rollbackShaGovernance
+- deployRollbackSimulation
 - restoreMachineProof
 - productionWorkerMachineProof
 - rawReportMachineProof
 - alertingMachineProof
-- migrationMachineProof
 - retentionArchiveRestoreMachineProof
+- machineProofSummary
 
 ## Skipped Gates
 
@@ -74,10 +90,13 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 
 ## Commands
 
+- `pnpm run typecheck`
+- `pnpm run build`
 - `pnpm run test:contracts`
 - `pnpm run test:api`
 - `pnpm run smoke:auth-workflow`
 - `pnpm run smoke:auth-workflow:packet`
+- `pnpm run test:golden-path`
 - `pnpm run test:deterministic-ingestion-report`
 - `pnpm run response:soak-check`
 - `pnpm run packet-pdf:cache-miss-proof`
@@ -90,9 +109,10 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - `pnpm run restore:machine-proof`
 - `pnpm run production-worker:machine-proof`
 - `pnpm run storage:raw-report-machine-remediation-proof`
-- `pnpm run alerting:machine-proof`
+- `pnpm run alerts:machine-proof`
 - `pnpm run migrations:machine-proof`
 - `pnpm run retention:archive-restore-machine-proof`
+- `pnpm run production:machine-proofs`
 - `pnpm run check`
 - `internal evidence freshness check`
 

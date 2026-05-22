@@ -111,12 +111,29 @@ describe("production-scale certification report", () => {
     expect(REQUIRED_CERTIFICATION_GATES).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          id: "typecheck",
+          command: "pnpm run typecheck",
+        }),
+        expect.objectContaining({
+          id: "build",
+          command: "pnpm run build",
+        }),
+        expect.objectContaining({
+          id: "goldenPath",
+          command: "pnpm run test:golden-path",
+        }),
+        expect.objectContaining({
           id: "authenticatedUploadResults",
           command: "pnpm run smoke:auth-workflow",
         }),
         expect.objectContaining({
           id: "authenticatedPacketPdf",
           command: "pnpm run smoke:auth-workflow:packet",
+        }),
+        expect.objectContaining({
+          id: "machineProofSummary",
+          command: "pnpm run production:machine-proofs",
+          evidencePath: "docs/production-scale/evidence/latest-machine-proof-summary.json",
         }),
       ]),
     );
@@ -298,6 +315,7 @@ describe("production-scale certification report", () => {
     expect(packageJson.scripts.test).toBe("pnpm run test:unit");
     expect(packageJson.scripts.lint).toContain("No lint infrastructure is configured");
     expect(packageJson.scripts.lint).toContain("process.exit(1)");
+    expect(packageJson.scripts.check).toContain("pnpm run typecheck");
     expect(packageJson.scripts.check).toContain("pnpm run test:unit:check");
     expect(packageJson.scripts["test:unit:check"]).toContain("--testTimeout=60000");
     expect(packageJson.scripts["test:unit:check"]).toContain("tests/api/response-processing-queue.spec.ts");
@@ -391,6 +409,40 @@ describe("production-scale certification report", () => {
         missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
         humanInteractionRequired: false,
         reasons: expect.arrayContaining([
+          "missing machine runtime inputs: CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+        ]),
+      });
+  });
+
+  it("fails closed when combined machine proof summary is non-certifying", async () => {
+    const root = tempRepoRoot();
+    const evidencePath = "docs/production-scale/evidence/latest-machine-proof-summary.json";
+    writeEvidence(root, evidencePath, {
+      reportName: "production-machine-proof-summary",
+      generatedAt: "2026-05-21T12:00:02.000Z",
+      currentHead: HEAD,
+      status: "failed",
+      CERTIFYING: false,
+      allMachineProofsCertifying: false,
+      missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+      safetySummary: {
+        humanInteractionRequired: false,
+      },
+    });
+
+    const report = await buildMockReport({
+      repoRoot: root,
+      gates: [gate("machineProofSummary", "pnpm run production:machine-proofs", evidencePath)],
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.failedGates).toContain("evidenceFreshness");
+    expect(report.staleGates).toContain("machineProofSummary");
+    expect(report.missingMachineRuntimeInputs).toEqual(["CRP_RESTORE_MACHINE_ATTESTATION_JSON"]);
+    expect(report.evidenceFreshness.find((entry: { gateId: string }) => entry.gateId === "machineProofSummary"))
+      .toMatchObject({
+        reasons: expect.arrayContaining([
+          "nested evidence is not certifying.",
           "missing machine runtime inputs: CRP_RESTORE_MACHINE_ATTESTATION_JSON",
         ]),
       });

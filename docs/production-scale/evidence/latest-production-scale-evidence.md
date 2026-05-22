@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-22T15:37:51.299Z
+Generated at: 2026-05-22T17:16:37.058Z
 Current branch: `staging`
-Current commit hash: `99b97e37f9326916b48161da4ac79ac762d7a026`
+Current commit hash: `5ad7b1dafa990cd0c7b9285797f514da29f4fec5`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -65,12 +65,12 @@ Ingest worker boundary static proof: passed
   Next action: Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and automated fallback controls without mutating production.
 - #9 Observability/alerting (High; simulated-proof-only)
   Proof required: Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.
-  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm run alerts:machine-proof`, `pnpm run alerts:machine-proof:validate`
+  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
 - #10 Migration governance (High; partial)
-  Proof required: Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.
+  Proof required: Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm run migrations:gate`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts`, `pnpm run typecheck`, `pnpm run migrations:machine-proof`, `pnpm run migrations:machine-proof:validate`
-  Next action: Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.
+  Next action: Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:activation-evidence`, `pnpm run production-worker:runtime-proof`, `pnpm run production-worker:readiness-evidence`, `pnpm run production-deployment-parity:evidence`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -116,9 +116,9 @@ Ingest worker boundary static proof: passed
   Allowed commands: `pnpm run production-scale:evidence`, `pnpm run production-deployment-parity:evidence`, `pnpm run production-worker:runtime-proof`, `pnpm run production-worker:readiness-evidence`, `pnpm run production-worker:activation-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run response-ops:readiness-evidence`, `pnpm run alerts:exclusion:validate`, `pnpm run alerts:dry-run`, `pnpm run runtime-size:policy-acceptance`, `pnpm run production-scale:promotion-pack`, `pnpm run operator:dashboard`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep exact release evidence commands visible in production-scale evidence, production deployment parity evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.
 - #22 Retention archive/restore proof (Medium; partial)
-  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.
+  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.
   Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm run retention:archive-restore-machine-proof`, `pnpm run retention:archive-restore-machine-proof:validate`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run operator:dashboard`
-  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.
+  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.
 - #23 Public routes inventory risk (Medium; partial)
   Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`, `pnpm run production-safe-probes:evidence`
@@ -158,8 +158,8 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Next action: Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and automated fallback controls without mutating production.
 - SIMULATED - #9 Observability/alerting (High; simulated-proof-only)
   Proof required: Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.
-  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm run alerts:machine-proof`, `pnpm run alerts:machine-proof:validate`
+  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
 - SIMULATED - #16 DB pool pressure evidence (Medium; simulated-proof-only)
   Proof required: Accepted release-blocking measured local or staging-safe evidence must record DB pool configured max, observed active/borrowed signal or explicit unavailable reason, latency, queue depth, dashboard references, and zero production DB targeting.
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-measured -- --local`, `pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-tuning-config.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`
@@ -169,9 +169,9 @@ SIMULATED: Local or staging-safe simulated evidence is separated here and is nev
   Allowed commands: `pnpm run baseline:production-scale-local -- --simulated`, `pnpm run baseline:production-scale-measured -- --local`, `pnpm exec vitest run --config vitest.config.ts tests/unit/rate-limiter-simulated-pressure.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-measured.spec.ts`, `pnpm run baseline:production-scale-local -- --dry-run`, `pnpm run operator:dashboard`, `pnpm run test:api`
   Next action: Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic.
 - SIMULATED - #22 Retention archive/restore proof (Medium; partial)
-  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.
+  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.
   Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm run retention:archive-restore-machine-proof`, `pnpm run retention:archive-restore-machine-proof:validate`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run operator:dashboard`
-  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.
+  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.
 
 ## Staging Evidence
 
@@ -241,25 +241,36 @@ No read-only production command is executed by this report. Production certifica
   Next action: Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.
 - #9 Observability/alerting (High; simulated-proof-only)
   Proof required: Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.
-  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm run alerts:machine-proof`, `pnpm run alerts:machine-proof:validate`
+  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
 - #10 Migration governance (High; partial)
-  Proof required: Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.
+  Proof required: Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm run migrations:gate`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts`, `pnpm run typecheck`, `pnpm run migrations:machine-proof`, `pnpm run migrations:machine-proof:validate`
-  Next action: Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.
+  Next action: Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify.
 - #22 Retention archive/restore proof (Medium; partial)
-  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.
+  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.
   Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm run retention:archive-restore-machine-proof`, `pnpm run retention:archive-restore-machine-proof:validate`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run operator:dashboard`
-  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.
+  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.
 
 ## Machine-Attested Proof Commands
 
 - L10-P1-002: `pnpm run restore:machine-proof` -> `docs/production-scale/evidence/latest-restore-machine-proof.json` (present)
 - L10-P1-003: `pnpm run production-worker:machine-proof` -> `docs/production-scale/evidence/latest-production-worker-machine-proof.json` (present)
 - L10-P1-004: `pnpm run storage:raw-report-machine-remediation-proof` -> `docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json` (present)
-- L10-P1-005: `pnpm run alerting:machine-proof` -> `docs/production-scale/evidence/latest-alerting-machine-proof.json` (present)
+- L10-P1-005: `pnpm run alerts:machine-proof` -> `docs/production-scale/evidence/latest-alerting-machine-proof.json` (present)
 - L10-P1-006: `pnpm run migrations:machine-proof` -> `docs/production-scale/evidence/latest-migration-machine-proof.json` (present)
 - retention-archive-restore: `pnpm run retention:archive-restore-machine-proof` -> `docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json` (present)
+
+## Machine Proof Summary
+
+- Path: `docs/production-scale/evidence/latest-machine-proof-summary.json` (present)
+- Readable: yes
+- allMachineProofsCertifying: false
+- CERTIFYING: false
+- Human interaction required: no
+- Stale proof count: 0
+- Simulated-only proof count: 0
+- Missing runtime inputs: CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_QUEUE_ACCESS, CRP_PRODUCTION_WORKER_LIVENESS_ACCESS, CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS, CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
 
 ## Waived Blockers
 
@@ -289,12 +300,12 @@ No read-only production command is executed by this report. Production certifica
   Next action: Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and automated fallback controls without mutating production.
 - #9 Observability/alerting (High; simulated-proof-only)
   Proof required: Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.
-  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
-  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.
+  Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run alerting:machine-proof`, `pnpm run alerting:machine-proof:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`, `pnpm run alerts:machine-proof`, `pnpm run alerts:machine-proof:validate`
+  Next action: Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
 - #10 Migration governance (High; partial)
-  Proof required: Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.
+  Proof required: Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, exact residual classifications, and no release-blocking findings.
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm run migrations:gate`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts`, `pnpm run typecheck`, `pnpm run migrations:machine-proof`, `pnpm run migrations:machine-proof:validate`
-  Next action: Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.
+  Next action: Run migrations:machine-proof and migrations:machine-proof:validate; temporary allowlist residuals cannot certify.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:activation-evidence`, `pnpm run production-worker:runtime-proof`, `pnpm run production-worker:readiness-evidence`, `pnpm run production-deployment-parity:evidence`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -324,9 +335,9 @@ No read-only production command is executed by this report. Production certifica
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/api/support-role-privacy-matrix.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm run production-deployment-parity:evidence`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
   Next action: Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof.
 - #22 Retention archive/restore proof (Medium; partial)
-  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.
+  Proof required: Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.
   Allowed commands: `pnpm run retention:archive-restore:simulated`, `pnpm run retention:archive-restore-machine-proof`, `pnpm run retention:archive-restore-machine-proof:validate`, `pnpm exec vitest run --config vitest.config.ts tests/api/retention-apply-guard-endpoint.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/retention-archive-restore-simulated.spec.ts`, `pnpm run operator:dashboard`
-  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.
+  Next action: Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.
 - #23 Public routes inventory risk (Medium; partial)
   Proof required: Executable route auth contract proof that public legacy handlers remain classified, retired public routes stay reset/410, and public inventory changes require explicit test updates.
   Allowed commands: `pnpm run test:contracts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/public-static-dev-assets.spec.ts`, `pnpm run production-safe-probes:evidence`

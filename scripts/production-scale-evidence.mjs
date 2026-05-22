@@ -8,6 +8,7 @@ import { machineProofRequirementForBlocker } from "./lib/productionMachineProofP
 export const DEFAULT_BLOCKER_REGISTRY_PATH = "docs/production-scale/blocker-registry.json";
 export const DEFAULT_AUDIT_PATH = "docs/production-at-scale-maximum-audit.md";
 export const DEFAULT_EVIDENCE_DIR = "docs/production-scale/evidence";
+export const MACHINE_PROOF_SUMMARY_JSON_PATH = "docs/production-scale/evidence/latest-machine-proof-summary.json";
 
 const OUTPUT_GROUPS = [
   { key: "automatedLocal", title: "Automated Local Evidence", category: "automated-local" },
@@ -63,6 +64,33 @@ function repoPath(rootDir, relativePath) {
 
 function readText(rootDir, relativePath) {
   return readFileSync(repoPath(rootDir, relativePath), "utf8");
+}
+
+function readJsonIfPresent(rootDir, relativePath) {
+  const fullPath = repoPath(rootDir, relativePath);
+  if (!existsSync(fullPath)) {
+    return {
+      exists: false,
+      path: normalizeRelativePath(relativePath),
+      parsed: null,
+      error: "missing",
+    };
+  }
+  try {
+    return {
+      exists: true,
+      path: normalizeRelativePath(relativePath),
+      parsed: JSON.parse(readFileSync(fullPath, "utf8")),
+      error: null,
+    };
+  } catch {
+    return {
+      exists: true,
+      path: normalizeRelativePath(relativePath),
+      parsed: null,
+      error: "unreadable-json",
+    };
+  }
 }
 
 function safeGit(args, rootDir, fallback = "unknown") {
@@ -387,6 +415,8 @@ export function buildProductionScaleEvidenceReport({
   const unresolved = blockers.filter((blocker) => !["fixed", "waived"].includes(blocker.currentStatus));
   const dashboard = collectDashboardEvidence({ rootDir, dashboardReport });
   const ingestWorkerBoundary = collectIngestWorkerBoundaryEvidence({ rootDir });
+  const machineProofSummaryFile = readJsonIfPresent(rootDir, MACHINE_PROOF_SUMMARY_JSON_PATH);
+  const machineProofSummary = machineProofSummaryFile.parsed;
   const auditNumbers = new Set(auditRows.map((row) => row.number));
   const registryNumbers = new Set(blockers.map((blocker) => blocker.number));
   const allAuditBlockersRepresented = auditRows.length === loadedRegistry.expectedBlockerCount &&
@@ -430,6 +460,28 @@ export function buildProductionScaleEvidenceReport({
       ...entry,
       evidencePresent: existsSync(repoPath(rootDir, entry.jsonPath)),
     })),
+    machineProofSummary: {
+      path: machineProofSummaryFile.path,
+      exists: machineProofSummaryFile.exists,
+      readable: Boolean(machineProofSummary),
+      error: machineProofSummaryFile.error,
+      allMachineProofsCertifying: machineProofSummary?.allMachineProofsCertifying === true,
+      CERTIFYING: machineProofSummary?.CERTIFYING === true,
+      policyVersion: machineProofSummary?.policyVersion ?? null,
+      generatedAt: machineProofSummary?.generatedAt ?? null,
+      commitHash: machineProofSummary?.commitHash ?? null,
+      openBlockers: Array.isArray(machineProofSummary?.openBlockers) ? machineProofSummary.openBlockers : [],
+      missingRuntimeInputs: Array.isArray(machineProofSummary?.missingRuntimeInputs)
+        ? machineProofSummary.missingRuntimeInputs
+        : [],
+      humanInteractionRequired: machineProofSummary?.safetySummary?.humanInteractionRequired === true,
+      simulatedOnlyProofCount: Array.isArray(machineProofSummary?.proofResults)
+        ? machineProofSummary.proofResults.filter((proof) => proof?.simulatedOnly === true).length
+        : 0,
+      staleProofCount: Array.isArray(machineProofSummary?.proofResults)
+        ? machineProofSummary.proofResults.filter((proof) => proof?.validation?.stale === true).length
+        : 0,
+    },
     evidence,
     waivedBlockers: waived,
     unresolvedBlockers: unresolved,
@@ -510,6 +562,20 @@ export function renderProductionScaleEvidenceMarkdown(report) {
     lines.push(`- ${proof.blocker}: \`${proof.command}\` -> \`${proof.jsonPath}\` (${proof.evidencePresent ? "present" : "missing"})`);
   }
   lines.push("");
+
+  lines.push(
+    "## Machine Proof Summary",
+    "",
+    `- Path: \`${report.machineProofSummary.path}\` (${report.machineProofSummary.exists ? "present" : "missing"})`,
+    `- Readable: ${report.machineProofSummary.readable ? "yes" : "no"}`,
+    `- allMachineProofsCertifying: ${report.machineProofSummary.allMachineProofsCertifying ? "true" : "false"}`,
+    `- CERTIFYING: ${report.machineProofSummary.CERTIFYING ? "true" : "false"}`,
+    `- Human interaction required: ${report.machineProofSummary.humanInteractionRequired ? "yes" : "no"}`,
+    `- Stale proof count: ${report.machineProofSummary.staleProofCount}`,
+    `- Simulated-only proof count: ${report.machineProofSummary.simulatedOnlyProofCount}`,
+    `- Missing runtime inputs: ${report.machineProofSummary.missingRuntimeInputs.length ? report.machineProofSummary.missingRuntimeInputs.join(", ") : "none"}`,
+    "",
+  );
 
   lines.push("## Waived Blockers", "");
   lines.push(...renderBlockerList(report.waivedBlockers), "");
