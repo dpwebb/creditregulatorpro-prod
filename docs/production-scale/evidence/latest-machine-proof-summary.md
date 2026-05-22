@@ -1,10 +1,10 @@
 # Production Machine Proof Summary
 
-Generated: 2026-05-22T19:08:53.136Z
-Commit: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Generated: 2026-05-22T20:41:37.863Z
+Commit: `035b06c1271475e74d0bbd808daeb001898fe7b3`
 Branch: `staging`
 Policy version: `production-machine-proof-policy-2026-05-22`
-allMachineProofsCertifying:false
+allMachineProofsCertifying:true
 
 ## Safety Summary
 
@@ -19,40 +19,23 @@ allMachineProofsCertifying:false
 
 | Proof area | Status | Certifying | Evidence | Missing inputs |
 | --- | --- | --- | --- | --- |
-| Disaster recovery / restore | fail | false | `docs/production-scale/evidence/latest-restore-machine-proof.json` | CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE |
-| Production ingest worker runtime | fail | false | `docs/production-scale/evidence/latest-production-worker-machine-proof.json` | CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_QUEUE_ACCESS, CRP_PRODUCTION_WORKER_LIVENESS_ACCESS, CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS, CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS |
+| Disaster recovery / restore | pass | true | `docs/production-scale/evidence/latest-restore-machine-proof.json` | none |
+| Production ingest worker runtime | pass | true | `docs/production-scale/evidence/latest-production-worker-machine-proof.json` | none |
 | Raw report byte remediation | pass | true | `docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json` | none |
-| Alerting and observability | fail | false | `docs/production-scale/evidence/latest-alerting-machine-proof.json` | CRP_ALERTING_MACHINE_ATTESTATION_JSON |
+| Alerting and observability | pass | true | `docs/production-scale/evidence/latest-alerting-machine-proof.json` | none |
 | Migration governance | pass | true | `docs/production-scale/evidence/latest-migration-machine-proof.json` | none |
-| Retention archive/restore | fail | false | `docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json` | CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE |
-| Production promotion pack guard | fail | false | `docs/production-scale/evidence/latest-production-promotion-pack.json` | CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_QUEUE_ACCESS, CRP_PRODUCTION_WORKER_LIVENESS_ACCESS, CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS, CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE |
+| Retention archive/restore | pass | true | `docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json` | none |
+| Production promotion pack guard | fail | false | `docs/production-scale/evidence/latest-production-promotion-pack.json` | none |
 
 ## Open Blockers
 
-- L10-P1-002 (restore): missing CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE
-- L10-P1-003 (productionWorker): missing CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_QUEUE_ACCESS, CRP_PRODUCTION_WORKER_LIVENESS_ACCESS, CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS, CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS
-- L10-P1-005 (alerting): missing CRP_ALERTING_MACHINE_ATTESTATION_JSON
-- retention-archive-restore (retentionArchiveRestore): missing CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
-- L10-P1-001 (productionPromotionPackGuard): missing CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_QUEUE_ACCESS, CRP_PRODUCTION_WORKER_LIVENESS_ACCESS, CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS, CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
+- L10-P1-001 (productionPromotionPackGuard): latest-production-promotion-pack.json has CERTIFYING !== true.
 
 ## Missing Runtime Inputs
 
-- CRP_RESTORE_MACHINE_ATTESTATION_JSON
-- CRP_RESTORE_MACHINE_BACKUP_SOURCE
-- CRP_RESTORE_MACHINE_ISOLATED_TARGET
-- CRP_RESTORE_MACHINE_SAFE_FIXTURE
-- CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
-- CRP_PRODUCTION_WORKER_QUEUE_ACCESS
-- CRP_PRODUCTION_WORKER_LIVENESS_ACCESS
-- CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS
-- CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS
-- CRP_ALERTING_MACHINE_ATTESTATION_JSON
-- CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
-- CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS
-- CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET
-- CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
+- None
 
 ## Production Mutation Summary
 
-- Any production mutation: yes
-- Synthetic/canary cleanup succeeded: no
+- Any production mutation: no
+- Synthetic/canary cleanup succeeded: not applicable

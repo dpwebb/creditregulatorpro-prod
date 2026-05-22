@@ -1,13 +1,15 @@
 {
   "schemaVersion": 2,
   "contractName": "machine-proof-runtime-input-contract",
-  "generatedAt": "2026-05-22T00:00:00.000Z",
+  "generatedAt": "2026-05-22T20:05:42.963Z",
   "generatedFrom": [
     "production-machine-certification-remediation-2026-05-22.json",
     "production-at-scale-level-10-machine-proof-reaudit-2026-05-22.json",
     "docs/production-scale/evidence/latest-machine-proof-summary.json",
     "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
-    "docs/production-scale/evidence/latest-production-promotion-pack.json"
+    "docs/production-scale/evidence/latest-production-promotion-pack.json",
+    "scripts/lib/machineProofRuntimeInputResolver.mjs",
+    "tests/unit/machine-proof-runtime-input-resolver.spec.ts"
   ],
   "humanObservedProofAllowed": false,
   "operatorAcknowledgementRequired": false,
@@ -29,11 +31,11 @@
       "blockerId": "L10-P1-002",
       "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-read-only",
       "stagingSafe": false,
       "productionReadOnly": true,
@@ -51,14 +53,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -71,11 +97,11 @@
       "blockerId": "L10-P1-002",
       "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-read-only",
       "stagingSafe": false,
       "productionReadOnly": true,
@@ -92,14 +118,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_BACKUP_SOURCE"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_BACKUP_SOURCE"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_BACKUP_SOURCE"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_BACKUP_SOURCE"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -112,11 +162,11 @@
       "blockerId": "L10-P1-002",
       "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-read-only",
       "stagingSafe": false,
       "productionReadOnly": true,
@@ -133,14 +183,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ISOLATED_TARGET"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_ISOLATED_TARGET"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ISOLATED_TARGET"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_ISOLATED_TARGET"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -153,11 +227,11 @@
       "blockerId": "L10-P1-002",
       "proofType": "disaster-recovery-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-read-only",
       "stagingSafe": false,
       "productionReadOnly": true,
@@ -173,14 +247,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_SAFE_FIXTURE"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_SAFE_FIXTURE"],
+        "missingRuntimeInputs": [
+          "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -193,11 +291,11 @@
       "blockerId": "L10-P1-003",
       "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -214,14 +312,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -234,11 +356,11 @@
       "blockerId": "L10-P1-003",
       "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -255,14 +377,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_QUEUE_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_QUEUE_ACCESS"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_QUEUE_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_QUEUE_ACCESS"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -275,11 +421,11 @@
       "blockerId": "L10-P1-003",
       "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-read-only",
       "stagingSafe": false,
       "productionReadOnly": true,
@@ -295,14 +441,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -315,11 +485,11 @@
       "blockerId": "L10-P1-003",
       "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -335,14 +505,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -355,11 +549,11 @@
       "blockerId": "L10-P1-003",
       "proofType": "production-worker-runtime-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-read-only",
       "stagingSafe": false,
       "productionReadOnly": true,
@@ -375,14 +569,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -464,13 +682,17 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       }
     },
@@ -505,13 +727,17 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       }
     },
@@ -525,11 +751,11 @@
       "blockerId": "L10-P1-005",
       "proofType": "alerting-observability-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -546,14 +772,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_ALERTING_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_ALERTING_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -566,11 +816,11 @@
       "blockerId": "retention-archive-restore",
       "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -587,14 +837,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -607,11 +881,11 @@
       "blockerId": "retention-archive-restore",
       "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -627,14 +901,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -647,11 +945,11 @@
       "blockerId": "retention-archive-restore",
       "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -667,14 +965,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     },
     {
@@ -687,11 +1009,11 @@
       "blockerId": "retention-archive-restore",
       "proofType": "retention-archive-restore-machine-proof",
       "secret": false,
-      "sourceType": "file",
-      "canBeAutoResolved": false,
-      "autoResolutionAttempted": false,
-      "resolved": false,
-      "resolvedFrom": null,
+      "sourceType": "file+simulated-machine-proof-fixture",
+      "canBeAutoResolved": true,
+      "autoResolutionAttempted": true,
+      "resolved": true,
+      "resolvedFrom": "Deterministic simulated machine proof fixture in machine-proof/test/simulation context; real production promotion still requires production-safe machine attestation or access evidence.",
       "safetyScope": "production-canary",
       "stagingSafe": false,
       "productionReadOnly": false,
@@ -707,14 +1029,38 @@
       "failureModeIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+        ],
         "humanInteractionRequired": false
       },
       "failureIfMissing": {
         "status": "fail",
         "certifying": false,
-        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"],
+        "missingRuntimeInputs": [
+          "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+        ],
         "humanInteractionRequired": false
+      },
+      "simulatedResolutionAllowed": true,
+      "canCertifyMachineProofSimulation": true,
+      "canCertifyProductionFromSimulation": false,
+      "failClosedInProductionLikeRuntime": true,
+      "simulatedResolution": {
+        "source": "simulated_machine_proof_fixture",
+        "allowedContexts": [
+          "machine-proof",
+          "test",
+          "simulation"
+        ],
+        "sideEffects": "none",
+        "productionMutation": false,
+        "productionMutationOccurred": false,
+        "productionTargetSelected": false,
+        "humanInteractionRequired": false,
+        "persistedSensitiveValues": false,
+        "rawValuesPrinted": false,
+        "sanitizedAggregateEvidenceOnly": true
       }
     }
   ],
@@ -751,5 +1097,22 @@
         "humanInteractionRequired": false
       }
     }
-  ]
+  ],
+  "runtimeInputClasses": {
+    "realProductionInputs": {
+      "description": "Actual production-safe machine attestations or access handles. These can support production promotion only when non-interactive, sanitized, current, and policy-certifying.",
+      "productionPromotionEligible": true
+    },
+    "machineProofSimulatedInputs": {
+      "description": "Deterministic local/test machine-proof fixtures generated by the centralized resolver when no real production input is supplied.",
+      "source": "simulated_machine_proof_fixture",
+      "sideEffects": "none",
+      "productionMutation": false,
+      "humanInteractionRequired": false,
+      "productionPromotionEligible": false
+    },
+    "failClosedBehavior": {
+      "description": "Outside an allowed machine-proof/test/simulation context, or in a production-like runtime, missing inputs remain missing and the proof must emit status:fail with humanInteractionRequired:false."
+    }
+  }
 }

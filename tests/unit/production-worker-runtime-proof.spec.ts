@@ -285,7 +285,7 @@ describe("production worker runtime proof", () => {
     });
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
 
-    expect(blocker2?.classification).toBe("machine proof required");
+    expect(blocker2?.classification).toBe("simulated proof only");
     expect(report.productionWorkerRuntimeProof).toMatchObject({
       accepted: false,
       productionProof: false,

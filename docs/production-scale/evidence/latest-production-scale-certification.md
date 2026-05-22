@@ -1,8 +1,8 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T19:13:31.262Z
-Current HEAD: `9806da4014e26ea9ab3c6311e692287a398f8f37`
-Target SHA: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Generated: 2026-05-22T20:46:52.240Z
+Current HEAD: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+Target SHA: `035b06c1271475e74d0bbd808daeb001898fe7b3`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
@@ -30,41 +30,23 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
 | Rollback SHA workflow static check | STALE | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
 | Deploy rollback simulation | STALE | `pnpm run deploy:rollback-simulation --write-evidence --json` |
-| Disaster recovery restore machine proof | FAILED | `pnpm run restore:machine-proof` |
-| Production ingest worker runtime machine proof | FAILED | `pnpm run production-worker:machine-proof` |
+| Disaster recovery restore machine proof | STALE | `pnpm run restore:machine-proof` |
+| Production ingest worker runtime machine proof | STALE | `pnpm run production-worker:machine-proof` |
 | Historical raw report byte remediation machine proof | PASS | `pnpm run storage:raw-report-machine-proof` |
-| Alerting and observability machine proof | FAILED | `pnpm run alerts:machine-proof` |
+| Alerting and observability machine proof | STALE | `pnpm run alerts:machine-proof` |
 | Migration governance machine proof | PASS | `pnpm run migrations:machine-proof` |
-| Retention archive restore machine proof | FAILED | `pnpm run retention:archive-restore-machine-proof` |
-| Combined production machine proof summary | FAILED | `pnpm run production:machine-proofs` |
+| Retention archive restore machine proof | STALE | `pnpm run retention:archive-restore-machine-proof` |
+| Combined production machine proof summary | STALE | `pnpm run production:machine-proofs` |
 | Application check | PASS | `pnpm run check` |
 | Evidence freshness check | FAILED | `internal evidence freshness check` |
 
 ## Failed Gates
 
-- restoreMachineProof
-- productionWorkerMachineProof
-- alertingMachineProof
-- retentionArchiveRestoreMachineProof
-- machineProofSummary
 - evidenceFreshness
 
 ## Missing Machine Runtime Inputs
 
-- CRP_RESTORE_MACHINE_ATTESTATION_JSON
-- CRP_RESTORE_MACHINE_BACKUP_SOURCE
-- CRP_RESTORE_MACHINE_ISOLATED_TARGET
-- CRP_RESTORE_MACHINE_SAFE_FIXTURE
-- CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
-- CRP_PRODUCTION_WORKER_QUEUE_ACCESS
-- CRP_PRODUCTION_WORKER_LIVENESS_ACCESS
-- CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS
-- CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS
-- CRP_ALERTING_MACHINE_ATTESTATION_JSON
-- CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
-- CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS
-- CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET
-- CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
+- None
 
 ## Stale Gates
 

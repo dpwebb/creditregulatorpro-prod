@@ -11,12 +11,28 @@ import {
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
 import { buildMachineEvidence } from "../../scripts/lib/productionEvidenceSchema.mjs";
-import { RESTORE_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/restore-machine-proof.mjs";
-import { PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/production-worker-machine-proof.mjs";
+import {
+  buildRestoreMachineProofReport,
+  RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
+  RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+} from "../../scripts/restore-machine-proof.mjs";
+import {
+  buildProductionWorkerMachineProofReport,
+  PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE,
+  PRODUCTION_WORKER_MACHINE_PROOF_RUNTIME_INPUTS,
+} from "../../scripts/production-worker-machine-proof.mjs";
 import { RAW_REPORT_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/storage-raw-report-machine-proof.mjs";
-import { ALERTING_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/alerting-machine-proof.mjs";
+import {
+  ALERTING_MACHINE_PROOF_ATTESTATION_INPUT,
+  ALERTING_MACHINE_PROOF_EVIDENCE_TYPE,
+  buildAlertingMachineProofReport,
+} from "../../scripts/alerting-machine-proof.mjs";
 import { MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/migration-machine-proof.mjs";
-import { RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE } from "../../scripts/retention-archive-restore-machine-proof.mjs";
+import {
+  buildRetentionArchiveRestoreMachineProofReport,
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+} from "../../scripts/retention-archive-restore-machine-proof.mjs";
 import { RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH } from "../../scripts/restore-evidence-acceptance.mjs";
 import { buildProductionDeploymentParityEvidenceReport } from "../../scripts/production-deployment-parity-evidence.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
@@ -1747,7 +1763,7 @@ describe("production promotion evidence pack", () => {
   it("does not claim production-at-scale readiness while unresolved or machine-required blockers remain", () => {
     const report = buildPack();
 
-    expect(report.machineRequiredProof.length).toBeGreaterThan(0);
+    expect(report.simulatedProofOnlyChecks.length).toBeGreaterThan(0);
     expect(report.unresolvedProductionBlockers.length).toBeGreaterThan(0);
     expect(report.readinessClassification.value).toBe("limited beta");
     expect(report.readinessClassification.canPromoteProductionAtScale).toBe(false);
@@ -1774,9 +1790,9 @@ describe("production promotion evidence pack", () => {
         disasterRecoveryRestoreDrill: false,
       },
     });
-    expect(blocker1?.classification).toBe("machine proof required");
-    expect(blocker22?.classification).toBe("machine proof required");
-    expect(report.machineRequiredProof.map((blocker: { number: number }) => blocker.number)).toEqual(
+    expect(blocker1?.classification).toBe("simulated proof only");
+    expect(blocker22?.classification).toBe("simulated proof only");
+    expect(report.simulatedProofOnlyChecks.map((blocker: { number: number }) => blocker.number)).toEqual(
       expect.arrayContaining([1, 22]),
     );
   });
@@ -2050,6 +2066,72 @@ describe("production promotion evidence pack", () => {
     expect(report.requiredStatements.join("\n")).not.toMatch(/operator approval|human-observed|operator acknowledgement/i);
   });
 
+  it("does not carry stale missing runtime inputs after simulated machine fixtures resolve them", () => {
+    const head = currentGitHead();
+    const generatedAt = PROMOTION_GATE_TIMESTAMP;
+    const env = { CRP_MACHINE_EVIDENCE_COMMIT_HASH: head };
+    const formerlyMissingInputs = [
+      ...RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+      ...PRODUCTION_WORKER_MACHINE_PROOF_RUNTIME_INPUTS,
+      ALERTING_MACHINE_PROOF_ATTESTATION_INPUT,
+      ...RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+    ];
+    const staleCertification = productionScaleCertificationEvidence({
+      targetSha: head,
+      generatedAt,
+      overrides: {
+        certifying: false,
+        CERTIFYING: false,
+        failedGates: ["machineProofSummary"],
+        missingMachineRuntimeInputs: formerlyMissingInputs,
+      },
+    });
+    const simulatedSummary = machineProofSummaryEvidence({ targetSha: head, generatedAt });
+    simulatedSummary.proofResults = simulatedSummary.proofResults.map((proof) =>
+      ["restore", "productionWorker", "alerting", "retentionArchiveRestore"].includes(proof.key)
+        ? { ...proof, simulatedOnly: true }
+        : proof);
+
+    const report = buildFullValidPromotionPack({
+      productionScaleCertificationEvidence: staleCertification,
+      certificationEvidence: allPassingCertificationEvidence({
+        targetSha: head,
+        generatedAt,
+        overrides: {
+          productionScaleCertification: staleCertification,
+          machineProofSummary: simulatedSummary,
+        },
+      }),
+      machineProofSummaryEvidence: simulatedSummary,
+      restoreMachineProofEvidence: buildRestoreMachineProofReport({ generatedAt, env, argv: [], allowSimulation: true }),
+      productionWorkerMachineProofEvidence: buildProductionWorkerMachineProofReport({
+        generatedAt,
+        env,
+        argv: [],
+        allowSimulation: true,
+      }),
+      alertingMachineProofEvidence: buildAlertingMachineProofReport({ generatedAt, env, argv: [], allowSimulation: true }),
+      retentionArchiveRestoreMachineProofEvidence: buildRetentionArchiveRestoreMachineProofReport({
+        generatedAt,
+        env,
+        argv: [],
+        allowSimulation: true,
+      }),
+    });
+    const classifications = new Map(report.blockerClassifications.map((blocker: { number: number; classification: string }) => [
+      blocker.number,
+      blocker.classification,
+    ]));
+
+    expect(report.missingMachineRuntimeInputs).toEqual([]);
+    expect(classifications.get(1)).toBe("simulated proof only");
+    expect(classifications.get(2)).toBe("simulated proof only");
+    expect(classifications.get(9)).toBe("simulated proof only");
+    expect(classifications.get(22)).toBe("simulated proof only");
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.readinessClassification.canPromoteProductionAtScale).toBe(false);
+  });
+
   it("can certify in a full valid machine-proof fixture", () => {
     const report = buildFullValidPromotionPack();
 
@@ -2259,8 +2341,8 @@ describe("production promotion evidence pack", () => {
         retentionArchiveRestore: true,
       },
     });
-    expect(blocker1?.classification).toBe("machine proof required");
-    expect(blocker22?.classification).toBe("machine proof required");
+    expect(blocker1?.classification).toBe("simulated proof only");
+    expect(blocker22?.classification).toBe("simulated proof only");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
@@ -2378,7 +2460,7 @@ describe("production promotion evidence pack", () => {
 
     expect(report.humanRestoreDrillEvidenceAcceptance.accepted).toBe(false);
     expect(report.restoreReadinessCheck.stale).toBe(true);
-    expect(blocker1?.classification).toBe("machine proof required");
+    expect(blocker1?.classification).toBe("simulated proof only");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
@@ -2408,7 +2490,7 @@ describe("production promotion evidence pack", () => {
         blocker2StagingQueueDrain: false,
       },
     });
-    expect(blocker2?.classification).toBe("machine proof required");
+    expect(blocker2?.classification).toBe("simulated proof only");
   });
 
   it("records accepted staging queue-drain evidence without closing production blocker 2", () => {
@@ -2423,7 +2505,7 @@ describe("production promotion evidence pack", () => {
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
     const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
 
-    expect(blocker2?.classification).toBe("machine proof required");
+    expect(blocker2?.classification).toBe("simulated proof only");
     expect(blocker11?.classification).toBe("partial");
     expect(report.stagingIngestWorkerEvidence).toMatchObject({
       accepted: true,
@@ -2696,7 +2778,7 @@ describe("production promotion evidence pack", () => {
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
     const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
 
-    expect(blocker2?.classification).toBe("machine proof required");
+    expect(blocker2?.classification).toBe("simulated proof only");
     expect(blocker11?.classification).toBe("partial");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
@@ -2859,7 +2941,7 @@ describe("production promotion evidence pack", () => {
 
     expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("dry-run-only");
     expect(report.responseOpsReadinessEvidence.blockerCoverage.observabilityAlerting).toBe(false);
-    expect(blocker9?.classification).toBe("machine proof required");
+    expect(blocker9?.classification).toBe("simulated proof only");
   });
 
   it("does not close blocker 9 with legacy formal alert exclusion without machine attestation", () => {
@@ -2888,7 +2970,7 @@ describe("production promotion evidence pack", () => {
     expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("formally-excluded");
     expect(report.responseOpsReadinessEvidence.alertingAcceptanceAccepted).toBe(true);
     expect(report.responseOpsReadinessEvidence.alertingAcceptancePath).toBe("formal-exclusion");
-    expect(blocker9?.classification).toBe("machine proof required");
+    expect(blocker9?.classification).toBe("simulated proof only");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
@@ -2919,7 +3001,7 @@ describe("production promotion evidence pack", () => {
 
     expect(alertingExclusionValidation.accepted).toBe(false);
     expect(report.responseOpsReadinessEvidence.alertingAcceptanceAccepted).toBe(false);
-    expect(blocker9?.classification).toBe("machine proof required");
+    expect(blocker9?.classification).toBe("simulated proof only");
   });
 
   it("classifies blocker 21 with exact release evidence commands, not dashboard PASS alone", () => {

@@ -52,11 +52,15 @@ export const MACHINE_PROOF_SUMMARY_MD_PATH = "docs/production-scale/evidence/lat
 
 const OUTPUT_TAIL_LIMIT = 6000;
 const MACHINE_INPUTS_CLOSED_BY_CERTIFYING_AREA = {
+  restore: RESTORE_MACHINE_PROOF_CONFIG.runtimeInputs,
+  productionWorker: PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.runtimeInputs,
   rawReport: [
     "CRP_RAW_REPORT_DATABASE_ACCESS",
     "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
     "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
   ],
+  alerting: ALERTING_MACHINE_PROOF_CONFIG.runtimeInputs,
+  retentionArchiveRestore: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.runtimeInputs,
 };
 
 function repoRootFromScript() {
@@ -495,14 +499,17 @@ function buildMachineProofSummaryPayload({
   const reconciledProofResults = reconcilePromotionGuardMissingInputs(proofResults);
   const openBlockers = buildOpenBlockers(reconciledProofResults);
   const safetySummary = buildSafetySummary(reconciledProofResults);
+  const machineProofResults = reconciledProofResults.filter((result) => result.kind === "machine-proof");
+  const machineProofSafetySummary = buildSafetySummary(machineProofResults);
+  const expectedMachineProofCount = areas.filter((area) => area.kind === "machine-proof").length;
   const productionMutationSummary = buildProductionMutationSummary(reconciledProofResults);
   const allMachineProofsCertifying =
-    reconciledProofResults.length === areas.length &&
-    reconciledProofResults.every((result) => result.certifying === true) &&
-    safetySummary.humanInteractionRequired === false &&
-    safetySummary.manualApprovalRequired === false &&
-    safetySummary.humanObserved === false &&
-    safetySummary.noSecretsPiiRawBytesOrSignedUrlsPrinted === true;
+    machineProofResults.length === expectedMachineProofCount &&
+    machineProofResults.every((result) => result.certifying === true) &&
+    machineProofSafetySummary.humanInteractionRequired === false &&
+    machineProofSafetySummary.manualApprovalRequired === false &&
+    machineProofSafetySummary.humanObserved === false &&
+    machineProofSafetySummary.noSecretsPiiRawBytesOrSignedUrlsPrinted === true;
 
   return sanitizeProductionEvidenceValue({
     reportName: "production-machine-proof-summary",

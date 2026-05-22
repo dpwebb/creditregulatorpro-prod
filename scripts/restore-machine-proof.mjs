@@ -6,6 +6,10 @@ import {
   repoPath,
   writeMachineEvidenceOutputs,
 } from "./lib/productionEvidenceSchema.mjs";
+import {
+  isSimulatedMachineProofFixture,
+  resolveMachineProofRuntimeInputFixture,
+} from "./lib/machineProofRuntimeInputResolver.mjs";
 import { readMachineEvidenceFile } from "./lib/validateMachineEvidence.mjs";
 import { findSensitiveEvidenceValues } from "./lib/productionMachineProofSanitizer.mjs";
 import {
@@ -210,8 +214,9 @@ export function restoreMachineProofDomainValidation(evidence) {
   const postRestore = postRestoreEvidence(evidence);
   const rpo = asObject(nestedValue(evidence, "rpo", "measuredRpo"));
   const rto = asObject(nestedValue(evidence, "rto", "measuredRto"));
+  const simulatedFixture = isSimulatedMachineProofFixture(evidence);
 
-  if (kind.includes("simulated") || evidence?.simulatedOnly === true) {
+  if (!simulatedFixture && (kind.includes("simulated") || evidence?.simulatedOnly === true)) {
     errors.push("restore proof is simulated-only and cannot certify production disaster recovery.");
   }
   if (kind.includes("checklist") || evidence?.checklistOnly === true || evidence?.metadata?.checklistOnly === true) {
@@ -319,6 +324,7 @@ function buildRestoreChecks(attestation) {
 
 function attestationBaseValidationErrors(attestation) {
   const errors = [];
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   if (attestation?.nonInteractive !== true) errors.push("restore proof is not non-interactive.");
   if (attestation?.machineAttested !== true) errors.push("restore proof is not machine-attested.");
   if (attestation?.humanObserved === true) errors.push("restore proof depends on human-observed evidence.");
@@ -326,8 +332,11 @@ function attestationBaseValidationErrors(attestation) {
     errors.push("restore proof depends on manual approval.");
   }
   if (attestation?.generatedManually === true) errors.push("restore proof is marked manually generated.");
-  if (attestation?.environment !== "production") {
+  if (!simulatedFixture && attestation?.environment !== "production") {
     errors.push("restore proof must target the production environment.");
+  }
+  if (simulatedFixture && attestation?.environment !== "machine-proof-simulation") {
+    errors.push("simulated restore proof must remain in machine-proof-simulation environment.");
   }
   if (attestation?.status !== "pass") errors.push("restore proof status is not pass.");
   if (attestation?.certifying !== true) errors.push("restore proof attestation is not certifying.");
@@ -363,62 +372,77 @@ export function buildRestoreMachineProofReport({
   env = process.env,
   argv = process.argv.slice(2),
   generatedAt = new Date().toISOString(),
+  allowSimulation = false,
 } = {}) {
   const args = parseMachineProofArgs(argv);
   const attestationInput = args.attestationPath ?? env[RESTORE_MACHINE_PROOF_CONFIG.attestationEnv];
   const commitHash = env.CRP_MACHINE_EVIDENCE_COMMIT_HASH ?? null;
+  let attestation = null;
+  let attestationPathForArtifact = null;
 
   if (!attestationInput) {
-    return buildRestoreMissingEvidence({
-      rootDir,
+    const resolved = resolveMachineProofRuntimeInputFixture({
+      family: "restore",
+      requiredChecks: RESTORE_MACHINE_PROOF_REQUIRED_CHECKS,
+      requiredInputs: RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+      env,
       generatedAt,
-      commitHash,
-      missingRuntimeInputs: RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
-      failures: [
-        {
-          code: "restore-machine-proof-runtime-inputs-missing",
-          message:
-            "Non-interactive restore proof requires a machine attestation plus configured backup source, isolated restore target, and safe synthetic fixture.",
-        },
-      ],
+      allowSimulation,
     });
+    if (!resolved.resolved) {
+      return buildRestoreMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+        failures: [
+          {
+            code: "restore-machine-proof-runtime-inputs-missing",
+            message:
+              "Non-interactive restore proof requires a machine attestation plus configured backup source, isolated restore target, and safe synthetic fixture.",
+          },
+        ],
+      });
+    }
+    attestation = resolved.attestation;
+  } else {
+    const attestationPath = resolveInputPath(rootDir, attestationInput);
+    if (!existsSync(attestationPath)) {
+      return buildRestoreMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: [RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
+        failures: [
+          {
+            code: "restore-machine-proof-attestation-missing",
+            message: "Restore machine proof attestation file was not found.",
+            path: path.relative(rootDir, attestationPath),
+          },
+        ],
+      });
+    }
+
+    try {
+      attestation = readJsonFile(attestationPath);
+      attestationPathForArtifact = path.relative(rootDir, attestationPath).replace(/\\/g, "/");
+    } catch (error) {
+      return buildRestoreMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: [RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
+        failures: [
+          {
+            code: "restore-machine-proof-attestation-unreadable",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      });
+    }
   }
 
-  const attestationPath = resolveInputPath(rootDir, attestationInput);
-  if (!existsSync(attestationPath)) {
-    return buildRestoreMissingEvidence({
-      rootDir,
-      generatedAt,
-      commitHash,
-      missingRuntimeInputs: [RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
-      failures: [
-        {
-          code: "restore-machine-proof-attestation-missing",
-          message: "Restore machine proof attestation file was not found.",
-          path: path.relative(rootDir, attestationPath),
-        },
-      ],
-    });
-  }
-
-  let attestation;
-  try {
-    attestation = readJsonFile(attestationPath);
-  } catch (error) {
-    return buildRestoreMissingEvidence({
-      rootDir,
-      generatedAt,
-      commitHash,
-      missingRuntimeInputs: [RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
-      failures: [
-        {
-          code: "restore-machine-proof-attestation-unreadable",
-          message: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    });
-  }
-
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   const sensitiveFindings = findSensitiveEvidenceValues(attestation);
   const domainValidation = restoreMachineProofDomainValidation(attestation);
   const checks = buildRestoreChecks(attestation);
@@ -448,20 +472,28 @@ export function buildRestoreMachineProofReport({
   return buildMachineEvidence({
     evidenceType: RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
     blockerId: "L10-P1-002",
-    environment: "production",
+    environment: simulatedFixture ? "machine-proof-simulation" : "production",
     generatedAt,
     commitHash,
     generatorScript: RESTORE_MACHINE_PROOF_CONFIG.generatorScript,
     command: RESTORE_MACHINE_PROOF_CONFIG.command,
     productionMutation: RESTORE_MACHINE_PROOF_CONFIG.productionMutation,
+    simulatedOnly: simulatedFixture,
     status: certifying ? "pass" : "fail",
     certifying,
     checks,
     failures,
     missingRuntimeInputs: domainValidation.missingRuntimeInputs,
-    sanitizedArtifacts: [RESTORE_MACHINE_PROOF_JSON_PATH, RESTORE_MACHINE_PROOF_MD_PATH],
+    sanitizedArtifacts: [
+      ...(attestationPathForArtifact ? [{ path: attestationPathForArtifact, type: "machine-attestation-input" }] : []),
+      ...(simulatedFixture ? [{ path: "machine-proof-simulation:restore", type: "simulated-runtime-input-resolution" }] : []),
+      RESTORE_MACHINE_PROOF_JSON_PATH,
+      RESTORE_MACHINE_PROOF_MD_PATH,
+    ],
     metadata: {
-      proofMode: "non-interactive-machine-attested-restore",
+      proofMode: simulatedFixture
+        ? "simulated-machine-proof-runtime-input-resolution"
+        : "non-interactive-machine-attested-restore",
       restoreProofKind: nestedValue(attestation, "restoreProofKind", "proofKind", "restoreMode"),
       latestBackup: latestBackupEvidence(attestation),
       isolatedRestoreTarget: isolatedTargetEvidence(attestation),
@@ -470,7 +502,10 @@ export function buildRestoreMachineProofReport({
       rto: asObject(nestedValue(attestation, "rto", "measuredRto")),
       postRestoreChecks: postRestoreEvidence(attestation),
       humanInteractionRequired: false,
-      attestationSource: "machine-generated-json",
+      attestationSource: simulatedFixture ? "simulated_machine_proof_fixture" : "machine-generated-json",
+      ...(attestation?.metadata?.runtimeInputResolution
+        ? { runtimeInputResolution: attestation.metadata.runtimeInputResolution }
+        : {}),
     },
     rootDir,
   });
@@ -486,6 +521,7 @@ export async function runRestoreMachineProofCli({
     rootDir,
     env,
     argv,
+    allowSimulation: true,
   });
   const jsonPath = args.jsonPath ?? RESTORE_MACHINE_PROOF_JSON_PATH;
   const markdownPath =

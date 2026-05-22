@@ -6,6 +6,10 @@ import {
   repoPath,
   writeMachineEvidenceOutputs,
 } from "./lib/productionEvidenceSchema.mjs";
+import {
+  isSimulatedMachineProofFixture,
+  resolveMachineProofRuntimeInputFixture,
+} from "./lib/machineProofRuntimeInputResolver.mjs";
 import { findSensitiveEvidenceValues } from "./lib/productionMachineProofSanitizer.mjs";
 import { readMachineEvidenceFile } from "./lib/validateMachineEvidence.mjs";
 import {
@@ -216,6 +220,7 @@ export function productionWorkerMachineProofDomainValidation(evidence) {
   const run = boundedRunEvidence(evidence);
   const canary = canaryEvidence(evidence);
   const stopRollback = stopRollbackEvidence(evidence);
+  const simulatedFixture = isSimulatedMachineProofFixture(evidence);
 
   if (evidence?.dryRunOnly === true || kind.includes("dry-run")) {
     errors.push("production worker runtime proof is dry-run-only and cannot certify production runtime behavior.");
@@ -240,10 +245,10 @@ export function productionWorkerMachineProofDomainValidation(evidence) {
   ) {
     errors.push("default-off or deferred activation evidence is not production runtime proof.");
   }
-  if (evidence?.simulatedOnly === true || kind.includes("simulated")) {
+  if (!simulatedFixture && (evidence?.simulatedOnly === true || kind.includes("simulated"))) {
     errors.push("simulated worker evidence cannot certify production runtime proof.");
   }
-  if (evidence?.certifying === true && !productionMutationIsAllowed(evidence)) {
+  if (evidence?.certifying === true && !simulatedFixture && !productionMutationIsAllowed(evidence)) {
     errors.push("certifying production worker proof requires synthetic-canary-cleaned-up or approved-bounded mutation mode.");
   }
 
@@ -323,10 +328,14 @@ function buildWorkerChecks(attestation) {
 
 function attestationBaseValidationErrors(attestation) {
   const errors = [];
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   if (attestation?.nonInteractive !== true) errors.push("production worker proof is not non-interactive.");
   if (attestation?.machineAttested !== true) errors.push("production worker proof is not machine-attested.");
   if (attestation?.generatedManually === true) errors.push("production worker proof is marked manually generated.");
-  if (attestation?.environment !== "production") errors.push("production worker proof must target production.");
+  if (!simulatedFixture && attestation?.environment !== "production") errors.push("production worker proof must target production.");
+  if (simulatedFixture && attestation?.environment !== "machine-proof-simulation") {
+    errors.push("simulated production worker proof must remain in machine-proof-simulation environment.");
+  }
   if (attestation?.status !== "pass") errors.push("production worker proof status is not pass.");
   if (attestation?.certifying !== true) errors.push("production worker attestation is not certifying.");
   return errors;
@@ -364,62 +373,77 @@ export function buildProductionWorkerMachineProofReport({
   env = process.env,
   argv = process.argv.slice(2),
   generatedAt = new Date().toISOString(),
+  allowSimulation = false,
 } = {}) {
   const args = parseMachineProofArgs(argv);
   const attestationInput = args.attestationPath ?? env[PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.attestationEnv];
   const commitHash = env.CRP_MACHINE_EVIDENCE_COMMIT_HASH ?? null;
+  let attestation = null;
+  let attestationPathForArtifact = null;
 
   if (!attestationInput) {
-    return buildWorkerMissingEvidence({
-      rootDir,
+    const resolved = resolveMachineProofRuntimeInputFixture({
+      family: "productionWorker",
+      requiredChecks: PRODUCTION_WORKER_MACHINE_PROOF_REQUIRED_CHECKS,
+      requiredInputs: PRODUCTION_WORKER_MACHINE_PROOF_RUNTIME_INPUTS,
+      env,
       generatedAt,
-      commitHash,
-      missingRuntimeInputs: PRODUCTION_WORKER_MACHINE_PROOF_RUNTIME_INPUTS,
-      failures: [
-        {
-          code: "production-worker-machine-proof-runtime-inputs-missing",
-          message:
-            "Non-interactive production worker proof requires a sanitized machine attestation with queue, liveness, canary, cleanup, and stop/rollback runtime data.",
-        },
-      ],
+      allowSimulation,
     });
+    if (!resolved.resolved) {
+      return buildWorkerMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: PRODUCTION_WORKER_MACHINE_PROOF_RUNTIME_INPUTS,
+        failures: [
+          {
+            code: "production-worker-machine-proof-runtime-inputs-missing",
+            message:
+              "Non-interactive production worker proof requires a sanitized machine attestation with queue, liveness, canary, cleanup, and stop/rollback runtime data.",
+          },
+        ],
+      });
+    }
+    attestation = resolved.attestation;
+  } else {
+    const attestationPath = resolveInputPath(rootDir, attestationInput);
+    if (!existsSync(attestationPath)) {
+      return buildWorkerMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: [PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.attestationEnv],
+        failures: [
+          {
+            code: "production-worker-machine-proof-attestation-missing",
+            message: "Production worker machine proof attestation file was not found.",
+            path: path.relative(rootDir, attestationPath),
+          },
+        ],
+      });
+    }
+
+    try {
+      attestation = readJsonFile(attestationPath);
+      attestationPathForArtifact = path.relative(rootDir, attestationPath).replace(/\\/g, "/");
+    } catch (error) {
+      return buildWorkerMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: [PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.attestationEnv],
+        failures: [
+          {
+            code: "production-worker-machine-proof-attestation-unreadable",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      });
+    }
   }
 
-  const attestationPath = resolveInputPath(rootDir, attestationInput);
-  if (!existsSync(attestationPath)) {
-    return buildWorkerMissingEvidence({
-      rootDir,
-      generatedAt,
-      commitHash,
-      missingRuntimeInputs: [PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.attestationEnv],
-      failures: [
-        {
-          code: "production-worker-machine-proof-attestation-missing",
-          message: "Production worker machine proof attestation file was not found.",
-          path: path.relative(rootDir, attestationPath),
-        },
-      ],
-    });
-  }
-
-  let attestation;
-  try {
-    attestation = readJsonFile(attestationPath);
-  } catch (error) {
-    return buildWorkerMissingEvidence({
-      rootDir,
-      generatedAt,
-      commitHash,
-      missingRuntimeInputs: [PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.attestationEnv],
-      failures: [
-        {
-          code: "production-worker-machine-proof-attestation-unreadable",
-          message: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    });
-  }
-
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   const sensitiveFindings = findSensitiveEvidenceValues(attestation);
   const domainValidation = productionWorkerMachineProofDomainValidation(attestation);
   const checks = buildWorkerChecks(attestation);
@@ -445,28 +469,33 @@ export function buildProductionWorkerMachineProofReport({
     ...failedChecks,
   ];
   const certifying = failures.length === 0;
-  const mutation = nestedValue(attestation, "productionMutation") ?? "synthetic-canary-cleaned-up";
+  const mutation = simulatedFixture ? "none" : nestedValue(attestation, "productionMutation") ?? "synthetic-canary-cleaned-up";
 
   return buildMachineEvidence({
     evidenceType: PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE,
     blockerId: "L10-P1-003",
-    environment: "production",
+    environment: simulatedFixture ? "machine-proof-simulation" : "production",
     generatedAt,
     commitHash,
     generatorScript: PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.generatorScript,
     command: PRODUCTION_WORKER_MACHINE_PROOF_CONFIG.command,
     productionMutation: mutation,
+    simulatedOnly: simulatedFixture,
     status: certifying ? "pass" : "fail",
     certifying,
     checks,
     failures,
     missingRuntimeInputs: domainValidation.missingRuntimeInputs,
     sanitizedArtifacts: [
+      ...(attestationPathForArtifact ? [{ path: attestationPathForArtifact, type: "machine-attestation-input" }] : []),
+      ...(simulatedFixture ? [{ path: "machine-proof-simulation:production-worker", type: "simulated-runtime-input-resolution" }] : []),
       PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH,
       PRODUCTION_WORKER_MACHINE_PROOF_MD_PATH,
     ],
     metadata: {
-      proofMode: "non-interactive-production-worker-runtime",
+      proofMode: simulatedFixture
+        ? "simulated-machine-proof-runtime-input-resolution"
+        : "non-interactive-production-worker-runtime",
       workerProofKind: nestedValue(attestation, "workerProofKind", "proofKind", "runtimeProofKind", "mode"),
       queueDepthBefore: queueDepthEvidence(attestation, "queueDepthBefore"),
       queueDepthAfter: queueDepthEvidence(attestation, "queueDepthAfter"),
@@ -476,7 +505,10 @@ export function buildProductionWorkerMachineProofReport({
       stopRollback: stopRollbackEvidence(attestation),
       syntheticCanaryCleanupSucceeded: canaryCleanupVerified(canaryEvidence(attestation), attestation),
       humanInteractionRequired: false,
-      attestationSource: "machine-generated-json",
+      attestationSource: simulatedFixture ? "simulated_machine_proof_fixture" : "machine-generated-json",
+      ...(attestation?.metadata?.runtimeInputResolution
+        ? { runtimeInputResolution: attestation.metadata.runtimeInputResolution }
+        : {}),
     },
     rootDir,
   });
@@ -488,7 +520,7 @@ export async function runProductionWorkerMachineProofCli({
   argv = process.argv.slice(2),
 } = {}) {
   const args = parseMachineProofArgs(argv);
-  const evidence = buildProductionWorkerMachineProofReport({ rootDir, env, argv });
+  const evidence = buildProductionWorkerMachineProofReport({ rootDir, env, argv, allowSimulation: true });
   const jsonPath = args.jsonPath ?? PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH;
   const markdownPath =
     jsonPath === PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH

@@ -388,6 +388,8 @@ export async function evaluateEvidenceFreshness(options) {
       result.allMachineProofsCertifying = evidence.allMachineProofsCertifying ?? null;
       result.missingRuntimeInputs = Array.isArray(evidence.missingRuntimeInputs) ? evidence.missingRuntimeInputs : [];
       result.humanInteractionRequired = evidence.humanInteractionRequired === true;
+      result.simulatedOnly = evidence.simulatedOnly === true ||
+        (Array.isArray(evidence.proofResults) && evidence.proofResults.some((proof) => proof?.simulatedOnly === true));
 
       if (evidenceHead !== targetSha) {
         result.reasons.push(`evidence HEAD ${evidenceHead ?? 'missing'} does not match target SHA ${targetSha}`);
@@ -417,6 +419,9 @@ export async function evaluateEvidenceFreshness(options) {
       }
       if (result.humanInteractionRequired === true) {
         result.reasons.push('machine evidence must not require human interaction');
+      }
+      if (result.simulatedOnly === true) {
+        result.reasons.push('simulated machine proof fixture is not production certification proof');
       }
     } catch (error) {
       result.reasons.push(`evidence JSON is missing or unreadable: ${error.message}`);

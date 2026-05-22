@@ -1,17 +1,17 @@
 # Alerting Observability Machine Proof
 
-Generated at: 2026-05-22T19:08:57.714Z
+Generated at: 2026-05-22T20:41:43.397Z
 Evidence type: ALERTING_OBSERVABILITY_MACHINE_PROOF
-Environment: production
-Commit: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Environment: machine-proof-simulation
+Commit: `035b06c1271475e74d0bbd808daeb001898fe7b3`
 Generator: `scripts/alerting-machine-proof.mjs`
 Command: `pnpm run alerts:machine-proof`
 Blocker ID: L10-P1-005
 Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
-Status: fail
-CERTIFYING:false
-Expires at: 2026-05-23T19:08:57.714Z
+Status: pass
+CERTIFYING:true
+Expires at: 2026-05-23T20:41:43.397Z
 
 ## Safety
 
@@ -29,25 +29,26 @@ Expires at: 2026-05-23T19:08:57.714Z
 
 ## Checks
 
-- [fail] synthetic-alert-triggered:
-- [fail] alert-delivery-verified:
-- [fail] sanitized-channel-id-recorded:
-- [fail] correlation-id-recorded:
-- [fail] machine-acknowledgment-verified:
-- [fail] retry-or-failure-behavior-recorded:
-- [fail] response-ops-readiness-verified:
-- [fail] scheduler-status-verified:
-- [fail] no-webhook-or-token-printed:
+- [pass] synthetic-alert-triggered:
+- [pass] alert-delivery-verified:
+- [pass] sanitized-channel-id-recorded:
+- [pass] correlation-id-recorded:
+- [pass] machine-acknowledgment-verified:
+- [pass] retry-or-failure-behavior-recorded:
+- [pass] response-ops-readiness-verified:
+- [pass] scheduler-status-verified:
+- [pass] no-webhook-or-token-printed:
 
 ## Failures
 
-- alerting-machine-proof-runtime-inputs-missing: Non-interactive alerting proof requires a sanitized machine attestation for live synthetic delivery or a repo-policy-approved automated exclusion.
+- None.
 
 ## Missing Runtime Inputs
 
-- CRP_ALERTING_MACHINE_ATTESTATION_JSON
+- None.
 
 ## Sanitized Artifacts
 
 - docs/production-scale/evidence/latest-alerting-machine-proof.json
 - docs/production-scale/evidence/latest-alerting-machine-proof.md
+- machine-proof-simulation:alerting

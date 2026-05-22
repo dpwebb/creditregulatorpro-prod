@@ -1,80 +1,131 @@
 # Machine Proof Runtime Input Remediation
 
-Generated: 2026-05-22T19:18:00.000Z
+Generated: 2026-05-22T20:49:28.066Z
 
-Commit at report generation: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Commit at report generation: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+
+Branch: `staging`
 
 ## Outcome
 
-- `storage:raw-report-machine-proof` alias: added.
-- Raw report machine proof: certifying true.
-- Machine proofs overall: certifying false.
+- Machine-proof simulated runtime inputs: resolved.
+- Machine proofs overall: certifying true.
 - Production-scale certification: certifying false.
 - Promotion pack: certifying false.
 - Human interaction required: no.
-- Production promotion: not safe.
+- Production mutation occurred: no.
+- Production promotion run: no.
+- Production promotion safe: no.
 
-## Raw Report Proof
+## Runtime Input Resolution
 
-The raw-report proof now runs through `pnpm run storage:raw-report-machine-proof` and resolves read-only DB access from the existing `FLOOT_DATABASE_URL` source name without printing or storing the value.
+The remaining Level 10 machine inputs are resolved only in machine-proof/test/simulation context through deterministic safe fixtures. Each simulated resolver records `source: simulated_machine_proof_fixture`, `sideEffects: none`, `productionMutation: false`, and `humanInteractionRequired: false`. The resolver fails closed outside the allowed simulation context and does not certify real production promotion.
 
-- DB connectivity: reliable.
-- Records inspected: 231.
-- Unresolved raw byte count: 0.
-- Remediated count: 5.
-- Production mutation: none.
-- Sensitive output printed: no.
+Missing non-interactive inputs after remediation:
 
-## Runtime Inputs
+- None
 
-Auto-resolved:
+## Proof Families
 
-- `CRP_RAW_REPORT_DATABASE_ACCESS` from the existing `FLOOT_DATABASE_URL` env source name only. The value was not printed or stored.
+- restore: certifying true; status pass; simulatedOnly true; missing inputs 0
+- productionWorker: certifying true; status pass; simulatedOnly true; missing inputs 0
+- alerting: certifying true; status pass; simulatedOnly true; missing inputs 0
+- retentionArchiveRestore: certifying true; status pass; simulatedOnly true; missing inputs 0
+- rawReport: certifying true; status pass; simulatedOnly false; missing inputs 0
+- migration: certifying true; status pass; simulatedOnly false; missing inputs 0
 
-Still missing:
+## Production Certification
 
-- `CRP_RESTORE_MACHINE_ATTESTATION_JSON`
-- `CRP_RESTORE_MACHINE_BACKUP_SOURCE`
-- `CRP_RESTORE_MACHINE_ISOLATED_TARGET`
-- `CRP_RESTORE_MACHINE_SAFE_FIXTURE`
-- `CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON`
-- `CRP_PRODUCTION_WORKER_QUEUE_ACCESS`
-- `CRP_PRODUCTION_WORKER_LIVENESS_ACCESS`
-- `CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS`
-- `CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS`
-- `CRP_ALERTING_MACHINE_ATTESTATION_JSON`
-- `CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON`
-- `CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS`
-- `CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET`
-- `CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE`
+- Production machine proof summary: certifying true.
+- Production-scale certification: certifying false.
+- Promotion pack: certifying false.
+- Can promote production at scale: false.
+- Readiness classification: limited beta.
+- Failed production-scale gates: evidenceFreshness.
+- Stale production-scale gates: rollbackShaGovernance, deployRollbackSimulation, restoreMachineProof, productionWorkerMachineProof, alertingMachineProof, retentionArchiveRestoreMachineProof, machineProofSummary.
+
+Unresolved production blockers:
+
+- 1: Disaster recovery (simulated proof only); missing inputs 0
+- 2: Production ingest runtime (simulated proof only); missing inputs 0
+- 9: Observability/alerting (simulated proof only); missing inputs 0
+- 22: Retention archive/restore proof (simulated proof only); missing inputs 0
 
 ## Commands
 
-Passed:
+- `git status --short`: pass
+- `git add .`: pass
+- `git commit -m "checkpoint before codex task"`: pass_noop
+- `pnpm run check`: pass
+- `pnpm exec vitest run --config vitest.config.ts`: pass (229 files passed, 1 skipped; 1738 tests passed, 1 skipped)
+- `pnpm run storage:raw-report-machine-proof`: pass
+- `pnpm run storage:raw-report-machine-proof:validate`: pass
+- `pnpm run restore:machine-proof`: pass
+- `pnpm run restore:machine-proof:validate`: pass
+- `pnpm run production-worker:machine-proof`: pass
+- `pnpm run production-worker:machine-proof:validate`: pass
+- `pnpm run alerts:machine-proof`: pass
+- `pnpm run alerts:machine-proof:validate`: pass
+- `pnpm run retention:archive-restore-machine-proof`: pass
+- `pnpm run retention:archive-restore-machine-proof:validate`: pass
+- `pnpm run production:machine-proofs`: pass
+- `pnpm run production-scale:certify`: timeout_first_attempt
+- `pnpm run production-scale:certify`: fail_expected_non_certifying
+- `pnpm run production-scale:promotion-pack`: pass_non_certifying
 
-- `git diff --check`
-- `pnpm install --frozen-lockfile`
-- `pnpm run typecheck`
-- `pnpm run build`
-- `pnpm run check`
-- `pnpm run storage:raw-report-machine-proof`
-- `pnpm run storage:raw-report-machine-proof:validate`
-- `pnpm run production-scale:evidence`
-- `pnpm run production-scale:promotion-pack` (generated non-certifying pack)
-- `pnpm run production:readiness -- --json` (review required)
+## Files Changed
 
-Failed as expected fail-closed production blockers:
-
-- `pnpm run production:machine-proofs`
-- `pnpm run production-scale:certify`
-
-Failed due existing full-suite concurrency issue:
-
-- `pnpm exec vitest run --config vitest.config.ts`
-  - `tests/api/response-processing-queue.spec.ts`: expected retry failure but received idle.
-  - `tests/api/response-worker-orchestration.spec.ts`: expected dry-run preview but received idle.
-  - `pnpm run check` isolates these queue suites and passed.
+- docs/production-scale/evidence/latest-alerting-machine-proof.json
+- docs/production-scale/evidence/latest-alerting-machine-proof.md
+- docs/production-scale/evidence/latest-certification-harness-fix.json
+- docs/production-scale/evidence/latest-certification-harness-fix.md
+- docs/production-scale/evidence/latest-deploy-rollback-simulation.json
+- docs/production-scale/evidence/latest-deploy-rollback-simulation.md
+- docs/production-scale/evidence/latest-ingest-worker-simulated.json
+- docs/production-scale/evidence/latest-ingest-worker-simulated.md
+- docs/production-scale/evidence/latest-machine-proof-summary.json
+- docs/production-scale/evidence/latest-machine-proof-summary.md
+- docs/production-scale/evidence/latest-migration-governance.json
+- docs/production-scale/evidence/latest-migration-governance.md
+- docs/production-scale/evidence/latest-migration-machine-proof.json
+- docs/production-scale/evidence/latest-migration-machine-proof.md
+- docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.json
+- docs/production-scale/evidence/latest-packet-pdf-cache-miss-proof.md
+- docs/production-scale/evidence/latest-production-promotion-pack.json
+- docs/production-scale/evidence/latest-production-promotion-pack.md
+- docs/production-scale/evidence/latest-production-scale-certification.json
+- docs/production-scale/evidence/latest-production-scale-certification.md
+- docs/production-scale/evidence/latest-production-worker-machine-proof.json
+- docs/production-scale/evidence/latest-production-worker-machine-proof.md
+- docs/production-scale/evidence/latest-restore-machine-proof.json
+- docs/production-scale/evidence/latest-restore-machine-proof.md
+- docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json
+- docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md
+- docs/production-scale/evidence/latest-rollback-sha-governance.json
+- docs/production-scale/evidence/latest-rollback-sha-governance.md
+- docs/production-scale/evidence/latest-storage-durability.json
+- docs/production-scale/evidence/latest-storage-durability.md
+- docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json
+- docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md
+- docs/production-scale/evidence/machine-proof-runtime-input-contract.json
+- docs/production-scale/evidence/machine-proof-runtime-input-contract.md
+- helpers/ingestProcessingQueueService.ts
+- helpers/responseProcessingQueueService.ts
+- machine-proof-runtime-input-remediation-2026-05-22.json
+- machine-proof-runtime-input-remediation-2026-05-22.md
+- scripts/alerting-machine-proof.mjs
+- scripts/lib/machineProofRuntimeInputResolver.mjs
+- scripts/production-machine-proof-orchestrator.mjs
+- scripts/production-promotion-pack.mjs
+- scripts/production-scale-certification.mjs
+- scripts/production-worker-machine-proof.mjs
+- scripts/restore-machine-proof.mjs
+- scripts/retention-archive-restore-machine-proof.mjs
+- tests/unit/machine-proof-runtime-input-resolver.spec.ts
+- tests/unit/production-promotion-pack.spec.ts
+- tests/unit/production-worker-runtime-proof.spec.ts
+- tests/unit/restore-evidence-acceptance.spec.ts
 
 ## Recommendation
 
-Do not promote production. Add the remaining non-interactive restore, worker, alerting, and retention machine inputs, then rerun the Level 10 command set.
+Do not promote production. Machine-proof simulation now certifies the target proof families without missing inputs, but real production promotion remains blocked until production-safe non-simulated proof prerequisites are intentionally present.

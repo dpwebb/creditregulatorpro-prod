@@ -305,6 +305,7 @@ const MAX_PAYLOAD_ARRAY_ITEMS = 50;
 const MAX_PAYLOAD_STRING_LENGTH = 500;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_LEASE_SECONDS = 300;
+const DEFAULT_IMMEDIATE_RUN_AFTER_SKEW_MS = 1000;
 const FORBIDDEN_KEY_PATTERN =
   /(^|[_.:-])(raw.?text|response.?text|extracted.?text|plain.?text|body|body.?text|html|content|subject|from|to|cc|bcc|sender|recipient|sender.?email|recipient.?email|email.?address|email.?body|full.?email|message.?body|mailbox.?credential|mailbox.?password|imap|smtp|pop3|oauth|oauth.?token|access.?token|refresh.?token|client.?secret|password|token|secret|authorization|cookie|session|api.?key|private.?key|database.?url|connection.?string|storage.?url|signed.?url)($|[_.:-])/i;
 const FORBIDDEN_VALUE_PATTERN =
@@ -489,7 +490,7 @@ function sanitizeToken(value: string | null | undefined, fieldName: string, fall
 }
 
 function sanitizeDate(value: Date | string | null | undefined, fieldName: string): Date {
-  if (!value) return new Date();
+  if (!value) return new Date(Date.now() - DEFAULT_IMMEDIATE_RUN_AFTER_SKEW_MS);
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
     throw new ResponseProcessingQueueError("INVALID_QUEUE_DATE", `${fieldName} must be a valid date.`);

@@ -1,17 +1,17 @@
 # Retention Archive Restore Machine Proof
 
-Generated at: 2026-05-22T19:09:00.520Z
+Generated at: 2026-05-22T20:41:47.512Z
 Evidence type: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF
-Environment: production
-Commit: `9806da4014e26ea9ab3c6311e692287a398f8f37`
+Environment: machine-proof-simulation
+Commit: `035b06c1271475e74d0bbd808daeb001898fe7b3`
 Generator: `scripts/retention-archive-restore-machine-proof.mjs`
 Command: `pnpm run retention:archive-restore-machine-proof`
 Blocker ID: retention-archive-restore
 Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
-Status: fail
-CERTIFYING:false
-Expires at: 2026-05-23T19:09:00.520Z
+Status: pass
+CERTIFYING:true
+Expires at: 2026-05-23T20:41:47.512Z
 
 ## Safety
 
@@ -21,7 +21,7 @@ Expires at: 2026-05-23T19:09:00.520Z
 - Human observed: no
 - Manual approval required: no
 - Dry-run only: no
-- Production mutation: synthetic-canary-cleaned-up
+- Production mutation: none
 - Secrets printed: no
 - PII printed: no
 - Raw report bytes printed: no
@@ -29,28 +29,26 @@ Expires at: 2026-05-23T19:09:00.520Z
 
 ## Checks
 
-- [fail] safe-archive-candidate-selected:
-- [fail] archive-created-or-selected:
-- [fail] archive-metadata-verified:
-- [fail] isolated-restore-target-created:
-- [fail] archive-restore-integrity-verified:
-- [fail] no-pii-exposed:
-- [fail] lifecycle-cleanup-verified:
-- [fail] rollback-recovery-notes-recorded:
-- [fail] isolated-restore-target-destroyed:
+- [pass] safe-archive-candidate-selected:
+- [pass] archive-created-or-selected:
+- [pass] archive-metadata-verified:
+- [pass] isolated-restore-target-created:
+- [pass] archive-restore-integrity-verified:
+- [pass] no-pii-exposed:
+- [pass] lifecycle-cleanup-verified:
+- [pass] rollback-recovery-notes-recorded:
+- [pass] isolated-restore-target-destroyed:
 
 ## Failures
 
-- retention-archive-restore-runtime-inputs-missing: Non-interactive retention archive/restore proof requires a machine attestation plus archive access, isolated restore target, and safe archive candidate evidence.
+- None.
 
 ## Missing Runtime Inputs
 
-- CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
-- CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS
-- CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET
-- CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE
+- None.
 
 ## Sanitized Artifacts
 
+- machine-proof-simulation:retention-archive-restore
 - docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json
 - docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md

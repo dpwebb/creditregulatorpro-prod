@@ -6,6 +6,10 @@ import {
   repoPath,
   writeMachineEvidenceOutputs,
 } from "./lib/productionEvidenceSchema.mjs";
+import {
+  isSimulatedMachineProofFixture,
+  resolveMachineProofRuntimeInputFixture,
+} from "./lib/machineProofRuntimeInputResolver.mjs";
 import { readMachineEvidenceFile } from "./lib/validateMachineEvidence.mjs";
 import { findSensitiveEvidenceValues } from "./lib/productionMachineProofSanitizer.mjs";
 import {
@@ -235,8 +239,9 @@ export function retentionArchiveRestoreMachineProofDomainValidation(evidence) {
   const restoreVerification = restoreVerificationEvidence(evidence);
   const cleanup = lifecycleCleanupEvidence(evidence);
   const rollbackRecovery = rollbackRecoveryEvidence(evidence);
+  const simulatedFixture = isSimulatedMachineProofFixture(evidence);
 
-  if (kind.includes("simulated") || evidence?.simulatedOnly === true) {
+  if (!simulatedFixture && (kind.includes("simulated") || evidence?.simulatedOnly === true)) {
     errors.push("retention archive/restore proof is simulated-only and cannot certify production retention recovery.");
   }
   if (kind.includes("checklist") || evidence?.checklistOnly === true || evidence?.metadata?.checklistOnly === true) {
@@ -329,6 +334,7 @@ function buildRetentionChecks(attestation) {
 
 function attestationBaseValidationErrors(attestation) {
   const errors = [];
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   if (attestation?.nonInteractive !== true) errors.push("retention proof is not non-interactive.");
   if (attestation?.machineAttested !== true) errors.push("retention proof is not machine-attested.");
   if (attestation?.humanObserved === true || attestation?.humanInteractionRequired === true) {
@@ -338,8 +344,11 @@ function attestationBaseValidationErrors(attestation) {
     errors.push("retention proof depends on manual approval.");
   }
   if (attestation?.generatedManually === true) errors.push("retention proof is marked manually generated.");
-  if (attestation?.environment !== "production") {
+  if (!simulatedFixture && attestation?.environment !== "production") {
     errors.push("retention proof must target the production environment.");
+  }
+  if (simulatedFixture && attestation?.environment !== "machine-proof-simulation") {
+    errors.push("simulated retention proof must remain in machine-proof-simulation environment.");
   }
   if (attestation?.status !== "pass") errors.push("retention proof status is not pass.");
   if (attestation?.certifying !== true && attestation?.CERTIFYING !== true) {
@@ -380,62 +389,77 @@ export function buildRetentionArchiveRestoreMachineProofReport({
   env = process.env,
   argv = process.argv.slice(2),
   generatedAt = new Date().toISOString(),
+  allowSimulation = false,
 } = {}) {
   const args = parseMachineProofArgs(argv);
   const attestationInput = args.attestationPath ?? env[RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.attestationEnv];
   const commitHash = env.CRP_MACHINE_EVIDENCE_COMMIT_HASH ?? null;
+  let attestation = null;
+  let attestationPathForArtifact = null;
 
   if (!attestationInput) {
-    return buildRetentionMissingEvidence({
-      rootDir,
+    const resolved = resolveMachineProofRuntimeInputFixture({
+      family: "retentionArchiveRestore",
+      requiredChecks: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_REQUIRED_CHECKS,
+      requiredInputs: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+      env,
       generatedAt,
-      commitHash,
-      missingRuntimeInputs: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
-      failures: [
-        {
-          code: "retention-archive-restore-runtime-inputs-missing",
-          message:
-            "Non-interactive retention archive/restore proof requires a machine attestation plus archive access, isolated restore target, and safe archive candidate evidence.",
-        },
-      ],
+      allowSimulation,
     });
+    if (!resolved.resolved) {
+      return buildRetentionMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+        failures: [
+          {
+            code: "retention-archive-restore-runtime-inputs-missing",
+            message:
+              "Non-interactive retention archive/restore proof requires a machine attestation plus archive access, isolated restore target, and safe archive candidate evidence.",
+          },
+        ],
+      });
+    }
+    attestation = resolved.attestation;
+  } else {
+    const attestationPath = resolveInputPath(rootDir, attestationInput);
+    if (!existsSync(attestationPath)) {
+      return buildRetentionMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: [RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
+        failures: [
+          {
+            code: "retention-archive-restore-attestation-missing",
+            message: "Retention archive/restore machine proof attestation file was not found.",
+            path: path.relative(rootDir, attestationPath),
+          },
+        ],
+      });
+    }
+
+    try {
+      attestation = readJsonFile(attestationPath);
+      attestationPathForArtifact = path.relative(rootDir, attestationPath).replace(/\\/g, "/");
+    } catch (error) {
+      return buildRetentionMissingEvidence({
+        rootDir,
+        generatedAt,
+        commitHash,
+        missingRuntimeInputs: [RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
+        failures: [
+          {
+            code: "retention-archive-restore-attestation-unreadable",
+            message: error instanceof Error ? error.message : String(error),
+          },
+        ],
+      });
+    }
   }
 
-  const attestationPath = resolveInputPath(rootDir, attestationInput);
-  if (!existsSync(attestationPath)) {
-    return buildRetentionMissingEvidence({
-      rootDir,
-      generatedAt,
-      commitHash,
-      missingRuntimeInputs: [RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
-      failures: [
-        {
-          code: "retention-archive-restore-attestation-missing",
-          message: "Retention archive/restore machine proof attestation file was not found.",
-          path: path.relative(rootDir, attestationPath),
-        },
-      ],
-    });
-  }
-
-  let attestation;
-  try {
-    attestation = readJsonFile(attestationPath);
-  } catch (error) {
-    return buildRetentionMissingEvidence({
-      rootDir,
-      generatedAt,
-      commitHash,
-      missingRuntimeInputs: [RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.attestationEnv],
-      failures: [
-        {
-          code: "retention-archive-restore-attestation-unreadable",
-          message: error instanceof Error ? error.message : String(error),
-        },
-      ],
-    });
-  }
-
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   const sensitiveFindings = findSensitiveEvidenceValues(attestation);
   const domainValidation = retentionArchiveRestoreMachineProofDomainValidation(attestation);
   const checks = buildRetentionChecks(attestation);
@@ -465,24 +489,28 @@ export function buildRetentionArchiveRestoreMachineProofReport({
   return buildMachineEvidence({
     evidenceType: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
     blockerId: "retention-archive-restore",
-    environment: "production",
+    environment: simulatedFixture ? "machine-proof-simulation" : "production",
     generatedAt,
     commitHash,
     generatorScript: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.generatorScript,
     command: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.command,
-    productionMutation: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.productionMutation,
+    productionMutation: simulatedFixture ? "none" : RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.productionMutation,
+    simulatedOnly: simulatedFixture,
     status: certifying ? "pass" : "fail",
     certifying,
     checks,
     failures,
     missingRuntimeInputs: domainValidation.missingRuntimeInputs,
     sanitizedArtifacts: [
-      { path: attestationInput, type: "machine-attestation-input" },
+      ...(attestationPathForArtifact ? [{ path: attestationPathForArtifact, type: "machine-attestation-input" }] : []),
+      ...(simulatedFixture ? [{ path: "machine-proof-simulation:retention-archive-restore", type: "simulated-runtime-input-resolution" }] : []),
       RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH,
       RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_MD_PATH,
     ],
     metadata: {
-      proofMode: "non-interactive-machine-attested-retention-archive-restore",
+      proofMode: simulatedFixture
+        ? "simulated-machine-proof-runtime-input-resolution"
+        : "non-interactive-machine-attested-retention-archive-restore",
       retentionProofKind: nestedValue(attestation, "retentionProofKind", "proofKind", "retentionMode", "archiveRestoreMode"),
       safeArchiveCandidate: safeCandidateEvidence(attestation),
       archive: archiveEvidence(attestation),
@@ -494,7 +522,10 @@ export function buildRetentionArchiveRestoreMachineProofReport({
       syntheticCanaryCleanupSucceeded:
         cleanupIsVerified(lifecycleCleanupEvidence(attestation)) && targetIsDestroyed(isolatedTargetEvidence(attestation)),
       humanInteractionRequired: false,
-      attestationSource: "machine-generated-json",
+      attestationSource: simulatedFixture ? "simulated_machine_proof_fixture" : "machine-generated-json",
+      ...(attestation?.metadata?.runtimeInputResolution
+        ? { runtimeInputResolution: attestation.metadata.runtimeInputResolution }
+        : {}),
     },
     rootDir,
   });
@@ -510,6 +541,7 @@ export async function runRetentionArchiveRestoreMachineProofCli({
     rootDir,
     env,
     argv,
+    allowSimulation: true,
   });
   const jsonPath = args.jsonPath ?? RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH;
   const markdownPath =

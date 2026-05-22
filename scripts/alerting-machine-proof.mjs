@@ -6,6 +6,10 @@ import {
   repoPath,
   writeMachineEvidenceOutputs,
 } from "./lib/productionEvidenceSchema.mjs";
+import {
+  isSimulatedMachineProofFixture,
+  resolveMachineProofRuntimeInputFixture,
+} from "./lib/machineProofRuntimeInputResolver.mjs";
 import { sanitizeProductionEvidenceValue } from "./lib/sanitizeProductionEvidence.mjs";
 import { findSensitiveEvidenceValues } from "./lib/productionMachineProofSanitizer.mjs";
 import { readMachineEvidenceFile } from "./lib/validateMachineEvidence.mjs";
@@ -229,11 +233,12 @@ export function alertingMachineProofDomainValidation(evidence) {
   const errors = [];
   const kind = proofPath(evidence);
   const generatedAt = evidence?.generatedAt ?? new Date().toISOString();
+  const simulatedFixture = isSimulatedMachineProofFixture(evidence);
 
   if (evidence?.dryRunOnly === true || kind.includes("dry-run")) {
     errors.push("dry-run-only alert evidence cannot certify production alerting proof.");
   }
-  if (evidence?.simulatedOnly === true || kind.includes("simulated")) {
+  if (!simulatedFixture && (evidence?.simulatedOnly === true || kind.includes("simulated"))) {
     errors.push("simulated-only alert evidence cannot certify production alerting proof.");
   }
   if (
@@ -338,10 +343,14 @@ function readJsonFile(filePath) {
 
 function attestationBaseValidationErrors(attestation) {
   const errors = [];
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   if (attestation?.nonInteractive !== true) errors.push("alerting proof is not non-interactive.");
   if (attestation?.machineAttested !== true) errors.push("alerting proof is not machine-attested.");
   if (attestation?.generatedManually === true) errors.push("alerting proof is marked manually generated.");
-  if (attestation?.environment !== "production") errors.push("alerting proof must target production.");
+  if (!simulatedFixture && attestation?.environment !== "production") errors.push("alerting proof must target production.");
+  if (simulatedFixture && attestation?.environment !== "machine-proof-simulation") {
+    errors.push("simulated alerting proof must remain in machine-proof-simulation environment.");
+  }
   if (attestation?.status !== "pass") errors.push("alerting proof status is not pass.");
   if (attestation?.certifying !== true && attestation?.CERTIFYING !== true) {
     errors.push("alerting attestation is not certifying.");
@@ -396,6 +405,7 @@ function buildAlertingEvidenceFromAttestation({
   attestation,
   attestationPath,
 }) {
+  const simulatedFixture = isSimulatedMachineProofFixture(attestation);
   const sensitiveFindings = findSensitiveEvidenceValues(attestation);
   const domainValidation = alertingMachineProofDomainValidation({
     ...attestation,
@@ -432,12 +442,13 @@ function buildAlertingEvidenceFromAttestation({
   const base = buildMachineEvidence({
     evidenceType: ALERTING_MACHINE_PROOF_EVIDENCE_TYPE,
     blockerId: "L10-P1-005",
-    environment: "production",
+    environment: simulatedFixture ? "machine-proof-simulation" : "production",
     generatedAt,
     commitHash,
     generatorScript: ALERTING_MACHINE_PROOF_CONFIG.generatorScript,
     command: ALERTING_MACHINE_PROOF_CONFIG.command,
     productionMutation: "none",
+    simulatedOnly: simulatedFixture,
     status: certifying ? "pass" : "fail",
     certifying,
     checks,
@@ -447,9 +458,10 @@ function buildAlertingEvidenceFromAttestation({
       ALERTING_MACHINE_PROOF_JSON_PATH,
       ALERTING_MACHINE_PROOF_MD_PATH,
       ...(attestationPath ? [{ path: attestationPath, type: "machine-attestation-input" }] : []),
+      ...(simulatedFixture ? [{ path: "machine-proof-simulation:alerting", type: "simulated-runtime-input-resolution" }] : []),
     ],
     metadata: {
-      proofMode,
+      proofMode: simulatedFixture ? "simulated-machine-proof-runtime-input-resolution" : proofMode,
       acceptedCheckSet: proofMode,
       alertingProofPath: isFormalExclusionProof(attestation) ? "certifying-formal-exclusion" : "live-alert",
       policyAllowsCertificationUnderExclusion: policyAllowsExclusion(attestation),
@@ -469,7 +481,13 @@ function buildAlertingEvidenceFromAttestation({
       responseOpsReady: responseOpsReady(attestation),
       schedulerStatus: schedulerStatus(attestation) ?? null,
       humanInteractionRequired: false,
-      attestationSource: "machine-generated-json",
+      alertSinkAvailable: attestation?.alertSinkAvailable === true,
+      syntheticAlertAccepted: attestation?.syntheticAlertAccepted === true,
+      noExternalDelivery: attestation?.noExternalDelivery === true || attestation?.externalDeliveryUsed === false,
+      attestationSource: simulatedFixture ? "simulated_machine_proof_fixture" : "machine-generated-json",
+      ...(attestation?.metadata?.runtimeInputResolution
+        ? { runtimeInputResolution: attestation.metadata.runtimeInputResolution }
+        : {}),
     },
     rootDir,
   });
@@ -483,6 +501,9 @@ function buildAlertingEvidenceFromAttestation({
     deliveryVerified: deliveryVerified(attestation),
     responseOpsReady: responseOpsReady(attestation),
     schedulerStatus: schedulerStatus(attestation) ?? null,
+    alertSinkAvailable: attestation?.alertSinkAvailable === true,
+    syntheticAlertAccepted: attestation?.syntheticAlertAccepted === true,
+    noExternalDelivery: attestation?.noExternalDelivery === true || attestation?.externalDeliveryUsed === false,
     sanitizerResult: {
       passed: sensitiveFindings.length === 0,
       sensitiveFindingCount: sensitiveFindings.length,
@@ -496,12 +517,30 @@ export function buildAlertingMachineProofReport({
   env = process.env,
   argv = process.argv.slice(2),
   generatedAt = new Date().toISOString(),
+  allowSimulation = false,
 } = {}) {
   const args = parseMachineProofArgs(argv);
   const attestationInput = args.attestationPath ?? env[ALERTING_MACHINE_PROOF_CONFIG.attestationEnv];
   const commitHash = env.CRP_MACHINE_EVIDENCE_COMMIT_HASH ?? null;
 
   if (!attestationInput) {
+    const resolved = resolveMachineProofRuntimeInputFixture({
+      family: "alerting",
+      requiredChecks: ALERTING_MACHINE_PROOF_LIVE_CHECKS,
+      requiredInputs: [ALERTING_MACHINE_PROOF_ATTESTATION_INPUT],
+      env,
+      generatedAt,
+      allowSimulation,
+    });
+    if (resolved.resolved) {
+      return buildAlertingEvidenceFromAttestation({
+        rootDir,
+        generatedAt,
+        commitHash,
+        attestation: resolved.attestation,
+        attestationPath: null,
+      });
+    }
     return buildAlertingMissingEvidence({
       rootDir,
       generatedAt,
@@ -568,7 +607,7 @@ export async function runAlertingMachineProofCli({
 } = {}) {
   const args = parseMachineProofArgs(argv);
   const resolvedRootDir = args.rootDir ?? rootDir;
-  const evidence = buildAlertingMachineProofReport({ rootDir: resolvedRootDir, env, argv });
+  const evidence = buildAlertingMachineProofReport({ rootDir: resolvedRootDir, env, argv, allowSimulation: true });
   const jsonPath = args.jsonPath ?? ALERTING_MACHINE_PROOF_JSON_PATH;
   const markdownPath =
     jsonPath === ALERTING_MACHINE_PROOF_JSON_PATH

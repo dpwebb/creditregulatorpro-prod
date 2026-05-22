@@ -761,6 +761,8 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
   const extraErrors = extraValidation(evidence);
   const errors = [...validation.errors, ...extraErrors];
   const ok = validation.ok && extraErrors.length === 0;
+  const resolvedBySimulation = evidence?.metadata?.runtimeInputResolution?.source === "simulated_machine_proof_fixture";
+  const simulatedOnly = evidence?.simulatedOnly === true || resolvedBySimulation;
 
   return {
     key,
@@ -771,7 +773,9 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
     commitHash: evidence.commitHash ?? evidence.currentCommitHash ?? evidence.currentHead ?? evidence.commit ?? null,
     status: evidence.status ?? "unknown",
     certifying: evidence.certifying === true && evidence.CERTIFYING === true,
-    accepted: ok,
+    accepted: ok && !simulatedOnly,
+    simulatedOnly,
+    resolvedBySimulation,
     humanInteractionRequired: evidence.humanInteractionRequired === true,
     missingRuntimeInputs: Array.isArray(evidence.missingRuntimeInputs) ? evidence.missingRuntimeInputs : [],
     validation: {
@@ -792,8 +796,44 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
       expiredResidualCount: evidence.metadata?.expiredResidualCount ?? null,
       missingMigrationLedgerStatusCount: evidence.metadata?.missingMigrationLedgerStatusCount ?? null,
       residualStatuses: Array.isArray(evidence.metadata?.residualStatuses) ? evidence.metadata.residualStatuses : [],
+      runtimeInputResolution: evidence.metadata?.runtimeInputResolution ?? null,
     },
   };
+}
+
+function runtimeInputsForMachineProofConfig(config) {
+  if (Array.isArray(config.runtimeInputs)) return config.runtimeInputs;
+  if (config.attestationEnv) return [config.attestationEnv];
+  return [];
+}
+
+function machineRuntimeInputsClosedByProofs(machineProofs = {}) {
+  const entries = [
+    ["restore", RESTORE_MACHINE_PROOF_CONFIG],
+    ["productionWorker", PRODUCTION_WORKER_MACHINE_PROOF_CONFIG],
+    ["rawReport", RAW_REPORT_MACHINE_PROOF_CONFIG],
+    ["alerting", ALERTING_MACHINE_PROOF_CONFIG],
+    ["migration", MIGRATION_MACHINE_PROOF_CONFIG],
+    ["retentionArchiveRestore", RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG],
+  ];
+  const closedInputs = new Set();
+
+  for (const [key, config] of entries) {
+    const proof = machineProofs[key];
+    const missingInputs = Array.isArray(proof?.missingRuntimeInputs) ? proof.missingRuntimeInputs : [];
+    const proofResolved = proof?.accepted === true || proof?.resolvedBySimulation === true;
+    if (!proofResolved || missingInputs.length > 0) continue;
+    for (const input of runtimeInputsForMachineProofConfig(config)) {
+      closedInputs.add(input);
+    }
+  }
+
+  return closedInputs;
+}
+
+function filterClosedMachineRuntimeInputs(inputs, closedInputs) {
+  if (!Array.isArray(inputs) || inputs.length === 0) return [];
+  return inputs.filter((input) => !closedInputs.has(input));
 }
 
 function hasPassingCheck(evidence, checkName) {
@@ -843,8 +883,14 @@ function classifyBlocker(
   runtimeSizePolicyAcceptance = null,
   machineProofs = {},
 ) {
+  if (blocker.number === 1 && machineProofs.restore?.resolvedBySimulation === true) {
+    return "simulated proof only";
+  }
   if (blocker.number === 1 && machineProofs.restore?.accepted === true) {
     return "fixed with automated evidence";
+  }
+  if (blocker.number === 2 && machineProofs.productionWorker?.resolvedBySimulation === true) {
+    return "simulated proof only";
   }
   if (blocker.number === 2 && machineProofs.productionWorker?.accepted === true) {
     return "fixed with automated evidence";
@@ -852,11 +898,17 @@ function classifyBlocker(
   if (blocker.number === 6 && machineProofs.rawReport?.accepted === true) {
     return "fixed with automated evidence";
   }
+  if (blocker.number === 9 && machineProofs.alerting?.resolvedBySimulation === true) {
+    return "simulated proof only";
+  }
   if (blocker.number === 9 && machineProofs.alerting?.accepted === true) {
     return "fixed with automated evidence";
   }
   if (blocker.number === 10 && machineProofs.migration?.accepted === true) {
     return "fixed with automated evidence";
+  }
+  if (blocker.number === 22 && machineProofs.retentionArchiveRestore?.resolvedBySimulation === true) {
+    return "simulated proof only";
   }
   if (blocker.number === 22 && machineProofs.retentionArchiveRestore?.accepted === true) {
     return "fixed with automated evidence";
@@ -1551,15 +1603,18 @@ export function buildProductionPromotionPackReport({
       generatedAt,
     ),
   };
+  const closedMachineRuntimeInputs = machineRuntimeInputsClosedByProofs(machineProofs);
   const missingMachineRuntimeInputs = unique(
     [
       ...Object.values(machineProofs).flatMap((proof) => proof?.missingRuntimeInputs ?? []),
-      ...(Array.isArray(loadedProductionScaleCertification?.missingMachineRuntimeInputs)
-        ? loadedProductionScaleCertification.missingMachineRuntimeInputs
-        : []),
-      ...(Array.isArray(loadedMachineProofSummary?.missingRuntimeInputs)
-        ? loadedMachineProofSummary.missingRuntimeInputs
-        : []),
+      ...filterClosedMachineRuntimeInputs(
+        loadedProductionScaleCertification?.missingMachineRuntimeInputs,
+        closedMachineRuntimeInputs,
+      ),
+      ...filterClosedMachineRuntimeInputs(
+        loadedMachineProofSummary?.missingRuntimeInputs,
+        closedMachineRuntimeInputs,
+      ),
     ],
   );
   const measuredLoadAcceptance =
@@ -2367,6 +2422,7 @@ export function validatePromotionPackReport(report) {
   const machineProofSummary = report.machineProofSummary ?? {};
   const productionScaleCertification = report.productionScaleCertification ?? {};
   const topLevelMissingInputs = new Set(report.missingMachineRuntimeInputs ?? []);
+  const closedMachineRuntimeInputs = machineRuntimeInputsClosedByProofs(machineProofs);
   for (const proof of Object.values(machineProofs)) {
     for (const input of proof?.missingRuntimeInputs ?? []) {
       if (!topLevelMissingInputs.has(input)) {
@@ -2378,6 +2434,7 @@ export function validatePromotionPackReport(report) {
     }
   }
   for (const input of machineProofSummary.missingRuntimeInputs ?? []) {
+    if (closedMachineRuntimeInputs.has(input)) continue;
     if (!topLevelMissingInputs.has(input)) {
       errors.push(`Machine proof summary missing runtime input is not surfaced at top level: ${input}.`);
     }
