@@ -1,10 +1,10 @@
 {
   "reportName": "migration-governance-drift-evidence",
   "CERTIFYING": false,
-  "generatedAt": "2026-05-22T02:48:10.569Z",
-  "evidenceTimestamp": "2026-05-22T02:48:10.569Z",
+  "generatedAt": "2026-05-22T04:21:26.508Z",
+  "evidenceTimestamp": "2026-05-22T04:21:26.508Z",
   "branch": "staging",
-  "commit": "35388f20d9c58282405602a7205a987ece110410",
+  "commit": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
   "safety": {
     "nonMutating": true,
     "requiresDatabase": false,
@@ -1754,7 +1754,7 @@
     "reason": "check:migrations is an inventory evidence command. Production certification requires migrations:gate with CERTIFYING:true and no active temporary runtime ensure allowlist entries."
   },
   "recommendation": "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
-  "deployGateRecommendation": "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible and non-certifying until converted.",
+  "deployGateRecommendation": "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible, non-certifying, and release-blocking until converted.",
   "validation": {
     "ok": true,
     "errors": []

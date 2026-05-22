@@ -484,7 +484,7 @@ export function scanMigrationState({
       : "Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.",
     deployGateRecommendation: hasOpenInventoryRisk
       ? "Production promotion gate must fail until missing, unknown, or unledgered schema mutation sources are resolved."
-      : "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible and non-certifying until converted.",
+      : "Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible, non-certifying, and release-blocking until converted.",
   };
 }
 

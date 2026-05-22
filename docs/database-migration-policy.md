@@ -119,15 +119,16 @@ Current policy mode:
 
 - `release-blocking`.
 - `helpers/ingestProcessingQueueSchema.ts` is represented by reviewed additive migration `migrations/0001-ingest-processing-queue-reviewed-additive.sql`.
-- Remaining runtime ensure residuals are explicitly time-bound temporary production allowlist entries that make evidence `CERTIFYING:false` until converted.
+- Temporary runtime ensure allowlist residuals are tracked with owner, reason, expiry, and `CERTIFYING:false`, but remain release-blocking until converted to reviewed additive migration evidence or removed through governed cutover.
+- Remaining runtime ensure residuals are explicitly time-bound temporary production allowlist entries that keep evidence `CERTIFYING:false` and fail the gate until converted.
 
 The gate does not connect to the database, read credentials, run DDL, alter tables, update generated types, mutate production data, or change runtime behavior.
 
 ## Current Residual Risk
 
-Runtime ensure functions remain active. They are production-promotion governed residuals, not fully certified migration governance. Unknown mutation sources, unledgered sources, missing expected sources, missing expected inventory entries, unauthorized runtime ensure sources, invalid converted migration entries, and expired or incomplete temporary allowlist entries are release-blocking findings.
+Runtime ensure functions remain active. They are production-promotion governed residuals, not fully certified migration governance. Unknown mutation sources, unledgered sources, missing expected sources, missing expected inventory entries, unauthorized runtime ensure sources, invalid converted migration entries, and active, expired, or incomplete temporary allowlist entries are release-blocking findings.
 
-Migration governance is production-certifying only when `migrations:gate` accepts release-blocking mode with `CERTIFYING:true`. While any temporary runtime ensure allowlist entry remains active, the production promotion gate may pass, but the evidence must remain `CERTIFYING:false`.
+Migration governance is production-certifying only when `migrations:gate` accepts release-blocking mode with `CERTIFYING:true`. While any temporary runtime ensure allowlist entry remains active, the production promotion gate fails closed and the evidence must remain `CERTIFYING:false`.
 
 ## Remediation Path
 

@@ -251,7 +251,7 @@ describe("migration gate", () => {
     }
   });
 
-  it("reports approved temporary allowlist entries as non-certifying production promotion evidence", () => {
+  it("fails production-mode governance when a temporary allowlist residual is unresolved", () => {
     const rootDir = tempRoot();
     try {
       writeKnownRuntimeFixture(rootDir);
@@ -274,26 +274,30 @@ describe("migration gate", () => {
         generatedAt,
       });
 
-      expect(report.status).toBe("accepted-temporary-allowlist");
-      expect(report.releaseGateAccepted).toBe(true);
-      expect(report.productionPromotionGateAccepted).toBe(true);
+      expect(report.status).toBe("failed");
+      expect(report.releaseGateAccepted).toBe(false);
+      expect(report.productionPromotionGateAccepted).toBe(false);
       expect(report.CERTIFYING).toBe(false);
+      expect(report.runtimeEnsureResidualImpact).toBe("release-blocking");
       expect(report.blockerCoverage).toMatchObject({
-        productionPromotionGate: true,
+        productionPromotionGate: false,
         migrationGovernance: false,
         temporaryAllowlistActive: true,
       });
       expect(report.temporaryAllowlistResiduals).toEqual([
         expect.objectContaining({
           path: "helpers/knownSchema.ts",
+          impact: "release-blocking",
+          classification: "still-requires-temporary-acceptance-with-explicit-expiry",
           CERTIFYING: false,
         }),
       ]);
-      expect(report.findings).toEqual(
+      expect(report.releaseBlockingFindings).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            category: "temporary-runtime-ensure-allowlist",
-            impact: "temporary-allowlist",
+            category: "unresolved-temporary-runtime-allowlist",
+            impact: "release-blocking",
+            status: "unresolved",
             sourcePath: "helpers/knownSchema.ts",
           }),
         ]),
@@ -304,7 +308,7 @@ describe("migration gate", () => {
     }
   });
 
-  it("fails production-mode governance for invalid temporary allowlist entries", () => {
+  it("fails production-mode governance for expired temporary allowlist entries", () => {
     const rootDir = tempRoot();
     try {
       writeKnownRuntimeFixture(rootDir);
@@ -331,12 +335,66 @@ describe("migration gate", () => {
       expect(report.releaseBlockingFindings).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            category: "invalid-temporary-runtime-allowlist",
+            category: "expired-temporary-runtime-allowlist",
             sourcePath: "helpers/knownSchema.ts",
             impact: "release-blocking",
+            status: "expired",
           }),
         ]),
       );
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  it("passes production-mode governance when residuals are ledgered and reviewed", () => {
+    const rootDir = tempRoot();
+    try {
+      writeKnownRuntimeFixture(rootDir);
+      writeFileSync(
+        path.join(rootDir, "migrations", "0001-known-schema-reviewed-additive.sql"),
+        [
+          "-- Reviewed runtime ensure source: helpers/knownSchema.ts",
+          "create table if not exists public.known_schema (",
+          "  id text primary key",
+          ");",
+          "",
+        ].join("\n"),
+      );
+
+      const report = buildMigrationGateReport({
+        rootDir,
+        policy: policy({
+          currentMode: "release-blocking",
+          runtimeEntries: [{
+            path: "helpers/knownSchema.ts",
+            status: "converted-reviewed-additive",
+            reviewedMigration: "migrations/0001-known-schema-reviewed-additive.sql",
+            ledgerEntry: "migrations/0001-known-schema-reviewed-additive.md",
+            productionPromotionAuthorized: true,
+            cutoverRequired: false,
+          }],
+        }),
+        scanRoots: ["helpers"],
+        ledgerDir: "migrations",
+        expectedSources: knownRuntimeSource(),
+        generatedAt,
+      });
+
+      expect(report.status).toBe("accepted-release-blocking");
+      expect(report.CERTIFYING).toBe(true);
+      expect(report.releaseGateAccepted).toBe(true);
+      expect(report.productionPromotionGateAccepted).toBe(true);
+      expect(report.temporaryAllowlistActive).toBe(false);
+      expect(report.blockerCoverage.migrationGovernance).toBe(true);
+      expect(report.residualClassifications).toEqual([
+        expect.objectContaining({
+          path: "helpers/knownSchema.ts",
+          classification: "already-covered-by-additive-migration",
+          impact: "reviewed-additive",
+        }),
+      ]);
+      expect(validateMigrationGateReport(report)).toEqual({ ok: true, errors: [] });
     } finally {
       rmSync(rootDir, { recursive: true, force: true });
     }
@@ -362,20 +420,29 @@ describe("migration gate", () => {
     ]));
   });
 
-  it("current production policy keeps the gate hard but non-certifying while allowlist entries remain", () => {
+  it("current production policy fails closed while allowlist entries remain", () => {
     const report = buildMigrationGateReport({
       rootDir: process.cwd(),
       generatedAt,
     });
 
-    expect(report.status).toBe("accepted-temporary-allowlist");
-    expect(report.releaseGateAccepted).toBe(true);
-    expect(report.productionPromotionGateAccepted).toBe(true);
+    expect(report.status).toBe("failed");
+    expect(report.releaseGateAccepted).toBe(false);
+    expect(report.productionPromotionGateAccepted).toBe(false);
     expect(report.CERTIFYING).toBe(false);
+    expect(report.runtimeEnsureResidualImpact).toBe("release-blocking");
     expect(report.convertedRuntimeResiduals.map((source: { path: string }) => source.path)).toContain(
       "helpers/ingestProcessingQueueSchema.ts",
     );
     expect(report.temporaryAllowlistResiduals.length).toBeGreaterThan(0);
+    expect(report.releaseBlockingFindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: "unresolved-temporary-runtime-allowlist",
+          impact: "release-blocking",
+        }),
+      ]),
+    );
     expect(validateMigrationGateReport(report)).toEqual({ ok: true, errors: [] });
   });
 

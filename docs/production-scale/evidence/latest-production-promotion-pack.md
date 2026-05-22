@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T04:09:59.934Z
+Generated at: 2026-05-22T04:21:36.456Z
 Current branch: `staging`
-Current commit hash: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
-Current HEAD: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
+Current commit hash: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
+Current HEAD: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
 Target environment: `production`
-Target SHA: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
+Target SHA: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -31,7 +31,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
+- Target SHA: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -40,15 +40,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=164c45aae7ef9e666f975b84011a8bd0b03150bc; timestamp=2026-05-22T04:09:59.934Z; command=`pnpm run production-worker:readiness-evidence`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=72a2bbfa97df8498620613ed1e0bf3051735f04f; timestamp=2026-05-22T04:21:36.456Z; command=`pnpm run production-worker:readiness-evidence`
 - Storage durability: non-certifying; status=missing; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T03:52:31.745Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=164c45aae7ef9e666f975b84011a8bd0b03150bc; timestamp=2026-05-22T04:09:59.934Z; command=`pnpm run migrations:gate`
+- Migration governance: non-certifying; status=failed; head=72a2bbfa97df8498620613ed1e0bf3051735f04f; timestamp=2026-05-22T04:21:36.456Z; command=`pnpm run migrations:gate`
 - Rollback simulation: non-certifying; status=passed; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:41.545Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T04:09:59.934Z; completed=2026-05-22T04:09:59.934Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T04:21:36.456Z; completed=2026-05-22T04:21:36.456Z
 
 ## Command Result Summary
 
@@ -261,14 +261,14 @@ Production-ready claim: **false**
 
 ## Migration Gate Evidence
 
-- Status: accepted-temporary-allowlist
+- Status: failed
 - Policy mode: release-blocking
 - CERTIFYING:false
-- Release gate accepted: yes
-- Production promotion gate accepted: yes
+- Release gate accepted: no
+- Production promotion gate accepted: no
 - Temporary allowlist active: yes
-- Runtime ensure residual impact: temporary-allowlist
-- Release-blocking findings: 0
+- Runtime ensure residual impact: release-blocking
+- Release-blocking findings: 12
 - Formal waiver accepted: no
 - Formal waiver reason: n/a
 - Blocker 10 coverage: not accepted

@@ -1,16 +1,16 @@
 {
   "reportName": "migration-governance-release-gate",
   "evidenceType": "MIGRATION_GATE_EVIDENCE",
-  "generatedAt": "2026-05-22T00:46:12.554Z",
+  "generatedAt": "2026-05-22T04:21:30.934Z",
   "branch": "staging",
-  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
+  "commit": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
   "policyPath": "docs/production-scale/migration-governance-policy.json",
   "policyName": "production-scale-migration-governance-policy",
   "policyMode": "release-blocking",
-  "status": "accepted-temporary-allowlist",
+  "status": "failed",
   "CERTIFYING": false,
-  "releaseGateAccepted": true,
-  "productionPromotionGateAccepted": true,
+  "releaseGateAccepted": false,
+  "productionPromotionGateAccepted": false,
   "temporaryAllowlistActive": true,
   "checkerValidation": {
     "ok": true,
@@ -31,6 +31,7 @@
     {
       "path": "helpers/ingestProcessingQueueSchema.ts",
       "status": "converted-reviewed-additive",
+      "residualClassification": "already-covered-by-additive-migration",
       "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
       "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
       "productionPromotionAuthorized": true,
@@ -40,6 +41,7 @@
     {
       "path": "helpers/aiAssistRunStore.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -50,6 +52,7 @@
     {
       "path": "helpers/consumerIdentification.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -60,6 +63,7 @@
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -70,6 +74,7 @@
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -80,6 +85,7 @@
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -90,6 +96,7 @@
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -100,6 +107,7 @@
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -110,6 +118,7 @@
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -120,6 +129,7 @@
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -130,6 +140,7 @@
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -140,6 +151,7 @@
     {
       "path": "helpers/responseDocumentSchema.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -150,6 +162,7 @@
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -191,7 +204,7 @@
     },
     {
       "pattern": "unauthorized runtime ensure source",
-      "reason": "Production promotion must fail when a runtime ensure path is neither converted nor time-bound on the temporary allowlist."
+      "reason": "Production promotion must fail when a runtime ensure path is not converted to reviewed additive migration evidence; temporary allowlist entries are tracked as release-blocking residuals until conversion."
     }
   ],
   "releaseGateRequirements": [
@@ -207,8 +220,10 @@
     "Unauthorized runtime ensure source count must be zero.",
     "Converted runtime ensure entries must reference reviewed additive migration files.",
     "Temporary runtime ensure allowlist entries must include ownerRole, reason, expiresOn, and CERTIFYING:false.",
+    "Active temporary runtime ensure allowlist entries are release-blocking production promotion residuals.",
+    "Expired temporary runtime ensure allowlist entries must fail with expired status.",
     "The gate must remain non-mutating and must not connect to a database.",
-    "CERTIFYING must remain false while any temporary runtime ensure allowlist entry is active."
+    "CERTIFYING and productionPromotionGateAccepted must remain false while any temporary runtime ensure allowlist entry is active."
   ],
   "waiverRequirements": [
     "Formal waiver mode is not the current production promotion gate policy.",
@@ -235,67 +250,199 @@
     {
       "path": "helpers/aiAssistRunStore.ts",
       "description": "AI assist run audit table ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/consumerIdentification.ts",
       "description": "Consumer identification document table ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "description": "Dispute packet findings table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/ingestProcessingQueueSchema.ts",
       "description": "Ingest processing job and event table/index ensure.",
-      "impact": "reviewed-additive"
+      "impact": "reviewed-additive",
+      "classification": "already-covered-by-additive-migration",
+      "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "expiresOn": null
     },
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "description": "Outcome comparison and finding outcome table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "description": "Parser rule promotion table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "description": "Parser test adjudication table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "description": "Parser training archive table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "description": "Regulation reconciliation candidate table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "description": "Regulation registry and mapping table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "description": "Regulation runtime bridge mapping table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/responseDocumentSchema.ts",
       "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     },
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "description": "Violation correction and regulation reference table/index ensure.",
-      "impact": "temporary-allowlist"
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    }
+  ],
+  "residualClassifications": [
+    {
+      "path": "helpers/aiAssistRunStore.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/consumerIdentification.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/disputePacketFindingsSchema.tsx",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/ingestProcessingQueueSchema.ts",
+      "classification": "already-covered-by-additive-migration",
+      "impact": "reviewed-additive",
+      "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
+      "expiresOn": null
+    },
+    {
+      "path": "helpers/outcomeTrackingSchema.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/parserRulePromotionSchema.tsx",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/parserTestAdjudicationSchema.tsx",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/parserTestTrainingArchive.tsx",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/regulationReconciliationCandidateService.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/regulationRegistrySchema.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/responseDocumentSchema.ts",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
+    },
+    {
+      "path": "helpers/violationCorrectionSchema.tsx",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
+      "impact": "release-blocking",
+      "reviewedMigration": null,
+      "expiresOn": "2026-06-30"
     }
   ],
   "convertedRuntimeResiduals": [
@@ -303,6 +450,7 @@
       "path": "helpers/ingestProcessingQueueSchema.ts",
       "description": "Ingest processing job and event table/index ensure.",
       "impact": "reviewed-additive",
+      "classification": "already-covered-by-additive-migration",
       "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
       "simulation": {
         "ok": true,
@@ -333,7 +481,8 @@
     {
       "path": "helpers/aiAssistRunStore.ts",
       "description": "AI assist run audit table ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -342,7 +491,8 @@
     {
       "path": "helpers/consumerIdentification.ts",
       "description": "Consumer identification document table ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -351,7 +501,8 @@
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "description": "Dispute packet findings table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -360,7 +511,8 @@
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "description": "Outcome comparison and finding outcome table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -369,7 +521,8 @@
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "description": "Parser rule promotion table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -378,7 +531,8 @@
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "description": "Parser test adjudication table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -387,7 +541,8 @@
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "description": "Parser training archive table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -396,7 +551,8 @@
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "description": "Regulation reconciliation candidate table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -405,7 +561,8 @@
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "description": "Regulation registry and mapping table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -414,7 +571,8 @@
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "description": "Regulation runtime bridge mapping table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -423,7 +581,8 @@
     {
       "path": "helpers/responseDocumentSchema.ts",
       "description": "Response document, queue, orchestration, and lifecycle table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -432,40 +591,41 @@
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "description": "Violation correction and regulation reference table/index ensure.",
-      "impact": "temporary-allowlist",
+      "impact": "release-blocking",
+      "classification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "reason": "Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding.",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
       "CERTIFYING": false
     }
   ],
-  "runtimeEnsureResidualImpact": "temporary-allowlist",
+  "runtimeEnsureResidualImpact": "release-blocking",
   "findings": [
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/aiAssistRunStore.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/consumerIdentification.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
     },
     {
@@ -478,197 +638,306 @@
       "detail": "Ingest processing job and event table/index ensure. Reviewed migration: migrations/0001-ingest-processing-queue-reviewed-additive.sql"
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/outcomeTrackingSchema.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/parserRulePromotionSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/parserTestTrainingArchive.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/regulationRegistrySchema.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/responseDocumentSchema.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/violationCorrectionSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
     }
   ],
-  "releaseBlockingFindings": [],
+  "releaseBlockingFindings": [
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/aiAssistRunStore.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/consumerIdentification.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/outcomeTrackingSchema.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/parserRulePromotionSchema.tsx",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/parserTestTrainingArchive.tsx",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/regulationRegistrySchema.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/responseDocumentSchema.ts",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
+    },
+    {
+      "category": "unresolved-temporary-runtime-allowlist",
+      "sourcePath": "helpers/violationCorrectionSchema.tsx",
+      "title": "Temporary runtime ensure allowlist entry remains active",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+      "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
+    }
+  ],
   "warningOnlyFindings": [],
   "waivedFindings": [],
   "temporaryAllowlistFindings": [
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/aiAssistRunStore.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "AI assist run audit table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while lower-risk audit tables are converted after production promotion gate activation."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/consumerIdentification.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Consumer identification document table ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while consumer identification document schema is converted through a focused additive migration task."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/disputePacketFindingsSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Dispute packet findings table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized to preserve packet lookup behavior until packet finding schema is converted separately."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/outcomeTrackingSchema.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Outcome comparison and finding outcome table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while outcome tracking schema is converted without changing response outcome behavior."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/parserRulePromotionSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Parser rule promotion table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser governance schema is converted without mutating parser truth."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/parserTestAdjudicationSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Parser test adjudication table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser adjudication schema is converted without changing deterministic extraction."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/parserTestTrainingArchive.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Parser training archive table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while parser training archive schema is converted through an additive migration."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/regulationReconciliationCandidateService.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Regulation reconciliation candidate table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation reconciliation schema is converted without changing regulation mappings."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/regulationRegistrySchema.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Regulation registry and mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while regulation registry schema is converted without changing statutory/reference truth."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/regulationRuntimeBridgeMappingService.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Regulation runtime bridge mapping table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while runtime bridge mapping schema is converted without changing bridge behavior."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/responseDocumentSchema.ts",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Response document, queue, orchestration, and lifecycle table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized because response document schema is broad and must be converted in its own focused additive task."
     },
     {
-      "category": "temporary-runtime-ensure-allowlist",
+      "category": "unresolved-temporary-runtime-allowlist",
       "sourcePath": "helpers/violationCorrectionSchema.tsx",
       "title": "Temporary runtime ensure allowlist entry remains active",
-      "impact": "temporary-allowlist",
-      "status": "present",
-      "recommendation": "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
+      "impact": "release-blocking",
+      "status": "unresolved",
+      "recommendation": "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
       "detail": "Violation correction and regulation reference table/index ensure. Expires on: 2026-06-30. Reason: Runtime ensure remains temporarily authorized while admin correction schema is converted without changing violation truth or evidence binding."
     }
   ],
@@ -685,9 +954,9 @@
   ],
   "blockerCoverage": {
     "migrationGovernance": false,
-    "productionPromotionGate": true,
+    "productionPromotionGate": false,
     "temporaryAllowlistActive": true,
-    "acceptedReleaseBlocking": true,
+    "acceptedReleaseBlocking": false,
     "acceptedFormalWaiver": false
   },
   "safety": {

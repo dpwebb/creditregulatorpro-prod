@@ -364,7 +364,7 @@ function acceptedReleaseBlockingMigrationGateEvidence() {
     CERTIFYING: true,
     releaseGateAccepted: true,
     productionPromotionGateAccepted: true,
-    runtimeEnsureResidualImpact: "release-blocking",
+    runtimeEnsureResidualImpact: "reviewed-additive",
     warningOnlyFindings: [],
     blockerCoverage: {
       migrationGovernance: true,
@@ -1497,7 +1497,7 @@ describe("production promotion evidence pack", () => {
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
-  it("keeps blocker 10 partial when migration gate has a temporary non-certifying allowlist", () => {
+  it("keeps blocker 10 partial when migration gate has unresolved temporary allowlist residuals", () => {
     const migrationGateEvidence = buildMigrationGateReport({
       rootDir: process.cwd(),
       generatedAt: "2026-05-20T12:00:00.000Z",
@@ -1511,16 +1511,18 @@ describe("production promotion evidence pack", () => {
     });
     const blocker10 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 10);
 
-    expect(migrationGateEvidence.status).toBe("accepted-temporary-allowlist");
+    expect(migrationGateEvidence.status).toBe("failed");
     expect(report.migrationGateEvidence).toMatchObject({
       policyMode: "release-blocking",
       CERTIFYING: false,
-      releaseGateAccepted: true,
-      productionPromotionGateAccepted: true,
+      releaseGateAccepted: false,
+      productionPromotionGateAccepted: false,
       temporaryAllowlistActive: true,
+      runtimeEnsureResidualImpact: "release-blocking",
+      releaseBlockingFindings: expect.any(Number),
       blockerCoverage: {
         migrationGovernance: false,
-        productionPromotionGate: true,
+        productionPromotionGate: false,
         temporaryAllowlistActive: true,
       },
     });

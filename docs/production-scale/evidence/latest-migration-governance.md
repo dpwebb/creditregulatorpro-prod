@@ -1,10 +1,10 @@
 # Migration Governance Drift Evidence
 
 Safety: non-mutating static source scan only; no database connection, credentials, DDL, or schema mutation.
-Generated at: 2026-05-22T02:48:10.569Z
+Generated at: 2026-05-22T04:21:26.508Z
 CERTIFYING:false
 Current branch: staging
-Current commit hash: 35388f20d9c58282405602a7205a987ece110410
+Current commit hash: 72a2bbfa97df8498620613ed1e0bf3051735f04f
 Scan roots: helpers, scripts, endpoints/migration
 Ledger directory: migrations
 Checker mode: production-promotion-gate-inventory
@@ -90,4 +90,4 @@ Production promotion gate command: pnpm run migrations:gate
 Keep runtime ensure residuals release-visible and convert them to reviewed additive ledger migrations one workstream at a time.
 
 ## Deploy Gate Recommendation
-Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible and non-certifying until converted.
+Run migrations:gate as the hard non-mutating production promotion gate; temporary allowlist entries remain visible, non-certifying, and release-blocking until converted.

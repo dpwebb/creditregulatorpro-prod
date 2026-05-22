@@ -27,6 +27,11 @@ const TEMPORARY_RUNTIME_ALLOWLIST_STATUSES = new Set([
   "temporary-allowlist",
   "approved-residual",
 ]);
+const RESIDUAL_CLASSIFICATIONS = Object.freeze({
+  reviewedAdditive: "already-covered-by-additive-migration",
+  needsLedger: "needs-new-additive-ledger-entry",
+  temporaryWithExpiry: "still-requires-temporary-acceptance-with-explicit-expiry",
+});
 
 function normalizeRelativePath(value) {
   return String(value ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -119,6 +124,7 @@ function runtimeEntryExpiry(entry) {
 
 function validateTemporaryRuntimeAllowlistEntry(entry, generatedAt) {
   const errors = [];
+  let expired = false;
   if (!runtimeEntryReason(entry)) errors.push("temporary allowlist reason is required.");
   if (!runtimeEntryOwner(entry)) errors.push("temporary allowlist ownerRole is required.");
   const expiresOn = runtimeEntryExpiry(entry);
@@ -129,11 +135,12 @@ function validateTemporaryRuntimeAllowlistEntry(entry, generatedAt) {
     if (!Number.isFinite(expiry)) {
       errors.push("temporary allowlist expiresOn must be parseable.");
     } else if (expiry < Date.parse(generatedAt)) {
+      expired = true;
       errors.push("temporary allowlist expiresOn is expired.");
     }
   }
   if (entry?.CERTIFYING !== false) errors.push("temporary allowlist entry must set CERTIFYING:false.");
-  return errors;
+  return { errors, expired, expiresOn };
 }
 
 function validateConvertedRuntimeMigrationEntry({ entry, sourcePath, rootDir }) {
@@ -399,6 +406,7 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
         ...source,
         reviewedMigration: convertedValidation.reviewedMigration,
         simulation: convertedValidation.simulation,
+        classification: RESIDUAL_CLASSIFICATIONS.reviewedAdditive,
       });
       findings.push(finding({
         category: "converted-runtime-ensure-residual",
@@ -413,34 +421,41 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
     }
 
     if (isTemporaryRuntimeAllowlistEntry(entry)) {
-      const allowlistErrors = validateTemporaryRuntimeAllowlistEntry(entry, generatedAt);
-      if (allowlistErrors.length > 0) {
+      const allowlistValidation = validateTemporaryRuntimeAllowlistEntry(entry, generatedAt);
+      if (allowlistValidation.errors.length > 0) {
+        const expiredOnly = allowlistValidation.expired && allowlistValidation.errors.length === 1;
         findings.push(finding({
-          category: "invalid-temporary-runtime-allowlist",
+          category: expiredOnly ? "expired-temporary-runtime-allowlist" : "invalid-temporary-runtime-allowlist",
           sourcePath: source.path,
-          title: "Temporary runtime ensure allowlist entry is invalid",
+          title: expiredOnly
+            ? "Temporary runtime ensure allowlist entry is expired"
+            : "Temporary runtime ensure allowlist entry is invalid",
           impact: "release-blocking",
-          status: "invalid",
-          recommendation: "Add reason, ownerRole, future expiresOn, and CERTIFYING:false or convert the source to a reviewed migration.",
-          detail: allowlistErrors.join("; "),
+          status: expiredOnly ? "expired" : "invalid",
+          recommendation: expiredOnly
+            ? "Convert the source to a reviewed additive migration before production promotion."
+            : "Add reason, ownerRole, future expiresOn, and CERTIFYING:false or convert the source to a reviewed migration.",
+          detail: allowlistValidation.errors.join("; "),
         }));
         continue;
       }
       temporaryAllowlistResiduals.push({
         ...source,
+        impact: "release-blocking",
+        classification: RESIDUAL_CLASSIFICATIONS.temporaryWithExpiry,
         reason: runtimeEntryReason(entry),
         ownerRole: runtimeEntryOwner(entry),
-        expiresOn: runtimeEntryExpiry(entry),
+        expiresOn: allowlistValidation.expiresOn,
         CERTIFYING: false,
       });
       findings.push(finding({
-        category: "temporary-runtime-ensure-allowlist",
+        category: "unresolved-temporary-runtime-allowlist",
         sourcePath: source.path,
         title: "Temporary runtime ensure allowlist entry remains active",
-        impact: "temporary-allowlist",
-        status: "present",
-        recommendation: "Do not certify production migration governance while this allowlist remains active; convert this source to a reviewed additive migration before expiry.",
-        detail: `${source.description} Expires on: ${runtimeEntryExpiry(entry)}. Reason: ${runtimeEntryReason(entry)}`,
+        impact: "release-blocking",
+        status: "unresolved",
+        recommendation: "Production promotion remains blocked until this source is converted to a reviewed additive migration or removed through governed cutover.",
+        detail: `${source.description} Expires on: ${allowlistValidation.expiresOn}. Reason: ${runtimeEntryReason(entry)}`,
       }));
       continue;
     }
@@ -460,17 +475,15 @@ function buildGateFindings({ policy, migrationState, expectedSources, rootDir, g
     item.impact === "release-blocking" && /runtime.*ensure|runtime.*migration|allowlist/i.test(`${item.category} ${item.title}`),
   );
   const runtimeResidualImpact =
-    temporaryAllowlistResiduals.length > 0
-      ? "temporary-allowlist"
+    hasRuntimeReleaseBlockingFinding
+      ? "release-blocking"
       : convertedRuntimeResiduals.length > 0
         ? "reviewed-additive"
         : policy.currentMode === "warning-only"
           ? "warning-only"
           : policy.currentMode === "waived"
             ? "formally-waived"
-            : hasRuntimeReleaseBlockingFinding
-              ? "release-blocking"
-              : "none";
+            : "none";
 
   return {
     findings,
@@ -532,7 +545,9 @@ export function buildMigrationGateReport({
   const releaseBlockingFindings = findings.filter((item) => item.impact === "release-blocking");
   const warningOnlyFindings = findings.filter((item) => item.impact === "warning-only");
   const waivedFindings = findings.filter((item) => item.impact === "formally-waived");
-  const temporaryAllowlistFindings = findings.filter((item) => item.impact === "temporary-allowlist");
+  const temporaryAllowlistFindings = findings.filter((item) =>
+    /temporary.*allowlist/i.test(`${item.category} ${item.title}`),
+  );
   const reviewedAdditiveFindings = findings.filter((item) => item.impact === "reviewed-additive");
   const hasBlockingFindings = releaseBlockingFindings.length > 0;
   const acceptedReleaseBlocking = loadedPolicy.currentMode === "release-blocking" && !hasBlockingFindings;
@@ -545,13 +560,28 @@ export function buildMigrationGateReport({
     approvedRuntimeResiduals.length === convertedRuntimeResiduals.length;
   const status = hasBlockingFindings
     ? "failed"
-    : acceptedReleaseBlocking && temporaryAllowlistActive
-      ? "accepted-temporary-allowlist"
-      : acceptedReleaseBlocking
+    : acceptedReleaseBlocking
       ? "accepted-release-blocking"
       : acceptedFormalWaiver
         ? "accepted-formal-waiver"
         : "warning-only";
+  const approvedRuntimeResidualDetails = approvedRuntimeResiduals.map((source) => {
+    const converted = convertedRuntimeResiduals.find((item) => item.path === source.path);
+    const allowlisted = temporaryAllowlistResiduals.find((item) => item.path === source.path);
+    const classification = converted
+      ? RESIDUAL_CLASSIFICATIONS.reviewedAdditive
+      : allowlisted
+        ? RESIDUAL_CLASSIFICATIONS.temporaryWithExpiry
+        : RESIDUAL_CLASSIFICATIONS.needsLedger;
+    return {
+      path: source.path,
+      description: source.description,
+      impact: converted ? "reviewed-additive" : allowlisted ? "release-blocking" : runtimeResidualImpact,
+      classification,
+      reviewedMigration: converted?.reviewedMigration ?? null,
+      expiresOn: allowlisted?.expiresOn ?? null,
+    };
+  });
 
   return {
     reportName: "migration-governance-release-gate",
@@ -593,26 +623,27 @@ export function buildMigrationGateReport({
       expiresOn: formalWaiver.waiver?.expiresOn ?? null,
       errors: formalWaiver.errors,
     },
-    approvedRuntimeResiduals: approvedRuntimeResiduals.map((source) => {
-      const converted = convertedRuntimeResiduals.some((item) => item.path === source.path);
-      const allowlisted = temporaryAllowlistResiduals.some((item) => item.path === source.path);
-      return {
-        path: source.path,
-        description: source.description,
-        impact: converted ? "reviewed-additive" : allowlisted ? "temporary-allowlist" : runtimeResidualImpact,
-      };
-    }),
+    approvedRuntimeResiduals: approvedRuntimeResidualDetails,
+    residualClassifications: approvedRuntimeResidualDetails.map((source) => ({
+      path: source.path,
+      classification: source.classification,
+      impact: source.impact,
+      reviewedMigration: source.reviewedMigration,
+      expiresOn: source.expiresOn,
+    })),
     convertedRuntimeResiduals: convertedRuntimeResiduals.map((source) => ({
       path: source.path,
       description: source.description,
       impact: "reviewed-additive",
+      classification: RESIDUAL_CLASSIFICATIONS.reviewedAdditive,
       reviewedMigration: source.reviewedMigration,
       simulation: source.simulation,
     })),
     temporaryAllowlistResiduals: temporaryAllowlistResiduals.map((source) => ({
       path: source.path,
       description: source.description,
-      impact: "temporary-allowlist",
+      impact: "release-blocking",
+      classification: RESIDUAL_CLASSIFICATIONS.temporaryWithExpiry,
       reason: source.reason,
       ownerRole: source.ownerRole,
       expiresOn: source.expiresOn,
@@ -665,14 +696,23 @@ export function validateMigrationGateReport(report) {
   if (report.status === "accepted-release-blocking" && report.policyMode !== "release-blocking") {
     errors.push("accepted-release-blocking status requires release-blocking policy mode.");
   }
-  if (report.status === "accepted-temporary-allowlist" && (report.policyMode !== "release-blocking" || report.temporaryAllowlistActive !== true)) {
-    errors.push("accepted-temporary-allowlist status requires release-blocking policy mode and an active temporary allowlist.");
+  if (report.status === "accepted-temporary-allowlist") {
+    errors.push("accepted-temporary-allowlist is retired; active temporary allowlist residuals must fail closed.");
   }
   if (report.status === "accepted-formal-waiver" && (report.policyMode !== "waived" || report.formalWaiver?.accepted !== true)) {
     errors.push("accepted-formal-waiver status requires an accepted formal waiver.");
   }
   if (report.releaseBlockingFindings?.length > 0 && report.releaseGateAccepted === true) {
     errors.push("releaseGateAccepted cannot be true with release-blocking findings.");
+  }
+  if (report.temporaryAllowlistActive === true && report.releaseGateAccepted === true) {
+    errors.push("releaseGateAccepted cannot be true while temporary runtime ensure allowlist entries remain active.");
+  }
+  if (
+    report.temporaryAllowlistActive === true &&
+    !report.releaseBlockingFindings?.some((item) => /temporary.*allowlist/i.test(`${item.category} ${item.title}`))
+  ) {
+    errors.push("active temporary runtime ensure allowlist entries must be release-blocking findings.");
   }
   if (report.temporaryAllowlistActive === true && report.CERTIFYING === true) {
     errors.push("CERTIFYING cannot be true while temporary runtime ensure allowlist entries remain active.");
@@ -720,7 +760,17 @@ export function renderMigrationGateReport(report) {
     "## Approved Runtime Ensure Residuals",
     "",
     ...(report.approvedRuntimeResiduals.length
-      ? report.approvedRuntimeResiduals.map((source) => `- [${source.impact}] ${source.path}: ${source.description}`)
+      ? report.approvedRuntimeResiduals.map((source) =>
+          `- [${source.impact}] ${source.path}: ${source.description}; classification ${source.classification}`,
+        )
+      : ["- None."]),
+    "",
+    "## Residual Classifications",
+    "",
+    ...(report.residualClassifications?.length
+      ? report.residualClassifications.map((source) =>
+          `- ${source.path}: ${source.classification}; impact ${source.impact}; reviewed migration ${source.reviewedMigration ?? "n/a"}; expires ${source.expiresOn ?? "n/a"}`,
+        )
       : ["- None."]),
     "",
     "## Converted Reviewed Runtime Ensure Residuals",
@@ -732,7 +782,9 @@ export function renderMigrationGateReport(report) {
     "## Temporary Runtime Ensure Allowlist",
     "",
     ...(report.temporaryAllowlistResiduals.length
-      ? report.temporaryAllowlistResiduals.map((source) => `- [CERTIFYING:false] ${source.path}: expires ${source.expiresOn}; owner ${source.ownerRole}; reason ${source.reason}`)
+      ? report.temporaryAllowlistResiduals.map((source) =>
+          `- [release-blocking/CERTIFYING:false] ${source.path}: expires ${source.expiresOn}; owner ${source.ownerRole}; classification ${source.classification}; reason ${source.reason}`,
+        )
       : ["- None."]),
     "",
     "## Gate Findings",

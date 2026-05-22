@@ -1,12 +1,13 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "policyName": "production-scale-migration-governance-policy",
   "currentMode": "release-blocking",
-  "modeDescription": "The migration gate is a hard non-mutating production promotion gate. Unauthorized runtime ensure paths fail promotion. Temporary allowlist entries must include owner, reason, expiry, and CERTIFYING:false; production migration governance cannot be certified while any temporary allowlist entry remains active.",
+  "modeDescription": "The migration gate is a hard non-mutating production promotion gate. Unauthorized runtime ensure paths fail promotion. Temporary allowlist entries must include owner, reason, expiry, and CERTIFYING:false, and remain release-blocking until converted to reviewed additive migration evidence or removed through governed cutover.",
   "approvedRuntimeEnsureInventory": [
     {
       "path": "helpers/ingestProcessingQueueSchema.ts",
       "status": "converted-reviewed-additive",
+      "residualClassification": "already-covered-by-additive-migration",
       "reviewedMigration": "migrations/0001-ingest-processing-queue-reviewed-additive.sql",
       "ledgerEntry": "migrations/0001-ingest-processing-queue-reviewed-additive.md",
       "productionPromotionAuthorized": true,
@@ -16,6 +17,7 @@
     {
       "path": "helpers/aiAssistRunStore.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -26,6 +28,7 @@
     {
       "path": "helpers/consumerIdentification.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -36,6 +39,7 @@
     {
       "path": "helpers/disputePacketFindingsSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -46,6 +50,7 @@
     {
       "path": "helpers/outcomeTrackingSchema.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -56,6 +61,7 @@
     {
       "path": "helpers/parserRulePromotionSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -66,6 +72,7 @@
     {
       "path": "helpers/parserTestAdjudicationSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -76,6 +83,7 @@
     {
       "path": "helpers/parserTestTrainingArchive.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -86,6 +94,7 @@
     {
       "path": "helpers/regulationReconciliationCandidateService.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -96,6 +105,7 @@
     {
       "path": "helpers/regulationRegistrySchema.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -106,6 +116,7 @@
     {
       "path": "helpers/regulationRuntimeBridgeMappingService.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -116,6 +127,7 @@
     {
       "path": "helpers/responseDocumentSchema.ts",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -126,6 +138,7 @@
     {
       "path": "helpers/violationCorrectionSchema.tsx",
       "status": "temporary-production-allowlist",
+      "residualClassification": "still-requires-temporary-acceptance-with-explicit-expiry",
       "ledgerEntry": "migrations/0000-runtime-schema-inventory.md",
       "ownerRole": "Release governance owner",
       "expiresOn": "2026-06-30",
@@ -167,7 +180,7 @@
     },
     {
       "pattern": "unauthorized runtime ensure source",
-      "reason": "Production promotion must fail when a runtime ensure path is neither converted nor time-bound on the temporary allowlist."
+      "reason": "Production promotion must fail when a runtime ensure path is not converted to reviewed additive migration evidence; temporary allowlist entries are tracked as release-blocking residuals until conversion."
     }
   ],
   "releaseGateRequirements": [
@@ -183,8 +196,10 @@
     "Unauthorized runtime ensure source count must be zero.",
     "Converted runtime ensure entries must reference reviewed additive migration files.",
     "Temporary runtime ensure allowlist entries must include ownerRole, reason, expiresOn, and CERTIFYING:false.",
+    "Active temporary runtime ensure allowlist entries are release-blocking production promotion residuals.",
+    "Expired temporary runtime ensure allowlist entries must fail with expired status.",
     "The gate must remain non-mutating and must not connect to a database.",
-    "CERTIFYING must remain false while any temporary runtime ensure allowlist entry is active."
+    "CERTIFYING and productionPromotionGateAccepted must remain false while any temporary runtime ensure allowlist entry is active."
   ],
   "waiverRequirements": [
     "Formal waiver mode is not the current production promotion gate policy.",
