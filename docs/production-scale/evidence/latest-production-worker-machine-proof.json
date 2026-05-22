@@ -3,11 +3,11 @@
   "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
   "blockerId": "L10-P1-003",
   "environment": "production",
-  "generatedAt": "2026-05-22T14:55:38.198Z",
-  "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-  "currentCommitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-  "currentHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-  "commit": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+  "generatedAt": "2026-05-22T15:15:34.296Z",
+  "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+  "currentCommitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+  "currentHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+  "commit": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
   "branch": "staging",
   "generatorScript": "scripts/production-worker-machine-proof.mjs",
   "command": "pnpm run production-worker:machine-proof",
@@ -19,7 +19,7 @@
   "generatedManually": false,
   "simulatedOnly": false,
   "dryRunOnly": false,
-  "productionMutation": "synthetic-canary-cleaned-up",
+  "productionMutation": "none",
   "secretsPrinted": false,
   "piiPrinted": false,
   "rawReportBytesPrinted": false,
@@ -28,71 +28,72 @@
   "certifying": false,
   "CERTIFYING": false,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T14:55:38.198Z",
+  "expiresAt": "2026-05-23T15:15:34.296Z",
   "checks": [
     {
       "name": "queue-depth-before-captured",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "worker-liveness-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "bounded-max-jobs-enforced",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "synthetic-or-canary-job-processed",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "queue-depth-after-captured",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "processed-count-captured",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "failed-dead-letter-stale-counts-captured",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "worker-stop-rollback-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "canary-cleanup-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     }
   ],
   "failures": [
     {
-      "code": "attestation-unavailable",
-      "message": "machine attestation path was not provided."
+      "code": "production-worker-machine-proof-runtime-inputs-missing",
+      "message": "Non-interactive production worker proof requires a sanitized machine attestation with queue, liveness, canary, cleanup, and stop/rollback runtime data."
     }
   ],
-  "sanitizedArtifacts": [],
+  "sanitizedArtifacts": [
+    "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+    "docs/production-scale/evidence/latest-production-worker-machine-proof.md"
+  ],
   "missingRuntimeInputs": [
-    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+    "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+    "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+    "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
   ],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "blockerIdsClosedWhenCertifying": [
-      "L10-P1-003"
-    ],
-    "attestationPath": null,
-    "acceptedCheckSet": "default",
-    "sensitiveFindingCount": 0
+    "proofMode": "machine-attested-production-worker-runtime-required",
+    "humanInteractionRequired": false,
+    "missingRuntimeInputs": [
+      "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+      "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+      "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+      "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+      "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
+    ]
   }
 }

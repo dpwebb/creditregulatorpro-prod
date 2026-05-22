@@ -1,9 +1,9 @@
 # Migration Governance Machine Proof
 
-Generated at: 2026-05-22T14:55:42.670Z
+Generated at: 2026-05-22T15:15:38.304Z
 Evidence type: MIGRATION_GOVERNANCE_MACHINE_PROOF
 Environment: production
-Commit: `fc88de972a1735fc569e2b660bc64d9a4eb02bc6`
+Commit: `276476125ac366e2ee3b6be5a4fdc114029a83a8`
 Generator: `scripts/migration-machine-proof.mjs`
 Command: `pnpm run migrations:machine-proof`
 Blocker ID: L10-P1-006
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T14:55:42.670Z
+Expires at: 2026-05-23T15:15:38.304Z
 
 ## Safety
 

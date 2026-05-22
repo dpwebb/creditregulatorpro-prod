@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T14:56:05.444Z",
+  "generatedAt": "2026-05-22T15:15:59.762Z",
   "currentBranch": "staging",
-  "currentCommitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-  "currentHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+  "currentCommitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+  "currentHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
   "targetEnvironment": "production",
-  "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+  "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T14:56:05.444Z",
-      "completedAt": "2026-05-22T14:56:05.444Z",
+      "startedAt": "2026-05-22T15:15:59.762Z",
+      "completedAt": "2026-05-22T15:15:59.762Z",
       "status": "passed",
       "automated": true
     }
@@ -508,12 +508,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T14:55:38.198Z",
+          "generatedAt": "2026-05-22T15:15:34.296Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T14:55:38.198Z",
+      "latestGeneratedAt": "2026-05-22T15:15:34.296Z",
       "status": "fail"
     },
     {
@@ -711,12 +711,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T14:55:39.797Z",
+          "generatedAt": "2026-05-22T15:15:35.686Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T14:55:39.797Z",
+      "latestGeneratedAt": "2026-05-22T15:15:35.686Z",
       "status": "fail"
     },
     {
@@ -808,12 +808,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T14:55:42.670Z",
+          "generatedAt": "2026-05-22T15:15:38.304Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T14:55:42.670Z",
+      "latestGeneratedAt": "2026-05-22T15:15:38.304Z",
       "status": "fail"
     },
     {
@@ -866,12 +866,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T14:55:36.852Z",
+          "generatedAt": "2026-05-22T15:15:32.925Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T14:55:36.852Z",
+      "latestGeneratedAt": "2026-05-22T15:15:32.925Z",
       "status": "fail"
     },
     {
@@ -895,12 +895,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T14:55:41.236Z",
+          "generatedAt": "2026-05-22T15:15:36.945Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T14:55:41.236Z",
+      "latestGeneratedAt": "2026-05-22T15:15:36.945Z",
       "status": "fail"
     },
     {
@@ -924,12 +924,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T14:55:44.476Z",
+          "generatedAt": "2026-05-22T15:15:39.929Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T14:55:44.476Z",
+      "latestGeneratedAt": "2026-05-22T15:15:39.929Z",
       "status": "fail"
     },
     {
@@ -1967,7 +1967,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T14:55:38.198Z",
+      "generatedAt": "2026-05-22T15:15:34.296Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2075,7 +2075,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T14:55:42.670Z",
+      "generatedAt": "2026-05-22T15:15:38.304Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2093,7 +2093,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T14:55:36.852Z",
+      "generatedAt": "2026-05-22T15:15:32.925Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2111,7 +2111,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T14:55:41.236Z",
+      "generatedAt": "2026-05-22T15:15:36.945Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2147,7 +2147,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T14:55:39.797Z",
+      "generatedAt": "2026-05-22T15:15:35.686Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2165,7 +2165,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T14:55:44.476Z",
+      "generatedAt": "2026-05-22T15:15:39.929Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2660,7 +2660,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T14:55:45.923Z",
+      "generatedAt": "2026-05-22T15:15:41.390Z",
       "status": null,
       "productionProof": false
     },
@@ -2690,9 +2690,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-machine-production-evidence",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2710,7 +2710,7 @@
     "status": null,
     "generatedAt": "2026-05-22T14:32:33.931Z",
     "evidenceHead": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
@@ -2728,7 +2728,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2744,9 +2744,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
     "status": "failed",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2764,7 +2764,7 @@
     "status": "passed",
     "generatedAt": "2026-05-22T14:32:59.901Z",
     "evidenceHead": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2780,9 +2780,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T14:55:36.852Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:32.925Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2798,9 +2798,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T14:55:38.198Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:34.296Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2816,9 +2816,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T14:55:39.797Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:35.686Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2834,9 +2834,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T14:55:41.236Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:36.945Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2852,9 +2852,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2870,9 +2870,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T14:55:44.476Z",
-    "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+    "generatedAt": "2026-05-22T15:15:39.929Z",
+    "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2883,8 +2883,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2961,9 +2961,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-machine-production-evidence",
-        "generatedAt": "2026-05-22T14:56:05.444Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:59.762Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2981,7 +2981,7 @@
         "status": null,
         "generatedAt": "2026-05-22T14:32:33.931Z",
         "evidenceHead": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
@@ -2999,7 +2999,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3015,9 +3015,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
         "status": "failed",
-        "generatedAt": "2026-05-22T14:56:05.444Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:59.762Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -3035,7 +3035,7 @@
         "status": "passed",
         "generatedAt": "2026-05-22T14:32:59.901Z",
         "evidenceHead": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3051,9 +3051,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T14:55:36.852Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:32.925Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3069,9 +3069,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T14:55:38.198Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:34.296Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3087,9 +3087,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T14:55:39.797Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:35.686Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3105,9 +3105,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T14:55:41.236Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:36.945Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3123,9 +3123,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T14:56:05.444Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:59.762Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -3141,9 +3141,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T14:55:44.476Z",
-        "evidenceHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
-        "targetSha": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+        "generatedAt": "2026-05-22T15:15:39.929Z",
+        "evidenceHead": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
+        "targetSha": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3210,8 +3210,8 @@
       "label": "Disaster recovery restore machine proof",
       "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
-      "generatedAt": "2026-05-22T14:55:36.852Z",
-      "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+      "generatedAt": "2026-05-22T15:15:32.925Z",
+      "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3271,14 +3271,18 @@
       "label": "Production worker runtime machine proof",
       "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
-      "generatedAt": "2026-05-22T14:55:38.198Z",
-      "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+      "generatedAt": "2026-05-22T15:15:34.296Z",
+      "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
       "status": "fail",
       "certifying": false,
       "accepted": false,
       "humanInteractionRequired": false,
       "missingRuntimeInputs": [
-        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+        "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+        "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+        "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+        "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
       ],
       "validation": {
         "ok": false,
@@ -3297,16 +3301,24 @@
           "checks[8].status must be pass.",
           "failures must be empty for certifying evidence.",
           "missingRuntimeInputs must be empty for certifying evidence.",
-          "machine proof is missing a complete accepted check set (default: queue-depth-before-captured, worker-liveness-verified, bounded-max-jobs-enforced, synthetic-or-canary-job-processed, queue-depth-after-captured, processed-count-captured, failed-dead-letter-stale-counts-captured, worker-stop-rollback-verified, canary-cleanup-verified)."
+          "machine proof is missing a complete accepted check set (default: queue-depth-before-captured, worker-liveness-verified, bounded-max-jobs-enforced, synthetic-or-canary-job-processed, queue-depth-after-captured, processed-count-captured, failed-dead-letter-stale-counts-captured, worker-stop-rollback-verified, canary-cleanup-verified).",
+          "queue depth before proof is required.",
+          "queue depth after proof is required.",
+          "worker service/liveness proof is required.",
+          "bounded max jobs proof is required.",
+          "synthetic/canary ingest job processing proof is required.",
+          "processed, failed, dead-letter, and stale counts are required.",
+          "processed count proof is required.",
+          "failed, dead-letter, and stale count proof is required.",
+          "synthetic/canary cleanup proof is required.",
+          "worker stop/rollback proof is required."
         ],
         "sensitiveFindingCount": 0,
         "stale": false
       },
       "metadata": {
-        "blockerIdsClosedWhenCertifying": [
-          "L10-P1-003"
-        ],
-        "acceptedCheckSet": "default",
+        "blockerIdsClosedWhenCertifying": [],
+        "acceptedCheckSet": null,
         "alertingProofPath": null,
         "databaseReliable": false,
         "sanitizedInventoryAccepted": false,
@@ -3319,8 +3331,8 @@
       "label": "Raw report byte remediation machine proof",
       "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
-      "generatedAt": "2026-05-22T14:55:39.797Z",
-      "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+      "generatedAt": "2026-05-22T15:15:35.686Z",
+      "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3368,8 +3380,8 @@
       "label": "Alerting observability machine proof",
       "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
-      "generatedAt": "2026-05-22T14:55:41.236Z",
-      "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+      "generatedAt": "2026-05-22T15:15:36.945Z",
+      "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3416,8 +3428,8 @@
       "label": "Migration governance machine proof",
       "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
-      "generatedAt": "2026-05-22T14:56:05.444Z",
-      "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+      "generatedAt": "2026-05-22T15:15:59.762Z",
+      "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3455,8 +3467,8 @@
       "label": "Retention archive restore machine proof",
       "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
-      "generatedAt": "2026-05-22T14:55:44.476Z",
-      "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+      "generatedAt": "2026-05-22T15:15:39.929Z",
+      "commitHash": "276476125ac366e2ee3b6be5a4fdc114029a83a8",
       "status": "fail",
       "certifying": false,
       "accepted": false,
@@ -3504,6 +3516,10 @@
     "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
     "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
     "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+    "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+    "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+    "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
     "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
     "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
     "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
@@ -3511,7 +3527,7 @@
   "humanInteractionRequired": false,
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -3531,7 +3547,7 @@
   },
   "restoreEvidenceAcceptance": {
     "reportName": "restore-evidence-acceptance",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3570,7 +3586,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -3696,7 +3712,7 @@
   },
   "productionWorkerRuntimeProof": {
     "reportName": "production-worker-runtime-proof",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "dry-run-only",
     "accepted": false,
     "productionProof": false,
@@ -3737,7 +3753,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "prepared-awaiting-machine-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -3761,7 +3777,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -3858,7 +3874,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3891,7 +3907,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -3953,7 +3969,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -4130,7 +4146,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "failed",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
@@ -4171,7 +4187,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T14:56:05.444Z",
+    "generatedAt": "2026-05-22T15:15:59.762Z",
     "status": "machine-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -4263,7 +4279,7 @@
         "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
         "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -4327,9 +4343,13 @@
       "humanProofRequired": false,
       "machineProofRequired": true,
       "missingRuntimeInputs": [
-        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+        "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+        "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+        "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+        "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -4667,7 +4687,7 @@
       "missingRuntimeInputs": [
         "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -5277,7 +5297,7 @@
       "missingRuntimeInputs": [
         "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -5456,7 +5476,7 @@
         "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
         "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -5520,9 +5540,13 @@
       "humanProofRequired": false,
       "machineProofRequired": true,
       "missingRuntimeInputs": [
-        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+        "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+        "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+        "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+        "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -5640,7 +5664,7 @@
       "missingRuntimeInputs": [
         "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -5738,7 +5762,7 @@
       "missingRuntimeInputs": [
         "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     }
@@ -5821,7 +5845,7 @@
         "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
         "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -5885,9 +5909,13 @@
       "humanProofRequired": false,
       "machineProofRequired": true,
       "missingRuntimeInputs": [
-        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+        "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+        "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+        "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+        "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -6005,7 +6033,7 @@
       "missingRuntimeInputs": [
         "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     },
@@ -6103,7 +6131,7 @@
       "missingRuntimeInputs": [
         "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
       ],
-      "simulatedProofAcceptable": true,
+      "simulatedProofAcceptable": false,
       "legacyManualEvidenceIgnored": false,
       "waiverReason": null
     }

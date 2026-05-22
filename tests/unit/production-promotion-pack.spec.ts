@@ -893,7 +893,12 @@ function machineProofEvidence({
 }) {
   const effectiveMetadata = evidenceType === RESTORE_MACHINE_PROOF_EVIDENCE_TYPE
     ? { ...restoreMachineProofMetadata(), ...metadata }
+    : evidenceType === PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE
+      ? { ...productionWorkerMachineProofMetadata(), ...metadata }
     : metadata;
+  const effectiveProductionMutation = evidenceType === PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE
+    ? "synthetic-canary-cleaned-up"
+    : "none";
 
   return buildMachineEvidence({
     evidenceType,
@@ -902,6 +907,7 @@ function machineProofEvidence({
     commitHash: targetSha,
     generatorScript: "scripts/fixture-machine-proof.mjs",
     command: "pnpm run fixture:machine-proof",
+    productionMutation: effectiveProductionMutation,
     status: "pass",
     certifying: true,
     checks: checks.map((name) => ({ name, status: "pass" })),
@@ -960,6 +966,51 @@ function restoreMachineProofMetadata() {
       cleanupLifecycle: true,
       rollbackStop: true,
     },
+  };
+}
+
+function productionWorkerMachineProofMetadata() {
+  return {
+    workerProofKind: "synthetic-canary-runtime",
+    queueDepthBefore: {
+      queued: 1,
+      running: 0,
+      failed: 0,
+      deadLettered: 0,
+      stale: 0,
+    },
+    workerLiveness: {
+      verified: true,
+      status: "healthy",
+      workerId: "production-worker-proof",
+    },
+    boundedRun: {
+      maxJobs: 1,
+      onlyCanaryJobProcessed: true,
+      processedCount: 1,
+      failedCount: 0,
+      deadLetterCount: 0,
+      staleCount: 0,
+    },
+    canaryJob: {
+      created: true,
+      processed: true,
+      onlyCanaryJobProcessed: true,
+      cleanupVerified: true,
+      canaryId: "canary-job-hash",
+    },
+    queueDepthAfter: {
+      queued: 0,
+      running: 0,
+      failed: 0,
+      deadLettered: 0,
+      stale: 0,
+    },
+    stopRollback: {
+      verified: true,
+      status: "pass",
+    },
+    syntheticCanaryCleanupSucceeded: true,
   };
 }
 
@@ -1495,6 +1546,36 @@ describe("production promotion evidence pack", () => {
     expect(blocker2?.classification).toBe("fixed with automated evidence");
     expect(report.machineProofs.productionWorker.accepted).toBe(true);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 2 blocked when worker machine proof is dry-run-only", () => {
+    const head = currentGitHead();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      productionWorkerMachineProofEvidence: machineProofEvidence({
+        evidenceType: PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE,
+        targetSha: head,
+        generatedAt: PROMOTION_GATE_TIMESTAMP,
+        checks: WORKER_MACHINE_CHECKS,
+        metadata: {
+          workerProofKind: "dry-run-only",
+        },
+        overrides: {
+          dryRunOnly: true,
+          productionMutation: "none",
+        },
+      }),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      env: {},
+      targetSha: head,
+    });
+    const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.machineProofs.productionWorker.accepted).toBe(false);
+    expect(report.machineProofs.productionWorker.validation.errors.join("\n")).toMatch(/dry-run-only/i);
+    expect(blocker2?.classification).toBe("machine proof required");
   });
 
   it("closes blocker 6 only with database-reliable sanitized raw report machine proof", () => {

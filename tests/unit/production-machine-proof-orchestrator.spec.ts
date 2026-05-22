@@ -45,7 +45,11 @@ function commandResult(command: string, overrides: Record<string, unknown> = {})
 function validMachineProof(area: ReturnType<typeof defaultMachineProofAreas>[number], overrides = {}) {
   if (area.kind !== "machine-proof") throw new Error("validMachineProof requires a machine proof area.");
   const checks = area.config.requiredChecks ?? area.config.acceptedCheckSets?.[0]?.checks ?? [];
-  const metadata = area.key === "restore" ? restoreMachineProofMetadata() : {};
+  const metadata = area.key === "restore"
+    ? restoreMachineProofMetadata()
+    : area.key === "productionWorker"
+      ? productionWorkerMachineProofMetadata()
+      : {};
   return buildMachineEvidence({
     evidenceType: area.config.evidenceType,
     blockerId: area.blockerId,
@@ -100,6 +104,51 @@ function restoreMachineProofMetadata() {
       cleanupLifecycle: true,
       rollbackStop: true,
     },
+  };
+}
+
+function productionWorkerMachineProofMetadata() {
+  return {
+    workerProofKind: "synthetic-canary-runtime",
+    queueDepthBefore: {
+      queued: 1,
+      running: 0,
+      failed: 0,
+      deadLettered: 0,
+      stale: 0,
+    },
+    workerLiveness: {
+      verified: true,
+      status: "healthy",
+      workerId: "production-worker-proof",
+    },
+    boundedRun: {
+      maxJobs: 1,
+      onlyCanaryJobProcessed: true,
+      processedCount: 1,
+      failedCount: 0,
+      deadLetterCount: 0,
+      staleCount: 0,
+    },
+    canaryJob: {
+      created: true,
+      processed: true,
+      onlyCanaryJobProcessed: true,
+      cleanupVerified: true,
+      canaryId: "canary-job-hash",
+    },
+    queueDepthAfter: {
+      queued: 0,
+      running: 0,
+      failed: 0,
+      deadLettered: 0,
+      stale: 0,
+    },
+    stopRollback: {
+      verified: true,
+      status: "pass",
+    },
+    syntheticCanaryCleanupSucceeded: true,
   };
 }
 

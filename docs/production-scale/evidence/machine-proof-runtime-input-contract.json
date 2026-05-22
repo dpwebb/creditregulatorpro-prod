@@ -157,6 +157,109 @@
       }
     },
     {
+      "name": "CRP_PRODUCTION_WORKER_QUEUE_ACCESS",
+      "proofScript": "scripts/production-worker-machine-proof.mjs",
+      "proofCommand": "pnpm run production-worker:machine-proof",
+      "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized queue depth and count summary"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Queue access must record queue depth before and after the bounded proof.",
+        "Processed, failed, dead-letter, and stale counts must be aggregate integers only.",
+        "No job payload, artifact contents, report text, raw bytes, database URLs, signed URLs, secrets, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_QUEUE_ACCESS"],
+        "humanInteractionRequired": false,
+        "message": "production worker queue depth and count proof was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_PRODUCTION_WORKER_LIVENESS_ACCESS",
+      "proofScript": "scripts/production-worker-machine-proof.mjs",
+      "proofCommand": "pnpm run production-worker:machine-proof",
+      "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized worker service or heartbeat status"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Worker liveness must be machine-verifiable through service status or sanitized heartbeat evidence.",
+        "No credentials, host secrets, database URLs, signed URLs, report text, raw bytes, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_LIVENESS_ACCESS"],
+        "humanInteractionRequired": false,
+        "message": "production worker liveness proof was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS",
+      "proofScript": "scripts/production-worker-machine-proof.mjs",
+      "proofCommand": "pnpm run production-worker:machine-proof",
+      "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized synthetic/canary ingest job proof"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Only synthetic or canary ingest jobs may be created and processed.",
+        "Max jobs must be bounded to 1-5 and the proof must attest that only the canary job was processed.",
+        "Canary cleanup must be machine-attested.",
+        "No real user payload, artifact contents, report text, raw bytes, database URLs, signed URLs, secrets, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS"],
+        "humanInteractionRequired": false,
+        "message": "synthetic/canary ingest job processing and cleanup proof was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS",
+      "proofScript": "scripts/production-worker-machine-proof.mjs",
+      "proofCommand": "pnpm run production-worker:machine-proof",
+      "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized worker stop/rollback verification"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Stop/rollback proof must be non-interactive and machine-verifiable.",
+        "No secrets, infrastructure credentials, database URLs, report text, raw bytes, signed URLs, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS"],
+        "humanInteractionRequired": false,
+        "message": "production worker stop/rollback proof was not machine-attested."
+      }
+    },
+    {
       "name": "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
       "proofScript": "scripts/storage-raw-report-machine-inventory.mjs",
       "proofCommand": "pnpm run storage:raw-report-machine-inventory",

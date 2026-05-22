@@ -113,6 +113,7 @@ import {
   PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
   PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH,
   PRODUCTION_WORKER_MACHINE_PROOF_MD_PATH,
+  productionWorkerMachineProofExtraValidation,
 } from "./production-worker-machine-proof.mjs";
 
 import {
@@ -1461,7 +1462,7 @@ export function buildProductionPromotionPackReport({
       "Production worker runtime machine proof",
       PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
       loadedProductionWorkerMachineProof,
-      undefined,
+      productionWorkerMachineProofExtraValidation,
       generatedAt,
     ),
     rawReport: machineProofSummary(
@@ -1541,7 +1542,7 @@ export function buildProductionPromotionPackReport({
       humanProofRequired: false,
       machineProofRequired: Boolean(machineRequirement) && classification !== "fixed with automated evidence",
       missingRuntimeInputs: machineRuntimeInputsForBlocker(blocker.number, machineProofs),
-      simulatedProofAcceptable: blocker.simulatedProofAcceptable === true,
+      simulatedProofAcceptable: machineRequirement ? false : blocker.simulatedProofAcceptable === true,
       legacyManualEvidenceIgnored: blocker.humanProofRequired === true || blocker.currentStatus === "requires-human-proof",
       waiverReason: waiverReason(blocker),
     };

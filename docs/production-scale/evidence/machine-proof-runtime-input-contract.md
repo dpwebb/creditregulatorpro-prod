@@ -24,6 +24,10 @@ If an input is missing, the proof must fail closed with:
 | `CRP_RESTORE_MACHINE_ISOLATED_TARGET` | `pnpm run restore:machine-proof` | No | Sanitized machine attestation field for the isolated restore target | production-read-only | No |
 | `CRP_RESTORE_MACHINE_SAFE_FIXTURE` | `pnpm run restore:machine-proof` | No | Sanitized machine attestation field for synthetic credentials and packet/PDF canary fixture | production-read-only | No |
 | `CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON` | `pnpm run production-worker:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | Yes, synthetic canary cleaned up only |
+| `CRP_PRODUCTION_WORKER_QUEUE_ACCESS` | `pnpm run production-worker:machine-proof` | No | Sanitized machine attestation field for queue depth and aggregate counts | production-canary | Yes, synthetic canary cleaned up only |
+| `CRP_PRODUCTION_WORKER_LIVENESS_ACCESS` | `pnpm run production-worker:machine-proof` | No | Sanitized machine attestation field for worker service or heartbeat status | production-read-only | No |
+| `CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS` | `pnpm run production-worker:machine-proof` | No | Sanitized machine attestation field for bounded synthetic/canary ingest processing | production-canary | Yes, synthetic canary cleaned up only |
+| `CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS` | `pnpm run production-worker:machine-proof` | No | Sanitized machine attestation field for stop/rollback verification | production-read-only | No |
 | `CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-inventory` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No |
 | `CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-remediation-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No by the proof script; attested remediation policy may describe approved bounded remediation |
 | `CRP_ALERTING_MACHINE_ATTESTATION_JSON` | `pnpm run alerting:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | No production data mutation |
@@ -38,6 +42,8 @@ Every attestation input must be sanitized JSON and must include `nonInteractive:
 `CRP_RESTORE_MACHINE_BACKUP_SOURCE`, `CRP_RESTORE_MACHINE_ISOLATED_TARGET`, and `CRP_RESTORE_MACHINE_SAFE_FIXTURE` are not separate secrets. They name required sanitized fields inside the restore machine attestation. If any field is unavailable, the restore proof fails closed with that exact missing runtime input and `humanInteractionRequired:false`.
 
 `CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON` must prove bounded synthetic/canary queue processing with queue depth before/after, worker liveness, processed/failed/dead-letter/stale counts, stop/rollback verification, and canary cleanup.
+
+`CRP_PRODUCTION_WORKER_QUEUE_ACCESS`, `CRP_PRODUCTION_WORKER_LIVENESS_ACCESS`, `CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS`, and `CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS` are required sanitized fields inside the worker machine attestation. Missing fields keep `CERTIFYING:false`; dry-run-only, default-off, deferred activation, human-observed, or manual approval evidence is rejected.
 
 `CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON` must prove reliable DB connectivity using sanitized aggregate counts, opaque IDs or hashes, unresolved counts, remediation candidate counts, and no raw bytes or PII.
 

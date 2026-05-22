@@ -11,6 +11,7 @@ import {
 } from "./migration-machine-proof.mjs";
 import {
   PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
+  productionWorkerMachineProofExtraValidation,
 } from "./production-worker-machine-proof.mjs";
 import {
   DEFAULT_PROMOTION_PACK_JSON,
@@ -79,6 +80,7 @@ export function defaultMachineProofAreas() {
       blockerId: "L10-P1-003",
       kind: "machine-proof",
       config: PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
+      extraValidation: productionWorkerMachineProofExtraValidation,
       commands: [
         "pnpm run production-worker:machine-proof",
         "pnpm run production-worker:machine-proof:validate",
