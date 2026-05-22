@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T02:44:04.853Z
+Generated at: 2026-05-22T03:20:44.458Z
 Current branch: `staging`
-Current commit hash: `35388f20d9c58282405602a7205a987ece110410`
-Current HEAD: `35388f20d9c58282405602a7205a987ece110410`
+Current commit hash: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
+Current HEAD: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
 Target environment: `production`
-Target SHA: `35388f20d9c58282405602a7205a987ece110410`
+Target SHA: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -19,6 +19,7 @@ Production-ready claim: **false**
 - Codex must not promote readiness classification beyond evidence.
 - Production activation requires operator approval.
 - Historical raw report remediation requires accepted sanitized operator evidence.
+- Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.
 - Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.
 - Staging ingest worker queue-drain evidence is staging proof only and does not activate production.
 - Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
@@ -30,7 +31,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `35388f20d9c58282405602a7205a987ece110410`
+- Target SHA: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -39,15 +40,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:44:04.853Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=84e62e3389ffe961cbed264746959d33016d7c07; timestamp=2026-05-22T02:29:25.245Z; command=`pnpm run storage:durability-contract`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=d2ad840711a7f705c0bba42898ef3f22cd6bd5b0; timestamp=2026-05-22T03:20:44.458Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:20.224Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:44:04.853Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=84e62e3389ffe961cbed264746959d33016d7c07; timestamp=2026-05-22T02:29:47.348Z; command=`pnpm run deploy:rollback-simulation`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=d2ad840711a7f705c0bba42898ef3f22cd6bd5b0; timestamp=2026-05-22T03:20:44.458Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:41.545Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T02:44:04.853Z; completed=2026-05-22T02:44:04.853Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T03:20:44.458Z; completed=2026-05-22T03:20:44.458Z
 
 ## Command Result Summary
 
@@ -77,6 +78,7 @@ Production-ready claim: **false**
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
 - `pnpm run migrations:gate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-gate.md, docs/production-scale/evidence/latest-migration-gate.json
 - `pnpm run deploy:rollback-simulation` - evidence-file-present; evidence: docs/production-scale/evidence/latest-deploy-rollback-simulation.md, docs/production-scale/evidence/latest-deploy-rollback-simulation.json
+- `pnpm run restore:evidence:acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-acceptance.md, docs/production-scale/evidence/latest-restore-acceptance.json
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
 - `pnpm run restore:evidence:current-check` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-readiness-check.md, docs/production-scale/evidence/latest-restore-readiness-check.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
@@ -95,6 +97,7 @@ Production-ready claim: **false**
 - `pnpm run staging-owner-denial-smoke:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-owner-denial-smoke.md, docs/production-scale/evidence/latest-staging-owner-denial-smoke.json
 - `pnpm run sensitive-list-endpoints:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-sensitive-list-endpoints.md, docs/production-scale/evidence/latest-sensitive-list-endpoints.json
 - `pnpm run check:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
+- `pnpm run restore:evidence:template` - reference-required; evidence: none
 - `pnpm run baseline:production-scale-local -- --dry-run` - reference-required; evidence: none
 - `pnpm run response:orchestration-check` - reference-required; evidence: none
 - `pnpm run response:worker-orchestrate -- --dry-run` - reference-required; evidence: none
@@ -111,6 +114,18 @@ Production-ready claim: **false**
 - Checks skipped: true
 - Skip count: 55
 - SKIP treated as PASS: no
+
+## Restore Evidence Acceptance
+
+- Status: not-submitted
+- Accepted: no
+- Production proof: no
+- Staging proof: no
+- Evidence path: `docs/production-scale/evidence/restore-evidence-submission.json`
+- Environment: not submitted
+- Blocker 1 production coverage: not accepted
+- Blocker 22 production coverage: not accepted
+- Staging restore evidence is recorded but not counted as production proof.
 
 ## Human Restore Drill Evidence Acceptance
 
@@ -297,6 +312,8 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-restore-drill-simulated.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md` - present
 - `docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json` - present
+- `docs/production-scale/evidence/latest-restore-acceptance.md` - present
+- `docs/production-scale/evidence/latest-restore-acceptance.json` - present
 - `docs/production-scale/evidence/latest-restore-readiness-check.md` - present
 - `docs/production-scale/evidence/latest-restore-readiness-check.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-ingest-worker-simulated.md` - present
@@ -351,6 +368,9 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-runtime-size.json` - present
 - `docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md` - present
 - `docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json` - present
+- `docs/production-scale/evidence/restore-evidence-template.md` - present
+- `docs/production-scale/evidence/restore-evidence-template.json` - present
+- `docs/production-scale/evidence/restore-evidence-submission.json` - missing
 - `docs/production-scale/evidence/human-restore-drill-evidence.md` - missing
 - `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.json` - missing

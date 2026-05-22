@@ -1,6 +1,6 @@
 {
   "reportName": "restore-evidence-current-readiness-check",
-  "generatedAt": "2026-05-22T00:47:18.605Z",
+  "generatedAt": "2026-05-22T03:15:12.080Z",
   "status": "simulated-only",
   "currentOperationalProof": false,
   "stale": false,
@@ -22,7 +22,7 @@
     "path": "docs/production-scale/evidence/latest-restore-drill-simulated.json",
     "evidenceType": "SIMULATED",
     "status": "passed",
-    "generatedAt": "2026-05-20T17:51:17.812Z",
+    "generatedAt": "2026-05-22T00:47:18.484Z",
     "validationOk": true,
     "sensitiveFindings": [],
     "productionProof": false

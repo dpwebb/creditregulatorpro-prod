@@ -10,6 +10,7 @@ import {
   REQUIRED_PROMOTION_COMMANDS,
   validatePromotionPackReport,
 } from "../../scripts/production-promotion-pack.mjs";
+import { RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH } from "../../scripts/restore-evidence-acceptance.mjs";
 import { buildProductionDeploymentParityEvidenceReport } from "../../scripts/production-deployment-parity-evidence.mjs";
 import { buildMigrationGateReport } from "../../scripts/migration-gate.mjs";
 import { buildProductionWorkerReadinessEvidenceReport } from "../../scripts/production-worker-readiness-evidence.mjs";
@@ -47,6 +48,54 @@ function buildPack() {
     generatedAt: "2026-05-20T12:00:00.000Z",
     env: {},
   });
+}
+
+function acceptedProductionRestoreEvidenceAcceptance() {
+  return {
+    reportName: "restore-evidence-acceptance",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "accepted-production",
+    accepted: true,
+    productionProof: true,
+    stagingProof: false,
+    currentOperationalProof: true,
+    evidencePath: "docs/production-scale/evidence/restore-evidence-submission.json",
+    evidenceId: "DR-UNIT-001",
+    environment: "production",
+    restoreType: "archive restore",
+    observedAt: "2026-05-20T11:30:00.000Z",
+    ageDays: 0.02,
+    maxAgeDays: 90,
+    measuredRpo: {
+      targetMinutes: 15,
+      actualMinutes: 5,
+      status: "passed",
+    },
+    measuredRto: {
+      targetMinutes: 30,
+      actualMinutes: 12,
+      status: "passed",
+    },
+    evidenceAttachments: [RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH],
+    validation: {
+      ok: true,
+      errors: [],
+      sensitiveFindings: [],
+      evidenceKind: "human-observed",
+      stale: false,
+      futureDated: false,
+    },
+    blockerCoverage: {
+      disasterRecoveryRestoreDrill: true,
+      retentionArchiveRestore: true,
+    },
+    safety: {
+      runsDump: false,
+      runsRestore: false,
+      modifiesProduction: false,
+      acceptsSimulatedEvidenceAsProductionProof: false,
+    },
+  };
 }
 
 function acceptedRawReportRemediationEvidence() {
@@ -876,6 +925,7 @@ describe("production promotion evidence pack", () => {
       expect(report.commandList).toContain(command);
     }
     expect(report.commandList).toContain("pnpm run production-scale:evidence");
+    expect(report.commandList).toContain("pnpm run restore:evidence:acceptance");
     expect(report.commandList).toContain("pnpm run restore:accept-human-evidence");
     expect(report.commandList).toContain("pnpm run restore:evidence:current-check");
     expect(report.commandList).toContain("pnpm run packet-pdf:cache-miss-proof");
@@ -941,6 +991,7 @@ describe("production promotion evidence pack", () => {
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
       humanRestoreEvidenceAcceptance,
+      restoreEvidenceAcceptance: acceptedProductionRestoreEvidenceAcceptance(),
       generatedAt: "2026-05-20T12:00:00.000Z",
       env: {},
     });
@@ -954,6 +1005,15 @@ describe("production promotion evidence pack", () => {
       stale: false,
       evidenceType: "HUMAN-OBSERVED",
       simulatedOnly: false,
+    });
+    expect(report.restoreEvidenceAcceptance).toMatchObject({
+      status: "accepted-production",
+      accepted: true,
+      productionProof: true,
+      blockerCoverage: {
+        disasterRecoveryRestoreDrill: true,
+        retentionArchiveRestore: true,
+      },
     });
     expect(blocker1?.classification).toBe("fixed with human-observed evidence");
     expect(blocker22?.classification).toBe("fixed with human-observed evidence");

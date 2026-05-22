@@ -100,6 +100,8 @@
     "storage:durability-contract": "tsx scripts/storage-durability-contract.ts",
     "sensitive-list-endpoints:evidence": "node scripts/sensitive-list-endpoints-evidence.mjs",
     "restore:drill:simulated": "node scripts/restore-drill-simulated.mjs",
+    "restore:evidence:template": "node scripts/restore-evidence-acceptance.mjs --write-template",
+    "restore:evidence:acceptance": "node scripts/restore-evidence-acceptance.mjs",
     "retention:archive-restore:simulated": "node scripts/retention-archive-restore-simulated.mjs",
     "report:runtime-size": "node scripts/runtime-size-report.mjs",
     "report:bundle": "node scripts/bundle-report.mjs",

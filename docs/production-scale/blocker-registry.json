@@ -25,6 +25,8 @@
     "pnpm run storage:raw-report-remediation-plan",
     "pnpm run storage:raw-report-remediation-acceptance",
     "pnpm run restore:drill:simulated",
+    "pnpm run restore:evidence:template",
+    "pnpm run restore:evidence:acceptance",
     "pnpm run build",
     "pnpm run typecheck",
     "pnpm run test:contracts",
@@ -118,7 +120,8 @@
       "affectedFilesRoutesFunctions": [
         "docs/disaster-recovery-restore-drill-runbook.md",
         "docs/restore-drill-evidence-template.md",
-        "scripts/staging-backup-restore-checklist.mjs"
+        "scripts/staging-backup-restore-checklist.mjs",
+        "scripts/restore-evidence-acceptance.mjs"
       ],
       "currentStatus": "requires-human-proof",
       "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
@@ -129,6 +132,8 @@
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
+        "pnpm run restore:evidence:template",
+        "pnpm run restore:evidence:acceptance",
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
@@ -148,6 +153,11 @@
       "humanProofRequired": true,
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.json",
+        "docs/production-scale/evidence/restore-evidence-submission.json",
+        "docs/production-scale/evidence/latest-restore-acceptance.md",
+        "docs/production-scale/evidence/latest-restore-acceptance.json",
         "docs/production-scale/evidence/human-restore-drill-evidence.md",
         "docs/production-scale/evidence/human-restore-drill-evidence.json",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",

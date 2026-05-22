@@ -522,6 +522,12 @@ describe("staging backup/restore checklist", () => {
       "node scripts/staging-backup-restore-checklist.mjs --validate-evidence docs/restore-drill-evidence-template.md",
     );
     expect(packageJson.scripts["restore:drill:simulated"]).toBe("node scripts/restore-drill-simulated.mjs");
+    expect(packageJson.scripts["restore:evidence:template"]).toBe(
+      "node scripts/restore-evidence-acceptance.mjs --write-template",
+    );
+    expect(packageJson.scripts["restore:evidence:acceptance"]).toBe(
+      "node scripts/restore-evidence-acceptance.mjs",
+    );
     expect(packageJson.scripts["retention:archive-restore:simulated"]).toBe(
       "node scripts/retention-archive-restore-simulated.mjs",
     );

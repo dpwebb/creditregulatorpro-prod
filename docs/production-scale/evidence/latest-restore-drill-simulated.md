@@ -2,26 +2,26 @@
 
 SIMULATED evidence only. This is not actual disaster recovery completion and is not production proof.
 
-Generated at: 2026-05-22T00:47:18.484Z
+Generated at: 2026-05-22T03:15:16.730Z
 Branch: `staging`
-Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
-Simulation ID: `sim-restore-5cc43f9e-d6a3-4568-b4a1-2fc138d3f832`
+Commit: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
+Simulation ID: `sim-restore-f1bb6411-796b-4391-aa0d-9fbd2d457863`
 Status: passed
 Human-observed restore proof still required: yes
 
 ## SIMULATED Backup Metadata
 
-- Backup ID: `SIMULATED-BACKUP-sim-restore-5cc43f9e-d6a3-4568-b4a1-2fc138d3f832`
+- Backup ID: `SIMULATED-BACKUP-sim-restore-f1bb6411-796b-4391-aa0d-9fbd2d457863`
 - Source environment: SIMULATED-local-fixture-source
-- Source commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+- Source commit: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
 - Production backup accessed: no
 - Real consumer PII used: no
 
 ## SIMULATED Restore Target Metadata
 
 - Restore target: SIMULATED-local-temp-state
-- Target ID: `SIMULATED-RESTORE-TARGET-sim-restore-5cc43f9e-d6a3-4568-b4a1-2fc138d3f832`
-- Local temp state root: `SIMULATED-local-temp-state/sim-restore-5cc43f9e-d6a3-4568-b4a1-2fc138d3f832`
+- Target ID: `SIMULATED-RESTORE-TARGET-sim-restore-f1bb6411-796b-4391-aa0d-9fbd2d457863`
+- Local temp state root: `SIMULATED-local-temp-state/sim-restore-f1bb6411-796b-4391-aa0d-9fbd2d457863`
 - Restore executed: no
 
 ## SIMULATED RPO/RTO

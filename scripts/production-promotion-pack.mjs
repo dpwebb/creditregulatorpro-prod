@@ -77,6 +77,15 @@ import {
 } from "./staging-backup-restore-checklist.mjs";
 
 import {
+  buildRestoreEvidenceAcceptanceReport,
+  DEFAULT_RESTORE_EVIDENCE_SUBMISSION_JSON_PATH,
+  RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH,
+  RESTORE_EVIDENCE_ACCEPTANCE_MD_PATH,
+  RESTORE_EVIDENCE_TEMPLATE_JSON_PATH,
+  RESTORE_EVIDENCE_TEMPLATE_MD_PATH,
+} from "./restore-evidence-acceptance.mjs";
+
+import {
   collectDashboardEvidence,
   detectProductionEnvironment,
   loadBlockerRegistry,
@@ -170,6 +179,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run check:restore-drill-evidence",
   "pnpm run migrations:gate",
   "pnpm run deploy:rollback-simulation",
+  "pnpm run restore:evidence:acceptance",
   "pnpm run restore:accept-human-evidence",
   "pnpm run restore:evidence:current-check",
   "pnpm run report:runtime-size",
@@ -180,6 +190,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
 export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run production-scale:evidence",
   "pnpm run restore:drill:simulated",
+  "pnpm run restore:evidence:acceptance",
   "pnpm run restore:evidence:current-check",
   "pnpm run ingest:worker:simulated-proof",
   "pnpm run ingest:worker:staging-evidence",
@@ -215,6 +226,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run restore:accept-human-evidence": [
     HUMAN_RESTORE_DRILL_ACCEPTANCE_MD_PATH,
     HUMAN_RESTORE_DRILL_ACCEPTANCE_JSON_PATH,
+  ],
+  "pnpm run restore:evidence:acceptance": [
+    RESTORE_EVIDENCE_ACCEPTANCE_MD_PATH,
+    RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH,
   ],
   "pnpm run restore:evidence:current-check": [
     RESTORE_READINESS_CHECK_MD_PATH,
@@ -536,6 +551,7 @@ function classifyBlocker(
   blocker,
   humanRestoreEvidenceAcceptance = null,
   restoreReadinessCheck = null,
+  restoreEvidenceAcceptance = null,
   productionDeploymentParityEvidence = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
@@ -582,11 +598,10 @@ function classifyBlocker(
   }
   if (
     blocker.number === 1 &&
-    restoreReadinessCheck?.currentOperationalProof === true &&
-    restoreReadinessCheck?.blockerCoverage?.disasterRecoveryRestoreDrill === true &&
-    restoreReadinessCheck?.evidenceType === "HUMAN-OBSERVED" &&
-    restoreReadinessCheck?.simulatedOnly !== true &&
-    restoreReadinessCheck?.stale !== true
+    restoreEvidenceAcceptance?.accepted === true &&
+    restoreEvidenceAcceptance?.productionProof === true &&
+    restoreEvidenceAcceptance?.currentOperationalProof === true &&
+    restoreEvidenceAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill === true
   ) {
     return "fixed with human-observed evidence";
   }
@@ -671,11 +686,10 @@ function classifyBlocker(
   }
   if (
     blocker.number === 22 &&
-    restoreReadinessCheck?.currentOperationalProof === true &&
-    restoreReadinessCheck?.blockerCoverage?.retentionArchiveRestore === true &&
-    restoreReadinessCheck?.evidenceType === "HUMAN-OBSERVED" &&
-    restoreReadinessCheck?.simulatedOnly !== true &&
-    restoreReadinessCheck?.stale !== true
+    restoreEvidenceAcceptance?.accepted === true &&
+    restoreEvidenceAcceptance?.productionProof === true &&
+    restoreEvidenceAcceptance?.currentOperationalProof === true &&
+    restoreEvidenceAcceptance?.blockerCoverage?.retentionArchiveRestore === true
   ) {
     return "fixed with human-observed evidence";
   }
@@ -1022,6 +1036,7 @@ export function buildProductionPromotionPackReport({
   dashboardReport = null,
   humanRestoreEvidenceAcceptance = null,
   restoreReadinessCheck = null,
+  restoreEvidenceAcceptance = null,
   productionDeploymentParityEvidence = null,
   productionWorkerActivationEvidence = null,
   productionWorkerReadinessEvidence = null,
@@ -1077,6 +1092,8 @@ export function buildProductionPromotionPackReport({
       evidencePath: acceptedHumanRestoreEvidence.evidencePath,
       generatedAt,
     });
+  const acceptedRestoreEvidence =
+    restoreEvidenceAcceptance ?? buildRestoreEvidenceAcceptanceReport({ rootDir, generatedAt });
   const deploymentParityEvidence =
     productionDeploymentParityEvidence ?? readProductionDeploymentParityEvidenceReport({ rootDir, generatedAt });
   const workerReadinessEvidence =
@@ -1101,6 +1118,7 @@ export function buildProductionPromotionPackReport({
       blocker,
       acceptedHumanRestoreEvidence,
       currentRestoreReadiness,
+      acceptedRestoreEvidence,
       deploymentParityEvidence,
       workerReadinessEvidence,
       stagingIngestEvidence,
@@ -1157,6 +1175,11 @@ export function buildProductionPromotionPackReport({
   const unresolvedBlockers = classifiedBlockers.filter((blocker) => isUnresolvedClassification(blocker.classification));
   const generatedEvidenceFileReferences = unique([
     ...Object.values(OUTPUT_BY_COMMAND).flat(),
+    RESTORE_EVIDENCE_TEMPLATE_MD_PATH,
+    RESTORE_EVIDENCE_TEMPLATE_JSON_PATH,
+    DEFAULT_RESTORE_EVIDENCE_SUBMISSION_JSON_PATH,
+    RESTORE_EVIDENCE_ACCEPTANCE_MD_PATH,
+    RESTORE_EVIDENCE_ACCEPTANCE_JSON_PATH,
     HUMAN_RESTORE_DRILL_EVIDENCE_MD_PATH,
     HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
     PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,
@@ -1253,6 +1276,41 @@ export function buildProductionPromotionPackReport({
         simulatedOnlySubmission: acceptedHumanRestoreEvidence.validation?.simulatedOnlySubmission === true,
         sensitiveFindings: acceptedHumanRestoreEvidence.validation?.sensitiveFindings ?? [],
         errors: acceptedHumanRestoreEvidence.validation?.errors ?? [],
+      },
+    },
+    restoreEvidenceAcceptance: {
+      reportName: acceptedRestoreEvidence.reportName,
+      generatedAt: acceptedRestoreEvidence.generatedAt,
+      status: acceptedRestoreEvidence.status,
+      accepted: acceptedRestoreEvidence.accepted === true,
+      productionProof: acceptedRestoreEvidence.productionProof === true,
+      stagingProof: acceptedRestoreEvidence.stagingProof === true,
+      currentOperationalProof: acceptedRestoreEvidence.currentOperationalProof === true,
+      evidencePath: acceptedRestoreEvidence.evidencePath,
+      evidenceId: acceptedRestoreEvidence.evidenceId ?? null,
+      environment: acceptedRestoreEvidence.environment ?? null,
+      restoreType: acceptedRestoreEvidence.restoreType ?? null,
+      observedAt: acceptedRestoreEvidence.observedAt ?? null,
+      ageDays: acceptedRestoreEvidence.ageDays ?? null,
+      maxAgeDays: acceptedRestoreEvidence.maxAgeDays ?? null,
+      measuredRpo: acceptedRestoreEvidence.measuredRpo ?? null,
+      measuredRto: acceptedRestoreEvidence.measuredRto ?? null,
+      evidenceAttachments: acceptedRestoreEvidence.evidenceAttachments ?? [],
+      blockerCoverage: acceptedRestoreEvidence.blockerCoverage,
+      validation: {
+        ok: acceptedRestoreEvidence.validation?.ok === true,
+        errors: acceptedRestoreEvidence.validation?.errors ?? [],
+        sensitiveFindings: acceptedRestoreEvidence.validation?.sensitiveFindings ?? [],
+        evidenceKind: acceptedRestoreEvidence.validation?.evidenceKind ?? "unknown",
+        stale: acceptedRestoreEvidence.validation?.stale === true,
+        futureDated: acceptedRestoreEvidence.validation?.futureDated === true,
+      },
+      safety: {
+        runsDump: acceptedRestoreEvidence.safety?.runsDump === true,
+        runsRestore: acceptedRestoreEvidence.safety?.runsRestore === true,
+        modifiesProduction: acceptedRestoreEvidence.safety?.modifiesProduction === true,
+        acceptsSimulatedEvidenceAsProductionProof:
+          acceptedRestoreEvidence.safety?.acceptsSimulatedEvidenceAsProductionProof === true,
       },
     },
     restoreReadinessCheck: {
@@ -1627,6 +1685,7 @@ export function buildProductionPromotionPackReport({
       "Dashboard PASS alone is not complete release evidence when checks are skipped.",
       "Production activation requires operator approval.",
       "Historical raw report remediation requires accepted sanitized operator evidence.",
+      "Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
       "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",
@@ -1677,6 +1736,9 @@ export function validatePromotionPackReport(report) {
   if (!report.promotionCertification || typeof report.promotionCertification !== "object") {
     errors.push("Promotion pack is missing promotion certification details.");
   }
+  if (!report.restoreEvidenceAcceptance || typeof report.restoreEvidenceAcceptance !== "object") {
+    errors.push("Promotion pack is missing restore evidence acceptance details.");
+  }
   for (const requiredKey of [
     "queueLivenessStatus",
     "storageDurabilityResult",
@@ -1712,6 +1774,7 @@ export function validatePromotionPackReport(report) {
   }
   const humanAcceptance = report.humanRestoreDrillEvidenceAcceptance;
   const restoreReadiness = report.restoreReadinessCheck;
+  const restoreAcceptance = report.restoreEvidenceAcceptance;
   const deploymentParity = report.productionDeploymentParityEvidence;
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const workerActivation = report.productionWorkerActivationEvidence;
@@ -1988,30 +2051,42 @@ export function validatePromotionPackReport(report) {
   }
   if (blocker1?.classification === "fixed with human-observed evidence") {
     if (
-      humanAcceptance?.accepted !== true ||
-      humanAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
-      humanAcceptance?.validation?.simulatedOnlySubmission === true ||
-      restoreReadiness?.currentOperationalProof !== true ||
-      restoreReadiness?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
-      restoreReadiness?.evidenceType !== "HUMAN-OBSERVED" ||
-      restoreReadiness?.simulatedOnly === true ||
-      restoreReadiness?.stale === true
+      restoreAcceptance?.accepted !== true ||
+      restoreAcceptance?.productionProof !== true ||
+      restoreAcceptance?.currentOperationalProof !== true ||
+      restoreAcceptance?.blockerCoverage?.disasterRecoveryRestoreDrill !== true ||
+      restoreAcceptance?.validation?.evidenceKind !== "human-observed" ||
+      restoreAcceptance?.validation?.stale === true ||
+      restoreAcceptance?.validation?.sensitiveFindings?.length > 0
     ) {
-      errors.push("Blocker 1 cannot be classified fixed without current accepted non-simulated human restore evidence.");
+      errors.push("Blocker 1 cannot be classified fixed without current accepted production restore evidence.");
     }
   }
   if (blocker22?.classification === "fixed with human-observed evidence") {
     if (
-      humanAcceptance?.accepted !== true ||
-      humanAcceptance?.blockerCoverage?.retentionArchiveRestore !== true ||
-      humanAcceptance?.validation?.simulatedOnlySubmission === true ||
-      restoreReadiness?.currentOperationalProof !== true ||
-      restoreReadiness?.blockerCoverage?.retentionArchiveRestore !== true ||
-      restoreReadiness?.evidenceType !== "HUMAN-OBSERVED" ||
-      restoreReadiness?.simulatedOnly === true ||
-      restoreReadiness?.stale === true
+      restoreAcceptance?.accepted !== true ||
+      restoreAcceptance?.productionProof !== true ||
+      restoreAcceptance?.currentOperationalProof !== true ||
+      restoreAcceptance?.blockerCoverage?.retentionArchiveRestore !== true ||
+      restoreAcceptance?.validation?.evidenceKind !== "human-observed" ||
+      restoreAcceptance?.validation?.stale === true ||
+      restoreAcceptance?.validation?.sensitiveFindings?.length > 0
     ) {
-      errors.push("Blocker 22 cannot be classified fixed without current accepted non-simulated human retention recoverability evidence.");
+      errors.push("Blocker 22 cannot be classified fixed without current accepted production archive restore evidence.");
+    }
+  }
+  if (restoreAcceptance?.accepted === true) {
+    if (
+      restoreAcceptance?.safety?.runsDump === true ||
+      restoreAcceptance?.safety?.runsRestore === true ||
+      restoreAcceptance?.safety?.modifiesProduction === true ||
+      restoreAcceptance?.safety?.acceptsSimulatedEvidenceAsProductionProof === true ||
+      restoreAcceptance?.validation?.sensitiveFindings?.length > 0
+    ) {
+      errors.push("Restore evidence acceptance is unsafe or contains sensitive findings.");
+    }
+    if (restoreAcceptance?.stagingProof === true && restoreAcceptance?.productionProof === true) {
+      errors.push("Staging restore evidence cannot also be production proof.");
     }
   }
   if (restoreReadiness?.currentOperationalProof === true) {
@@ -2092,6 +2167,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Codex must not promote readiness classification beyond evidence.",
     "- Production activation requires operator approval.",
     "- Historical raw report remediation requires accepted sanitized operator evidence.",
+    "- Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
     "- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "- Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
     "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
@@ -2131,6 +2207,22 @@ export function renderPromotionPackMarkdown(report) {
     `- Checks skipped: ${report.skippedChecks.checksSkipped}`,
     `- Skip count: ${report.skippedChecks.skipCount ?? "unknown"}`,
     `- SKIP treated as PASS: ${report.skippedChecks.treatsSkipAsPass ? "yes" : "no"}`,
+    "",
+    "## Restore Evidence Acceptance",
+    "",
+    `- Status: ${report.restoreEvidenceAcceptance.status}`,
+    `- Accepted: ${report.restoreEvidenceAcceptance.accepted ? "yes" : "no"}`,
+    `- Production proof: ${report.restoreEvidenceAcceptance.productionProof ? "yes" : "no"}`,
+    `- Staging proof: ${report.restoreEvidenceAcceptance.stagingProof ? "yes" : "no"}`,
+    `- Evidence path: \`${report.restoreEvidenceAcceptance.evidencePath ?? "not submitted"}\``,
+    `- Environment: ${report.restoreEvidenceAcceptance.environment ?? "not submitted"}`,
+    `- Blocker 1 production coverage: ${
+      report.restoreEvidenceAcceptance.blockerCoverage?.disasterRecoveryRestoreDrill ? "accepted" : "not accepted"
+    }`,
+    `- Blocker 22 production coverage: ${
+      report.restoreEvidenceAcceptance.blockerCoverage?.retentionArchiveRestore ? "accepted" : "not accepted"
+    }`,
+    "- Staging restore evidence is recorded but not counted as production proof.",
     "",
     "## Human Restore Drill Evidence Acceptance",
     "",

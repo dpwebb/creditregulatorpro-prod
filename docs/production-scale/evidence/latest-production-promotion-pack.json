@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T02:44:04.853Z",
+  "generatedAt": "2026-05-22T03:20:44.458Z",
   "currentBranch": "staging",
-  "currentCommitHash": "35388f20d9c58282405602a7205a987ece110410",
-  "currentHead": "35388f20d9c58282405602a7205a987ece110410",
+  "currentCommitHash": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+  "currentHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
   "targetEnvironment": "production",
-  "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+  "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T02:44:04.853Z",
-      "completedAt": "2026-05-22T02:44:04.853Z",
+      "startedAt": "2026-05-22T03:20:44.458Z",
+      "completedAt": "2026-05-22T03:20:44.458Z",
       "status": "passed",
       "automated": true
     }
@@ -70,6 +70,7 @@
     "pnpm run check:restore-drill-evidence",
     "pnpm run migrations:gate",
     "pnpm run deploy:rollback-simulation",
+    "pnpm run restore:evidence:acceptance",
     "pnpm run restore:accept-human-evidence",
     "pnpm run restore:evidence:current-check",
     "pnpm run report:runtime-size",
@@ -88,6 +89,7 @@
     "pnpm run staging-owner-denial-smoke:evidence",
     "pnpm run sensitive-list-endpoints:evidence",
     "pnpm run check:runtime-size",
+    "pnpm run restore:evidence:template",
     "pnpm run baseline:production-scale-local -- --dry-run",
     "pnpm run response:orchestration-check",
     "pnpm run response:worker-orchestrate -- --dry-run",
@@ -557,12 +559,12 @@
           "exists": true,
           "reportName": "storage-durability-contract",
           "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
-          "generatedAt": "2026-05-22T02:29:25.245Z",
+          "generatedAt": "2026-05-22T02:48:20.224Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:29:25.245Z",
+      "latestGeneratedAt": "2026-05-22T02:48:20.224Z",
       "status": null
     },
     {
@@ -635,13 +637,42 @@
           "exists": true,
           "reportName": "deploy-rollback-simulation",
           "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
-          "generatedAt": "2026-05-22T02:29:47.348Z",
+          "generatedAt": "2026-05-22T02:48:41.545Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:29:47.348Z",
+      "latestGeneratedAt": "2026-05-22T02:48:41.545Z",
       "status": "passed"
+    },
+    {
+      "command": "pnpm run restore:evidence:acceptance",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-restore-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-restore-acceptance.json",
+          "exists": true,
+          "reportName": "restore-evidence-acceptance",
+          "evidenceType": null,
+          "generatedAt": "2026-05-22T03:20:36.012Z",
+          "status": "not-submitted",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T03:20:36.012Z",
+      "status": "not-submitted"
     },
     {
       "command": "pnpm run restore:accept-human-evidence",
@@ -693,12 +724,12 @@
           "exists": true,
           "reportName": "restore-evidence-current-readiness-check",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T00:47:18.605Z",
+          "generatedAt": "2026-05-22T03:15:12.080Z",
           "status": "simulated-only",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:47:18.605Z",
+      "latestGeneratedAt": "2026-05-22T03:15:12.080Z",
       "status": "simulated-only"
     },
     {
@@ -819,12 +850,12 @@
           "exists": true,
           "reportName": "restore-drill-simulated",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T00:47:18.484Z",
+          "generatedAt": "2026-05-22T03:15:16.730Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:47:18.484Z",
+      "latestGeneratedAt": "2026-05-22T03:15:16.730Z",
       "status": "passed"
     },
     {
@@ -848,12 +879,12 @@
           "exists": true,
           "reportName": "ingest-worker-simulated-queue-drain-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T02:29:28.267Z",
+          "generatedAt": "2026-05-22T02:48:23.108Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:29:28.267Z",
+      "latestGeneratedAt": "2026-05-22T02:48:23.108Z",
       "status": "passed"
     },
     {
@@ -964,12 +995,12 @@
           "exists": true,
           "reportName": "packet-pdf-cache-miss-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T02:29:13.994Z",
+          "generatedAt": "2026-05-22T02:48:09.767Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:29:13.994Z",
+      "latestGeneratedAt": "2026-05-22T02:48:09.767Z",
       "status": null
     },
     {
@@ -1022,12 +1053,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-22T02:29:15.011Z",
+          "generatedAt": "2026-05-22T02:48:10.569Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:29:15.011Z",
+      "latestGeneratedAt": "2026-05-22T02:48:10.569Z",
       "status": null
     },
     {
@@ -1147,6 +1178,16 @@
       "status": null
     },
     {
+      "command": "pnpm run restore:evidence:template",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
       "command": "pnpm run baseline:production-scale-local -- --dry-run",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -1260,7 +1301,7 @@
       "exists": true,
       "reportName": "restore-drill-simulated",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T00:47:18.484Z",
+      "generatedAt": "2026-05-22T03:15:16.730Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1283,6 +1324,24 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/latest-restore-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-acceptance.json",
+      "exists": true,
+      "reportName": "restore-evidence-acceptance",
+      "evidenceType": null,
+      "generatedAt": "2026-05-22T03:20:36.012Z",
+      "status": "not-submitted",
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/evidence/latest-restore-readiness-check.md",
       "exists": true,
       "reportName": null,
@@ -1296,7 +1355,7 @@
       "exists": true,
       "reportName": "restore-evidence-current-readiness-check",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T00:47:18.605Z",
+      "generatedAt": "2026-05-22T03:15:12.080Z",
       "status": "simulated-only",
       "productionProof": false
     },
@@ -1314,7 +1373,7 @@
       "exists": true,
       "reportName": "ingest-worker-simulated-queue-drain-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T02:29:28.267Z",
+      "generatedAt": "2026-05-22T02:48:23.108Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1512,7 +1571,7 @@
       "exists": true,
       "reportName": "packet-pdf-cache-miss-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T02:29:13.994Z",
+      "generatedAt": "2026-05-22T02:48:09.767Z",
       "status": null,
       "productionProof": false
     },
@@ -1530,7 +1589,7 @@
       "exists": true,
       "reportName": "storage-durability-contract",
       "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
-      "generatedAt": "2026-05-22T02:29:25.245Z",
+      "generatedAt": "2026-05-22T02:48:20.224Z",
       "status": null,
       "productionProof": false
     },
@@ -1548,7 +1607,7 @@
       "exists": true,
       "reportName": "deploy-rollback-simulation",
       "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
-      "generatedAt": "2026-05-22T02:29:47.348Z",
+      "generatedAt": "2026-05-22T02:48:41.545Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1656,7 +1715,7 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T02:29:15.011Z",
+      "generatedAt": "2026-05-22T02:48:10.569Z",
       "status": null,
       "productionProof": false
     },
@@ -1766,6 +1825,33 @@
       "evidenceType": null,
       "generatedAt": "2026-05-22T00:46:25.417Z",
       "status": "accepted-warning-only-waiver",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/restore-evidence-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/restore-evidence-template.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": "2026-05-22T03:20:36.017Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/restore-evidence-submission.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
       "productionProof": false
     },
     {
@@ -2061,7 +2147,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T00:45:16.102Z",
+      "generatedAt": "2026-05-22T03:15:21.933Z",
       "status": null,
       "productionProof": false
     },
@@ -2091,9 +2177,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-human-production-evidence",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
-    "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-    "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2109,9 +2195,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
     "present": true,
     "status": null,
-    "generatedAt": "2026-05-22T02:29:25.245Z",
-    "evidenceHead": "84e62e3389ffe961cbed264746959d33016d7c07",
-    "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+    "generatedAt": "2026-05-22T02:48:20.224Z",
+    "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
+    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
@@ -2129,7 +2215,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2145,9 +2231,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
     "status": "accepted-temporary-allowlist",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
-    "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-    "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2163,9 +2249,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
     "present": true,
     "status": "passed",
-    "generatedAt": "2026-05-22T02:29:47.348Z",
-    "evidenceHead": "84e62e3389ffe961cbed264746959d33016d7c07",
-    "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+    "generatedAt": "2026-05-22T02:48:41.545Z",
+    "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
+    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2176,8 +2262,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "35388f20d9c58282405602a7205a987ece110410",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2218,9 +2304,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-human-production-evidence",
-        "generatedAt": "2026-05-22T02:44:04.853Z",
-        "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-        "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+        "generatedAt": "2026-05-22T03:20:44.458Z",
+        "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2236,9 +2322,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
         "present": true,
         "status": null,
-        "generatedAt": "2026-05-22T02:29:25.245Z",
-        "evidenceHead": "84e62e3389ffe961cbed264746959d33016d7c07",
-        "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+        "generatedAt": "2026-05-22T02:48:20.224Z",
+        "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
+        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
@@ -2256,7 +2342,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2272,9 +2358,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
         "status": "accepted-temporary-allowlist",
-        "generatedAt": "2026-05-22T02:44:04.853Z",
-        "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-        "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+        "generatedAt": "2026-05-22T03:20:44.458Z",
+        "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2290,9 +2376,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
         "present": true,
         "status": "passed",
-        "generatedAt": "2026-05-22T02:29:47.348Z",
-        "evidenceHead": "84e62e3389ffe961cbed264746959d33016d7c07",
-        "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+        "generatedAt": "2026-05-22T02:48:41.545Z",
+        "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
+        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2336,7 +2422,7 @@
   },
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2354,9 +2440,48 @@
       ]
     }
   },
+  "restoreEvidenceAcceptance": {
+    "reportName": "restore-evidence-acceptance",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "status": "not-submitted",
+    "accepted": false,
+    "productionProof": false,
+    "stagingProof": false,
+    "currentOperationalProof": false,
+    "evidencePath": "docs/production-scale/evidence/restore-evidence-submission.json",
+    "evidenceId": null,
+    "environment": null,
+    "restoreType": null,
+    "observedAt": null,
+    "ageDays": null,
+    "maxAgeDays": null,
+    "measuredRpo": null,
+    "measuredRto": null,
+    "evidenceAttachments": [],
+    "blockerCoverage": {
+      "disasterRecoveryRestoreDrill": false,
+      "retentionArchiveRestore": false
+    },
+    "validation": {
+      "ok": false,
+      "errors": [
+        "No restore evidence submission found at docs/production-scale/evidence/restore-evidence-submission.json."
+      ],
+      "sensitiveFindings": [],
+      "evidenceKind": "unknown",
+      "stale": false,
+      "futureDated": false
+    },
+    "safety": {
+      "runsDump": false,
+      "runsRestore": false,
+      "modifiesProduction": false,
+      "acceptsSimulatedEvidenceAsProductionProof": false
+    }
+  },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -2482,7 +2607,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2503,7 +2628,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2597,7 +2722,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2620,7 +2745,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2682,7 +2807,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2859,7 +2984,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "accepted-temporary-allowlist",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
@@ -2900,7 +3025,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T02:44:04.853Z",
+    "generatedAt": "2026-05-22T03:20:44.458Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -2949,6 +3074,8 @@
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
+        "pnpm run restore:evidence:template",
+        "pnpm run restore:evidence:acceptance",
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
@@ -2965,6 +3092,11 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.json",
+        "docs/production-scale/evidence/restore-evidence-submission.json",
+        "docs/production-scale/evidence/latest-restore-acceptance.md",
+        "docs/production-scale/evidence/latest-restore-acceptance.json",
         "docs/production-scale/evidence/human-restore-drill-evidence.md",
         "docs/production-scale/evidence/human-restore-drill-evidence.json",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
@@ -4058,6 +4190,8 @@
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
+        "pnpm run restore:evidence:template",
+        "pnpm run restore:evidence:acceptance",
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
@@ -4074,6 +4208,11 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.json",
+        "docs/production-scale/evidence/restore-evidence-submission.json",
+        "docs/production-scale/evidence/latest-restore-acceptance.md",
+        "docs/production-scale/evidence/latest-restore-acceptance.json",
         "docs/production-scale/evidence/human-restore-drill-evidence.md",
         "docs/production-scale/evidence/human-restore-drill-evidence.json",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
@@ -4436,6 +4575,8 @@
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
+        "pnpm run restore:evidence:template",
+        "pnpm run restore:evidence:acceptance",
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
@@ -4452,6 +4593,11 @@
       ],
       "relatedEvidenceOutputPaths": [
         "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.md",
+        "docs/production-scale/evidence/restore-evidence-template.json",
+        "docs/production-scale/evidence/restore-evidence-submission.json",
+        "docs/production-scale/evidence/latest-restore-acceptance.md",
+        "docs/production-scale/evidence/latest-restore-acceptance.json",
         "docs/production-scale/evidence/human-restore-drill-evidence.md",
         "docs/production-scale/evidence/human-restore-drill-evidence.json",
         "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md",
@@ -4638,6 +4784,7 @@
     "Dashboard PASS alone is not complete release evidence when checks are skipped.",
     "Production activation requires operator approval.",
     "Historical raw report remediation requires accepted sanitized operator evidence.",
+    "Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
     "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",

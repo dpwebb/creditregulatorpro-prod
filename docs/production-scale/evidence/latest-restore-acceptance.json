@@ -1,0 +1,33 @@
+{
+  "reportName": "restore-evidence-acceptance",
+  "generatedAt": "2026-05-22T03:20:36.012Z",
+  "status": "not-submitted",
+  "accepted": false,
+  "productionProof": false,
+  "stagingProof": false,
+  "currentOperationalProof": false,
+  "evidencePath": "docs/production-scale/evidence/restore-evidence-submission.json",
+  "templatePaths": {
+    "json": "docs/production-scale/evidence/restore-evidence-template.json",
+    "markdown": "docs/production-scale/evidence/restore-evidence-template.md"
+  },
+  "validation": {
+    "ok": false,
+    "errors": [
+      "No restore evidence submission found at docs/production-scale/evidence/restore-evidence-submission.json."
+    ],
+    "sensitiveFindings": []
+  },
+  "blockerCoverage": {
+    "disasterRecoveryRestoreDrill": false,
+    "retentionArchiveRestore": false
+  },
+  "safety": {
+    "readsSecrets": false,
+    "printsSecrets": false,
+    "runsDump": false,
+    "runsRestore": false,
+    "modifiesProduction": false,
+    "acceptsSimulatedEvidenceAsProductionProof": false
+  }
+}
