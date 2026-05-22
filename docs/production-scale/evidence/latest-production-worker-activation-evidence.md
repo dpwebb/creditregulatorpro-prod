@@ -1,9 +1,9 @@
 # Production Worker Activation Evidence
 
-Generated at: 2026-05-21T00:19:58.836Z
+Generated at: 2026-05-22T00:46:53.953Z
 Evidence type: PRODUCTION_WORKER_ACTIVATION_EVIDENCE
 Branch: `staging`
-Commit: `16ff7ee53f6ec16c1d8db24d4209b699f36a5729`
+Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Status: prepared-default-off
 Production proof: no
 
@@ -29,13 +29,13 @@ Production proof: no
 
 ## Dry Run
 
-- Command: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process`
+- Command: `pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process`
 - Mutates queue: no
 - Claims jobs: no
 
 ## Apply Mode
 
-- Command: `pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process`
+- Command: `pnpm run ingest:worker --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process`
 - Confirmation string: `explicit-bounded-production-ingest-worker-apply`
 - Max jobs bound: 1-5
 - workflow_dispatch input run_ingest_worker_apply=true

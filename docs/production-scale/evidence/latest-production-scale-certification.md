@@ -1,10 +1,10 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-21T18:50:01.238Z
-Current HEAD: `2e4bcb2bafd4ba9d7834b20c00885b421a95fb68`
-Target SHA: `2e4bcb2bafd4ba9d7834b20c00885b421a95fb68`
+Generated: 2026-05-22T00:45:03.277Z
+Current HEAD: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Target SHA: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Target environment: `production-scale-local-certification`
-CERTIFYING:true
+CERTIFYING:false
 
 ## Certification Rule
 
@@ -16,8 +16,8 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 | --- | --- | --- |
 | Contract tests | PASS | `pnpm run test:contracts` |
 | API tests | PASS | `pnpm run test:api` |
-| Authenticated consumer upload-to-results smoke | PASS | `pnpm run smoke:auth-workflow` |
-| Authenticated packet readiness/create/PDF smoke | PASS | `pnpm run smoke:auth-workflow:packet` |
+| Authenticated consumer upload-to-results smoke | FAILED | `pnpm run smoke:auth-workflow` |
+| Authenticated packet readiness/create/PDF smoke | FAILED | `pnpm run smoke:auth-workflow:packet` |
 | Deterministic ingestion report | PASS | `pnpm run test:deterministic-ingestion-report` |
 | Response soak check | PASS | `pnpm run response:soak-check` |
 | Packet PDF cache-miss proof | PASS | `pnpm run packet-pdf:cache-miss-proof` |
@@ -27,12 +27,14 @@ CERTIFYING:true only when every required automated gate passes and no gate is fa
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
 | Rollback SHA workflow static check | PASS | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
 | Deploy rollback simulation | PASS | `pnpm run deploy:rollback-simulation --write-evidence --json` |
-| Application check | PASS | `pnpm run check` |
+| Application check | FAILED | `pnpm run check` |
 | Evidence freshness check | PASS | `internal evidence freshness check` |
 
 ## Failed Gates
 
-- None
+- authenticatedUploadResults
+- authenticatedPacketPdf
+- applicationCheck
 
 ## Stale Gates
 

@@ -1,9 +1,9 @@
 {
   "reportName": "response-ops-readiness-evidence",
   "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-  "generatedAt": "2026-05-21T00:20:11.502Z",
+  "generatedAt": "2026-05-22T00:55:31.764Z",
   "branch": "staging",
-  "commit": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
   "status": "operator-ready-with-deferred-controls",
   "productionProof": false,
   "staticValidation": {
@@ -109,13 +109,13 @@
     "treatsSkipAsPass": false,
     "dashboardPassAloneIsReleaseEvidence": false,
     "summary": {
-      "pass": 9,
+      "pass": 10,
       "fail": 2,
       "skip": 55,
       "simulated": 1,
       "humanRequired": 3,
       "manual": 12,
-      "open": 12,
+      "open": 11,
       "info": 8
     }
   },

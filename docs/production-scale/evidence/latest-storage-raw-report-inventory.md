@@ -2,9 +2,9 @@
 
 Sanitized read-only inventory. No raw report bytes, inline base64 values, signed URLs, storage secrets, real consumer PII, or production database dumps are printed.
 
-Generated at: 2026-05-20T21:15:37.971Z
+Generated at: 2026-05-22T00:47:09.364Z
 Branch: `staging`
-Commit: `7f2229341f3693b1caba5471b17a2a88d9e87782`
+Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Evidence type: SANITIZED_READ_ONLY_INVENTORY
 Status: database-unavailable
 Database reachable: no

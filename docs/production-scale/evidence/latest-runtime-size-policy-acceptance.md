@@ -2,7 +2,7 @@
 
 This acceptance evidence validates runtime-size policy governance only. It does not change dependency versions, build chunks, OCR/PDF behavior, or production data.
 
-Generated at: 2026-05-21T01:35:41.565Z
+Generated at: 2026-05-22T00:46:25.417Z
 Status: accepted-warning-only-waiver
 Accepted: yes
 Acceptance kind: warning-only-waiver
@@ -22,7 +22,7 @@ Runtime-size evidence path: `docs/production-scale/evidence/latest-runtime-size.
 ## Runtime Evidence
 
 - Generated at: 2026-05-21T01:35:22.854Z
-- Age hours: 0.01
+- Age hours: 23.18
 - Overall status: WARN
 - Blocking failures: no
 - Largest JS raw/gzip: 3.14 MiB/878.8 KiB

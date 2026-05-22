@@ -2,9 +2,9 @@
 
 SIMULATED local evidence only. This is not repeated target-environment production-scale proof and does not claim production-at-scale readiness.
 
-Generated at: 2026-05-20T18:30:24.005Z
+Generated at: 2026-05-22T00:55:19.320Z
 Branch: `staging`
-Commit: `b5a2ee3505e6faa836d857d980c7f708304ff211`
+Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Target context: localhost (local)
 Status: passed
 
@@ -15,9 +15,9 @@ Status: passed
 - Synthetic queue job count: 4
 - Concurrency level: 2
 - Iterations: 1
-- Elapsed ms: 81.46
-- Throughput/sec: 98.21
-- Latency p50/p95/max ms: 15.12/31.93/31.93
+- Elapsed ms: 87.5
+- Throughput/sec: 91.43
+- Latency p50/p95/max ms: 15.53/30.76/30.76
 
 ## Ingest Queue Depth
 
@@ -29,7 +29,7 @@ Status: passed
 
 - Cache hits: 2
 - Cache misses: 1
-- Cache-miss render timing p50/p95/max ms: 14.73/14.73/14.73
+- Cache-miss render timing p50/p95/max ms: 15.7/15.7/15.7
 - Packet PDF queue/envelope implemented by this task: no
 
 ## DB Pool Signal

@@ -1,10 +1,10 @@
 {
   "reportName": "retention-archive-restore-simulated",
   "evidenceType": "SIMULATED",
-  "generatedAt": "2026-05-20T19:40:20.478Z",
+  "generatedAt": "2026-05-22T00:47:18.468Z",
   "branch": "staging",
-  "commit": "184297cb7fe6ed57ef6791ac49b45b693a403eea",
-  "simulationId": "sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
+  "simulationId": "sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a",
   "status": "passed",
   "readinessClaim": "No production, broad-production, or production-at-scale readiness claim is made.",
   "humanObservedPhysicalArchiveRestoreStillRequired": true,
@@ -14,28 +14,28 @@
       "id": "SIMULATED-RETENTION-REPORT-001",
       "table": "reportArtifact",
       "ownerKey": "SIMULATED-OWNER-A",
-      "createdAt": "2025-04-05T19:40:20.478Z",
+      "createdAt": "2025-04-07T00:47:18.468Z",
       "payloadHash": "74dae170cbcad2a57528c3927b16a1a7068b77e259a2d637e3ec0f8ae81f55da"
     },
     {
       "id": "SIMULATED-RETENTION-TRADELINE-001",
       "table": "tradeline",
       "ownerKey": "SIMULATED-OWNER-A",
-      "createdAt": "2025-04-05T19:40:20.478Z",
+      "createdAt": "2025-04-07T00:47:18.468Z",
       "payloadHash": "813c8effed2279391682b458a02df0ff923c994fe25e5c05d62cc688a0d0973e"
     },
     {
       "id": "SIMULATED-RETENTION-EVIDENCE-001",
       "table": "evidenceEvent",
       "ownerKey": "SIMULATED-OWNER-A",
-      "createdAt": "2025-04-05T19:40:20.478Z",
+      "createdAt": "2025-04-07T00:47:18.468Z",
       "payloadHash": "65cdaf9d57dde672bf934a2c2d61421da633d8018575cab174a04b3ca0a00306"
     },
     {
       "id": "SIMULATED-RETENTION-RECENT-001",
       "table": "reportArtifact",
       "ownerKey": "SIMULATED-OWNER-B",
-      "createdAt": "2026-04-20T19:40:20.478Z",
+      "createdAt": "2026-04-22T00:47:18.468Z",
       "payloadHash": "ad6b5a5caadfe1a8b914b138dc2795b08d9dac7b4d2f8f78b3a08b23b60796d5"
     }
   ],
@@ -43,7 +43,7 @@
     "marker": "SIMULATED_RETENTION_PREVIEW_COMPLETED",
     "status": "passed",
     "retentionWindowDays": 365,
-    "cutoffIso": "2025-05-20T19:40:20.478Z",
+    "cutoffIso": "2025-05-22T00:47:18.468Z",
     "eligibleRecordCount": 3,
     "totalRecordCount": 4,
     "eligibleRecordIds": [
@@ -56,8 +56,8 @@
   "archive": {
     "marker": "SIMULATED_RETENTION_ARCHIVE_WRITE_COMPLETED",
     "status": "passed",
-    "archiveId": "SIMULATED-RETENTION-ARCHIVE-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379",
-    "archiveCreatedAt": "2026-05-20T19:40:20.478Z",
+    "archiveId": "SIMULATED-RETENTION-ARCHIVE-sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a",
+    "archiveCreatedAt": "2026-05-22T00:47:18.468Z",
     "archivedRecordCount": 3,
     "archivedRecords": [
       {
@@ -86,7 +86,7 @@
   "restoreVerification": {
     "marker": "SIMULATED_RETENTION_RESTORE_VERIFY_COMPLETED",
     "status": "passed",
-    "restoreVerificationId": "SIMULATED-RETENTION-RESTORE-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379",
+    "restoreVerificationId": "SIMULATED-RETENTION-RESTORE-sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a",
     "verifiedRecordCount": 3,
     "expectedRecordCount": 3,
     "verifiedRecords": [
@@ -117,31 +117,31 @@
     "eventCount": 4,
     "events": [
       {
-        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-PREVIEW",
+        "eventId": "SIMULATED-AUDIT-sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a-PREVIEW",
         "action": "RETENTION_PREVIEW_SIMULATED",
         "marker": "SIMULATED_RETENTION_PREVIEW_COMPLETED",
-        "at": "2026-05-20T19:40:20.478Z",
+        "at": "2026-05-22T00:47:18.468Z",
         "status": "SUCCESS"
       },
       {
-        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-ARCHIVE",
+        "eventId": "SIMULATED-AUDIT-sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a-ARCHIVE",
         "action": "RETENTION_ARCHIVE_WRITE_SIMULATED",
         "marker": "SIMULATED_RETENTION_ARCHIVE_WRITE_COMPLETED",
-        "at": "2026-05-20T19:40:20.478Z",
+        "at": "2026-05-22T00:47:18.468Z",
         "status": "SUCCESS"
       },
       {
-        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-RESTORE",
+        "eventId": "SIMULATED-AUDIT-sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a-RESTORE",
         "action": "RETENTION_RESTORE_VERIFY_SIMULATED",
         "marker": "SIMULATED_RETENTION_RESTORE_VERIFY_COMPLETED",
-        "at": "2026-05-20T19:40:20.478Z",
+        "at": "2026-05-22T00:47:18.468Z",
         "status": "SUCCESS"
       },
       {
-        "eventId": "SIMULATED-AUDIT-sim-retention-4bdfba8e-f11e-4d5f-9fdc-9e3b3f723379-APPLY-GUARD",
+        "eventId": "SIMULATED-AUDIT-sim-retention-0f60f4ec-ead9-4df3-8817-5437488f4c8a-APPLY-GUARD",
         "action": "RETENTION_APPLY_GUARD_SIMULATED",
         "marker": "SIMULATED_RETENTION_APPLY_GUARD_VERIFIED",
-        "at": "2026-05-20T19:40:20.478Z",
+        "at": "2026-05-22T00:47:18.468Z",
         "status": "SUCCESS"
       }
     ]

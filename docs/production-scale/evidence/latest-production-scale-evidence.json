@@ -1,8 +1,8 @@
 {
   "reportName": "production-scale-blocker-evidence",
-  "generatedAt": "2026-05-21T06:35:45.925Z",
+  "generatedAt": "2026-05-22T00:40:11.435Z",
   "branch": "staging",
-  "commit": "e15822371ebdb211955beb062035f1955cb387f4",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
   "workingTreeClean": false,
   "audit": {
     "path": "docs/production-at-scale-maximum-audit.md",
@@ -34,13 +34,13 @@
     "checksSkipped": true,
     "treatsSkipAsPass": false,
     "summary": {
-      "pass": 9,
+      "pass": 10,
       "fail": 2,
       "skip": 55,
       "simulated": 1,
       "humanRequired": 3,
       "manual": 12,
-      "open": 12,
+      "open": 11,
       "info": 8
     },
     "releaseEvidenceSemantics": {
@@ -571,7 +571,7 @@
           "severity": "High",
           "area": "Migration governance",
           "currentStatus": "partial",
-          "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
+          "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
           "allowedProofCommands": [
             "pnpm run check:migrations",
             "pnpm run migrations:evidence",
@@ -584,7 +584,7 @@
             "runtime DDL changes",
             "schema mutation without review",
             "production DB introspection",
-            "policy closure without release-blocking mode or formal waiver",
+            "policy closure while temporary runtime ensure allowlist entries remain active",
             "dashboard PASS alone"
           ],
           "productionMutationForbidden": true,
@@ -601,7 +601,7 @@
             "docs/production-scale/evidence/latest-production-scale-evidence.md",
             "docs/production-scale/evidence/latest-production-scale-evidence.json"
           ],
-          "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time."
+          "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time."
         },
         {
           "number": 11,
@@ -2653,7 +2653,7 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.",
+      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
       "allowedProofCommands": [
         "pnpm run check:migrations",
         "pnpm run migrations:evidence",
@@ -2666,7 +2666,7 @@
         "runtime DDL changes",
         "schema mutation without review",
         "production DB introspection",
-        "policy closure without release-blocking mode or formal waiver",
+        "policy closure while temporary runtime ensure allowlist entries remain active",
         "dashboard PASS alone"
       ],
       "productionMutationForbidden": true,
@@ -2683,7 +2683,7 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time."
+      "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time."
     },
     {
       "number": 11,

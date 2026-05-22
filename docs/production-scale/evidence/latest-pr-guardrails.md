@@ -1,7 +1,7 @@
 # PR Regression Guardrails Evidence
 
-Generated at: 2026-05-21T11:11:04.697Z
-Current HEAD: `1f96053a13ef763aeb2a932ad0e98432ba85d897`
+Generated at: 2026-05-22T00:45:55.683Z
+Current HEAD: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Target environment: `pull-request`
 Status: passed
 CERTIFYING:true

@@ -1,9 +1,9 @@
 # Production Worker Readiness Evidence
 
-Generated at: 2026-05-20T21:00:33.882Z
+Generated at: 2026-05-22T00:46:25.445Z
 Evidence type: PRODUCTION_WORKER_READINESS_EVIDENCE
 Branch: `staging`
-Commit: `def2a024b30aaa811cd354a3bb3f1d78b8efe789`
+Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Status: prepared-awaiting-human-production-evidence
 Production proof accepted: no
 
@@ -23,7 +23,7 @@ Production proof accepted: no
 
 ## Dry Run
 
-- Command: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process`
+- Command: `pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process`
 - Mutates queue: no
 
 ## Apply Mode Guards

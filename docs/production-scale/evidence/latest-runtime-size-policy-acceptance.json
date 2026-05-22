@@ -1,6 +1,6 @@
 {
   "reportName": "runtime-size-policy-acceptance",
-  "generatedAt": "2026-05-21T01:35:41.565Z",
+  "generatedAt": "2026-05-22T00:46:25.417Z",
   "status": "accepted-warning-only-waiver",
   "accepted": true,
   "acceptanceKind": "warning-only-waiver",
@@ -175,7 +175,7 @@
   ],
   "evidenceAge": {
     "determinable": true,
-    "ageHours": 0.01,
+    "ageHours": 23.18,
     "recentEnough": true,
     "reason": null
   },

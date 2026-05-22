@@ -1,7 +1,7 @@
 {
   "reportName": "pr-regression-guardrails-evidence",
-  "generatedAt": "2026-05-21T11:11:04.697Z",
-  "currentHead": "1f96053a13ef763aeb2a932ad0e98432ba85d897",
+  "generatedAt": "2026-05-22T00:45:55.683Z",
+  "currentHead": "4da09d1b87f4641f938bae3f02618f1aa142072d",
   "targetEnvironment": "pull-request",
   "status": "passed",
   "certifying": true,
@@ -85,8 +85,8 @@
         "pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence",
         "pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence",
         "pnpm run build",
-        "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
-        "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+        "pnpm run ingest:worker --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+        "pnpm run ingest:worker --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
       ],
       "bashSyntax": {
         "status": "passed",
@@ -264,8 +264,8 @@
           "pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence",
           "pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence",
           "pnpm run build",
-          "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
-          "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+          "pnpm run ingest:worker --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+          "pnpm run ingest:worker --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
         ]
       },
       {
@@ -381,8 +381,8 @@
         "pnpm run storage:durability-contract -- --environment production --compose docker-compose.production.yml --service creditregulatorpro --preflight --no-write-evidence",
         "pnpm run ingest:worker-boundary-evidence -- --preflight --no-write-evidence",
         "pnpm run build",
-        "pnpm run ingest:worker -- --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
-        "pnpm run ingest:worker -- --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
+        "pnpm run ingest:worker --dry-run --max-jobs \"$PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+        "pnpm run ingest:worker --apply --max-jobs \"$CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS\" --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process"
       ],
       "bashSyntax": {
         "status": "passed",

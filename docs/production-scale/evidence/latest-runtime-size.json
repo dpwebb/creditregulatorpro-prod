@@ -1,9 +1,9 @@
 {
   "report": "runtime-size-and-dependency-report",
   "script": "scripts/runtime-size-report.mjs",
-  "generatedAt": "2026-05-21T01:35:22.854Z",
+  "generatedAt": "2026-05-22T00:46:25.169Z",
   "branch": "staging",
-  "commit": "fa1d28e478a73e187a7a403ec7aea04135de3318",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
   "workingTreeClean": false,
   "safety": {
     "reportingOnly": true,
@@ -17,43 +17,64 @@
   "buildAssets": {
     "distDir": "dist",
     "distPresent": true,
-    "totalBytes": 4390922,
-    "assetCount": 19,
+    "totalBytes": 4411943,
+    "assetCount": 28,
     "topAssets": [
       {
-        "path": "dist/_assets/index-DEL5BOst.js",
+        "path": "dist/_assets/index-DqNr_F0Z.js",
         "extension": ".js",
-        "rawBytes": 3288131,
-        "gzipBytes": 899845,
-        "brotliBytes": 704239
+        "rawBytes": 3037037,
+        "gzipBytes": 840743,
+        "brotliBytes": 661044
       },
       {
-        "path": "dist/_assets/index-Oy3e-m6C.css",
+        "path": "dist/_assets/index-DDCRzPWl.css",
         "extension": ".css",
-        "rawBytes": 690278,
-        "gzipBytes": 103927,
-        "brotliBytes": 78607
+        "rawBytes": 622048,
+        "gzipBytes": 94083,
+        "brotliBytes": 71301
       },
       {
-        "path": "dist/_assets/react-big-calendar-Cdggxsjy.js",
+        "path": "dist/_assets/admin-parser-testing-Db2tZtE9.js",
         "extension": ".js",
-        "rawBytes": 139895,
-        "gzipBytes": 43947,
-        "brotliBytes": 38777
+        "rawBytes": 146237,
+        "gzipBytes": 38248,
+        "brotliBytes": 32225
       },
       {
-        "path": "dist/_assets/index-C9ZQ3TTx.js",
+        "path": "dist/_assets/react-big-calendar-CkgCQ_3j.js",
         "extension": ".js",
-        "rawBytes": 135805,
-        "gzipBytes": 32820,
-        "brotliBytes": 26383
+        "rawBytes": 139896,
+        "gzipBytes": 43955,
+        "brotliBytes": 38774
       },
       {
-        "path": "dist/_assets/OnboardingTour-p7ihuno-.js",
+        "path": "dist/_assets/index-BJswJlmt.js",
         "extension": ".js",
-        "rawBytes": 59684,
-        "gzipBytes": 19884,
-        "brotliBytes": 17757
+        "rawBytes": 135806,
+        "gzipBytes": 32821,
+        "brotliBytes": 26442
+      },
+      {
+        "path": "dist/_assets/OnboardingTour-Bn4uOx2T.js",
+        "extension": ".js",
+        "rawBytes": 59698,
+        "gzipBytes": 19897,
+        "brotliBytes": 17731
+      },
+      {
+        "path": "dist/_assets/admin-response-documents-DemFcV9A.js",
+        "extension": ".js",
+        "rawBytes": 56245,
+        "gzipBytes": 12908,
+        "brotliBytes": 11264
+      },
+      {
+        "path": "dist/_assets/admin-parser-testing-DGTLj0Bn.css",
+        "extension": ".css",
+        "rawBytes": 38726,
+        "gzipBytes": 6564,
+        "brotliBytes": 5781
       },
       {
         "path": "dist/_assets/index-sk2ek4N-.css",
@@ -63,6 +84,27 @@
         "brotliBytes": 3938
       },
       {
+        "path": "dist/_assets/packets-TZ72JT0b.js",
+        "extension": ".js",
+        "rawBytes": 28579,
+        "gzipBytes": 8936,
+        "brotliBytes": 7667
+      },
+      {
+        "path": "dist/_assets/admin-parser-mappings-T5Jb1r8F.js",
+        "extension": ".js",
+        "rawBytes": 28412,
+        "gzipBytes": 7612,
+        "brotliBytes": 6673
+      },
+      {
+        "path": "dist/_assets/packets-DnwUy8kL.css",
+        "extension": ".css",
+        "rawBytes": 14785,
+        "gzipBytes": 3042,
+        "brotliBytes": 2638
+      },
+      {
         "path": "dist/_assets/react-big-calendar-Dm-SzPQi.css",
         "extension": ".css",
         "rawBytes": 14347,
@@ -70,75 +112,33 @@
         "brotliBytes": 2351
       },
       {
-        "path": "dist/_assets/PacketViewer-DXpfJyVd.js",
-        "extension": ".js",
-        "rawBytes": 7907,
-        "gzipBytes": 2889,
-        "brotliBytes": 2531
-      },
-      {
-        "path": "dist/_assets/index-B9fWrEk-.js",
-        "extension": ".js",
-        "rawBytes": 6117,
-        "gzipBytes": 2288,
-        "brotliBytes": 2043
-      },
-      {
-        "path": "dist/_assets/DeadlineCalendarView-DUXfNyuO.js",
-        "extension": ".js",
-        "rawBytes": 3860,
-        "gzipBytes": 1498,
-        "brotliBytes": 1343
-      },
-      {
-        "path": "dist/_assets/PacketViewer-DYFOtPtS.css",
+        "path": "dist/_assets/admin-response-documents-akbpNB3Q.css",
         "extension": ".css",
-        "rawBytes": 3573,
-        "gzipBytes": 1117,
-        "brotliBytes": 941
+        "rawBytes": 10117,
+        "gzipBytes": 1906,
+        "brotliBytes": 1623
       },
       {
-        "path": "dist/_assets/DeadlineCalendarView-DRrVFbAL.css",
+        "path": "dist/_assets/admin-parser-mappings-D7806rg6.css",
         "extension": ".css",
-        "rawBytes": 3170,
-        "gzipBytes": 865,
-        "brotliBytes": 719
-      },
-      {
-        "path": "dist/_assets/ComplianceCalendarContent-CdY8Afz5.css",
-        "extension": ".css",
-        "rawBytes": 2477,
-        "gzipBytes": 747,
-        "brotliBytes": 603
-      },
-      {
-        "path": "dist/_assets/SourceReportPdfView-Dd36mduW.css",
-        "extension": ".css",
-        "rawBytes": 1979,
-        "gzipBytes": 627,
-        "brotliBytes": 496
-      },
-      {
-        "path": "dist/_assets/ComplianceCalendarContent-Hx7LBIb1.js",
-        "extension": ".js",
-        "rawBytes": 1951,
-        "gzipBytes": 891,
-        "brotliBytes": 791
+        "rawBytes": 9197,
+        "gzipBytes": 1994,
+        "brotliBytes": 1711
       }
     ],
     "largestJsAsset": {
-      "path": "dist/_assets/index-DEL5BOst.js",
+      "path": "dist/_assets/index-DqNr_F0Z.js",
       "extension": ".js",
-      "rawBytes": 3288131,
-      "gzipBytes": 899845,
-      "brotliBytes": 704239
+      "rawBytes": 3037037,
+      "gzipBytes": 840743,
+      "brotliBytes": 661044
     },
     "largestCssAsset": {
-      "path": "dist/_assets/index-Oy3e-m6C.css",
+      "path": "dist/_assets/index-DDCRzPWl.css",
       "extension": ".css",
-      "rawBytes": 690278,
-      "gzipBytes": 103927,
-      "brotliBytes": 78607
+      "rawBytes": 622048,
+      "gzipBytes": 94083,
+      "brotliBytes": 71301
     }
   },
   "dependencies": {
@@ -516,7 +516,8 @@
     "overallStatus": "WARN",
     "hasBlockingFailures": false,
     "statusCounts": {
-      "WARN": 7,
+      "WARN": 6,
+      "PASS": 1,
       "WAIVED": 1
     },
     "evaluations": [
@@ -530,16 +531,16 @@
           "assetType": "js",
           "field": "rawBytes"
         },
-        "measuredBytes": 3288131,
+        "measuredBytes": 3037037,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-DEL5BOst.js",
-        "detail": "dist/_assets/index-DEL5BOst.js rawBytes",
+        "source": "dist/_assets/index-DqNr_F0Z.js",
+        "detail": "dist/_assets/index-DqNr_F0Z.js rawBytes",
         "warnBytes": 1572864,
         "failBytes": 3145728,
         "failOnExceed": false,
         "waiverReason": null,
         "breached": true,
-        "reason": "Metric exceeds the configured failBytes value, but this policy is warning-only for this threshold.",
+        "reason": "Metric exceeds the configured warning threshold.",
         "recommendation": "Review route-level chunking or lazy-loading in a separate audited task before any production-scale claim."
       },
       {
@@ -552,10 +553,10 @@
           "assetType": "js",
           "field": "gzipBytes"
         },
-        "measuredBytes": 899845,
+        "measuredBytes": 840743,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-DEL5BOst.js",
-        "detail": "dist/_assets/index-DEL5BOst.js gzipBytes",
+        "source": "dist/_assets/index-DqNr_F0Z.js",
+        "detail": "dist/_assets/index-DqNr_F0Z.js gzipBytes",
         "warnBytes": 512000,
         "failBytes": 921600,
         "failOnExceed": false,
@@ -574,10 +575,10 @@
           "assetType": "css",
           "field": "rawBytes"
         },
-        "measuredBytes": 690278,
+        "measuredBytes": 622048,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-Oy3e-m6C.css",
-        "detail": "dist/_assets/index-Oy3e-m6C.css rawBytes",
+        "source": "dist/_assets/index-DDCRzPWl.css",
+        "detail": "dist/_assets/index-DDCRzPWl.css rawBytes",
         "warnBytes": 512000,
         "failBytes": 1048576,
         "failOnExceed": false,
@@ -590,22 +591,22 @@
         "id": "main-css-gzip",
         "area": "frontend-css",
         "label": "Largest CSS asset gzip size",
-        "status": "WARN",
+        "status": "PASS",
         "metric": {
           "kind": "largestBuildAsset",
           "assetType": "css",
           "field": "gzipBytes"
         },
-        "measuredBytes": 103927,
+        "measuredBytes": 94083,
         "measuredValueAvailable": true,
-        "source": "dist/_assets/index-Oy3e-m6C.css",
-        "detail": "dist/_assets/index-Oy3e-m6C.css gzipBytes",
+        "source": "dist/_assets/index-DDCRzPWl.css",
+        "detail": "dist/_assets/index-DDCRzPWl.css gzipBytes",
         "warnBytes": 102400,
         "failBytes": 204800,
         "failOnExceed": false,
         "waiverReason": null,
-        "breached": true,
-        "reason": "Metric exceeds the configured warning threshold.",
+        "breached": false,
+        "reason": "Metric is at or below the configured warning threshold.",
         "recommendation": "Track compressed CSS size without changing build behavior."
       },
       {

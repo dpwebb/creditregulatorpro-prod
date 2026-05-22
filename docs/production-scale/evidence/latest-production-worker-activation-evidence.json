@@ -1,9 +1,9 @@
 {
   "reportName": "production-worker-activation-evidence",
   "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
-  "generatedAt": "2026-05-21T00:19:58.836Z",
+  "generatedAt": "2026-05-22T00:46:53.953Z",
   "branch": "staging",
-  "commit": "16ff7ee53f6ec16c1d8db24d4209b699f36a5729",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
   "status": "prepared-default-off",
   "productionProof": false,
   "productionWorkerDefaultOff": true,
@@ -17,13 +17,13 @@
     "ingest_worker_operator safe token required for apply"
   ],
   "dryRun": {
-    "command": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+    "command": "pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
     "mutatesQueue": false,
     "claimsJobs": false,
     "processesJobs": false
   },
   "applyMode": {
-    "command": "pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+    "command": "pnpm run ingest:worker --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
     "defaultEnabled": false,
     "confirmationString": "explicit-bounded-production-ingest-worker-apply",
     "maxJobs": {
@@ -69,7 +69,7 @@
     "path": "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
     "accepted": true,
     "status": "accepted-staging-queue-drain",
-    "generatedAt": "2026-05-20T22:40:14.241Z",
+    "generatedAt": "2026-05-21T00:20:22.209Z",
     "productionProof": false,
     "queueDepthBeforeRun": 2,
     "queueDepthAfterRun": 0,
@@ -105,7 +105,7 @@
         "name": "dry-run cannot mutate queue",
         "status": "passed",
         "passed": true,
-        "dryRunCommand": "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process"
+        "dryRunCommand": "pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process"
       },
       {
         "name": "empty queue exits safely",

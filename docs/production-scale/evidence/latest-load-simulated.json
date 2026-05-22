@@ -1,9 +1,9 @@
 {
   "reportName": "production-scale-load-simulated",
   "evidenceType": "SIMULATED",
-  "generatedAt": "2026-05-20T18:30:24.005Z",
+  "generatedAt": "2026-05-22T00:55:19.320Z",
   "branch": "staging",
-  "commit": "b5a2ee3505e6faa836d857d980c7f708304ff211",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
   "mode": "simulated-local",
   "target": {
     "url": "http://localhost:3333",
@@ -19,12 +19,12 @@
     "syntheticQueueJobCount": 4,
     "concurrencyLevel": 2,
     "iterations": 1,
-    "elapsedMs": 81.46,
-    "throughputPerSecond": 98.21,
+    "elapsedMs": 87.5,
+    "throughputPerSecond": 91.43,
     "latency": {
-      "p50Ms": 15.12,
-      "p95Ms": 31.93,
-      "maxMs": 31.93
+      "p50Ms": 15.53,
+      "p95Ms": 30.76,
+      "maxMs": 30.76
     }
   },
   "ingestQueueDepth": {
@@ -58,9 +58,9 @@
     "cacheHitCount": 2,
     "cacheMissCount": 1,
     "cacheMissRenderTiming": {
-      "p50Ms": 14.73,
-      "p95Ms": 14.73,
-      "maxMs": 14.73
+      "p50Ms": 15.7,
+      "p95Ms": 15.7,
+      "maxMs": 15.7
     },
     "queueOrEnvelopeImplemented": false,
     "packetPdfBehaviorChanged": false,

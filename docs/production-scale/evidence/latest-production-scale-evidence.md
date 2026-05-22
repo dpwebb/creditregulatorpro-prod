@@ -1,8 +1,8 @@
 # Latest Production-Scale Evidence
 
-Generated at: 2026-05-21T06:35:45.925Z
+Generated at: 2026-05-22T00:40:11.435Z
 Current branch: `staging`
-Current commit hash: `e15822371ebdb211955beb062035f1955cb387f4`
+Current commit hash: `4da09d1b87f4641f938bae3f02618f1aa142072d`
 Working tree clean when generated: no
 Audit file used: `docs/production-at-scale-maximum-audit.md`
 Audit date from file: 2026-05-20
@@ -67,9 +67,9 @@ Ingest worker boundary static proof: passed
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial)
-  Proof required: Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.
+  Proof required: Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm run migrations:gate`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts`, `pnpm run typecheck`
-  Next action: Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.
+  Next action: Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:activation-evidence`, `pnpm run production-worker:readiness-evidence`, `pnpm run production-deployment-parity:evidence`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`
@@ -290,9 +290,9 @@ No read-only production command is executed by this report. Any production evide
   Allowed commands: `pnpm run alerts:dry-run`, `pnpm run alerts:exclusion:validate`, `pnpm run response-ops:readiness-evidence`, `pnpm run response:ops-readiness-evidence`, `pnpm run operator:dashboard`, `pnpm run response:orchestration-check`, `pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts`
   Next action: Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
 - #10 Migration governance (High; partial)
-  Proof required: Accepted non-mutating migration gate policy evidence. Existing runtime ensure residuals are policy-waived only while the gate blocks unknown, missing, unledgered, or unapproved mutation sources.
+  Proof required: Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.
   Allowed commands: `pnpm run check:migrations`, `pnpm run migrations:evidence`, `pnpm run migrations:gate`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts`, `pnpm run typecheck`
-  Next action: Keep migrations:gate non-mutating, attach latest migration gate evidence to promotion decisions, and convert runtime ensure residuals to reviewed additive migration ledger entries one workstream at a time.
+  Next action: Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.
 - #11 Production deployment parity (High; partial)
   Proof required: Workflow unit tests, current read-only production-safe probe evidence, rollback SHA and post-rollback health-check evidence, local/staging synthetic owner-denial evidence, and default-off production worker path evidence. Static proof is not runtime production proof.
   Allowed commands: `pnpm exec vitest run --config vitest.config.ts tests/unit/production-readiness-gate.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts`, `pnpm run production-worker:activation-plan`, `pnpm run production-worker:activation-evidence`, `pnpm run production-worker:readiness-evidence`, `pnpm run production-deployment-parity:evidence`, `pnpm run test:contracts`, `pnpm run production-safe-probes:evidence`, `pnpm run staging-owner-denial-smoke:evidence`, `pnpm exec vitest run --config vitest.config.ts tests/unit/production-deployment-parity-evidence.spec.ts`, `pnpm exec vitest run --config vitest.config.ts tests/unit/staging-owner-denial-smoke.spec.ts`

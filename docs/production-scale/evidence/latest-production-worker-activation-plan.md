@@ -1,9 +1,9 @@
 # Production Worker Activation Plan
 
-Generated: 2026-05-20T20:08:08.761Z
+Generated: 2026-05-22T00:46:53.937Z
 Evidence type: DESIGN_AND_GUARD_EVIDENCE
 Branch: staging
-Commit: dab749d9cef5457fb0fb411bdd9f6aaa8f3b9ca7
+Commit: 4da09d1b87f4641f938bae3f02618f1aa142072d
 
 This is a guarded design/evidence artifact. It does not activate a production worker, process production jobs, mutate production data, or claim production-at-scale readiness.
 
@@ -25,7 +25,7 @@ This is a guarded design/evidence artifact. It does not activate a production wo
 
 - Workflow input: `run_ingest_worker_dry_run=true`
 - Mutates queue: no
-- Command: `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process`
+- Command: `pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process`
 
 ## Apply Guards
 
@@ -38,7 +38,7 @@ This is a guarded design/evidence artifact. It does not activate a production wo
 - CRP_PRODUCTION_INGEST_WORKER_MAX_JOBS=<matching max jobs>
 - CRP_PRODUCTION_INGEST_WORKER_OPERATOR=<safe-token>
 
-Apply command: `pnpm run ingest:worker -- --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process`
+Apply command: `pnpm run ingest:worker --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process`
 
 ## Rollback/Stop
 

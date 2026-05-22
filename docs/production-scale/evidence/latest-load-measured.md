@@ -2,12 +2,12 @@
 
 Measured local/staging-safe evidence only. This command refuses production hosts, production-like environments, live providers, real reports, and PII.
 
-Generated at: 2026-05-21T02:36:59.020Z
+Generated at: 2026-05-22T00:55:37.486Z
 Branch: `staging`
-Commit: `0784abc525ade21a13bce3078186a04f0584f8a0`
-Mode: measured-local
-Evidence type: MEASURED_LOCAL
-Target context: localhost (local)
+Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Mode: measured-staging-safe
+Evidence type: MEASURED_STAGING_SAFE
+Target context: staging.creditregulatorpro.com (staging)
 Status: passed
 Threshold policy mode: release-blocking
 
@@ -19,7 +19,7 @@ Threshold policy mode: release-blocking
 - Concurrency: 2
 - Observed max concurrency: 2
 - Iterations: 2
-- Latency p50/p95/max ms: 20.48/35.32/43.9
+- Latency p50/p95/max ms: 24.67/46/46.49
 
 ## Queue Depth
 
@@ -46,7 +46,7 @@ Threshold policy mode: release-blocking
 - Total PDF requests: 6
 - Cache hits: 4
 - Cache misses: 2
-- Cache miss p50/p95/max ms: 12.33/15.41/15.41
+- Cache miss p50/p95/max ms: 14.57/16.06/16.06
 
 ## Operator Dashboard References
 
@@ -60,8 +60,8 @@ Threshold policy mode: release-blocking
 - [pass] minQueueJobCount: actual=16; expected=4
 - [pass] maxConcurrency: actual=2; expected=4
 - [pass] maxFailureRate: actual=0; expected=0
-- [pass] maxLatencyP95Ms: actual=35.32; expected=250
-- [pass] maxLatencyMaxMs: actual=43.9; expected=1000
+- [pass] maxLatencyP95Ms: actual=46; expected=250
+- [pass] maxLatencyMaxMs: actual=46.49; expected=1000
 - [pass] maxQueueDepthAfter: actual=0; expected=0
 - [pass] maxStaleQueueCount: actual=0; expected=0
 - [pass] minRateLimiterAccepted: actual=2; expected=1

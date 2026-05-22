@@ -1,15 +1,15 @@
 {
   "reportName": "production-scale-load-measured",
-  "evidenceType": "MEASURED_LOCAL",
-  "generatedAt": "2026-05-21T02:36:59.020Z",
+  "evidenceType": "MEASURED_STAGING_SAFE",
+  "generatedAt": "2026-05-22T00:55:37.486Z",
   "branch": "staging",
-  "commit": "0784abc525ade21a13bce3078186a04f0584f8a0",
-  "mode": "measured-local",
+  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
+  "mode": "measured-staging-safe",
   "productionProof": false,
   "target": {
-    "url": "http://localhost:3333",
-    "host": "localhost",
-    "environment": "local",
+    "url": "https://staging.creditregulatorpro.com",
+    "host": "staging.creditregulatorpro.com",
+    "environment": "staging",
     "networkRequestsMade": 0
   },
   "syntheticFixtures": {
@@ -31,12 +31,12 @@
     "iterations": 2,
     "failureCount": 0,
     "failureRate": 0,
-    "elapsedMs": 370.98,
-    "throughputPerSecond": 86.26,
+    "elapsedMs": 412.11,
+    "throughputPerSecond": 77.65,
     "latency": {
-      "p50Ms": 20.48,
-      "p95Ms": 35.32,
-      "maxMs": 43.9
+      "p50Ms": 24.67,
+      "p95Ms": 46,
+      "maxMs": 46.49
     }
   },
   "queueDepth": {
@@ -87,9 +87,9 @@
     "realTrafficSent": false,
     "databaseMutated": false,
     "latency": {
-      "p50Ms": 3.94,
-      "p95Ms": 15.4,
-      "maxMs": 16.7
+      "p50Ms": 15.55,
+      "p95Ms": 16.27,
+      "maxMs": 16.71
     },
     "decisions": [
       {
@@ -222,14 +222,14 @@
     "cacheHitCount": 4,
     "cacheMissCount": 2,
     "cacheHitLatency": {
-      "p50Ms": 1.31,
-      "p95Ms": 2.62,
-      "maxMs": 2.62
+      "p50Ms": 15.24,
+      "p95Ms": 15.79,
+      "maxMs": 15.79
     },
     "cacheMissRenderTiming": {
-      "p50Ms": 12.33,
-      "p95Ms": 15.41,
-      "maxMs": 15.41
+      "p50Ms": 14.57,
+      "p95Ms": 16.06,
+      "maxMs": 16.06
     },
     "packetPdfBehaviorChanged": false,
     "liveDeliveryRoutesCalled": false
@@ -327,14 +327,14 @@
       {
         "key": "maxLatencyP95Ms",
         "status": "pass",
-        "actual": 35.32,
+        "actual": 46,
         "expected": 250,
         "message": "Measured latency p95 must stay under policy."
       },
       {
         "key": "maxLatencyMaxMs",
         "status": "pass",
-        "actual": 43.9,
+        "actual": 46.49,
         "expected": 1000,
         "message": "Measured max latency must stay under policy."
       },
