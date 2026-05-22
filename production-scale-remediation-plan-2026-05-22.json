@@ -1,0 +1,700 @@
+{
+  "planName": "Production Scale Remediation Plan",
+  "planDate": "2026-05-22",
+  "certifying": false,
+  "CERTIFYING": false,
+  "repository": "C:\\Users\\webbd\\Projects\\creditregulatorpro-staging",
+  "sourceCommitInspected": "cf43d47ca918adffb95cc6c4379ca0eb4474adbd",
+  "sourceAudit": {
+    "markdown": "production-at-scale-level-10-audit-2026-05-22.md",
+    "json": "production-at-scale-level-10-audit-2026-05-22.json",
+    "overallStatus": "FAIL",
+    "productionPromotion": "NOT SAFE",
+    "stagingPromotion": "SAFE WITH LIMITATIONS",
+    "counts": {
+      "P0": 0,
+      "P1": 6,
+      "P2": 9,
+      "P3": 3
+    }
+  },
+  "inspectionNotes": {
+    "requestedPathDifferences": [
+      {
+        "requested": "scripts/restore-evidence-current-check.mjs",
+        "actual": "scripts/staging-backup-restore-checklist.mjs",
+        "packageScript": "restore:evidence:current-check"
+      },
+      {
+        "requested": "scripts/storage-raw-report-inventory.mjs",
+        "actual": "scripts/storage-raw-report-inventory.ts",
+        "packageScript": "storage:raw-report-inventory"
+      },
+      {
+        "requested": "scripts/check-staging-services.mjs",
+        "actual": "scripts/check-staging-services.sh",
+        "packageScript": "check:staging-services"
+      }
+    ],
+    "protectedSystemsToPreserve": [
+      "ingestion pipeline",
+      "deterministic parser",
+      "canonical mapping engine",
+      "evidence engine",
+      "violation engine",
+      "regulation registry",
+      "dispute packet generator",
+      "audit logging",
+      "admin correction system",
+      "auth and ownership checks"
+    ],
+    "humanEvidenceRule": "Do not mark production blockers closed unless current accepted evidence is genuinely certifying. Do not fabricate human-observed evidence."
+  },
+  "commitSequence": [
+    {
+      "sequence": "SEQ-01",
+      "title": "Restore evidence acceptance",
+      "blockers": ["L10-P1-002"],
+      "commitGoal": "Accept current sanitized human-observed restore and retention recoverability proof without production mutation."
+    },
+    {
+      "sequence": "SEQ-02",
+      "title": "Production ingest runtime",
+      "blockers": ["L10-P1-003"],
+      "commitGoal": "Accept bounded production queue-depth/operator proof and keep dry-run/staging evidence non-certifying."
+    },
+    {
+      "sequence": "SEQ-03",
+      "title": "Raw report storage remediation",
+      "blockers": ["L10-P1-004"],
+      "commitGoal": "Collect reliable sanitized inventory and accepted raw-report remediation evidence."
+    },
+    {
+      "sequence": "SEQ-04",
+      "title": "Observability and response ops",
+      "blockers": ["L10-P1-005", "L10-P2-007"],
+      "commitGoal": "Accept live alert proof or formal alerting exclusion and preserve response operations readiness semantics."
+    },
+    {
+      "sequence": "SEQ-05",
+      "title": "Migration governance",
+      "blockers": ["L10-P1-006"],
+      "commitGoal": "Convert temporary runtime ensure allowlist residuals or add accepted non-mutating policy closure so migration gate can certify."
+    },
+    {
+      "sequence": "SEQ-06",
+      "title": "Harness and local command reliability",
+      "blockers": ["L10-P2-001", "L10-P2-002", "L10-P2-003"],
+      "commitGoal": "Make certification/check/test command entry points reliable without weakening gates."
+    },
+    {
+      "sequence": "SEQ-07",
+      "title": "Environment/operator diagnostics",
+      "blockers": ["L10-P2-004", "L10-P2-005"],
+      "commitGoal": "Capture authorized read-only staging observability and service diagnostics."
+    },
+    {
+      "sequence": "SEQ-08",
+      "title": "Sensitive endpoint proof",
+      "blockers": ["L10-P2-009"],
+      "commitGoal": "Replace design-only sensitive-list evidence with endpoint-level privacy tests and bounded hidden-risk contracts."
+    },
+    {
+      "sequence": "SEQ-09",
+      "title": "Remaining P2/P3 hardening",
+      "blockers": ["L10-P2-006", "L10-P2-008", "L10-P3-001", "L10-P3-002", "L10-P3-003"],
+      "commitGoal": "Clean up lower-priority production-scale hardening without broad rewrites."
+    },
+    {
+      "sequence": "SEQ-10",
+      "title": "Final certification",
+      "blockers": ["L10-P1-001"],
+      "commitGoal": "Regenerate production-scale evidence and promotion pack only after all upstream P1 blockers are genuinely closed."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "L10-P1-001",
+      "severity": "P1",
+      "title": "Production promotion pack is non-certifying",
+      "confirmed": true,
+      "auditEvidence": "production-scale:promotion-pack returned CERTIFYING:false, limited beta, canPromoteProductionAtScale:false, and six unresolved production blockers.",
+      "affectedScriptsFiles": [
+        "scripts/production-promotion-pack.mjs",
+        "scripts/production-scale-evidence.mjs",
+        "docs/production-scale/blocker-registry.json",
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
+        "tests/unit/production-promotion-pack.spec.ts",
+        "tests/unit/production-scale-blocker-evidence.spec.ts"
+      ],
+      "fixType": ["evidence", "operator-proof"],
+      "safeCommands": [
+        "pnpm run production-scale:evidence",
+        "pnpm run production-scale:promotion-pack",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-promotion-pack.spec.ts tests/unit/production-scale-blocker-evidence.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "pnpm run promote:production before latest-production-promotion-pack.json is genuinely CERTIFYING:true",
+        "manual edits that flip CERTIFYING/readiness/blocker classifications",
+        "deleting non-certifying evidence instead of replacing it with stronger current evidence"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "docs/production-scale/evidence/latest-production-promotion-pack.json with CERTIFYING:true, canPromoteProductionAtScale:true, no unresolved production blockers, current target SHA, and accepted P1 evidence references"
+      ],
+      "testsToAddOrUpdate": [
+        "Promotion pack fails if any six P1 closure artifacts are missing, stale, simulated-only, partial, or not current-head evidence.",
+        "Promotion pack validates the Level 10 audit closure set."
+      ],
+      "commitSequence": "SEQ-10",
+      "impactBoundary": "Final aggregation only after upstream blockers are closed; do not change readiness semantics directly.",
+      "protectedSystemsTouched": ["promotion evidence"],
+      "regressionRisks": ["Stale or manually edited evidence could be mistaken for certification."],
+      "doneCriteria": ["Promotion pack is machine-certifying true only after all upstream required evidence is accepted."]
+    },
+    {
+      "id": "L10-P1-002",
+      "severity": "P1",
+      "title": "Disaster recovery proof is simulated-only",
+      "confirmed": true,
+      "auditEvidence": "restore:evidence:current-check status simulated-only and currentOperationalProof false; promotion pack blocker 1 Critical/requires-human-proof.",
+      "affectedScriptsFiles": [
+        "scripts/staging-backup-restore-checklist.mjs",
+        "docs/restore-drill-evidence-template.md",
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json",
+        "docs/production-scale/evidence/latest-restore-readiness-check.json",
+        "tests/unit/staging-backup-restore-checklist.spec.ts",
+        "scripts/production-promotion-pack.mjs"
+      ],
+      "fixType": ["operator-proof", "evidence"],
+      "safeCommands": [
+        "pnpm run restore:accept-human-evidence",
+        "pnpm run restore:evidence:current-check",
+        "pnpm run check:restore-drill-evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-backup-restore-checklist.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "running production dump/restore from Codex",
+        "treating pnpm run restore:drill:simulated as production proof",
+        "including backup contents, raw restored data, credentials, URLs, or PII in evidence"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json accepted true",
+        "docs/production-scale/evidence/latest-restore-readiness-check.json status current-human-observed, currentOperationalProof true, evidenceType HUMAN-OBSERVED, simulatedOnly false, stale false"
+      ],
+      "testsToAddOrUpdate": [
+        "Reject simulated, stale, missing RPO/RTO, missing post-restore checks, placeholders, secrets, PII, raw report data, and signed URLs.",
+        "Promotion pack refuses stale accepted restore evidence."
+      ],
+      "commitSequence": "SEQ-01",
+      "impactBoundary": "Evidence validation only; no production data restore or mutation from Codex.",
+      "protectedSystemsTouched": ["disaster recovery evidence", "retention recoverability evidence"],
+      "regressionRisks": ["Human proof could be incomplete, stale, or accidentally include sensitive details."],
+      "doneCriteria": ["Current sanitized human-observed restore proof is accepted and current-check is certifying."]
+    },
+    {
+      "id": "L10-P1-003",
+      "severity": "P1",
+      "title": "Production ingest runtime proof is not accepted",
+      "confirmed": true,
+      "auditEvidence": "production-worker:readiness-evidence status prepared-awaiting-human-production-evidence and productionProof false; blocker 2 Critical/partial.",
+      "affectedScriptsFiles": [
+        "scripts/production-worker-readiness-evidence.mjs",
+        "scripts/production-worker-activation-evidence.mjs",
+        "scripts/ingest-processing-worker.ts",
+        ".github/workflows/deploy-production.yml",
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "tests/unit/production-worker-readiness-evidence.spec.ts",
+        "tests/unit/production-worker-activation-evidence.spec.ts"
+      ],
+      "fixType": ["operator-proof", "evidence"],
+      "safeCommands": [
+        "pnpm run production-worker:activation-evidence",
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-worker-readiness-evidence.spec.ts tests/unit/production-worker-activation-evidence.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "running pnpm run ingest:worker --apply against production from Codex",
+        "using staging queue drain evidence as production runtime proof",
+        "bypassing workflow inputs, operator acknowledgement, max-job limits, failure stop behavior, or rollback stop verification"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "docs/production-scale/evidence/production-worker-queue-depth-evidence.json with sanitized accepted apply-mode operator proof",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json with productionProof true and productionIngestRuntime coverage true"
+      ],
+      "testsToAddOrUpdate": [
+        "Accepted queue-depth evidence is required for blocker 2.",
+        "Dry-run, staging-only, failure, missing acknowledgement, or missing rollback proof remains non-certifying."
+      ],
+      "commitSequence": "SEQ-02",
+      "impactBoundary": "Production worker evidence acceptance; no direct production queue processing from Codex.",
+      "protectedSystemsTouched": ["ingestion pipeline", "worker runtime evidence"],
+      "regressionRisks": ["Operator evidence could close the wrong environment or hide failures/dead letters."],
+      "doneCriteria": ["Readiness evidence accepts bounded production runtime proof and promotion pack closes blocker 2."]
+    },
+    {
+      "id": "L10-P1-004",
+      "severity": "P1",
+      "title": "Historical raw report byte remediation remains unresolved",
+      "confirmed": true,
+      "auditEvidence": "storage remediation status inventory-unreliable; blocker 6 High/partial; acceptance not closed.",
+      "affectedScriptsFiles": [
+        "scripts/storage-raw-report-inventory.ts",
+        "scripts/storage-raw-report-remediation-plan.mjs",
+        "docs/report-artifact-storage.md",
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+        "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
+        "tests/unit/storage-raw-report-inventory.spec.ts",
+        "tests/unit/storage-raw-report-remediation-plan.spec.ts"
+      ],
+      "fixType": ["evidence", "operator-proof"],
+      "safeCommands": [
+        "pnpm run storage:raw-report-inventory",
+        "pnpm run storage:raw-report-remediation-plan",
+        "pnpm run storage:raw-report-remediation-acceptance",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/storage-raw-report-inventory.spec.ts tests/unit/storage-raw-report-remediation-plan.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "direct production DB deletes/updates from Codex",
+        "mutation flags such as --apply, --execute, --mutate, or custom SQL remediation from this session",
+        "printing storageUrl values, raw base64, raw PDFs, signed URLs, database URLs, or consumer identifiers"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "latest-storage-raw-report-inventory.json with reachable DB and reliable aggregate counts",
+        "latest-storage-raw-report-remediation-plan.json based on reliable inventory",
+        "latest-storage-raw-report-remediation-acceptance.json accepted true and historicalRawReportBytes true"
+      ],
+      "testsToAddOrUpdate": [
+        "Inventory unavailable must not imply zero inline rows.",
+        "Acceptance rejects simulated proof, missing operator approval, unreliable inventory, raw sensitive values, secrets, and PII."
+      ],
+      "commitSequence": "SEQ-03",
+      "impactBoundary": "Sanitized inventory/remediation evidence; no destructive cleanup from Codex.",
+      "protectedSystemsTouched": ["storage evidence", "report artifact storage"],
+      "regressionRisks": ["Unreliable inventory could be mistaken for zero inline raw report rows."],
+      "doneCriteria": ["Reliable aggregate inventory and accepted sanitized operator remediation evidence close blocker 6."]
+    },
+    {
+      "id": "L10-P1-005",
+      "severity": "P1",
+      "title": "Observability and alerting proof is not accepted",
+      "confirmed": true,
+      "auditEvidence": "alerting exclusion status not-submitted; response ops live scheduler disabled and alerting dry-run-only; blocker 9 High/simulated-proof-only.",
+      "affectedScriptsFiles": [
+        "scripts/response-ops-readiness-evidence.mjs",
+        "scripts/alerts-dry-run.mjs",
+        "scripts/staging-observability-check.mjs",
+        "docs/production-scale/alerting-exclusion-template.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
+        "tests/unit/response-ops-readiness-evidence.spec.ts",
+        "tests/unit/alerts-dry-run.spec.ts",
+        "tests/unit/staging-observability-check.spec.ts"
+      ],
+      "fixType": ["evidence", "operator-proof"],
+      "safeCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response-ops:readiness-evidence",
+        "pnpm run check:staging-observability from an authorized read-only staging environment",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts tests/unit/alerts-dry-run.spec.ts tests/unit/staging-observability-check.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "sending live external alerts from Codex without explicit approved operator action",
+        "treating dry-run alerts as live proof",
+        "printing webhook URLs, Slack/email provider secrets, SSH keys, raw logs with PII, or tokens"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "docs/production-scale/evidence/live-alert-proof.json accepted by response ops readiness, or latest-alerting-exclusion-validation.json accepted true",
+        "latest-response-ops-readiness.json with alerting.status live-evidenced or formally-excluded and observabilityAlerting true"
+      ],
+      "testsToAddOrUpdate": [
+        "Formal exclusion requires scope, reason, risk acceptance, review/expiry, monitoring path, dry-run-not-live acknowledgement, and signed operator acknowledgement.",
+        "Promotion pack does not close blocker 9 with dry-run-only evidence."
+      ],
+      "commitSequence": "SEQ-04",
+      "impactBoundary": "Alerting/observability proof only; no live provider setup from Codex.",
+      "protectedSystemsTouched": ["observability", "response operations evidence"],
+      "regressionRisks": ["Dry-run alert evidence could be misrepresented as live delivery."],
+      "doneCriteria": ["Response ops readiness accepts either live alert proof or a formal exclusion and promotion pack closes blocker 9."]
+    },
+    {
+      "id": "L10-P1-006",
+      "severity": "P1",
+      "title": "Migration governance still depends on a temporary allowlist",
+      "confirmed": true,
+      "auditEvidence": "migrations:gate status accepted-temporary-allowlist and CERTIFYING:false; promotion pack blocker 10 High/partial.",
+      "affectedScriptsFiles": [
+        "scripts/migration-gate.mjs",
+        "scripts/check-migrations.mjs",
+        "docs/production-scale/migration-governance-policy.json",
+        "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "tests/unit/migration-gate.spec.ts",
+        "tests/unit/migration-checker.spec.ts"
+      ],
+      "fixType": ["code", "evidence"],
+      "safeCommands": [
+        "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts tests/unit/migration-checker.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "running production DDL from Codex",
+        "removing temporary allowlist entries before reviewed additive migrations or accepted policy closure exists",
+        "changing CERTIFYING to true while temporary allowlist residuals remain active",
+        "adding unreviewed schema ensures or ad hoc migrations"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "docs/production-scale/evidence/latest-migration-gate.json with status accepted-release-blocking, CERTIFYING true, temporaryAllowlistActive false, releaseBlockingFindings 0, migrationGovernance true, and non-mutating safety fields"
+      ],
+      "testsToAddOrUpdate": [
+        "Converted runtime ensure paths are ledgered and migration-backed.",
+        "Gate fails for unknown, unledgered, invalid allowlist, expired allowlist, schema mutation, production mutation, or DDL execution signals."
+      ],
+      "commitSequence": "SEQ-05",
+      "impactBoundary": "Migration governance conversion only; schema behavior changes require explicit later approval.",
+      "protectedSystemsTouched": ["schema governance", "migration gate"],
+      "regressionRisks": ["Prematurely removing allowlist entries can break runtime compatibility or hide schema drift."],
+      "doneCriteria": ["Migration gate is release-blocking, non-mutating, certifying true, and has no active temporary allowlist residuals."]
+    },
+    {
+      "id": "L10-P2-001",
+      "severity": "P2",
+      "title": "Production certification harness is not self-contained",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": [
+        "scripts/production-scale-certification.mjs",
+        "scripts/staging-auth-workflow-smoke.ts",
+        "scripts/staging-auth-packet-workflow-smoke.ts",
+        "docs/production-scale/evidence/latest-production-scale-certification.json",
+        "tests/unit/production-scale-certification.spec.ts"
+      ],
+      "fixType": ["code", "evidence"],
+      "safeCommands": [
+        "pnpm run production-scale:certify",
+        "pnpm run smoke:auth-workflow",
+        "pnpm run smoke:auth-workflow:packet",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/production-scale-certification.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "embedding staging credentials or secrets in the repo",
+        "downgrading auth smoke gates to optional pass",
+        "treating missing environment as app auth failure"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "latest-production-scale-certification.json with auth smokes passed under supplied staging-safe env or explicit actionable missing-env diagnostics"
+      ],
+      "testsToAddOrUpdate": [
+        "Harness env handling is self-contained through documented non-secret input plumbing.",
+        "Required gates remain required."
+      ],
+      "commitSequence": "SEQ-06"
+    },
+    {
+      "id": "L10-P2-002",
+      "severity": "P2",
+      "title": "Default pnpm run check times out rollback governance tests locally",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": [
+        "tests/unit/deploy-rollback-sha-governance.spec.ts",
+        "scripts/deploy-rollback-sha-governance.mjs",
+        "vitest.config.ts",
+        "docs/production-scale/evidence/latest-rollback-sha-governance.json"
+      ],
+      "fixType": ["code", "test"],
+      "safeCommands": [
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-sha-governance.spec.ts --testTimeout=60000",
+        "pnpm run deploy:rollback-sha-governance -- --write-evidence --json",
+        "pnpm run check after bounded timeout/optimization fix"
+      ],
+      "unsafeCommandsToAvoid": [
+        "deleting rollback SHA governance assertions",
+        "skipping shell block validation without equivalent static proof",
+        "widening deploy permissions or weakening rollback validation"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "pnpm run check completes locally and rollback governance evidence remains passed"
+      ],
+      "testsToAddOrUpdate": [
+        "Suite-specific timeout or optimized static workflow/bash validation with assertions intact."
+      ],
+      "commitSequence": "SEQ-06"
+    },
+    {
+      "id": "L10-P2-003",
+      "severity": "P2",
+      "title": "Lint and plain test commands are unavailable",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": ["package.json"],
+      "fixType": ["code"],
+      "safeCommands": ["pnpm run lint", "pnpm test", "pnpm run test:unit"],
+      "unsafeCommandsToAvoid": [
+        "mapping aliases to no-op commands",
+        "replacing canonical test commands with weaker aliases"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "package.json exposes real lint/test aliases tied to existing or deliberately added checks"
+      ],
+      "testsToAddOrUpdate": [
+        "Package script tests assert aliases point at real commands."
+      ],
+      "commitSequence": "SEQ-06"
+    },
+    {
+      "id": "L10-P2-004",
+      "severity": "P2",
+      "title": "Staging observability SSH check cannot run from this environment",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": [
+        "scripts/staging-observability-check.mjs",
+        "tests/unit/staging-observability-check.spec.ts",
+        "docs/production-scale/evidence/latest-staging-observability.json"
+      ],
+      "fixType": ["operator-proof", "evidence"],
+      "safeCommands": [
+        "pnpm run check:staging-observability with CRP_STAGING_OBSERVABILITY_CHECK=true from authorized read-only staging access",
+        "pnpm run check:staging-observability -- --source log-file --log-file <sanitized-log-file>",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/staging-observability-check.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "using production host targets",
+        "changing server config, Traefik, Docker, Postgres, secrets, or production containers",
+        "printing raw logs that may contain PII or credentials"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "latest-staging-observability.json or sanitized operator artifact with read-only source, accepted HTTP/log checks, raw logs excluded, secrets redacted, and production hosts refused"
+      ],
+      "testsToAddOrUpdate": [
+        "If evidence writing is added, preserve current read-only and redaction guarantees."
+      ],
+      "commitSequence": "SEQ-07"
+    },
+    {
+      "id": "L10-P2-005",
+      "severity": "P2",
+      "title": "Local Docker daemon unavailable for staging service diagnostics",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": [
+        "scripts/check-staging-services.sh",
+        "future service diagnostic evidence wrapper"
+      ],
+      "fixType": ["operator-proof", "evidence"],
+      "safeCommands": [
+        "pnpm run check:staging-services from an environment with Docker access to staging service",
+        "docker ps -a",
+        "docker logs --tail=500 creditregulatorpro-staging"
+      ],
+      "unsafeCommandsToAvoid": [
+        "docker compose up/down/rm/restart or container mutation from this bounded task",
+        "editing staging/proxy/Postgres/production config",
+        "exposing environment variables or service credentials"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "Sanitized service diagnostics showing expected staging containers, health, recent log tail classification, no raw secrets, and no mutation"
+      ],
+      "testsToAddOrUpdate": [
+        "If converted to a script, add Docker-unavailable reporting and secret/log redaction tests."
+      ],
+      "commitSequence": "SEQ-07"
+    },
+    {
+      "id": "L10-P2-006",
+      "severity": "P2",
+      "title": "Runtime size warnings remain accepted by waiver",
+      "confirmed": true,
+      "highImpactP2": false,
+      "affectedScriptsFiles": [
+        "docs/production-scale/evidence/latest-runtime-size.json",
+        "docs/production-scale/runtime-size-threshold-policy.json",
+        "scripts/runtime-size-report.mjs",
+        "scripts/runtime-size-policy-acceptance.mjs",
+        "tests/unit/runtime-size-report-script.spec.ts",
+        "tests/unit/runtime-size-policy-acceptance.spec.ts"
+      ],
+      "fixType": ["code", "evidence"],
+      "safeCommands": [
+        "pnpm run report:runtime-size",
+        "pnpm run check:runtime-size",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/runtime-size-report-script.spec.ts tests/unit/runtime-size-policy-acceptance.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "enabling a hard runtime-size gate without accepted performance evidence and release owner approval"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "Accepted hard-gate runtime size policy evidence or explicit warning-only waiver retained as non-certifying pressure"
+      ],
+      "testsToAddOrUpdate": [
+        "Runtime-size policy distinguishes hard gate, warning-only waiver, and failed thresholds."
+      ],
+      "commitSequence": "SEQ-09"
+    },
+    {
+      "id": "L10-P2-007",
+      "severity": "P2",
+      "title": "Response operations are operator-ready with deferred live controls",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": [
+        "scripts/response-ops-readiness-evidence.mjs",
+        "scripts/response-processing-worker-orchestrator.ts",
+        "scripts/response-processing-replay.ts",
+        "scripts/response-processing-lifecycle.ts",
+        "scripts/response-processing-soak-check.ts",
+        "tests/unit/response-ops-readiness-evidence.spec.ts"
+      ],
+      "fixType": ["evidence", "operator-proof"],
+      "safeCommands": [
+        "pnpm run response-ops:readiness-evidence",
+        "pnpm run response:soak-check",
+        "pnpm run operator:dashboard",
+        "pnpm run response:worker-orchestrate -- --dry-run",
+        "pnpm run response:replay -- --dry-run",
+        "pnpm run response:lifecycle -- --dry-run"
+      ],
+      "unsafeCommandsToAvoid": [
+        "enabling live scheduler from Codex",
+        "running apply/backfill/purge/archive without approved operator window and dry-run evidence",
+        "treating dashboard PASS while SKIP/HUMAN_REQUIRED rows remain as release proof"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "latest-response-ops-readiness.json with response operations maturity accepted and deferred live controls either proven or explicitly excluded/limited"
+      ],
+      "testsToAddOrUpdate": [
+        "Preserve SKIP/SIMULATED/HUMAN_REQUIRED semantics.",
+        "Require exact commands and disallow dashboard pass alone as release evidence."
+      ],
+      "commitSequence": "SEQ-04"
+    },
+    {
+      "id": "L10-P2-008",
+      "severity": "P2",
+      "title": "Production-safe probes are plan-only",
+      "confirmed": true,
+      "highImpactP2": false,
+      "affectedScriptsFiles": [
+        "scripts/production-readiness-gate.mjs",
+        "docs/production-scale/evidence/latest-production-safe-probes.json",
+        "tests/unit/production-readiness-gate.spec.ts"
+      ],
+      "fixType": ["evidence", "operator-proof"],
+      "safeCommands": [
+        "pnpm run production-safe-probes:evidence in current plan-only form",
+        "future approved read-only production probes only if policy permits"
+      ],
+      "unsafeCommandsToAvoid": [
+        "running live production probes from Codex unless an existing command is explicitly read-only/dry-run and authorized",
+        "using unauthenticated or ownership-bypassing probes as certification"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "Accepted production-safe probe evidence with read-only scope, auth/owner denial proof, current target SHA, and no mutation"
+      ],
+      "testsToAddOrUpdate": [
+        "Read-only probe policy and production host refusal/allow rules."
+      ],
+      "commitSequence": "SEQ-09"
+    },
+    {
+      "id": "L10-P2-009",
+      "severity": "P2",
+      "title": "Sensitive list endpoint proof is partial/design-only",
+      "confirmed": true,
+      "highImpactP2": true,
+      "affectedScriptsFiles": [
+        "scripts/sensitive-list-endpoints-evidence.mjs",
+        "endpoints/parser-test-case/list_GET.ts",
+        "endpoints/parser-test-case/list_GET.schema.ts",
+        "endpoints/consumer-signature/list_GET.ts",
+        "endpoints/consumer-signature/list_GET.schema.ts",
+        "endpoints/hidden-risk/list_GET.ts",
+        "tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+        "tests/api/evidence-privacy-endpoint.spec.ts",
+        "tests/contracts/route-auth-classification.spec.ts"
+      ],
+      "fixType": ["code", "test"],
+      "safeCommands": [
+        "pnpm run sensitive-list-endpoints:evidence",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/sensitive-list-endpoints-evidence.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts tests/contracts/route-auth-classification.spec.ts"
+      ],
+      "unsafeCommandsToAvoid": [
+        "adding blind row limits that change aggregate semantics",
+        "returning raw extracted text, signature data, storage URLs, signed URLs, or raw snippets from list endpoints",
+        "weakening owner/admin boundaries"
+      ],
+      "expectedCertifyingEvidenceArtifact": [
+        "latest-sensitive-list-endpoints.json no longer partial-design-only for hidden-risk semantics, plus endpoint-level privacy tests proving metadata-only lists and bounded aggregate/page contracts"
+      ],
+      "testsToAddOrUpdate": [
+        "Parser-test and consumer-signature list privacy contracts.",
+        "Hidden-risk aggregate totals remain full-set while rows are bounded and paginated."
+      ],
+      "commitSequence": "SEQ-08"
+    },
+    {
+      "id": "L10-P3-001",
+      "severity": "P3",
+      "title": "Generated evidence files trigger CRLF warnings",
+      "confirmed": true,
+      "affectedScriptsFiles": ["docs/production-scale/evidence/*"],
+      "fixType": ["cleanup"],
+      "safeCommands": ["git diff --check"],
+      "unsafeCommandsToAvoid": ["rewriting unrelated evidence content while normalizing line endings"],
+      "expectedCertifyingEvidenceArtifact": ["No whitespace or CRLF warnings from generated evidence replacements"],
+      "testsToAddOrUpdate": ["No new tests required unless generator normalization is changed."],
+      "commitSequence": "SEQ-09"
+    },
+    {
+      "id": "L10-P3-002",
+      "severity": "P3",
+      "title": "Admin packet page intentionally mentions render/cache internals",
+      "confirmed": true,
+      "affectedScriptsFiles": ["pages/packets.tsx", "tests/unit/packet-viewer.spec.tsx"],
+      "fixType": ["test", "copy"],
+      "safeCommands": ["pnpm exec vitest run --config vitest.config.ts tests/unit/packet-viewer.spec.tsx"],
+      "unsafeCommandsToAvoid": ["changing packet truth, evidence binding, or consumer-facing legal conclusions"],
+      "expectedCertifyingEvidenceArtifact": ["Normal-user page assertion proves admin diagnostics are not rendered for consumers"],
+      "testsToAddOrUpdate": ["Full page normal-user assertion for diagnostic banner absence."],
+      "commitSequence": "SEQ-09"
+    },
+    {
+      "id": "L10-P3-003",
+      "severity": "P3",
+      "title": "Safety-flag refusal messages are correct but add command friction",
+      "confirmed": true,
+      "affectedScriptsFiles": [
+        "scripts/production-scale-harness.mjs",
+        "scripts/production-scale-measured.mjs",
+        "docs/production-scale-load-harness.md"
+      ],
+      "fixType": ["documentation"],
+      "safeCommands": [
+        "pnpm run baseline:production-scale-local -- --simulated",
+        "pnpm run baseline:production-scale-measured -- --dry-run --staging-safe"
+      ],
+      "unsafeCommandsToAvoid": ["removing explicit safety flags from production-scale harness commands"],
+      "expectedCertifyingEvidenceArtifact": ["Documented exact safe command variants while refusal behavior remains intact"],
+      "testsToAddOrUpdate": ["Existing harness refusal tests should remain unchanged."],
+      "commitSequence": "SEQ-09"
+    }
+  ],
+  "verificationCommands": [
+    "git status --short --branch",
+    "git diff --check",
+    "pnpm run typecheck",
+    "pnpm run build",
+    "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-rollback-sha-governance.spec.ts --testTimeout=60000",
+    "node -e \"JSON.parse(require('fs').readFileSync('production-scale-remediation-plan-2026-05-22.json','utf8')); JSON.parse(require('fs').readFileSync('production-at-scale-level-10-audit-2026-05-22.json','utf8')); console.log('json ok')\""
+  ],
+  "auditJsonValidationTestsAvailable": false,
+  "auditJsonValidationSearchNote": "Repository search did not find an existing Level 10 audit JSON validation test. Use JSON parse validation for this plan and the source audit JSON unless a future test is added."
+}
