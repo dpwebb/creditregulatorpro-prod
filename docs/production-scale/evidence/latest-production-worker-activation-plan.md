@@ -1,9 +1,9 @@
 # Production Worker Activation Plan
 
-Generated: 2026-05-22T00:46:53.937Z
+Generated: 2026-05-22T03:34:39.791Z
 Evidence type: DESIGN_AND_GUARD_EVIDENCE
 Branch: staging
-Commit: 4da09d1b87f4641f938bae3f02618f1aa142072d
+Commit: e61ef8db93ba454971586a4e2958f7dcad165ebf
 
 This is a guarded design/evidence artifact. It does not activate a production worker, process production jobs, mutate production data, or claim production-at-scale readiness.
 

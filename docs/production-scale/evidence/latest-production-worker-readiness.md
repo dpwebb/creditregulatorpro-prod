@@ -1,9 +1,9 @@
 # Production Worker Readiness Evidence
 
-Generated at: 2026-05-22T00:46:25.445Z
+Generated at: 2026-05-22T03:39:34.173Z
 Evidence type: PRODUCTION_WORKER_READINESS_EVIDENCE
 Branch: `staging`
-Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Commit: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
 Status: prepared-awaiting-human-production-evidence
 Production proof accepted: no
 
@@ -61,11 +61,19 @@ Production proof accepted: no
 - operatorAcknowledgementSigned: required in future evidence
 - sanitizedEvidence: required in future evidence
 
-## Accepted Production Queue-Depth Evidence
+## Runtime Proof Gate
 
-- Status: not-submitted
+- Status: dry-run-only
 - Accepted: no
-- Evidence path: not submitted
+- Production proof: no
+- Staging proof: no
+- Evidence path: docs/production-scale/evidence/production-worker-runtime-proof-submission.json
+
+## Accepted Production Runtime Proof
+
+- Status: dry-run-only
+- Accepted: no
+- Evidence path: docs/production-scale/evidence/production-worker-runtime-proof-submission.json
 
 ## Blocker Coverage
 

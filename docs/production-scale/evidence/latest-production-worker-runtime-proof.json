@@ -1,0 +1,66 @@
+{
+  "reportName": "production-worker-runtime-proof",
+  "generatedAt": "2026-05-22T03:32:34.309Z",
+  "status": "dry-run-only",
+  "accepted": false,
+  "productionProof": false,
+  "stagingProof": false,
+  "currentOperationalProof": false,
+  "mode": "dry-run",
+  "dryRunOnly": true,
+  "maxJobs": 1,
+  "dryRunCommand": "pnpm run ingest:worker --dry-run --max-jobs 1 --concurrency 1 --worker-id production-ingest-worker-dry-run --source authenticated_ingest_process",
+  "applyCommand": "pnpm run ingest:worker --apply --max-jobs <1-5> --concurrency 1 --worker-id production-bounded-ingest-worker --source authenticated_ingest_process",
+  "evidencePath": "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+  "templatePaths": {
+    "json": "docs/production-scale/evidence/production-worker-runtime-proof-template.json",
+    "markdown": "docs/production-scale/evidence/production-worker-runtime-proof-template.md"
+  },
+  "queueDepth": {
+    "before": null,
+    "after": null
+  },
+  "processedCount": 0,
+  "failedCount": 0,
+  "deadLetterCount": 0,
+  "staleCount": 0,
+  "validation": {
+    "ok": false,
+    "errors": [
+      "No submitted production worker runtime proof found at docs/production-scale/evidence/production-worker-runtime-proof-submission.json.",
+      "Default dry-run evidence is not accepted as production runtime proof."
+    ],
+    "sensitiveFindings": [],
+    "evidenceKind": "dry-run-only"
+  },
+  "blockerCoverage": {
+    "productionIngestRuntime": false,
+    "productionWorkflowParityAndRollback": false
+  },
+  "safety": {
+    "productionJobsProcessedByCodex": false,
+    "productionDataMutatedByCodex": false,
+    "defaultDryRunMutatesQueue": false,
+    "runsProductionApplyByDefault": false,
+    "parserBehaviorChanged": false,
+    "ingestionSemanticsChanged": false,
+    "authBehaviorChanged": false,
+    "queueSemanticsChanged": false,
+    "printsSecrets": false,
+    "printsPii": false,
+    "printsRawReportBytes": false,
+    "printsSignedUrls": false,
+    "acceptsDryRunAsProductionProof": false,
+    "acceptsDefaultOffActivationAsProductionProof": false
+  },
+  "dockerComposeInspection": {
+    "productionComposePath": "docker-compose.production.yml",
+    "stagingComposePath": "docker-compose.yml",
+    "productionWorkerServicePresent": true,
+    "productionWorkerRestartUnlessStopped": true,
+    "productionWorkerCommandApplyLoopPresent": true,
+    "stagingWorkerServicePresent": true,
+    "composeRuntimeProofAccepted": false,
+    "note": "Compose inspection is recorded for operator awareness only; compose configuration is not accepted as runtime proof."
+  }
+}

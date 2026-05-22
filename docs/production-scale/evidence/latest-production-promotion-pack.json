@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T03:20:44.458Z",
+  "generatedAt": "2026-05-22T03:39:34.372Z",
   "currentBranch": "staging",
-  "currentCommitHash": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
-  "currentHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+  "currentCommitHash": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
+  "currentHead": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
   "targetEnvironment": "production",
-  "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+  "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T03:20:44.458Z",
-      "completedAt": "2026-05-22T03:20:44.458Z",
+      "startedAt": "2026-05-22T03:39:34.372Z",
+      "completedAt": "2026-05-22T03:39:34.372Z",
       "status": "passed",
       "automated": true
     }
@@ -60,6 +60,7 @@
     "pnpm run response:ops-readiness-evidence",
     "pnpm run production-deployment-parity:evidence",
     "pnpm run production-worker:activation-evidence",
+    "pnpm run production-worker:runtime-proof",
     "pnpm run production-worker:readiness-evidence",
     "pnpm run ingest:worker:staging-evidence",
     "pnpm run pr-guardrails:evidence",
@@ -96,6 +97,7 @@
     "pnpm run response:lifecycle -- --dry-run",
     "pnpm run response:replay -- --dry-run",
     "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+    "pnpm run production-worker:runtime-proof-template",
     "pnpm run staging:ingest-worker -- --dry-run",
     "pnpm run production-scale:promotion-pack"
   ],
@@ -385,13 +387,42 @@
           "exists": true,
           "reportName": "production-worker-activation-evidence",
           "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
-          "generatedAt": "2026-05-22T00:46:53.953Z",
+          "generatedAt": "2026-05-22T03:34:39.831Z",
           "status": "prepared-default-off",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:46:53.953Z",
+      "latestGeneratedAt": "2026-05-22T03:34:39.831Z",
       "status": "prepared-default-off"
+    },
+    {
+      "command": "pnpm run production-worker:runtime-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
+          "exists": true,
+          "reportName": "production-worker-runtime-proof",
+          "evidenceType": null,
+          "generatedAt": "2026-05-22T03:32:34.309Z",
+          "status": "dry-run-only",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T03:32:34.309Z",
+      "status": "dry-run-only"
     },
     {
       "command": "pnpm run production-worker:readiness-evidence",
@@ -414,12 +445,12 @@
           "exists": true,
           "reportName": "production-worker-readiness-evidence",
           "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
-          "generatedAt": "2026-05-22T00:46:25.445Z",
+          "generatedAt": "2026-05-22T03:39:34.173Z",
           "status": "prepared-awaiting-human-production-evidence",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:46:25.445Z",
+      "latestGeneratedAt": "2026-05-22T03:39:34.173Z",
       "status": "prepared-awaiting-human-production-evidence"
     },
     {
@@ -879,12 +910,12 @@
           "exists": true,
           "reportName": "ingest-worker-simulated-queue-drain-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T02:48:23.108Z",
+          "generatedAt": "2026-05-22T03:34:42.616Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:48:23.108Z",
+      "latestGeneratedAt": "2026-05-22T03:34:42.616Z",
       "status": "passed"
     },
     {
@@ -1024,12 +1055,12 @@
           "exists": true,
           "reportName": "production-worker-activation-plan",
           "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
-          "generatedAt": "2026-05-22T00:46:53.937Z",
+          "generatedAt": "2026-05-22T03:34:39.791Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:46:53.937Z",
+      "latestGeneratedAt": "2026-05-22T03:34:39.791Z",
       "status": null
     },
     {
@@ -1248,6 +1279,16 @@
       "status": null
     },
     {
+      "command": "pnpm run production-worker:runtime-proof-template",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "reference-required",
+      "resultSource": "exact command reference; run output must be attached for promotion approval",
+      "evidenceFiles": [],
+      "latestGeneratedAt": null,
+      "status": null
+    },
+    {
       "command": "pnpm run staging:ingest-worker -- --dry-run",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -1373,7 +1414,7 @@
       "exists": true,
       "reportName": "ingest-worker-simulated-queue-drain-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T02:48:23.108Z",
+      "generatedAt": "2026-05-22T03:34:42.616Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1625,7 +1666,7 @@
       "exists": true,
       "reportName": "production-worker-activation-plan",
       "evidenceType": "DESIGN_AND_GUARD_EVIDENCE",
-      "generatedAt": "2026-05-22T00:46:53.937Z",
+      "generatedAt": "2026-05-22T03:34:39.791Z",
       "status": null,
       "productionProof": false
     },
@@ -1643,8 +1684,26 @@
       "exists": true,
       "reportName": "production-worker-activation-evidence",
       "evidenceType": "PRODUCTION_WORKER_ACTIVATION_EVIDENCE",
-      "generatedAt": "2026-05-22T00:46:53.953Z",
+      "generatedAt": "2026-05-22T03:34:39.831Z",
       "status": "prepared-default-off",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
+      "exists": true,
+      "reportName": "production-worker-runtime-proof",
+      "evidenceType": null,
+      "generatedAt": "2026-05-22T03:32:34.309Z",
+      "status": "dry-run-only",
       "productionProof": false
     },
     {
@@ -1661,7 +1720,7 @@
       "exists": true,
       "reportName": "production-worker-readiness-evidence",
       "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
-      "generatedAt": "2026-05-22T00:46:25.445Z",
+      "generatedAt": "2026-05-22T03:39:34.173Z",
       "status": "prepared-awaiting-human-production-evidence",
       "productionProof": false
     },
@@ -1865,6 +1924,33 @@
     },
     {
       "path": "docs/production-scale/evidence/human-restore-drill-evidence.json",
+      "exists": false,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-runtime-proof-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-runtime-proof-template.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "PRODUCTION_WORKER_RUNTIME_PROOF",
+      "generatedAt": "2026-05-22T03:32:34.288Z",
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
       "exists": false,
       "reportName": null,
       "evidenceType": null,
@@ -2147,7 +2233,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T03:15:21.933Z",
+      "generatedAt": "2026-05-22T03:35:00.266Z",
       "status": null,
       "productionProof": false
     },
@@ -2177,9 +2263,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-human-production-evidence",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
-    "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
-    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
+    "evidenceHead": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
+    "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2197,7 +2283,7 @@
     "status": null,
     "generatedAt": "2026-05-22T02:48:20.224Z",
     "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
@@ -2215,7 +2301,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2231,9 +2317,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
     "status": "accepted-temporary-allowlist",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
-    "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
-    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
+    "evidenceHead": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
+    "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2251,7 +2337,7 @@
     "status": "passed",
     "generatedAt": "2026-05-22T02:48:41.545Z",
     "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+    "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2262,8 +2348,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2304,9 +2390,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-human-production-evidence",
-        "generatedAt": "2026-05-22T03:20:44.458Z",
-        "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
-        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "generatedAt": "2026-05-22T03:39:34.372Z",
+        "evidenceHead": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
+        "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2324,7 +2410,7 @@
         "status": null,
         "generatedAt": "2026-05-22T02:48:20.224Z",
         "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
@@ -2342,7 +2428,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2358,9 +2444,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
         "status": "accepted-temporary-allowlist",
-        "generatedAt": "2026-05-22T03:20:44.458Z",
-        "evidenceHead": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
-        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "generatedAt": "2026-05-22T03:39:34.372Z",
+        "evidenceHead": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
+        "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2378,7 +2464,7 @@
         "status": "passed",
         "generatedAt": "2026-05-22T02:48:41.545Z",
         "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-        "targetSha": "d2ad840711a7f705c0bba42898ef3f22cd6bd5b0",
+        "targetSha": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2422,7 +2508,7 @@
   },
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2442,7 +2528,7 @@
   },
   "restoreEvidenceAcceptance": {
     "reportName": "restore-evidence-acceptance",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -2481,7 +2567,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -2605,15 +2691,59 @@
       "dashboardPassAloneIsReleaseEvidence": false
     }
   },
+  "productionWorkerRuntimeProof": {
+    "reportName": "production-worker-runtime-proof",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
+    "status": "dry-run-only",
+    "accepted": false,
+    "productionProof": false,
+    "stagingProof": false,
+    "currentOperationalProof": false,
+    "evidencePath": "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+    "environment": null,
+    "mode": "dry-run",
+    "dryRunOnly": true,
+    "queueDepth": {
+      "before": null,
+      "after": null
+    },
+    "processedCount": 0,
+    "failedCount": 0,
+    "deadLetterCount": 0,
+    "staleCount": 0,
+    "blockerCoverage": {
+      "productionIngestRuntime": false,
+      "productionWorkflowParityAndRollback": false
+    },
+    "validation": {
+      "ok": false,
+      "errors": [
+        "No submitted production worker runtime proof found at docs/production-scale/evidence/production-worker-runtime-proof-submission.json.",
+        "Default dry-run evidence is not accepted as production runtime proof."
+      ],
+      "sensitiveFindings": [],
+      "stale": false
+    },
+    "safety": {
+      "productionJobsProcessedByCodex": false,
+      "productionDataMutatedByCodex": false,
+      "runsProductionApplyByDefault": false,
+      "acceptsDryRunAsProductionProof": false,
+      "acceptsDefaultOffActivationAsProductionProof": false
+    }
+  },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
-      "status": "not-submitted",
+      "status": "dry-run-only",
       "accepted": false,
-      "evidencePath": null
+      "runtimeProofAccepted": false,
+      "productionProof": false,
+      "stagingProof": false,
+      "evidencePath": "docs/production-scale/evidence/production-worker-runtime-proof-submission.json"
     },
     "blockerCoverage": {
       "productionIngestRuntime": false,
@@ -2628,7 +2758,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2722,7 +2852,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2745,7 +2875,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2807,7 +2937,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -2984,7 +3114,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "accepted-temporary-allowlist",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
@@ -3025,7 +3155,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T03:20:44.458Z",
+    "generatedAt": "2026-05-22T03:39:34.372Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -3132,6 +3262,8 @@
         "pnpm run ingest:worker:staging-evidence",
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:activation-evidence",
+        "pnpm run production-worker:runtime-proof",
+        "pnpm run production-worker:runtime-proof-template",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
@@ -3157,6 +3289,11 @@
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.md",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
@@ -3547,6 +3684,7 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:activation-evidence",
+        "pnpm run production-worker:runtime-proof",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run production-deployment-parity:evidence",
         "pnpm run test:contracts",
@@ -3572,6 +3710,11 @@
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.md",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-deployment-parity.md",
@@ -3969,6 +4112,7 @@
       "allowedProofCommands": [
         "pnpm run production-scale:evidence",
         "pnpm run production-deployment-parity:evidence",
+        "pnpm run production-worker:runtime-proof",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run production-worker:activation-evidence",
         "pnpm run response:ops-readiness-evidence",
@@ -3990,6 +4134,8 @@
         "docs/production-observability-metrics.md",
         "docs/production-scale/evidence/latest-production-deployment-parity.md",
         "docs/production-scale/evidence/latest-production-deployment-parity.json",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
@@ -4248,6 +4394,8 @@
         "pnpm run ingest:worker:staging-evidence",
         "pnpm run production-worker:activation-plan",
         "pnpm run production-worker:activation-evidence",
+        "pnpm run production-worker:runtime-proof",
+        "pnpm run production-worker:runtime-proof-template",
         "pnpm run production-worker:readiness-evidence",
         "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
         "pnpm run staging:ingest-worker -- --dry-run",
@@ -4273,6 +4421,11 @@
         "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
         "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.md",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
         "docs/production-scale/evidence/latest-production-worker-readiness.md",
         "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "docs/production-scale/evidence/latest-production-scale-evidence.md",

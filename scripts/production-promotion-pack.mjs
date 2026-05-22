@@ -18,6 +18,15 @@ import {
 } from "./production-worker-activation-evidence.mjs";
 
 import {
+  buildProductionWorkerRuntimeProofReport,
+  DEFAULT_PRODUCTION_WORKER_RUNTIME_PROOF_SUBMISSION_JSON_PATH,
+  PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
+  PRODUCTION_WORKER_RUNTIME_PROOF_MD_PATH,
+  PRODUCTION_WORKER_RUNTIME_PROOF_TEMPLATE_JSON_PATH,
+  PRODUCTION_WORKER_RUNTIME_PROOF_TEMPLATE_MD_PATH,
+} from "./production-worker-runtime-proof.mjs";
+
+import {
   PRODUCTION_DEPLOYMENT_PARITY_JSON_PATH,
   PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,
   readProductionDeploymentParityEvidenceReport,
@@ -169,6 +178,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run response:ops-readiness-evidence",
   "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
+  "pnpm run production-worker:runtime-proof",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run pr-guardrails:evidence",
@@ -205,6 +215,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run production-worker:activation-plan",
   "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
+  "pnpm run production-worker:runtime-proof",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run migrations:evidence",
   "pnpm run production-safe-probes:evidence",
@@ -302,6 +313,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run production-worker:activation-evidence": [
     PRODUCTION_WORKER_ACTIVATION_EVIDENCE_MD_PATH,
     PRODUCTION_WORKER_ACTIVATION_EVIDENCE_JSON_PATH,
+  ],
+  "pnpm run production-worker:runtime-proof": [
+    PRODUCTION_WORKER_RUNTIME_PROOF_MD_PATH,
+    PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
   ],
   "pnpm run production-worker:readiness-evidence": [
     PRODUCTION_WORKER_READINESS_MD_PATH,
@@ -1039,6 +1054,7 @@ export function buildProductionPromotionPackReport({
   restoreEvidenceAcceptance = null,
   productionDeploymentParityEvidence = null,
   productionWorkerActivationEvidence = null,
+  productionWorkerRuntimeProof = null,
   productionWorkerReadinessEvidence = null,
   stagingIngestWorkerEvidence = null,
   rawReportRemediationAcceptance = null,
@@ -1096,8 +1112,15 @@ export function buildProductionPromotionPackReport({
     restoreEvidenceAcceptance ?? buildRestoreEvidenceAcceptanceReport({ rootDir, generatedAt });
   const deploymentParityEvidence =
     productionDeploymentParityEvidence ?? readProductionDeploymentParityEvidenceReport({ rootDir, generatedAt });
+  const workerRuntimeProof =
+    productionWorkerRuntimeProof ?? buildProductionWorkerRuntimeProofReport({ rootDir, generatedAt });
   const workerReadinessEvidence =
-    productionWorkerReadinessEvidence ?? buildProductionWorkerReadinessEvidenceReport({ rootDir, generatedAt });
+    productionWorkerReadinessEvidence ??
+    buildProductionWorkerReadinessEvidenceReport({
+      rootDir,
+      generatedAt,
+      productionWorkerRuntimeProofEvidence: workerRuntimeProof,
+    });
   const workerActivationEvidence =
     productionWorkerActivationEvidence ?? buildProductionWorkerActivationEvidenceReport({ rootDir, generatedAt });
   const stagingIngestEvidence =
@@ -1184,6 +1207,11 @@ export function buildProductionPromotionPackReport({
     HUMAN_RESTORE_DRILL_EVIDENCE_JSON_PATH,
     PRODUCTION_DEPLOYMENT_PARITY_MD_PATH,
     PRODUCTION_DEPLOYMENT_PARITY_JSON_PATH,
+    PRODUCTION_WORKER_RUNTIME_PROOF_TEMPLATE_MD_PATH,
+    PRODUCTION_WORKER_RUNTIME_PROOF_TEMPLATE_JSON_PATH,
+    DEFAULT_PRODUCTION_WORKER_RUNTIME_PROOF_SUBMISSION_JSON_PATH,
+    PRODUCTION_WORKER_RUNTIME_PROOF_MD_PATH,
+    PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_JSON_PATH,
     PRODUCTION_WORKER_QUEUE_DEPTH_EVIDENCE_MD_PATH,
     STORAGE_DURABILITY_EVIDENCE_MD_PATH,
@@ -1408,6 +1436,39 @@ export function buildProductionPromotionPackReport({
           deploymentParityEvidence.safety?.dashboardPassAloneIsReleaseEvidence === true,
       },
     },
+    productionWorkerRuntimeProof: {
+      reportName: workerRuntimeProof.reportName,
+      generatedAt: workerRuntimeProof.generatedAt,
+      status: workerRuntimeProof.status,
+      accepted: workerRuntimeProof.accepted === true,
+      productionProof: workerRuntimeProof.productionProof === true,
+      stagingProof: workerRuntimeProof.stagingProof === true,
+      currentOperationalProof: workerRuntimeProof.currentOperationalProof === true,
+      evidencePath: workerRuntimeProof.evidencePath,
+      environment: workerRuntimeProof.environment ?? null,
+      mode: workerRuntimeProof.mode ?? null,
+      dryRunOnly: workerRuntimeProof.dryRunOnly === true,
+      queueDepth: workerRuntimeProof.queueDepth ?? null,
+      processedCount: workerRuntimeProof.processedCount ?? null,
+      failedCount: workerRuntimeProof.failedCount ?? null,
+      deadLetterCount: workerRuntimeProof.deadLetterCount ?? null,
+      staleCount: workerRuntimeProof.staleCount ?? null,
+      blockerCoverage: workerRuntimeProof.blockerCoverage,
+      validation: {
+        ok: workerRuntimeProof.validation?.ok === true,
+        errors: workerRuntimeProof.validation?.errors ?? [],
+        sensitiveFindings: workerRuntimeProof.validation?.sensitiveFindings ?? [],
+        stale: workerRuntimeProof.validation?.stale === true,
+      },
+      safety: {
+        productionJobsProcessedByCodex: workerRuntimeProof.safety?.productionJobsProcessedByCodex === true,
+        productionDataMutatedByCodex: workerRuntimeProof.safety?.productionDataMutatedByCodex === true,
+        runsProductionApplyByDefault: workerRuntimeProof.safety?.runsProductionApplyByDefault === true,
+        acceptsDryRunAsProductionProof: workerRuntimeProof.safety?.acceptsDryRunAsProductionProof === true,
+        acceptsDefaultOffActivationAsProductionProof:
+          workerRuntimeProof.safety?.acceptsDefaultOffActivationAsProductionProof === true,
+      },
+    },
     productionWorkerReadinessEvidence: {
       reportName: workerReadinessEvidence.reportName,
       generatedAt: workerReadinessEvidence.generatedAt,
@@ -1416,6 +1477,9 @@ export function buildProductionPromotionPackReport({
       acceptedProductionRunEvidence: {
         status: workerReadinessEvidence.acceptedProductionRunEvidence?.status ?? "unknown",
         accepted: workerReadinessEvidence.acceptedProductionRunEvidence?.accepted === true,
+        runtimeProofAccepted: workerReadinessEvidence.acceptedProductionRunEvidence?.runtimeProofAccepted === true,
+        productionProof: workerReadinessEvidence.acceptedProductionRunEvidence?.productionProof === true,
+        stagingProof: workerReadinessEvidence.acceptedProductionRunEvidence?.stagingProof === true,
         evidencePath: workerReadinessEvidence.acceptedProductionRunEvidence?.evidencePath ?? null,
       },
       blockerCoverage: workerReadinessEvidence.blockerCoverage,
@@ -1776,6 +1840,7 @@ export function validatePromotionPackReport(report) {
   const restoreReadiness = report.restoreReadinessCheck;
   const restoreAcceptance = report.restoreEvidenceAcceptance;
   const deploymentParity = report.productionDeploymentParityEvidence;
+  const workerRuntimeProof = report.productionWorkerRuntimeProof;
   const workerReadiness = report.productionWorkerReadinessEvidence;
   const workerActivation = report.productionWorkerActivationEvidence;
   const stagingIngest = report.stagingIngestWorkerEvidence;
@@ -1799,14 +1864,36 @@ export function validatePromotionPackReport(report) {
   const blocker22 = blockers.find((blocker) => blocker.number === 22);
   if (blocker2?.classification === "fixed with human-observed evidence") {
     if (
+      workerRuntimeProof?.accepted !== true ||
+      workerRuntimeProof?.productionProof !== true ||
+      workerRuntimeProof?.currentOperationalProof !== true ||
+      workerRuntimeProof?.dryRunOnly === true ||
+      workerRuntimeProof?.blockerCoverage?.productionIngestRuntime !== true ||
+      workerRuntimeProof?.validation?.sensitiveFindings?.length > 0 ||
       workerReadiness?.acceptedProductionRunEvidence?.accepted !== true ||
+      workerReadiness?.acceptedProductionRunEvidence?.runtimeProofAccepted !== true ||
       workerReadiness?.blockerCoverage?.productionIngestRuntime !== true ||
       workerReadiness?.safety?.productionJobsProcessedByCodex === true ||
       workerActivation?.productionWorkerDefaultOff !== true ||
       workerActivation?.productionActivationDeferred !== true ||
       workerActivation?.explicitActivationInputsRequired !== true
     ) {
-      errors.push("Blocker 2 cannot be production-ready without accepted production queue-depth evidence.");
+      errors.push("Blocker 2 cannot be production-ready without accepted production worker runtime proof.");
+    }
+  }
+  if (workerRuntimeProof?.accepted === true) {
+    if (
+      workerRuntimeProof?.safety?.runsProductionApplyByDefault === true ||
+      workerRuntimeProof?.safety?.acceptsDryRunAsProductionProof === true ||
+      workerRuntimeProof?.safety?.acceptsDefaultOffActivationAsProductionProof === true ||
+      workerRuntimeProof?.safety?.productionJobsProcessedByCodex === true ||
+      workerRuntimeProof?.safety?.productionDataMutatedByCodex === true ||
+      workerRuntimeProof?.validation?.sensitiveFindings?.length > 0
+    ) {
+      errors.push("Production worker runtime proof is unsafe or contains sensitive findings.");
+    }
+    if (workerRuntimeProof?.stagingProof === true && workerRuntimeProof?.productionProof === true) {
+      errors.push("Staging worker runtime evidence cannot also be production proof.");
     }
   }
   if (blocker2?.classification === "fixed with staging evidence") {
@@ -2289,14 +2376,30 @@ export function renderPromotionPackMarkdown(report) {
     }`,
     "- Static POST and retired-route proof is not runtime production proof.",
     "",
+    "## Production Worker Runtime Proof",
+    "",
+    `- Status: ${report.productionWorkerRuntimeProof.status}`,
+    `- Accepted: ${report.productionWorkerRuntimeProof.accepted ? "yes" : "no"}`,
+    `- Production proof: ${report.productionWorkerRuntimeProof.productionProof ? "yes" : "no"}`,
+    `- Staging proof: ${report.productionWorkerRuntimeProof.stagingProof ? "yes" : "no"}`,
+    `- Dry-run only: ${report.productionWorkerRuntimeProof.dryRunOnly ? "yes" : "no"}`,
+    `- Evidence path: \`${report.productionWorkerRuntimeProof.evidencePath ?? "not submitted"}\``,
+    `- Processed/failed/dead-letter/stale: ${
+      report.productionWorkerRuntimeProof.processedCount ?? "n/a"
+    }/${report.productionWorkerRuntimeProof.failedCount ?? "n/a"}/${report.productionWorkerRuntimeProof.deadLetterCount ?? "n/a"}/${report.productionWorkerRuntimeProof.staleCount ?? "n/a"}`,
+    `- Blocker 2 runtime coverage: ${
+      report.productionWorkerRuntimeProof.blockerCoverage?.productionIngestRuntime ? "accepted" : "not accepted"
+    }`,
+    "- Dry-run, default-off, and deferred activation evidence are not production runtime proof.",
+    "",
     "## Production Worker Readiness Evidence",
     "",
     `- Status: ${report.productionWorkerReadinessEvidence.status}`,
     `- Production proof accepted: ${report.productionWorkerReadinessEvidence.productionProof ? "yes" : "no"}`,
-    `- Queue-depth evidence accepted: ${
+    `- Runtime proof evidence accepted: ${
       report.productionWorkerReadinessEvidence.acceptedProductionRunEvidence?.accepted ? "yes" : "no"
     }`,
-    `- Queue-depth evidence path: \`${report.productionWorkerReadinessEvidence.acceptedProductionRunEvidence?.evidencePath ?? "not submitted"}\``,
+    `- Runtime proof evidence path: \`${report.productionWorkerReadinessEvidence.acceptedProductionRunEvidence?.evidencePath ?? "not submitted"}\``,
     `- Blocker 2 coverage: ${
       report.productionWorkerReadinessEvidence.blockerCoverage?.productionIngestRuntime ? "accepted" : "not accepted"
     }`,

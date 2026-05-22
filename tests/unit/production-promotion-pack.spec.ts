@@ -98,6 +98,47 @@ function acceptedProductionRestoreEvidenceAcceptance() {
   };
 }
 
+function acceptedProductionWorkerRuntimeProof() {
+  return {
+    reportName: "production-worker-runtime-proof",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    status: "accepted-production",
+    accepted: true,
+    productionProof: true,
+    stagingProof: false,
+    currentOperationalProof: true,
+    evidencePath: "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
+    environment: "production",
+    mode: "apply",
+    dryRunOnly: false,
+    queueDepth: {
+      before: { total: 1, queued: 1, running: 0, failed: 0, deadLettered: 0, staleRunning: 0 },
+      after: { total: 0, queued: 0, running: 0, failed: 0, deadLettered: 0, staleRunning: 0 },
+    },
+    processedCount: 1,
+    failedCount: 0,
+    deadLetterCount: 0,
+    staleCount: 0,
+    validation: {
+      ok: true,
+      errors: [],
+      sensitiveFindings: [],
+      stale: false,
+    },
+    blockerCoverage: {
+      productionIngestRuntime: true,
+      productionWorkflowParityAndRollback: true,
+    },
+    safety: {
+      productionJobsProcessedByCodex: false,
+      productionDataMutatedByCodex: false,
+      runsProductionApplyByDefault: false,
+      acceptsDryRunAsProductionProof: false,
+      acceptsDefaultOffActivationAsProductionProof: false,
+    },
+  };
+}
+
 function acceptedRawReportRemediationEvidence() {
   return {
     evidenceType: "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
@@ -932,6 +973,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run production-worker:activation-plan");
     expect(report.commandList).toContain("pnpm run production-deployment-parity:evidence");
     expect(report.commandList).toContain("pnpm run production-worker:activation-evidence");
+    expect(report.commandList).toContain("pnpm run production-worker:runtime-proof");
     expect(report.commandList).toContain("pnpm run production-worker:readiness-evidence");
     expect(report.commandList).toContain("pnpm run ingest:worker:staging-evidence");
     expect(report.commandList).toContain("pnpm run storage:raw-report-remediation-plan");
@@ -1097,10 +1139,16 @@ describe("production promotion evidence pack", () => {
       productionProof: false,
       acceptedProductionRunEvidence: {
         accepted: false,
+        runtimeProofAccepted: false,
       },
       blockerCoverage: {
         productionIngestRuntime: false,
       },
+    });
+    expect(report.productionWorkerRuntimeProof).toMatchObject({
+      accepted: false,
+      productionProof: false,
+      dryRunOnly: true,
     });
     expect(report.stagingIngestWorkerEvidence).toMatchObject({
       accepted: false,
@@ -1353,23 +1401,17 @@ describe("production promotion evidence pack", () => {
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
-  it("allows blocker 2 production-ready only with accepted production queue-depth evidence", () => {
+  it("allows blocker 2 production-ready only with accepted production runtime proof", () => {
+    const productionWorkerRuntimeProof = acceptedProductionWorkerRuntimeProof();
     const productionWorkerReadinessEvidence = buildProductionWorkerReadinessEvidenceReport({
       rootDir: process.cwd(),
       generatedAt: "2026-05-20T12:00:00.000Z",
-      productionWorkerQueueDepthEvidence: {
-        status: "accepted",
-        accepted: true,
-        evidencePath: "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
-        blockerCoverage: {
-          productionIngestRuntime: true,
-          productionWorkflowParityAndRollback: false,
-        },
-      },
+      productionWorkerRuntimeProofEvidence: productionWorkerRuntimeProof,
     });
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: dashboardWithSkips(),
+      productionWorkerRuntimeProof,
       productionWorkerReadinessEvidence,
       productionDeploymentParityEvidence: notSubmittedProductionDeploymentParityEvidence(),
       generatedAt: "2026-05-20T12:00:00.000Z",

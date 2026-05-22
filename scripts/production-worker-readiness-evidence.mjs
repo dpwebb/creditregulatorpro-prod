@@ -3,6 +3,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  buildProductionWorkerRuntimeProofReport,
+  PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
+  PRODUCTION_WORKER_RUNTIME_PROOF_MD_PATH,
+} from "./production-worker-runtime-proof.mjs";
+
 export const PRODUCTION_WORKER_READINESS_MD_PATH =
   "docs/production-scale/evidence/latest-production-worker-readiness.md";
 export const PRODUCTION_WORKER_READINESS_JSON_PATH =
@@ -39,6 +45,7 @@ export const PRODUCTION_WORKER_APPLY_GUARDS = [
 ];
 
 export const PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS = [
+  "pnpm run production-worker:runtime-proof",
   "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run production-scale:evidence",
@@ -227,11 +234,52 @@ export function buildProductionWorkerReadinessEvidenceReport({
   rootDir = process.cwd(),
   generatedAt = new Date().toISOString(),
   productionWorkerQueueDepthEvidence = null,
+  productionWorkerRuntimeProofEvidence = null,
 } = {}) {
   const workflowText = readText(rootDir, WORKFLOW_PATH);
   const workerText = readText(rootDir, WORKER_PATH);
-  const acceptedProductionRunEvidence =
-    productionWorkerQueueDepthEvidence ?? readProductionWorkerQueueDepthEvidence(rootDir);
+  const runtimeProof =
+    productionWorkerRuntimeProofEvidence ?? buildProductionWorkerRuntimeProofReport({ rootDir, generatedAt });
+  const acceptedProductionRunEvidence = productionWorkerQueueDepthEvidence
+    ? {
+        ...productionWorkerQueueDepthEvidence,
+        accepted: false,
+        legacyQueueDepthEvidenceAccepted: false,
+        validation: {
+          ...(productionWorkerQueueDepthEvidence.validation ?? {}),
+          accepted: false,
+          errors: [
+            "Legacy production-worker-queue-depth evidence is retained for history but is not accepted as production runtime proof.",
+            ...(productionWorkerQueueDepthEvidence.validation?.errors ?? []),
+          ],
+        },
+        blockerCoverage: {
+          productionIngestRuntime: false,
+          productionWorkflowParityAndRollback: false,
+        },
+      }
+    : {
+        status: runtimeProof.status,
+        accepted: runtimeProof.accepted === true && runtimeProof.productionProof === true,
+        evidencePath: runtimeProof.evidencePath ?? PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
+        runtimeProofAccepted: runtimeProof.accepted === true,
+        productionProof: runtimeProof.productionProof === true,
+        stagingProof: runtimeProof.stagingProof === true,
+        queueDepth: runtimeProof.queueDepth ?? null,
+        processedCount: runtimeProof.processedCount ?? null,
+        failedCount: runtimeProof.failedCount ?? null,
+        deadLetterCount: runtimeProof.deadLetterCount ?? null,
+        staleCount: runtimeProof.staleCount ?? null,
+        validation: runtimeProof.validation ?? {
+          ok: false,
+          errors: ["No production worker runtime proof has been submitted."],
+          sensitiveFindings: [],
+        },
+        blockerCoverage: runtimeProof.blockerCoverage ?? {
+          productionIngestRuntime: false,
+          productionWorkflowParityAndRollback: false,
+        },
+      };
 
   const checks = [
     staticCheck(
@@ -276,6 +324,7 @@ export function buildProductionWorkerReadinessEvidenceReport({
     ),
     staticCheck(
       "exact release evidence commands recorded",
+      PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run production-worker:runtime-proof") &&
       PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run production-worker:activation-evidence") &&
       PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run production-worker:readiness-evidence") &&
         PRODUCTION_WORKER_RELEASE_EVIDENCE_COMMANDS.includes("pnpm run operator:dashboard"),
@@ -340,6 +389,23 @@ export function buildProductionWorkerReadinessEvidenceReport({
       rollbackStopVerified: null,
       operatorAcknowledgementSigned: null,
       sanitizedEvidence: null,
+    },
+    runtimeProof: {
+      reportName: runtimeProof.reportName,
+      status: runtimeProof.status,
+      accepted: runtimeProof.accepted === true,
+      productionProof: runtimeProof.productionProof === true,
+      stagingProof: runtimeProof.stagingProof === true,
+      evidencePath: runtimeProof.evidencePath ?? PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
+      outputPaths: {
+        markdown: PRODUCTION_WORKER_RUNTIME_PROOF_MD_PATH,
+        json: PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
+      },
+      validation: {
+        ok: runtimeProof.validation?.ok === true,
+        errors: runtimeProof.validation?.errors ?? [],
+        sensitiveFindings: runtimeProof.validation?.sensitiveFindings ?? [],
+      },
     },
     acceptedProductionRunEvidence,
     blockerCoverage: {
@@ -422,7 +488,15 @@ export function renderProductionWorkerReadinessEvidenceMarkdown(report) {
     "",
     ...Object.entries(report.futureHumanProductionRunFields).map(([key, value]) => `- ${key}: ${value ?? "required in future evidence"}`),
     "",
-    "## Accepted Production Queue-Depth Evidence",
+    "## Runtime Proof Gate",
+    "",
+    `- Status: ${report.runtimeProof.status}`,
+    `- Accepted: ${report.runtimeProof.accepted ? "yes" : "no"}`,
+    `- Production proof: ${report.runtimeProof.productionProof ? "yes" : "no"}`,
+    `- Staging proof: ${report.runtimeProof.stagingProof ? "yes" : "no"}`,
+    `- Evidence path: ${report.runtimeProof.evidencePath ?? "not submitted"}`,
+    "",
+    "## Accepted Production Runtime Proof",
     "",
     `- Status: ${report.acceptedProductionRunEvidence.status}`,
     `- Accepted: ${report.acceptedProductionRunEvidence.accepted ? "yes" : "no"}`,
@@ -493,7 +567,7 @@ async function main() {
   console.log(`Markdown: ${outputs.markdownPath}`);
   console.log(`JSON: ${outputs.jsonPath}`);
   console.log(`Production worker default-off: ${report.workerDefaultOff.defaultProductionDeployStartsWorker ? "no" : "yes"}`);
-  console.log(`Accepted production queue-depth evidence: ${report.acceptedProductionRunEvidence.accepted ? "yes" : "no"}`);
+  console.log(`Accepted production runtime proof: ${report.acceptedProductionRunEvidence.accepted ? "yes" : "no"}`);
   console.log("No production jobs were processed by Codex.");
   if (options.json) console.log(JSON.stringify(report, null, 2));
   if (report.staticValidation.status === "failed") process.exitCode = 1;

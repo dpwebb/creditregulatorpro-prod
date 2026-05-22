@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T03:20:44.458Z
+Generated at: 2026-05-22T03:39:34.372Z
 Current branch: `staging`
-Current commit hash: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
-Current HEAD: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
+Current commit hash: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
+Current HEAD: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
 Target environment: `production`
-Target SHA: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
+Target SHA: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -31,7 +31,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `d2ad840711a7f705c0bba42898ef3f22cd6bd5b0`
+- Target SHA: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -40,15 +40,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=d2ad840711a7f705c0bba42898ef3f22cd6bd5b0; timestamp=2026-05-22T03:20:44.458Z; command=`pnpm run production-worker:readiness-evidence`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=e61ef8db93ba454971586a4e2958f7dcad165ebf; timestamp=2026-05-22T03:39:34.372Z; command=`pnpm run production-worker:readiness-evidence`
 - Storage durability: non-certifying; status=missing; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:20.224Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=d2ad840711a7f705c0bba42898ef3f22cd6bd5b0; timestamp=2026-05-22T03:20:44.458Z; command=`pnpm run migrations:gate`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=e61ef8db93ba454971586a4e2958f7dcad165ebf; timestamp=2026-05-22T03:39:34.372Z; command=`pnpm run migrations:gate`
 - Rollback simulation: non-certifying; status=passed; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:41.545Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T03:20:44.458Z; completed=2026-05-22T03:20:44.458Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T03:39:34.372Z; completed=2026-05-22T03:39:34.372Z
 
 ## Command Result Summary
 
@@ -68,6 +68,7 @@ Production-ready claim: **false**
 - `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
 - `pnpm run production-deployment-parity:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-deployment-parity.md, docs/production-scale/evidence/latest-production-deployment-parity.json
 - `pnpm run production-worker:activation-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-activation-evidence.md, docs/production-scale/evidence/latest-production-worker-activation-evidence.json
+- `pnpm run production-worker:runtime-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-runtime-proof.md, docs/production-scale/evidence/latest-production-worker-runtime-proof.json
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
 - `pnpm run ingest:worker:staging-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md, docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json
 - `pnpm run pr-guardrails:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-pr-guardrails.md, docs/production-scale/evidence/latest-pr-guardrails.json
@@ -104,6 +105,7 @@ Production-ready claim: **false**
 - `pnpm run response:lifecycle -- --dry-run` - reference-required; evidence: none
 - `pnpm run response:replay -- --dry-run` - reference-required; evidence: none
 - `pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1` - reference-required; evidence: none
+- `pnpm run production-worker:runtime-proof-template` - reference-required; evidence: none
 - `pnpm run staging:ingest-worker -- --dry-run` - reference-required; evidence: none
 - `pnpm run production-scale:promotion-pack` - reference-required; evidence: none
 
@@ -164,12 +166,24 @@ Production-ready claim: **false**
 - Blocker 20 coverage: accepted
 - Static POST and retired-route proof is not runtime production proof.
 
+## Production Worker Runtime Proof
+
+- Status: dry-run-only
+- Accepted: no
+- Production proof: no
+- Staging proof: no
+- Dry-run only: yes
+- Evidence path: `docs/production-scale/evidence/production-worker-runtime-proof-submission.json`
+- Processed/failed/dead-letter/stale: 0/0/0/0
+- Blocker 2 runtime coverage: not accepted
+- Dry-run, default-off, and deferred activation evidence are not production runtime proof.
+
 ## Production Worker Readiness Evidence
 
 - Status: prepared-awaiting-human-production-evidence
 - Production proof accepted: no
-- Queue-depth evidence accepted: no
-- Queue-depth evidence path: `not submitted`
+- Runtime proof evidence accepted: no
+- Runtime proof evidence path: `docs/production-scale/evidence/production-worker-runtime-proof-submission.json`
 - Blocker 2 coverage: not accepted
 - Blocker 11 coverage: not accepted
 - Codex processed production jobs: no
@@ -348,6 +362,8 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-production-worker-activation-plan.json` - present; evidenceType=DESIGN_AND_GUARD_EVIDENCE
 - `docs/production-scale/evidence/latest-production-worker-activation-evidence.md` - present
 - `docs/production-scale/evidence/latest-production-worker-activation-evidence.json` - present; evidenceType=PRODUCTION_WORKER_ACTIVATION_EVIDENCE
+- `docs/production-scale/evidence/latest-production-worker-runtime-proof.md` - present
+- `docs/production-scale/evidence/latest-production-worker-runtime-proof.json` - present
 - `docs/production-scale/evidence/latest-production-worker-readiness.md` - present
 - `docs/production-scale/evidence/latest-production-worker-readiness.json` - present; evidenceType=PRODUCTION_WORKER_READINESS_EVIDENCE
 - `docs/production-scale/evidence/latest-pr-guardrails.md` - present
@@ -373,6 +389,9 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/restore-evidence-submission.json` - missing
 - `docs/production-scale/evidence/human-restore-drill-evidence.md` - missing
 - `docs/production-scale/evidence/human-restore-drill-evidence.json` - missing
+- `docs/production-scale/evidence/production-worker-runtime-proof-template.md` - present
+- `docs/production-scale/evidence/production-worker-runtime-proof-template.json` - present; evidenceType=PRODUCTION_WORKER_RUNTIME_PROOF
+- `docs/production-scale/evidence/production-worker-runtime-proof-submission.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.json` - missing
 - `docs/production-scale/evidence/production-worker-queue-depth-evidence.md` - missing
 - `docs/production-scale/evidence/latest-evidence-ledger.md` - present

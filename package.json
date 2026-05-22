@@ -57,6 +57,8 @@
     "production-worker:activation-plan": "node scripts/production-worker-activation-plan.mjs",
     "production-worker:activation-evidence": "node scripts/production-worker-activation-evidence.mjs",
     "production-worker:readiness-evidence": "node scripts/production-worker-readiness-evidence.mjs",
+    "production-worker:runtime-proof": "node scripts/production-worker-runtime-proof.mjs",
+    "production-worker:runtime-proof-template": "node scripts/production-worker-runtime-proof.mjs --write-template",
     "staging:ingest-worker": "node scripts/staging-ingest-worker-orchestrator.mjs",
     "test:tradeline-internal": "tsx scripts/tradeline-internal-regression.ts",
     "test:violation-corrections": "tsx scripts/violation-correction-regression.ts",

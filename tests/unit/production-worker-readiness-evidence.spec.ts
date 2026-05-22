@@ -7,7 +7,6 @@ import {
   buildProductionWorkerReadinessEvidenceReport,
   PRODUCTION_WORKER_READINESS_JSON_PATH,
   PRODUCTION_WORKER_READINESS_MD_PATH,
-  validateProductionWorkerQueueDepthEvidence,
   writeProductionWorkerReadinessEvidence,
 } from "../../scripts/production-worker-readiness-evidence.mjs";
 
@@ -20,14 +19,35 @@ afterEach(() => {
   }
 });
 
-function acceptedProductionRunEvidence() {
+function acceptedRuntimeProofEvidence() {
   return {
-    status: "accepted",
+    reportName: "production-worker-runtime-proof",
+    status: "accepted-production",
     accepted: true,
-    evidencePath: "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
+    productionProof: true,
+    stagingProof: false,
+    currentOperationalProof: true,
+    evidencePath: "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
+    queueDepth: {
+      before: { total: 1, queued: 1, running: 0, failed: 0, deadLettered: 0, staleRunning: 0 },
+      after: { total: 0, queued: 0, running: 0, failed: 0, deadLettered: 0, staleRunning: 0 },
+    },
+    processedCount: 1,
+    failedCount: 0,
+    deadLetterCount: 0,
+    staleCount: 0,
+    validation: {
+      ok: true,
+      errors: [],
+      sensitiveFindings: [],
+    },
     blockerCoverage: {
       productionIngestRuntime: true,
       productionWorkflowParityAndRollback: true,
+    },
+    safety: {
+      productionJobsProcessedByCodex: false,
+      productionDataMutatedByCodex: false,
     },
   };
 }
@@ -77,8 +97,15 @@ describe("production worker readiness evidence", () => {
       max: 5,
     });
     expect(report.acceptedProductionRunEvidence).toMatchObject({
-      status: "not-submitted",
+      status: "dry-run-only",
       accepted: false,
+      runtimeProofAccepted: false,
+      productionProof: false,
+    });
+    expect(report.runtimeProof).toMatchObject({
+      status: "dry-run-only",
+      accepted: false,
+      productionProof: false,
     });
     expect(report.blockerCoverage).toMatchObject({
       productionIngestRuntime: false,
@@ -97,53 +124,11 @@ describe("production worker readiness evidence", () => {
     });
   });
 
-  it("accepts only sanitized production apply queue-depth evidence", () => {
-    const valid = {
-      evidenceType: "HUMAN_OBSERVED_PRODUCTION_WORKER_RUN",
-      environment: "production",
-      mode: "apply",
-      operatorProductionRunCompleted: true,
-      maxJobs: 1,
-      queueDepthBefore: 0,
-      queueDepthAfter: 0,
-      processedJobs: 0,
-      failureCount: 0,
-      workerExitCode: 0,
-      productionJobsProcessedByCodex: false,
-      sanitizedEvidence: true,
-      operatorAcknowledgementSigned: true,
-      rollbackStopVerified: true,
-      workflowParityEvidencePresent: true,
-    };
-
-    expect(validateProductionWorkerQueueDepthEvidence(valid)).toMatchObject({
-      accepted: true,
-      blockerCoverage: {
-        productionIngestRuntime: true,
-        productionWorkflowParityAndRollback: true,
-      },
-    });
-
-    const unsafe = {
-      ...valid,
-      maxJobs: 10,
-      workerExitCode: 2,
-      productionJobsProcessedByCodex: true,
-      notes: "postgres://user:password@example.invalid/db",
-    };
-    const validation = validateProductionWorkerQueueDepthEvidence(unsafe);
-    expect(validation.accepted).toBe(false);
-    expect(validation.errors.join("\n")).toMatch(/maxJobs must be an integer between 1 and 5/);
-    expect(validation.errors.join("\n")).toMatch(/workerExitCode must be 0/);
-    expect(validation.errors.join("\n")).toMatch(/productionJobsProcessedByCodex must be false/);
-    expect(validation.sensitiveFindings).toContain("database-url");
-  });
-
-  it("can classify future accepted queue-depth evidence without reading production data", () => {
+  it("can classify future accepted runtime proof without reading production data", () => {
     const report = buildProductionWorkerReadinessEvidenceReport({
       rootDir: makeReadinessTempRoot(),
       generatedAt: "2026-05-20T12:00:00.000Z",
-      productionWorkerQueueDepthEvidence: acceptedProductionRunEvidence(),
+      productionWorkerRuntimeProofEvidence: acceptedRuntimeProofEvidence(),
     });
 
     expect(report.productionProof).toBe(true);
@@ -178,6 +163,9 @@ describe("production worker readiness evidence", () => {
     );
     expect(packageJson.scripts["production-worker:readiness-evidence"]).toBe(
       "node scripts/production-worker-readiness-evidence.mjs",
+    );
+    expect(packageJson.scripts["production-worker:runtime-proof"]).toBe(
+      "node scripts/production-worker-runtime-proof.mjs",
     );
   });
 });

@@ -1,9 +1,9 @@
 {
   "reportName": "production-worker-readiness-evidence",
   "evidenceType": "PRODUCTION_WORKER_READINESS_EVIDENCE",
-  "generatedAt": "2026-05-22T00:46:25.445Z",
+  "generatedAt": "2026-05-22T03:39:34.173Z",
   "branch": "staging",
-  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
+  "commit": "e61ef8db93ba454971586a4e2958f7dcad165ebf",
   "status": "prepared-awaiting-human-production-evidence",
   "productionProof": false,
   "staticValidation": {
@@ -44,6 +44,7 @@
         "status": "passed",
         "passed": true,
         "commands": [
+          "pnpm run production-worker:runtime-proof",
           "pnpm run production-worker:activation-evidence",
           "pnpm run production-worker:readiness-evidence",
           "pnpm run production-scale:evidence",
@@ -113,25 +114,49 @@
     "operatorAcknowledgementSigned": null,
     "sanitizedEvidence": null
   },
-  "acceptedProductionRunEvidence": {
-    "status": "not-submitted",
+  "runtimeProof": {
+    "reportName": "production-worker-runtime-proof",
+    "status": "dry-run-only",
     "accepted": false,
-    "evidencePath": null,
-    "defaultEvidencePaths": [
-      "docs/production-scale/evidence/production-worker-queue-depth-evidence.json",
-      "docs/production-scale/evidence/production-worker-queue-depth-evidence.md"
-    ],
+    "productionProof": false,
+    "stagingProof": false,
+    "evidencePath": "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+    "outputPaths": {
+      "markdown": "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+      "json": "docs/production-scale/evidence/latest-production-worker-runtime-proof.json"
+    },
     "validation": {
-      "accepted": false,
-      "status": "not-submitted",
+      "ok": false,
       "errors": [
-        "No accepted production worker queue-depth evidence has been submitted."
+        "No submitted production worker runtime proof found at docs/production-scale/evidence/production-worker-runtime-proof-submission.json.",
+        "Default dry-run evidence is not accepted as production runtime proof."
+      ],
+      "sensitiveFindings": []
+    }
+  },
+  "acceptedProductionRunEvidence": {
+    "status": "dry-run-only",
+    "accepted": false,
+    "evidencePath": "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+    "runtimeProofAccepted": false,
+    "productionProof": false,
+    "stagingProof": false,
+    "queueDepth": {
+      "before": null,
+      "after": null
+    },
+    "processedCount": 0,
+    "failedCount": 0,
+    "deadLetterCount": 0,
+    "staleCount": 0,
+    "validation": {
+      "ok": false,
+      "errors": [
+        "No submitted production worker runtime proof found at docs/production-scale/evidence/production-worker-runtime-proof-submission.json.",
+        "Default dry-run evidence is not accepted as production runtime proof."
       ],
       "sensitiveFindings": [],
-      "blockerCoverage": {
-        "productionIngestRuntime": false,
-        "productionWorkflowParityAndRollback": false
-      }
+      "evidenceKind": "dry-run-only"
     },
     "blockerCoverage": {
       "productionIngestRuntime": false,
