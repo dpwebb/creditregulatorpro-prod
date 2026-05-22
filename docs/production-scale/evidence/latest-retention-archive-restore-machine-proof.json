@@ -3,11 +3,11 @@
   "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
   "blockerId": "retention-archive-restore",
   "environment": "production",
-  "generatedAt": "2026-05-22T16:26:43.332Z",
-  "commitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
-  "currentCommitHash": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
-  "currentHead": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
-  "commit": "d8e239e6115f4b1b917fe47558f3e0990162fb4e",
+  "generatedAt": "2026-05-22T16:43:21.169Z",
+  "commitHash": "dc839e2d928b607a5ac8b167f6b6402be486b566",
+  "currentCommitHash": "dc839e2d928b607a5ac8b167f6b6402be486b566",
+  "currentHead": "dc839e2d928b607a5ac8b167f6b6402be486b566",
+  "commit": "dc839e2d928b607a5ac8b167f6b6402be486b566",
   "branch": "staging",
   "generatorScript": "scripts/retention-archive-restore-machine-proof.mjs",
   "command": "pnpm run retention:archive-restore-machine-proof",
@@ -28,66 +28,70 @@
   "certifying": false,
   "CERTIFYING": false,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T16:26:43.332Z",
+  "expiresAt": "2026-05-23T16:43:21.169Z",
   "checks": [
     {
       "name": "safe-archive-candidate-selected",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "archive-created-or-selected",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
+    },
+    {
+      "name": "archive-metadata-verified",
+      "status": "fail"
     },
     {
       "name": "isolated-restore-target-created",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "archive-restore-integrity-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "no-pii-exposed",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "lifecycle-cleanup-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "rollback-recovery-notes-recorded",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "isolated-restore-target-destroyed",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     }
   ],
   "failures": [
     {
-      "code": "attestation-unavailable",
-      "message": "machine attestation path was not provided."
+      "code": "retention-archive-restore-runtime-inputs-missing",
+      "message": "Non-interactive retention archive/restore proof requires a machine attestation plus archive access, isolated restore target, and safe archive candidate evidence."
     }
   ],
-  "sanitizedArtifacts": [],
+  "sanitizedArtifacts": [
+    "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+    "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md"
+  ],
   "missingRuntimeInputs": [
-    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+    "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+    "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
   ],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "blockerIdsClosedWhenCertifying": [
-      "retention-archive-restore"
-    ],
-    "attestationPath": null,
-    "acceptedCheckSet": "default",
-    "sensitiveFindingCount": 0
+    "proofMode": "machine-attested-retention-archive-restore-required",
+    "humanInteractionRequired": false,
+    "missingRuntimeInputs": [
+      "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+      "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+      "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+      "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"
+    ]
   }
 }

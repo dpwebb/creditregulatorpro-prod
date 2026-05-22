@@ -945,10 +945,14 @@ function machineProofEvidence({
         ? { ...alertingMachineProofMetadata(), ...metadata }
         : evidenceType === MIGRATION_MACHINE_PROOF_EVIDENCE_TYPE
           ? { ...migrationMachineProofMetadata(), ...metadata }
-          : metadata;
+          : evidenceType === RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE
+            ? { ...retentionArchiveRestoreMachineProofMetadata(), ...metadata }
+            : metadata;
   const effectiveProductionMutation = evidenceType === PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE
     ? "synthetic-canary-cleaned-up"
-    : "none";
+    : evidenceType === RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE
+      ? "synthetic-canary-cleaned-up"
+      : "none";
 
   return buildMachineEvidence({
     evidenceType,
@@ -1118,6 +1122,51 @@ function migrationMachineProofMetadata() {
   };
 }
 
+function retentionArchiveRestoreMachineProofMetadata() {
+  return {
+    retentionProofKind: "non-interactive-machine-archive-restore",
+    safeArchiveCandidate: {
+      selected: true,
+      safe: true,
+      opaqueCandidateId: "retention-candidate-hash",
+      syntheticCanary: true,
+      realConsumerPiiUsed: false,
+    },
+    archive: {
+      selected: true,
+      created: true,
+      archiveId: "retention-archive-hash",
+      metadataVerified: true,
+      manifestHash: "retention-manifest-hash",
+      containsPii: false,
+    },
+    isolatedRestoreTarget: {
+      created: true,
+      destroyed: true,
+      productionTarget: false,
+      targetId: "retention-restore-target-hash",
+    },
+    restoreVerification: {
+      integrityVerified: true,
+      restoredHashMatchesArchive: true,
+      expectedRecordCount: 1,
+      verifiedRecordCount: 1,
+    },
+    lifecycleCleanup: {
+      verified: true,
+      temporaryArchiveCleaned: true,
+      canaryCleanedUp: true,
+    },
+    rollbackRecovery: {
+      verified: true,
+      notesRecorded: true,
+      rollbackPlanHash: "retention-rollback-notes-hash",
+    },
+    noPiiExposed: true,
+    syntheticCanaryCleanupSucceeded: true,
+  };
+}
+
 const WORKER_MACHINE_CHECKS = [
   "queue-depth-before-captured",
   "worker-liveness-verified",
@@ -1167,6 +1216,7 @@ const MIGRATION_MACHINE_CHECKS = [
 const RETENTION_MACHINE_CHECKS = [
   "safe-archive-candidate-selected",
   "archive-created-or-selected",
+  "archive-metadata-verified",
   "isolated-restore-target-created",
   "archive-restore-integrity-verified",
   "no-pii-exposed",
@@ -1926,6 +1976,55 @@ describe("production promotion evidence pack", () => {
     expect(blocker1?.classification).toBe("machine proof required");
     expect(blocker22?.classification).toBe("machine proof required");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 22 open until retention archive restore machine proof certifies", () => {
+    const invalidRetentionProof = machineProofEvidence({
+      evidenceType: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
+      checks: RETENTION_MACHINE_CHECKS.filter((check) => check !== "archive-restore-integrity-verified"),
+      metadata: {
+        restoreVerification: null,
+      },
+      overrides: {
+        status: "fail",
+        certifying: false,
+        missingRuntimeInputs: ["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"],
+        failures: [{ code: "missing-restore-integrity", message: "Restore integrity proof missing." }],
+      },
+    });
+    const invalidReport = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      retentionArchiveRestoreMachineProofEvidence: invalidRetentionProof,
+      stagingIngestWorkerEvidence: notSubmittedStagingIngestWorkerEvidence(),
+      measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
+      runtimeSizePolicyAcceptance: notSubmittedRuntimeSizePolicyAcceptance(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const invalidBlocker22 = invalidReport.blockerClassifications.find((blocker: { number: number }) => blocker.number === 22);
+
+    expect(invalidBlocker22?.classification).toBe("machine proof required");
+    expect(invalidReport.missingMachineRuntimeInputs).toEqual(
+      expect.arrayContaining(["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"]),
+    );
+
+    const validReport = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      retentionArchiveRestoreMachineProofEvidence: machineProofEvidence({
+        evidenceType: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
+        checks: RETENTION_MACHINE_CHECKS,
+      }),
+      stagingIngestWorkerEvidence: notSubmittedStagingIngestWorkerEvidence(),
+      measuredLoadEvidenceAcceptance: notSubmittedMeasuredLoadEvidenceAcceptance(),
+      runtimeSizePolicyAcceptance: notSubmittedRuntimeSizePolicyAcceptance(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const validBlocker22 = validReport.blockerClassifications.find((blocker: { number: number }) => blocker.number === 22);
+
+    expect(validBlocker22?.classification).toBe("fixed with automated evidence");
   });
 
   it("keeps blocker 1 machine-required when accepted legacy human evidence is stale", () => {

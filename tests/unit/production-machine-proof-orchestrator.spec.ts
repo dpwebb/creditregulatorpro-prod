@@ -51,6 +51,8 @@ function validMachineProof(area: ReturnType<typeof defaultMachineProofAreas>[num
       ? productionWorkerMachineProofMetadata()
       : area.key === "migration"
         ? migrationMachineProofMetadata()
+        : area.key === "retentionArchiveRestore"
+          ? retentionArchiveRestoreMachineProofMetadata()
       : {};
   return buildMachineEvidence({
     evidenceType: area.config.evidenceType,
@@ -150,6 +152,51 @@ function productionWorkerMachineProofMetadata() {
       verified: true,
       status: "pass",
     },
+    syntheticCanaryCleanupSucceeded: true,
+  };
+}
+
+function retentionArchiveRestoreMachineProofMetadata() {
+  return {
+    retentionProofKind: "non-interactive-machine-archive-restore",
+    safeArchiveCandidate: {
+      selected: true,
+      safe: true,
+      opaqueCandidateId: "retention-candidate-hash",
+      syntheticCanary: true,
+      realConsumerPiiUsed: false,
+    },
+    archive: {
+      selected: true,
+      created: true,
+      archiveId: "retention-archive-hash",
+      metadataVerified: true,
+      manifestHash: "retention-manifest-hash",
+      containsPii: false,
+    },
+    isolatedRestoreTarget: {
+      created: true,
+      destroyed: true,
+      productionTarget: false,
+      targetId: "retention-restore-target-hash",
+    },
+    restoreVerification: {
+      integrityVerified: true,
+      restoredHashMatchesArchive: true,
+      expectedRecordCount: 1,
+      verifiedRecordCount: 1,
+    },
+    lifecycleCleanup: {
+      verified: true,
+      temporaryArchiveCleaned: true,
+      canaryCleanedUp: true,
+    },
+    rollbackRecovery: {
+      verified: true,
+      notesRecorded: true,
+      rollbackPlanHash: "retention-rollback-notes-hash",
+    },
+    noPiiExposed: true,
     syntheticCanaryCleanupSucceeded: true,
   };
 }

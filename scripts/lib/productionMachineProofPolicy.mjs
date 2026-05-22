@@ -111,14 +111,14 @@ export const MACHINE_PROOF_BLOCKER_REQUIREMENTS = {
     blockerId: "retention-archive-restore",
     productionRuntimeProofRequired: true,
     proofTypeRequired:
-      "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
+      "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, archive metadata verification, isolated restore target, restore integrity, cleanup, rollback notes, and target destruction.",
     proofCategories: ["machine-attested", "automated-local"],
     allowedProofCommands: [
       "pnpm run retention:archive-restore-machine-proof",
       "pnpm run retention:archive-restore-machine-proof:validate",
     ],
     recommendedNextAction:
-      "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
+      "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.",
   },
 };
 

@@ -32,6 +32,9 @@ If an input is missing, the proof must fail closed with:
 | `CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-remediation-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No by the proof script; attested remediation policy may describe approved bounded remediation |
 | `CRP_ALERTING_MACHINE_ATTESTATION_JSON` | `pnpm run alerts:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | No production data mutation |
 | `CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON` | `pnpm run retention:archive-restore-machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | Yes, synthetic canary cleaned up only |
+| `CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS` | `pnpm run retention:archive-restore-machine-proof` | No | Sanitized machine attestation field for archive selection/creation, metadata, and restore integrity | production-canary | Yes, synthetic canary cleaned up only |
+| `CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET` | `pnpm run retention:archive-restore-machine-proof` | No | Sanitized machine attestation field for isolated restore target creation and destruction | production-canary | Yes, isolated temporary target only |
+| `CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE` | `pnpm run retention:archive-restore-machine-proof` | No | Sanitized machine attestation field for a safe archive candidate or synthetic/canary retention record | production-canary | Yes, synthetic canary cleaned up only |
 
 ## Safety Constraints
 
@@ -51,7 +54,9 @@ Every attestation input must be sanitized JSON and must include `nonInteractive:
 
 `CRP_ALERTING_MACHINE_ATTESTATION_JSON` must prove live synthetic alert delivery or a repo-policy-approved certifying formal exclusion. Any acknowledgement must be machine-verifiable; operator acknowledgement is not required. Webhook URLs and tokens must not appear. Use `pnpm run alerts:machine-proof` for the current proof path; the older `alerting:*` alias remains backward-compatible.
 
-`CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON` must prove safe archive candidate selection or creation, isolated restore target, integrity verification, lifecycle cleanup, rollback/recovery notes, and target destruction.
+`CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON` must prove safe archive candidate selection or creation, archive metadata verification, isolated restore target creation, restore integrity verification, lifecycle cleanup, rollback/recovery notes, and target destruction.
+
+`CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS`, `CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET`, and `CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE` are required sanitized fields inside the retention archive/restore machine attestation. Missing fields keep `CERTIFYING:false`; simulated-only, dry-run-only, human-observed, manual approval, missing cleanup, missing rollback/recovery, or sensitive evidence is rejected.
 
 ## Repo Config Requirement
 

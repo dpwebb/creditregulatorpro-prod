@@ -368,7 +368,7 @@
         "Attestation must be nonInteractive:true and machineAttested:true.",
         "Attestation must not be simulated-only for production proof.",
         "Only a safe archive candidate or synthetic/canary retention record may be used.",
-        "Archive selection or creation, isolated restore target, integrity, cleanup, rollback/recovery notes, and target destruction checks must pass.",
+        "Archive selection or creation, archive metadata verification, isolated restore target, integrity, cleanup, rollback/recovery notes, and target destruction checks must pass.",
         "No secrets, PII, signed URLs, raw report text, raw report bytes, or artifact contents may appear."
       ],
       "failureIfMissing": {
@@ -377,6 +377,86 @@
         "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"],
         "humanInteractionRequired": false,
         "message": "machine attestation path was not provided."
+      }
+    },
+    {
+      "name": "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+      "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
+      "proofCommand": "pnpm run retention:archive-restore-machine-proof",
+      "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized archive selection, metadata, and restore integrity proof"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Archive access must use a safe archive candidate or synthetic/canary retention record.",
+        "Archive identifiers and manifest references must be opaque or hashed.",
+        "Archive metadata and restore integrity must be machine-verified.",
+        "No object credentials, signed URLs, database URLs, raw report text, raw report bytes, account numbers, secrets, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS"],
+        "humanInteractionRequired": false,
+        "message": "retention archive selection, metadata, or restore integrity proof was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+      "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
+      "proofCommand": "pnpm run retention:archive-restore-machine-proof",
+      "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized isolated retention restore target identifier and cleanup status"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Restore target must be isolated from production and created non-interactively.",
+        "Temporary restore target destruction must be machine-attested.",
+        "No database URLs, credentials, production target names, signed URLs, raw report text, raw report bytes, account numbers, secrets, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET"],
+        "humanInteractionRequired": false,
+        "message": "isolated retention restore target creation or destruction proof was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
+      "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
+      "proofCommand": "pnpm run retention:archive-restore-machine-proof",
+      "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized safe archive candidate or synthetic/canary retention record"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Only a safe archive candidate or synthetic/canary retention record may be selected or created.",
+        "Any canary record must be cleaned up by the same proof flow.",
+        "Candidate identifiers must be opaque or hashed.",
+        "No real consumer PII, signed URLs, raw report text, raw report bytes, database URLs, account numbers, secrets, or service credentials may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE"],
+        "humanInteractionRequired": false,
+        "message": "safe retention archive candidate proof was not machine-attested."
       }
     }
   ],

@@ -26,6 +26,7 @@ import {
 } from "./restore-machine-proof.mjs";
 import {
   RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
+  retentionArchiveRestoreMachineProofExtraValidation,
 } from "./retention-archive-restore-machine-proof.mjs";
 import {
   RAW_REPORT_MACHINE_PROOF_CONFIG,
@@ -121,6 +122,7 @@ export function defaultMachineProofAreas() {
       blockerId: "retention-archive-restore",
       kind: "machine-proof",
       config: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
+      extraValidation: retentionArchiveRestoreMachineProofExtraValidation,
       commands: [
         "pnpm run retention:archive-restore-machine-proof",
         "pnpm run retention:archive-restore-machine-proof:validate",

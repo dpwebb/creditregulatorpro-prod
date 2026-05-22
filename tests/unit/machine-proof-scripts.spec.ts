@@ -21,7 +21,12 @@ import {
   buildMigrationMachineProofReport,
   validateMigrationMachineProofEvidence,
 } from "../../scripts/migration-machine-proof.mjs";
-import { RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG } from "../../scripts/retention-archive-restore-machine-proof.mjs";
+import {
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+  buildRetentionArchiveRestoreMachineProofReport,
+  validateRetentionArchiveRestoreMachineProofEvidence,
+} from "../../scripts/retention-archive-restore-machine-proof.mjs";
 
 const HEAD = "a".repeat(40);
 const GENERATED_AT = "2026-05-22T12:00:00.000Z";
@@ -97,6 +102,50 @@ function validRestoreMetadata() {
       cleanupLifecycle: true,
       rollbackStop: true,
     },
+  };
+}
+
+function validRetentionArchiveRestoreMetadata() {
+  return {
+    retentionProofKind: "non-interactive-machine-archive-restore",
+    safeArchiveCandidate: {
+      selected: true,
+      safe: true,
+      opaqueCandidateId: "retention-candidate-hash",
+      syntheticCanary: true,
+      realConsumerPiiUsed: false,
+    },
+    archive: {
+      selected: true,
+      created: true,
+      archiveId: "retention-archive-hash",
+      metadataVerified: true,
+      manifestHash: "retention-manifest-hash",
+      containsPii: false,
+    },
+    isolatedRestoreTarget: {
+      created: true,
+      destroyed: true,
+      productionTarget: false,
+      targetId: "retention-restore-target-hash",
+    },
+    restoreVerification: {
+      integrityVerified: true,
+      restoredHashMatchesArchive: true,
+      expectedRecordCount: 1,
+      verifiedRecordCount: 1,
+    },
+    lifecycleCleanup: {
+      verified: true,
+      temporaryArchiveCleaned: true,
+      canaryCleanedUp: true,
+    },
+    rollbackRecovery: {
+      verified: true,
+      notesRecorded: true,
+      rollbackPlanHash: "retention-rollback-notes-hash",
+    },
+    noPiiExposed: true,
   };
 }
 
@@ -332,6 +381,131 @@ describe("machine proof scripts", () => {
     expect(validateMachineProofForConfig(RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(false);
   });
 
+  it("fails closed when retention archive runtime inputs are missing", () => {
+    const report = buildRetentionArchiveRestoreMachineProofReport({
+      rootDir: tempRoot(),
+      generatedAt: GENERATED_AT,
+      env: {},
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.status).toBe("fail");
+    expect(report.humanInteractionRequired).toBe(false);
+    expect(report.missingRuntimeInputs).toEqual(RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_RUNTIME_INPUTS);
+    expect(report.failures).toEqual([
+      expect.objectContaining({ code: "retention-archive-restore-runtime-inputs-missing" }),
+    ]);
+  });
+
+  it("accepts valid sanitized retention archive restore attestation", () => {
+    const root = tempRoot();
+    const attestationPath = writeAttestation(
+      root,
+      "retention-attestation",
+      RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.requiredChecks,
+      validRetentionArchiveRestoreMetadata(),
+    );
+    const report = buildRetentionArchiveRestoreMachineProofReport({
+      rootDir: root,
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      argv: ["--attestation", attestationPath],
+    });
+
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.productionMutation).toBe("synthetic-canary-cleaned-up");
+    expect(validateRetentionArchiveRestoreMachineProofEvidence(report, { now: NOW }).ok).toBe(true);
+  });
+
+  it("rejects retention archive proof without restore integrity verification", () => {
+    const root = tempRoot();
+    const metadata = validRetentionArchiveRestoreMetadata();
+    delete (metadata as { restoreVerification?: unknown }).restoreVerification;
+    const checks = RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.requiredChecks.filter(
+      (check) => check !== "archive-restore-integrity-verified",
+    );
+    const attestationPath = writeAttestation(root, "retention-attestation", checks, metadata);
+    const report = buildRetentionArchiveRestoreMachineProofReport({
+      rootDir: root,
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      argv: ["--attestation", attestationPath],
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(validateRetentionArchiveRestoreMachineProofEvidence(report, { now: NOW }).errors.join("\n")).toMatch(/restore integrity/i);
+  });
+
+  it("rejects retention archive proof without cleanup verification", () => {
+    const root = tempRoot();
+    const metadata = validRetentionArchiveRestoreMetadata();
+    (metadata as { lifecycleCleanup: unknown }).lifecycleCleanup = { verified: false };
+    (metadata as { isolatedRestoreTarget: { destroyed: boolean } }).isolatedRestoreTarget.destroyed = false;
+    const attestationPath = writeAttestation(
+      root,
+      "retention-attestation",
+      RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.requiredChecks,
+      metadata,
+    );
+    const report = buildRetentionArchiveRestoreMachineProofReport({
+      rootDir: root,
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      argv: ["--attestation", attestationPath],
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(validateRetentionArchiveRestoreMachineProofEvidence(report, { now: NOW }).errors.join("\n")).toMatch(/cleanup|destruction/i);
+  });
+
+  it("rejects stale retention archive restore proof", () => {
+    const root = tempRoot();
+    const attestationPath = writeAttestation(
+      root,
+      "retention-attestation",
+      RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.requiredChecks,
+      validRetentionArchiveRestoreMetadata(),
+    );
+    const report = buildRetentionArchiveRestoreMachineProofReport({
+      rootDir: root,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      argv: ["--attestation", attestationPath],
+    });
+
+    const validation = validateRetentionArchiveRestoreMachineProofEvidence(report, { now: NOW });
+
+    expect(validation.ok).toBe(false);
+    expect(validation.errors).toContain("evidence is stale.");
+  });
+
+  it("rejects sensitive retention archive restore attestation values", () => {
+    const root = tempRoot();
+    const attestationPath = writeAttestation(
+      root,
+      "retention-attestation",
+      RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG.requiredChecks,
+      {
+        ...validRetentionArchiveRestoreMetadata(),
+        archive: {
+          ...validRetentionArchiveRestoreMetadata().archive,
+          sanitizerProbe: "sk-retentiontest123456789",
+        },
+      },
+    );
+    const report = buildRetentionArchiveRestoreMachineProofReport({
+      rootDir: root,
+      generatedAt: GENERATED_AT,
+      env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
+      argv: ["--attestation", attestationPath],
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.failures).toEqual([
+      expect.objectContaining({ code: "retention-archive-restore-sensitive-value" }),
+    ]);
+  });
+
   it("documents every non-interactive runtime input in the contract", () => {
     const contract = JSON.parse(readFileSync("docs/production-scale/evidence/machine-proof-runtime-input-contract.json", "utf8"));
     const inputNames = contract.inputs.map((input: { name: string }) => input.name);
@@ -349,6 +523,9 @@ describe("machine proof scripts", () => {
       "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
       "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
       "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+      "CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS",
+      "CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET",
+      "CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE",
     ]));
     for (const input of contract.inputs) {
       expect(input.secret).toBe(false);

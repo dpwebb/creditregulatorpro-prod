@@ -146,6 +146,7 @@ import {
   RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
   RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH,
   RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_MD_PATH,
+  retentionArchiveRestoreMachineProofExtraValidation,
 } from "./retention-archive-restore-machine-proof.mjs";
 
 import { validateMachineProofForConfig } from "./lib/machineProofScript.mjs";
@@ -1486,7 +1487,7 @@ export function buildProductionPromotionPackReport({
       "Retention archive restore machine proof",
       RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
       loadedRetentionArchiveRestoreMachineProof,
-      undefined,
+      retentionArchiveRestoreMachineProofExtraValidation,
       generatedAt,
     ),
   };
