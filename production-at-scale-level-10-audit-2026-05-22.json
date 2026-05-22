@@ -1,0 +1,876 @@
+{
+  "audit_date": "2026-05-22",
+  "audit_type": "LEVEL 10 production-at-scale readiness audit",
+  "repository": "C:\\Users\\webbd\\Projects\\creditregulatorpro-staging",
+  "branch": "staging",
+  "source_code_commit_hash": "4da09d1b87f4641f938bae3f02618f1aa142072d",
+  "evidence_checkpoint_commit_hash": "065b2d2c56d5130a1bc4e5759ac3c60bb3893870",
+  "commit_hash": "065b2d2c56d5130a1bc4e5759ac3c60bb3893870",
+  "overall_status": "FAIL",
+  "highest_severity": "P1",
+  "production_promotion_recommendation": "NOT SAFE",
+  "staging_promotion_recommendation": "SAFE WITH LIMITATIONS",
+  "summary": "Core application, packet, ingestion, owner-scope, and deterministic tests are strong, but production-at-scale promotion is blocked by non-certifying production evidence and six unresolved production blockers.",
+  "p0_count": 0,
+  "p1_count": 6,
+  "p2_count": 9,
+  "p3_count": 3,
+  "generated_artifacts": [
+    "production-at-scale-level-10-audit-2026-05-22.md",
+    "production-at-scale-level-10-audit-2026-05-22.json"
+  ],
+  "inspected_files": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose.production.yml",
+    ".github/workflows/deploy-staging.yml",
+    ".github/workflows/deploy-production.yml",
+    "endpoints/packet/validate-readiness_POST.ts",
+    "endpoints/packet/build_POST.ts",
+    "endpoints/packet/create_POST.ts",
+    "endpoints/packet/pdf_GET.ts",
+    "endpoints/packet/list_GET.ts",
+    "endpoints/packet/get_GET.ts",
+    "endpoints/packet/delete_POST.ts",
+    "helpers/disputePacketService.ts",
+    "helpers/disputePacketTemplate.ts",
+    "helpers/disputePacketPdf.ts",
+    "helpers/disputePacketHumanization.ts",
+    "helpers/packetPreviewDisplay.ts",
+    "helpers/ingestProcessingQueueService.ts",
+    "scripts/ingest-processing-worker.ts",
+    "scripts/staging-auth-workflow-smoke.ts",
+    "scripts/production-readiness-gate.mjs",
+    "scripts/production-readiness-report.ts",
+    "scripts/production-scale-certification.mjs",
+    "scripts/production-scale-evidence.mjs",
+    "scripts/production-promotion-pack.mjs",
+    "scripts/promote-production.mjs",
+    "scripts/deploy-rollback-sha-governance.mjs",
+    "scripts/deploy-rollback-simulation.mjs",
+    "scripts/production-worker-readiness-evidence.mjs",
+    "scripts/production-worker-activation-evidence.mjs",
+    "scripts/storage-raw-report-inventory.mjs",
+    "scripts/storage-raw-report-remediation-plan.mjs",
+    "scripts/restore-evidence-current-check.mjs",
+    "scripts/response-ops-readiness-evidence.mjs",
+    "components/PacketViewer.tsx",
+    "pages/packets.tsx"
+  ],
+  "command_results": [
+    {
+      "command": "git status --short --branch",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "initially clean on staging; later evidence-only changes checkpointed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "no whitespace errors; line-ending warnings only after evidence generation"
+    },
+    {
+      "command": "pnpm install --frozen-lockfile",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "lockfile current"
+    },
+    {
+      "command": "pnpm run lint",
+      "status": "unavailable",
+      "exit_code": 1,
+      "reason": "package.json has no lint script"
+    },
+    {
+      "command": "pnpm test",
+      "status": "unavailable",
+      "exit_code": 1,
+      "reason": "package.json has no plain test script"
+    },
+    {
+      "command": "pnpm run typecheck",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "tsc --noEmit completed"
+    },
+    {
+      "command": "pnpm run build",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "Vite build completed"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "219 files passed, 1 skipped; 1603 tests passed, 1 skipped"
+    },
+    {
+      "command": "CRP_AUTH_WORKFLOW_SMOKE=true STAGING_BASE_URL=https://staging.creditregulatorpro.com pnpm run smoke:auth-workflow",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "same-user upload/results succeeded; non-owner denied 403"
+    },
+    {
+      "command": "CRP_AUTH_WORKFLOW_SMOKE=true STAGING_BASE_URL=https://staging.creditregulatorpro.com pnpm run smoke:auth-workflow:packet",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "packet created; PDF returned application/pdf; non-owner PDF denied 403"
+    },
+    {
+      "command": "pnpm run test:golden-path",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "upload, parse, canonical map, anomaly, violation, evidence, packet, and PDF checks passed"
+    },
+    {
+      "command": "pnpm run test:deterministic-ingestion-report",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "11 fixtures replay stable; evidence coverage 100%; violation search preserved"
+    },
+    {
+      "command": "pnpm run ingest:worker:simulated-proof",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "simulated worker proof passed; explicitly not production proof"
+    },
+    {
+      "command": "pnpm run packet-pdf:cache-miss-proof",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "PDF cache miss proof generated"
+    },
+    {
+      "command": "pnpm run response:soak-check",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "retry, dead-letter, stale-running, replay dry-run observed; driftDetected true"
+    },
+    {
+      "command": "pnpm run production-scale:evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "25/25 blockers represented; dashboard skipped 55 checks; simulated evidence not production proof"
+    },
+    {
+      "command": "pnpm run production-scale:certify",
+      "status": "failed",
+      "exit_code": 1,
+      "result": "CERTIFYING:false; failed gates authenticatedUploadResults, authenticatedPacketPdf, applicationCheck"
+    },
+    {
+      "command": "pnpm run production-scale:promotion-pack",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "CERTIFYING:false; readiness limited beta; 6 unresolved production blockers"
+    },
+    {
+      "command": "pnpm run readiness:production -- --json",
+      "status": "failed",
+      "exit_code": 1,
+      "result": "failed due dirty working tree after evidence generation"
+    },
+    {
+      "command": "pnpm run production-safe-probes:evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "plan-only/read-only; no production mutation; not full production proof"
+    },
+    {
+      "command": "pnpm run pr-guardrails:evidence",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "CERTIFYING:true"
+    },
+    {
+      "command": "pnpm run production-deployment-parity:evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "accepted production deployment parity; runtime production probes not executed"
+    },
+    {
+      "command": "pnpm run staging-owner-denial-smoke:evidence",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "synthetic owner-denial evidence generated"
+    },
+    {
+      "command": "CRP_STAGING_SCALE_BASELINE=true pnpm run baseline:staging-scale",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "42 staging-safe requests; p95 within observed thresholds"
+    },
+    {
+      "command": "pnpm run check:migrations",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "0 release-blocking findings; 18 warning-only findings; CERTIFYING:false"
+    },
+    {
+      "command": "pnpm run migrations:gate",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "accepted temporary allowlist; CERTIFYING:false"
+    },
+    {
+      "command": "CRP_STAGING_OBSERVABILITY_CHECK=true pnpm run check:staging-observability",
+      "status": "failed",
+      "exit_code": 1,
+      "result": "SSH permission denied from this environment"
+    },
+    {
+      "command": "pnpm run check:runtime-size",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "warning-only bundle/dependency size threshold findings"
+    },
+    {
+      "command": "pnpm run runtime-size:policy-acceptance",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "warning-only waiver accepted"
+    },
+    {
+      "command": "pnpm run production-worker:readiness-evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "prepared-awaiting-human-production-evidence; production proof false"
+    },
+    {
+      "command": "pnpm run production-worker:activation-plan",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "activation plan generated; no production jobs processed"
+    },
+    {
+      "command": "pnpm run production-worker:activation-evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "prepared default-off/deferred activation; production proof false"
+    },
+    {
+      "command": "pnpm run check:staging-services",
+      "status": "failed_limited",
+      "exit_code": 1,
+      "result": "Docker daemon unavailable; staging endpoint reachable"
+    },
+    {
+      "command": "pnpm run check:staging-gate",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "app shell, login, auth denial, and lifecycle admin denial checks passed"
+    },
+    {
+      "command": "pnpm run storage:durability-contract",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "storage durability evidence generated"
+    },
+    {
+      "command": "pnpm run storage:raw-report-inventory",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "sanitized inventory generated; local DB unavailable so counts unreliable"
+    },
+    {
+      "command": "pnpm run storage:raw-report-remediation-plan",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "dry-run plan generated; inventory-unreliable; blocker 6 not accepted closed"
+    },
+    {
+      "command": "pnpm run sensitive-list-endpoints:evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "metadata-only proof; hidden-risk partial/design-only"
+    },
+    {
+      "command": "pnpm run restore:drill:simulated",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "simulated-only restore proof"
+    },
+    {
+      "command": "pnpm run retention:archive-restore:simulated",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "simulated-only retention archive/restore proof"
+    },
+    {
+      "command": "CRP_STAGING_BACKUP_RESTORE_CHECK=true pnpm run check:staging-backup-restore",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "checklist verification only; no live dump/restore"
+    },
+    {
+      "command": "pnpm run restore:evidence:current-check",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "status simulated-only; current operational proof false"
+    },
+    {
+      "command": "pnpm run test:credit-regression",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "credit report parser regression passed"
+    },
+    {
+      "command": "pnpm run test:tradeline-internal",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "6 checks passed"
+    },
+    {
+      "command": "pnpm run test:violation-corrections",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "7 checks passed"
+    },
+    {
+      "command": "pnpm run test:evidence-ledger",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "3 files, 37 tests passed"
+    },
+    {
+      "command": "targeted packet humanization/template/pdf/service/preview/viewer suites",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "15 files, 91 tests passed"
+    },
+    {
+      "command": "pnpm run check",
+      "status": "failed",
+      "exit_code": 1,
+      "result": "build and golden path passed; unit phase timed out in deploy rollback governance tests"
+    },
+    {
+      "command": "pnpm exec vitest run --config vitest.config.ts --testTimeout=60000 tests/unit/deploy-rollback-sha-governance.spec.ts",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "rollback governance tests pass with longer timeout"
+    },
+    {
+      "command": "pnpm run production:readiness -- --json",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "status review_required; dirty tree because evidence artifacts had been generated"
+    },
+    {
+      "command": "pnpm run baseline:production-scale-local",
+      "status": "failed_by_design",
+      "exit_code": 1,
+      "result": "refused without explicit safety flag"
+    },
+    {
+      "command": "pnpm run baseline:production-scale-local -- --simulated",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "simulated local load evidence; not production proof"
+    },
+    {
+      "command": "pnpm run baseline:production-scale-measured",
+      "status": "failed_by_design",
+      "exit_code": 1,
+      "result": "refused without explicit target flag"
+    },
+    {
+      "command": "pnpm run baseline:production-scale-measured -- --staging-safe",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "78 staging-safe requests/jobs; p95 46 ms; no external provider calls"
+    },
+    {
+      "command": "pnpm run response:queue-load-check",
+      "status": "passed",
+      "exit_code": 0,
+      "result": "synthetic queue load check observed retry/dead-letter/stale paths"
+    },
+    {
+      "command": "pnpm run alerts:dry-run",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "simulated alert evidence only"
+    },
+    {
+      "command": "pnpm run response:ops-readiness-evidence",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "live scheduler disabled; alerting dry-run-only; dashboard skip count 55"
+    },
+    {
+      "command": "pnpm run alerts:exclusion:validate",
+      "status": "passed_limited",
+      "exit_code": 0,
+      "result": "no formal alerting exclusion submitted; blocker 9 coverage not accepted"
+    }
+  ],
+  "domain_results": [
+    {
+      "domain": "Repository and build integrity",
+      "status": "LIMITED",
+      "risk_rating": "P2",
+      "evidence": "Build, typecheck, full Vitest, golden path, and deterministic ingestion passed; lint/test aliases missing; pnpm run check timed out in rollback governance; certification harness non-certifying."
+    },
+    {
+      "domain": "Authentication, authorization, and owner scoping",
+      "status": "PASS",
+      "risk_rating": "none",
+      "evidence": "Same-user and non-owner smokes passed; packet PDF non-owner denial 403; endpoint inspection confirms owner/admin checks."
+    },
+    {
+      "domain": "Credit report upload, ingestion, parsing, and worker processing",
+      "status": "LIMITED",
+      "risk_rating": "P1",
+      "evidence": "Staging and simulated proofs pass; accepted production ingest runtime evidence is not submitted."
+    },
+    {
+      "domain": "Deterministic parsing and canonical truth preservation",
+      "status": "PASS",
+      "risk_rating": "none",
+      "evidence": "Deterministic ingestion report and parser regression pass; display layers do not mutate truth."
+    },
+    {
+      "domain": "Violation detection and legal/evidence linkage",
+      "status": "PASS",
+      "risk_rating": "none",
+      "evidence": "Golden path, violation corrections, and evidence ledger tests pass; packet metadata preserves internal references."
+    },
+    {
+      "domain": "Packet readiness, lifecycle, and PDF generation",
+      "status": "PASS",
+      "risk_rating": "none",
+      "evidence": "Packet smoke, packet targeted suites, and PDF cache miss proof pass; ownership and readiness enforced."
+    },
+    {
+      "domain": "Consumer-facing packet humanization",
+      "status": "PASS",
+      "risk_rating": "none",
+      "evidence": "Consumer-facing forbidden terms absent in tests; readable account/date/action text present; internal metadata preserved."
+    },
+    {
+      "domain": "User experience and workflow clarity",
+      "status": "LIMITED",
+      "risk_rating": "P2",
+      "evidence": "Normal packet user wording is safe; response ops dashboard skip count and deferred live controls remain."
+    },
+    {
+      "domain": "Data privacy, security, and sensitive data handling",
+      "status": "LIMITED",
+      "risk_rating": "P1",
+      "evidence": "Owner checks pass; raw report inventory/remediation proof is unreliable/not accepted closed."
+    },
+    {
+      "domain": "Database, migrations, persistence, and recovery",
+      "status": "FAIL",
+      "risk_rating": "P1",
+      "evidence": "Restore proof is simulated-only; migration gate relies on temporary allowlist."
+    },
+    {
+      "domain": "Worker, orchestration, queues, and lifecycle hardening",
+      "status": "LIMITED",
+      "risk_rating": "P1",
+      "evidence": "Queue tests pass; production worker evidence remains awaiting human production proof."
+    },
+    {
+      "domain": "Deployment, CI/CD, staging, production, and rollback readiness",
+      "status": "LIMITED",
+      "risk_rating": "P2",
+      "evidence": "Rollback/workflow controls are strong; production promotion pack remains non-certifying."
+    },
+    {
+      "domain": "Observability, diagnostics, and operator evidence",
+      "status": "FAIL",
+      "risk_rating": "P1",
+      "evidence": "Alerting is dry-run-only; no formal exclusion submitted; staging observability SSH failed."
+    },
+    {
+      "domain": "Performance, scale, and abuse resistance",
+      "status": "LIMITED",
+      "risk_rating": "P2",
+      "evidence": "Staging-safe measured baseline passes; runtime size warnings remain; production-scale proof is not complete."
+    },
+    {
+      "domain": "Compliance, auditability, and evidence integrity",
+      "status": "LIMITED",
+      "risk_rating": "P2",
+      "evidence": "Code-level auditability passes; production proof blockers remain."
+    }
+  ],
+  "findings": [
+    {
+      "id": "L10-P1-001",
+      "severity": "P1",
+      "title": "Production promotion pack is non-certifying",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-production-promotion-pack.json",
+        "scripts/production-promotion-pack.mjs"
+      ],
+      "affected_functions": [
+        "production promotion evidence generation"
+      ],
+      "evidence": "production-scale:promotion-pack returned CERTIFYING:false, limited beta, canPromoteProductionAtScale:false, and six unresolved production blockers.",
+      "production_impact": "Blocks production-at-scale promotion.",
+      "user_impact": "Users could enter production before required recovery, worker, storage, alerting, migration, and retention proof is accepted.",
+      "security_privacy_impact": "Sensitive-data operational proof remains incomplete.",
+      "blocks_production_at_scale": true,
+      "recommended_remediation": "Close all unresolved production blockers and rerun promotion pack until certifying true.",
+      "suggested_test_coverage": "CI/promotion gate requiring latest-production-promotion-pack.json CERTIFYING true.",
+      "timing": "immediate"
+    },
+    {
+      "id": "L10-P1-002",
+      "severity": "P1",
+      "title": "Disaster recovery proof is simulated-only",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-restore-readiness-check.json",
+        "scripts/restore-evidence-current-check.mjs"
+      ],
+      "affected_functions": [
+        "restore readiness evidence"
+      ],
+      "evidence": "restore:evidence:current-check status simulated-only and currentOperationalProof false; promotion pack blocker 1 Critical/requires-human-proof.",
+      "production_impact": "Recovery RPO/RTO for sensitive production data is not proven.",
+      "user_impact": "Recovery from outage or data loss is unproven.",
+      "security_privacy_impact": "Sensitive data continuity and recovery proof missing.",
+      "blocks_production_at_scale": true,
+      "recommended_remediation": "Submit accepted human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "suggested_test_coverage": "Promotion acceptance validator requiring accepted human restore evidence.",
+      "timing": "immediate"
+    },
+    {
+      "id": "L10-P1-003",
+      "severity": "P1",
+      "title": "Production ingest runtime proof is not accepted",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "scripts/production-worker-readiness-evidence.mjs",
+        "scripts/ingest-processing-worker.ts"
+      ],
+      "affected_functions": [
+        "production worker readiness",
+        "production worker activation evidence"
+      ],
+      "evidence": "production-worker:readiness-evidence status prepared-awaiting-human-production-evidence and productionProof false; blocker 2 Critical/partial.",
+      "production_impact": "Production worker-backed queue processing is not accepted as proven.",
+      "user_impact": "Uploads may remain queued/delayed at scale without accepted worker proof.",
+      "security_privacy_impact": "Operational processing guarantees incomplete.",
+      "blocks_production_at_scale": true,
+      "recommended_remediation": "Run documented bounded production worker evidence path and submit sanitized queue-depth/worker result evidence.",
+      "suggested_test_coverage": "Promotion pack fails until accepted production worker evidence exists.",
+      "timing": "immediate"
+    },
+    {
+      "id": "L10-P1-004",
+      "severity": "P1",
+      "title": "Historical raw report byte remediation remains unresolved",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+        "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json"
+      ],
+      "affected_functions": [
+        "raw report storage inventory",
+        "raw report remediation plan"
+      ],
+      "evidence": "storage remediation status inventory-unreliable; blocker 6 High/partial; acceptance not closed.",
+      "production_impact": "Sensitive raw report storage/remediation state is not reliable enough for promotion.",
+      "user_impact": "Credit-report data retention posture remains uncertain.",
+      "security_privacy_impact": "Sensitive report data remediation proof incomplete.",
+      "blocks_production_at_scale": true,
+      "recommended_remediation": "Run reliable sanitized inventory with DB access and submit remediation acceptance.",
+      "suggested_test_coverage": "Acceptance validator rejects unreliable inventory and requires sanitized output proof.",
+      "timing": "immediate"
+    },
+    {
+      "id": "L10-P1-005",
+      "severity": "P1",
+      "title": "Observability and alerting proof is not accepted",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json"
+      ],
+      "affected_functions": [
+        "alerting evidence",
+        "response operations readiness"
+      ],
+      "evidence": "alerting exclusion status not-submitted; response ops live scheduler disabled and alerting dry-run-only; blocker 9 High/simulated-proof-only.",
+      "production_impact": "Critical production failures may not be live-alerted or formally excluded.",
+      "user_impact": "Failure response may be delayed.",
+      "security_privacy_impact": "Delayed detection of sensitive workflow failures.",
+      "blocks_production_at_scale": true,
+      "recommended_remediation": "Complete live alert delivery proof or submit accepted formal alerting exclusion.",
+      "suggested_test_coverage": "Promotion pack requires accepted alerting/exclusion evidence.",
+      "timing": "immediate"
+    },
+    {
+      "id": "L10-P1-006",
+      "severity": "P1",
+      "title": "Migration governance still depends on a temporary allowlist",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-migration-gate.json",
+        "docs/production-scale/evidence/latest-migration-governance.json"
+      ],
+      "affected_functions": [
+        "migration governance release gate"
+      ],
+      "evidence": "migrations:gate status accepted-temporary-allowlist and CERTIFYING:false; promotion pack blocker 10 High/partial.",
+      "production_impact": "Runtime ensure residuals remain temporarily accepted rather than fully governed.",
+      "user_impact": "Potential schema drift risk.",
+      "security_privacy_impact": "Schema drift can affect auditability and access control assumptions.",
+      "blocks_production_at_scale": true,
+      "recommended_remediation": "Convert temporary allowlist residuals to reviewed additive ledger migrations before allowlist expiry.",
+      "suggested_test_coverage": "Migration gate expiry enforcement in CI/promotion.",
+      "timing": "immediate for promotion"
+    },
+    {
+      "id": "L10-P2-001",
+      "severity": "P2",
+      "title": "Production certification harness is not self-contained",
+      "affected_files": [
+        "scripts/production-scale-certification.mjs"
+      ],
+      "evidence": "production-scale:certify failed auth smoke gates because required env was not supplied by the harness; exact smokes pass directly.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Inject staging-safe smoke env or document wrapper command requirements."
+    },
+    {
+      "id": "L10-P2-002",
+      "severity": "P2",
+      "title": "Default pnpm run check times out rollback governance tests locally",
+      "affected_files": [
+        "tests/unit/deploy-rollback-sha-governance.spec.ts",
+        "vitest.config.ts"
+      ],
+      "evidence": "pnpm run check timed out three tests; same file passed with --testTimeout=60000.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Increase timeout for the suite or optimize workflow parsing."
+    },
+    {
+      "id": "L10-P2-003",
+      "severity": "P2",
+      "title": "Lint and plain test commands are unavailable",
+      "affected_files": [
+        "package.json"
+      ],
+      "evidence": "pnpm run lint and pnpm test are missing.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Add aliases or document canonical commands."
+    },
+    {
+      "id": "L10-P2-004",
+      "severity": "P2",
+      "title": "Staging observability SSH check cannot run from this environment",
+      "affected_files": [
+        "staging observability scripts/evidence"
+      ],
+      "evidence": "check:staging-observability failed with SSH permission denied.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Fix authorized read-only SSH path or document an equivalent observability proof."
+    },
+    {
+      "id": "L10-P2-005",
+      "severity": "P2",
+      "title": "Local Docker daemon unavailable for staging service diagnostics",
+      "affected_files": [
+        "scripts/check-staging-services.mjs"
+      ],
+      "evidence": "check:staging-services reported Docker daemon unavailable; staging endpoint reachable.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Run from an environment with Docker access or attach remote service diagnostics."
+    },
+    {
+      "id": "L10-P2-006",
+      "severity": "P2",
+      "title": "Runtime size warnings remain accepted by waiver",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-runtime-size.json"
+      ],
+      "evidence": "main JS/CSS and PDF dependencies exceed warning thresholds; policy warning-only waiver accepted.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Track bundle splitting and dependency trimming."
+    },
+    {
+      "id": "L10-P2-007",
+      "severity": "P2",
+      "title": "Response operations are operator-ready with deferred live controls",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-response-ops-readiness.json"
+      ],
+      "evidence": "live scheduler disabled, alerting dry-run-only, dashboard skip count 55.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Complete live scheduler/alert proof or accepted exclusion."
+    },
+    {
+      "id": "L10-P2-008",
+      "severity": "P2",
+      "title": "Production-safe probes are plan-only",
+      "affected_files": [
+        "scripts/production-readiness-gate.mjs"
+      ],
+      "evidence": "production-safe probe evidence does not execute production runtime probes by this command.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Run approved read-only production probes if policy permits."
+    },
+    {
+      "id": "L10-P2-009",
+      "severity": "P2",
+      "title": "Sensitive list endpoint proof is partial/design-only",
+      "affected_files": [
+        "docs/production-scale/evidence/latest-sensitive-list-endpoints.json"
+      ],
+      "evidence": "metadata-only proof; hidden risk partial/design-only.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Add endpoint-level privacy contract tests."
+    },
+    {
+      "id": "L10-P3-001",
+      "severity": "P3",
+      "title": "Generated evidence files trigger CRLF warnings",
+      "affected_files": [
+        "docs/production-scale/evidence/*"
+      ],
+      "evidence": "git diff --check reported line-ending warnings only.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Normalize evidence artifact line endings if desired."
+    },
+    {
+      "id": "L10-P3-002",
+      "severity": "P3",
+      "title": "Admin packet page intentionally mentions render/cache internals",
+      "affected_files": [
+        "pages/packets.tsx"
+      ],
+      "evidence": "render/cache wording is under isAdmin; normal user branch is plain-language.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Keep admin diagnostics gated and test the normal-user branch."
+    },
+    {
+      "id": "L10-P3-003",
+      "severity": "P3",
+      "title": "Safety-flag refusal messages add command friction",
+      "affected_files": [
+        "scripts/production-scale-harness.mjs",
+        "scripts/production-scale-measured.mjs"
+      ],
+      "evidence": "baseline commands refuse without explicit --simulated/--local/--dry-run/--staging-safe flags.",
+      "blocks_production_at_scale": false,
+      "recommended_remediation": "Document exact safe command variants."
+    }
+  ],
+  "packet_humanization_results": {
+    "status": "PASS",
+    "consumer_forbidden_terms": {
+      "tradeline": "absent in tested consumer-facing body/preview/PDF",
+      "artifact": "absent in tested consumer-facing body/preview/PDF",
+      "report artifact": "absent in tested consumer-facing body/preview/PDF",
+      "source report #": "absent in tested consumer-facing body/preview/PDF",
+      "field:": "absent in tested consumer-facing body/preview/PDF",
+      "raw reference IDs": "absent in tested consumer-facing body/preview/PDF",
+      "ISO timestamps": "absent in tested consumer-facing body/preview/PDF",
+      "camelCase/internal keys": "absent in tested consumer-facing body/preview/PDF",
+      "Account ending reau": "absent in tested consumer-facing body/preview/PDF",
+      "Expected: Not known": "absent in tested consumer-facing body/preview/PDF",
+      "render/cache internal wording": "absent for normal users; admin diagnostics remain gated"
+    },
+    "positive_terms_present": [
+      "Date last reported",
+      "Aug 21, 2012",
+      "Account number not provided on report",
+      "Disputed Account",
+      "Company reporting the account",
+      "Information disputed",
+      "Information I am disputing",
+      "What the report shows",
+      "What I am requesting",
+      "Please verify this information and correct or remove it if it cannot be supported."
+    ],
+    "metadata_preservation": {
+      "finding_ids": true,
+      "violation_ids": true,
+      "tradeline_ids": true,
+      "artifact_ids": true,
+      "evidence_ids": true,
+      "regulation_reference_ids": true,
+      "rule_ids": true,
+      "evidence_locations": true,
+      "readiness_metadata": true
+    },
+    "evidence": [
+      "targeted packet suites passed",
+      "helpers/disputePacketService.ts preserves internalReferences and evidenceLocations",
+      "components/PacketViewer.tsx normal user copy is plain-language",
+      "pages/packets.tsx render/cache copy is admin-only"
+    ]
+  },
+  "owner_scope_results": {
+    "status": "PASS",
+    "same_user_access_proof": "auth workflow and packet smoke succeeded for synthetic owner",
+    "non_owner_denial_proof": "auth workflow results denied 403; packet PDF denied 403",
+    "admin_only_proof": "route contracts/API tests passed; admin endpoints inspect role",
+    "packet_pdf_ownership_proof": "endpoints/packet/pdf_GET.ts enforces packet.userId for non-admin; smoke confirmed",
+    "upload_results_ownership_proof": "auth workflow smoke confirmed",
+    "missing_proof": [
+      "production runtime owner-scope probes are plan-only/no production mutation"
+    ]
+  },
+  "worker_results": {
+    "status": "LIMITED",
+    "staging_worker_path": "docker-compose.yml includes creditregulatorpro-staging-ingest-worker",
+    "production_worker_path": "docker-compose.production.yml includes creditregulatorpro-ingest-worker",
+    "queued_processing_proof": "staging auth smoke observed queued/processing/completed",
+    "completion_proof": "staging auth smoke and simulated worker proof",
+    "stale_dead_letter_retry": "response soak and queue load checks observed retry/dead-letter/stale paths",
+    "queue_drift_check": "response soak recorded driftDetected true",
+    "staging_worker_parity": "accepted staging queue-drain evidence referenced by promotion pack",
+    "production_worker_proof": "not accepted; readiness evidence awaits human production evidence",
+    "risk": "P1 until accepted production queue-depth/worker evidence exists"
+  },
+  "deployment_results": {
+    "status": "LIMITED",
+    "staging_deploy_readiness": "staging gate passed; staging workflow validates SHA and worker inputs",
+    "production_deploy_readiness": "workflow controls are strong, but promotion pack is non-certifying",
+    "rollback_safety": "rollback governance passes with longer timeout; rollback simulation passed",
+    "workflow_input_validation": "rollback_sha strict 40-hex and commit reachability inspected",
+    "docker_compose_behavior": "staging and production compose define app and worker services",
+    "env_mutation_risk": "staging workflow refuses unsupported NODE_ENV=production and does not mutate persistent env",
+    "health_smoke_gates": "staging gate passed; production health checks defined",
+    "promotion_evidence_status": "CERTIFYING:false, limited beta"
+  },
+  "readiness_gates": {
+    "packet_readiness": "PASS",
+    "ownership": "PASS",
+    "parser_truth": "PASS",
+    "canonical_extraction": "PASS",
+    "violation_detection": "PASS",
+    "evidence_linkage": "PASS",
+    "production_promotion_pack": "FAIL",
+    "restore_readiness": "FAIL",
+    "production_worker_evidence": "FAIL",
+    "storage_raw_report_remediation": "FAIL",
+    "observability_alerting": "FAIL",
+    "migration_governance": "LIMITED"
+  },
+  "remaining_risks": [
+    "Six unresolved production blockers in the promotion pack.",
+    "No accepted human-observed restore evidence.",
+    "No accepted production ingest runtime/queue-depth evidence.",
+    "Raw report storage remediation inventory is unreliable/not accepted closed.",
+    "Alerting remains dry-run-only or no formal exclusion submitted.",
+    "Migration governance still relies on a temporary allowlist.",
+    "Default production certification/check commands are not cleanly certifying from this environment.",
+    "Runtime bundle size warnings remain under waiver."
+  ],
+  "next_recommended_prompts": [
+    "Close production blocker 1 with accepted human-observed restore drill evidence.",
+    "Run and accept bounded production ingest worker queue-depth evidence.",
+    "Complete sanitized raw report inventory/remediation acceptance.",
+    "Submit live alerting proof or formal alerting exclusion evidence.",
+    "Convert migration temporary allowlist residuals into reviewed ledger migrations.",
+    "Patch production-scale certification so authenticated staging smokes and rollback governance tests are self-contained.",
+    "Rerun production-scale:certify and production-scale:promotion-pack until CERTIFYING:true."
+  ]
+}
