@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T04:00:54.436Z
+Generated at: 2026-05-22T04:09:59.934Z
 Current branch: `staging`
-Current commit hash: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
-Current HEAD: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
+Current commit hash: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
+Current HEAD: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
 Target environment: `production`
-Target SHA: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
+Target SHA: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -31,7 +31,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
+- Target SHA: `164c45aae7ef9e666f975b84011a8bd0b03150bc`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -40,15 +40,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T04:00:54.436Z; command=`pnpm run production-worker:readiness-evidence`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=164c45aae7ef9e666f975b84011a8bd0b03150bc; timestamp=2026-05-22T04:09:59.934Z; command=`pnpm run production-worker:readiness-evidence`
 - Storage durability: non-certifying; status=missing; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T03:52:31.745Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T04:00:54.436Z; command=`pnpm run migrations:gate`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=164c45aae7ef9e666f975b84011a8bd0b03150bc; timestamp=2026-05-22T04:09:59.934Z; command=`pnpm run migrations:gate`
 - Rollback simulation: non-certifying; status=passed; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:41.545Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T04:00:54.436Z; completed=2026-05-22T04:00:54.436Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T04:09:59.934Z; completed=2026-05-22T04:09:59.934Z
 
 ## Command Result Summary
 
@@ -63,9 +63,9 @@ Production-ready claim: **false**
 - `pnpm run response:soak-check` - reference-required; evidence: none
 - `pnpm run operator:dashboard` - reference-required; evidence: none
 - `pnpm run alerts:dry-run` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerts-dry-run.md, docs/production-scale/evidence/latest-alerts-dry-run.json
-- `pnpm run alerts:exclusion:validate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-exclusion-validation.md, docs/production-scale/evidence/latest-alerting-exclusion-validation.json
-- `pnpm run response-ops:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
-- `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json
+- `pnpm run alerts:exclusion:validate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-exclusion-validation.md, docs/production-scale/evidence/latest-alerting-exclusion-validation.json, docs/production-scale/evidence/latest-alerting-acceptance.md, docs/production-scale/evidence/latest-alerting-acceptance.json
+- `pnpm run response-ops:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json, docs/production-scale/evidence/latest-alerting-acceptance.md, docs/production-scale/evidence/latest-alerting-acceptance.json
+- `pnpm run response:ops-readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-response-ops-readiness.md, docs/production-scale/evidence/latest-response-ops-readiness.json, docs/production-scale/evidence/latest-alerting-acceptance.md, docs/production-scale/evidence/latest-alerting-acceptance.json
 - `pnpm run production-deployment-parity:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-deployment-parity.md, docs/production-scale/evidence/latest-production-deployment-parity.json
 - `pnpm run production-worker:activation-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-activation-evidence.md, docs/production-scale/evidence/latest-production-worker-activation-evidence.json
 - `pnpm run production-worker:runtime-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-runtime-proof.md, docs/production-scale/evidence/latest-production-worker-runtime-proof.json
@@ -284,6 +284,8 @@ Production-ready claim: **false**
 - Response soak status: command-available
 - Dashboard status/SKIP count: not-collected/unknown
 - Alerting status: dry-run-only
+- Alerting acceptance status/path: dry-run-only/none
+- Alerting acceptance accepted: no
 - Alerting exclusion accepted: no
 - Live alert proof accepted: no
 - Blocker 8 coverage: accepted
@@ -345,6 +347,8 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-alerts-dry-run.json` - present; evidenceType=SIMULATED
 - `docs/production-scale/evidence/latest-alerting-exclusion-validation.md` - present
 - `docs/production-scale/evidence/latest-alerting-exclusion-validation.json` - present; evidenceType=ALERTING_EXCLUSION_VALIDATION
+- `docs/production-scale/evidence/latest-alerting-acceptance.md` - present
+- `docs/production-scale/evidence/latest-alerting-acceptance.json` - present; evidenceType=ALERTING_ACCEPTANCE
 - `docs/production-scale/evidence/latest-response-ops-readiness.md` - present
 - `docs/production-scale/evidence/latest-response-ops-readiness.json` - present; evidenceType=RESPONSE_OPS_READINESS_EVIDENCE
 - `docs/production-scale/evidence/latest-storage-raw-report-inventory.md` - present
@@ -403,6 +407,10 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md` - missing
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-template.json` - present; evidenceType=HUMAN_OBSERVED_RAW_REPORT_REMEDIATION
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-template.md` - present
+- `docs/production-scale/evidence/alerting-live-proof-template.json` - present; evidenceType=HUMAN_OBSERVED_LIVE_ALERT_DELIVERY
+- `docs/production-scale/evidence/alerting-live-proof-template.md` - present
+- `docs/production-scale/evidence/alerting-exclusion-template.json` - present; evidenceType=FORMAL_ALERTING_EXCLUSION
+- `docs/production-scale/evidence/alerting-exclusion-template.md` - present
 - `docs/production-scale/evidence/alerting-exclusion-evidence.json` - missing
 - `docs/production-scale/evidence/alerting-exclusion-evidence.md` - missing
 - `docs/production-scale/evidence/live-alert-proof.json` - missing

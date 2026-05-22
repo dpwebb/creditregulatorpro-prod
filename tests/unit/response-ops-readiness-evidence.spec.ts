@@ -3,10 +3,12 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildAlertingAcceptanceReport,
   buildAlertingExclusionValidationReport,
   buildResponseOpsReadinessEvidenceReport,
   scanResponseOpsEvidenceSensitiveContent,
   validateAlertingExclusionEvidence,
+  validateLiveAlertProofEvidence,
 } from "../../scripts/response-ops-readiness-evidence.mjs";
 import {
   buildDashboardReleaseEvidenceSemantics,
@@ -34,13 +36,27 @@ function acceptedAlertingExclusionEvidence() {
     acknowledgedAt: "2026-05-20T12:00:00.000Z",
     environment: "limited beta production operations",
     exclusionScope: "External alert provider delivery for response operations",
+    namedBlockerScope: "L10-P1-005 observability and alerting proof",
     noExternalAlertProviderUsed: true,
     exclusionReason: "Human monitoring is the approved operating path for this limited beta release.",
+    compensatingControls: [
+      "Daily operator dashboard review",
+      "Response soak check before promotion decisions",
+      "Manual escalation for dead-letter, stale-running, and dashboard SKIP regressions",
+    ],
     humanMonitoringCadence: "Daily dashboard review and immediate review after supervised response operations.",
     manualEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
     acceptedRiskStatement: "The release governance owner accepts the residual risk of no external alert provider for this limited beta window.",
     reviewOrExpiryDate: "2026-08-20",
+    expiresOn: "2026-08-20",
+    nextReviewDate: "2026-06-20",
+    approvedByOperatorIdOrRole: "Release governance owner",
+    approvedAt: "2026-05-20T12:00:00.000Z",
+    policyAllowsFormalExclusion: true,
+    noPiiNoSecretsNoWebhookUrls: true,
     dryRunNotLiveProofAcknowledgement: true,
+    exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows:
+      "This exclusion does not mean production-at-scale PASS unless policy allows that limited alerting-exclusion scope.",
     dashboardCommand: "pnpm run operator:dashboard",
     soakCommand: "pnpm run response:soak-check",
     alertsDryRunCommand: "pnpm run alerts:dry-run",
@@ -49,6 +65,26 @@ function acceptedAlertingExclusionEvidence() {
     liveAlertsSent: false,
     productionDataMutatedByCodex: false,
     sanitizedEvidenceStatement: "This evidence is sanitized and contains no PII, secrets, raw data, signed URLs, or credential URLs.",
+  };
+}
+
+function acceptedLiveAlertProof() {
+  return {
+    evidenceId: "ALERT-LIVE-UNIT-001",
+    evidenceType: "HUMAN_OBSERVED_LIVE_ALERT_DELIVERY",
+    environment: "production",
+    alertChannelId: "ops-alert-channel-opaque",
+    alertTypeTested: "critical_ingest_queue_backlog",
+    observedAt: "2026-05-20T12:00:00.000Z",
+    deliverySuccess: true,
+    liveAlertDeliveryVerified: true,
+    operatorAcknowledgementSigned: true,
+    sanitizedEvidence: true,
+    noSecretsOrWebhookUrls: true,
+    noPii: true,
+    correlationId: "alert-correlation-001",
+    retryOrFailureBehavior: "No retry required; delivery acknowledgement received on first attempt.",
+    productionDataMutatedByCodex: false,
   };
 }
 
@@ -79,6 +115,8 @@ describe("response ops readiness evidence", () => {
     expect(report.alerting.dryRunOnlyIsLiveProof).toBe(false);
     expect(report.blockerCoverage.observabilityAlerting).toBe(false);
     expect(report.safety.liveAlertsSentByCodex).toBe(false);
+    expect(report.alerting.acceptance.accepted).toBe(false);
+    expect(report.alerting.acceptance.dryRunOnlyRejectedAsProductionProof).toBe(true);
   });
 
   it("accepts only signed sanitized formal alert exclusion evidence", () => {
@@ -96,7 +134,80 @@ describe("response ops readiness evidence", () => {
 
     expect(validation.accepted).toBe(true);
     expect(report.alerting.status).toBe("formally-excluded");
+    expect(report.alerting.acceptance.acceptancePath).toBe("formal-exclusion");
     expect(report.blockerCoverage.observabilityAlerting).toBe(true);
+  });
+
+  it("rejects no submitted formal exclusion as alerting acceptance", () => {
+    const report = buildAlertingAcceptanceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+
+    expect(report.accepted).toBe(false);
+    expect(report.alertingStatus).toBe("dry-run-only");
+    expect(report.validation.errors.join("\n")).toMatch(/No accepted live alert proof or policy-allowed formal alerting exclusion exists/);
+  });
+
+  it("rejects stale formal alerting exclusions", () => {
+    const validation = validateAlertingExclusionEvidence(
+      {
+        ...acceptedAlertingExclusionEvidence(),
+        expiresOn: "2026-05-01",
+        nextReviewDate: "2026-05-01",
+      },
+      { generatedAt: "2026-05-20T12:00:00.000Z" },
+    );
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.errors.join("\n")).toMatch(/stale/i);
+  });
+
+  it("rejects formal exclusions without explicit policy allowance", () => {
+    const validation = validateAlertingExclusionEvidence(
+      {
+        ...acceptedAlertingExclusionEvidence(),
+        policyAllowsFormalExclusion: false,
+      },
+      { generatedAt: "2026-05-20T12:00:00.000Z" },
+    );
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.errors.join("\n")).toMatch(/policyAllowsFormalExclusion must be true/);
+  });
+
+  it("accepts a valid formal exclusion only under explicitly allowed policy", () => {
+    const report = buildAlertingAcceptanceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      alertingExclusionValidation: buildAlertingExclusionValidationReport({
+        generatedAt: "2026-05-20T12:00:00.000Z",
+        alertingExclusionEvidence: acceptedAlertingExclusionEvidence(),
+      }),
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+
+    expect(report.accepted).toBe(true);
+    expect(report.acceptancePath).toBe("formal-exclusion");
+    expect(report.productionProof).toBe(false);
+  });
+
+  it("accepts valid sanitized live alert proof", () => {
+    const validation = validateLiveAlertProofEvidence(acceptedLiveAlertProof(), {
+      generatedAt: "2026-05-20T12:05:00.000Z",
+    });
+    const report = buildAlertingAcceptanceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:05:00.000Z",
+      liveAlertProofEvidence: acceptedLiveAlertProof(),
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+
+    expect(validation.accepted).toBe(true);
+    expect(report.accepted).toBe(true);
+    expect(report.acceptancePath).toBe("live-alert-proof");
+    expect(report.liveAlertProofAccepted).toBe(true);
   });
 
   it("rejects placeholder alert exclusion fields", () => {
@@ -119,6 +230,19 @@ describe("response ops readiness evidence", () => {
 
     expect(validation.accepted).toBe(false);
     expect(validation.errors.join("\n")).toMatch(/reviewOrExpiryDate/);
+  });
+
+  it("rejects missing operator acknowledgement", () => {
+    const validation = validateAlertingExclusionEvidence(
+      {
+        ...acceptedAlertingExclusionEvidence(),
+        operatorAcknowledgementSigned: false,
+      },
+      { generatedAt: "2026-05-20T12:00:00.000Z" },
+    );
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.errors.join("\n")).toMatch(/operatorAcknowledgementSigned/);
   });
 
   it("rejects alert exclusion evidence claiming dry-run equals live proof", () => {
@@ -144,6 +268,19 @@ describe("response ops readiness evidence", () => {
       expect.arrayContaining(["database-url", "bearer-token", "raw-response-or-report-text", "signed-url", "obvious-email-pii"]),
     );
     expect(scanResponseOpsEvidenceSensitiveContent(JSON.stringify(evidence)).length).toBeGreaterThan(0);
+  });
+
+  it("rejects secret-like webhook URLs", () => {
+    const validation = validateLiveAlertProofEvidence(
+      {
+        ...acceptedLiveAlertProof(),
+        alertChannelId: "https://hooks.slack.com/services/T000/B000/SECRET",
+      },
+      { generatedAt: "2026-05-20T12:05:00.000Z" },
+    );
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.sensitiveFindings).toContain("webhook-url");
   });
 
   it("keeps dashboard SKIP, SIMULATED, and HUMAN_REQUIRED rows visible", () => {

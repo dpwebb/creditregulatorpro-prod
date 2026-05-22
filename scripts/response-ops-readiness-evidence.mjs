@@ -11,6 +11,14 @@ export const RESPONSE_OPS_READINESS_JSON_PATH =
   "docs/production-scale/evidence/latest-response-ops-readiness.json";
 export const ALERTING_EXCLUSION_TEMPLATE_PATH =
   "docs/production-scale/alerting-exclusion-template.md";
+export const ALERTING_LIVE_PROOF_TEMPLATE_JSON_PATH =
+  "docs/production-scale/evidence/alerting-live-proof-template.json";
+export const ALERTING_LIVE_PROOF_TEMPLATE_MD_PATH =
+  "docs/production-scale/evidence/alerting-live-proof-template.md";
+export const ALERTING_EXCLUSION_TEMPLATE_JSON_PATH =
+  "docs/production-scale/evidence/alerting-exclusion-template.json";
+export const ALERTING_EXCLUSION_TEMPLATE_MD_PATH =
+  "docs/production-scale/evidence/alerting-exclusion-template.md";
 export const ALERTING_EXCLUSION_EVIDENCE_MD_PATH =
   "docs/production-scale/evidence/alerting-exclusion-evidence.md";
 export const ALERTING_EXCLUSION_EVIDENCE_JSON_PATH =
@@ -19,6 +27,10 @@ export const ALERTING_EXCLUSION_VALIDATION_MD_PATH =
   "docs/production-scale/evidence/latest-alerting-exclusion-validation.md";
 export const ALERTING_EXCLUSION_VALIDATION_JSON_PATH =
   "docs/production-scale/evidence/latest-alerting-exclusion-validation.json";
+export const ALERTING_ACCEPTANCE_MD_PATH =
+  "docs/production-scale/evidence/latest-alerting-acceptance.md";
+export const ALERTING_ACCEPTANCE_JSON_PATH =
+  "docs/production-scale/evidence/latest-alerting-acceptance.json";
 export const LIVE_ALERT_PROOF_JSON_PATH =
   "docs/production-scale/evidence/live-alert-proof.json";
 export const LIVE_ALERT_PROOF_MD_PATH =
@@ -112,6 +124,7 @@ export function scanResponseOpsEvidenceSensitiveContent(text) {
     ["raw-response-or-report-text", /\b(?:raw\s+response\s+text|raw\s+report\s+text|full\s+email\s+body|full\s+credit\s+report\s+text)\s*[:=]/i],
     ["long-base64-blob", /\b[A-Za-z0-9+/]{160,}={0,2}\b/],
     ["signed-url", /https?:\/\/[^\s]+(?:X-Amz-Signature|X-Goog-Signature|GoogleAccessId|Signature=|[?&]sig=|[?&]sv=)[^\s]*/i],
+    ["webhook-url", /https?:\/\/[^\s]*(?:hooks\.slack\.com\/services|discord(?:app)?\.com\/api\/webhooks|webhook\.office\.com|pagerduty\.com|webhook)[^\s]*/i],
     ["ssn-or-sin", /\b\d{3}[- ]?\d{2}[- ]?\d{4}\b|\b\d{3}[- ]?\d{3}[- ]?\d{3}\b/],
     ["obvious-email-pii", /\b[A-Z0-9._%+-]+@(?!example\.test\b|example\.invalid\b|example\.com\b)[A-Z0-9.-]+\.[A-Z]{2,}\b/i],
   ];
@@ -168,7 +181,34 @@ function acknowledgesDryRunNotLiveProof(value) {
   return /dry[- ]?run/.test(text) && /not\s+live|not\s+external|not\s+delivery/.test(text);
 }
 
-export function validateAlertingExclusionEvidence(evidenceInput) {
+function parseDateValue(value) {
+  const timestamp = Date.parse(String(value ?? ""));
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function isFutureOrCurrentDate(value, generatedAt) {
+  const timestamp = parseDateValue(value);
+  const generatedTimestamp = parseDateValue(generatedAt) ?? Date.now();
+  return timestamp !== null && timestamp >= generatedTimestamp;
+}
+
+function isPastOrCurrentDate(value, generatedAt) {
+  const timestamp = parseDateValue(value);
+  const generatedTimestamp = parseDateValue(generatedAt) ?? Date.now();
+  return timestamp !== null && timestamp <= generatedTimestamp;
+}
+
+function listIncludesText(value, pattern) {
+  if (Array.isArray(value)) return value.some((item) => pattern.test(String(item ?? "")));
+  return pattern.test(String(value ?? ""));
+}
+
+function nonEmptyListOrText(value) {
+  if (Array.isArray(value)) return value.some((item) => !isPlaceholder(item));
+  return !isPlaceholder(value);
+}
+
+export function validateAlertingExclusionEvidence(evidenceInput, { generatedAt = new Date().toISOString() } = {}) {
   const evidence = normalizeEvidenceObject(evidenceInput);
   const serialized = JSON.stringify(evidenceInput ?? {});
   const sensitiveFindings = scanResponseOpsEvidenceSensitiveContent(serialized);
@@ -180,11 +220,17 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
     ["acknowledgedAt", ["acknowledgedAt", "Acknowledged at", "Date/time"]],
     ["environment", ["environment", "Environment"]],
     ["exclusionScope", ["exclusionScope", "Exclusion scope"]],
+    ["namedBlockerScope", ["namedBlockerScope", "Named blocker scope", "Blocker scope"]],
     ["exclusionReason", ["exclusionReason", "Exclusion reason"]],
+    ["compensatingControls", ["compensatingControls", "Compensating controls"]],
     ["humanMonitoringCadence", ["humanMonitoringCadence", "Human monitoring cadence", "Monitoring cadence"]],
     ["manualEscalationPath", ["manualEscalationPath", "Manual escalation path"]],
-    ["acceptedRiskStatement", ["acceptedRiskStatement", "Accepted risk statement", "Risk acceptance statement"]],
+    ["acceptedRiskStatement", ["acceptedRiskStatement", "riskAcceptanceStatement", "Accepted risk statement", "Risk acceptance statement"]],
     ["reviewOrExpiryDate", ["reviewOrExpiryDate", "Review/expiry date", "Review date", "Expiry date"]],
+    ["expiresOn", ["expiresOn", "Expires on", "Expiration date"]],
+    ["nextReviewDate", ["nextReviewDate", "Next review date"]],
+    ["approvedByOperatorIdOrRole", ["approvedByOperatorIdOrRole", "approvedByRole", "Approved by"]],
+    ["approvedAt", ["approvedAt", "Approved at"]],
     [
       "dryRunNotLiveProofAcknowledgement",
       [
@@ -198,6 +244,13 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
     ["alertsDryRunCommand", ["alertsDryRunCommand", "Alerts dry-run command"]],
     ["alertsDryRunEvidencePath", ["alertsDryRunEvidencePath", "Alerts dry-run evidence path"]],
     ["sanitizedEvidenceStatement", ["sanitizedEvidenceStatement", "Sanitized evidence statement"]],
+    [
+      "productionAtScalePassStatement",
+      [
+        "exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows",
+        "Exclusion does not mean production-at-scale PASS unless policy allows it",
+      ],
+    ],
   ];
 
   const normalized = {};
@@ -213,6 +266,12 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
   if (!/production|limited beta|staging/i.test(String(normalized.environment ?? ""))) {
     errors.push("environment must identify the target operations environment.");
   }
+  if (!listIncludesText(normalized.namedBlockerScope, /L10-P1-005|observability|alerting|blocker\s*9/i)) {
+    errors.push("namedBlockerScope must name L10-P1-005 or observability/alerting blocker coverage.");
+  }
+  if (!nonEmptyListOrText(normalized.compensatingControls)) {
+    errors.push("compensatingControls must describe the compensating monitoring controls.");
+  }
   if (!/sanitiz/i.test(String(normalized.sanitizedEvidenceStatement ?? ""))) {
     errors.push("Evidence must explicitly state that it is sanitized.");
   }
@@ -222,11 +281,34 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
   if (Number.isNaN(Date.parse(String(normalized.reviewOrExpiryDate ?? "")))) {
     errors.push("reviewOrExpiryDate must be a parseable review or expiry date.");
   }
+  if (parseDateValue(normalized.expiresOn) === null) {
+    errors.push("expiresOn must be a parseable expiration date.");
+  } else if (!isFutureOrCurrentDate(normalized.expiresOn, generatedAt)) {
+    errors.push("expiresOn is stale and cannot close the alerting blocker.");
+  }
+  if (parseDateValue(normalized.nextReviewDate) === null) {
+    errors.push("nextReviewDate must be a parseable review date.");
+  } else if (!isFutureOrCurrentDate(normalized.nextReviewDate, generatedAt)) {
+    errors.push("nextReviewDate is stale and cannot close the alerting blocker.");
+  }
+  if (parseDateValue(normalized.approvedAt) === null || !isPastOrCurrentDate(normalized.approvedAt, generatedAt)) {
+    errors.push("approvedAt must be parseable and not future-dated.");
+  }
 
   const noExternalProvider = evidenceValue(evidence, ["noExternalAlertProviderUsed", "No external alert provider used"]);
   const operatorAck = evidenceValue(evidence, ["operatorAcknowledgementSigned", "Operator acknowledgement signed", "Operator acknowledgement"]);
   const productionDataMutatedByCodex = evidenceValue(evidence, ["productionDataMutatedByCodex", "Production data mutated by Codex"]);
   const liveAlertsSent = evidenceValue(evidence, ["liveAlertsSent", "Live alerts sent"]);
+  const policyAllowsFormalExclusion = evidenceValue(evidence, [
+    "policyAllowsFormalExclusion",
+    "formalExclusionPolicyAllowed",
+    "Policy allows formal exclusion",
+  ]);
+  const noPiiSecretsWebhookUrls = evidenceValue(evidence, [
+    "noPiiNoSecretsNoWebhookUrls",
+    "noSecretsOrWebhookUrls",
+    "No PII, secrets, or webhook URLs",
+  ]);
   const dryRunEqualsLiveProof = evidenceValue(evidence, [
     "dryRunEqualsLiveAlertProof",
     "dryRunEvidenceIsLiveProof",
@@ -240,6 +322,12 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
   if (!truthyEvidence(operatorAck)) {
     errors.push("operatorAcknowledgementSigned must be true when no external alert provider will be used.");
   }
+  if (!truthyEvidence(policyAllowsFormalExclusion)) {
+    errors.push("policyAllowsFormalExclusion must be true before a formal exclusion can close alerting proof.");
+  }
+  if (!truthyEvidence(noPiiSecretsWebhookUrls)) {
+    errors.push("noPiiNoSecretsNoWebhookUrls must be true.");
+  }
   if (!falseEvidence(productionDataMutatedByCodex)) {
     errors.push("productionDataMutatedByCodex must be false.");
   }
@@ -248,6 +336,14 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
   }
   if (!acknowledgesDryRunNotLiveProof(normalized.dryRunNotLiveProofAcknowledgement)) {
     errors.push("dryRunNotLiveProofAcknowledgement must acknowledge that dry-run evidence is not live alert delivery proof.");
+  }
+  if (
+    normalized.productionAtScalePassStatement !== true &&
+    !/not\s+(?:mean|equal|claim).*production-at-scale\s+pass|production-at-scale\s+pass.*unless\s+policy/i.test(
+      String(normalized.productionAtScalePassStatement ?? ""),
+    )
+  ) {
+    errors.push("exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows must be explicitly acknowledged.");
   }
   if (truthyEvidence(dryRunEqualsLiveProof)) {
     errors.push("Dry-run evidence cannot be claimed as live alert delivery proof.");
@@ -264,6 +360,8 @@ export function validateAlertingExclusionEvidence(evidenceInput) {
     status: errors.length === 0 ? "accepted" : "failed",
     errors,
     sensitiveFindings,
+    stale: errors.some((error) => /stale/i.test(error)),
+    policyAllowsFormalExclusion: truthyEvidence(policyAllowsFormalExclusion),
     blockerCoverage: {
       observabilityAlerting: errors.length === 0,
     },
@@ -367,7 +465,7 @@ export function buildAlertingExclusionValidationReport({
           observabilityAlerting: false,
         },
       }
-    : validateAlertingExclusionEvidence(parsed);
+    : validateAlertingExclusionEvidence(parsed, { generatedAt });
 
   return {
     reportName: "alerting-exclusion-validation",
@@ -387,18 +485,52 @@ export function buildAlertingExclusionValidationReport({
   };
 }
 
-function validateLiveAlertProof(evidence) {
+export function validateLiveAlertProofEvidence(evidence, { generatedAt = new Date().toISOString(), maxAgeDays = 90 } = {}) {
   if (!evidence || typeof evidence !== "object") {
-    return { accepted: false, status: "not-submitted", errors: ["No live alert proof evidence has been submitted."], sensitiveFindings: [] };
+    return {
+      accepted: false,
+      status: "not-submitted",
+      errors: ["No live alert proof evidence has been submitted."],
+      sensitiveFindings: [],
+      blockerCoverage: {
+        observabilityAlerting: false,
+      },
+    };
   }
   const errors = [];
   const sensitiveFindings = scanResponseOpsEvidenceSensitiveContent(JSON.stringify(evidence));
+  const observedAt = parseDateValue(evidence.observedAt ?? evidence.timestamp);
+  const generatedTimestamp = parseDateValue(generatedAt) ?? Date.now();
+  const ageDays = observedAt === null ? null : Math.max(0, (generatedTimestamp - observedAt) / 86_400_000);
+
+  if (isPlaceholder(evidence.evidenceId)) errors.push("evidenceId is required and cannot be a placeholder.");
   if (evidence.evidenceType !== "HUMAN_OBSERVED_LIVE_ALERT_DELIVERY") {
     errors.push("evidenceType must be HUMAN_OBSERVED_LIVE_ALERT_DELIVERY.");
   }
+  if (!/production|limited beta production/i.test(String(evidence.environment ?? ""))) {
+    errors.push("environment must identify production or limited beta production operations.");
+  }
+  if (isPlaceholder(evidence.alertChannelId) || /^https?:\/\//i.test(String(evidence.alertChannelId ?? ""))) {
+    errors.push("alertChannelId must be a sanitized opaque channel ID, not a URL.");
+  }
+  if (isPlaceholder(evidence.alertTypeTested)) errors.push("alertTypeTested is required.");
+  if (observedAt === null) {
+    errors.push("observedAt must be a parseable timestamp.");
+  } else if (observedAt > generatedTimestamp) {
+    errors.push("observedAt must not be future-dated.");
+  } else if (ageDays !== null && ageDays > maxAgeDays) {
+    errors.push(`Live alert proof is stale; observedAt is older than ${maxAgeDays} days.`);
+  }
+  if (evidence.deliverySuccess !== true) errors.push("deliverySuccess must be true.");
   if (evidence.liveAlertDeliveryVerified !== true) errors.push("liveAlertDeliveryVerified must be true.");
   if (evidence.sanitizedEvidence !== true) errors.push("sanitizedEvidence must be true.");
   if (evidence.operatorAcknowledgementSigned !== true) errors.push("operatorAcknowledgementSigned must be true.");
+  if (evidence.noSecretsOrWebhookUrls !== true) errors.push("noSecretsOrWebhookUrls must be true.");
+  if (evidence.noPii !== true) errors.push("noPii must be true.");
+  if (isPlaceholder(evidence.correlationId)) errors.push("correlationId is required.");
+  if (isPlaceholder(evidence.retryOrFailureBehavior)) {
+    errors.push("retryOrFailureBehavior must describe retry/failure behavior or explicitly state that no retry was required.");
+  }
   if (evidence.productionDataMutatedByCodex !== false) errors.push("productionDataMutatedByCodex must be false.");
   if (sensitiveFindings.length > 0) errors.push(`Sensitive content detected: ${sensitiveFindings.join(", ")}.`);
   return {
@@ -406,16 +538,25 @@ function validateLiveAlertProof(evidence) {
     status: errors.length === 0 ? "accepted" : "failed",
     errors,
     sensitiveFindings,
+    ageDays,
+    stale: errors.some((error) => /stale/i.test(error)),
+    blockerCoverage: {
+      observabilityAlerting: errors.length === 0,
+    },
   };
 }
 
-function readLiveAlertProof(rootDir, liveAlertProofEvidence = null) {
+function readLiveAlertProof(rootDir, liveAlertProofEvidence = null, generatedAt = new Date().toISOString()) {
   const evidence = liveAlertProofEvidence ?? readJsonIfPresent(rootDir, LIVE_ALERT_PROOF_JSON_PATH);
-  const validation = validateLiveAlertProof(evidence);
+  const validation = validateLiveAlertProofEvidence(evidence, { generatedAt });
   return {
     status: validation.status,
     accepted: validation.accepted,
     evidencePath: evidence ? LIVE_ALERT_PROOF_JSON_PATH : null,
+    alertChannelId: evidence?.alertChannelId ?? null,
+    alertTypeTested: evidence?.alertTypeTested ?? null,
+    environment: evidence?.environment ?? null,
+    correlationId: evidence?.correlationId ?? null,
     validation,
   };
 }
@@ -441,6 +582,153 @@ function alertsDryRunSummary(rootDir) {
     liveProof: false,
     liveExternalAlertsSent: parsed.safety?.liveExternalAlertsSent ?? null,
     liveExternalProviderCallsMade: parsed.safety?.liveExternalProviderCallsMade ?? null,
+  };
+}
+
+export function buildAlertingAcceptanceReport({
+  rootDir = process.cwd(),
+  generatedAt = new Date().toISOString(),
+  alertingExclusionValidation = null,
+  liveAlertProofEvidence = null,
+  alertsDryRunEvidence = null,
+} = {}) {
+  const liveAlertProof = readLiveAlertProof(rootDir, liveAlertProofEvidence, generatedAt);
+  const exclusionValidation =
+    alertingExclusionValidation ?? buildAlertingExclusionValidationReport({ rootDir, generatedAt });
+  const dryRunAlerts = alertsDryRunEvidence ?? alertsDryRunSummary(rootDir);
+  const acceptedByLiveProof = liveAlertProof.accepted === true;
+  const acceptedByFormalExclusion = exclusionValidation.accepted === true;
+  const accepted = acceptedByLiveProof || acceptedByFormalExclusion;
+  const alertingStatus = acceptedByLiveProof
+    ? "live-evidenced"
+    : acceptedByFormalExclusion
+      ? "formally-excluded"
+      : dryRunAlerts.exists
+        ? "dry-run-only"
+        : "not-submitted";
+  const errors = acceptedByLiveProof
+    ? []
+    : acceptedByFormalExclusion
+      ? []
+      : [
+          "No accepted live alert proof or policy-allowed formal alerting exclusion exists.",
+          ...((liveAlertProof.validation?.errors ?? []).map((error) => `Live alert proof: ${error}`)),
+          ...((exclusionValidation.validation?.errors ?? []).map((error) => `Formal exclusion: ${error}`)),
+        ];
+
+  return {
+    reportName: "alerting-acceptance",
+    evidenceType: "ALERTING_ACCEPTANCE",
+    generatedAt,
+    status: accepted ? alertingStatus : alertingStatus,
+    accepted,
+    alertingStatus,
+    acceptancePath: acceptedByLiveProof ? "live-alert-proof" : acceptedByFormalExclusion ? "formal-exclusion" : "none",
+    productionProof: acceptedByLiveProof,
+    formalExclusionAccepted: acceptedByFormalExclusion,
+    liveAlertProofAccepted: acceptedByLiveProof,
+    dryRunOnlyRejectedAsProductionProof: dryRunAlerts.exists && !accepted,
+    dryRunEvidence: dryRunAlerts,
+    liveAlertProof,
+    exclusionValidation: {
+      reportName: exclusionValidation.reportName,
+      status: exclusionValidation.status,
+      accepted: exclusionValidation.accepted === true,
+      evidencePath: exclusionValidation.evidencePath,
+      validation: exclusionValidation.validation,
+    },
+    validation: {
+      accepted,
+      errors,
+      sensitiveFindings: Array.from(
+        new Set([
+          ...(liveAlertProof.validation?.sensitiveFindings ?? []),
+          ...(exclusionValidation.validation?.sensitiveFindings ?? []),
+        ]),
+      ),
+      stale:
+        liveAlertProof.validation?.stale === true ||
+        exclusionValidation.validation?.stale === true,
+    },
+    blockerCoverage: {
+      observabilityAlerting: accepted,
+    },
+    safety: {
+      liveAlertsSentByCodex: false,
+      productionDataMutatedByCodex: false,
+      dryRunAlertsAreLiveProof: false,
+      webhookUrlsAccepted: false,
+      piiAccepted: false,
+      secretsAccepted: false,
+    },
+    requiredStatements: [
+      "Dry-run alert evidence alone cannot close production observability/alerting proof.",
+      "A formal exclusion closes alerting proof only when policyAllowsFormalExclusion is true and the exclusion is not stale.",
+      "Accepted exclusion evidence does not claim production-at-scale PASS unless policy explicitly allows that limited scope.",
+      "Evidence containing secrets, PII, raw report data, signed URLs, or webhook URLs is rejected.",
+    ],
+    outputPaths: {
+      markdown: ALERTING_ACCEPTANCE_MD_PATH,
+      json: ALERTING_ACCEPTANCE_JSON_PATH,
+    },
+  };
+}
+
+export function renderAlertingAcceptanceMarkdown(report) {
+  const lines = [
+    "# Alerting Acceptance",
+    "",
+    `Generated at: ${report.generatedAt}`,
+    `Status: ${report.status}`,
+    `Accepted: ${report.accepted ? "yes" : "no"}`,
+    `Acceptance path: ${report.acceptancePath}`,
+    `Alerting status: ${report.alertingStatus}`,
+    "",
+    "## Required Statements",
+    "",
+    ...report.requiredStatements.map((statement) => `- ${statement}`),
+    "",
+    "## Live Alert Proof",
+    "",
+    `- Accepted: ${report.liveAlertProofAccepted ? "yes" : "no"}`,
+    `- Evidence path: \`${report.liveAlertProof.evidencePath ?? "not submitted"}\``,
+    `- Alert channel ID: ${report.liveAlertProof.alertChannelId ?? "not submitted"}`,
+    `- Alert type tested: ${report.liveAlertProof.alertTypeTested ?? "not submitted"}`,
+    `- Correlation ID: ${report.liveAlertProof.correlationId ?? "not submitted"}`,
+    "",
+    "## Formal Exclusion",
+    "",
+    `- Accepted: ${report.formalExclusionAccepted ? "yes" : "no"}`,
+    `- Evidence path: \`${report.exclusionValidation.evidencePath ?? "not submitted"}\``,
+    `- Status: ${report.exclusionValidation.status}`,
+    "",
+    "## Dry-Run Boundary",
+    "",
+    `- Dry-run evidence exists: ${report.dryRunEvidence.exists ? "yes" : "no"}`,
+    `- Dry-run-only rejected as production proof: ${report.dryRunOnlyRejectedAsProductionProof ? "yes" : "no"}`,
+    "",
+    "## Validation",
+    "",
+  ];
+  if (report.validation.errors.length) lines.push(...report.validation.errors.map((error) => `- ${error}`));
+  else lines.push("- Alerting proof path passed strict acceptance validation.");
+  lines.push(
+    "",
+    "## Safety",
+    "",
+    "- This command sends no live alerts.",
+    "- This command mutates no production data.",
+    "- Webhook URLs, secrets, PII, signed URLs, and raw report data are not accepted.",
+  );
+  return `${lines.join("\n")}\n`;
+}
+
+export function writeAlertingAcceptanceReport(report, { rootDir = process.cwd() } = {}) {
+  writeText(rootDir, ALERTING_ACCEPTANCE_JSON_PATH, `${JSON.stringify(report, null, 2)}\n`);
+  writeText(rootDir, ALERTING_ACCEPTANCE_MD_PATH, renderAlertingAcceptanceMarkdown(report));
+  return {
+    markdownPath: ALERTING_ACCEPTANCE_MD_PATH,
+    jsonPath: ALERTING_ACCEPTANCE_JSON_PATH,
   };
 }
 
@@ -475,8 +763,15 @@ export function buildResponseOpsReadinessEvidenceReport({
   const replayText = readText(rootDir, REPLAY_SCRIPT_PATH);
   const soakText = readText(rootDir, SOAK_SCRIPT_PATH);
   const exclusionValidation = alertingExclusionValidation ?? buildAlertingExclusionValidationReport({ rootDir, generatedAt });
-  const liveAlertProof = readLiveAlertProof(rootDir, liveAlertProofEvidence);
   const dryRunAlerts = alertsDryRunEvidence ?? alertsDryRunSummary(rootDir);
+  const alertingAcceptance = buildAlertingAcceptanceReport({
+    rootDir,
+    generatedAt,
+    alertingExclusionValidation: exclusionValidation,
+    liveAlertProofEvidence,
+    alertsDryRunEvidence: dryRunAlerts,
+  });
+  const liveAlertProof = alertingAcceptance.liveAlertProof;
   const dashboard = dashboardEvidence ?? {
     available: false,
     command: "pnpm run operator:dashboard -- --json",
@@ -544,15 +839,9 @@ export function buildResponseOpsReadinessEvidenceReport({
   ];
   const failedChecks = checks.filter((check) => !check.passed);
 
-  const alertingStatus = liveAlertProof.accepted
-    ? "live-evidenced"
-    : exclusionValidation.accepted
-      ? "formally-excluded"
-      : dryRunAlerts.exists
-        ? "dry-run-only"
-        : "dry-run-missing";
+  const alertingStatus = alertingAcceptance.alertingStatus === "not-submitted" ? "dry-run-missing" : alertingAcceptance.alertingStatus;
   const responseOpsStaticReady = failedChecks.filter((check) => check.name !== "alert dry-run remains non-live proof").length === 0;
-  const alertingAccepted = alertingStatus === "live-evidenced" || alertingStatus === "formally-excluded";
+  const alertingAccepted = alertingAcceptance.accepted === true;
 
   return {
     reportName: "response-ops-readiness-evidence",
@@ -617,6 +906,7 @@ export function buildResponseOpsReadinessEvidenceReport({
     },
     alerting: {
       status: alertingStatus,
+      acceptance: alertingAcceptance,
       dryRunEvidence: dryRunAlerts,
       liveAlertProof,
       exclusionValidation: {
@@ -879,7 +1169,13 @@ async function main() {
       rootDir: options.rootDir,
       evidencePath: options.evidencePath,
     });
+    const acceptance = buildAlertingAcceptanceReport({
+      rootDir: options.rootDir,
+      generatedAt: report.generatedAt,
+      alertingExclusionValidation: report,
+    });
     const outputs = options.noWrite ? null : writeAlertingExclusionValidationReport(report, { rootDir: options.rootDir });
+    if (!options.noWrite) writeAlertingAcceptanceReport(acceptance, { rootDir: options.rootDir });
     if (options.json) console.log(JSON.stringify(report, null, 2));
     else printExclusionReport(report, outputs);
     if (report.status === "failed") process.exitCode = 1;
@@ -891,6 +1187,7 @@ async function main() {
     dashboardEvidence: collectDashboardEvidence({ rootDir: options.rootDir }),
   });
   const outputs = options.noWrite ? null : writeResponseOpsReadinessEvidence(report, { rootDir: options.rootDir });
+  if (!options.noWrite) writeAlertingAcceptanceReport(report.alerting.acceptance, { rootDir: options.rootDir });
   if (options.json) console.log(JSON.stringify(report, null, 2));
   else printReadinessReport(report, outputs);
   if (report.staticValidation.status === "failed") process.exitCode = 1;

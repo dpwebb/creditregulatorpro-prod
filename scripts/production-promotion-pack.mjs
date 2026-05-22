@@ -55,8 +55,14 @@ import {
 import {
   ALERTING_EXCLUSION_EVIDENCE_JSON_PATH,
   ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
+  ALERTING_ACCEPTANCE_JSON_PATH,
+  ALERTING_ACCEPTANCE_MD_PATH,
+  ALERTING_EXCLUSION_TEMPLATE_JSON_PATH,
+  ALERTING_EXCLUSION_TEMPLATE_MD_PATH,
   ALERTING_EXCLUSION_VALIDATION_JSON_PATH,
   ALERTING_EXCLUSION_VALIDATION_MD_PATH,
+  ALERTING_LIVE_PROOF_TEMPLATE_JSON_PATH,
+  ALERTING_LIVE_PROOF_TEMPLATE_MD_PATH,
   buildResponseOpsReadinessEvidenceReport,
   LIVE_ALERT_PROOF_JSON_PATH,
   LIVE_ALERT_PROOF_MD_PATH,
@@ -271,14 +277,20 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run alerts:exclusion:validate": [
     ALERTING_EXCLUSION_VALIDATION_MD_PATH,
     ALERTING_EXCLUSION_VALIDATION_JSON_PATH,
+    ALERTING_ACCEPTANCE_MD_PATH,
+    ALERTING_ACCEPTANCE_JSON_PATH,
   ],
   "pnpm run response:ops-readiness-evidence": [
     RESPONSE_OPS_READINESS_MD_PATH,
     RESPONSE_OPS_READINESS_JSON_PATH,
+    ALERTING_ACCEPTANCE_MD_PATH,
+    ALERTING_ACCEPTANCE_JSON_PATH,
   ],
   "pnpm run response-ops:readiness-evidence": [
     RESPONSE_OPS_READINESS_MD_PATH,
     RESPONSE_OPS_READINESS_JSON_PATH,
+    ALERTING_ACCEPTANCE_MD_PATH,
+    ALERTING_ACCEPTANCE_JSON_PATH,
   ],
   "pnpm run storage:raw-report-inventory": [
     "docs/production-scale/evidence/latest-storage-raw-report-inventory.md",
@@ -1227,6 +1239,12 @@ export function buildProductionPromotionPackReport({
     RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_JSON_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_MD_PATH,
+    ALERTING_LIVE_PROOF_TEMPLATE_JSON_PATH,
+    ALERTING_LIVE_PROOF_TEMPLATE_MD_PATH,
+    ALERTING_EXCLUSION_TEMPLATE_JSON_PATH,
+    ALERTING_EXCLUSION_TEMPLATE_MD_PATH,
+    ALERTING_ACCEPTANCE_JSON_PATH,
+    ALERTING_ACCEPTANCE_MD_PATH,
     ALERTING_EXCLUSION_EVIDENCE_JSON_PATH,
     ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
     LIVE_ALERT_PROOF_JSON_PATH,
@@ -1719,6 +1737,9 @@ export function buildProductionPromotionPackReport({
       dashboardSkipCount: responseOpsEvidence.dashboard?.skipCount ?? null,
       dashboardSkippedChecksVisible: responseOpsEvidence.dashboard?.skippedChecksVisible === true,
       alertingStatus: responseOpsEvidence.alerting?.status ?? "unknown",
+      alertingAcceptanceStatus: responseOpsEvidence.alerting?.acceptance?.status ?? "unknown",
+      alertingAcceptancePath: responseOpsEvidence.alerting?.acceptance?.acceptancePath ?? "none",
+      alertingAcceptanceAccepted: responseOpsEvidence.alerting?.acceptance?.accepted === true,
       alertingExclusionAccepted: responseOpsEvidence.alerting?.exclusionValidation?.accepted === true,
       liveAlertProofAccepted: responseOpsEvidence.alerting?.liveAlertProof?.accepted === true,
       blockerCoverage: responseOpsEvidence.blockerCoverage,
@@ -2006,6 +2027,7 @@ export function validatePromotionPackReport(report) {
     if (
       responseOpsReadiness?.blockerCoverage?.observabilityAlerting !== true ||
       !["live-evidenced", "formally-excluded"].includes(responseOpsReadiness?.alertingStatus) ||
+      responseOpsReadiness?.alertingAcceptanceAccepted !== true ||
       responseOpsReadiness?.safety?.dryRunAlertsAreLiveProof === true ||
       responseOpsReadiness?.safety?.liveAlertsSentByCodex === true
     ) {
@@ -2576,6 +2598,8 @@ export function renderPromotionPackMarkdown(report) {
     `- Response soak status: ${report.responseOpsReadinessEvidence.responseSoakStatus}`,
     `- Dashboard status/SKIP count: ${report.responseOpsReadinessEvidence.dashboardStatus}/${report.responseOpsReadinessEvidence.dashboardSkipCount ?? "unknown"}`,
     `- Alerting status: ${report.responseOpsReadinessEvidence.alertingStatus}`,
+    `- Alerting acceptance status/path: ${report.responseOpsReadinessEvidence.alertingAcceptanceStatus}/${report.responseOpsReadinessEvidence.alertingAcceptancePath}`,
+    `- Alerting acceptance accepted: ${report.responseOpsReadinessEvidence.alertingAcceptanceAccepted ? "yes" : "no"}`,
     `- Alerting exclusion accepted: ${report.responseOpsReadinessEvidence.alertingExclusionAccepted ? "yes" : "no"}`,
     `- Live alert proof accepted: ${report.responseOpsReadinessEvidence.liveAlertProofAccepted ? "yes" : "no"}`,
     `- Blocker 8 coverage: ${

@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T04:00:54.436Z",
+  "generatedAt": "2026-05-22T04:09:59.934Z",
   "currentBranch": "staging",
-  "currentCommitHash": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-  "currentHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+  "currentCommitHash": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+  "currentHead": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
   "targetEnvironment": "production",
-  "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+  "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T04:00:54.436Z",
-      "completedAt": "2026-05-22T04:00:54.436Z",
+      "startedAt": "2026-05-22T04:09:59.934Z",
+      "completedAt": "2026-05-22T04:09:59.934Z",
       "status": "passed",
       "automated": true
     }
@@ -242,12 +242,12 @@
           "exists": true,
           "reportName": "alerts-dry-run-evidence",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T00:54:58.865Z",
+          "generatedAt": "2026-05-22T04:07:51.370Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:54:58.865Z",
+      "latestGeneratedAt": "2026-05-22T04:07:51.370Z",
       "status": null
     },
     {
@@ -271,12 +271,30 @@
           "exists": true,
           "reportName": "alerting-exclusion-validation",
           "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
-          "generatedAt": "2026-05-22T00:55:19.362Z",
+          "generatedAt": "2026-05-22T04:07:56.381Z",
           "status": "not-submitted",
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-acceptance.json",
+          "exists": true,
+          "reportName": "alerting-acceptance",
+          "evidenceType": "ALERTING_ACCEPTANCE",
+          "generatedAt": "2026-05-22T04:08:08.683Z",
+          "status": "dry-run-only",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:55:19.362Z",
+      "latestGeneratedAt": "2026-05-22T04:07:56.381Z",
       "status": "not-submitted"
     },
     {
@@ -300,12 +318,30 @@
           "exists": true,
           "reportName": "response-ops-readiness-evidence",
           "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-          "generatedAt": "2026-05-22T00:55:31.764Z",
+          "generatedAt": "2026-05-22T04:08:08.683Z",
           "status": "operator-ready-with-deferred-controls",
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-acceptance.json",
+          "exists": true,
+          "reportName": "alerting-acceptance",
+          "evidenceType": "ALERTING_ACCEPTANCE",
+          "generatedAt": "2026-05-22T04:08:08.683Z",
+          "status": "dry-run-only",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:55:31.764Z",
+      "latestGeneratedAt": "2026-05-22T04:08:08.683Z",
       "status": "operator-ready-with-deferred-controls"
     },
     {
@@ -329,12 +365,30 @@
           "exists": true,
           "reportName": "response-ops-readiness-evidence",
           "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-          "generatedAt": "2026-05-22T00:55:31.764Z",
+          "generatedAt": "2026-05-22T04:08:08.683Z",
           "status": "operator-ready-with-deferred-controls",
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-acceptance.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-acceptance.json",
+          "exists": true,
+          "reportName": "alerting-acceptance",
+          "evidenceType": "ALERTING_ACCEPTANCE",
+          "generatedAt": "2026-05-22T04:08:08.683Z",
+          "status": "dry-run-only",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:55:31.764Z",
+      "latestGeneratedAt": "2026-05-22T04:08:08.683Z",
       "status": "operator-ready-with-deferred-controls"
     },
     {
@@ -1486,7 +1540,7 @@
       "exists": true,
       "reportName": "alerts-dry-run-evidence",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T00:54:58.865Z",
+      "generatedAt": "2026-05-22T04:07:51.370Z",
       "status": null,
       "productionProof": false
     },
@@ -1504,8 +1558,26 @@
       "exists": true,
       "reportName": "alerting-exclusion-validation",
       "evidenceType": "ALERTING_EXCLUSION_VALIDATION",
-      "generatedAt": "2026-05-22T00:55:19.362Z",
+      "generatedAt": "2026-05-22T04:07:56.381Z",
       "status": "not-submitted",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-acceptance.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-acceptance.json",
+      "exists": true,
+      "reportName": "alerting-acceptance",
+      "evidenceType": "ALERTING_ACCEPTANCE",
+      "generatedAt": "2026-05-22T04:08:08.683Z",
+      "status": "dry-run-only",
       "productionProof": false
     },
     {
@@ -1522,7 +1594,7 @@
       "exists": true,
       "reportName": "response-ops-readiness-evidence",
       "evidenceType": "RESPONSE_OPS_READINESS_EVIDENCE",
-      "generatedAt": "2026-05-22T00:55:31.764Z",
+      "generatedAt": "2026-05-22T04:08:08.683Z",
       "status": "operator-ready-with-deferred-controls",
       "productionProof": false
     },
@@ -2031,6 +2103,42 @@
       "productionProof": false
     },
     {
+      "path": "docs/production-scale/evidence/alerting-live-proof-template.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "HUMAN_OBSERVED_LIVE_ALERT_DELIVERY",
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-live-proof-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-template.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "FORMAL_ALERTING_EXCLUSION",
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/alerting-exclusion-template.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
       "path": "docs/production-scale/evidence/alerting-exclusion-evidence.json",
       "exists": false,
       "reportName": null,
@@ -2251,7 +2359,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T03:52:36.411Z",
+      "generatedAt": "2026-05-22T04:00:54.436Z",
       "status": null,
       "productionProof": false
     },
@@ -2281,9 +2389,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-human-production-evidence",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
-    "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-    "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
+    "evidenceHead": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+    "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2301,8 +2409,8 @@
     "status": null,
     "generatedAt": "2026-05-22T03:52:31.745Z",
     "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-    "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-    "headMatchesTarget": true,
+    "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+    "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
     "manualOnly": false,
@@ -2319,7 +2427,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+    "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2335,9 +2443,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
     "status": "accepted-temporary-allowlist",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
-    "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-    "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
+    "evidenceHead": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+    "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2355,7 +2463,7 @@
     "status": "passed",
     "generatedAt": "2026-05-22T02:48:41.545Z",
     "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-    "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+    "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2366,8 +2474,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2408,9 +2516,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-human-production-evidence",
-        "generatedAt": "2026-05-22T04:00:54.436Z",
-        "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-        "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+        "generatedAt": "2026-05-22T04:09:59.934Z",
+        "evidenceHead": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+        "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2428,8 +2536,8 @@
         "status": null,
         "generatedAt": "2026-05-22T03:52:31.745Z",
         "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-        "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-        "headMatchesTarget": true,
+        "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+        "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
         "manualOnly": false,
@@ -2446,7 +2554,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+        "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2462,9 +2570,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
         "status": "accepted-temporary-allowlist",
-        "generatedAt": "2026-05-22T04:00:54.436Z",
-        "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-        "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+        "generatedAt": "2026-05-22T04:09:59.934Z",
+        "evidenceHead": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
+        "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2482,7 +2590,7 @@
         "status": "passed",
         "generatedAt": "2026-05-22T02:48:41.545Z",
         "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-        "targetSha": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
+        "targetSha": "164c45aae7ef9e666f975b84011a8bd0b03150bc",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2511,6 +2619,7 @@
     "reasons": [
       "Queue liveness evidence is manual-only or human-observed.",
       "Queue liveness evidence is not passing and certifying.",
+      "Storage durability evidence HEAD does not match target SHA.",
       "Storage durability evidence timestamp is not current for this promotion-pack run.",
       "Evidence ledger evidence HEAD does not match target SHA.",
       "Evidence ledger evidence timestamp is not current for this promotion-pack run.",
@@ -2525,7 +2634,7 @@
   },
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2545,7 +2654,7 @@
   },
   "restoreEvidenceAcceptance": {
     "reportName": "restore-evidence-acceptance",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -2584,7 +2693,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -2710,7 +2819,7 @@
   },
   "productionWorkerRuntimeProof": {
     "reportName": "production-worker-runtime-proof",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "dry-run-only",
     "accepted": false,
     "productionProof": false,
@@ -2751,7 +2860,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2775,7 +2884,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2869,7 +2978,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -2902,7 +3011,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -2964,7 +3073,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -3141,7 +3250,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "accepted-temporary-allowlist",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
@@ -3182,7 +3291,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T04:00:54.436Z",
+    "generatedAt": "2026-05-22T04:09:59.934Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -3193,6 +3302,9 @@
     "dashboardSkipCount": null,
     "dashboardSkippedChecksVisible": false,
     "alertingStatus": "dry-run-only",
+    "alertingAcceptanceStatus": "dry-run-only",
+    "alertingAcceptancePath": "none",
+    "alertingAcceptanceAccepted": false,
     "alertingExclusionAccepted": false,
     "liveAlertProofAccepted": false,
     "blockerCoverage": {

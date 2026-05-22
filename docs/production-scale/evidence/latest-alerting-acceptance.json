@@ -1,0 +1,91 @@
+{
+  "reportName": "alerting-acceptance",
+  "evidenceType": "ALERTING_ACCEPTANCE",
+  "generatedAt": "2026-05-22T04:08:08.683Z",
+  "status": "dry-run-only",
+  "accepted": false,
+  "alertingStatus": "dry-run-only",
+  "acceptancePath": "none",
+  "productionProof": false,
+  "formalExclusionAccepted": false,
+  "liveAlertProofAccepted": false,
+  "dryRunOnlyRejectedAsProductionProof": true,
+  "dryRunEvidence": {
+    "path": "docs/production-scale/evidence/latest-alerts-dry-run.json",
+    "exists": true,
+    "status": "present",
+    "evidenceType": "SIMULATED",
+    "deliveryMode": "DRY RUN",
+    "liveProof": false,
+    "liveExternalAlertsSent": 0,
+    "liveExternalProviderCallsMade": 0
+  },
+  "liveAlertProof": {
+    "status": "not-submitted",
+    "accepted": false,
+    "evidencePath": null,
+    "alertChannelId": null,
+    "alertTypeTested": null,
+    "environment": null,
+    "correlationId": null,
+    "validation": {
+      "accepted": false,
+      "status": "not-submitted",
+      "errors": [
+        "No live alert proof evidence has been submitted."
+      ],
+      "sensitiveFindings": [],
+      "blockerCoverage": {
+        "observabilityAlerting": false
+      }
+    }
+  },
+  "exclusionValidation": {
+    "reportName": "alerting-exclusion-validation",
+    "status": "not-submitted",
+    "accepted": false,
+    "evidencePath": null,
+    "validation": {
+      "accepted": false,
+      "status": "not-submitted",
+      "errors": [
+        "No formal alerting exclusion evidence has been submitted."
+      ],
+      "sensitiveFindings": [],
+      "blockerCoverage": {
+        "observabilityAlerting": false
+      }
+    }
+  },
+  "validation": {
+    "accepted": false,
+    "errors": [
+      "No accepted live alert proof or policy-allowed formal alerting exclusion exists.",
+      "Live alert proof: No live alert proof evidence has been submitted.",
+      "Formal exclusion: No formal alerting exclusion evidence has been submitted."
+    ],
+    "sensitiveFindings": [],
+    "stale": false
+  },
+  "blockerCoverage": {
+    "observabilityAlerting": false
+  },
+  "safety": {
+    "liveAlertsSentByCodex": false,
+    "productionDataMutatedByCodex": false,
+    "dryRunAlertsAreLiveProof": false,
+    "webhookUrlsAccepted": false,
+    "piiAccepted": false,
+    "secretsAccepted": false
+  },
+  "requiredStatements": [
+    "Dry-run alert evidence alone cannot close production observability/alerting proof.",
+    "A formal exclusion closes alerting proof only when policyAllowsFormalExclusion is true and the exclusion is not stale.",
+    "Accepted exclusion evidence does not claim production-at-scale PASS unless policy explicitly allows that limited scope.",
+    "Evidence containing secrets, PII, raw report data, signed URLs, or webhook URLs is rejected."
+  ],
+  "outputPaths": {
+    "markdown": "docs/production-scale/evidence/latest-alerting-acceptance.md",
+    "json": "docs/production-scale/evidence/latest-alerting-acceptance.json"
+  }
+}

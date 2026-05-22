@@ -1,0 +1,18 @@
+{
+  "evidenceId": "ALERT-LIVE-PROD-YYYYMMDD-001",
+  "evidenceType": "HUMAN_OBSERVED_LIVE_ALERT_DELIVERY",
+  "environment": "production",
+  "alertChannelId": "opaque-channel-id-not-url",
+  "alertTypeTested": "critical_ingest_queue_backlog",
+  "observedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+  "deliverySuccess": true,
+  "liveAlertDeliveryVerified": true,
+  "operatorAcknowledgementSigned": true,
+  "sanitizedEvidence": true,
+  "noSecretsOrWebhookUrls": true,
+  "noPii": true,
+  "correlationId": "opaque-alert-correlation-id",
+  "retryOrFailureBehavior": "No retry required, or sanitized retry/failure behavior summary.",
+  "productionDataMutatedByCodex": false,
+  "sanitizationStatement": "This proof contains sanitized channel/correlation identifiers only and contains no webhook URLs, secrets, PII, raw report bytes, signed URLs, or service credentials."
+}

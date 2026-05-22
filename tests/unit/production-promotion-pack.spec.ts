@@ -285,13 +285,27 @@ function acceptedAlertingExclusionEvidence() {
     acknowledgedAt: "2026-05-20T12:00:00.000Z",
     environment: "limited beta production operations",
     exclusionScope: "External alert provider delivery for response operations",
+    namedBlockerScope: "L10-P1-005 observability and alerting proof",
     noExternalAlertProviderUsed: true,
     exclusionReason: "Human monitoring is the approved operating path for this limited beta release.",
+    compensatingControls: [
+      "Daily operator dashboard review",
+      "Response soak check before promotion decisions",
+      "Manual escalation for dead-letter, stale-running, and dashboard SKIP regressions",
+    ],
     humanMonitoringCadence: "Daily dashboard review and immediate review after supervised response operations.",
     manualEscalationPath: "Escalate through the internal incident channel using sanitized counts only.",
     acceptedRiskStatement: "The release governance owner accepts the residual risk of no external alert provider for this limited beta window.",
     reviewOrExpiryDate: "2026-08-20",
+    expiresOn: "2026-08-20",
+    nextReviewDate: "2026-06-20",
+    approvedByOperatorIdOrRole: "Release governance owner",
+    approvedAt: "2026-05-20T12:00:00.000Z",
+    policyAllowsFormalExclusion: true,
+    noPiiNoSecretsNoWebhookUrls: true,
     dryRunNotLiveProofAcknowledgement: true,
+    exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows:
+      "This exclusion does not mean production-at-scale PASS unless policy allows that limited alerting-exclusion scope.",
     dashboardCommand: "pnpm run operator:dashboard",
     soakCommand: "pnpm run response:soak-check",
     alertsDryRunCommand: "pnpm run alerts:dry-run",
@@ -1723,8 +1737,40 @@ describe("production promotion evidence pack", () => {
 
     expect(alertingExclusionValidation.accepted).toBe(true);
     expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("formally-excluded");
+    expect(report.responseOpsReadinessEvidence.alertingAcceptanceAccepted).toBe(true);
+    expect(report.responseOpsReadinessEvidence.alertingAcceptancePath).toBe("formal-exclusion");
     expect(blocker9?.classification).toBe("fixed with human-observed evidence");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 9 open when the formal exclusion is not policy-allowed", () => {
+    const alertingExclusionValidation = buildAlertingExclusionValidationReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      alertingExclusionEvidence: {
+        ...acceptedAlertingExclusionEvidence(),
+        policyAllowsFormalExclusion: false,
+      },
+    });
+    const responseOpsReadinessEvidence = buildResponseOpsReadinessEvidenceReport({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+      alertingExclusionValidation,
+      alertsDryRunEvidence: dryRunAlertEvidence(),
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      responseOpsReadinessEvidence,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker9 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 9);
+
+    expect(alertingExclusionValidation.accepted).toBe(false);
+    expect(report.responseOpsReadinessEvidence.alertingAcceptanceAccepted).toBe(false);
+    expect(blocker9?.classification).toBe("simulated proof only");
   });
 
   it("classifies blocker 21 with exact release evidence commands, not dashboard PASS alone", () => {
