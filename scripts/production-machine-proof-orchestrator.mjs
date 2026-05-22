@@ -20,6 +20,7 @@ import {
 } from "./production-promotion-guard.mjs";
 import {
   RESTORE_MACHINE_PROOF_CONFIG,
+  restoreMachineProofExtraValidation,
 } from "./restore-machine-proof.mjs";
 import {
   RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
@@ -69,6 +70,7 @@ export function defaultMachineProofAreas() {
       blockerId: "L10-P1-002",
       kind: "machine-proof",
       config: RESTORE_MACHINE_PROOF_CONFIG,
+      extraValidation: restoreMachineProofExtraValidation,
       commands: ["pnpm run restore:machine-proof", "pnpm run restore:machine-proof:validate"],
     },
     {
@@ -271,16 +273,25 @@ function buildMachineProofResult(area, evidence, readErrors, commandResults, now
         stale: false,
         certifying: false,
       };
+  const extraErrors = evidence && typeof area.extraValidation === "function"
+    ? area.extraValidation(evidence)
+    : [];
   const commandFailures = commandResults
     .filter((result) => result.exitCode !== 0)
     .map((result) => `${result.command} exited ${result.exitCode}`);
-  const validationErrors = [...(validation.errors ?? []), ...readErrors, ...commandFailures];
-  const certifying = validation.ok === true && commandFailures.length === 0;
+  const validationErrors = [...(validation.errors ?? []), ...extraErrors, ...readErrors, ...commandFailures];
+  const certifying = validation.ok === true && extraErrors.length === 0 && commandFailures.length === 0;
   const mutation = mutationSummaryForEvidence(evidence);
   const safety = safetyFlagsForEvidence(evidence, commandResults, validation);
   const missingRuntimeInputs = unique([
     ...(Array.isArray(evidence?.missingRuntimeInputs) ? evidence.missingRuntimeInputs : []),
-    ...(!evidence && area.config?.attestationEnv ? [area.config.attestationEnv] : []),
+    ...(!evidence
+      ? Array.isArray(area.config?.runtimeInputs)
+        ? area.config.runtimeInputs
+        : area.config?.attestationEnv
+          ? [area.config.attestationEnv]
+          : []
+      : []),
   ]);
 
   return {

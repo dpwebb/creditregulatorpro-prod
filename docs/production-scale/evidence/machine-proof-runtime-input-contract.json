@@ -47,6 +47,84 @@
       }
     },
     {
+      "name": "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+      "proofScript": "scripts/restore-machine-proof.mjs",
+      "proofCommand": "pnpm run restore:machine-proof",
+      "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized latest backup identifier"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Backup source must be selected non-interactively from the configured backup catalog.",
+        "Backup identifier must be opaque or hashed.",
+        "No backup credentials, database URLs, object URLs, signed URLs, raw report text, raw report bytes, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_BACKUP_SOURCE"],
+        "humanInteractionRequired": false,
+        "message": "latest configured backup source was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+      "proofScript": "scripts/restore-machine-proof.mjs",
+      "proofCommand": "pnpm run restore:machine-proof",
+      "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized isolated restore target identifier"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Restore target must be isolated from production and created non-interactively.",
+        "Restore target cleanup/destruction must be machine-attested.",
+        "No database URLs, credentials, production target names, signed URLs, raw report text, raw report bytes, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ISOLATED_TARGET"],
+        "humanInteractionRequired": false,
+        "message": "isolated restore target was not machine-attested."
+      }
+    },
+    {
+      "name": "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+      "proofScript": "scripts/restore-machine-proof.mjs",
+      "proofCommand": "pnpm run restore:machine-proof",
+      "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "machine attestation field",
+        "valueType": "sanitized synthetic restore fixture identifier"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Fixture must use synthetic credentials and a safe packet/PDF canary.",
+        "Fixture identifiers must be opaque or hashed.",
+        "No real user credentials, report text, raw report bytes, signed URLs, account numbers, or PII may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_SAFE_FIXTURE"],
+        "humanInteractionRequired": false,
+        "message": "safe synthetic restore fixture was not machine-attested."
+      }
+    },
+    {
       "name": "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
       "proofScript": "scripts/production-worker-machine-proof.mjs",
       "proofCommand": "pnpm run production-worker:machine-proof",

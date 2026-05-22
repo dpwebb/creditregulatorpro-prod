@@ -106,6 +106,7 @@ import {
   RESTORE_MACHINE_PROOF_CONFIG,
   RESTORE_MACHINE_PROOF_JSON_PATH,
   RESTORE_MACHINE_PROOF_MD_PATH,
+  restoreMachineProofExtraValidation,
 } from "./restore-machine-proof.mjs";
 
 import {
@@ -714,7 +715,11 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
       certifying: false,
       accepted: false,
       humanInteractionRequired: false,
-      missingRuntimeInputs: config.attestationEnv ? [config.attestationEnv] : [],
+      missingRuntimeInputs: Array.isArray(config.runtimeInputs)
+        ? config.runtimeInputs
+        : config.attestationEnv
+          ? [config.attestationEnv]
+          : [],
       validation: {
         ok: false,
         errors: [`Machine evidence file is missing: ${config.jsonPath}`],
@@ -1443,7 +1448,14 @@ export function buildProductionPromotionPackReport({
   const loadedRetentionArchiveRestoreMachineProof =
     retentionArchiveRestoreMachineProofEvidence ?? readJsonIfPresent(rootDir, RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH);
   const machineProofs = {
-    restore: machineProofSummary("restore", "Disaster recovery restore machine proof", RESTORE_MACHINE_PROOF_CONFIG, loadedRestoreMachineProof, undefined, generatedAt),
+    restore: machineProofSummary(
+      "restore",
+      "Disaster recovery restore machine proof",
+      RESTORE_MACHINE_PROOF_CONFIG,
+      loadedRestoreMachineProof,
+      restoreMachineProofExtraValidation,
+      generatedAt,
+    ),
     productionWorker: machineProofSummary(
       "productionWorker",
       "Production worker runtime machine proof",

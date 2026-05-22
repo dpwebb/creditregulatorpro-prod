@@ -45,6 +45,7 @@ function commandResult(command: string, overrides: Record<string, unknown> = {})
 function validMachineProof(area: ReturnType<typeof defaultMachineProofAreas>[number], overrides = {}) {
   if (area.kind !== "machine-proof") throw new Error("validMachineProof requires a machine proof area.");
   const checks = area.config.requiredChecks ?? area.config.acceptedCheckSets?.[0]?.checks ?? [];
+  const metadata = area.key === "restore" ? restoreMachineProofMetadata() : {};
   return buildMachineEvidence({
     evidenceType: area.config.evidenceType,
     blockerId: area.blockerId,
@@ -58,8 +59,48 @@ function validMachineProof(area: ReturnType<typeof defaultMachineProofAreas>[num
     certifying: true,
     checks: checks.map((name: string) => ({ name, status: "pass", summary: "Fixture check passed." })),
     sanitizedArtifacts: [{ path: area.config.jsonPath }],
+    metadata,
     ...overrides,
   });
+}
+
+function restoreMachineProofMetadata() {
+  return {
+    restoreProofKind: "non-interactive-machine-restore",
+    latestBackup: {
+      selectedLatest: true,
+      opaqueBackupId: "backup-hash-20260522",
+      createdAt: "2026-05-22T11:45:00.000Z",
+    },
+    isolatedRestoreTarget: {
+      created: true,
+      destroyed: true,
+      productionTarget: false,
+      targetId: "restore-target-hash",
+    },
+    safeFixture: {
+      fixtureId: "restore-fixture-hash",
+      syntheticCredentials: true,
+      packetPdfFixture: true,
+    },
+    rpo: {
+      targetMinutes: 15,
+      actualMinutes: 4,
+      status: "pass",
+    },
+    rto: {
+      targetMinutes: 30,
+      actualMinutes: 11,
+      status: "pass",
+    },
+    postRestoreChecks: {
+      authSession: true,
+      packetPdfRetrieval: true,
+      responseQueueState: true,
+      cleanupLifecycle: true,
+      rollbackStop: true,
+    },
+  };
 }
 
 function certifyingPromotionPack(overrides: Record<string, unknown> = {}) {
@@ -170,7 +211,12 @@ describe("production machine proof orchestrator", () => {
     expect(summary.openBlockers).toEqual(expect.arrayContaining([
       expect.objectContaining({
         blockerId: "L10-P1-002",
-        missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+        missingRuntimeInputs: [
+          "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+          "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+          "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+          "CRP_RESTORE_MACHINE_SAFE_FIXTURE",
+        ],
       }),
     ]));
   });

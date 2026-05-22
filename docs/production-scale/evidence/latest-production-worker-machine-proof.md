@@ -1,9 +1,9 @@
 # Production Worker Runtime Machine Proof
 
-Generated at: 2026-05-22T14:39:57.023Z
+Generated at: 2026-05-22T14:55:38.198Z
 Evidence type: PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF
 Environment: production
-Commit: `419bcbb5ebf096f751b71bf4d940b292ea0e91e5`
+Commit: `fc88de972a1735fc569e2b660bc64d9a4eb02bc6`
 Generator: `scripts/production-worker-machine-proof.mjs`
 Command: `pnpm run production-worker:machine-proof`
 Blocker ID: L10-P1-003
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T14:39:57.023Z
+Expires at: 2026-05-23T14:55:38.198Z
 
 ## Safety
 

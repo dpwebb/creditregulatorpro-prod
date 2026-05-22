@@ -7,7 +7,12 @@ import {
   buildAttestedMachineProofReport,
   validateMachineProofForConfig,
 } from "../../scripts/lib/machineProofScript.mjs";
-import { RESTORE_MACHINE_PROOF_CONFIG } from "../../scripts/restore-machine-proof.mjs";
+import {
+  RESTORE_MACHINE_PROOF_CONFIG,
+  RESTORE_MACHINE_PROOF_RUNTIME_INPUTS,
+  buildRestoreMachineProofReport,
+  validateRestoreMachineProofEvidence,
+} from "../../scripts/restore-machine-proof.mjs";
 import { PRODUCTION_WORKER_MACHINE_PROOF_CONFIG } from "../../scripts/production-worker-machine-proof.mjs";
 import { RAW_REPORT_MACHINE_PROOF_CONFIG } from "../../scripts/storage-raw-report-machine-remediation-proof.mjs";
 import { ALERTING_MACHINE_PROOF_CONFIG } from "../../scripts/alerting-machine-proof.mjs";
@@ -55,6 +60,45 @@ function writeAttestation(root: string, name: string, checks: string[], override
   return relativePath;
 }
 
+function validRestoreMetadata() {
+  return {
+    restoreProofKind: "non-interactive-machine-restore",
+    latestBackup: {
+      selectedLatest: true,
+      opaqueBackupId: "backup-hash-20260522",
+      createdAt: "2026-05-22T11:45:00.000Z",
+    },
+    isolatedRestoreTarget: {
+      created: true,
+      destroyed: true,
+      productionTarget: false,
+      targetId: "restore-target-hash",
+    },
+    safeFixture: {
+      fixtureId: "restore-fixture-hash",
+      syntheticCredentials: true,
+      packetPdfFixture: true,
+    },
+    rpo: {
+      targetMinutes: 15,
+      actualMinutes: 4,
+      status: "pass",
+    },
+    rto: {
+      targetMinutes: 30,
+      actualMinutes: 11,
+      status: "pass",
+    },
+    postRestoreChecks: {
+      authSession: true,
+      packetPdfRetrieval: true,
+      responseQueueState: true,
+      cleanupLifecycle: true,
+      rollbackStop: true,
+    },
+  };
+}
+
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true });
@@ -63,7 +107,7 @@ afterEach(() => {
 
 describe("machine proof scripts", () => {
   it("fails closed when required runtime attestation input is missing", () => {
-    const report = buildAttestedMachineProofReport(RESTORE_MACHINE_PROOF_CONFIG, {
+    const report = buildRestoreMachineProofReport({
       rootDir: tempRoot(),
       generatedAt: GENERATED_AT,
       env: {},
@@ -73,26 +117,28 @@ describe("machine proof scripts", () => {
     expect(report.status).toBe("fail");
     expect(report.certifying).toBe(false);
     expect(report.humanInteractionRequired).toBe(false);
-    expect(report.missingRuntimeInputs).toEqual(["CRP_RESTORE_MACHINE_ATTESTATION_JSON"]);
+    expect(report.missingRuntimeInputs).toEqual(RESTORE_MACHINE_PROOF_RUNTIME_INPUTS);
     expect(report.failures).toEqual([
-      expect.objectContaining({ code: "attestation-unavailable" }),
+      expect.objectContaining({ code: "restore-machine-proof-runtime-inputs-missing" }),
     ]);
     expect(JSON.stringify(report)).not.toMatch(/human-observed|manual approval|operator acknowledgement/i);
   });
 
   it("accepts valid sanitized restore attestation", () => {
     const root = tempRoot();
-    const attestationPath = writeAttestation(root, "restore-attestation", RESTORE_MACHINE_PROOF_CONFIG.requiredChecks);
-    const report = buildAttestedMachineProofReport(RESTORE_MACHINE_PROOF_CONFIG, {
+    const attestationPath = writeAttestation(root, "restore-attestation", RESTORE_MACHINE_PROOF_CONFIG.requiredChecks, {
+      ...validRestoreMetadata(),
+    });
+    const report = buildRestoreMachineProofReport({
       rootDir: root,
       generatedAt: GENERATED_AT,
       env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
-      attestationPath,
+      argv: ["--attestation", attestationPath],
     });
 
     expect(report.CERTIFYING).toBe(true);
     expect(report.humanInteractionRequired).toBe(false);
-    expect(validateMachineProofForConfig(RESTORE_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(true);
+    expect(validateRestoreMachineProofEvidence(report, { now: NOW }).ok).toBe(true);
   });
 
   it("rejects dry-run-only production worker evidence that lacks runtime checks", () => {
@@ -136,20 +182,21 @@ describe("machine proof scripts", () => {
   it("rejects secret-like attestation values", () => {
     const root = tempRoot();
     const attestationPath = writeAttestation(root, "secret-attestation", RESTORE_MACHINE_PROOF_CONFIG.requiredChecks, {
+      ...validRestoreMetadata(),
       metadata: {
         webhook: "https://hooks.example.test/path?token=supersecretvalue",
       },
     });
-    const report = buildAttestedMachineProofReport(RESTORE_MACHINE_PROOF_CONFIG, {
+    const report = buildRestoreMachineProofReport({
       rootDir: root,
       generatedAt: GENERATED_AT,
       env: { CRP_MACHINE_EVIDENCE_COMMIT_HASH: HEAD },
-      attestationPath,
+      argv: ["--attestation", attestationPath],
     });
 
     expect(report.CERTIFYING).toBe(false);
     expect(report.failures).toEqual([
-      expect.objectContaining({ code: "sensitive-attestation" }),
+      expect.objectContaining({ code: "restore-machine-proof-sensitive-value" }),
     ]);
   });
 

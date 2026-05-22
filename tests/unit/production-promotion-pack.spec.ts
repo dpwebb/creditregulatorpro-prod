@@ -891,6 +891,10 @@ function machineProofEvidence({
   metadata?: Record<string, unknown>;
   overrides?: Record<string, unknown>;
 }) {
+  const effectiveMetadata = evidenceType === RESTORE_MACHINE_PROOF_EVIDENCE_TYPE
+    ? { ...restoreMachineProofMetadata(), ...metadata }
+    : metadata;
+
   return buildMachineEvidence({
     evidenceType,
     environment: "production",
@@ -902,7 +906,7 @@ function machineProofEvidence({
     certifying: true,
     checks: checks.map((name) => ({ name, status: "pass" })),
     sanitizedArtifacts: [{ path: "docs/production-scale/evidence/fixture-machine-proof.json" }],
-    metadata,
+    metadata: effectiveMetadata,
     ...overrides,
   });
 }
@@ -919,6 +923,45 @@ const RESTORE_MACHINE_CHECKS = [
   "rollback-stop-verification",
   "isolated-restore-target-destroyed",
 ];
+
+function restoreMachineProofMetadata() {
+  return {
+    restoreProofKind: "non-interactive-machine-restore",
+    latestBackup: {
+      selectedLatest: true,
+      opaqueBackupId: "backup-hash-20260522",
+      createdAt: "2026-05-22T11:45:00.000Z",
+    },
+    isolatedRestoreTarget: {
+      created: true,
+      destroyed: true,
+      productionTarget: false,
+      targetId: "restore-target-hash",
+    },
+    safeFixture: {
+      fixtureId: "restore-fixture-hash",
+      syntheticCredentials: true,
+      packetPdfFixture: true,
+    },
+    rpo: {
+      targetMinutes: 15,
+      actualMinutes: 4,
+      status: "pass",
+    },
+    rto: {
+      targetMinutes: 30,
+      actualMinutes: 11,
+      status: "pass",
+    },
+    postRestoreChecks: {
+      authSession: true,
+      packetPdfRetrieval: true,
+      responseQueueState: true,
+      cleanupLifecycle: true,
+      rollbackStop: true,
+    },
+  };
+}
 
 const WORKER_MACHINE_CHECKS = [
   "queue-depth-before-captured",
@@ -1401,6 +1444,35 @@ describe("production promotion evidence pack", () => {
     expect(blocker1?.classification).toBe("fixed with automated evidence");
     expect(report.machineProofs.restore.accepted).toBe(true);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("keeps blocker 1 blocked when restore proof is checklist-only", () => {
+    const head = currentGitHead();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      restoreMachineProofEvidence: machineProofEvidence({
+        evidenceType: RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
+        targetSha: head,
+        generatedAt: PROMOTION_GATE_TIMESTAMP,
+        checks: RESTORE_MACHINE_CHECKS,
+        metadata: {
+          restoreProofKind: "checklist-only",
+        },
+        overrides: {
+          checklistOnly: true,
+        },
+      }),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      env: {},
+      targetSha: head,
+    });
+    const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.machineProofs.restore.accepted).toBe(false);
+    expect(report.machineProofs.restore.validation.errors.join("\n")).toMatch(/checklist-only/i);
+    expect(blocker1?.classification).toBe("machine proof required");
   });
 
   it("closes blocker 2 through certifying production worker machine proof", () => {

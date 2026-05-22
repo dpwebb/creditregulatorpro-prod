@@ -20,6 +20,9 @@ If an input is missing, the proof must fail closed with:
 | Input | Proof command | Secret | Supply method | Safety scope | Mutation permitted |
 | --- | --- | --- | --- | --- | --- |
 | `CRP_RESTORE_MACHINE_ATTESTATION_JSON` | `pnpm run restore:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No |
+| `CRP_RESTORE_MACHINE_BACKUP_SOURCE` | `pnpm run restore:machine-proof` | No | Sanitized machine attestation field for the latest configured backup | production-read-only | No |
+| `CRP_RESTORE_MACHINE_ISOLATED_TARGET` | `pnpm run restore:machine-proof` | No | Sanitized machine attestation field for the isolated restore target | production-read-only | No |
+| `CRP_RESTORE_MACHINE_SAFE_FIXTURE` | `pnpm run restore:machine-proof` | No | Sanitized machine attestation field for synthetic credentials and packet/PDF canary fixture | production-read-only | No |
 | `CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON` | `pnpm run production-worker:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | Yes, synthetic canary cleaned up only |
 | `CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-inventory` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No |
 | `CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-remediation-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No by the proof script; attested remediation policy may describe approved bounded remediation |
@@ -31,6 +34,8 @@ If an input is missing, the proof must fail closed with:
 Every attestation input must be sanitized JSON and must include `nonInteractive:true`, `machineAttested:true`, production-safe status fields, passing checks, and no sensitive values. Generated-manual, simulated-only production proof, stale evidence, failed checks, missing commit hash, missing generator, and sensitive-looking values are rejected.
 
 `CRP_RESTORE_MACHINE_ATTESTATION_JSON` must prove isolated restore target creation, latest backup selection, measured RPO/RTO, post-restore auth/session, packet PDF retrieval, response queue state, cleanup/lifecycle, rollback/stop verification, and isolated target destruction.
+
+`CRP_RESTORE_MACHINE_BACKUP_SOURCE`, `CRP_RESTORE_MACHINE_ISOLATED_TARGET`, and `CRP_RESTORE_MACHINE_SAFE_FIXTURE` are not separate secrets. They name required sanitized fields inside the restore machine attestation. If any field is unavailable, the restore proof fails closed with that exact missing runtime input and `humanInteractionRequired:false`.
 
 `CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON` must prove bounded synthetic/canary queue processing with queue depth before/after, worker liveness, processed/failed/dead-letter/stale counts, stop/rollback verification, and canary cleanup.
 

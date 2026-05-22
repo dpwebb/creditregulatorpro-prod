@@ -3,11 +3,11 @@
   "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
   "blockerId": "L10-P1-002",
   "environment": "production",
-  "generatedAt": "2026-05-22T14:39:55.497Z",
-  "commitHash": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-  "currentCommitHash": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-  "currentHead": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
-  "commit": "419bcbb5ebf096f751b71bf4d940b292ea0e91e5",
+  "generatedAt": "2026-05-22T14:55:36.852Z",
+  "commitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+  "currentCommitHash": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+  "currentHead": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
+  "commit": "fc88de972a1735fc569e2b660bc64d9a4eb02bc6",
   "branch": "staging",
   "generatorScript": "scripts/restore-machine-proof.mjs",
   "command": "pnpm run restore:machine-proof",
@@ -28,76 +28,74 @@
   "certifying": false,
   "CERTIFYING": false,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T14:39:55.497Z",
+  "expiresAt": "2026-05-23T14:55:36.852Z",
   "checks": [
     {
       "name": "latest-backup-selected",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "isolated-restore-target-created",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "rpo-measured",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "rto-measured",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "post-restore-auth-session-check",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "post-restore-packet-pdf-retrieval-check",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "post-restore-response-queue-check",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "cleanup-lifecycle-check",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "rollback-stop-verification",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "isolated-restore-target-destroyed",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     }
   ],
   "failures": [
     {
-      "code": "attestation-unavailable",
-      "message": "machine attestation path was not provided."
+      "code": "restore-machine-proof-runtime-inputs-missing",
+      "message": "Non-interactive restore proof requires a machine attestation plus configured backup source, isolated restore target, and safe synthetic fixture."
     }
   ],
-  "sanitizedArtifacts": [],
+  "sanitizedArtifacts": [
+    "docs/production-scale/evidence/latest-restore-machine-proof.json",
+    "docs/production-scale/evidence/latest-restore-machine-proof.md"
+  ],
   "missingRuntimeInputs": [
-    "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+    "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+    "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
   ],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "blockerIdsClosedWhenCertifying": [
-      "L10-P1-002"
-    ],
-    "attestationPath": null,
-    "acceptedCheckSet": "default",
-    "sensitiveFindingCount": 0
+    "proofMode": "machine-attested-restore-required",
+    "humanInteractionRequired": false,
+    "missingRuntimeInputs": [
+      "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+      "CRP_RESTORE_MACHINE_BACKUP_SOURCE",
+      "CRP_RESTORE_MACHINE_ISOLATED_TARGET",
+      "CRP_RESTORE_MACHINE_SAFE_FIXTURE"
+    ]
   }
 }

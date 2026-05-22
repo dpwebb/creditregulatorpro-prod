@@ -1,7 +1,7 @@
 # Production Machine Proof Summary
 
-Generated: 2026-05-22T14:39:54.697Z
-Commit: `419bcbb5ebf096f751b71bf4d940b292ea0e91e5`
+Generated: 2026-05-22T14:55:36.099Z
+Commit: `fc88de972a1735fc569e2b660bc64d9a4eb02bc6`
 Branch: `staging`
 Policy version: `production-machine-proof-policy-2026-05-22`
 allMachineProofsCertifying:false
@@ -19,27 +19,30 @@ allMachineProofsCertifying:false
 
 | Proof area | Status | Certifying | Evidence | Missing inputs |
 | --- | --- | --- | --- | --- |
-| Disaster recovery / restore | fail | false | `docs/production-scale/evidence/latest-restore-machine-proof.json` | CRP_RESTORE_MACHINE_ATTESTATION_JSON |
+| Disaster recovery / restore | fail | false | `docs/production-scale/evidence/latest-restore-machine-proof.json` | CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE |
 | Production ingest worker runtime | fail | false | `docs/production-scale/evidence/latest-production-worker-machine-proof.json` | CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON |
 | Raw report byte remediation | fail | false | `docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json` | CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON |
 | Alerting and observability | fail | false | `docs/production-scale/evidence/latest-alerting-machine-proof.json` | CRP_ALERTING_MACHINE_ATTESTATION_JSON |
 | Migration governance | fail | false | `docs/production-scale/evidence/latest-migration-machine-proof.json` | none |
 | Retention archive/restore | fail | false | `docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json` | CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON |
-| Production promotion pack guard | fail | false | `docs/production-scale/evidence/latest-production-promotion-pack.json` | CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON |
+| Production promotion pack guard | fail | false | `docs/production-scale/evidence/latest-production-promotion-pack.json` | CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON |
 
 ## Open Blockers
 
-- L10-P1-002 (restore): missing CRP_RESTORE_MACHINE_ATTESTATION_JSON
+- L10-P1-002 (restore): missing CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE
 - L10-P1-003 (productionWorker): missing CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
 - L10-P1-004 (rawReport): missing CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
 - L10-P1-005 (alerting): missing CRP_ALERTING_MACHINE_ATTESTATION_JSON
 - L10-P1-006 (migration): status must be pass for certifying machine evidence.
 - retention-archive-restore (retentionArchiveRestore): missing CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
-- L10-P1-001 (productionPromotionPackGuard): missing CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
+- L10-P1-001 (productionPromotionPackGuard): missing CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_RESTORE_MACHINE_BACKUP_SOURCE, CRP_RESTORE_MACHINE_ISOLATED_TARGET, CRP_RESTORE_MACHINE_SAFE_FIXTURE, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
 
 ## Missing Runtime Inputs
 
 - CRP_RESTORE_MACHINE_ATTESTATION_JSON
+- CRP_RESTORE_MACHINE_BACKUP_SOURCE
+- CRP_RESTORE_MACHINE_ISOLATED_TARGET
+- CRP_RESTORE_MACHINE_SAFE_FIXTURE
 - CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
 - CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
 - CRP_ALERTING_MACHINE_ATTESTATION_JSON

@@ -1,9 +1,9 @@
 # Disaster Recovery Restore Machine Proof
 
-Generated at: 2026-05-22T14:39:55.497Z
+Generated at: 2026-05-22T14:55:36.852Z
 Evidence type: DISASTER_RECOVERY_RESTORE_MACHINE_PROOF
 Environment: production
-Commit: `419bcbb5ebf096f751b71bf4d940b292ea0e91e5`
+Commit: `fc88de972a1735fc569e2b660bc64d9a4eb02bc6`
 Generator: `scripts/restore-machine-proof.mjs`
 Command: `pnpm run restore:machine-proof`
 Blocker ID: L10-P1-002
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T14:39:55.497Z
+Expires at: 2026-05-23T14:55:36.852Z
 
 ## Safety
 
@@ -29,25 +29,29 @@ Expires at: 2026-05-23T14:39:55.497Z
 
 ## Checks
 
-- [fail] latest-backup-selected: Machine attestation check missing or failed.
-- [fail] isolated-restore-target-created: Machine attestation check missing or failed.
-- [fail] rpo-measured: Machine attestation check missing or failed.
-- [fail] rto-measured: Machine attestation check missing or failed.
-- [fail] post-restore-auth-session-check: Machine attestation check missing or failed.
-- [fail] post-restore-packet-pdf-retrieval-check: Machine attestation check missing or failed.
-- [fail] post-restore-response-queue-check: Machine attestation check missing or failed.
-- [fail] cleanup-lifecycle-check: Machine attestation check missing or failed.
-- [fail] rollback-stop-verification: Machine attestation check missing or failed.
-- [fail] isolated-restore-target-destroyed: Machine attestation check missing or failed.
+- [fail] latest-backup-selected:
+- [fail] isolated-restore-target-created:
+- [fail] rpo-measured:
+- [fail] rto-measured:
+- [fail] post-restore-auth-session-check:
+- [fail] post-restore-packet-pdf-retrieval-check:
+- [fail] post-restore-response-queue-check:
+- [fail] cleanup-lifecycle-check:
+- [fail] rollback-stop-verification:
+- [fail] isolated-restore-target-destroyed:
 
 ## Failures
 
-- attestation-unavailable: machine attestation path was not provided.
+- restore-machine-proof-runtime-inputs-missing: Non-interactive restore proof requires a machine attestation plus configured backup source, isolated restore target, and safe synthetic fixture.
 
 ## Missing Runtime Inputs
 
 - CRP_RESTORE_MACHINE_ATTESTATION_JSON
+- CRP_RESTORE_MACHINE_BACKUP_SOURCE
+- CRP_RESTORE_MACHINE_ISOLATED_TARGET
+- CRP_RESTORE_MACHINE_SAFE_FIXTURE
 
 ## Sanitized Artifacts
 
-- None.
+- docs/production-scale/evidence/latest-restore-machine-proof.json
+- docs/production-scale/evidence/latest-restore-machine-proof.md
