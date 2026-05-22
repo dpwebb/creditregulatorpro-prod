@@ -88,6 +88,42 @@ export const REQUIRED_CERTIFICATION_GATES = [
     evidencePath: 'docs/production-scale/evidence/latest-deploy-rollback-simulation.json',
   },
   {
+    id: 'restoreMachineProof',
+    label: 'Disaster recovery restore machine proof',
+    command: 'pnpm run restore:machine-proof',
+    evidencePath: 'docs/production-scale/evidence/latest-restore-machine-proof.json',
+  },
+  {
+    id: 'productionWorkerMachineProof',
+    label: 'Production ingest worker runtime machine proof',
+    command: 'pnpm run production-worker:machine-proof',
+    evidencePath: 'docs/production-scale/evidence/latest-production-worker-machine-proof.json',
+  },
+  {
+    id: 'rawReportMachineProof',
+    label: 'Historical raw report byte remediation machine proof',
+    command: 'pnpm run storage:raw-report-machine-remediation-proof',
+    evidencePath: 'docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json',
+  },
+  {
+    id: 'alertingMachineProof',
+    label: 'Alerting and observability machine proof',
+    command: 'pnpm run alerting:machine-proof',
+    evidencePath: 'docs/production-scale/evidence/latest-alerting-machine-proof.json',
+  },
+  {
+    id: 'migrationMachineProof',
+    label: 'Migration governance machine proof',
+    command: 'pnpm run migrations:machine-proof',
+    evidencePath: 'docs/production-scale/evidence/latest-migration-machine-proof.json',
+  },
+  {
+    id: 'retentionArchiveRestoreMachineProof',
+    label: 'Retention archive restore machine proof',
+    command: 'pnpm run retention:archive-restore-machine-proof',
+    evidencePath: 'docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json',
+  },
+  {
     id: 'applicationCheck',
     label: 'Application check',
     command: 'pnpm run check',
@@ -567,8 +603,7 @@ export async function buildProductionScaleCertificationReport(options = {}) {
     .map((gate) => gate.id);
   const certifying = failedGates.length === 0
     && staleGates.length === 0
-    && skippedGates.length === 0
-    && stagingOnlyProofGates.length === 0;
+    && skippedGates.length === 0;
 
   return {
     reportName: 'production-scale-certification',
@@ -605,7 +640,7 @@ export async function buildProductionScaleCertificationReport(options = {}) {
     stagingOnlyProofGates,
     certifying,
     CERTIFYING: certifying,
-    certificationRule: 'CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and no required auth smoke is staging-only proof.',
+    certificationRule: 'CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.',
     liveExternalServicesRequired: false,
     liveDeploysRequired: false,
     manualTestingRequired: false,

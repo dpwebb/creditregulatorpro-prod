@@ -1,8 +1,8 @@
 # Certification Harness Fix Evidence
 
-Generated: 2026-05-22T02:52:03.421Z
-Current HEAD: `35388f20d9c58282405602a7205a987ece110410`
-Target SHA: `35388f20d9c58282405602a7205a987ece110410`
+Generated: 2026-05-22T05:50:10.346Z
+Current HEAD: `2026701883302c9a80851158313669e015a3465f`
+Target SHA: `2026701883302c9a80851158313669e015a3465f`
 Status: passed
 CERTIFYING:false
 
@@ -34,8 +34,8 @@ CERTIFYING:false
 ## Certification Result
 
 - Production-scale certification result: CERTIFYING:false
-- Failed gates: none
-- Stale gates: none
+- Failed gates: restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, migrationMachineProof, retentionArchiveRestoreMachineProof, evidenceFreshness
+- Stale gates: restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, migrationMachineProof, retentionArchiveRestoreMachineProof
 - Skipped gates: none
 - Staging-only proof gates: authenticatedUploadResults, authenticatedPacketPdf
 

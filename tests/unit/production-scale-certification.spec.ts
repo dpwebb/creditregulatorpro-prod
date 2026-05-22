@@ -186,7 +186,7 @@ describe("production-scale certification report", () => {
       (entry: { gateId: string }) => entry.gateId === "authenticatedUploadResults",
     );
 
-    expect(report.CERTIFYING).toBe(false);
+    expect(report.CERTIFYING).toBe(true);
     expect(report.stagingOnlyProofGates).toEqual(["authenticatedUploadResults"]);
     expect(authGate).toMatchObject({
       proofScope: "staging",

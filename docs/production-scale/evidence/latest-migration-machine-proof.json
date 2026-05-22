@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
+  "environment": "production",
+  "generatedAt": "2026-05-22T05:46:51.235Z",
+  "commitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentCommitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentHead": "2026701883302c9a80851158313669e015a3465f",
+  "commit": "2026701883302c9a80851158313669e015a3465f",
+  "generatorScript": "scripts/migration-machine-proof.mjs",
+  "command": "pnpm run migrations:machine-proof",
+  "nonInteractive": true,
+  "machineAttested": true,
+  "generatedManually": false,
+  "simulatedOnly": false,
+  "productionMutation": "none",
+  "secretsPrinted": false,
+  "piiPrinted": false,
+  "rawReportBytesPrinted": false,
+  "signedUrlsPrinted": false,
+  "status": "fail",
+  "certifying": false,
+  "CERTIFYING": false,
+  "freshnessWindowHours": 24,
+  "expiresAt": "2026-05-23T05:46:51.235Z",
+  "checks": [
+    {
+      "name": "migration-gate-certifying",
+      "status": "fail",
+      "summary": "Migration release gate is CERTIFYING:true and accepted."
+    },
+    {
+      "name": "no-temporary-unresolved-allowlist",
+      "status": "fail",
+      "summary": "No active temporary runtime ensure allowlist residuals remain."
+    },
+    {
+      "name": "no-expired-allowlist",
+      "status": "pass",
+      "summary": "No expired temporary allowlist residuals are present."
+    },
+    {
+      "name": "no-release-blocking-findings",
+      "status": "fail",
+      "summary": "No release-blocking migration governance findings remain."
+    },
+    {
+      "name": "non-mutating-gate",
+      "status": "pass",
+      "summary": "Migration proof is static, non-mutating, and does not require database access."
+    }
+  ],
+  "failures": [
+    {
+      "code": "migration-gate-certifying",
+      "message": "Migration release gate is CERTIFYING:true and accepted."
+    },
+    {
+      "code": "no-temporary-unresolved-allowlist",
+      "message": "No active temporary runtime ensure allowlist residuals remain."
+    },
+    {
+      "code": "no-release-blocking-findings",
+      "message": "No release-blocking migration governance findings remain."
+    }
+  ],
+  "sanitizedArtifacts": [
+    {
+      "path": "docs/production-scale/evidence/latest-migration-gate.json",
+      "type": "migration-gate-input"
+    }
+  ],
+  "missingRuntimeInputs": [],
+  "metadata": {
+    "blockerIdsClosedWhenCertifying": [
+      "L10-P1-006"
+    ],
+    "migrationGateStatus": "failed",
+    "migrationGateCertifying": false,
+    "releaseGateAccepted": false,
+    "temporaryAllowlistActive": true,
+    "temporaryAllowlistResidualCount": 12,
+    "releaseBlockingFindingCount": 12,
+    "expiredAllowlistFindingCount": 0
+  }
+}

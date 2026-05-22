@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
+  "environment": "production",
+  "generatedAt": "2026-05-22T05:46:50.410Z",
+  "commitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentCommitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentHead": "2026701883302c9a80851158313669e015a3465f",
+  "commit": "2026701883302c9a80851158313669e015a3465f",
+  "generatorScript": "scripts/alerting-machine-proof.mjs",
+  "command": "pnpm run alerting:machine-proof",
+  "nonInteractive": true,
+  "machineAttested": true,
+  "generatedManually": false,
+  "simulatedOnly": false,
+  "productionMutation": "none",
+  "secretsPrinted": false,
+  "piiPrinted": false,
+  "rawReportBytesPrinted": false,
+  "signedUrlsPrinted": false,
+  "status": "fail",
+  "certifying": false,
+  "CERTIFYING": false,
+  "freshnessWindowHours": 24,
+  "expiresAt": "2026-05-23T05:46:50.410Z",
+  "checks": [
+    {
+      "name": "synthetic-alert-triggered",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "alert-delivery-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "sanitized-channel-id-recorded",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "correlation-id-recorded",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "machine-acknowledgment-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "retry-or-failure-behavior-recorded",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "response-ops-readiness-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "scheduler-status-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "no-webhook-or-token-printed",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    }
+  ],
+  "failures": [
+    {
+      "code": "attestation-unavailable",
+      "message": "machine attestation path was not provided."
+    }
+  ],
+  "sanitizedArtifacts": [],
+  "missingRuntimeInputs": [
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+  ],
+  "metadata": {
+    "blockerIdsClosedWhenCertifying": [
+      "L10-P1-005"
+    ],
+    "attestationPath": null,
+    "acceptedCheckSet": "live-alert-delivery",
+    "sensitiveFindingCount": 0
+  }
+}

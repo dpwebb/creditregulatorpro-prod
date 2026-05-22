@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
+  "environment": "production",
+  "generatedAt": "2026-05-22T05:46:48.439Z",
+  "commitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentCommitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentHead": "2026701883302c9a80851158313669e015a3465f",
+  "commit": "2026701883302c9a80851158313669e015a3465f",
+  "generatorScript": "scripts/production-worker-machine-proof.mjs",
+  "command": "pnpm run production-worker:machine-proof",
+  "nonInteractive": true,
+  "machineAttested": true,
+  "generatedManually": false,
+  "simulatedOnly": false,
+  "productionMutation": "synthetic-canary-cleaned-up",
+  "secretsPrinted": false,
+  "piiPrinted": false,
+  "rawReportBytesPrinted": false,
+  "signedUrlsPrinted": false,
+  "status": "fail",
+  "certifying": false,
+  "CERTIFYING": false,
+  "freshnessWindowHours": 24,
+  "expiresAt": "2026-05-23T05:46:48.439Z",
+  "checks": [
+    {
+      "name": "queue-depth-before-captured",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "worker-liveness-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "bounded-max-jobs-enforced",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "synthetic-or-canary-job-processed",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "queue-depth-after-captured",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "processed-count-captured",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "failed-dead-letter-stale-counts-captured",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "worker-stop-rollback-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    },
+    {
+      "name": "canary-cleanup-verified",
+      "status": "fail",
+      "summary": "Machine attestation check missing or failed."
+    }
+  ],
+  "failures": [
+    {
+      "code": "attestation-unavailable",
+      "message": "machine attestation path was not provided."
+    }
+  ],
+  "sanitizedArtifacts": [],
+  "missingRuntimeInputs": [
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+  ],
+  "metadata": {
+    "blockerIdsClosedWhenCertifying": [
+      "L10-P1-003"
+    ],
+    "attestationPath": null,
+    "acceptedCheckSet": "default",
+    "sensitiveFindingCount": 0
+  }
+}

@@ -233,7 +233,7 @@ describe("production worker runtime proof", () => {
     ).toBe(true);
   });
 
-  it("promotion pack keeps blocker 2 open until accepted production runtime proof exists", () => {
+  it("promotion pack keeps blocker 2 machine-required until accepted machine proof exists", () => {
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: {
@@ -277,7 +277,7 @@ describe("production worker runtime proof", () => {
     });
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
 
-    expect(blocker2?.classification).toBe("partial");
+    expect(blocker2?.classification).toBe("machine proof required");
     expect(report.productionWorkerRuntimeProof).toMatchObject({
       accepted: false,
       productionProof: false,

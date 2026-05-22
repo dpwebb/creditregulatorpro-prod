@@ -15,6 +15,39 @@ const OUTPUT_GROUPS = [
   { key: "humanObserved", title: "Human-Observed Evidence", category: "human-observed" },
 ];
 
+const MACHINE_ATTESTED_PROOF_COMMANDS = [
+  {
+    blocker: "L10-P1-002",
+    command: "pnpm run restore:machine-proof",
+    jsonPath: "docs/production-scale/evidence/latest-restore-machine-proof.json",
+  },
+  {
+    blocker: "L10-P1-003",
+    command: "pnpm run production-worker:machine-proof",
+    jsonPath: "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+  },
+  {
+    blocker: "L10-P1-004",
+    command: "pnpm run storage:raw-report-machine-remediation-proof",
+    jsonPath: "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+  },
+  {
+    blocker: "L10-P1-005",
+    command: "pnpm run alerting:machine-proof",
+    jsonPath: "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+  },
+  {
+    blocker: "L10-P1-006",
+    command: "pnpm run migrations:machine-proof",
+    jsonPath: "docs/production-scale/evidence/latest-migration-machine-proof.json",
+  },
+  {
+    blocker: "retention-archive-restore",
+    command: "pnpm run retention:archive-restore-machine-proof",
+    jsonPath: "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+  },
+];
+
 const PRODUCTION_ENV_KEYS = ["NODE_ENV", "CRP_ENV", "FLOOT_ENV", "APP_ENV", "VERCEL_ENV", "DEPLOYMENT_ENV", "ENVIRONMENT"];
 const PRODUCTION_SECRET_KEYS = ["FLOOT_DATABASE_URL", "DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL", "CRP_DATABASE_URL"];
 
@@ -380,8 +413,13 @@ export function buildProductionScaleEvidenceReport({
       "SIMULATED evidence is not production proof.",
       "Dashboard PASS alone is not sufficient release evidence.",
       "Skipped dashboard checks must remain visible and cannot be treated as PASS.",
+      "Machine-attested proof commands are non-interactive and fail closed when runtime inputs are missing.",
       "This report does not claim production-at-scale readiness.",
     ],
+    machineAttestedProofCommands: MACHINE_ATTESTED_PROOF_COMMANDS.map((entry) => ({
+      ...entry,
+      evidencePresent: existsSync(repoPath(rootDir, entry.jsonPath)),
+    })),
     evidence,
     waivedBlockers: waived,
     unresolvedBlockers: unresolved,
@@ -432,6 +470,7 @@ export function renderProductionScaleEvidenceMarkdown(report) {
     "- Dashboard PASS alone is not sufficient release evidence.",
     "- Dashboard SKIP rows are not treated as PASS.",
     "- Release evidence must record exact commands, not dashboard headline status alone.",
+    "- Machine-attested proof commands fail closed when runtime inputs are missing.",
     "- This report does not claim production-at-scale readiness.",
     "- Production mutation, real consumer PII, production database dumps, live provider delivery, and credentials are forbidden for this framework.",
     "",
@@ -455,6 +494,12 @@ export function renderProductionScaleEvidenceMarkdown(report) {
     }
     lines.push(...renderBlockerList(report.evidence[group.key].blockers, { simulated: group.key === "simulated" }), "");
   }
+
+  lines.push("## Machine-Attested Proof Commands", "");
+  for (const proof of report.machineAttestedProofCommands ?? []) {
+    lines.push(`- ${proof.blocker}: \`${proof.command}\` -> \`${proof.jsonPath}\` (${proof.evidencePresent ? "present" : "missing"})`);
+  }
+  lines.push("");
 
   lines.push("## Waived Blockers", "");
   lines.push(...renderBlockerList(report.waivedBlockers), "");

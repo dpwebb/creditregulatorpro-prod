@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T04:21:36.456Z
+Generated at: 2026-05-22T05:50:18.112Z
 Current branch: `staging`
-Current commit hash: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
-Current HEAD: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
+Current commit hash: `2026701883302c9a80851158313669e015a3465f`
+Current HEAD: `2026701883302c9a80851158313669e015a3465f`
 Target environment: `production`
-Target SHA: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
+Target SHA: `2026701883302c9a80851158313669e015a3465f`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -20,6 +20,7 @@ Production-ready claim: **false**
 - Production activation requires operator approval.
 - Historical raw report remediation requires accepted sanitized operator evidence.
 - Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.
+- Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.
 - Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.
 - Staging ingest worker queue-drain evidence is staging proof only and does not activate production.
 - Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.
@@ -31,24 +32,39 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `72a2bbfa97df8498620613ed1e0bf3051735f04f`
+- Target SHA: `2026701883302c9a80851158313669e015a3465f`
 - Missing required checks: none
-- Stale checks: storageDurability, evidenceLedger, rollbackSimulation
+- Stale checks: storageDurability, evidenceLedger, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, retentionArchiveRestoreMachineProof
 - Non-automated checks: queueLiveness
 - Skipped checks: none
-- Failed checks: queueLiveness, evidenceLedger, migrationGovernance, rollbackSimulation
+- Failed checks: queueLiveness, evidenceLedger, migrationGovernance, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, migrationMachineProof, retentionArchiveRestoreMachineProof
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=72a2bbfa97df8498620613ed1e0bf3051735f04f; timestamp=2026-05-22T04:21:36.456Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T03:52:31.745Z; command=`pnpm run storage:durability-contract`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:50:18.112Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:21.310Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=failed; head=72a2bbfa97df8498620613ed1e0bf3051735f04f; timestamp=2026-05-22T04:21:36.456Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:41.545Z; command=`pnpm run deploy:rollback-simulation`
+- Migration governance: non-certifying; status=failed; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:50:18.112Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:43.940Z; command=`pnpm run deploy:rollback-simulation`
+- Disaster recovery restore machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:47.600Z; command=`pnpm run restore:machine-proof`
+- Production worker runtime machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:48.439Z; command=`pnpm run production-worker:machine-proof`
+- Raw report byte remediation machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:49.479Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
+- Alerting observability machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:50.410Z; command=`pnpm run alerting:machine-proof`
+- Migration governance machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:50:18.112Z; command=`pnpm run migrations:machine-proof`
+- Retention archive restore machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:52.581Z; command=`pnpm run retention:archive-restore-machine-proof`
+
+### Machine-Attested Proof Gates
+
+- Disaster recovery restore machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-restore-machine-proof.json`
+- Production worker runtime machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-production-worker-machine-proof.json`
+- Raw report byte remediation machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json`
+- Alerting observability machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-alerting-machine-proof.json`
+- Migration governance machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-migration-machine-proof.json`
+- Retention archive restore machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T04:21:36.456Z; completed=2026-05-22T04:21:36.456Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T05:50:18.112Z; completed=2026-05-22T05:50:18.112Z
 
 ## Command Result Summary
 
@@ -69,19 +85,26 @@ Production-ready claim: **false**
 - `pnpm run production-deployment-parity:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-deployment-parity.md, docs/production-scale/evidence/latest-production-deployment-parity.json
 - `pnpm run production-worker:activation-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-activation-evidence.md, docs/production-scale/evidence/latest-production-worker-activation-evidence.json
 - `pnpm run production-worker:runtime-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-runtime-proof.md, docs/production-scale/evidence/latest-production-worker-runtime-proof.json
+- `pnpm run production-worker:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-machine-proof.md, docs/production-scale/evidence/latest-production-worker-machine-proof.json
 - `pnpm run production-worker:readiness-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-production-worker-readiness.md, docs/production-scale/evidence/latest-production-worker-readiness.json
 - `pnpm run ingest:worker:staging-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md, docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json
 - `pnpm run pr-guardrails:evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-pr-guardrails.md, docs/production-scale/evidence/latest-pr-guardrails.json
 - `pnpm run storage:raw-report-remediation-plan` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json
 - `pnpm run storage:raw-report-remediation-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.md, docs/production-scale/evidence/latest-storage-raw-report-remediation-acceptance.json
+- `pnpm run storage:raw-report-machine-inventory` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.md, docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.json
+- `pnpm run storage:raw-report-machine-remediation-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md, docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json
 - `pnpm run storage:durability-contract` - evidence-file-present; evidence: docs/production-scale/evidence/latest-storage-durability.md, docs/production-scale/evidence/latest-storage-durability.json
 - `pnpm run check:migrations` - reference-required; evidence: none
 - `pnpm run check:restore-drill-evidence` - reference-required; evidence: none
 - `pnpm run migrations:gate` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-gate.md, docs/production-scale/evidence/latest-migration-gate.json
+- `pnpm run migrations:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-machine-proof.md, docs/production-scale/evidence/latest-migration-machine-proof.json
 - `pnpm run deploy:rollback-simulation` - evidence-file-present; evidence: docs/production-scale/evidence/latest-deploy-rollback-simulation.md, docs/production-scale/evidence/latest-deploy-rollback-simulation.json
 - `pnpm run restore:evidence:acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-acceptance.md, docs/production-scale/evidence/latest-restore-acceptance.json
 - `pnpm run restore:accept-human-evidence` - evidence-file-present; evidence: docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.md, docs/production-scale/evidence/latest-human-restore-drill-evidence-acceptance.json
 - `pnpm run restore:evidence:current-check` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-readiness-check.md, docs/production-scale/evidence/latest-restore-readiness-check.json
+- `pnpm run restore:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-machine-proof.md, docs/production-scale/evidence/latest-restore-machine-proof.json
+- `pnpm run alerting:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-machine-proof.md, docs/production-scale/evidence/latest-alerting-machine-proof.json
+- `pnpm run retention:archive-restore-machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md, docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
 - `pnpm run runtime-size:policy-acceptance` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size-policy-acceptance.md, docs/production-scale/evidence/latest-runtime-size-policy-acceptance.json
 - `git diff --check` - reference-required; evidence: none
@@ -294,13 +317,11 @@ Production-ready claim: **false**
 
 ## Human-Required Proof
 
-- #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
-- #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
+- None.
 
 ## Simulated Proof-Only Checks
 
-- #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
+- None.
 
 ## Staging Proof-Only Checks
 
@@ -312,12 +333,12 @@ Production-ready claim: **false**
 
 ## Unresolved Production Blockers
 
-- #1 Disaster recovery (Critical; human proof required) - Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.
-- #2 Production ingest runtime (Critical; partial) - Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.
-- #6 Historical raw report bytes (High; human proof required) - Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.
-- #9 Observability/alerting (High; simulated proof only) - Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.
-- #10 Migration governance (High; partial) - Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.
-- #22 Retention archive/restore proof (Medium; human proof required) - Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.
+- #1 Disaster recovery (Critical; machine proof required) - Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.
+- #2 Production ingest runtime (Critical; machine proof required) - Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.
+- #6 Historical raw report bytes (High; machine proof required) - Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.
+- #9 Observability/alerting (High; machine proof required) - Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.
+- #10 Migration governance (High; machine proof required) - Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.
+- #22 Retention archive/restore proof (Medium; machine proof required) - Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.
 
 ## Unresolved Scale Blockers
 
@@ -371,6 +392,8 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-production-worker-activation-evidence.json` - present; evidenceType=PRODUCTION_WORKER_ACTIVATION_EVIDENCE
 - `docs/production-scale/evidence/latest-production-worker-runtime-proof.md` - present
 - `docs/production-scale/evidence/latest-production-worker-runtime-proof.json` - present
+- `docs/production-scale/evidence/latest-production-worker-machine-proof.md` - present
+- `docs/production-scale/evidence/latest-production-worker-machine-proof.json` - present; evidenceType=PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF
 - `docs/production-scale/evidence/latest-production-worker-readiness.md` - present
 - `docs/production-scale/evidence/latest-production-worker-readiness.json` - present; evidenceType=PRODUCTION_WORKER_READINESS_EVIDENCE
 - `docs/production-scale/evidence/latest-pr-guardrails.md` - present
@@ -381,6 +404,18 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-migration-governance.json` - present
 - `docs/production-scale/evidence/latest-migration-gate.md` - present
 - `docs/production-scale/evidence/latest-migration-gate.json` - present; evidenceType=MIGRATION_GATE_EVIDENCE
+- `docs/production-scale/evidence/latest-migration-machine-proof.md` - present
+- `docs/production-scale/evidence/latest-migration-machine-proof.json` - present; evidenceType=MIGRATION_GOVERNANCE_MACHINE_PROOF
+- `docs/production-scale/evidence/latest-restore-machine-proof.md` - present
+- `docs/production-scale/evidence/latest-restore-machine-proof.json` - present; evidenceType=DISASTER_RECOVERY_RESTORE_MACHINE_PROOF
+- `docs/production-scale/evidence/latest-alerting-machine-proof.md` - present
+- `docs/production-scale/evidence/latest-alerting-machine-proof.json` - present; evidenceType=ALERTING_OBSERVABILITY_MACHINE_PROOF
+- `docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.md` - present
+- `docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.json` - present; evidenceType=RAW_REPORT_BYTE_MACHINE_INVENTORY
+- `docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md` - present
+- `docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json` - present; evidenceType=RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF
+- `docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md` - present
+- `docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json` - present; evidenceType=RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF
 - `docs/production-scale/evidence/latest-production-safe-probes.md` - present
 - `docs/production-scale/evidence/latest-production-safe-probes.json` - present
 - `docs/production-scale/evidence/latest-staging-owner-denial-smoke.md` - present

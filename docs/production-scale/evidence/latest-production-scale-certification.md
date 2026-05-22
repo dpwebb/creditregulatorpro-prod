@@ -1,14 +1,14 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T02:52:03.421Z
-Current HEAD: `35388f20d9c58282405602a7205a987ece110410`
-Target SHA: `35388f20d9c58282405602a7205a987ece110410`
+Generated: 2026-05-22T05:50:10.346Z
+Current HEAD: `2026701883302c9a80851158313669e015a3465f`
+Target SHA: `2026701883302c9a80851158313669e015a3465f`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
 ## Certification Rule
 
-CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and no required auth smoke is staging-only proof.
+CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/manual-only, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.
 
 ## Gate Summary
 
@@ -27,16 +27,33 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
 | Rollback SHA workflow static check | PASS | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
 | Deploy rollback simulation | PASS | `pnpm run deploy:rollback-simulation --write-evidence --json` |
+| Disaster recovery restore machine proof | FAILED | `pnpm run restore:machine-proof` |
+| Production ingest worker runtime machine proof | FAILED | `pnpm run production-worker:machine-proof` |
+| Historical raw report byte remediation machine proof | FAILED | `pnpm run storage:raw-report-machine-remediation-proof` |
+| Alerting and observability machine proof | FAILED | `pnpm run alerting:machine-proof` |
+| Migration governance machine proof | FAILED | `pnpm run migrations:machine-proof` |
+| Retention archive restore machine proof | FAILED | `pnpm run retention:archive-restore-machine-proof` |
 | Application check | PASS | `pnpm run check` |
-| Evidence freshness check | PASS | `internal evidence freshness check` |
+| Evidence freshness check | FAILED | `internal evidence freshness check` |
 
 ## Failed Gates
 
-- None
+- restoreMachineProof
+- productionWorkerMachineProof
+- rawReportMachineProof
+- alertingMachineProof
+- migrationMachineProof
+- retentionArchiveRestoreMachineProof
+- evidenceFreshness
 
 ## Stale Gates
 
-- None
+- restoreMachineProof
+- productionWorkerMachineProof
+- rawReportMachineProof
+- alertingMachineProof
+- migrationMachineProof
+- retentionArchiveRestoreMachineProof
 
 ## Skipped Gates
 
@@ -62,6 +79,12 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - `pnpm run ingest:worker:simulated-proof`
 - `pnpm run deploy:rollback-sha-governance --write-evidence --json`
 - `pnpm run deploy:rollback-simulation --write-evidence --json`
+- `pnpm run restore:machine-proof`
+- `pnpm run production-worker:machine-proof`
+- `pnpm run storage:raw-report-machine-remediation-proof`
+- `pnpm run alerting:machine-proof`
+- `pnpm run migrations:machine-proof`
+- `pnpm run retention:archive-restore-machine-proof`
 - `pnpm run check`
 - `internal evidence freshness check`
 

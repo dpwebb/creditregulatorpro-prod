@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T04:21:36.456Z",
+  "generatedAt": "2026-05-22T05:50:18.112Z",
   "currentBranch": "staging",
-  "currentCommitHash": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-  "currentHead": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+  "currentCommitHash": "2026701883302c9a80851158313669e015a3465f",
+  "currentHead": "2026701883302c9a80851158313669e015a3465f",
   "targetEnvironment": "production",
-  "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+  "targetSha": "2026701883302c9a80851158313669e015a3465f",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T04:21:36.456Z",
-      "completedAt": "2026-05-22T04:21:36.456Z",
+      "startedAt": "2026-05-22T05:50:18.112Z",
+      "completedAt": "2026-05-22T05:50:18.112Z",
       "status": "passed",
       "automated": true
     }
@@ -61,19 +61,26 @@
     "pnpm run production-deployment-parity:evidence",
     "pnpm run production-worker:activation-evidence",
     "pnpm run production-worker:runtime-proof",
+    "pnpm run production-worker:machine-proof",
     "pnpm run production-worker:readiness-evidence",
     "pnpm run ingest:worker:staging-evidence",
     "pnpm run pr-guardrails:evidence",
     "pnpm run storage:raw-report-remediation-plan",
     "pnpm run storage:raw-report-remediation-acceptance",
+    "pnpm run storage:raw-report-machine-inventory",
+    "pnpm run storage:raw-report-machine-remediation-proof",
     "pnpm run storage:durability-contract",
     "pnpm run check:migrations",
     "pnpm run check:restore-drill-evidence",
     "pnpm run migrations:gate",
+    "pnpm run migrations:machine-proof",
     "pnpm run deploy:rollback-simulation",
     "pnpm run restore:evidence:acceptance",
     "pnpm run restore:accept-human-evidence",
     "pnpm run restore:evidence:current-check",
+    "pnpm run restore:machine-proof",
+    "pnpm run alerting:machine-proof",
+    "pnpm run retention:archive-restore-machine-proof",
     "pnpm run report:runtime-size",
     "pnpm run runtime-size:policy-acceptance",
     "git diff --check",
@@ -479,6 +486,35 @@
       "status": "dry-run-only"
     },
     {
+      "command": "pnpm run production-worker:machine-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-machine-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
+          "generatedAt": "2026-05-22T05:46:48.439Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:46:48.439Z",
+      "status": "fail"
+    },
+    {
       "command": "pnpm run production-worker:readiness-evidence",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -624,6 +660,64 @@
       "status": "not-submitted"
     },
     {
+      "command": "pnpm run storage:raw-report-machine-inventory",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "RAW_REPORT_BYTE_MACHINE_INVENTORY",
+          "generatedAt": "2026-05-22T05:07:27.838Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:07:27.838Z",
+      "status": "fail"
+    },
+    {
+      "command": "pnpm run storage:raw-report-machine-remediation-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
+          "generatedAt": "2026-05-22T05:46:49.479Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:46:49.479Z",
+      "status": "fail"
+    },
+    {
       "command": "pnpm run storage:durability-contract",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -644,12 +738,12 @@
           "exists": true,
           "reportName": "storage-durability-contract",
           "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
-          "generatedAt": "2026-05-22T03:52:31.745Z",
+          "generatedAt": "2026-05-22T05:46:21.310Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T03:52:31.745Z",
+      "latestGeneratedAt": "2026-05-22T05:46:21.310Z",
       "status": null
     },
     {
@@ -702,6 +796,35 @@
       "status": "failed"
     },
     {
+      "command": "pnpm run migrations:machine-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-migration-machine-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-migration-machine-proof.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
+          "generatedAt": "2026-05-22T05:46:51.235Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:46:51.235Z",
+      "status": "fail"
+    },
+    {
       "command": "pnpm run deploy:rollback-simulation",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -722,12 +845,12 @@
           "exists": true,
           "reportName": "deploy-rollback-simulation",
           "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
-          "generatedAt": "2026-05-22T02:48:41.545Z",
+          "generatedAt": "2026-05-22T05:46:43.940Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:48:41.545Z",
+      "latestGeneratedAt": "2026-05-22T05:46:43.940Z",
       "status": "passed"
     },
     {
@@ -818,6 +941,93 @@
       "status": "simulated-only"
     },
     {
+      "command": "pnpm run restore:machine-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-restore-machine-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
+          "generatedAt": "2026-05-22T05:46:47.600Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:46:47.600Z",
+      "status": "fail"
+    },
+    {
+      "command": "pnpm run alerting:machine-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-machine-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
+          "generatedAt": "2026-05-22T05:46:50.410Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:46:50.410Z",
+      "status": "fail"
+    },
+    {
+      "command": "pnpm run retention:archive-restore-machine-proof",
+      "availableInRepository": true,
+      "executedByPromotionPack": false,
+      "result": "evidence-file-present",
+      "resultSource": "generated evidence file",
+      "evidenceFiles": [
+        {
+          "path": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": null,
+          "generatedAt": null,
+          "status": null,
+          "productionProof": false
+        },
+        {
+          "path": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+          "exists": true,
+          "reportName": null,
+          "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
+          "generatedAt": "2026-05-22T05:46:52.581Z",
+          "status": "fail",
+          "productionProof": false
+        }
+      ],
+      "latestGeneratedAt": "2026-05-22T05:46:52.581Z",
+      "status": "fail"
+    },
+    {
       "command": "pnpm run report:runtime-size",
       "availableInRepository": true,
       "executedByPromotionPack": false,
@@ -906,12 +1116,12 @@
           "exists": true,
           "reportName": "production-scale-blocker-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-22T00:40:11.435Z",
+          "generatedAt": "2026-05-22T05:08:00.822Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T00:40:11.435Z",
+      "latestGeneratedAt": "2026-05-22T05:08:00.822Z",
       "status": null
     },
     {
@@ -964,12 +1174,12 @@
           "exists": true,
           "reportName": "ingest-worker-simulated-queue-drain-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T03:34:42.616Z",
+          "generatedAt": "2026-05-22T05:46:24.986Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T03:34:42.616Z",
+      "latestGeneratedAt": "2026-05-22T05:46:24.986Z",
       "status": "passed"
     },
     {
@@ -1080,12 +1290,12 @@
           "exists": true,
           "reportName": "packet-pdf-cache-miss-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T02:48:09.767Z",
+          "generatedAt": "2026-05-22T05:46:09.980Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T02:48:09.767Z",
+      "latestGeneratedAt": "2026-05-22T05:46:09.980Z",
       "status": null
     },
     {
@@ -1138,12 +1348,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-22T04:21:26.508Z",
+          "generatedAt": "2026-05-22T05:46:10.810Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T04:21:26.508Z",
+      "latestGeneratedAt": "2026-05-22T05:46:10.810Z",
       "status": null
     },
     {
@@ -1378,7 +1588,7 @@
       "exists": true,
       "reportName": "production-scale-blocker-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T00:40:11.435Z",
+      "generatedAt": "2026-05-22T05:08:00.822Z",
       "status": null,
       "productionProof": false
     },
@@ -1468,7 +1678,7 @@
       "exists": true,
       "reportName": "ingest-worker-simulated-queue-drain-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T03:34:42.616Z",
+      "generatedAt": "2026-05-22T05:46:24.986Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1684,7 +1894,7 @@
       "exists": true,
       "reportName": "packet-pdf-cache-miss-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T02:48:09.767Z",
+      "generatedAt": "2026-05-22T05:46:09.980Z",
       "status": null,
       "productionProof": false
     },
@@ -1702,7 +1912,7 @@
       "exists": true,
       "reportName": "storage-durability-contract",
       "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
-      "generatedAt": "2026-05-22T03:52:31.745Z",
+      "generatedAt": "2026-05-22T05:46:21.310Z",
       "status": null,
       "productionProof": false
     },
@@ -1720,7 +1930,7 @@
       "exists": true,
       "reportName": "deploy-rollback-simulation",
       "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
-      "generatedAt": "2026-05-22T02:48:41.545Z",
+      "generatedAt": "2026-05-22T05:46:43.940Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1776,6 +1986,24 @@
       "evidenceType": null,
       "generatedAt": "2026-05-22T03:32:34.309Z",
       "status": "dry-run-only",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-machine-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
+      "generatedAt": "2026-05-22T05:46:48.439Z",
+      "status": "fail",
       "productionProof": false
     },
     {
@@ -1846,7 +2074,7 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T04:21:26.508Z",
+      "generatedAt": "2026-05-22T05:46:10.810Z",
       "status": null,
       "productionProof": false
     },
@@ -1866,6 +2094,114 @@
       "evidenceType": "MIGRATION_GATE_EVIDENCE",
       "generatedAt": "2026-05-22T04:21:30.934Z",
       "status": "failed",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-machine-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-migration-machine-proof.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
+      "generatedAt": "2026-05-22T05:46:51.235Z",
+      "status": "fail",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-machine-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
+      "generatedAt": "2026-05-22T05:46:47.600Z",
+      "status": "fail",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-machine-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
+      "generatedAt": "2026-05-22T05:46:50.410Z",
+      "status": "fail",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "RAW_REPORT_BYTE_MACHINE_INVENTORY",
+      "generatedAt": "2026-05-22T05:07:27.838Z",
+      "status": "fail",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
+      "generatedAt": "2026-05-22T05:46:49.479Z",
+      "status": "fail",
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": null,
+      "generatedAt": null,
+      "status": null,
+      "productionProof": false
+    },
+    {
+      "path": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+      "exists": true,
+      "reportName": null,
+      "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
+      "generatedAt": "2026-05-22T05:46:52.581Z",
+      "status": "fail",
       "productionProof": false
     },
     {
@@ -2359,7 +2695,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T04:09:59.934Z",
+      "generatedAt": "2026-05-22T05:31:34.953Z",
       "status": null,
       "productionProof": false
     },
@@ -2389,9 +2725,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-human-production-evidence",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
-    "evidenceHead": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-    "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2407,10 +2743,10 @@
     "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
     "present": true,
     "status": null,
-    "generatedAt": "2026-05-22T03:52:31.745Z",
-    "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-    "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-    "headMatchesTarget": false,
+    "generatedAt": "2026-05-22T05:46:21.310Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
     "manualOnly": false,
@@ -2427,7 +2763,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2443,9 +2779,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
     "status": "failed",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
-    "evidenceHead": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-    "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2461,10 +2797,118 @@
     "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
     "present": true,
     "status": "passed",
-    "generatedAt": "2026-05-22T02:48:41.545Z",
-    "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-    "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-    "headMatchesTarget": false,
+    "generatedAt": "2026-05-22T05:46:43.940Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "restoreMachineProofResult": {
+    "key": "restoreMachineProof",
+    "label": "Disaster recovery restore machine proof",
+    "command": "pnpm run restore:machine-proof",
+    "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+    "present": true,
+    "status": "fail",
+    "generatedAt": "2026-05-22T05:46:47.600Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "productionWorkerMachineProofResult": {
+    "key": "productionWorkerMachineProof",
+    "label": "Production worker runtime machine proof",
+    "command": "pnpm run production-worker:machine-proof",
+    "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+    "present": true,
+    "status": "fail",
+    "generatedAt": "2026-05-22T05:46:48.439Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "rawReportMachineProofResult": {
+    "key": "rawReportMachineProof",
+    "label": "Raw report byte remediation machine proof",
+    "command": "pnpm run storage:raw-report-machine-remediation-proof",
+    "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    "present": true,
+    "status": "fail",
+    "generatedAt": "2026-05-22T05:46:49.479Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "alertingMachineProofResult": {
+    "key": "alertingMachineProof",
+    "label": "Alerting observability machine proof",
+    "command": "pnpm run alerting:machine-proof",
+    "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+    "present": true,
+    "status": "fail",
+    "generatedAt": "2026-05-22T05:46:50.410Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": false,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "migrationMachineProofResult": {
+    "key": "migrationMachineProof",
+    "label": "Migration governance machine proof",
+    "command": "pnpm run migrations:machine-proof",
+    "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
+    "present": true,
+    "status": "fail",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
+    "timestampCurrentForRun": true,
+    "certifyingFlag": false,
+    "manualOnly": false,
+    "skipped": false,
+    "passed": false,
+    "CERTIFYING": false
+  },
+  "retentionArchiveRestoreMachineProofResult": {
+    "key": "retentionArchiveRestoreMachineProof",
+    "label": "Retention archive restore machine proof",
+    "command": "pnpm run retention:archive-restore-machine-proof",
+    "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+    "present": true,
+    "status": "fail",
+    "generatedAt": "2026-05-22T05:46:52.581Z",
+    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
     "manualOnly": false,
@@ -2474,8 +2918,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2506,6 +2950,42 @@
         "label": "Rollback simulation",
         "command": "pnpm run deploy:rollback-simulation",
         "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json"
+      },
+      {
+        "key": "restoreMachineProof",
+        "label": "Disaster recovery restore machine proof",
+        "command": "pnpm run restore:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json"
+      },
+      {
+        "key": "productionWorkerMachineProof",
+        "label": "Production worker runtime machine proof",
+        "command": "pnpm run production-worker:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json"
+      },
+      {
+        "key": "rawReportMachineProof",
+        "label": "Raw report byte remediation machine proof",
+        "command": "pnpm run storage:raw-report-machine-remediation-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json"
+      },
+      {
+        "key": "alertingMachineProof",
+        "label": "Alerting observability machine proof",
+        "command": "pnpm run alerting:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json"
+      },
+      {
+        "key": "migrationMachineProof",
+        "label": "Migration governance machine proof",
+        "command": "pnpm run migrations:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json"
+      },
+      {
+        "key": "retentionArchiveRestoreMachineProof",
+        "label": "Retention archive restore machine proof",
+        "command": "pnpm run retention:archive-restore-machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json"
       }
     ],
     "checks": {
@@ -2516,9 +2996,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-human-production-evidence",
-        "generatedAt": "2026-05-22T04:21:36.456Z",
-        "evidenceHead": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-        "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+        "generatedAt": "2026-05-22T05:50:18.112Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2534,10 +3014,10 @@
         "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
         "present": true,
         "status": null,
-        "generatedAt": "2026-05-22T03:52:31.745Z",
-        "evidenceHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
-        "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-        "headMatchesTarget": false,
+        "generatedAt": "2026-05-22T05:46:21.310Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
         "manualOnly": false,
@@ -2554,7 +3034,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -2570,9 +3050,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
         "status": "failed",
-        "generatedAt": "2026-05-22T04:21:36.456Z",
-        "evidenceHead": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-        "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
+        "generatedAt": "2026-05-22T05:50:18.112Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -2588,10 +3068,118 @@
         "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
         "present": true,
         "status": "passed",
-        "generatedAt": "2026-05-22T02:48:41.545Z",
-        "evidenceHead": "35388f20d9c58282405602a7205a987ece110410",
-        "targetSha": "72a2bbfa97df8498620613ed1e0bf3051735f04f",
-        "headMatchesTarget": false,
+        "generatedAt": "2026-05-22T05:46:43.940Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "restoreMachineProof": {
+        "key": "restoreMachineProof",
+        "label": "Disaster recovery restore machine proof",
+        "command": "pnpm run restore:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+        "present": true,
+        "status": "fail",
+        "generatedAt": "2026-05-22T05:46:47.600Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "productionWorkerMachineProof": {
+        "key": "productionWorkerMachineProof",
+        "label": "Production worker runtime machine proof",
+        "command": "pnpm run production-worker:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+        "present": true,
+        "status": "fail",
+        "generatedAt": "2026-05-22T05:46:48.439Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "rawReportMachineProof": {
+        "key": "rawReportMachineProof",
+        "label": "Raw report byte remediation machine proof",
+        "command": "pnpm run storage:raw-report-machine-remediation-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+        "present": true,
+        "status": "fail",
+        "generatedAt": "2026-05-22T05:46:49.479Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "alertingMachineProof": {
+        "key": "alertingMachineProof",
+        "label": "Alerting observability machine proof",
+        "command": "pnpm run alerting:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+        "present": true,
+        "status": "fail",
+        "generatedAt": "2026-05-22T05:46:50.410Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": false,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "migrationMachineProof": {
+        "key": "migrationMachineProof",
+        "label": "Migration governance machine proof",
+        "command": "pnpm run migrations:machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
+        "present": true,
+        "status": "fail",
+        "generatedAt": "2026-05-22T05:50:18.112Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
+        "timestampCurrentForRun": true,
+        "certifyingFlag": false,
+        "manualOnly": false,
+        "skipped": false,
+        "passed": false,
+        "CERTIFYING": false
+      },
+      "retentionArchiveRestoreMachineProof": {
+        "key": "retentionArchiveRestoreMachineProof",
+        "label": "Retention archive restore machine proof",
+        "command": "pnpm run retention:archive-restore-machine-proof",
+        "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+        "present": true,
+        "status": "fail",
+        "generatedAt": "2026-05-22T05:46:52.581Z",
+        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
         "manualOnly": false,
@@ -2604,7 +3192,12 @@
     "staleChecks": [
       "storageDurability",
       "evidenceLedger",
-      "rollbackSimulation"
+      "rollbackSimulation",
+      "restoreMachineProof",
+      "productionWorkerMachineProof",
+      "rawReportMachineProof",
+      "alertingMachineProof",
+      "retentionArchiveRestoreMachineProof"
     ],
     "nonAutomatedChecks": [
       "queueLiveness"
@@ -2614,27 +3207,297 @@
       "queueLiveness",
       "evidenceLedger",
       "migrationGovernance",
-      "rollbackSimulation"
+      "rollbackSimulation",
+      "restoreMachineProof",
+      "productionWorkerMachineProof",
+      "rawReportMachineProof",
+      "alertingMachineProof",
+      "migrationMachineProof",
+      "retentionArchiveRestoreMachineProof"
     ],
     "reasons": [
       "Queue liveness evidence is manual-only or human-observed.",
       "Queue liveness evidence is not passing and certifying.",
-      "Storage durability evidence HEAD does not match target SHA.",
       "Storage durability evidence timestamp is not current for this promotion-pack run.",
       "Evidence ledger evidence HEAD does not match target SHA.",
       "Evidence ledger evidence timestamp is not current for this promotion-pack run.",
       "Evidence ledger evidence is not passing and certifying.",
       "Migration governance evidence is not passing and certifying.",
-      "Rollback simulation evidence HEAD does not match target SHA.",
       "Rollback simulation evidence timestamp is not current for this promotion-pack run.",
-      "Rollback simulation evidence is not passing and certifying."
+      "Rollback simulation evidence is not passing and certifying.",
+      "Disaster recovery restore machine proof evidence timestamp is not current for this promotion-pack run.",
+      "Disaster recovery restore machine proof evidence is not passing and certifying.",
+      "Production worker runtime machine proof evidence timestamp is not current for this promotion-pack run.",
+      "Production worker runtime machine proof evidence is not passing and certifying.",
+      "Raw report byte remediation machine proof evidence timestamp is not current for this promotion-pack run.",
+      "Raw report byte remediation machine proof evidence is not passing and certifying.",
+      "Alerting observability machine proof evidence timestamp is not current for this promotion-pack run.",
+      "Alerting observability machine proof evidence is not passing and certifying.",
+      "Migration governance machine proof evidence is not passing and certifying.",
+      "Retention archive restore machine proof evidence timestamp is not current for this promotion-pack run.",
+      "Retention archive restore machine proof evidence is not passing and certifying."
     ],
     "certifying": false,
     "CERTIFYING": false
   },
+  "machineProofs": {
+    "restore": {
+      "key": "restore",
+      "label": "Disaster recovery restore machine proof",
+      "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
+      "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
+      "generatedAt": "2026-05-22T05:46:47.600Z",
+      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "status": "fail",
+      "certifying": false,
+      "accepted": false,
+      "validation": {
+        "ok": false,
+        "errors": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "checks[9].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: latest-backup-selected, isolated-restore-target-created, rpo-measured, rto-measured, post-restore-auth-session-check, post-restore-packet-pdf-retrieval-check, post-restore-response-queue-check, cleanup-lifecycle-check, rollback-stop-verification, isolated-restore-target-destroyed)."
+        ],
+        "sensitiveFindingCount": 0,
+        "stale": false
+      },
+      "metadata": {
+        "blockerIdsClosedWhenCertifying": [
+          "L10-P1-002"
+        ],
+        "acceptedCheckSet": "default",
+        "alertingProofPath": null,
+        "databaseReliable": false,
+        "sanitizedInventoryAccepted": false,
+        "temporaryAllowlistActive": false,
+        "releaseBlockingFindingCount": null
+      }
+    },
+    "productionWorker": {
+      "key": "productionWorker",
+      "label": "Production worker runtime machine proof",
+      "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
+      "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+      "generatedAt": "2026-05-22T05:46:48.439Z",
+      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "status": "fail",
+      "certifying": false,
+      "accepted": false,
+      "validation": {
+        "ok": false,
+        "errors": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: queue-depth-before-captured, worker-liveness-verified, bounded-max-jobs-enforced, synthetic-or-canary-job-processed, queue-depth-after-captured, processed-count-captured, failed-dead-letter-stale-counts-captured, worker-stop-rollback-verified, canary-cleanup-verified)."
+        ],
+        "sensitiveFindingCount": 0,
+        "stale": false
+      },
+      "metadata": {
+        "blockerIdsClosedWhenCertifying": [
+          "L10-P1-003"
+        ],
+        "acceptedCheckSet": "default",
+        "alertingProofPath": null,
+        "databaseReliable": false,
+        "sanitizedInventoryAccepted": false,
+        "temporaryAllowlistActive": false,
+        "releaseBlockingFindingCount": null
+      }
+    },
+    "rawReport": {
+      "key": "rawReport",
+      "label": "Raw report byte remediation machine proof",
+      "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
+      "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+      "generatedAt": "2026-05-22T05:46:49.479Z",
+      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "status": "fail",
+      "certifying": false,
+      "accepted": false,
+      "validation": {
+        "ok": false,
+        "errors": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: db-connectivity-reliable, sanitized-inventory-accepted, remediation-policy-verified, unresolved-count-zero-or-policy-accepted, remediated-count-recorded, opaque-hashes-only, no-raw-bytes-or-pii-printed, rollback-recovery-notes-recorded).",
+          "raw report machine proof requires reliable database connectivity.",
+          "raw report machine proof requires accepted sanitized inventory."
+        ],
+        "sensitiveFindingCount": 0,
+        "stale": false
+      },
+      "metadata": {
+        "blockerIdsClosedWhenCertifying": [
+          "L10-P1-004"
+        ],
+        "acceptedCheckSet": "default",
+        "alertingProofPath": null,
+        "databaseReliable": false,
+        "sanitizedInventoryAccepted": false,
+        "temporaryAllowlistActive": false,
+        "releaseBlockingFindingCount": null
+      }
+    },
+    "alerting": {
+      "key": "alerting",
+      "label": "Alerting observability machine proof",
+      "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
+      "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+      "generatedAt": "2026-05-22T05:46:50.410Z",
+      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "status": "fail",
+      "certifying": false,
+      "accepted": false,
+      "validation": {
+        "ok": false,
+        "errors": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "checks[8].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (live-alert-delivery: synthetic-alert-triggered, alert-delivery-verified, sanitized-channel-id-recorded, correlation-id-recorded, machine-acknowledgment-verified, retry-or-failure-behavior-recorded, response-ops-readiness-verified, scheduler-status-verified, no-webhook-or-token-printed | certifying-formal-exclusion: formal-exclusion-file-validated, policy-allows-certifying-exclusion, compensating-controls-validated, operator-approval-machine-verified, exclusion-not-stale, next-review-recorded, exclusion-does-not-overclaim-production-pass, no-webhook-or-token-printed)."
+        ],
+        "sensitiveFindingCount": 0,
+        "stale": false
+      },
+      "metadata": {
+        "blockerIdsClosedWhenCertifying": [
+          "L10-P1-005"
+        ],
+        "acceptedCheckSet": "live-alert-delivery",
+        "alertingProofPath": null,
+        "databaseReliable": false,
+        "sanitizedInventoryAccepted": false,
+        "temporaryAllowlistActive": false,
+        "releaseBlockingFindingCount": null
+      }
+    },
+    "migration": {
+      "key": "migration",
+      "label": "Migration governance machine proof",
+      "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
+      "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
+      "generatedAt": "2026-05-22T05:50:18.112Z",
+      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "status": "fail",
+      "certifying": false,
+      "accepted": false,
+      "validation": {
+        "ok": false,
+        "errors": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[3].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: migration-gate-certifying, no-temporary-unresolved-allowlist, no-expired-allowlist, no-release-blocking-findings, non-mutating-gate)."
+        ],
+        "sensitiveFindingCount": 0,
+        "stale": false
+      },
+      "metadata": {
+        "blockerIdsClosedWhenCertifying": [
+          "L10-P1-006"
+        ],
+        "acceptedCheckSet": null,
+        "alertingProofPath": null,
+        "databaseReliable": false,
+        "sanitizedInventoryAccepted": false,
+        "temporaryAllowlistActive": true,
+        "releaseBlockingFindingCount": 12
+      }
+    },
+    "retentionArchiveRestore": {
+      "key": "retentionArchiveRestore",
+      "label": "Retention archive restore machine proof",
+      "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
+      "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+      "generatedAt": "2026-05-22T05:46:52.581Z",
+      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "status": "fail",
+      "certifying": false,
+      "accepted": false,
+      "validation": {
+        "ok": false,
+        "errors": [
+          "status must be pass for certifying machine evidence.",
+          "certifying must be true.",
+          "CERTIFYING must be true.",
+          "checks[0].status must be pass.",
+          "checks[1].status must be pass.",
+          "checks[2].status must be pass.",
+          "checks[3].status must be pass.",
+          "checks[4].status must be pass.",
+          "checks[5].status must be pass.",
+          "checks[6].status must be pass.",
+          "checks[7].status must be pass.",
+          "failures must be empty for certifying evidence.",
+          "machine proof is missing a complete accepted check set (default: safe-archive-candidate-selected, archive-created-or-selected, isolated-restore-target-created, archive-restore-integrity-verified, no-pii-exposed, lifecycle-cleanup-verified, rollback-recovery-notes-recorded, isolated-restore-target-destroyed)."
+        ],
+        "sensitiveFindingCount": 0,
+        "stale": false
+      },
+      "metadata": {
+        "blockerIdsClosedWhenCertifying": [
+          "retention-archive-restore"
+        ],
+        "acceptedCheckSet": "default",
+        "alertingProofPath": null,
+        "databaseReliable": false,
+        "sanitizedInventoryAccepted": false,
+        "temporaryAllowlistActive": false,
+        "releaseBlockingFindingCount": null
+      }
+    }
+  },
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -2654,7 +3517,7 @@
   },
   "restoreEvidenceAcceptance": {
     "reportName": "restore-evidence-acceptance",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -2693,7 +3556,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -2819,7 +3682,7 @@
   },
   "productionWorkerRuntimeProof": {
     "reportName": "production-worker-runtime-proof",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "dry-run-only",
     "accepted": false,
     "productionProof": false,
@@ -2860,7 +3723,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -2884,7 +3747,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -2978,7 +3841,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3011,7 +3874,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -3073,7 +3936,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -3250,7 +4113,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "failed",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
@@ -3291,7 +4154,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T04:21:36.456Z",
+    "generatedAt": "2026-05-22T05:50:18.112Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -3334,12 +4197,11 @@
       "severity": "Critical",
       "area": "Disaster recovery",
       "currentStatus": "requires-human-proof",
-      "classification": "human proof required",
-      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized restore machine proof with isolated target, RPO/RTO, post-restore checks, cleanup, and rollback verification.",
       "proofCategories": [
-        "human-observed",
-        "automated-local",
-        "simulated"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
@@ -3350,7 +4212,9 @@
         "pnpm run restore:evidence:current-check",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
-        "pnpm run response:soak-check"
+        "pnpm run response:soak-check",
+        "pnpm run restore:machine-proof",
+        "pnpm run restore:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "simulated restore proof represented as completed disaster recovery",
@@ -3377,8 +4241,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3389,11 +4254,10 @@
       "severity": "Critical",
       "area": "Production ingest runtime",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized production worker runtime machine proof with bounded queue processing, queue depth before/after, liveness, counts, cleanup, and stop/rollback verification.",
       "proofCategories": [
-        "simulated",
-        "staging",
+        "machine-attested",
         "automated-local"
       ],
       "allowedProofCommands": [
@@ -3409,7 +4273,9 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run operator:dashboard",
-        "pnpm run test:api"
+        "pnpm run test:api",
+        "pnpm run production-worker:machine-proof",
+        "pnpm run production-worker:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "unapproved production worker activation",
@@ -3438,8 +4304,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
+      "recommendedNextAction": "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
       "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3486,6 +4353,7 @@
       ],
       "recommendedNextAction": "Run the bounded measured local or staging-safe baseline with synthetic fixtures and release-blocking thresholds; keep production load forbidden.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3532,6 +4400,7 @@
       ],
       "recommendedNextAction": "Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3567,6 +4436,7 @@
       ],
       "recommendedNextAction": "Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3577,12 +4447,11 @@
       "severity": "High",
       "area": "Historical raw report bytes",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized raw report byte remediation machine proof with reliable DB connectivity, sanitized inventory, remediation policy verification, and no raw bytes or PII.",
       "proofCategories": [
-        "automated-local",
-        "staging",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
@@ -3594,7 +4463,10 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
-        "pnpm run operator:dashboard"
+        "pnpm run operator:dashboard",
+        "pnpm run storage:raw-report-machine-inventory",
+        "pnpm run storage:raw-report-machine-remediation-proof",
+        "pnpm run storage:raw-report-machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "silent historical migration",
@@ -3618,8 +4490,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3654,6 +4527,7 @@
       ],
       "recommendedNextAction": "Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3704,6 +4578,7 @@
       ],
       "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3714,12 +4589,11 @@
       "severity": "High",
       "area": "Observability/alerting",
       "currentStatus": "simulated-proof-only",
-      "classification": "simulated proof only",
-      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.",
       "proofCategories": [
-        "automated-local",
-        "simulated",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
@@ -3730,7 +4604,9 @@
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+        "pnpm run alerting:machine-proof",
+        "pnpm run alerting:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
@@ -3756,8 +4632,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
+      "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
       "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3768,9 +4645,10 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
       "proofCategories": [
+        "machine-attested",
         "automated-local"
       ],
       "allowedProofCommands": [
@@ -3779,7 +4657,9 @@
         "pnpm run migrations:gate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
-        "pnpm run typecheck"
+        "pnpm run typecheck",
+        "pnpm run migrations:machine-proof",
+        "pnpm run migrations:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "runtime DDL changes",
@@ -3799,8 +4679,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.",
+      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
       "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3861,6 +4742,7 @@
       ],
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete.",
       "humanProofRequired": true,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3894,6 +4776,7 @@
       ],
       "recommendedNextAction": "Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3934,6 +4817,7 @@
       ],
       "recommendedNextAction": "Keep parser-test list metadata-only; use admin-only get/export paths for raw extracted text workflows and keep UI detail hydration covered by tests.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -3972,6 +4856,7 @@
       ],
       "recommendedNextAction": "Keep signature list metadata-only; use owner/admin get-by-id detail when signature image data is required.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4010,6 +4895,7 @@
       ],
       "recommendedNextAction": "Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4056,6 +4942,7 @@
       ],
       "recommendedNextAction": "Run bounded measured local or staging-safe load and record sanitized DB pool configured/observed signals or an explicit unavailable reason.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4103,6 +4990,7 @@
       ],
       "recommendedNextAction": "Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4148,6 +5036,7 @@
       ],
       "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made."
@@ -4185,6 +5074,7 @@
       ],
       "recommendedNextAction": "Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4232,6 +5122,7 @@
       ],
       "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4294,6 +5185,7 @@
       ],
       "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production deployment parity evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4304,12 +5196,11 @@
       "severity": "Medium",
       "area": "Retention archive/restore proof",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
       "proofCategories": [
-        "automated-local",
-        "simulated",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run retention:archive-restore:simulated",
@@ -4318,7 +5209,9 @@
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
-        "pnpm run operator:dashboard"
+        "pnpm run operator:dashboard",
+        "pnpm run retention:archive-restore-machine-proof",
+        "pnpm run retention:archive-restore-machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "SIMULATED retention proof represented as physical archive/restore completion",
@@ -4340,8 +5233,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4377,6 +5271,7 @@
       ],
       "recommendedNextAction": "Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4414,6 +5309,7 @@
       ],
       "recommendedNextAction": "Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4454,6 +5350,7 @@
       ],
       "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4466,12 +5363,11 @@
       "severity": "Critical",
       "area": "Disaster recovery",
       "currentStatus": "requires-human-proof",
-      "classification": "human proof required",
-      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized restore machine proof with isolated target, RPO/RTO, post-restore checks, cleanup, and rollback verification.",
       "proofCategories": [
-        "human-observed",
-        "automated-local",
-        "simulated"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
@@ -4482,7 +5378,9 @@
         "pnpm run restore:evidence:current-check",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
-        "pnpm run response:soak-check"
+        "pnpm run response:soak-check",
+        "pnpm run restore:machine-proof",
+        "pnpm run restore:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "simulated restore proof represented as completed disaster recovery",
@@ -4509,8 +5407,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4521,11 +5420,10 @@
       "severity": "Critical",
       "area": "Production ingest runtime",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "SIMULATED worker queue-drain proof exists and a default-off production-scoped bounded activation plan is guarded by tests; actual production activation and queue-depth evidence are still required before production-fixed status.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized production worker runtime machine proof with bounded queue processing, queue depth before/after, liveness, counts, cleanup, and stop/rollback verification.",
       "proofCategories": [
-        "simulated",
-        "staging",
+        "machine-attested",
         "automated-local"
       ],
       "allowedProofCommands": [
@@ -4541,7 +5439,9 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
         "pnpm run operator:dashboard",
-        "pnpm run test:api"
+        "pnpm run test:api",
+        "pnpm run production-worker:machine-proof",
+        "pnpm run production-worker:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "unapproved production worker activation",
@@ -4570,8 +5470,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep production worker execution default-off; use dry-run first, then only run bounded production apply after explicit operator approval and record queue-depth before/after evidence.",
+      "recommendedNextAction": "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
       "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4582,12 +5483,11 @@
       "severity": "High",
       "area": "Historical raw report bytes",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized raw report byte remediation machine proof with reliable DB connectivity, sanitized inventory, remediation policy verification, and no raw bytes or PII.",
       "proofCategories": [
-        "automated-local",
-        "staging",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
@@ -4599,7 +5499,10 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
-        "pnpm run operator:dashboard"
+        "pnpm run operator:dashboard",
+        "pnpm run storage:raw-report-machine-inventory",
+        "pnpm run storage:raw-report-machine-remediation-proof",
+        "pnpm run storage:raw-report-machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "silent historical migration",
@@ -4623,8 +5526,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4635,12 +5539,11 @@
       "severity": "High",
       "area": "Observability/alerting",
       "currentStatus": "simulated-proof-only",
-      "classification": "simulated proof only",
-      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.",
       "proofCategories": [
-        "automated-local",
-        "simulated",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run alerts:dry-run",
@@ -4651,7 +5554,9 @@
         "pnpm run response:orchestration-check",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+        "pnpm run alerting:machine-proof",
+        "pnpm run alerting:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "SIMULATED alert proof represented as live alert delivery",
@@ -4677,8 +5582,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
+      "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
       "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4689,9 +5595,10 @@
       "severity": "High",
       "area": "Migration governance",
       "currentStatus": "partial",
-      "classification": "partial",
-      "proofTypeRequired": "Accepted non-mutating migration gate policy evidence. Temporary runtime ensure allowlist entries must include owner, reason, expiry, and CERTIFYING:false; blocker closure requires CERTIFYING:true after allowlist removal.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
       "proofCategories": [
+        "machine-attested",
         "automated-local"
       ],
       "allowedProofCommands": [
@@ -4700,7 +5607,9 @@
         "pnpm run migrations:gate",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
-        "pnpm run typecheck"
+        "pnpm run typecheck",
+        "pnpm run migrations:machine-proof",
+        "pnpm run migrations:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "runtime DDL changes",
@@ -4720,8 +5629,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Keep migrations:gate non-mutating as the production promotion gate, attach latest migration gate evidence to promotion decisions, and convert temporary runtime ensure allowlist entries to reviewed additive migration ledger entries one workstream at a time.",
+      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
       "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4732,12 +5642,11 @@
       "severity": "Medium",
       "area": "Retention archive/restore proof",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
       "proofCategories": [
-        "automated-local",
-        "simulated",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run retention:archive-restore:simulated",
@@ -4746,7 +5655,9 @@
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
-        "pnpm run operator:dashboard"
+        "pnpm run operator:dashboard",
+        "pnpm run retention:archive-restore-machine-proof",
+        "pnpm run retention:archive-restore-machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "SIMULATED retention proof represented as physical archive/restore completion",
@@ -4768,8 +5679,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4794,76 +5706,21 @@
       "info": 8
     }
   },
-  "simulatedProofOnlyChecks": [
-    {
-      "number": 9,
-      "title": "Observability/alerting",
-      "severity": "High",
-      "area": "Observability/alerting",
-      "currentStatus": "simulated-proof-only",
-      "classification": "simulated proof only",
-      "proofTypeRequired": "Sanitized dashboard metrics plus SIMULATED external alert dry-run/mock proof now exist; live external alert proof or accepted exclusion remains required for operations.",
-      "proofCategories": [
-        "automated-local",
-        "simulated",
-        "human-observed"
-      ],
-      "allowedProofCommands": [
-        "pnpm run alerts:dry-run",
-        "pnpm run alerts:exclusion:validate",
-        "pnpm run response-ops:readiness-evidence",
-        "pnpm run response:ops-readiness-evidence",
-        "pnpm run operator:dashboard",
-        "pnpm run response:orchestration-check",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
-        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts"
-      ],
-      "forbiddenProofTypes": [
-        "SIMULATED alert proof represented as live alert delivery",
-        "real external delivery",
-        "formal exclusion without operator acknowledgement",
-        "PII alert payloads",
-        "provider credentials",
-        "dashboard PASS alone"
-      ],
-      "relatedEvidenceOutputPaths": [
-        "docs/production-observability-metrics.md",
-        "docs/production-scale/alerting-exclusion-template.md",
-        "docs/production-scale/evidence/latest-alerts-dry-run.md",
-        "docs/production-scale/evidence/latest-alerts-dry-run.json",
-        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
-        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
-        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
-        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
-        "docs/production-scale/evidence/live-alert-proof.md",
-        "docs/production-scale/evidence/live-alert-proof.json",
-        "docs/production-scale/evidence/latest-response-ops-readiness.md",
-        "docs/production-scale/evidence/latest-response-ops-readiness.json",
-        "docs/production-scale/evidence/latest-production-scale-evidence.md",
-        "docs/production-scale/evidence/latest-production-scale-evidence.json"
-      ],
-      "recommendedNextAction": "Keep live external alerting disabled unless separately configured and proven; use this dry-run plus an accepted exclusion if no provider is used.",
-      "humanProofRequired": false,
-      "simulatedProofAcceptable": true,
-      "acceptedHumanEvidence": null,
-      "waiverReason": null
-    }
-  ],
+  "simulatedProofOnlyChecks": [],
   "stagingProofOnlyChecks": [],
-  "humanRequiredProof": [
+  "humanRequiredProof": [],
+  "machineRequiredProof": [
     {
       "number": 1,
       "title": "Disaster recovery",
       "severity": "Critical",
       "area": "Disaster recovery",
       "currentStatus": "requires-human-proof",
-      "classification": "human proof required",
-      "proofTypeRequired": "Human-observed restore drill evidence with sanitized RPO/RTO and post-restore checks.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized restore machine proof with isolated target, RPO/RTO, post-restore checks, cleanup, and rollback verification.",
       "proofCategories": [
-        "human-observed",
-        "automated-local",
-        "simulated"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run restore:drill:simulated",
@@ -4874,7 +5731,9 @@
         "pnpm run restore:evidence:current-check",
         "pnpm run test:golden-path",
         "pnpm run operator:dashboard",
-        "pnpm run response:soak-check"
+        "pnpm run response:soak-check",
+        "pnpm run restore:machine-proof",
+        "pnpm run restore:machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "simulated restore proof represented as completed disaster recovery",
@@ -4901,8 +5760,72 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use simulated proof only for autonomous guard coverage; human operator still must perform a restore drill and provide sanitized signed evidence.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
+      "waiverReason": null
+    },
+    {
+      "number": 2,
+      "title": "Production ingest runtime",
+      "severity": "Critical",
+      "area": "Production ingest runtime",
+      "currentStatus": "partial",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized production worker runtime machine proof with bounded queue processing, queue depth before/after, liveness, counts, cleanup, and stop/rollback verification.",
+      "proofCategories": [
+        "machine-attested",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run ingest:worker:simulated-proof",
+        "pnpm run ingest:worker:staging-evidence",
+        "pnpm run production-worker:activation-plan",
+        "pnpm run production-worker:activation-evidence",
+        "pnpm run production-worker:runtime-proof",
+        "pnpm run production-worker:runtime-proof-template",
+        "pnpm run production-worker:readiness-evidence",
+        "pnpm run ingest:worker -- --dry-run --max-jobs 1 --concurrency 1",
+        "pnpm run staging:ingest-worker -- --dry-run",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/ingest-processing-worker-script.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/deploy-production-workflow.spec.ts",
+        "pnpm run operator:dashboard",
+        "pnpm run test:api",
+        "pnpm run production-worker:machine-proof",
+        "pnpm run production-worker:machine-proof:validate"
+      ],
+      "forbiddenProofTypes": [
+        "unapproved production worker activation",
+        "production queue mutation without explicit production apply guards",
+        "live provider calls",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/staging-ingest-worker-operation.md",
+        "docs/production-ingest-worker-activation.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.md",
+        "docs/production-scale/evidence/latest-ingest-worker-simulated.json",
+        "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.md",
+        "docs/production-scale/evidence/latest-staging-ingest-worker-evidence.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-plan.json",
+        "docs/production-scale/evidence/latest-production-worker-activation-evidence.md",
+        "docs/production-scale/evidence/latest-production-worker-activation-evidence.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.md",
+        "docs/production-scale/evidence/production-worker-runtime-proof-template.json",
+        "docs/production-scale/evidence/production-worker-runtime-proof-submission.json",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.md",
+        "docs/production-scale/evidence/latest-production-worker-runtime-proof.json",
+        "docs/production-scale/evidence/latest-production-worker-readiness.md",
+        "docs/production-scale/evidence/latest-production-worker-readiness.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4913,12 +5836,11 @@
       "severity": "High",
       "area": "Historical raw report bytes",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "Sanitized non-destructive inventory, dry-run remediation plan, and accepted operator remediation evidence for old inline rows while new rows stay reference-based.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized raw report byte remediation machine proof with reliable DB connectivity, sanitized inventory, remediation policy verification, and no raw bytes or PII.",
       "proofCategories": [
-        "automated-local",
-        "staging",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run storage:raw-report-inventory",
@@ -4930,7 +5852,10 @@
         "pnpm exec vitest run --config vitest.config.ts tests/unit/evidence-attachment-storage.spec.ts",
         "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
         "pnpm run test:api",
-        "pnpm run operator:dashboard"
+        "pnpm run operator:dashboard",
+        "pnpm run storage:raw-report-machine-inventory",
+        "pnpm run storage:raw-report-machine-remediation-proof",
+        "pnpm run storage:raw-report-machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "silent historical migration",
@@ -4954,8 +5879,112 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use the sanitized inventory and dry-run plan to run a separately approved operator remediation process, then submit sanitized acceptance evidence before classifying this blocker fixed.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
+      "simulatedProofAcceptable": false,
+      "acceptedHumanEvidence": null,
+      "waiverReason": null
+    },
+    {
+      "number": 9,
+      "title": "Observability/alerting",
+      "severity": "High",
+      "area": "Observability/alerting",
+      "currentStatus": "simulated-proof-only",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.",
+      "proofCategories": [
+        "machine-attested",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run alerts:dry-run",
+        "pnpm run alerts:exclusion:validate",
+        "pnpm run response-ops:readiness-evidence",
+        "pnpm run response:ops-readiness-evidence",
+        "pnpm run operator:dashboard",
+        "pnpm run response:orchestration-check",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/alerts-dry-run.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/response-ops-readiness-evidence.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/operator-regression-dashboard.spec.ts",
+        "pnpm run alerting:machine-proof",
+        "pnpm run alerting:machine-proof:validate"
+      ],
+      "forbiddenProofTypes": [
+        "SIMULATED alert proof represented as live alert delivery",
+        "real external delivery",
+        "formal exclusion without operator acknowledgement",
+        "PII alert payloads",
+        "provider credentials",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/production-observability-metrics.md",
+        "docs/production-scale/alerting-exclusion-template.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.md",
+        "docs/production-scale/evidence/latest-alerts-dry-run.json",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.md",
+        "docs/production-scale/evidence/alerting-exclusion-evidence.json",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.md",
+        "docs/production-scale/evidence/latest-alerting-exclusion-validation.json",
+        "docs/production-scale/evidence/live-alert-proof.md",
+        "docs/production-scale/evidence/live-alert-proof.json",
+        "docs/production-scale/evidence/latest-response-ops-readiness.md",
+        "docs/production-scale/evidence/latest-response-ops-readiness.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
+      "simulatedProofAcceptable": true,
+      "acceptedHumanEvidence": null,
+      "waiverReason": null
+    },
+    {
+      "number": 10,
+      "title": "Migration governance",
+      "severity": "High",
+      "area": "Migration governance",
+      "currentStatus": "partial",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+      "proofCategories": [
+        "machine-attested",
+        "automated-local"
+      ],
+      "allowedProofCommands": [
+        "pnpm run check:migrations",
+        "pnpm run migrations:evidence",
+        "pnpm run migrations:gate",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-checker.spec.ts",
+        "pnpm exec vitest run --config vitest.config.ts tests/unit/migration-gate.spec.ts",
+        "pnpm run typecheck",
+        "pnpm run migrations:machine-proof",
+        "pnpm run migrations:machine-proof:validate"
+      ],
+      "forbiddenProofTypes": [
+        "runtime DDL changes",
+        "schema mutation without review",
+        "production DB introspection",
+        "policy closure while temporary runtime ensure allowlist entries remain active",
+        "dashboard PASS alone"
+      ],
+      "relatedEvidenceOutputPaths": [
+        "docs/database-migration-policy.md",
+        "docs/production-scale/migration-governance-policy.json",
+        "migrations/0000-runtime-schema-inventory.md",
+        "docs/production-scale/evidence/latest-migration-governance.md",
+        "docs/production-scale/evidence/latest-migration-governance.json",
+        "docs/production-scale/evidence/latest-migration-gate.md",
+        "docs/production-scale/evidence/latest-migration-gate.json",
+        "docs/production-scale/evidence/latest-production-scale-evidence.md",
+        "docs/production-scale/evidence/latest-production-scale-evidence.json"
+      ],
+      "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4966,12 +5995,11 @@
       "severity": "Medium",
       "area": "Retention archive/restore proof",
       "currentStatus": "partial",
-      "classification": "human proof required",
-      "proofTypeRequired": "SIMULATED retention archive/restore lifecycle proof exists, but human-observed physical archive/restore lifecycle evidence remains required.",
+      "classification": "machine proof required",
+      "proofTypeRequired": "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
       "proofCategories": [
-        "automated-local",
-        "simulated",
-        "human-observed"
+        "machine-attested",
+        "automated-local"
       ],
       "allowedProofCommands": [
         "pnpm run retention:archive-restore:simulated",
@@ -4980,7 +6008,9 @@
         "pnpm run check:restore-drill-evidence",
         "pnpm run restore:accept-human-evidence",
         "pnpm run restore:evidence:current-check",
-        "pnpm run operator:dashboard"
+        "pnpm run operator:dashboard",
+        "pnpm run retention:archive-restore-machine-proof",
+        "pnpm run retention:archive-restore-machine-proof:validate"
       ],
       "forbiddenProofTypes": [
         "SIMULATED retention proof represented as physical archive/restore completion",
@@ -5002,8 +6032,9 @@
         "docs/production-scale/evidence/latest-production-scale-evidence.md",
         "docs/production-scale/evidence/latest-production-scale-evidence.json"
       ],
-      "recommendedNextAction": "Use SIMULATED proof only for autonomous guard coverage; complete human-observed physical archive/restore lifecycle evidence before any production recoverability claim.",
-      "humanProofRequired": true,
+      "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
+      "humanProofRequired": false,
+      "machineProofRequired": true,
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5051,6 +6082,7 @@
       ],
       "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
+      "machineProofRequired": false,
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made."
@@ -5059,7 +6091,7 @@
   "readinessClassification": {
     "value": "limited beta",
     "canPromoteProductionAtScale": false,
-    "reason": "Critical/high, simulated-only, human-required, partial, or open blockers remain."
+    "reason": "Critical/high, machine-required, simulated-only, human-required, partial, or open blockers remain."
   },
   "canPromoteProductionAtScale": false,
   "safety": {
@@ -5077,6 +6109,7 @@
     "Production activation requires operator approval.",
     "Historical raw report remediation requires accepted sanitized operator evidence.",
     "Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
+    "Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
     "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",

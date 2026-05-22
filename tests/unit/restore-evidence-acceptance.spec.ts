@@ -226,7 +226,7 @@ describe("restore evidence acceptance", () => {
     expect(report.errors).toContain("postRestoreChecks.packetPdfRetrieval is required.");
   });
 
-  it("keeps promotion-pack disaster recovery blocker open until accepted production restore evidence exists", () => {
+  it("keeps promotion-pack disaster recovery blocker machine-required until accepted machine proof exists", () => {
     const report = buildProductionPromotionPackReport({
       rootDir: process.cwd(),
       dashboardReport: {
@@ -263,7 +263,7 @@ describe("restore evidence acceptance", () => {
     });
     const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
 
-    expect(blocker1?.classification).toBe("human proof required");
+    expect(blocker1?.classification).toBe("machine proof required");
     expect(report.restoreEvidenceAcceptance).toMatchObject({
       accepted: false,
       productionProof: false,

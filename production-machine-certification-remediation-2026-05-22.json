@@ -1,0 +1,226 @@
+{
+  "reportName": "production-machine-certification-remediation",
+  "generatedAt": "2026-05-22T05:32:07.715Z",
+  "auditSource": [
+    "production-at-scale-level-10-audit-2026-05-22.md",
+    "production-at-scale-level-10-audit-2026-05-22.json"
+  ],
+  "status": {
+    "CERTIFYING": false,
+    "productionPromotion": "NOT SAFE",
+    "canPromoteProductionAtScale": false,
+    "productionMutationPerformed": false,
+    "secretsOrPiiIntroduced": false
+  },
+  "summary": "Machine-attested, sanitized evidence gates now exist for the prior human-observed proof blockers. The gates fail closed and do not set CERTIFYING:true without current non-interactive proof artifacts.",
+  "blockersClosed": [],
+  "blockersOpen": [
+    {
+      "id": "L10-P1-001",
+      "title": "Production promotion pack is non-certifying",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "reason": "latest-production-promotion-pack.json remains CERTIFYING:false because required machine proof gates are not certifying."
+    },
+    {
+      "id": "L10-P1-002",
+      "title": "Disaster recovery proof",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "missingMachineInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
+      "evidence": "docs/production-scale/evidence/latest-restore-machine-proof.json"
+    },
+    {
+      "id": "L10-P1-003",
+      "title": "Production ingest runtime proof",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "missingMachineInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+      ],
+      "evidence": "docs/production-scale/evidence/latest-production-worker-machine-proof.json"
+    },
+    {
+      "id": "L10-P1-004",
+      "title": "Historical raw report byte remediation",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "missingMachineInputs": [
+        "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+      ],
+      "evidence": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json"
+    },
+    {
+      "id": "L10-P1-005",
+      "title": "Observability and alerting proof",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "missingMachineInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ],
+      "evidence": "docs/production-scale/evidence/latest-alerting-machine-proof.json"
+    },
+    {
+      "id": "L10-P1-006",
+      "title": "Migration governance temporary allowlist",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "missingMachineInputs": [],
+      "reason": "Migration machine proof remains non-certifying because 12 temporary allowlist residuals are still release-blocking.",
+      "evidence": "docs/production-scale/evidence/latest-migration-machine-proof.json"
+    },
+    {
+      "id": "retention-archive-restore",
+      "title": "Retention archive/restore proof",
+      "machineAttested": true,
+      "simulatedOnly": false,
+      "requiresHumanInput": false,
+      "missingMachineInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
+      "evidence": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json"
+    }
+  ],
+  "machineProofs": [
+    {
+      "name": "restore",
+      "command": "pnpm run restore:machine-proof",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-restore-machine-proof.json"
+    },
+    {
+      "name": "production-worker",
+      "command": "pnpm run production-worker:machine-proof",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-production-worker-machine-proof.json"
+    },
+    {
+      "name": "raw-report-inventory",
+      "command": "pnpm run storage:raw-report-machine-inventory",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.json"
+    },
+    {
+      "name": "raw-report-remediation",
+      "command": "pnpm run storage:raw-report-machine-remediation-proof",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json"
+    },
+    {
+      "name": "alerting",
+      "command": "pnpm run alerting:machine-proof",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-alerting-machine-proof.json"
+    },
+    {
+      "name": "migration",
+      "command": "pnpm run migrations:machine-proof",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-migration-machine-proof.json"
+    },
+    {
+      "name": "retention-archive-restore",
+      "command": "pnpm run retention:archive-restore-machine-proof",
+      "status": "fail-closed",
+      "certifying": false,
+      "evidence": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json"
+    }
+  ],
+  "commandsRun": [
+    { "command": "git status --short --branch", "status": "pass" },
+    { "command": "git diff --check", "status": "pass" },
+    { "command": "pnpm install --frozen-lockfile", "status": "pass" },
+    { "command": "pnpm run typecheck", "status": "pass" },
+    { "command": "pnpm run build", "status": "pass" },
+    { "command": "pnpm run check", "status": "pass" },
+    { "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/machine-evidence-schema.spec.ts tests/unit/machine-proof-scripts.spec.ts tests/unit/production-promotion-pack.spec.ts tests/unit/production-scale-certification.spec.ts", "status": "pass" },
+    { "command": "pnpm exec vitest run --config vitest.config.ts", "status": "not-clean", "details": "Full Vitest passed test files but reported an intermittent worker process error on one run, and one response queue test failure that passed in isolation on another run." },
+    { "command": "pnpm run production-scale:evidence", "status": "pass" },
+    { "command": "pnpm run production-scale:certify", "status": "accurate-fail-closed" },
+    { "command": "pnpm run production-scale:promotion-pack", "status": "pass-accurate-certifying-false" },
+    { "command": "pnpm run production:readiness -- --json", "status": "pass-review-required" },
+    { "command": "pnpm run restore:machine-proof", "status": "fail-closed" },
+    { "command": "pnpm run production-worker:machine-proof", "status": "fail-closed" },
+    { "command": "pnpm run storage:raw-report-machine-inventory", "status": "fail-closed" },
+    { "command": "pnpm run storage:raw-report-machine-remediation-proof", "status": "fail-closed" },
+    { "command": "pnpm run alerting:machine-proof", "status": "fail-closed" },
+    { "command": "pnpm run migrations:machine-proof", "status": "fail-closed" },
+    { "command": "pnpm run retention:archive-restore-machine-proof", "status": "fail-closed" }
+  ],
+  "filesChanged": [
+    "package.json",
+    "scripts/lib/productionEvidenceSchema.mjs",
+    "scripts/lib/sanitizeProductionEvidence.mjs",
+    "scripts/lib/validateMachineEvidence.mjs",
+    "scripts/lib/machineProofScript.mjs",
+    "scripts/restore-machine-proof.mjs",
+    "scripts/restore-machine-proof-validate.mjs",
+    "scripts/production-worker-machine-proof.mjs",
+    "scripts/production-worker-machine-proof-validate.mjs",
+    "scripts/storage-raw-report-machine-inventory.mjs",
+    "scripts/storage-raw-report-machine-remediation-proof.mjs",
+    "scripts/storage-raw-report-machine-proof-validate.mjs",
+    "scripts/alerting-machine-proof.mjs",
+    "scripts/alerting-machine-proof-validate.mjs",
+    "scripts/migration-machine-proof.mjs",
+    "scripts/migration-machine-proof-validate.mjs",
+    "scripts/retention-archive-restore-machine-proof.mjs",
+    "scripts/retention-archive-restore-machine-proof-validate.mjs",
+    "scripts/production-promotion-pack.mjs",
+    "scripts/production-scale-certification.mjs",
+    "scripts/production-scale-evidence.mjs",
+    "tests/unit/machine-evidence-schema.spec.ts",
+    "tests/unit/machine-proof-scripts.spec.ts",
+    "tests/unit/production-promotion-pack.spec.ts",
+    "tests/unit/production-scale-certification.spec.ts",
+    "tests/unit/production-worker-runtime-proof.spec.ts",
+    "tests/unit/restore-evidence-acceptance.spec.ts"
+  ],
+  "evidenceFilesGenerated": [
+    "docs/production-scale/evidence/latest-restore-machine-proof.json",
+    "docs/production-scale/evidence/latest-restore-machine-proof.md",
+    "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+    "docs/production-scale/evidence/latest-production-worker-machine-proof.md",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.json",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-inventory.md",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.md",
+    "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+    "docs/production-scale/evidence/latest-alerting-machine-proof.md",
+    "docs/production-scale/evidence/latest-migration-machine-proof.json",
+    "docs/production-scale/evidence/latest-migration-machine-proof.md",
+    "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
+    "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md",
+    "docs/production-scale/evidence/latest-production-scale-evidence.json",
+    "docs/production-scale/evidence/latest-production-scale-evidence.md",
+    "docs/production-scale/evidence/latest-production-scale-certification.json",
+    "docs/production-scale/evidence/latest-production-scale-certification.md",
+    "docs/production-scale/evidence/latest-production-promotion-pack.json",
+    "docs/production-scale/evidence/latest-production-promotion-pack.md"
+  ],
+  "remainingMissingEnvOrRuntimeInputs": [
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+    "Resolve 12 release-blocking temporary migration allowlist residuals"
+  ],
+  "productionPromotionRecommendation": "Do not promote production. The repo now requires machine-attested non-interactive proof, but the current latest evidence is accurately CERTIFYING:false."
+}

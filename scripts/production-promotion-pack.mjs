@@ -103,6 +103,50 @@ import {
 } from "./restore-evidence-acceptance.mjs";
 
 import {
+  RESTORE_MACHINE_PROOF_CONFIG,
+  RESTORE_MACHINE_PROOF_JSON_PATH,
+  RESTORE_MACHINE_PROOF_MD_PATH,
+} from "./restore-machine-proof.mjs";
+
+import {
+  PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
+  PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH,
+  PRODUCTION_WORKER_MACHINE_PROOF_MD_PATH,
+} from "./production-worker-machine-proof.mjs";
+
+import {
+  RAW_REPORT_MACHINE_PROOF_CONFIG,
+  RAW_REPORT_MACHINE_PROOF_JSON_PATH,
+  RAW_REPORT_MACHINE_PROOF_MD_PATH,
+} from "./storage-raw-report-machine-remediation-proof.mjs";
+
+import {
+  RAW_REPORT_MACHINE_INVENTORY_JSON_PATH,
+  RAW_REPORT_MACHINE_INVENTORY_MD_PATH,
+} from "./storage-raw-report-machine-inventory.mjs";
+
+import {
+  ALERTING_MACHINE_PROOF_CONFIG,
+  ALERTING_MACHINE_PROOF_JSON_PATH,
+  ALERTING_MACHINE_PROOF_MD_PATH,
+} from "./alerting-machine-proof.mjs";
+
+import {
+  MIGRATION_MACHINE_PROOF_CONFIG,
+  MIGRATION_MACHINE_PROOF_JSON_PATH,
+  MIGRATION_MACHINE_PROOF_MD_PATH,
+  buildMigrationMachineProofReport,
+} from "./migration-machine-proof.mjs";
+
+import {
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH,
+  RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_MD_PATH,
+} from "./retention-archive-restore-machine-proof.mjs";
+
+import { validateMachineProofForConfig } from "./lib/machineProofScript.mjs";
+
+import {
   collectDashboardEvidence,
   detectProductionEnvironment,
   loadBlockerRegistry,
@@ -167,6 +211,42 @@ export const REQUIRED_CERTIFICATION_CHECKS = [
     command: "pnpm run deploy:rollback-simulation",
     jsonPath: DEPLOY_ROLLBACK_SIMULATION_JSON_PATH,
   },
+  {
+    key: "restoreMachineProof",
+    label: "Disaster recovery restore machine proof",
+    command: "pnpm run restore:machine-proof",
+    jsonPath: RESTORE_MACHINE_PROOF_JSON_PATH,
+  },
+  {
+    key: "productionWorkerMachineProof",
+    label: "Production worker runtime machine proof",
+    command: "pnpm run production-worker:machine-proof",
+    jsonPath: PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH,
+  },
+  {
+    key: "rawReportMachineProof",
+    label: "Raw report byte remediation machine proof",
+    command: "pnpm run storage:raw-report-machine-remediation-proof",
+    jsonPath: RAW_REPORT_MACHINE_PROOF_JSON_PATH,
+  },
+  {
+    key: "alertingMachineProof",
+    label: "Alerting observability machine proof",
+    command: "pnpm run alerting:machine-proof",
+    jsonPath: ALERTING_MACHINE_PROOF_JSON_PATH,
+  },
+  {
+    key: "migrationMachineProof",
+    label: "Migration governance machine proof",
+    command: "pnpm run migrations:machine-proof",
+    jsonPath: MIGRATION_MACHINE_PROOF_JSON_PATH,
+  },
+  {
+    key: "retentionArchiveRestoreMachineProof",
+    label: "Retention archive restore machine proof",
+    command: "pnpm run retention:archive-restore-machine-proof",
+    jsonPath: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH,
+  },
 ];
 
 export const REQUIRED_PROMOTION_COMMANDS = [
@@ -187,19 +267,26 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:runtime-proof",
+  "pnpm run production-worker:machine-proof",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run ingest:worker:staging-evidence",
   "pnpm run pr-guardrails:evidence",
   "pnpm run storage:raw-report-remediation-plan",
   "pnpm run storage:raw-report-remediation-acceptance",
+  "pnpm run storage:raw-report-machine-inventory",
+  "pnpm run storage:raw-report-machine-remediation-proof",
   "pnpm run storage:durability-contract",
   "pnpm run check:migrations",
   "pnpm run check:restore-drill-evidence",
   "pnpm run migrations:gate",
+  "pnpm run migrations:machine-proof",
   "pnpm run deploy:rollback-simulation",
   "pnpm run restore:evidence:acceptance",
   "pnpm run restore:accept-human-evidence",
   "pnpm run restore:evidence:current-check",
+  "pnpm run restore:machine-proof",
+  "pnpm run alerting:machine-proof",
+  "pnpm run retention:archive-restore-machine-proof",
   "pnpm run report:runtime-size",
   "pnpm run runtime-size:policy-acceptance",
   "git diff --check",
@@ -224,11 +311,18 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run production-deployment-parity:evidence",
   "pnpm run production-worker:activation-evidence",
   "pnpm run production-worker:runtime-proof",
+  "pnpm run production-worker:machine-proof",
   "pnpm run production-worker:readiness-evidence",
   "pnpm run migrations:evidence",
   "pnpm run production-safe-probes:evidence",
   "pnpm run staging-owner-denial-smoke:evidence",
   "pnpm run sensitive-list-endpoints:evidence",
+  "pnpm run storage:raw-report-machine-inventory",
+  "pnpm run storage:raw-report-machine-remediation-proof",
+  "pnpm run restore:machine-proof",
+  "pnpm run alerting:machine-proof",
+  "pnpm run migrations:machine-proof",
+  "pnpm run retention:archive-restore-machine-proof",
   "pnpm run check:runtime-size",
   "pnpm run runtime-size:policy-acceptance",
 ];
@@ -332,6 +426,10 @@ const OUTPUT_BY_COMMAND = {
     PRODUCTION_WORKER_RUNTIME_PROOF_MD_PATH,
     PRODUCTION_WORKER_RUNTIME_PROOF_JSON_PATH,
   ],
+  "pnpm run production-worker:machine-proof": [
+    PRODUCTION_WORKER_MACHINE_PROOF_MD_PATH,
+    PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH,
+  ],
   "pnpm run production-worker:readiness-evidence": [
     PRODUCTION_WORKER_READINESS_MD_PATH,
     PRODUCTION_WORKER_READINESS_JSON_PATH,
@@ -351,6 +449,30 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run migrations:gate": [
     MIGRATION_GATE_MD_PATH,
     MIGRATION_GATE_JSON_PATH,
+  ],
+  "pnpm run migrations:machine-proof": [
+    MIGRATION_MACHINE_PROOF_MD_PATH,
+    MIGRATION_MACHINE_PROOF_JSON_PATH,
+  ],
+  "pnpm run restore:machine-proof": [
+    RESTORE_MACHINE_PROOF_MD_PATH,
+    RESTORE_MACHINE_PROOF_JSON_PATH,
+  ],
+  "pnpm run alerting:machine-proof": [
+    ALERTING_MACHINE_PROOF_MD_PATH,
+    ALERTING_MACHINE_PROOF_JSON_PATH,
+  ],
+  "pnpm run storage:raw-report-machine-inventory": [
+    RAW_REPORT_MACHINE_INVENTORY_MD_PATH,
+    RAW_REPORT_MACHINE_INVENTORY_JSON_PATH,
+  ],
+  "pnpm run storage:raw-report-machine-remediation-proof": [
+    RAW_REPORT_MACHINE_PROOF_MD_PATH,
+    RAW_REPORT_MACHINE_PROOF_JSON_PATH,
+  ],
+  "pnpm run retention:archive-restore-machine-proof": [
+    RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_MD_PATH,
+    RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH,
   ],
   "pnpm run production-safe-probes:evidence": [
     "docs/production-scale/evidence/latest-production-safe-probes.md",
@@ -383,11 +505,73 @@ const CLASSIFICATIONS = new Set([
   "fixed with staging evidence",
   "fixed with human-observed evidence",
   "simulated proof only",
+  "machine proof required",
   "human proof required",
   "waived with explicit reason",
   "partial",
   "open",
 ]);
+
+const MACHINE_PROOF_BLOCKER_REQUIREMENTS = {
+  1: {
+    proofTypeRequired:
+      "Non-interactive sanitized restore machine proof with isolated target, RPO/RTO, post-restore checks, cleanup, and rollback verification.",
+    proofCategories: ["machine-attested", "automated-local"],
+    allowedProofCommands: ["pnpm run restore:machine-proof", "pnpm run restore:machine-proof:validate"],
+    recommendedNextAction:
+      "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
+  },
+  2: {
+    proofTypeRequired:
+      "Non-interactive sanitized production worker runtime machine proof with bounded queue processing, queue depth before/after, liveness, counts, cleanup, and stop/rollback verification.",
+    proofCategories: ["machine-attested", "automated-local"],
+    allowedProofCommands: [
+      "pnpm run production-worker:machine-proof",
+      "pnpm run production-worker:machine-proof:validate",
+    ],
+    recommendedNextAction:
+      "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
+  },
+  6: {
+    proofTypeRequired:
+      "Non-interactive sanitized raw report byte remediation machine proof with reliable DB connectivity, sanitized inventory, remediation policy verification, and no raw bytes or PII.",
+    proofCategories: ["machine-attested", "automated-local"],
+    allowedProofCommands: [
+      "pnpm run storage:raw-report-machine-inventory",
+      "pnpm run storage:raw-report-machine-remediation-proof",
+      "pnpm run storage:raw-report-machine-proof:validate",
+    ],
+    recommendedNextAction:
+      "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
+  },
+  9: {
+    proofTypeRequired:
+      "Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.",
+    proofCategories: ["machine-attested", "automated-local"],
+    allowedProofCommands: ["pnpm run alerting:machine-proof", "pnpm run alerting:machine-proof:validate"],
+    recommendedNextAction:
+      "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
+  },
+  10: {
+    proofTypeRequired:
+      "Non-interactive migration governance machine proof showing no active temporary allowlist residuals, no expired allowlist, and no release-blocking findings.",
+    proofCategories: ["machine-attested", "automated-local"],
+    allowedProofCommands: ["pnpm run migrations:machine-proof", "pnpm run migrations:machine-proof:validate"],
+    recommendedNextAction:
+      "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
+  },
+  22: {
+    proofTypeRequired:
+      "Non-interactive sanitized retention archive/restore machine proof with safe archive candidate, isolated restore target, integrity, cleanup, and rollback notes.",
+    proofCategories: ["machine-attested", "automated-local"],
+    allowedProofCommands: [
+      "pnpm run retention:archive-restore-machine-proof",
+      "pnpm run retention:archive-restore-machine-proof:validate",
+    ],
+    recommendedNextAction:
+      "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
+  },
+};
 
 function normalizeRelativePath(value) {
   return String(value ?? "").replace(/\\/g, "/").replace(/^\.\//, "");
@@ -576,6 +760,100 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
+function machineProofSummary(key, label, config, evidence, extraValidation = () => [], now = new Date().toISOString()) {
+  if (!evidence) {
+    return {
+      key,
+      label,
+      evidenceType: config.evidenceType,
+      evidencePath: config.jsonPath,
+      generatedAt: null,
+      commitHash: null,
+      status: "missing",
+      certifying: false,
+      accepted: false,
+      validation: {
+        ok: false,
+        errors: [`Machine evidence file is missing: ${config.jsonPath}`],
+        sensitiveFindingCount: 0,
+      },
+      metadata: {},
+    };
+  }
+
+  const validation = validateMachineProofForConfig(config, evidence, { now });
+  const extraErrors = extraValidation(evidence);
+  const errors = [...validation.errors, ...extraErrors];
+  const ok = validation.ok && extraErrors.length === 0;
+
+  return {
+    key,
+    label,
+    evidenceType: evidence.evidenceType ?? config.evidenceType,
+    evidencePath: config.jsonPath,
+    generatedAt: evidence.generatedAt ?? null,
+    commitHash: evidence.commitHash ?? evidence.currentCommitHash ?? evidence.currentHead ?? evidence.commit ?? null,
+    status: evidence.status ?? "unknown",
+    certifying: evidence.certifying === true && evidence.CERTIFYING === true,
+    accepted: ok,
+    validation: {
+      ok,
+      errors,
+      sensitiveFindingCount: validation.sensitiveFindings?.length ?? 0,
+      stale: validation.stale === true,
+    },
+    metadata: {
+      blockerIdsClosedWhenCertifying: evidence.metadata?.blockerIdsClosedWhenCertifying ?? [],
+      acceptedCheckSet: evidence.metadata?.acceptedCheckSet ?? null,
+      alertingProofPath: evidence.metadata?.alertingProofPath ?? evidence.metadata?.alertingPath ?? null,
+      databaseReliable: evidence.metadata?.databaseReliable === true,
+      sanitizedInventoryAccepted: evidence.metadata?.sanitizedInventoryAccepted === true,
+      temporaryAllowlistActive: evidence.metadata?.temporaryAllowlistActive === true,
+      releaseBlockingFindingCount: evidence.metadata?.releaseBlockingFindingCount ?? null,
+    },
+  };
+}
+
+function hasPassingCheck(evidence, checkName) {
+  return Array.isArray(evidence?.checks) &&
+    evidence.checks.some((check) => check?.name === checkName && check?.status === "pass");
+}
+
+function rawReportMachineProofExtraValidation(evidence) {
+  const errors = [];
+  if (evidence?.metadata?.databaseReliable !== true && !hasPassingCheck(evidence, "db-connectivity-reliable")) {
+    errors.push("raw report machine proof requires reliable database connectivity.");
+  }
+  if (evidence?.metadata?.sanitizedInventoryAccepted !== true && !hasPassingCheck(evidence, "sanitized-inventory-accepted")) {
+    errors.push("raw report machine proof requires accepted sanitized inventory.");
+  }
+  return errors;
+}
+
+function alertingMachineProofExtraValidation(evidence) {
+  const errors = [];
+  const acceptedSet = evidence?.metadata?.acceptedCheckSet;
+  const alertingPath = evidence?.metadata?.alertingProofPath ?? evidence?.metadata?.alertingPath;
+  if (
+    acceptedSet === "certifying-formal-exclusion" ||
+    alertingPath === "certifying-formal-exclusion" ||
+    alertingPath === "formal-exclusion"
+  ) {
+    if (evidence?.metadata?.policyAllowsCertificationUnderExclusion !== true) {
+      errors.push("formal alerting exclusion requires explicit repo policy allowing certification under exclusion.");
+    }
+    if (!hasPassingCheck(evidence, "exclusion-does-not-overclaim-production-pass")) {
+      errors.push("formal alerting exclusion must state it does not overclaim production-at-scale PASS.");
+    }
+    return errors;
+  }
+
+  if (acceptedSet !== "live-alert-delivery" && alertingPath !== "live-alert") {
+    errors.push("alerting machine proof must be live-alert delivery or a certifying formal exclusion.");
+  }
+  return errors;
+}
+
 function classifyBlocker(
   blocker,
   humanRestoreEvidenceAcceptance = null,
@@ -589,7 +867,29 @@ function classifyBlocker(
   migrationGateEvidence = null,
   measuredLoadEvidenceAcceptance = null,
   runtimeSizePolicyAcceptance = null,
+  machineProofs = {},
 ) {
+  if (blocker.number === 1 && machineProofs.restore?.accepted === true) {
+    return "fixed with automated evidence";
+  }
+  if (blocker.number === 2 && machineProofs.productionWorker?.accepted === true) {
+    return "fixed with automated evidence";
+  }
+  if (blocker.number === 6 && machineProofs.rawReport?.accepted === true) {
+    return "fixed with automated evidence";
+  }
+  if (blocker.number === 9 && machineProofs.alerting?.accepted === true) {
+    return "fixed with automated evidence";
+  }
+  if (blocker.number === 10 && machineProofs.migration?.accepted === true) {
+    return "fixed with automated evidence";
+  }
+  if (blocker.number === 22 && machineProofs.retentionArchiveRestore?.accepted === true) {
+    return "fixed with automated evidence";
+  }
+  if (MACHINE_PROOF_BLOCKER_REQUIREMENTS[blocker.number]) {
+    return "machine proof required";
+  }
   if (
     blocker.number === 3 &&
     measuredLoadEvidenceAcceptance?.accepted === true &&
@@ -855,8 +1155,25 @@ function evidenceStatusText(evidence) {
   );
 }
 
+function isPassedStatusText(value) {
+  return ["pass", "passed", "ok", "success"].includes(String(value ?? "").toLowerCase());
+}
+
 function checkPassedByKey(key, evidence, targetEnvironment) {
   if (!evidence || evidenceLooksManualOnly(evidence) || evidenceLooksSkipped(evidence)) return false;
+
+  if (
+    [
+      "restoreMachineProof",
+      "productionWorkerMachineProof",
+      "rawReportMachineProof",
+      "alertingMachineProof",
+      "migrationMachineProof",
+      "retentionArchiveRestoreMachineProof",
+    ].includes(key)
+  ) {
+    return evidenceCertifyingFlag(evidence) === true && evidenceStatusText(evidence) === "pass";
+  }
 
   if (key === "queueLiveness") {
     return evidenceCertifyingFlag(evidence) === true &&
@@ -899,10 +1216,10 @@ function checkPassedByKey(key, evidence, targetEnvironment) {
 
   if (key === "rollbackSimulation") {
     return evidenceCertifyingFlag(evidence) === true &&
-      evidenceStatusText(evidence) === "passed";
+      isPassedStatusText(evidenceStatusText(evidence));
   }
 
-  return evidenceCertifyingFlag(evidence) === true && evidenceStatusText(evidence) === "passed";
+  return evidenceCertifyingFlag(evidence) === true && isPassedStatusText(evidenceStatusText(evidence));
 }
 
 function evidenceForCertificationCheck({ check, rootDir, overrides, defaults }) {
@@ -1041,7 +1358,9 @@ function readinessClassification(classifiedBlockers) {
 
   const criticalOrHighUnresolved = unresolved.filter((blocker) => ["Critical", "High"].includes(blocker.severity));
   const humanOrSimulated = unresolved.filter((blocker) =>
-    blocker.classification === "human proof required" || blocker.classification === "simulated proof only",
+    blocker.classification === "human proof required" ||
+    blocker.classification === "simulated proof only" ||
+    blocker.classification === "machine proof required",
   );
   if (criticalOrHighUnresolved.length === 0 && humanOrSimulated.length === 0) {
     return {
@@ -1054,7 +1373,7 @@ function readinessClassification(classifiedBlockers) {
   return {
     value: "limited beta",
     canPromoteProductionAtScale: false,
-    reason: "Critical/high, simulated-only, human-required, partial, or open blockers remain.",
+    reason: "Critical/high, machine-required, simulated-only, human-required, partial, or open blockers remain.",
   };
 }
 
@@ -1075,6 +1394,12 @@ export function buildProductionPromotionPackReport({
   rawReportRemediationAcceptance = null,
   responseOpsReadinessEvidence = null,
   migrationGateEvidence = null,
+  restoreMachineProofEvidence = null,
+  productionWorkerMachineProofEvidence = null,
+  rawReportMachineProofEvidence = null,
+  alertingMachineProofEvidence = null,
+  migrationMachineProofEvidence = null,
+  retentionArchiveRestoreMachineProofEvidence = null,
   measuredLoadEvidenceAcceptance = null,
   runtimeSizePolicyAcceptance = null,
   certificationEvidence = {},
@@ -1146,12 +1471,68 @@ export function buildProductionPromotionPackReport({
     responseOpsReadinessEvidence ?? buildResponseOpsReadinessEvidenceReport({ rootDir, generatedAt, env });
   const migrationGate =
     migrationGateEvidence ?? buildMigrationGateReport({ rootDir, generatedAt });
+  const loadedRestoreMachineProof =
+    restoreMachineProofEvidence ?? readJsonIfPresent(rootDir, RESTORE_MACHINE_PROOF_JSON_PATH);
+  const loadedProductionWorkerMachineProof =
+    productionWorkerMachineProofEvidence ?? readJsonIfPresent(rootDir, PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH);
+  const loadedRawReportMachineProof =
+    rawReportMachineProofEvidence ?? readJsonIfPresent(rootDir, RAW_REPORT_MACHINE_PROOF_JSON_PATH);
+  const loadedAlertingMachineProof =
+    alertingMachineProofEvidence ?? readJsonIfPresent(rootDir, ALERTING_MACHINE_PROOF_JSON_PATH);
+  const loadedMigrationMachineProof =
+    migrationMachineProofEvidence ?? buildMigrationMachineProofReport({ rootDir, generatedAt, migrationGateEvidence: migrationGate });
+  const loadedRetentionArchiveRestoreMachineProof =
+    retentionArchiveRestoreMachineProofEvidence ?? readJsonIfPresent(rootDir, RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH);
+  const machineProofs = {
+    restore: machineProofSummary("restore", "Disaster recovery restore machine proof", RESTORE_MACHINE_PROOF_CONFIG, loadedRestoreMachineProof, undefined, generatedAt),
+    productionWorker: machineProofSummary(
+      "productionWorker",
+      "Production worker runtime machine proof",
+      PRODUCTION_WORKER_MACHINE_PROOF_CONFIG,
+      loadedProductionWorkerMachineProof,
+      undefined,
+      generatedAt,
+    ),
+    rawReport: machineProofSummary(
+      "rawReport",
+      "Raw report byte remediation machine proof",
+      RAW_REPORT_MACHINE_PROOF_CONFIG,
+      loadedRawReportMachineProof,
+      rawReportMachineProofExtraValidation,
+      generatedAt,
+    ),
+    alerting: machineProofSummary(
+      "alerting",
+      "Alerting observability machine proof",
+      ALERTING_MACHINE_PROOF_CONFIG,
+      loadedAlertingMachineProof,
+      alertingMachineProofExtraValidation,
+      generatedAt,
+    ),
+    migration: machineProofSummary(
+      "migration",
+      "Migration governance machine proof",
+      MIGRATION_MACHINE_PROOF_CONFIG,
+      loadedMigrationMachineProof,
+      undefined,
+      generatedAt,
+    ),
+    retentionArchiveRestore: machineProofSummary(
+      "retentionArchiveRestore",
+      "Retention archive restore machine proof",
+      RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG,
+      loadedRetentionArchiveRestoreMachineProof,
+      undefined,
+      generatedAt,
+    ),
+  };
   const measuredLoadAcceptance =
     measuredLoadEvidenceAcceptance ?? buildMeasuredLoadEvidenceAcceptance({ rootDir, generatedAt });
   const runtimeSizeAcceptance =
     runtimeSizePolicyAcceptance ?? buildRuntimeSizePolicyAcceptanceReport({ rootDir, generatedAt });
 
   const classifiedBlockers = loadedRegistry.blockers.map((blocker) => {
+    const machineRequirement = MACHINE_PROOF_BLOCKER_REQUIREMENTS[blocker.number] ?? null;
     const classification = classifyBlocker(
       blocker,
       acceptedHumanRestoreEvidence,
@@ -1165,6 +1546,7 @@ export function buildProductionPromotionPackReport({
       migrationGate,
       measuredLoadAcceptance,
       runtimeSizeAcceptance,
+      machineProofs,
     );
     return {
       number: blocker.number,
@@ -1173,13 +1555,17 @@ export function buildProductionPromotionPackReport({
       area: blocker.area,
       currentStatus: blocker.currentStatus,
       classification,
-      proofTypeRequired: blocker.proofTypeRequired,
-      proofCategories: blocker.proofCategories ?? [],
-      allowedProofCommands: blocker.allowedProofCommands ?? [],
+      proofTypeRequired: machineRequirement?.proofTypeRequired ?? blocker.proofTypeRequired,
+      proofCategories: machineRequirement?.proofCategories ?? blocker.proofCategories ?? [],
+      allowedProofCommands: unique([
+        ...(blocker.allowedProofCommands ?? []),
+        ...(machineRequirement?.allowedProofCommands ?? []),
+      ]),
       forbiddenProofTypes: blocker.forbiddenProofTypes ?? [],
       relatedEvidenceOutputPaths: blocker.relatedEvidenceOutputPaths ?? [],
-      recommendedNextAction: blocker.recommendedNextAction,
-      humanProofRequired: blocker.humanProofRequired === true,
+      recommendedNextAction: machineRequirement?.recommendedNextAction ?? blocker.recommendedNextAction,
+      humanProofRequired: machineRequirement ? false : blocker.humanProofRequired === true,
+      machineProofRequired: Boolean(machineRequirement) && classification !== "fixed with automated evidence",
       simulatedProofAcceptable: blocker.simulatedProofAcceptable === true,
       acceptedHumanEvidence:
         classification === "fixed with human-observed evidence"
@@ -1249,6 +1635,20 @@ export function buildProductionPromotionPackReport({
     ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
     LIVE_ALERT_PROOF_JSON_PATH,
     LIVE_ALERT_PROOF_MD_PATH,
+    RESTORE_MACHINE_PROOF_MD_PATH,
+    RESTORE_MACHINE_PROOF_JSON_PATH,
+    PRODUCTION_WORKER_MACHINE_PROOF_MD_PATH,
+    PRODUCTION_WORKER_MACHINE_PROOF_JSON_PATH,
+    RAW_REPORT_MACHINE_INVENTORY_MD_PATH,
+    RAW_REPORT_MACHINE_INVENTORY_JSON_PATH,
+    RAW_REPORT_MACHINE_PROOF_MD_PATH,
+    RAW_REPORT_MACHINE_PROOF_JSON_PATH,
+    ALERTING_MACHINE_PROOF_MD_PATH,
+    ALERTING_MACHINE_PROOF_JSON_PATH,
+    MIGRATION_MACHINE_PROOF_MD_PATH,
+    MIGRATION_MACHINE_PROOF_JSON_PATH,
+    RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_MD_PATH,
+    RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_JSON_PATH,
     MIGRATION_GATE_POLICY_PATH,
     LOAD_THRESHOLD_POLICY_PATH,
     RUNTIME_SIZE_POLICY_ACCEPTANCE_MD_PATH,
@@ -1268,8 +1668,15 @@ export function buildProductionPromotionPackReport({
     defaultEvidence: {
       queueLiveness: workerReadinessEvidence,
       migrationGovernance: migrationGate,
+      restoreMachineProof: loadedRestoreMachineProof,
+      productionWorkerMachineProof: loadedProductionWorkerMachineProof,
+      rawReportMachineProof: loadedRawReportMachineProof,
+      alertingMachineProof: loadedAlertingMachineProof,
+      migrationMachineProof: loadedMigrationMachineProof,
+      retentionArchiveRestoreMachineProof: loadedRetentionArchiveRestoreMachineProof,
     },
   });
+  const packCertifying = promotionCertification.CERTIFYING === true && readiness.canPromoteProductionAtScale === true;
 
   const report = {
     reportName: "production-promotion-evidence-pack",
@@ -1288,8 +1695,8 @@ export function buildProductionPromotionPackReport({
         automated: true,
       },
     ],
-    certifying: promotionCertification.CERTIFYING,
-    CERTIFYING: promotionCertification.CERTIFYING,
+    certifying: packCertifying,
+    CERTIFYING: packCertifying,
     auditFilePath: audit.path,
     auditDate: audit.auditDate,
     auditDateParseable: audit.auditDateParseable,
@@ -1313,7 +1720,14 @@ export function buildProductionPromotionPackReport({
     evidenceLedgerResult: promotionCertification.checks.evidenceLedger,
     migrationGovernanceResult: promotionCertification.checks.migrationGovernance,
     rollbackSimulationResult: promotionCertification.checks.rollbackSimulation,
+    restoreMachineProofResult: promotionCertification.checks.restoreMachineProof,
+    productionWorkerMachineProofResult: promotionCertification.checks.productionWorkerMachineProof,
+    rawReportMachineProofResult: promotionCertification.checks.rawReportMachineProof,
+    alertingMachineProofResult: promotionCertification.checks.alertingMachineProof,
+    migrationMachineProofResult: promotionCertification.checks.migrationMachineProof,
+    retentionArchiveRestoreMachineProofResult: promotionCertification.checks.retentionArchiveRestoreMachineProof,
     promotionCertification,
+    machineProofs,
     humanRestoreDrillEvidenceAcceptance: {
       reportName: acceptedHumanRestoreEvidence.reportName,
       generatedAt: acceptedHumanRestoreEvidence.generatedAt,
@@ -1768,6 +2182,7 @@ export function buildProductionPromotionPackReport({
     simulatedProofOnlyChecks: classifiedBlockers.filter((blocker) => blocker.classification === "simulated proof only"),
     stagingProofOnlyChecks: classifiedBlockers.filter((blocker) => blocker.currentStatus === "staging-proof-only"),
     humanRequiredProof: classifiedBlockers.filter((blocker) => blocker.classification === "human proof required"),
+    machineRequiredProof: classifiedBlockers.filter((blocker) => blocker.classification === "machine proof required"),
     waivers: classifiedBlockers.filter((blocker) => blocker.classification === "waived with explicit reason"),
     readinessClassification: readiness,
     canPromoteProductionAtScale: readiness.canPromoteProductionAtScale,
@@ -1776,7 +2191,7 @@ export function buildProductionPromotionPackReport({
       liveExternalProvidersCalled: false,
       realConsumerPiiUsed: false,
       productionAtScaleClaimed: readiness.value === "production-at-scale" && readiness.canPromoteProductionAtScale,
-      productionReadyClaim: promotionCertification.CERTIFYING === true && readiness.value === "production-at-scale",
+      productionReadyClaim: packCertifying === true && readiness.value === "production-at-scale",
       simulatedProofIsProductionProof: false,
       dashboardPassTreatedAsCompleteReleaseEvidence: false,
     },
@@ -1786,6 +2201,7 @@ export function buildProductionPromotionPackReport({
       "Production activation requires operator approval.",
       "Historical raw report remediation requires accepted sanitized operator evidence.",
       "Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
+      "Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
       "Migration governance requires a non-mutating production promotion gate; CERTIFYING remains false while temporary runtime ensure allowlist entries are active.",
@@ -1845,11 +2261,20 @@ export function validatePromotionPackReport(report) {
     "evidenceLedgerResult",
     "migrationGovernanceResult",
     "rollbackSimulationResult",
+    "restoreMachineProofResult",
+    "productionWorkerMachineProofResult",
+    "rawReportMachineProofResult",
+    "alertingMachineProofResult",
+    "migrationMachineProofResult",
+    "retentionArchiveRestoreMachineProofResult",
   ]) {
     if (!report[requiredKey]) errors.push(`Promotion pack is missing ${requiredKey}.`);
   }
-  if (report.CERTIFYING !== report.promotionCertification?.CERTIFYING) {
-    errors.push("Promotion pack top-level CERTIFYING must match promotionCertification.CERTIFYING.");
+  const expectedTopLevelCertifying =
+    report.promotionCertification?.CERTIFYING === true &&
+    report.readinessClassification?.canPromoteProductionAtScale === true;
+  if (report.CERTIFYING !== expectedTopLevelCertifying) {
+    errors.push("Promotion pack top-level CERTIFYING must require both certifying evidence and production-at-scale readiness.");
   }
   if (report.certifying !== report.CERTIFYING) {
     errors.push("Promotion pack certifying and CERTIFYING flags must match.");
@@ -1884,6 +2309,7 @@ export function validatePromotionPackReport(report) {
   const migrationGate = report.migrationGateEvidence;
   const measuredLoad = report.measuredLoadEvidenceAcceptance;
   const runtimeSize = report.runtimeSizePolicyAcceptance;
+  const machineProofs = report.machineProofs ?? {};
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
   const blocker2 = blockers.find((blocker) => blocker.number === 2);
   const blocker3 = blockers.find((blocker) => blocker.number === 3);
@@ -1916,6 +2342,24 @@ export function validatePromotionPackReport(report) {
     ) {
       errors.push("Blocker 2 cannot be production-ready without accepted production worker runtime proof.");
     }
+  }
+  if (blocker1?.classification === "fixed with automated evidence" && machineProofs.restore?.accepted !== true) {
+    errors.push("Blocker 1 cannot be fixed with automated evidence without certifying restore machine proof.");
+  }
+  if (blocker2?.classification === "fixed with automated evidence" && machineProofs.productionWorker?.accepted !== true) {
+    errors.push("Blocker 2 cannot be fixed with automated evidence without certifying production worker machine proof.");
+  }
+  if (blocker6?.classification === "fixed with automated evidence" && machineProofs.rawReport?.accepted !== true) {
+    errors.push("Blocker 6 cannot be fixed with automated evidence without certifying raw report remediation machine proof.");
+  }
+  if (blocker9?.classification === "fixed with automated evidence" && machineProofs.alerting?.accepted !== true) {
+    errors.push("Blocker 9 cannot be fixed with automated evidence without certifying alerting machine proof.");
+  }
+  if (blocker10?.classification === "fixed with automated evidence" && machineProofs.migration?.accepted !== true) {
+    errors.push("Blocker 10 cannot be fixed with automated evidence without certifying migration machine proof.");
+  }
+  if (blocker22?.classification === "fixed with automated evidence" && machineProofs.retentionArchiveRestore?.accepted !== true) {
+    errors.push("Blocker 22 cannot be fixed with automated evidence without certifying retention archive restore machine proof.");
   }
   if (workerRuntimeProof?.accepted === true) {
     if (
@@ -2273,6 +2717,14 @@ function renderCertificationRows(checks) {
   });
 }
 
+function renderMachineProofRows(machineProofs = {}) {
+  const proofs = Object.values(machineProofs);
+  if (!proofs.length) return ["- None."];
+  return proofs.map((proof) =>
+    `- ${proof.label}: ${proof.accepted ? "accepted" : "not accepted"}; status=${proof.status}; certifying=${proof.certifying ? "true" : "false"}; evidence=\`${proof.evidencePath}\``,
+  );
+}
+
 export function renderPromotionPackMarkdown(report) {
   const lines = [
     "# Production Promotion Evidence Pack",
@@ -2297,6 +2749,7 @@ export function renderPromotionPackMarkdown(report) {
     "- Production activation requires operator approval.",
     "- Historical raw report remediation requires accepted sanitized operator evidence.",
     "- Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
+    "- Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
     "- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "- Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
     "- Migration governance requires a non-mutating accepted gate policy or a formal waiver with reason.",
@@ -2318,6 +2771,10 @@ export function renderPromotionPackMarkdown(report) {
     "### Required Certification Checks",
     "",
     ...renderCertificationRows(report.promotionCertification?.checks),
+    "",
+    "### Machine-Attested Proof Gates",
+    "",
+    ...renderMachineProofRows(report.machineProofs),
     "",
     "### Exact Commands Run By This Evidence Pack",
     "",

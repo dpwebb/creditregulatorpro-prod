@@ -1,8 +1,8 @@
 {
   "reportName": "certification-harness-fix",
-  "generatedAt": "2026-05-22T02:52:03.421Z",
-  "currentHead": "35388f20d9c58282405602a7205a987ece110410",
-  "targetSha": "35388f20d9c58282405602a7205a987ece110410",
+  "generatedAt": "2026-05-22T05:50:10.346Z",
+  "currentHead": "2026701883302c9a80851158313669e015a3465f",
+  "targetSha": "2026701883302c9a80851158313669e015a3465f",
   "status": "passed",
   "CERTIFYING": false,
   "productionProof": false,
@@ -63,8 +63,23 @@
   },
   "certificationResult": {
     "CERTIFYING": false,
-    "failedGates": [],
-    "staleGates": [],
+    "failedGates": [
+      "restoreMachineProof",
+      "productionWorkerMachineProof",
+      "rawReportMachineProof",
+      "alertingMachineProof",
+      "migrationMachineProof",
+      "retentionArchiveRestoreMachineProof",
+      "evidenceFreshness"
+    ],
+    "staleGates": [
+      "restoreMachineProof",
+      "productionWorkerMachineProof",
+      "rawReportMachineProof",
+      "alertingMachineProof",
+      "migrationMachineProof",
+      "retentionArchiveRestoreMachineProof"
+    ],
     "skippedGates": [],
     "stagingOnlyProofGates": [
       "authenticatedUploadResults",
