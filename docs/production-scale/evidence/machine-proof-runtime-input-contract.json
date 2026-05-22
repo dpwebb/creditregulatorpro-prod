@@ -322,7 +322,7 @@
     {
       "name": "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
       "proofScript": "scripts/alerting-machine-proof.mjs",
-      "proofCommand": "pnpm run alerting:machine-proof",
+      "proofCommand": "pnpm run alerts:machine-proof",
       "validatorScript": "scripts/alerting-machine-proof-validate.mjs",
       "secret": false,
       "supply": {

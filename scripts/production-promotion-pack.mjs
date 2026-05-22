@@ -131,6 +131,7 @@ import {
   ALERTING_MACHINE_PROOF_CONFIG,
   ALERTING_MACHINE_PROOF_JSON_PATH,
   ALERTING_MACHINE_PROOF_MD_PATH,
+  alertingMachineProofExtraValidation as validateAlertingMachineProofDomain,
 } from "./alerting-machine-proof.mjs";
 
 import {
@@ -284,6 +285,7 @@ export const REQUIRED_PROMOTION_COMMANDS = [
   "pnpm run migrations:machine-proof",
   "pnpm run deploy:rollback-simulation",
   "pnpm run restore:machine-proof",
+  "pnpm run alerts:machine-proof",
   "pnpm run alerting:machine-proof",
   "pnpm run retention:archive-restore-machine-proof",
   "pnpm run report:runtime-size",
@@ -317,6 +319,7 @@ export const OPTIONAL_EVIDENCE_COMMANDS = [
   "pnpm run storage:raw-report-machine-inventory",
   "pnpm run storage:raw-report-machine-remediation-proof",
   "pnpm run restore:machine-proof",
+  "pnpm run alerts:machine-proof",
   "pnpm run alerting:machine-proof",
   "pnpm run migrations:machine-proof",
   "pnpm run retention:archive-restore-machine-proof",
@@ -461,6 +464,10 @@ const OUTPUT_BY_COMMAND = {
   "pnpm run restore:machine-proof": [
     RESTORE_MACHINE_PROOF_MD_PATH,
     RESTORE_MACHINE_PROOF_JSON_PATH,
+  ],
+  "pnpm run alerts:machine-proof": [
+    ALERTING_MACHINE_PROOF_MD_PATH,
+    ALERTING_MACHINE_PROOF_JSON_PATH,
   ],
   "pnpm run alerting:machine-proof": [
     ALERTING_MACHINE_PROOF_MD_PATH,
@@ -782,27 +789,7 @@ function rawReportMachineProofExtraValidation(evidence) {
 }
 
 function alertingMachineProofExtraValidation(evidence) {
-  const errors = [];
-  const acceptedSet = evidence?.metadata?.acceptedCheckSet;
-  const alertingPath = evidence?.metadata?.alertingProofPath ?? evidence?.metadata?.alertingPath;
-  if (
-    acceptedSet === "certifying-formal-exclusion" ||
-    alertingPath === "certifying-formal-exclusion" ||
-    alertingPath === "formal-exclusion"
-  ) {
-    if (evidence?.metadata?.policyAllowsCertificationUnderExclusion !== true) {
-      errors.push("formal alerting exclusion requires explicit repo policy allowing certification under exclusion.");
-    }
-    if (!hasPassingCheck(evidence, "exclusion-does-not-overclaim-production-pass")) {
-      errors.push("formal alerting exclusion must state it does not overclaim production-at-scale PASS.");
-    }
-    return errors;
-  }
-
-  if (acceptedSet !== "live-alert-delivery" && alertingPath !== "live-alert") {
-    errors.push("alerting machine proof must be live-alert delivery or a certifying formal exclusion.");
-  }
-  return errors;
+  return validateAlertingMachineProofDomain(evidence);
 }
 
 function machineRuntimeInputsForBlocker(number, machineProofs = {}) {

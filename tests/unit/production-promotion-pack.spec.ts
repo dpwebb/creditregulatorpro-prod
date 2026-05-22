@@ -895,7 +895,9 @@ function machineProofEvidence({
     ? { ...restoreMachineProofMetadata(), ...metadata }
     : evidenceType === PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE
       ? { ...productionWorkerMachineProofMetadata(), ...metadata }
-    : metadata;
+      : evidenceType === ALERTING_MACHINE_PROOF_EVIDENCE_TYPE
+        ? { ...alertingMachineProofMetadata(), ...metadata }
+        : metadata;
   const effectiveProductionMutation = evidenceType === PRODUCTION_WORKER_MACHINE_PROOF_EVIDENCE_TYPE
     ? "synthetic-canary-cleaned-up"
     : "none";
@@ -1011,6 +1013,24 @@ function productionWorkerMachineProofMetadata() {
       status: "pass",
     },
     syntheticCanaryCleanupSucceeded: true,
+  };
+}
+
+function alertingMachineProofMetadata() {
+  return {
+    acceptedCheckSet: "live-alert-delivery",
+    alertingProofPath: "live-alert",
+    alertType: "synthetic-response-ops-alert",
+    channelSanitizedId: "alert-channel-hash",
+    correlationId: "alert-correlation-hash",
+    deliveryTimestamp: PROMOTION_GATE_TIMESTAMP,
+    deliveryVerified: true,
+    responseOpsReady: true,
+    schedulerStatus: "disabled-verified",
+    exclusionExpiresAt: "2026-08-20",
+    nextReviewDate: "2026-06-20",
+    exclusionDoesNotMeanProductionAtScalePassUnlessPolicyAllows:
+      "This exclusion does not mean production-at-scale PASS unless policy allows the limited alerting scope.",
   };
 }
 
@@ -1427,6 +1447,7 @@ describe("production promotion evidence pack", () => {
     expect(report.commandList).toContain("pnpm run storage:raw-report-machine-remediation-proof");
     expect(report.commandList).toContain("pnpm run alerts:dry-run");
     expect(report.commandList).toContain("pnpm run alerts:exclusion:validate");
+    expect(report.commandList).toContain("pnpm run alerts:machine-proof");
     expect(report.commandList).toContain("pnpm run alerting:machine-proof");
     expect(report.commandList).toContain("pnpm run response-ops:readiness-evidence");
     expect(report.commandList).toContain("pnpm run response:ops-readiness-evidence");
@@ -1644,6 +1665,8 @@ describe("production promotion evidence pack", () => {
         "formal-exclusion-file-validated",
         "policy-allows-certifying-exclusion",
         "compensating-controls-validated",
+        "response-ops-readiness-verified",
+        "scheduler-status-verified",
         "repo-policy-approval-machine-verified",
         "exclusion-not-stale",
         "next-review-recorded",

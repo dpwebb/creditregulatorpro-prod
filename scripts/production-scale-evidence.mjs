@@ -35,7 +35,7 @@ const MACHINE_ATTESTED_PROOF_COMMANDS = [
   },
   {
     blocker: "L10-P1-005",
-    command: "pnpm run alerting:machine-proof",
+    command: "pnpm run alerts:machine-proof",
     jsonPath: "docs/production-scale/evidence/latest-alerting-machine-proof.json",
   },
   {

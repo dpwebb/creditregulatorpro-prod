@@ -3,14 +3,14 @@
   "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
   "blockerId": "L10-P1-005",
   "environment": "production",
-  "generatedAt": "2026-05-22T15:46:42.274Z",
-  "commitHash": "99b97e37f9326916b48161da4ac79ac762d7a026",
-  "currentCommitHash": "99b97e37f9326916b48161da4ac79ac762d7a026",
-  "currentHead": "99b97e37f9326916b48161da4ac79ac762d7a026",
-  "commit": "99b97e37f9326916b48161da4ac79ac762d7a026",
+  "generatedAt": "2026-05-22T16:04:46.176Z",
+  "commitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+  "currentCommitHash": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+  "currentHead": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
+  "commit": "23e393bf7d93fa843bae16f311b19dddf635ebb1",
   "branch": "staging",
   "generatorScript": "scripts/alerting-machine-proof.mjs",
-  "command": "pnpm run alerting:machine-proof",
+  "command": "pnpm run alerts:machine-proof",
   "nonInteractive": true,
   "machineAttested": true,
   "humanInteractionRequired": false,
@@ -28,71 +28,76 @@
   "certifying": false,
   "CERTIFYING": false,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-23T15:46:42.274Z",
+  "expiresAt": "2026-05-23T16:04:46.176Z",
   "checks": [
     {
       "name": "synthetic-alert-triggered",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "alert-delivery-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "sanitized-channel-id-recorded",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "correlation-id-recorded",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "machine-acknowledgment-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "retry-or-failure-behavior-recorded",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "response-ops-readiness-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "scheduler-status-verified",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     },
     {
       "name": "no-webhook-or-token-printed",
-      "status": "fail",
-      "summary": "Machine attestation check missing or failed."
+      "status": "fail"
     }
   ],
   "failures": [
     {
-      "code": "attestation-unavailable",
-      "message": "machine attestation path was not provided."
+      "code": "alerting-machine-proof-runtime-inputs-missing",
+      "message": "Non-interactive alerting proof requires a sanitized machine attestation for live synthetic delivery or a repo-policy-approved automated exclusion."
     }
   ],
-  "sanitizedArtifacts": [],
+  "sanitizedArtifacts": [
+    "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+    "docs/production-scale/evidence/latest-alerting-machine-proof.md"
+  ],
   "missingRuntimeInputs": [
     "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
   ],
   "policyVersion": "production-machine-proof-policy-2026-05-22",
   "metadata": {
-    "blockerIdsClosedWhenCertifying": [
-      "L10-P1-005"
-    ],
-    "attestationPath": null,
-    "acceptedCheckSet": "live-alert-delivery",
-    "sensitiveFindingCount": 0
+    "proofMode": "machine-attested-alerting-required",
+    "humanInteractionRequired": false,
+    "missingRuntimeInputs": [
+      "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+    ]
+  },
+  "alertType": null,
+  "channelSanitizedId": null,
+  "correlationId": null,
+  "deliveryTimestamp": null,
+  "deliveryVerified": false,
+  "responseOpsReady": false,
+  "schedulerStatus": null,
+  "sanitizerResult": {
+    "passed": true,
+    "sensitiveFindingCount": 0,
+    "sensitiveFindingCodes": []
   }
 }

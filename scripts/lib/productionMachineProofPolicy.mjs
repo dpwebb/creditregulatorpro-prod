@@ -89,9 +89,14 @@ export const MACHINE_PROOF_BLOCKER_REQUIREMENTS = {
     proofTypeRequired:
       "Non-interactive sanitized alerting machine proof with live synthetic delivery or an explicitly certifying formal exclusion allowed by repo policy.",
     proofCategories: ["machine-attested", "automated-local"],
-    allowedProofCommands: ["pnpm run alerting:machine-proof", "pnpm run alerting:machine-proof:validate"],
+    allowedProofCommands: [
+      "pnpm run alerts:machine-proof",
+      "pnpm run alerts:machine-proof:validate",
+      "pnpm run alerting:machine-proof",
+      "pnpm run alerting:machine-proof:validate",
+    ],
     recommendedNextAction:
-      "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
+      "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.",
   },
   10: {
     blockerId: "L10-P1-006",

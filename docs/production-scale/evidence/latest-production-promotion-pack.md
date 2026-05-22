@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T15:37:03.874Z
+Generated at: 2026-05-22T16:05:09.278Z
 Current branch: `staging`
-Current commit hash: `99b97e37f9326916b48161da4ac79ac762d7a026`
-Current HEAD: `99b97e37f9326916b48161da4ac79ac762d7a026`
+Current commit hash: `23e393bf7d93fa843bae16f311b19dddf635ebb1`
+Current HEAD: `23e393bf7d93fa843bae16f311b19dddf635ebb1`
 Target environment: `production`
-Target SHA: `99b97e37f9326916b48161da4ac79ac762d7a026`
+Target SHA: `23e393bf7d93fa843bae16f311b19dddf635ebb1`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -32,7 +32,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `99b97e37f9326916b48161da4ac79ac762d7a026`
+- Target SHA: `23e393bf7d93fa843bae16f311b19dddf635ebb1`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, retentionArchiveRestoreMachineProof
 - Non-automated checks: none
@@ -42,17 +42,17 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-machine-production-evidence; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:37:03.874Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=419bcbb5ebf096f751b71bf4d940b292ea0e91e5; timestamp=2026-05-22T14:32:33.931Z; command=`pnpm run storage:durability-contract`
+- Queue liveness: non-certifying; status=prepared-awaiting-machine-production-evidence; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:05:09.278Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:46:16.415Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=failed; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:37:03.874Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=419bcbb5ebf096f751b71bf4d940b292ea0e91e5; timestamp=2026-05-22T14:32:59.901Z; command=`pnpm run deploy:rollback-simulation`
-- Disaster recovery restore machine proof: non-certifying; status=fail; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:36:56.119Z; command=`pnpm run restore:machine-proof`
-- Production worker runtime machine proof: non-certifying; status=fail; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:36:57.318Z; command=`pnpm run production-worker:machine-proof`
-- Raw report byte remediation machine proof: non-certifying; status=fail; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:36:58.483Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
-- Alerting observability machine proof: non-certifying; status=fail; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:36:59.731Z; command=`pnpm run alerting:machine-proof`
-- Migration governance machine proof: non-certifying; status=fail; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:37:03.874Z; command=`pnpm run migrations:machine-proof`
-- Retention archive restore machine proof: non-certifying; status=fail; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:37:02.628Z; command=`pnpm run retention:archive-restore-machine-proof`
+- Migration governance: non-certifying; status=failed; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:05:09.278Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=99b97e37f9326916b48161da4ac79ac762d7a026; timestamp=2026-05-22T15:46:36.715Z; command=`pnpm run deploy:rollback-simulation`
+- Disaster recovery restore machine proof: non-certifying; status=fail; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:04:42.380Z; command=`pnpm run restore:machine-proof`
+- Production worker runtime machine proof: non-certifying; status=fail; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:04:43.590Z; command=`pnpm run production-worker:machine-proof`
+- Raw report byte remediation machine proof: non-certifying; status=fail; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:04:44.856Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
+- Alerting observability machine proof: non-certifying; status=fail; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:04:46.176Z; command=`pnpm run alerting:machine-proof`
+- Migration governance machine proof: non-certifying; status=fail; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:05:09.278Z; command=`pnpm run migrations:machine-proof`
+- Retention archive restore machine proof: non-certifying; status=fail; head=23e393bf7d93fa843bae16f311b19dddf635ebb1; timestamp=2026-05-22T16:04:49.141Z; command=`pnpm run retention:archive-restore-machine-proof`
 
 ### Machine-Attested Proof Gates
 
@@ -80,7 +80,7 @@ Production-ready claim: **false**
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T15:37:03.874Z; completed=2026-05-22T15:37:03.874Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T16:05:09.278Z; completed=2026-05-22T16:05:09.278Z
 
 ## Command Result Summary
 
@@ -115,6 +115,7 @@ Production-ready claim: **false**
 - `pnpm run migrations:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-migration-machine-proof.md, docs/production-scale/evidence/latest-migration-machine-proof.json
 - `pnpm run deploy:rollback-simulation` - evidence-file-present; evidence: docs/production-scale/evidence/latest-deploy-rollback-simulation.md, docs/production-scale/evidence/latest-deploy-rollback-simulation.json
 - `pnpm run restore:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-restore-machine-proof.md, docs/production-scale/evidence/latest-restore-machine-proof.json
+- `pnpm run alerts:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-machine-proof.md, docs/production-scale/evidence/latest-alerting-machine-proof.json
 - `pnpm run alerting:machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-alerting-machine-proof.md, docs/production-scale/evidence/latest-alerting-machine-proof.json
 - `pnpm run retention:archive-restore-machine-proof` - evidence-file-present; evidence: docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.md, docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json
 - `pnpm run report:runtime-size` - evidence-file-present; evidence: docs/production-scale/evidence/latest-runtime-size.md, docs/production-scale/evidence/latest-runtime-size.json
@@ -354,7 +355,7 @@ Production-ready claim: **false**
 - #1 Disaster recovery (Critical; machine proof required) - Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.
 - #2 Production ingest runtime (Critical; machine proof required) - Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.
 - #6 Historical raw report bytes (High; machine proof required) - Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.
-- #9 Observability/alerting (High; machine proof required) - Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.
+- #9 Observability/alerting (High; machine proof required) - Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
 - #10 Migration governance (High; machine proof required) - Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.
 - #22 Retention archive/restore proof (Medium; machine proof required) - Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.
 

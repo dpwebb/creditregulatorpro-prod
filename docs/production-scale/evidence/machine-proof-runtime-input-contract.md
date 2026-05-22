@@ -30,7 +30,7 @@ If an input is missing, the proof must fail closed with:
 | `CRP_PRODUCTION_WORKER_STOP_ROLLBACK_ACCESS` | `pnpm run production-worker:machine-proof` | No | Sanitized machine attestation field for stop/rollback verification | production-read-only | No |
 | `CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-inventory` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No |
 | `CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON` | `pnpm run storage:raw-report-machine-remediation-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-read-only | No by the proof script; attested remediation policy may describe approved bounded remediation |
-| `CRP_ALERTING_MACHINE_ATTESTATION_JSON` | `pnpm run alerting:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | No production data mutation |
+| `CRP_ALERTING_MACHINE_ATTESTATION_JSON` | `pnpm run alerts:machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | No production data mutation |
 | `CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON` | `pnpm run retention:archive-restore-machine-proof` | No | Env var containing an attestation file path, or `--attestation <path>` | production-canary | Yes, synthetic canary cleaned up only |
 
 ## Safety Constraints
@@ -49,7 +49,7 @@ Every attestation input must be sanitized JSON and must include `nonInteractive:
 
 `CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON` must prove reliable inventory acceptance, remediation policy verification, unresolved/remediated counts, opaque hash-only evidence, rollback/recovery notes, and no raw bytes or PII. The proof script itself must not apply remediation.
 
-`CRP_ALERTING_MACHINE_ATTESTATION_JSON` must prove live synthetic alert delivery or a repo-policy-approved certifying formal exclusion. Any acknowledgement must be machine-verifiable; operator acknowledgement is not required. Webhook URLs and tokens must not appear.
+`CRP_ALERTING_MACHINE_ATTESTATION_JSON` must prove live synthetic alert delivery or a repo-policy-approved certifying formal exclusion. Any acknowledgement must be machine-verifiable; operator acknowledgement is not required. Webhook URLs and tokens must not appear. Use `pnpm run alerts:machine-proof` for the current proof path; the older `alerting:*` alias remains backward-compatible.
 
 `CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON` must prove safe archive candidate selection or creation, isolated restore target, integrity verification, lifecycle cleanup, rollback/recovery notes, and target destruction.
 

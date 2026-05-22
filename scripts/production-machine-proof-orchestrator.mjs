@@ -103,7 +103,7 @@ export function defaultMachineProofAreas() {
       blockerId: "L10-P1-005",
       kind: "machine-proof",
       config: ALERTING_MACHINE_PROOF_CONFIG,
-      commands: ["pnpm run alerting:machine-proof", "pnpm run alerting:machine-proof:validate"],
+      commands: ["pnpm run alerts:machine-proof", "pnpm run alerts:machine-proof:validate"],
     },
     {
       key: "migration",

@@ -108,7 +108,7 @@ export const REQUIRED_CERTIFICATION_GATES = [
   {
     id: 'alertingMachineProof',
     label: 'Alerting and observability machine proof',
-    command: 'pnpm run alerting:machine-proof',
+    command: 'pnpm run alerts:machine-proof',
     evidencePath: 'docs/production-scale/evidence/latest-alerting-machine-proof.json',
   },
   {

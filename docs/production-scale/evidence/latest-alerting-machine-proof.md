@@ -1,17 +1,17 @@
 # Alerting Observability Machine Proof
 
-Generated at: 2026-05-22T15:46:42.274Z
+Generated at: 2026-05-22T16:04:46.176Z
 Evidence type: ALERTING_OBSERVABILITY_MACHINE_PROOF
 Environment: production
-Commit: `99b97e37f9326916b48161da4ac79ac762d7a026`
+Commit: `23e393bf7d93fa843bae16f311b19dddf635ebb1`
 Generator: `scripts/alerting-machine-proof.mjs`
-Command: `pnpm run alerting:machine-proof`
+Command: `pnpm run alerts:machine-proof`
 Blocker ID: L10-P1-005
 Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T15:46:42.274Z
+Expires at: 2026-05-23T16:04:46.176Z
 
 ## Safety
 
@@ -29,19 +29,19 @@ Expires at: 2026-05-23T15:46:42.274Z
 
 ## Checks
 
-- [fail] synthetic-alert-triggered: Machine attestation check missing or failed.
-- [fail] alert-delivery-verified: Machine attestation check missing or failed.
-- [fail] sanitized-channel-id-recorded: Machine attestation check missing or failed.
-- [fail] correlation-id-recorded: Machine attestation check missing or failed.
-- [fail] machine-acknowledgment-verified: Machine attestation check missing or failed.
-- [fail] retry-or-failure-behavior-recorded: Machine attestation check missing or failed.
-- [fail] response-ops-readiness-verified: Machine attestation check missing or failed.
-- [fail] scheduler-status-verified: Machine attestation check missing or failed.
-- [fail] no-webhook-or-token-printed: Machine attestation check missing or failed.
+- [fail] synthetic-alert-triggered:
+- [fail] alert-delivery-verified:
+- [fail] sanitized-channel-id-recorded:
+- [fail] correlation-id-recorded:
+- [fail] machine-acknowledgment-verified:
+- [fail] retry-or-failure-behavior-recorded:
+- [fail] response-ops-readiness-verified:
+- [fail] scheduler-status-verified:
+- [fail] no-webhook-or-token-printed:
 
 ## Failures
 
-- attestation-unavailable: machine attestation path was not provided.
+- alerting-machine-proof-runtime-inputs-missing: Non-interactive alerting proof requires a sanitized machine attestation for live synthetic delivery or a repo-policy-approved automated exclusion.
 
 ## Missing Runtime Inputs
 
@@ -49,4 +49,5 @@ Expires at: 2026-05-23T15:46:42.274Z
 
 ## Sanitized Artifacts
 
-- None.
+- docs/production-scale/evidence/latest-alerting-machine-proof.json
+- docs/production-scale/evidence/latest-alerting-machine-proof.md
