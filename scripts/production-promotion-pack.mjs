@@ -772,6 +772,8 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
       status: "missing",
       certifying: false,
       accepted: false,
+      humanInteractionRequired: false,
+      missingRuntimeInputs: config.attestationEnv ? [config.attestationEnv] : [],
       validation: {
         ok: false,
         errors: [`Machine evidence file is missing: ${config.jsonPath}`],
@@ -796,6 +798,8 @@ function machineProofSummary(key, label, config, evidence, extraValidation = () 
     status: evidence.status ?? "unknown",
     certifying: evidence.certifying === true && evidence.CERTIFYING === true,
     accepted: ok,
+    humanInteractionRequired: evidence.humanInteractionRequired === true,
+    missingRuntimeInputs: Array.isArray(evidence.missingRuntimeInputs) ? evidence.missingRuntimeInputs : [],
     validation: {
       ok,
       errors,
@@ -852,6 +856,18 @@ function alertingMachineProofExtraValidation(evidence) {
     errors.push("alerting machine proof must be live-alert delivery or a certifying formal exclusion.");
   }
   return errors;
+}
+
+function machineRuntimeInputsForBlocker(number, machineProofs = {}) {
+  const proofByBlocker = {
+    1: machineProofs.restore,
+    2: machineProofs.productionWorker,
+    6: machineProofs.rawReport,
+    9: machineProofs.alerting,
+    10: machineProofs.migration,
+    22: machineProofs.retentionArchiveRestore,
+  };
+  return proofByBlocker[number]?.missingRuntimeInputs ?? [];
 }
 
 function classifyBlocker(
@@ -1300,7 +1316,7 @@ export function buildPromotionCertificationGate({
       }
       if (manualOnly) {
         nonAutomatedChecks.push(check.key);
-        reasons.push(`${check.label} evidence is manual-only or human-observed.`);
+        reasons.push(`${check.label} evidence is not accepted as non-interactive machine-attested proof.`);
       }
       if (skipped) {
         skippedChecks.push(check.key);
@@ -1526,6 +1542,9 @@ export function buildProductionPromotionPackReport({
       generatedAt,
     ),
   };
+  const missingMachineRuntimeInputs = unique(
+    Object.values(machineProofs).flatMap((proof) => proof?.missingRuntimeInputs ?? []),
+  );
   const measuredLoadAcceptance =
     measuredLoadEvidenceAcceptance ?? buildMeasuredLoadEvidenceAcceptance({ rootDir, generatedAt });
   const runtimeSizeAcceptance =
@@ -1566,6 +1585,7 @@ export function buildProductionPromotionPackReport({
       recommendedNextAction: machineRequirement?.recommendedNextAction ?? blocker.recommendedNextAction,
       humanProofRequired: machineRequirement ? false : blocker.humanProofRequired === true,
       machineProofRequired: Boolean(machineRequirement) && classification !== "fixed with automated evidence",
+      missingRuntimeInputs: machineRuntimeInputsForBlocker(blocker.number, machineProofs),
       simulatedProofAcceptable: blocker.simulatedProofAcceptable === true,
       acceptedHumanEvidence:
         classification === "fixed with human-observed evidence"
@@ -1728,6 +1748,8 @@ export function buildProductionPromotionPackReport({
     retentionArchiveRestoreMachineProofResult: promotionCertification.checks.retentionArchiveRestoreMachineProof,
     promotionCertification,
     machineProofs,
+    missingMachineRuntimeInputs,
+    humanInteractionRequired: false,
     humanRestoreDrillEvidenceAcceptance: {
       reportName: acceptedHumanRestoreEvidence.reportName,
       generatedAt: acceptedHumanRestoreEvidence.generatedAt,
@@ -2198,9 +2220,9 @@ export function buildProductionPromotionPackReport({
     requiredStatements: [
       "SIMULATED proof is not production proof.",
       "Dashboard PASS alone is not complete release evidence when checks are skipped.",
-      "Production activation requires operator approval.",
-      "Historical raw report remediation requires accepted sanitized operator evidence.",
-      "Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
+      "Machine proof gates are non-interactive and require only machine attestations.",
+      "Missing runtime inputs are machine inputs and keep CERTIFYING:false.",
+      "Disaster recovery, ingest runtime, raw report remediation, alerting, migration, and retention closure require accepted machine-attested evidence.",
       "Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
       "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
       "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
@@ -2310,6 +2332,22 @@ export function validatePromotionPackReport(report) {
   const measuredLoad = report.measuredLoadEvidenceAcceptance;
   const runtimeSize = report.runtimeSizePolicyAcceptance;
   const machineProofs = report.machineProofs ?? {};
+  const topLevelMissingInputs = new Set(report.missingMachineRuntimeInputs ?? []);
+  for (const proof of Object.values(machineProofs)) {
+    for (const input of proof?.missingRuntimeInputs ?? []) {
+      if (!topLevelMissingInputs.has(input)) {
+        errors.push(`Missing machine runtime input is not surfaced at top level: ${input}.`);
+      }
+    }
+    if (proof?.humanInteractionRequired === true) {
+      errors.push(`Machine proof ${proof.key ?? proof.label} must not require human interaction.`);
+    }
+  }
+  for (const blocker of blockers.filter((entry) => entry.classification === "machine proof required")) {
+    if (blocker.humanProofRequired === true) {
+      errors.push(`Blocker ${blocker.number} cannot be both machine-proof-required and human-proof-required.`);
+    }
+  }
   const blocker1 = blockers.find((blocker) => blocker.number === 1);
   const blocker2 = blockers.find((blocker) => blocker.number === 2);
   const blocker3 = blockers.find((blocker) => blocker.number === 3);
@@ -2721,7 +2759,7 @@ function renderMachineProofRows(machineProofs = {}) {
   const proofs = Object.values(machineProofs);
   if (!proofs.length) return ["- None."];
   return proofs.map((proof) =>
-    `- ${proof.label}: ${proof.accepted ? "accepted" : "not accepted"}; status=${proof.status}; certifying=${proof.certifying ? "true" : "false"}; evidence=\`${proof.evidencePath}\``,
+    `- ${proof.label}: ${proof.accepted ? "accepted" : "not accepted"}; status=${proof.status}; certifying=${proof.certifying ? "true" : "false"}; missingRuntimeInputs=${proof.missingRuntimeInputs?.join(", ") || "none"}; humanInteractionRequired=${proof.humanInteractionRequired ? "true" : "false"}; evidence=\`${proof.evidencePath}\``,
   );
 }
 
@@ -2746,9 +2784,9 @@ export function renderPromotionPackMarkdown(report) {
     "- SIMULATED proof is not production proof.",
     "- Dashboard PASS alone is not complete release evidence when checks are skipped.",
     "- Codex must not promote readiness classification beyond evidence.",
-    "- Production activation requires operator approval.",
-    "- Historical raw report remediation requires accepted sanitized operator evidence.",
-    "- Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
+    "- Machine proof gates are non-interactive and require only machine attestations.",
+    "- Missing runtime inputs are machine inputs and keep CERTIFYING:false.",
+    "- Disaster recovery, ingest runtime, raw report remediation, alerting, migration, and retention closure require accepted machine-attested evidence.",
     "- Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
     "- Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "- Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",
@@ -2767,6 +2805,7 @@ export function renderPromotionPackMarkdown(report) {
     `- Non-automated checks: ${report.promotionCertification?.nonAutomatedChecks?.join(", ") || "none"}`,
     `- Skipped checks: ${report.promotionCertification?.skippedChecks?.join(", ") || "none"}`,
     `- Failed checks: ${report.promotionCertification?.failedChecks?.join(", ") || "none"}`,
+    `- Missing machine runtime inputs: ${report.missingMachineRuntimeInputs?.join(", ") || "none"}`,
     "",
     "### Required Certification Checks",
     "",
@@ -2775,6 +2814,12 @@ export function renderPromotionPackMarkdown(report) {
     "### Machine-Attested Proof Gates",
     "",
     ...renderMachineProofRows(report.machineProofs),
+    "",
+    "### Missing Machine Runtime Inputs",
+    "",
+    ...(report.missingMachineRuntimeInputs?.length
+      ? report.missingMachineRuntimeInputs.map((input) => `- ${input}`)
+      : ["- None."]),
     "",
     "### Exact Commands Run By This Evidence Pack",
     "",

@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T05:50:18.112Z
+Generated at: 2026-05-22T12:49:55.881Z
 Current branch: `staging`
-Current commit hash: `2026701883302c9a80851158313669e015a3465f`
-Current HEAD: `2026701883302c9a80851158313669e015a3465f`
+Current commit hash: `79af5282d400136dd75aa3d9d952799a37b92d32`
+Current HEAD: `79af5282d400136dd75aa3d9d952799a37b92d32`
 Target environment: `production`
-Target SHA: `2026701883302c9a80851158313669e015a3465f`
+Target SHA: `79af5282d400136dd75aa3d9d952799a37b92d32`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -17,9 +17,9 @@ Production-ready claim: **false**
 - SIMULATED proof is not production proof.
 - Dashboard PASS alone is not complete release evidence when checks are skipped.
 - Codex must not promote readiness classification beyond evidence.
-- Production activation requires operator approval.
-- Historical raw report remediation requires accepted sanitized operator evidence.
-- Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.
+- Machine proof gates are non-interactive and require only machine attestations.
+- Missing runtime inputs are machine inputs and keep CERTIFYING:false.
+- Disaster recovery, ingest runtime, raw report remediation, alerting, migration, and retention closure require accepted machine-attested evidence.
 - Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.
 - Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.
 - Staging ingest worker queue-drain evidence is staging proof only and does not activate production.
@@ -32,39 +32,48 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `2026701883302c9a80851158313669e015a3465f`
+- Target SHA: `79af5282d400136dd75aa3d9d952799a37b92d32`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, retentionArchiveRestoreMachineProof
 - Non-automated checks: queueLiveness
 - Skipped checks: none
 - Failed checks: queueLiveness, evidenceLedger, migrationGovernance, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, migrationMachineProof, retentionArchiveRestoreMachineProof
+- Missing machine runtime inputs: CRP_RESTORE_MACHINE_ATTESTATION_JSON, CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON, CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON, CRP_ALERTING_MACHINE_ATTESTATION_JSON, CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:50:18.112Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:21.310Z; command=`pnpm run storage:durability-contract`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:49:55.881Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:45:51.333Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=failed; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:50:18.112Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:43.940Z; command=`pnpm run deploy:rollback-simulation`
-- Disaster recovery restore machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:47.600Z; command=`pnpm run restore:machine-proof`
-- Production worker runtime machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:48.439Z; command=`pnpm run production-worker:machine-proof`
-- Raw report byte remediation machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:49.479Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
-- Alerting observability machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:50.410Z; command=`pnpm run alerting:machine-proof`
-- Migration governance machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:50:18.112Z; command=`pnpm run migrations:machine-proof`
-- Retention archive restore machine proof: non-certifying; status=fail; head=2026701883302c9a80851158313669e015a3465f; timestamp=2026-05-22T05:46:52.581Z; command=`pnpm run retention:archive-restore-machine-proof`
+- Migration governance: non-certifying; status=failed; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:49:55.881Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:46:11.577Z; command=`pnpm run deploy:rollback-simulation`
+- Disaster recovery restore machine proof: non-certifying; status=fail; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:46:14.126Z; command=`pnpm run restore:machine-proof`
+- Production worker runtime machine proof: non-certifying; status=fail; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:46:14.770Z; command=`pnpm run production-worker:machine-proof`
+- Raw report byte remediation machine proof: non-certifying; status=fail; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:46:15.672Z; command=`pnpm run storage:raw-report-machine-remediation-proof`
+- Alerting observability machine proof: non-certifying; status=fail; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:46:16.391Z; command=`pnpm run alerting:machine-proof`
+- Migration governance machine proof: non-certifying; status=fail; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:49:55.881Z; command=`pnpm run migrations:machine-proof`
+- Retention archive restore machine proof: non-certifying; status=fail; head=79af5282d400136dd75aa3d9d952799a37b92d32; timestamp=2026-05-22T12:46:18.310Z; command=`pnpm run retention:archive-restore-machine-proof`
 
 ### Machine-Attested Proof Gates
 
-- Disaster recovery restore machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-restore-machine-proof.json`
-- Production worker runtime machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-production-worker-machine-proof.json`
-- Raw report byte remediation machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json`
-- Alerting observability machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-alerting-machine-proof.json`
-- Migration governance machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-migration-machine-proof.json`
-- Retention archive restore machine proof: not accepted; status=fail; certifying=false; evidence=`docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json`
+- Disaster recovery restore machine proof: not accepted; status=fail; certifying=false; missingRuntimeInputs=CRP_RESTORE_MACHINE_ATTESTATION_JSON; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-restore-machine-proof.json`
+- Production worker runtime machine proof: not accepted; status=fail; certifying=false; missingRuntimeInputs=CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-production-worker-machine-proof.json`
+- Raw report byte remediation machine proof: not accepted; status=fail; certifying=false; missingRuntimeInputs=CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json`
+- Alerting observability machine proof: not accepted; status=fail; certifying=false; missingRuntimeInputs=CRP_ALERTING_MACHINE_ATTESTATION_JSON; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-alerting-machine-proof.json`
+- Migration governance machine proof: not accepted; status=fail; certifying=false; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-migration-machine-proof.json`
+- Retention archive restore machine proof: not accepted; status=fail; certifying=false; missingRuntimeInputs=CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json`
+
+### Missing Machine Runtime Inputs
+
+- CRP_RESTORE_MACHINE_ATTESTATION_JSON
+- CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
+- CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
+- CRP_ALERTING_MACHINE_ATTESTATION_JSON
+- CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T05:50:18.112Z; completed=2026-05-22T05:50:18.112Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T12:49:55.881Z; completed=2026-05-22T12:49:55.881Z
 
 ## Command Result Summary
 

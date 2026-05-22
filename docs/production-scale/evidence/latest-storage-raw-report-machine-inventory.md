@@ -1,19 +1,20 @@
 # Raw Report Byte Machine Inventory
 
-Generated at: 2026-05-22T05:07:27.838Z
+Generated at: 2026-05-22T11:50:33.456Z
 Evidence type: RAW_REPORT_BYTE_MACHINE_INVENTORY
 Environment: production
-Commit: `2026701883302c9a80851158313669e015a3465f`
+Commit: `79af5282d400136dd75aa3d9d952799a37b92d32`
 Generator: `scripts/storage-raw-report-machine-inventory.mjs`
 Command: `pnpm run storage:raw-report-machine-inventory`
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T05:07:27.838Z
+Expires at: 2026-05-23T11:50:33.456Z
 
 ## Safety
 
 - Non-interactive: yes
 - Machine-attested: yes
+- Human interaction required: no
 - Production mutation: none
 - Secrets printed: no
 - PII printed: no

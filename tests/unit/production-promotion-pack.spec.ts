@@ -1543,6 +1543,46 @@ describe("production promotion evidence pack", () => {
     expect(report.CERTIFYING).toBe(false);
   });
 
+  it("reports missing machine runtime inputs without converting them to human proof", () => {
+    const head = currentGitHead();
+    const missingRestoreProof = machineProofEvidence({
+      evidenceType: RESTORE_MACHINE_PROOF_EVIDENCE_TYPE,
+      targetSha: head,
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      checks: RESTORE_MACHINE_CHECKS,
+      overrides: {
+        status: "fail",
+        certifying: false,
+        missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+      },
+    });
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      restoreMachineProofEvidence: missingRestoreProof,
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      env: {},
+      targetSha: head,
+    });
+    const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.missingMachineRuntimeInputs).toEqual(expect.arrayContaining(["CRP_RESTORE_MACHINE_ATTESTATION_JSON"]));
+    expect(report.machineProofs.restore).toMatchObject({
+      accepted: false,
+      humanInteractionRequired: false,
+      missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+    });
+    expect(blocker1).toMatchObject({
+      classification: "machine proof required",
+      humanProofRequired: false,
+      machineProofRequired: true,
+      missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+    });
+    expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).not.toContain(1);
+    expect(report.requiredStatements.join("\n")).not.toMatch(/operator approval|human-observed|operator acknowledgement/i);
+  });
+
   it("can certify in a full valid machine-proof fixture", () => {
     const head = currentGitHead();
     const alertingExclusionValidation = buildAlertingExclusionValidationReport({
@@ -1574,6 +1614,8 @@ describe("production promotion evidence pack", () => {
     });
 
     expect(report.promotionCertification.CERTIFYING).toBe(true);
+    expect(report.missingMachineRuntimeInputs).toEqual([]);
+    expect(report.humanInteractionRequired).toBe(false);
     expect(report.readinessClassification.canPromoteProductionAtScale).toBe(true);
     expect(report.CERTIFYING).toBe(true);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });

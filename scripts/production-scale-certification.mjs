@@ -363,6 +363,8 @@ export async function evaluateEvidenceFreshness(options) {
       result.generatedAt = generatedAt;
       result.nestedStatus = evidence.status ?? null;
       result.nestedCERTIFYING = evidence.CERTIFYING ?? evidence.certifying ?? null;
+      result.missingRuntimeInputs = Array.isArray(evidence.missingRuntimeInputs) ? evidence.missingRuntimeInputs : [];
+      result.humanInteractionRequired = evidence.humanInteractionRequired === true;
 
       if (evidenceHead !== targetSha) {
         result.reasons.push(`evidence HEAD ${evidenceHead ?? 'missing'} does not match target SHA ${targetSha}`);
@@ -382,6 +384,12 @@ export async function evaluateEvidenceFreshness(options) {
 
       if (!isPassedEvidenceStatus(evidence.status)) {
         result.reasons.push(`nested evidence status is ${evidence.status}`);
+      }
+      if (result.missingRuntimeInputs.length > 0) {
+        result.reasons.push(`missing machine runtime inputs: ${result.missingRuntimeInputs.join(', ')}`);
+      }
+      if (result.humanInteractionRequired === true) {
+        result.reasons.push('machine evidence must not require human interaction');
       }
     } catch (error) {
       result.reasons.push(`evidence JSON is missing or unreadable: ${error.message}`);
@@ -598,6 +606,9 @@ export async function buildProductionScaleCertificationReport(options = {}) {
     ]),
   ];
   const skippedGates = summarizeGateIds(gateResultsWithFreshness, 'skipped');
+  const missingMachineRuntimeInputs = [
+    ...new Set(evidenceFreshnessResults.flatMap((entry) => entry.missingRuntimeInputs ?? [])),
+  ];
   const stagingOnlyProofGates = gateResultsWithFreshness
     .filter((gate) => AUTH_SMOKE_GATE_IDS.has(gate.id) && gate.stagingProof === true && gate.productionProof !== true)
     .map((gate) => gate.id);
@@ -637,6 +648,8 @@ export async function buildProductionScaleCertificationReport(options = {}) {
     failedGates,
     staleGates,
     skippedGates,
+    missingMachineRuntimeInputs,
+    humanInteractionRequired: false,
     stagingOnlyProofGates,
     certifying,
     CERTIFYING: certifying,
@@ -696,6 +709,12 @@ export function renderProductionScaleCertificationMarkdown(report) {
     '## Failed Gates',
     '',
     report.failedGates.length > 0 ? report.failedGates.map((gate) => `- ${gate}`).join('\n') : '- None',
+    '',
+    '## Missing Machine Runtime Inputs',
+    '',
+    report.missingMachineRuntimeInputs?.length
+      ? report.missingMachineRuntimeInputs.map((input) => `- ${input}`).join('\n')
+      : '- None',
     '',
     '## Stale Gates',
     '',

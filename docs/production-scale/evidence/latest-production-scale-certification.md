@@ -1,8 +1,8 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T05:50:10.346Z
-Current HEAD: `2026701883302c9a80851158313669e015a3465f`
-Target SHA: `2026701883302c9a80851158313669e015a3465f`
+Generated: 2026-05-22T12:49:45.300Z
+Current HEAD: `79af5282d400136dd75aa3d9d952799a37b92d32`
+Target SHA: `79af5282d400136dd75aa3d9d952799a37b92d32`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
@@ -45,6 +45,14 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 - migrationMachineProof
 - retentionArchiveRestoreMachineProof
 - evidenceFreshness
+
+## Missing Machine Runtime Inputs
+
+- CRP_RESTORE_MACHINE_ATTESTATION_JSON
+- CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON
+- CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON
+- CRP_ALERTING_MACHINE_ATTESTATION_JSON
+- CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON
 
 ## Stale Gates
 

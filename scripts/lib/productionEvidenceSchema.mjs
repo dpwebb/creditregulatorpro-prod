@@ -52,6 +52,7 @@ export function buildMachineEvidence({
   command,
   nonInteractive = true,
   machineAttested = true,
+  humanInteractionRequired = false,
   productionMutation = "none",
   secretsPrinted = false,
   piiPrinted = false,
@@ -96,6 +97,7 @@ export function buildMachineEvidence({
     command,
     nonInteractive,
     machineAttested,
+    humanInteractionRequired,
     generatedManually,
     simulatedOnly,
     productionMutation: normalizedMutation,
@@ -134,6 +136,7 @@ export function renderMachineEvidenceMarkdown(evidence, title = "Production Mach
     "",
     `- Non-interactive: ${evidence.nonInteractive ? "yes" : "no"}`,
     `- Machine-attested: ${evidence.machineAttested ? "yes" : "no"}`,
+    `- Human interaction required: ${evidence.humanInteractionRequired ? "yes" : "no"}`,
     `- Production mutation: ${evidence.productionMutation}`,
     `- Secrets printed: ${evidence.secretsPrinted ? "yes" : "no"}`,
     `- PII printed: ${evidence.piiPrinted ? "yes" : "no"}`,
@@ -182,4 +185,3 @@ export function writeMachineEvidenceOutputs(evidence, {
   writeFileSync(absoluteMarkdownPath, renderMachineEvidenceMarkdown(evidence, title), "utf8");
   return { jsonPath: normalizeRelativePath(jsonPath), markdownPath: normalizeRelativePath(markdownPath) };
 }
-

@@ -363,6 +363,39 @@ describe("production-scale certification report", () => {
     expect(report.gateStatus.evidenceFreshness).toBe("failed");
   });
 
+  it("reports missing machine runtime inputs without human-proof language", async () => {
+    const root = tempRepoRoot();
+    const evidencePath = "docs/production-scale/evidence/latest-restore-machine-proof.json";
+    writeEvidence(root, evidencePath, {
+      evidenceType: "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
+      generatedAt: "2026-05-21T12:00:02.000Z",
+      currentHead: HEAD,
+      status: "fail",
+      certifying: false,
+      CERTIFYING: false,
+      humanInteractionRequired: false,
+      missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+    });
+
+    const report = await buildMockReport({
+      repoRoot: root,
+      gates: [gate("restoreMachineProof", "pnpm run restore:machine-proof", evidencePath)],
+    });
+
+    expect(report.CERTIFYING).toBe(false);
+    expect(report.missingMachineRuntimeInputs).toEqual(["CRP_RESTORE_MACHINE_ATTESTATION_JSON"]);
+    expect(report.humanInteractionRequired).toBe(false);
+    expect(JSON.stringify(report)).not.toMatch(/human-observed proof|required human|operator acknowledgement/i);
+    expect(report.evidenceFreshness.find((entry: { gateId: string }) => entry.gateId === "restoreMachineProof"))
+      .toMatchObject({
+        missingRuntimeInputs: ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+        humanInteractionRequired: false,
+        reasons: expect.arrayContaining([
+          "missing machine runtime inputs: CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+        ]),
+      });
+  });
+
   it("marks CERTIFYING:true when every mocked gate and evidence check passes", async () => {
     const root = tempRepoRoot();
     const evidencePath = "docs/production-scale/evidence/mock-fresh-evidence.json";

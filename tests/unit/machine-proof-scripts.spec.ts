@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -70,10 +70,14 @@ describe("machine proof scripts", () => {
     });
 
     expect(report.CERTIFYING).toBe(false);
+    expect(report.status).toBe("fail");
+    expect(report.certifying).toBe(false);
+    expect(report.humanInteractionRequired).toBe(false);
     expect(report.missingRuntimeInputs).toEqual(["CRP_RESTORE_MACHINE_ATTESTATION_JSON"]);
     expect(report.failures).toEqual([
       expect.objectContaining({ code: "attestation-unavailable" }),
     ]);
+    expect(JSON.stringify(report)).not.toMatch(/human-observed|manual approval|operator acknowledgement/i);
   });
 
   it("accepts valid sanitized restore attestation", () => {
@@ -87,6 +91,7 @@ describe("machine proof scripts", () => {
     });
 
     expect(report.CERTIFYING).toBe(true);
+    expect(report.humanInteractionRequired).toBe(false);
     expect(validateMachineProofForConfig(RESTORE_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(true);
   });
 
@@ -205,5 +210,29 @@ describe("machine proof scripts", () => {
 
     expect(report.CERTIFYING).toBe(false);
     expect(validateMachineProofForConfig(RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF_CONFIG, report, { now: NOW }).ok).toBe(false);
+  });
+
+  it("documents every non-interactive runtime input in the contract", () => {
+    const contract = JSON.parse(readFileSync("docs/production-scale/evidence/machine-proof-runtime-input-contract.json", "utf8"));
+    const inputNames = contract.inputs.map((input: { name: string }) => input.name);
+
+    expect(contract.humanObservedProofAllowed).toBe(false);
+    expect(contract.operatorAcknowledgementRequired).toBe(false);
+    expect(inputNames).toEqual(expect.arrayContaining([
+      "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+      "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+      "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+      "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+      "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+      "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+    ]));
+    for (const input of contract.inputs) {
+      expect(input.secret).toBe(false);
+      expect(input.failureIfMissing).toMatchObject({
+        status: "fail",
+        certifying: false,
+        humanInteractionRequired: false,
+      });
+    }
   });
 });

@@ -35,6 +35,7 @@ describe("machine evidence schema", () => {
       certifying: true,
       errors: [],
     });
+    expect(evidence.humanInteractionRequired).toBe(false);
   });
 
   it("rejects simulated-only production proof", () => {
@@ -83,5 +84,16 @@ describe("machine evidence schema", () => {
     expect(result.sensitiveFindings).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "database-url" }),
     ]));
+  });
+
+  it("rejects evidence that asks for human interaction", () => {
+    const evidence = {
+      ...validEvidence(),
+      humanInteractionRequired: true,
+    };
+
+    expect(validateMachineEvidence(evidence, { now: NOW }).errors).toEqual(
+      expect.arrayContaining(["humanInteractionRequired must be false."]),
+    );
   });
 });

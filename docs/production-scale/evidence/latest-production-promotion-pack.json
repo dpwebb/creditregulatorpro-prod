@@ -1,16 +1,16 @@
 {
   "reportName": "production-promotion-evidence-pack",
-  "generatedAt": "2026-05-22T05:50:18.112Z",
+  "generatedAt": "2026-05-22T12:49:55.881Z",
   "currentBranch": "staging",
-  "currentCommitHash": "2026701883302c9a80851158313669e015a3465f",
-  "currentHead": "2026701883302c9a80851158313669e015a3465f",
+  "currentCommitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
+  "currentHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
   "targetEnvironment": "production",
-  "targetSha": "2026701883302c9a80851158313669e015a3465f",
+  "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
   "exactCommandsRun": [
     {
       "command": "pnpm run production-scale:promotion-pack",
-      "startedAt": "2026-05-22T05:50:18.112Z",
-      "completedAt": "2026-05-22T05:50:18.112Z",
+      "startedAt": "2026-05-22T12:49:55.881Z",
+      "completedAt": "2026-05-22T12:49:55.881Z",
       "status": "passed",
       "automated": true
     }
@@ -506,12 +506,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T05:46:48.439Z",
+          "generatedAt": "2026-05-22T12:46:14.770Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:48.439Z",
+      "latestGeneratedAt": "2026-05-22T12:46:14.770Z",
       "status": "fail"
     },
     {
@@ -680,12 +680,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RAW_REPORT_BYTE_MACHINE_INVENTORY",
-          "generatedAt": "2026-05-22T05:07:27.838Z",
+          "generatedAt": "2026-05-22T11:50:33.456Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:07:27.838Z",
+      "latestGeneratedAt": "2026-05-22T11:50:33.456Z",
       "status": "fail"
     },
     {
@@ -709,12 +709,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T05:46:49.479Z",
+          "generatedAt": "2026-05-22T12:46:15.672Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:49.479Z",
+      "latestGeneratedAt": "2026-05-22T12:46:15.672Z",
       "status": "fail"
     },
     {
@@ -738,12 +738,12 @@
           "exists": true,
           "reportName": "storage-durability-contract",
           "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
-          "generatedAt": "2026-05-22T05:46:21.310Z",
+          "generatedAt": "2026-05-22T12:45:51.333Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:21.310Z",
+      "latestGeneratedAt": "2026-05-22T12:45:51.333Z",
       "status": null
     },
     {
@@ -816,12 +816,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T05:46:51.235Z",
+          "generatedAt": "2026-05-22T12:46:17.211Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:51.235Z",
+      "latestGeneratedAt": "2026-05-22T12:46:17.211Z",
       "status": "fail"
     },
     {
@@ -845,12 +845,12 @@
           "exists": true,
           "reportName": "deploy-rollback-simulation",
           "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
-          "generatedAt": "2026-05-22T05:46:43.940Z",
+          "generatedAt": "2026-05-22T12:46:11.577Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:43.940Z",
+      "latestGeneratedAt": "2026-05-22T12:46:11.577Z",
       "status": "passed"
     },
     {
@@ -961,12 +961,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T05:46:47.600Z",
+          "generatedAt": "2026-05-22T12:46:14.126Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:47.600Z",
+      "latestGeneratedAt": "2026-05-22T12:46:14.126Z",
       "status": "fail"
     },
     {
@@ -990,12 +990,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T05:46:50.410Z",
+          "generatedAt": "2026-05-22T12:46:16.391Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:50.410Z",
+      "latestGeneratedAt": "2026-05-22T12:46:16.391Z",
       "status": "fail"
     },
     {
@@ -1019,12 +1019,12 @@
           "exists": true,
           "reportName": null,
           "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
-          "generatedAt": "2026-05-22T05:46:52.581Z",
+          "generatedAt": "2026-05-22T12:46:18.310Z",
           "status": "fail",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:52.581Z",
+      "latestGeneratedAt": "2026-05-22T12:46:18.310Z",
       "status": "fail"
     },
     {
@@ -1174,12 +1174,12 @@
           "exists": true,
           "reportName": "ingest-worker-simulated-queue-drain-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T05:46:24.986Z",
+          "generatedAt": "2026-05-22T12:45:53.971Z",
           "status": "passed",
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:24.986Z",
+      "latestGeneratedAt": "2026-05-22T12:45:53.971Z",
       "status": "passed"
     },
     {
@@ -1290,12 +1290,12 @@
           "exists": true,
           "reportName": "packet-pdf-cache-miss-proof",
           "evidenceType": "SIMULATED",
-          "generatedAt": "2026-05-22T05:46:09.980Z",
+          "generatedAt": "2026-05-22T12:45:41.459Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:09.980Z",
+      "latestGeneratedAt": "2026-05-22T12:45:41.459Z",
       "status": null
     },
     {
@@ -1348,12 +1348,12 @@
           "exists": true,
           "reportName": "migration-governance-drift-evidence",
           "evidenceType": null,
-          "generatedAt": "2026-05-22T05:46:10.810Z",
+          "generatedAt": "2026-05-22T12:45:42.169Z",
           "status": null,
           "productionProof": false
         }
       ],
-      "latestGeneratedAt": "2026-05-22T05:46:10.810Z",
+      "latestGeneratedAt": "2026-05-22T12:45:42.169Z",
       "status": null
     },
     {
@@ -1678,7 +1678,7 @@
       "exists": true,
       "reportName": "ingest-worker-simulated-queue-drain-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T05:46:24.986Z",
+      "generatedAt": "2026-05-22T12:45:53.971Z",
       "status": "passed",
       "productionProof": false
     },
@@ -1894,7 +1894,7 @@
       "exists": true,
       "reportName": "packet-pdf-cache-miss-proof",
       "evidenceType": "SIMULATED",
-      "generatedAt": "2026-05-22T05:46:09.980Z",
+      "generatedAt": "2026-05-22T12:45:41.459Z",
       "status": null,
       "productionProof": false
     },
@@ -1912,7 +1912,7 @@
       "exists": true,
       "reportName": "storage-durability-contract",
       "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
-      "generatedAt": "2026-05-22T05:46:21.310Z",
+      "generatedAt": "2026-05-22T12:45:51.333Z",
       "status": null,
       "productionProof": false
     },
@@ -1930,7 +1930,7 @@
       "exists": true,
       "reportName": "deploy-rollback-simulation",
       "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
-      "generatedAt": "2026-05-22T05:46:43.940Z",
+      "generatedAt": "2026-05-22T12:46:11.577Z",
       "status": "passed",
       "productionProof": false
     },
@@ -2002,7 +2002,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T05:46:48.439Z",
+      "generatedAt": "2026-05-22T12:46:14.770Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2074,7 +2074,7 @@
       "exists": true,
       "reportName": "migration-governance-drift-evidence",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T05:46:10.810Z",
+      "generatedAt": "2026-05-22T12:45:42.169Z",
       "status": null,
       "productionProof": false
     },
@@ -2110,7 +2110,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T05:46:51.235Z",
+      "generatedAt": "2026-05-22T12:46:17.211Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2128,7 +2128,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T05:46:47.600Z",
+      "generatedAt": "2026-05-22T12:46:14.126Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2146,7 +2146,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T05:46:50.410Z",
+      "generatedAt": "2026-05-22T12:46:16.391Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2164,7 +2164,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RAW_REPORT_BYTE_MACHINE_INVENTORY",
-      "generatedAt": "2026-05-22T05:07:27.838Z",
+      "generatedAt": "2026-05-22T11:50:33.456Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2182,7 +2182,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T05:46:49.479Z",
+      "generatedAt": "2026-05-22T12:46:15.672Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2200,7 +2200,7 @@
       "exists": true,
       "reportName": null,
       "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
-      "generatedAt": "2026-05-22T05:46:52.581Z",
+      "generatedAt": "2026-05-22T12:46:18.310Z",
       "status": "fail",
       "productionProof": false
     },
@@ -2695,7 +2695,7 @@
       "exists": true,
       "reportName": "production-promotion-evidence-pack",
       "evidenceType": null,
-      "generatedAt": "2026-05-22T05:31:34.953Z",
+      "generatedAt": "2026-05-22T12:33:05.132Z",
       "status": null,
       "productionProof": false
     },
@@ -2725,9 +2725,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
     "present": true,
     "status": "prepared-awaiting-human-production-evidence",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2743,9 +2743,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
     "present": true,
     "status": null,
-    "generatedAt": "2026-05-22T05:46:21.310Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:45:51.333Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": true,
@@ -2763,7 +2763,7 @@
     "status": null,
     "generatedAt": "2026-05-21T05:20:12.2044194Z",
     "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": false,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2779,9 +2779,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
     "present": true,
     "status": "failed",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2797,9 +2797,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
     "present": true,
     "status": "passed",
-    "generatedAt": "2026-05-22T05:46:43.940Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:46:11.577Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2815,9 +2815,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T05:46:47.600Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:46:14.126Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2833,9 +2833,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T05:46:48.439Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:46:14.770Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2851,9 +2851,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T05:46:49.479Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:46:15.672Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2869,9 +2869,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T05:46:50.410Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:46:16.391Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2887,9 +2887,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": true,
     "certifyingFlag": false,
@@ -2905,9 +2905,9 @@
     "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
     "present": true,
     "status": "fail",
-    "generatedAt": "2026-05-22T05:46:52.581Z",
-    "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
+    "generatedAt": "2026-05-22T12:46:18.310Z",
+    "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
     "headMatchesTarget": true,
     "timestampCurrentForRun": false,
     "certifyingFlag": false,
@@ -2918,8 +2918,8 @@
   },
   "promotionCertification": {
     "targetEnvironment": "production",
-    "targetSha": "2026701883302c9a80851158313669e015a3465f",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "requiredChecks": [
       {
         "key": "queueLiveness",
@@ -2996,9 +2996,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-readiness.json",
         "present": true,
         "status": "prepared-awaiting-human-production-evidence",
-        "generatedAt": "2026-05-22T05:50:18.112Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:49:55.881Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -3014,9 +3014,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-storage-durability.json",
         "present": true,
         "status": null,
-        "generatedAt": "2026-05-22T05:46:21.310Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:45:51.333Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": true,
@@ -3034,7 +3034,7 @@
         "status": null,
         "generatedAt": "2026-05-21T05:20:12.2044194Z",
         "evidenceHead": "5c1eaef164726a0cf7c3332ad969fb53462a3525",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": false,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3050,9 +3050,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-gate.json",
         "present": true,
         "status": "failed",
-        "generatedAt": "2026-05-22T05:50:18.112Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:49:55.881Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -3068,9 +3068,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
         "present": true,
         "status": "passed",
-        "generatedAt": "2026-05-22T05:46:43.940Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:46:11.577Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3086,9 +3086,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T05:46:47.600Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:46:14.126Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3104,9 +3104,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T05:46:48.439Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:46:14.770Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3122,9 +3122,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T05:46:49.479Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:46:15.672Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3140,9 +3140,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T05:46:50.410Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:46:16.391Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3158,9 +3158,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T05:50:18.112Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:49:55.881Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": true,
         "certifyingFlag": false,
@@ -3176,9 +3176,9 @@
         "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
         "present": true,
         "status": "fail",
-        "generatedAt": "2026-05-22T05:46:52.581Z",
-        "evidenceHead": "2026701883302c9a80851158313669e015a3465f",
-        "targetSha": "2026701883302c9a80851158313669e015a3465f",
+        "generatedAt": "2026-05-22T12:46:18.310Z",
+        "evidenceHead": "79af5282d400136dd75aa3d9d952799a37b92d32",
+        "targetSha": "79af5282d400136dd75aa3d9d952799a37b92d32",
         "headMatchesTarget": true,
         "timestampCurrentForRun": false,
         "certifyingFlag": false,
@@ -3216,7 +3216,7 @@
       "retentionArchiveRestoreMachineProof"
     ],
     "reasons": [
-      "Queue liveness evidence is manual-only or human-observed.",
+      "Queue liveness evidence is not accepted as non-interactive machine-attested proof.",
       "Queue liveness evidence is not passing and certifying.",
       "Storage durability evidence timestamp is not current for this promotion-pack run.",
       "Evidence ledger evidence HEAD does not match target SHA.",
@@ -3246,11 +3246,15 @@
       "label": "Disaster recovery restore machine proof",
       "evidenceType": "DISASTER_RECOVERY_RESTORE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
-      "generatedAt": "2026-05-22T05:46:47.600Z",
-      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "generatedAt": "2026-05-22T12:46:14.126Z",
+      "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
       "status": "fail",
       "certifying": false,
       "accepted": false,
+      "humanInteractionRequired": false,
+      "missingRuntimeInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "validation": {
         "ok": false,
         "errors": [
@@ -3268,6 +3272,7 @@
           "checks[8].status must be pass.",
           "checks[9].status must be pass.",
           "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
           "machine proof is missing a complete accepted check set (default: latest-backup-selected, isolated-restore-target-created, rpo-measured, rto-measured, post-restore-auth-session-check, post-restore-packet-pdf-retrieval-check, post-restore-response-queue-check, cleanup-lifecycle-check, rollback-stop-verification, isolated-restore-target-destroyed)."
         ],
         "sensitiveFindingCount": 0,
@@ -3290,11 +3295,15 @@
       "label": "Production worker runtime machine proof",
       "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
-      "generatedAt": "2026-05-22T05:46:48.439Z",
-      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "generatedAt": "2026-05-22T12:46:14.770Z",
+      "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
       "status": "fail",
       "certifying": false,
       "accepted": false,
+      "humanInteractionRequired": false,
+      "missingRuntimeInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+      ],
       "validation": {
         "ok": false,
         "errors": [
@@ -3311,6 +3320,7 @@
           "checks[7].status must be pass.",
           "checks[8].status must be pass.",
           "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
           "machine proof is missing a complete accepted check set (default: queue-depth-before-captured, worker-liveness-verified, bounded-max-jobs-enforced, synthetic-or-canary-job-processed, queue-depth-after-captured, processed-count-captured, failed-dead-letter-stale-counts-captured, worker-stop-rollback-verified, canary-cleanup-verified)."
         ],
         "sensitiveFindingCount": 0,
@@ -3333,11 +3343,15 @@
       "label": "Raw report byte remediation machine proof",
       "evidenceType": "RAW_REPORT_BYTE_REMEDIATION_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
-      "generatedAt": "2026-05-22T05:46:49.479Z",
-      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "generatedAt": "2026-05-22T12:46:15.672Z",
+      "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
       "status": "fail",
       "certifying": false,
       "accepted": false,
+      "humanInteractionRequired": false,
+      "missingRuntimeInputs": [
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+      ],
       "validation": {
         "ok": false,
         "errors": [
@@ -3353,6 +3367,7 @@
           "checks[6].status must be pass.",
           "checks[7].status must be pass.",
           "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
           "machine proof is missing a complete accepted check set (default: db-connectivity-reliable, sanitized-inventory-accepted, remediation-policy-verified, unresolved-count-zero-or-policy-accepted, remediated-count-recorded, opaque-hashes-only, no-raw-bytes-or-pii-printed, rollback-recovery-notes-recorded).",
           "raw report machine proof requires reliable database connectivity.",
           "raw report machine proof requires accepted sanitized inventory."
@@ -3377,11 +3392,15 @@
       "label": "Alerting observability machine proof",
       "evidenceType": "ALERTING_OBSERVABILITY_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
-      "generatedAt": "2026-05-22T05:46:50.410Z",
-      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "generatedAt": "2026-05-22T12:46:16.391Z",
+      "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
       "status": "fail",
       "certifying": false,
       "accepted": false,
+      "humanInteractionRequired": false,
+      "missingRuntimeInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ],
       "validation": {
         "ok": false,
         "errors": [
@@ -3398,6 +3417,7 @@
           "checks[7].status must be pass.",
           "checks[8].status must be pass.",
           "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
           "machine proof is missing a complete accepted check set (live-alert-delivery: synthetic-alert-triggered, alert-delivery-verified, sanitized-channel-id-recorded, correlation-id-recorded, machine-acknowledgment-verified, retry-or-failure-behavior-recorded, response-ops-readiness-verified, scheduler-status-verified, no-webhook-or-token-printed | certifying-formal-exclusion: formal-exclusion-file-validated, policy-allows-certifying-exclusion, compensating-controls-validated, operator-approval-machine-verified, exclusion-not-stale, next-review-recorded, exclusion-does-not-overclaim-production-pass, no-webhook-or-token-printed)."
         ],
         "sensitiveFindingCount": 0,
@@ -3420,11 +3440,13 @@
       "label": "Migration governance machine proof",
       "evidenceType": "MIGRATION_GOVERNANCE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-migration-machine-proof.json",
-      "generatedAt": "2026-05-22T05:50:18.112Z",
-      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "generatedAt": "2026-05-22T12:49:55.881Z",
+      "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
       "status": "fail",
       "certifying": false,
       "accepted": false,
+      "humanInteractionRequired": false,
+      "missingRuntimeInputs": [],
       "validation": {
         "ok": false,
         "errors": [
@@ -3457,11 +3479,15 @@
       "label": "Retention archive restore machine proof",
       "evidenceType": "RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF",
       "evidencePath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
-      "generatedAt": "2026-05-22T05:46:52.581Z",
-      "commitHash": "2026701883302c9a80851158313669e015a3465f",
+      "generatedAt": "2026-05-22T12:46:18.310Z",
+      "commitHash": "79af5282d400136dd75aa3d9d952799a37b92d32",
       "status": "fail",
       "certifying": false,
       "accepted": false,
+      "humanInteractionRequired": false,
+      "missingRuntimeInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "validation": {
         "ok": false,
         "errors": [
@@ -3477,6 +3503,7 @@
           "checks[6].status must be pass.",
           "checks[7].status must be pass.",
           "failures must be empty for certifying evidence.",
+          "missingRuntimeInputs must be empty for certifying evidence.",
           "machine proof is missing a complete accepted check set (default: safe-archive-candidate-selected, archive-created-or-selected, isolated-restore-target-created, archive-restore-integrity-verified, no-pii-exposed, lifecycle-cleanup-verified, rollback-recovery-notes-recorded, isolated-restore-target-destroyed)."
         ],
         "sensitiveFindingCount": 0,
@@ -3495,9 +3522,17 @@
       }
     }
   },
+  "missingMachineRuntimeInputs": [
+    "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+    "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+    "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+    "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+    "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+  ],
+  "humanInteractionRequired": false,
   "humanRestoreDrillEvidenceAcceptance": {
     "reportName": "human-restore-drill-evidence-acceptance",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "not-submitted",
     "accepted": false,
     "evidencePath": null,
@@ -3517,7 +3552,7 @@
   },
   "restoreEvidenceAcceptance": {
     "reportName": "restore-evidence-acceptance",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3556,7 +3591,7 @@
   },
   "restoreReadinessCheck": {
     "reportName": "restore-evidence-current-readiness-check",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "simulated-only",
     "currentOperationalProof": false,
     "stale": false,
@@ -3682,7 +3717,7 @@
   },
   "productionWorkerRuntimeProof": {
     "reportName": "production-worker-runtime-proof",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "dry-run-only",
     "accepted": false,
     "productionProof": false,
@@ -3723,7 +3758,7 @@
   },
   "productionWorkerReadinessEvidence": {
     "reportName": "production-worker-readiness-evidence",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "prepared-awaiting-human-production-evidence",
     "productionProof": false,
     "acceptedProductionRunEvidence": {
@@ -3747,7 +3782,7 @@
   },
   "productionWorkerActivationEvidence": {
     "reportName": "production-worker-activation-evidence",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "prepared-default-off",
     "productionProof": false,
     "productionWorkerDefaultOff": true,
@@ -3841,7 +3876,7 @@
   },
   "rawReportRemediationAcceptance": {
     "reportName": "storage-raw-report-remediation-acceptance",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "not-submitted",
     "accepted": false,
     "productionProof": false,
@@ -3874,7 +3909,7 @@
   },
   "measuredLoadEvidenceAcceptance": {
     "reportName": "production-scale-load-measured-acceptance",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "accepted",
     "accepted": true,
     "evidencePath": "docs/production-scale/evidence/latest-load-measured.json",
@@ -3936,7 +3971,7 @@
   },
   "runtimeSizePolicyAcceptance": {
     "reportName": "runtime-size-policy-acceptance",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "accepted-warning-only-waiver",
     "accepted": true,
     "acceptanceKind": "warning-only-waiver",
@@ -4113,7 +4148,7 @@
   },
   "migrationGateEvidence": {
     "reportName": "migration-governance-release-gate",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "failed",
     "policyPath": "docs/production-scale/migration-governance-policy.json",
     "policyMode": "release-blocking",
@@ -4154,7 +4189,7 @@
   },
   "responseOpsReadinessEvidence": {
     "reportName": "response-ops-readiness-evidence",
-    "generatedAt": "2026-05-22T05:50:18.112Z",
+    "generatedAt": "2026-05-22T12:49:55.881Z",
     "status": "operator-ready-with-deferred-controls",
     "productionProof": false,
     "liveSchedulerStatus": "disabled",
@@ -4244,6 +4279,9 @@
       "recommendedNextAction": "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4307,6 +4345,9 @@
       "recommendedNextAction": "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4354,6 +4395,7 @@
       "recommendedNextAction": "Run the bounded measured local or staging-safe baseline with synthetic fixtures and release-blocking thresholds; keep production load forbidden.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4401,6 +4443,7 @@
       "recommendedNextAction": "Keep the bounded synchronous envelope evidence current; collect staged target-environment capacity evidence before making any production-at-scale claim.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4437,6 +4480,7 @@
       "recommendedNextAction": "Keep the retained destructive helper classified as guarded residual risk: it is not default, requires explicit confirmation, records lifecycle evidence, and refuses production-like environments.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4493,6 +4537,9 @@
       "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4528,6 +4575,7 @@
       "recommendedNextAction": "Keep list endpoints metadata-only and handle any legacy inline rows through an approved historical remediation plan.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4579,6 +4627,7 @@
       "recommendedNextAction": "Keep live scheduler default-off and use response ops readiness evidence to govern scheduler, backfill, purge/archive, dashboard, soak, and manual fallback controls without mutating production.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4635,6 +4684,9 @@
       "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4682,6 +4734,7 @@
       "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4743,6 +4796,7 @@
       "recommendedNextAction": "Keep production probes read-only, keep seeded privacy smokes local/staging-only, and keep rollback evidence tied to rollback_sha plus post-rollback health checks before calling deployment parity complete.",
       "humanProofRequired": true,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4777,6 +4831,7 @@
       "recommendedNextAction": "Keep OCR validation aligned with shared upload boundaries and preserve valid PDF extraction output in regression tests.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4818,6 +4873,7 @@
       "recommendedNextAction": "Keep parser-test list metadata-only; use admin-only get/export paths for raw extracted text workflows and keep UI detail hydration covered by tests.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4857,6 +4913,7 @@
       "recommendedNextAction": "Keep signature list metadata-only; use owner/admin get-by-id detail when signature image data is required.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4896,6 +4953,7 @@
       "recommendedNextAction": "Split hidden-risk aggregate counts from paginated rows in a separate design task; do not apply a blind limit that changes aggregate semantics.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4943,6 +5001,7 @@
       "recommendedNextAction": "Run bounded measured local or staging-safe load and record sanitized DB pool configured/observed signals or an explicit unavailable reason.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -4991,6 +5050,7 @@
       "recommendedNextAction": "Run bounded measured local or staging-safe rate-limit pressure using synthetic identifiers only; do not send production hostile traffic.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5037,6 +5097,7 @@
       "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made."
@@ -5075,6 +5136,7 @@
       "recommendedNextAction": "Keep heavy PDF/OCR dependency size warnings visible; defer dependency isolation or replacement until a separately tested OCR/PDF/parser task.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5123,6 +5185,7 @@
       "recommendedNextAction": "Run read-only production-safe probes, local/staging synthetic owner-denial smoke, and production deployment parity evidence; do not create production fixtures for deeper owner-denial proof.",
       "humanProofRequired": true,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5186,6 +5249,7 @@
       "recommendedNextAction": "Keep exact release evidence commands visible in production-scale evidence, production deployment parity evidence, production worker readiness evidence, response ops readiness evidence, alert exclusion validation, promotion pack output, and operator dashboard semantics; dashboard PASS alone is not release evidence.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5236,6 +5300,9 @@
       "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5272,6 +5339,7 @@
       "recommendedNextAction": "Keep route auth contract strict, pin the public inventory, and fail on retired public route revival or unclassified endpoint drift.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5310,6 +5378,7 @@
       "recommendedNextAction": "Run the promotion pack after each scoped blocker task, use its stale-reference findings, and align tracker/audit/evidence references before any promotion decision.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5351,6 +5420,7 @@
       "recommendedNextAction": "Keep release evidence labeled by exact commands and visible SKIP/SIMULATED/HUMAN_REQUIRED rows, not dashboard headline status; promotion pack validation must fail if SKIP is treated as PASS.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5410,6 +5480,9 @@
       "recommendedNextAction": "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5473,6 +5546,9 @@
       "recommendedNextAction": "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5529,6 +5605,9 @@
       "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5585,6 +5664,9 @@
       "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5632,6 +5714,7 @@
       "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5682,6 +5765,9 @@
       "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5763,6 +5849,9 @@
       "recommendedNextAction": "Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5826,6 +5915,9 @@
       "recommendedNextAction": "Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5882,6 +5974,9 @@
       "recommendedNextAction": "Provide reliable sanitized DB inventory and remediation attestation JSON inputs, then rerun the raw report machine proof commands.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5938,6 +6033,9 @@
       "recommendedNextAction": "Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerting:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_ALERTING_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -5985,6 +6083,7 @@
       "recommendedNextAction": "Convert or expire the remaining migration allowlist residuals, then rerun migrations:machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -6035,6 +6134,9 @@
       "recommendedNextAction": "Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON from a safe retention archive/restore proof and rerun retention:archive-restore-machine-proof.",
       "humanProofRequired": false,
       "machineProofRequired": true,
+      "missingRuntimeInputs": [
+        "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"
+      ],
       "simulatedProofAcceptable": true,
       "acceptedHumanEvidence": null,
       "waiverReason": null
@@ -6083,6 +6185,7 @@
       "recommendedNextAction": "Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.",
       "humanProofRequired": false,
       "machineProofRequired": false,
+      "missingRuntimeInputs": [],
       "simulatedProofAcceptable": false,
       "acceptedHumanEvidence": null,
       "waiverReason": "Runtime-size policy remains warning-only under a formal limited-beta waiver with governed WARN rows; no dependency, chunking, build behavior, or OCR/PDF changes were made."
@@ -6106,9 +6209,9 @@
   "requiredStatements": [
     "SIMULATED proof is not production proof.",
     "Dashboard PASS alone is not complete release evidence when checks are skipped.",
-    "Production activation requires operator approval.",
-    "Historical raw report remediation requires accepted sanitized operator evidence.",
-    "Disaster recovery closure requires accepted sanitized production restore evidence; staging restore evidence is not production proof.",
+    "Machine proof gates are non-interactive and require only machine attestations.",
+    "Missing runtime inputs are machine inputs and keep CERTIFYING:false.",
+    "Disaster recovery, ingest runtime, raw report remediation, alerting, migration, and retention closure require accepted machine-attested evidence.",
     "Machine-attested production evidence can close production blockers only when non-interactive, sanitized, current, and CERTIFYING:true.",
     "Measured load evidence must be local or staging-safe, threshold-passing, synthetic, and zero-provider-call only.",
     "Staging ingest worker queue-drain evidence is staging proof only and does not activate production.",

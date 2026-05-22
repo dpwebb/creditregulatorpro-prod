@@ -48,6 +48,7 @@ export function validateMachineEvidence(evidence, {
   }
   if (!isTrue(evidence.nonInteractive)) errors.push("nonInteractive must be true.");
   if (!isTrue(evidence.machineAttested)) errors.push("machineAttested must be true.");
+  if (evidence.humanInteractionRequired !== false) errors.push("humanInteractionRequired must be false.");
   if (evidence.generatedManually === true) errors.push("generated manually evidence is rejected.");
   if (evidence.simulatedOnly === true && evidence.environment === "production") {
     errors.push("simulated-only evidence cannot be production proof.");
@@ -79,6 +80,10 @@ export function validateMachineEvidence(evidence, {
   if (!Array.isArray(evidence.failures)) errors.push("failures array is required.");
   if (requireCertifying && Array.isArray(evidence.failures) && evidence.failures.length > 0) {
     errors.push("failures must be empty for certifying evidence.");
+  }
+  if (!Array.isArray(evidence.missingRuntimeInputs)) errors.push("missingRuntimeInputs array is required.");
+  if (requireCertifying && Array.isArray(evidence.missingRuntimeInputs) && evidence.missingRuntimeInputs.length > 0) {
+    errors.push("missingRuntimeInputs must be empty for certifying evidence.");
   }
   if (!Array.isArray(evidence.sanitizedArtifacts)) errors.push("sanitizedArtifacts array is required.");
   if (sensitiveFindings.length > 0) errors.push("evidence contains sensitive-looking values.");
@@ -127,4 +132,3 @@ export function validateMachineEvidenceFile({
   const validation = validateMachineEvidence(evidence, { expectedEvidenceType, now, requireCertifying });
   return { ...validation, evidence };
 }
-

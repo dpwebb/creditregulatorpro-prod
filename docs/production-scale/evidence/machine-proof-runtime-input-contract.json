@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "contractName": "machine-proof-runtime-input-contract",
+  "generatedFrom": [
+    "production-machine-certification-remediation-2026-05-22.json",
+    "docs/production-scale/evidence/latest-*-machine-proof.json"
+  ],
+  "humanObservedProofAllowed": false,
+  "operatorAcknowledgementRequired": false,
+  "defaultFailureMode": {
+    "status": "fail",
+    "certifying": false,
+    "CERTIFYING": false,
+    "humanInteractionRequired": false,
+    "failureCode": "attestation-unavailable"
+  },
+  "inputs": [
+    {
+      "name": "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
+      "proofScript": "scripts/restore-machine-proof.mjs",
+      "proofCommand": "pnpm run restore:machine-proof",
+      "validatorScript": "scripts/restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "env var",
+        "valueType": "file path",
+        "cliOverride": "--attestation <path>"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Attestation file must be sanitized JSON.",
+        "Attestation must be nonInteractive:true and machineAttested:true.",
+        "Attestation must not be generated manually.",
+        "Attestation must not be simulated-only for production proof.",
+        "Restore target must be isolated from production.",
+        "RPO, RTO, post-restore auth/session, packet PDF, response queue, cleanup/lifecycle, rollback/stop, and target destruction checks must pass.",
+        "No secrets, PII, signed URLs, raw report text, or raw report bytes may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false,
+        "message": "machine attestation path was not provided."
+      }
+    },
+    {
+      "name": "CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON",
+      "proofScript": "scripts/production-worker-machine-proof.mjs",
+      "proofCommand": "pnpm run production-worker:machine-proof",
+      "validatorScript": "scripts/production-worker-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "env var",
+        "valueType": "file path",
+        "cliOverride": "--attestation <path>"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Attestation file must be sanitized JSON.",
+        "Attestation must be nonInteractive:true and machineAttested:true.",
+        "Attestation must not be generated manually.",
+        "Attestation must not be simulated-only for production proof.",
+        "Runtime proof must be bounded by max jobs.",
+        "Only synthetic or canary queue behavior may be processed.",
+        "Queue depth before/after, liveness, processed/failed/dead-letter/stale counts, worker stop/rollback, and canary cleanup checks must pass.",
+        "No secrets, PII, signed URLs, raw report text, raw report bytes, or artifact contents may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false,
+        "message": "machine attestation path was not provided."
+      }
+    },
+    {
+      "name": "CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON",
+      "proofScript": "scripts/storage-raw-report-machine-inventory.mjs",
+      "proofCommand": "pnpm run storage:raw-report-machine-inventory",
+      "validatorScript": null,
+      "secret": false,
+      "supply": {
+        "type": "env var",
+        "valueType": "file path",
+        "cliOverride": "--attestation <path>"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Attestation file must be sanitized JSON.",
+        "Attestation must be nonInteractive:true and machineAttested:true.",
+        "Reliable DB connectivity must be proven without printing connection details.",
+        "Only aggregate counts, opaque IDs, or hashes may appear.",
+        "Unresolved counts and remediation candidate counts must be recorded.",
+        "No secrets, PII, signed URLs, raw report text, raw report bytes, account numbers, or database URLs may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_INVENTORY_ATTESTATION_JSON"],
+        "humanInteractionRequired": false,
+        "message": "machine attestation path was not provided."
+      }
+    },
+    {
+      "name": "CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON",
+      "proofScript": "scripts/storage-raw-report-machine-remediation-proof.mjs",
+      "proofCommand": "pnpm run storage:raw-report-machine-remediation-proof",
+      "validatorScript": "scripts/storage-raw-report-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "env var",
+        "valueType": "file path",
+        "cliOverride": "--attestation <path>"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "approved-bounded",
+      "safetyConstraints": [
+        "Proof script itself must not apply remediation or mutate storage.",
+        "Attestation file must be sanitized JSON.",
+        "Attestation must be nonInteractive:true and machineAttested:true.",
+        "Reliable DB connectivity and accepted sanitized inventory must be proven.",
+        "Remediation policy, unresolved count, remediated count, rollback/recovery notes, and opaque hash-only evidence checks must pass.",
+        "No secrets, PII, signed URLs, raw report text, raw report bytes, account numbers, or database URLs may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RAW_REPORT_MACHINE_REMEDIATION_ATTESTATION_JSON"],
+        "humanInteractionRequired": false,
+        "message": "machine attestation path was not provided."
+      }
+    },
+    {
+      "name": "CRP_ALERTING_MACHINE_ATTESTATION_JSON",
+      "proofScript": "scripts/alerting-machine-proof.mjs",
+      "proofCommand": "pnpm run alerting:machine-proof",
+      "validatorScript": "scripts/alerting-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "env var",
+        "valueType": "file path",
+        "cliOverride": "--attestation <path>"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Attestation file must be sanitized JSON.",
+        "Attestation must be nonInteractive:true and machineAttested:true.",
+        "Live proof must use a safe synthetic alert and sanitized channel/correlation identifiers.",
+        "Formal exclusion proof is accepted only when repo policy explicitly permits certifying exclusion.",
+        "Machine-verifiable acknowledgement may be used; operator acknowledgement is not required.",
+        "No webhook URLs, tokens, secrets, PII, signed URLs, raw report text, or raw report bytes may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_ALERTING_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false,
+        "message": "machine attestation path was not provided."
+      }
+    },
+    {
+      "name": "CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON",
+      "proofScript": "scripts/retention-archive-restore-machine-proof.mjs",
+      "proofCommand": "pnpm run retention:archive-restore-machine-proof",
+      "validatorScript": "scripts/retention-archive-restore-machine-proof-validate.mjs",
+      "secret": false,
+      "supply": {
+        "type": "env var",
+        "valueType": "file path",
+        "cliOverride": "--attestation <path>"
+      },
+      "safetyScope": "production-canary",
+      "permitsMutation": true,
+      "productionMutationMode": "synthetic-canary-cleaned-up",
+      "safetyConstraints": [
+        "Attestation file must be sanitized JSON.",
+        "Attestation must be nonInteractive:true and machineAttested:true.",
+        "Attestation must not be simulated-only for production proof.",
+        "Only a safe archive candidate or synthetic/canary retention record may be used.",
+        "Archive selection or creation, isolated restore target, integrity, cleanup, rollback/recovery notes, and target destruction checks must pass.",
+        "No secrets, PII, signed URLs, raw report text, raw report bytes, or artifact contents may appear."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": ["CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON"],
+        "humanInteractionRequired": false,
+        "message": "machine attestation path was not provided."
+      }
+    }
+  ],
+  "repoConfigRequirements": [
+    {
+      "name": "migration-governance-ledger-without-temporary-allowlist-residuals",
+      "proofScript": "scripts/migration-machine-proof.mjs",
+      "proofCommand": "pnpm run migrations:machine-proof",
+      "secret": false,
+      "supply": {
+        "type": "repo config",
+        "valueType": "migration governance ledger"
+      },
+      "safetyScope": "production-read-only",
+      "permitsMutation": false,
+      "productionMutationMode": "none",
+      "safetyConstraints": [
+        "Migration machine proof must be static and non-mutating.",
+        "No active temporary runtime ensure allowlist residuals may remain.",
+        "No expired allowlist entries may remain.",
+        "No release-blocking migration governance findings may remain."
+      ],
+      "failureIfMissing": {
+        "status": "fail",
+        "certifying": false,
+        "missingRuntimeInputs": [],
+        "humanInteractionRequired": false,
+        "message": "migration gate remains non-certifying while temporary allowlist residuals are release-blocking."
+      }
+    }
+  ]
+}

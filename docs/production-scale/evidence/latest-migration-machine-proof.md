@@ -1,19 +1,20 @@
 # Migration Governance Machine Proof
 
-Generated at: 2026-05-22T05:46:51.235Z
+Generated at: 2026-05-22T12:46:17.211Z
 Evidence type: MIGRATION_GOVERNANCE_MACHINE_PROOF
 Environment: production
-Commit: `2026701883302c9a80851158313669e015a3465f`
+Commit: `79af5282d400136dd75aa3d9d952799a37b92d32`
 Generator: `scripts/migration-machine-proof.mjs`
 Command: `pnpm run migrations:machine-proof`
 Status: fail
 CERTIFYING:false
-Expires at: 2026-05-23T05:46:51.235Z
+Expires at: 2026-05-23T12:46:17.211Z
 
 ## Safety
 
 - Non-interactive: yes
 - Machine-attested: yes
+- Human interaction required: no
 - Production mutation: none
 - Secrets printed: no
 - PII printed: no
