@@ -1,0 +1,38 @@
+{
+  "evidenceId": "RRR-PROD-YYYYMMDD-001",
+  "evidenceType": "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
+  "environment": "production",
+  "remediationMode": "operator-applied",
+  "dryRunOnly": false,
+  "operatorNameOrRole": "opaque-operator-id-or-role",
+  "approvedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+  "performedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+  "inventoryEvidencePath": "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
+  "remediationPlanEvidencePath": "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
+  "supportingEvidencePaths": [
+    "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json"
+  ],
+  "inventoryRun": true,
+  "reliableInventoryAccepted": true,
+  "remediationPlanApproved": true,
+  "remediationPerformedByOperatorOrApprovedProcess": true,
+  "remediationApplied": true,
+  "oldInlineCompatibilityTested": true,
+  "sanitizedEvidence": true,
+  "postRemediationCountsRecorded": true,
+  "backupRestorePrerequisiteAcknowledged": true,
+  "operatorAcknowledgementSigned": true,
+  "historicalInlineRowsResolved": true,
+  "noRawSensitiveValuesAppearInEvidence": true,
+  "productionDataMutatedByCodex": false,
+  "codexPerformedRemediation": false,
+  "postRemediationCounts": {
+    "reportArtifact": {
+      "possibleInlineBase64Rows": 0
+    },
+    "evidenceAttachment": {
+      "possibleInlineBase64Rows": 0
+    }
+  },
+  "sanitizationStatement": "This evidence contains aggregate counts and opaque IDs only; it contains no raw report bytes, raw report text, full names, addresses, account numbers, signed URLs, database URLs, service credentials, or secrets."
+}

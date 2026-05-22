@@ -1,11 +1,11 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T03:39:34.372Z
+Generated at: 2026-05-22T04:00:54.436Z
 Current branch: `staging`
-Current commit hash: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
-Current HEAD: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
+Current commit hash: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
+Current HEAD: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
 Target environment: `production`
-Target SHA: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
+Target SHA: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
@@ -31,7 +31,7 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `e61ef8db93ba454971586a4e2958f7dcad165ebf`
+- Target SHA: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
 - Missing required checks: none
 - Stale checks: storageDurability, evidenceLedger, rollbackSimulation
 - Non-automated checks: queueLiveness
@@ -40,15 +40,15 @@ Production-ready claim: **false**
 
 ### Required Certification Checks
 
-- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=e61ef8db93ba454971586a4e2958f7dcad165ebf; timestamp=2026-05-22T03:39:34.372Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:20.224Z; command=`pnpm run storage:durability-contract`
+- Queue liveness: non-certifying; status=prepared-awaiting-human-production-evidence; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T04:00:54.436Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T03:52:31.745Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=e61ef8db93ba454971586a4e2958f7dcad165ebf; timestamp=2026-05-22T03:39:34.372Z; command=`pnpm run migrations:gate`
+- Migration governance: non-certifying; status=accepted-temporary-allowlist; head=741a25497cded1907bdf07a3e253c6fcfcdb3749; timestamp=2026-05-22T04:00:54.436Z; command=`pnpm run migrations:gate`
 - Rollback simulation: non-certifying; status=passed; head=35388f20d9c58282405602a7205a987ece110410; timestamp=2026-05-22T02:48:41.545Z; command=`pnpm run deploy:rollback-simulation`
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T03:39:34.372Z; completed=2026-05-22T03:39:34.372Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T04:00:54.436Z; completed=2026-05-22T04:00:54.436Z
 
 ## Command Result Summary
 
@@ -214,7 +214,10 @@ Production-ready claim: **false**
 
 - Status: not-submitted
 - Accepted: no
+- Production proof: no
 - Evidence path: `not submitted`
+- Reliable inventory accepted: no
+- Remediation plan accepted: no
 - Blocker 6 coverage: not accepted
 - Sensitive findings: 0
 
@@ -398,6 +401,8 @@ Production-ready claim: **false**
 - `docs/production-scale/evidence/latest-evidence-ledger.json` - present
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json` - missing
 - `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md` - missing
+- `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-template.json` - present; evidenceType=HUMAN_OBSERVED_RAW_REPORT_REMEDIATION
+- `docs/production-scale/evidence/storage-raw-report-remediation-acceptance-template.md` - present
 - `docs/production-scale/evidence/alerting-exclusion-evidence.json` - missing
 - `docs/production-scale/evidence/alerting-exclusion-evidence.md` - missing
 - `docs/production-scale/evidence/live-alert-proof.json` - missing

@@ -19,7 +19,12 @@ import {
   buildResponseOpsReadinessEvidenceReport,
 } from "../../scripts/response-ops-readiness-evidence.mjs";
 import { buildHumanRestoreDrillEvidenceAcceptanceReport } from "../../scripts/staging-backup-restore-checklist.mjs";
-import { buildRawReportRemediationAcceptanceReport } from "../../scripts/storage-raw-report-remediation-plan.mjs";
+import {
+  buildRawReportRemediationAcceptanceReport,
+  buildStorageRawReportRemediationPlanReport,
+  RAW_REPORT_INVENTORY_JSON_PATH,
+  writeStorageRawReportRemediationPlan,
+} from "../../scripts/storage-raw-report-remediation-plan.mjs";
 
 function dashboardWithSkips(skip = 2) {
   return {
@@ -141,15 +146,21 @@ function acceptedProductionWorkerRuntimeProof() {
 
 function acceptedRawReportRemediationEvidence() {
   return {
+    evidenceId: "RRR-PROMO-001",
     evidenceType: "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
+    environment: "production",
+    remediationMode: "operator-applied",
+    dryRunOnly: false,
     operatorNameOrRole: "Compliance operations lead",
     approvedAt: "2026-05-20T14:00:00.000Z",
     performedAt: "2026-05-20T15:00:00.000Z",
     inventoryEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
     remediationPlanEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
     inventoryRun: true,
+    reliableInventoryAccepted: true,
     remediationPlanApproved: true,
     remediationPerformedByOperatorOrApprovedProcess: true,
+    remediationApplied: true,
     oldInlineCompatibilityTested: true,
     sanitizedEvidence: true,
     postRemediationCountsRecorded: true,
@@ -168,6 +179,90 @@ function acceptedRawReportRemediationEvidence() {
       },
     },
   };
+}
+
+function writeReliableRawReportInventory(rootDir: string) {
+  const evidenceDir = join(rootDir, "docs", "production-scale", "evidence");
+  mkdirSync(evidenceDir, { recursive: true });
+  const counts = {
+    totalRows: 10,
+    storageUrlRows: 9,
+    localReferenceRows: 7,
+    possibleInlineBase64Rows: 1,
+    dataUrlBase64Rows: 0,
+    nonLocalReferenceRows: 1,
+    nullStorageRows: 1,
+  };
+  const inventory = {
+    reportName: "storage-raw-report-inventory",
+    generatedAt: "2026-05-20T12:00:00.000Z",
+    timestamp: "2026-05-20T12:00:00.000Z",
+    environment: "staging",
+    evidenceType: "SANITIZED_READ_ONLY_INVENTORY",
+    status: "completed",
+    databaseReachable: true,
+    countsReliable: true,
+    CERTIFYING: true,
+    dataSource: {
+      kind: "database",
+      environment: "staging",
+      reliable: true,
+      access: "connected-read-only-aggregate-counts",
+      rawConnectionDetailsStored: false,
+    },
+    inventoryMethod: "read-only-aggregate-sql-counts",
+    rawValuesPrinted: false,
+    rawBytesPrinted: false,
+    signedUrlsPrinted: false,
+    productionDataMutated: false,
+    historicalRowsMigrated: false,
+    tables: {
+      reportArtifact: counts,
+      evidenceAttachment: counts,
+    },
+    recordCounts: {
+      reportArtifact: counts,
+      evidenceAttachment: counts,
+    },
+    unresolvedCounts: {
+      reportArtifact: {
+        possibleInlineBase64Rows: 1,
+        dataUrlBase64Rows: 0,
+      },
+      evidenceAttachment: {
+        possibleInlineBase64Rows: 1,
+        dataUrlBase64Rows: 0,
+      },
+      totalRows: 2,
+    },
+    remediationCandidateCounts: {
+      reportArtifact: 1,
+      evidenceAttachment: 1,
+      totalRows: 2,
+    },
+    confidence: {
+      level: "high",
+      countsReliable: true,
+      reason: "Read-only aggregate SQL counts completed against the configured staging-safe database.",
+    },
+  };
+  writeFileSync(join(rootDir, RAW_REPORT_INVENTORY_JSON_PATH), `${JSON.stringify(inventory, null, 2)}\n`, "utf8");
+}
+
+function acceptedRawReportRemediationAcceptance() {
+  const rootDir = mkdtempSync(join(tmpdir(), "crp-promotion-raw-report-"));
+  writeReliableRawReportInventory(rootDir);
+  const plan = buildStorageRawReportRemediationPlanReport({
+    rootDir,
+    generatedAt: "2026-05-20T13:00:00.000Z",
+    env: {},
+  });
+  writeStorageRawReportRemediationPlan(plan, { rootDir });
+  return buildRawReportRemediationAcceptanceReport({
+    rootDir,
+    generatedAt: "2026-05-20T14:00:00.000Z",
+    rawReportRemediationEvidence: acceptedRawReportRemediationEvidence(),
+  });
 }
 
 function dryRunAlertEvidence() {
@@ -1316,9 +1411,9 @@ describe("production promotion evidence pack", () => {
     expect(report.humanRequiredProof.map((blocker: { number: number }) => blocker.number)).toContain(6);
   });
 
-  it("classifies blocker 6 as fixed only with accepted sanitized operator remediation evidence", () => {
+  it("keeps blocker 6 open when operator evidence is not linked to reliable inventory", () => {
     const rawReportRemediationAcceptance = buildRawReportRemediationAcceptanceReport({
-      rootDir: process.cwd(),
+      rootDir: mkdtempSync(join(tmpdir(), "crp-promotion-raw-report-unreliable-")),
       generatedAt: "2026-05-20T12:00:00.000Z",
       rawReportRemediationEvidence: acceptedRawReportRemediationEvidence(),
     });
@@ -1331,7 +1426,25 @@ describe("production promotion evidence pack", () => {
     });
     const blocker6 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 6);
 
+    expect(rawReportRemediationAcceptance.accepted).toBe(false);
+    expect(rawReportRemediationAcceptance.linkedEvidence.reliableInventoryAccepted).toBe(false);
+    expect(blocker6?.classification).toBe("human proof required");
+  });
+
+  it("classifies blocker 6 as fixed only with accepted sanitized operator remediation evidence", () => {
+    const rawReportRemediationAcceptance = acceptedRawReportRemediationAcceptance();
+    const report = buildProductionPromotionPackReport({
+      rootDir: process.cwd(),
+      dashboardReport: dashboardWithSkips(),
+      rawReportRemediationAcceptance,
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+    });
+    const blocker6 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 6);
+
     expect(rawReportRemediationAcceptance.accepted).toBe(true);
+    expect(rawReportRemediationAcceptance.productionProof).toBe(true);
+    expect(rawReportRemediationAcceptance.linkedEvidence.reliableInventoryAccepted).toBe(true);
     expect(blocker6?.classification).toBe("fixed with human-observed evidence");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });

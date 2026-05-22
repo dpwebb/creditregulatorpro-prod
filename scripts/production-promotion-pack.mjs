@@ -70,6 +70,8 @@ import {
   RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
   RAW_REPORT_REMEDIATION_ACCEPTANCE_JSON_PATH,
   RAW_REPORT_REMEDIATION_ACCEPTANCE_MD_PATH,
+  RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_JSON_PATH,
+  RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_MD_PATH,
   RAW_REPORT_REMEDIATION_PLAN_JSON_PATH,
   RAW_REPORT_REMEDIATION_PLAN_MD_PATH,
 } from "./storage-raw-report-remediation-plan.mjs";
@@ -623,6 +625,7 @@ function classifyBlocker(
   if (
     blocker.number === 6 &&
     rawReportRemediationAcceptance?.accepted === true &&
+    rawReportRemediationAcceptance?.productionProof === true &&
     rawReportRemediationAcceptance?.blockerCoverage?.historicalRawReportBytes === true
   ) {
     return "fixed with human-observed evidence";
@@ -1222,6 +1225,8 @@ export function buildProductionPromotionPackReport({
     DEPLOY_ROLLBACK_SIMULATION_JSON_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
     RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
+    RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_JSON_PATH,
+    RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_MD_PATH,
     ALERTING_EXCLUSION_EVIDENCE_JSON_PATH,
     ALERTING_EXCLUSION_EVIDENCE_MD_PATH,
     LIVE_ALERT_PROOF_JSON_PATH,
@@ -1556,11 +1561,21 @@ export function buildProductionPromotionPackReport({
       generatedAt: rawReportRemediationEvidence.generatedAt,
       status: rawReportRemediationEvidence.status,
       accepted: rawReportRemediationEvidence.accepted === true,
+      productionProof: rawReportRemediationEvidence.productionProof === true,
+      stagingProof: rawReportRemediationEvidence.stagingProof === true,
       evidencePath: rawReportRemediationEvidence.evidencePath,
+      linkedEvidence: rawReportRemediationEvidence.linkedEvidence ?? {
+        inventoryEvidencePath: null,
+        remediationPlanEvidencePath: null,
+        reliableInventoryAccepted: false,
+        remediationPlanAccepted: false,
+      },
       blockerCoverage: rawReportRemediationEvidence.blockerCoverage,
       validation: {
         accepted: rawReportRemediationEvidence.validation?.accepted === true,
         sensitiveFindings: rawReportRemediationEvidence.validation?.sensitiveFindings ?? [],
+        inventoryAccepted: rawReportRemediationEvidence.validation?.inventoryValidation?.accepted === true,
+        remediationPlanAccepted: rawReportRemediationEvidence.validation?.remediationPlanValidation?.accepted === true,
         remainingPossibleInlineBase64Rows:
           rawReportRemediationEvidence.validation?.remainingPossibleInlineBase64Rows ?? null,
         errors: rawReportRemediationEvidence.validation?.errors ?? [],
@@ -1960,12 +1975,17 @@ export function validatePromotionPackReport(report) {
     const rawReportAcceptance = report.rawReportRemediationAcceptance;
     if (
       rawReportAcceptance?.accepted !== true ||
+      rawReportAcceptance?.productionProof !== true ||
       rawReportAcceptance?.blockerCoverage?.historicalRawReportBytes !== true ||
+      rawReportAcceptance?.linkedEvidence?.reliableInventoryAccepted !== true ||
+      rawReportAcceptance?.linkedEvidence?.remediationPlanAccepted !== true ||
+      rawReportAcceptance?.validation?.inventoryAccepted !== true ||
+      rawReportAcceptance?.validation?.remediationPlanAccepted !== true ||
       rawReportAcceptance?.validation?.sensitiveFindings?.length > 0 ||
       rawReportAcceptance?.safety?.productionDataMutatedByCodex === true ||
       rawReportAcceptance?.safety?.codexPerformedRemediation === true
     ) {
-      errors.push("Blocker 6 cannot be classified fixed without accepted sanitized operator raw-report remediation evidence.");
+      errors.push("Blocker 6 cannot be classified fixed without accepted production operator remediation evidence linked to reliable sanitized inventory.");
     }
   }
   if (blocker8?.classification === "fixed with automated evidence") {
@@ -2446,7 +2466,14 @@ export function renderPromotionPackMarkdown(report) {
     "",
     `- Status: ${report.rawReportRemediationAcceptance.status}`,
     `- Accepted: ${report.rawReportRemediationAcceptance.accepted ? "yes" : "no"}`,
+    `- Production proof: ${report.rawReportRemediationAcceptance.productionProof ? "yes" : "no"}`,
     `- Evidence path: \`${report.rawReportRemediationAcceptance.evidencePath ?? "not submitted"}\``,
+    `- Reliable inventory accepted: ${
+      report.rawReportRemediationAcceptance.linkedEvidence?.reliableInventoryAccepted ? "yes" : "no"
+    }`,
+    `- Remediation plan accepted: ${
+      report.rawReportRemediationAcceptance.linkedEvidence?.remediationPlanAccepted ? "yes" : "no"
+    }`,
     `- Blocker 6 coverage: ${
       report.rawReportRemediationAcceptance.blockerCoverage?.historicalRawReportBytes ? "accepted" : "not accepted"
     }`,

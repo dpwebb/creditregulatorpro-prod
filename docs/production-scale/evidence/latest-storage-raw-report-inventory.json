@@ -1,18 +1,34 @@
 {
   "reportName": "storage-raw-report-inventory",
-  "generatedAt": "2026-05-22T00:47:09.364Z",
+  "generatedAt": "2026-05-22T03:49:58.805Z",
+  "timestamp": "2026-05-22T03:49:58.805Z",
+  "environment": "local",
   "branch": "staging",
-  "commit": "4da09d1b87f4641f938bae3f02618f1aa142072d",
+  "commit": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
   "evidenceType": "SANITIZED_READ_ONLY_INVENTORY",
   "status": "database-unavailable",
   "databaseReachable": false,
   "countsReliable": false,
+  "CERTIFYING": false,
   "collectionError": "database unavailable; raw connection details and database targets are not stored",
+  "dataSource": {
+    "kind": "database",
+    "environment": "local",
+    "reliable": false,
+    "access": "unavailable",
+    "rawConnectionDetailsStored": false
+  },
+  "inventoryMethod": "read-only-aggregate-sql-counts",
   "nonDestructive": true,
   "historicalRowsMigrated": false,
   "rawValuesPrinted": false,
   "rawBytesPrinted": false,
+  "rawReportTextPrinted": false,
+  "fullNamesPrinted": false,
+  "addressesPrinted": false,
+  "accountNumbersPrinted": false,
   "signedUrlsPrinted": false,
+  "storageSecretsPrinted": false,
   "productionDataMutated": false,
   "liveExternalProvidersConnected": false,
   "safety": {
@@ -45,11 +61,73 @@
       "nullStorageRows": 0
     }
   },
+  "recordCounts": {
+    "reportArtifact": {
+      "totalRows": 0,
+      "storageUrlRows": 0,
+      "localReferenceRows": 0,
+      "possibleInlineBase64Rows": 0,
+      "dataUrlBase64Rows": 0,
+      "nonLocalReferenceRows": 0,
+      "nullStorageRows": 0
+    },
+    "evidenceAttachment": {
+      "totalRows": 0,
+      "storageUrlRows": 0,
+      "localReferenceRows": 0,
+      "possibleInlineBase64Rows": 0,
+      "dataUrlBase64Rows": 0,
+      "nonLocalReferenceRows": 0,
+      "nullStorageRows": 0
+    }
+  },
+  "unresolvedCounts": {
+    "reportArtifact": {
+      "possibleInlineBase64Rows": null,
+      "dataUrlBase64Rows": null
+    },
+    "evidenceAttachment": {
+      "possibleInlineBase64Rows": null,
+      "dataUrlBase64Rows": null
+    },
+    "totalRows": null
+  },
+  "remediationCandidateCounts": {
+    "reportArtifact": null,
+    "evidenceAttachment": null,
+    "totalRows": null
+  },
+  "confidence": {
+    "level": "unreliable",
+    "countsReliable": false,
+    "reason": "Database connectivity was unavailable; evidence cannot certify historical raw report byte state."
+  },
+  "privacyValidation": {
+    "accepted": true,
+    "rawBytesPrinted": false,
+    "rawReportTextPrinted": false,
+    "signedUrlsPrinted": false,
+    "secretsPrinted": false,
+    "piiPrinted": false,
+    "sensitiveFindings": []
+  },
   "statements": [
     "This inventory is non-destructive and sanitized.",
     "The local database was unavailable; possible inline base64 rows were not counted and must not be treated as zero.",
     "No historical raw report rows are migrated or deleted by this command.",
     "This report does not claim production-at-scale readiness."
   ],
-  "recommendedNextAction": "Run this command again with a staging-safe local database connection before relying on inventory counts."
+  "recommendedNextAction": "Run this command again with a staging-safe local database connection before relying on inventory counts.",
+  "validation": {
+    "accepted": false,
+    "certifying": false,
+    "status": "failed",
+    "errors": [
+      "Inventory status must be completed.",
+      "Reliable database connectivity is required before inventory can certify.",
+      "dataSource must record a reliable database source.",
+      "confidence must be high with reliable counts."
+    ],
+    "sensitiveFindings": []
+  }
 }

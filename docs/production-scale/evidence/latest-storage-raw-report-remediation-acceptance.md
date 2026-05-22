@@ -1,9 +1,17 @@
 # Storage Raw Report Remediation Acceptance
 
-Generated at: 2026-05-21T00:20:40.418Z
+Generated at: 2026-05-22T03:50:05.937Z
 Status: not-submitted
 Accepted: no
+Production proof: no
 Evidence path: not submitted
+
+## Linked Evidence
+
+- Reliable inventory accepted: no
+- Remediation plan accepted: no
+- Inventory path: `not submitted`
+- Plan path: `not submitted`
 
 ## Blocker Coverage
 

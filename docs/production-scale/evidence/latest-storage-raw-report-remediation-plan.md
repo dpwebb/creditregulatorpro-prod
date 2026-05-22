@@ -2,9 +2,9 @@
 
 Sanitized dry-run-only plan. No raw report bytes, inline base64 values, raw report text, signed URLs, storage secrets, database URLs, or real consumer PII are printed.
 
-Generated at: 2026-05-22T00:47:06.512Z
+Generated at: 2026-05-22T03:50:05.986Z
 Branch: `staging`
-Commit: `4da09d1b87f4641f938bae3f02618f1aa142072d`
+Commit: `741a25497cded1907bdf07a3e253c6fcfcdb3749`
 Evidence type: SANITIZED_DRY_RUN_REMEDIATION_PLAN
 Status: inventory-unreliable
 Dry-run only: yes
@@ -17,6 +17,8 @@ Production mutation refused: yes
 - Status: database-unavailable
 - Counts reliable: no
 - Sensitive findings: 0
+- Inventory accepted: no
+- Inventory validation errors: 4
 
 ## Estimated Counts
 

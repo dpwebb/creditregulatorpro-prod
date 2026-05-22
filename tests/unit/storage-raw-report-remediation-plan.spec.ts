@@ -31,10 +31,25 @@ function writeInventory(rootDir: string, overrides: Record<string, unknown> = {}
   const inventory = {
     reportName: "storage-raw-report-inventory",
     generatedAt: "2026-05-20T12:00:00.000Z",
+    timestamp: "2026-05-20T12:00:00.000Z",
+    environment: "staging",
     evidenceType: "SANITIZED_READ_ONLY_INVENTORY",
     status: "completed",
+    databaseReachable: true,
     countsReliable: true,
+    CERTIFYING: true,
+    dataSource: {
+      kind: "database",
+      environment: "staging",
+      reliable: true,
+      access: "connected-read-only-aggregate-counts",
+      rawConnectionDetailsStored: false,
+    },
+    inventoryMethod: "read-only-aggregate-sql-counts",
     rawValuesPrinted: false,
+    rawBytesPrinted: false,
+    signedUrlsPrinted: false,
+    productionDataMutated: false,
     historicalRowsMigrated: false,
     tables: {
       reportArtifact: {
@@ -56,22 +71,80 @@ function writeInventory(rootDir: string, overrides: Record<string, unknown> = {}
         nullStorageRows: 1,
       },
     },
+    recordCounts: {
+      reportArtifact: {
+        totalRows: 10,
+        storageUrlRows: 9,
+        localReferenceRows: 6,
+        possibleInlineBase64Rows: 2,
+        dataUrlBase64Rows: 1,
+        nonLocalReferenceRows: 0,
+        nullStorageRows: 1,
+      },
+      evidenceAttachment: {
+        totalRows: 8,
+        storageUrlRows: 8,
+        localReferenceRows: 5,
+        possibleInlineBase64Rows: 1,
+        dataUrlBase64Rows: 0,
+        nonLocalReferenceRows: 1,
+        nullStorageRows: 1,
+      },
+    },
+    unresolvedCounts: {
+      reportArtifact: {
+        possibleInlineBase64Rows: 2,
+        dataUrlBase64Rows: 1,
+      },
+      evidenceAttachment: {
+        possibleInlineBase64Rows: 1,
+        dataUrlBase64Rows: 0,
+      },
+      totalRows: 4,
+    },
+    remediationCandidateCounts: {
+      reportArtifact: 3,
+      evidenceAttachment: 1,
+      totalRows: 4,
+    },
+    confidence: {
+      level: "high",
+      countsReliable: true,
+      reason: "Read-only aggregate SQL counts completed against the configured staging-safe database.",
+    },
     ...overrides,
   };
   writeFileSync(target, `${JSON.stringify(inventory, null, 2)}\n`, "utf8");
 }
 
+function writeAcceptedInventoryAndPlan(rootDir: string) {
+  writeInventory(rootDir);
+  const plan = buildStorageRawReportRemediationPlanReport({
+    rootDir,
+    generatedAt: "2026-05-20T13:00:00.000Z",
+    env: {},
+  });
+  writeStorageRawReportRemediationPlan(plan, { rootDir });
+  return plan;
+}
+
 function validAcceptanceEvidence(overrides: Record<string, unknown> = {}) {
   return {
+    evidenceId: "RRR-UNIT-001",
     evidenceType: "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION",
+    environment: "production",
+    remediationMode: "operator-applied",
+    dryRunOnly: false,
     operatorNameOrRole: "Compliance operations lead",
     approvedAt: "2026-05-20T14:00:00.000Z",
     performedAt: "2026-05-20T15:00:00.000Z",
     inventoryEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-inventory.json",
     remediationPlanEvidencePath: "docs/production-scale/evidence/latest-storage-raw-report-remediation-plan.json",
     inventoryRun: true,
+    reliableInventoryAccepted: true,
     remediationPlanApproved: true,
     remediationPerformedByOperatorOrApprovedProcess: true,
+    remediationApplied: true,
     oldInlineCompatibilityTested: true,
     sanitizedEvidence: true,
     postRemediationCountsRecorded: true,
@@ -181,17 +254,94 @@ describe("storage raw report remediation plan", () => {
     expect(existsSync(join(rootDir, outputs.jsonPath))).toBe(true);
   });
 
-  it("accepts sanitized operator evidence for blocker 6 coverage", () => {
+  it("rejects inventory-unreliable remediation as complete acceptance", () => {
+    const rootDir = makeTempRoot();
+    writeInventory(rootDir, {
+      status: "database-unavailable",
+      databaseReachable: false,
+      countsReliable: false,
+      CERTIFYING: false,
+      dataSource: {
+        kind: "database",
+        environment: "staging",
+        reliable: false,
+        access: "unavailable",
+        rawConnectionDetailsStored: false,
+      },
+      confidence: {
+        level: "unreliable",
+        countsReliable: false,
+        reason: "Database unavailable.",
+      },
+    });
+    const plan = buildStorageRawReportRemediationPlanReport({
+      rootDir,
+      generatedAt: "2026-05-20T13:00:00.000Z",
+      env: {},
+    });
+    writeStorageRawReportRemediationPlan(plan, { rootDir });
+
     const report = buildRawReportRemediationAcceptanceReport({
-      rootDir: makeTempRoot(),
+      rootDir,
+      generatedAt: "2026-05-20T14:00:00.000Z",
+      rawReportRemediationEvidence: validAcceptanceEvidence(),
+    });
+
+    expect(plan.status).toBe("inventory-unreliable");
+    expect(report.accepted).toBe(false);
+    expect(report.blockerCoverage.historicalRawReportBytes).toBe(false);
+    expect(report.validation.errors.join("\n")).toMatch(/Reliable database connectivity is required/i);
+  });
+
+  it("rejects dry-run-only remediation as complete production remediation", () => {
+    const rootDir = makeTempRoot();
+    writeAcceptedInventoryAndPlan(rootDir);
+    const report = buildRawReportRemediationAcceptanceReport({
+      rootDir,
+      generatedAt: "2026-05-20T14:00:00.000Z",
+      rawReportRemediationEvidence: validAcceptanceEvidence({
+        remediationMode: "dry-run",
+        dryRunOnly: true,
+        remediationApplied: false,
+      }),
+    });
+
+    expect(report.accepted).toBe(false);
+    expect(report.validation.errors.join("\n")).toMatch(/Dry-run-only remediation evidence cannot close/i);
+    expect(report.validation.errors.join("\n")).toMatch(/remediationApplied must be true/i);
+  });
+
+  it("accepts sanitized operator evidence for blocker 6 coverage", () => {
+    const rootDir = makeTempRoot();
+    writeAcceptedInventoryAndPlan(rootDir);
+    const report = buildRawReportRemediationAcceptanceReport({
+      rootDir,
       generatedAt: "2026-05-20T12:00:00.000Z",
       rawReportRemediationEvidence: validAcceptanceEvidence(),
     });
 
     expect(report.status).toBe("accepted");
     expect(report.accepted).toBe(true);
+    expect(report.productionProof).toBe(true);
+    expect(report.linkedEvidence.reliableInventoryAccepted).toBe(true);
     expect(report.blockerCoverage.historicalRawReportBytes).toBe(true);
     expect(report.validation.remainingPossibleInlineBase64Rows).toBe(0);
+  });
+
+  it("does not accept staging remediation evidence as production blocker coverage", () => {
+    const rootDir = makeTempRoot();
+    writeAcceptedInventoryAndPlan(rootDir);
+    const report = buildRawReportRemediationAcceptanceReport({
+      rootDir,
+      generatedAt: "2026-05-20T14:00:00.000Z",
+      rawReportRemediationEvidence: validAcceptanceEvidence({
+        environment: "staging",
+      }),
+    });
+
+    expect(report.accepted).toBe(false);
+    expect(report.productionProof).toBe(false);
+    expect(report.blockerCoverage.historicalRawReportBytes).toBe(false);
   });
 
   it("keeps old inline report and attachment records readable", async () => {

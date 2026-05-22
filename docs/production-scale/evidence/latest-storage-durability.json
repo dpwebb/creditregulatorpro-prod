@@ -1,7 +1,7 @@
 {
   "reportName": "storage-durability-contract",
-  "generatedAt": "2026-05-22T02:48:20.224Z",
-  "currentHead": "35388f20d9c58282405602a7205a987ece110410",
+  "generatedAt": "2026-05-22T03:52:31.745Z",
+  "currentHead": "741a25497cded1907bdf07a3e253c6fcfcdb3749",
   "auditTarget": "P0-2 Artifact storage is not certifiably durable across deploys or rollbacks.",
   "evidenceType": "AUTOMATED_LOCAL_AND_STATIC_DEPLOY_PREFLIGHT",
   "liveExternalProviderCallsMade": 0,
@@ -68,9 +68,9 @@
   },
   "sentinelSimulation": {
     "status": "passed",
-    "storageUrl": "local:.storage-durability-sentinel/0bc1785a-2761-4973-bf79-47785eb3eb2e/artifact.pdf",
-    "expectedDigest": "b6bd7f8c788175833464b866852dbd6bd5e21d7d70ac66bae39fba957c28caa6",
-    "actualDigest": "b6bd7f8c788175833464b866852dbd6bd5e21d7d70ac66bae39fba957c28caa6",
+    "storageUrl": "local:.storage-durability-sentinel/673e8fcf-1c1b-4b0e-b152-bd6f3c3a79a1/artifact.pdf",
+    "expectedDigest": "e15f83fd7fa91412b168123678c702e557405e9942545f6b62888d09df1103a5",
+    "actualDigest": "e15f83fd7fa91412b168123678c702e557405e9942545f6b62888d09df1103a5",
     "bytesWritten": 80,
     "boundarySimulation": "write LOCAL_DOCUMENT_STORAGE_PATH, read DOCUMENT_STORAGE_PATH from the same mounted root",
     "error": null

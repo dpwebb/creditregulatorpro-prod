@@ -7,6 +7,7 @@ import {
   buildStorageRawReportInventoryReport,
   detectStorageInventoryProductionEnvironment,
   renderStorageRawReportInventoryMarkdown,
+  validateStorageRawReportInventoryEvidence,
   writeStorageRawReportInventoryEvidence,
   type StorageInventoryCounts,
 } from "../../scripts/storage-raw-report-inventory";
@@ -86,9 +87,39 @@ describe("storage raw report inventory evidence", () => {
     expect(report.evidenceType).toBe("SANITIZED_READ_ONLY_INVENTORY");
     expect(report.nonDestructive).toBe(true);
     expect(report.productionDataMutated).toBe(false);
+    expect(report.environment).toBe("local");
+    expect(report.inventoryMethod).toBe("read-only-aggregate-sql-counts");
+    expect(report.confidence.level).toBe("high");
+    expect(report.remediationCandidateCounts.totalRows).toBe(2);
+    expect(report.validation.accepted).toBe(true);
     expect(report.safety.rawReportBytesExposed).toBe(false);
     expect(markdown).toContain("Historical rows migrated: no");
     expect(markdown).toContain("Raw storageUrl values printed: no");
+  });
+
+  it("accepts only reliable sanitized DB inventory as certifying inventory evidence", () => {
+    const report = buildStorageRawReportInventoryReport({
+      rootDir: makeTempRoot(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: { CRP_ENV: "staging" },
+      counts: {
+        reportArtifact: counts(),
+        evidenceAttachment: counts(),
+      },
+    });
+    const validation = validateStorageRawReportInventoryEvidence(report);
+
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.dataSource).toMatchObject({
+      kind: "database",
+      reliable: true,
+      rawConnectionDetailsStored: false,
+    });
+    expect(validation).toMatchObject({
+      accepted: true,
+      certifying: true,
+      sensitiveFindings: [],
+    });
   });
 
   it("does not treat unavailable database counts as zero-row proof", () => {
@@ -106,11 +137,35 @@ describe("storage raw report inventory evidence", () => {
     const markdown = renderStorageRawReportInventoryMarkdown(report);
 
     expect(report.status).toBe("database-unavailable");
+    expect(report.CERTIFYING).toBe(false);
     expect(report.countsReliable).toBe(false);
+    expect(report.validation.accepted).toBe(false);
     expect(report.safety.databaseUnavailableDoesNotImplyZeroInlineRows).toBe(true);
     expect(markdown).toContain("Counts reliable: no");
     expect(markdown).toContain("Do not treat unavailable counts as zero.");
     expect(markdown).toContain("| Possible inline base64 rows | unavailable |");
+  });
+
+  it("rejects inventory evidence that contains secrets, PII, signed URLs, or raw byte markers", () => {
+    const report = buildStorageRawReportInventoryReport({
+      rootDir: makeTempRoot(),
+      generatedAt: "2026-05-20T12:00:00.000Z",
+      env: {},
+      counts: {
+        reportArtifact: counts(),
+        evidenceAttachment: counts(),
+      },
+    });
+    const validation = validateStorageRawReportInventoryEvidence({
+      ...report,
+      leakedRawReportText: "rawExtractedText: consumer@example.net 123-45-6789 JVBERi0",
+      signedUrl: "https://storage.example.test/file.pdf?X-Amz-Signature=abc123",
+    });
+
+    expect(validation.accepted).toBe(false);
+    expect(validation.sensitiveFindings).toEqual(
+      expect.arrayContaining(["raw-pdf-bytes", "raw-report-text", "obvious-email-pii", "signed-url"]),
+    );
   });
 
   it("fails closed for production-like environments", () => {

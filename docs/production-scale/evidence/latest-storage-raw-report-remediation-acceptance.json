@@ -1,8 +1,10 @@
 {
   "reportName": "storage-raw-report-remediation-acceptance",
-  "generatedAt": "2026-05-21T00:20:40.418Z",
+  "generatedAt": "2026-05-22T03:50:05.937Z",
   "status": "not-submitted",
   "accepted": false,
+  "productionProof": false,
+  "stagingProof": false,
   "evidencePath": null,
   "defaultEvidencePaths": [
     "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json",
@@ -15,10 +17,32 @@
       "No raw report remediation acceptance evidence has been submitted."
     ],
     "sensitiveFindings": [],
+    "inventoryValidation": {
+      "accepted": false,
+      "certifying": false,
+      "status": "failed",
+      "errors": [
+        "Inventory evidence must be a JSON object."
+      ],
+      "sensitiveFindings": []
+    },
+    "remediationPlanValidation": {
+      "accepted": false,
+      "errors": [
+        "Remediation plan evidence must be present."
+      ],
+      "sensitiveFindings": []
+    },
     "remainingPossibleInlineBase64Rows": null,
     "blockerCoverage": {
       "historicalRawReportBytes": false
     }
+  },
+  "linkedEvidence": {
+    "inventoryEvidencePath": null,
+    "remediationPlanEvidencePath": null,
+    "reliableInventoryAccepted": false,
+    "remediationPlanAccepted": false
   },
   "blockerCoverage": {
     "historicalRawReportBytes": false

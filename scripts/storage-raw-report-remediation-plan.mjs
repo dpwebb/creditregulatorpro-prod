@@ -15,6 +15,10 @@ export const RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH =
   "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.json";
 export const RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH =
   "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-evidence.md";
+export const RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_JSON_PATH =
+  "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-template.json";
+export const RAW_REPORT_REMEDIATION_ACCEPTANCE_TEMPLATE_MD_PATH =
+  "docs/production-scale/evidence/storage-raw-report-remediation-acceptance-template.md";
 export const RAW_REPORT_INVENTORY_JSON_PATH =
   "docs/production-scale/evidence/latest-storage-raw-report-inventory.json";
 
@@ -126,6 +130,9 @@ export function scanRawReportRemediationSensitiveContent(text) {
     ["signed-url", /https?:\/\/[^\s]+(?:X-Amz-Signature|X-Goog-Signature|GoogleAccessId|Signature=|[?&]sig=|[?&]sv=)[^\s]*/i],
     ["ssn-or-sin", /\b\d{3}[- ]?\d{2}[- ]?\d{4}\b/],
     ["obvious-email-pii", /\b[A-Z0-9._%+-]+@(?!example\.test\b|example\.invalid\b|example\.com\b)[A-Z0-9.-]+\.[A-Z]{2,}\b/i],
+    ["account-number-label", /\b(?:accountNumber|account_number|account\s+number)\s*[:=]\s*["']?[A-Za-z0-9-]{4,}/i],
+    ["address-label", /\b(?:streetAddress|street_address|addressLine|address_line|mailingAddress|mailing_address)\s*[:=]/i],
+    ["full-name-label", /\b(?:fullName|full_name|consumerName|consumer_name)\s*[:=]/i],
   ];
   for (const [name, pattern] of patterns) {
     if (pattern.test(text)) findings.push(name);
@@ -163,6 +170,85 @@ function unavailableCounts() {
   };
 }
 
+function validateCountsObject(value, label) {
+  const errors = [];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [`${label} counts must be present.`];
+  }
+  for (const key of [
+    "totalRows",
+    "storageUrlRows",
+    "localReferenceRows",
+    "possibleInlineBase64Rows",
+    "dataUrlBase64Rows",
+    "nonLocalReferenceRows",
+    "nullStorageRows",
+  ]) {
+    const raw = value[key];
+    if (!Number.isInteger(raw) || raw < 0) {
+      errors.push(`${label}.${key} must be a non-negative integer.`);
+    }
+  }
+  return errors;
+}
+
+export function validateStorageRawReportInventoryEvidence(inventory) {
+  const errors = [];
+  const sensitiveFindings = scanRawReportRemediationSensitiveContent(JSON.stringify(inventory ?? {}));
+
+  if (!inventory || typeof inventory !== "object" || Array.isArray(inventory)) {
+    errors.push("Inventory evidence must be a JSON object.");
+  } else {
+    if (inventory.evidenceType !== "SANITIZED_READ_ONLY_INVENTORY") {
+      errors.push("evidenceType must be SANITIZED_READ_ONLY_INVENTORY.");
+    }
+    if (inventory.status !== "completed") errors.push("Inventory status must be completed.");
+    if (inventory.databaseReachable !== true || inventory.countsReliable !== true) {
+      errors.push("Reliable database connectivity is required before inventory can certify.");
+    }
+    if (!inventory.environment) errors.push("environment is required.");
+    if (!inventory.generatedAt) errors.push("generatedAt is required.");
+    if (inventory.inventoryMethod !== "read-only-aggregate-sql-counts") {
+      errors.push("inventoryMethod must be read-only-aggregate-sql-counts.");
+    }
+    if (inventory.dataSource?.kind !== "database" || inventory.dataSource?.reliable !== true) {
+      errors.push("dataSource must record a reliable database source.");
+    }
+    if (inventory.confidence?.level !== "high" || inventory.confidence?.countsReliable !== true) {
+      errors.push("confidence must be high with reliable counts.");
+    }
+    if (inventory.rawValuesPrinted !== false || inventory.rawBytesPrinted !== false || inventory.signedUrlsPrinted !== false) {
+      errors.push("Inventory must not print raw values, raw bytes, or signed URLs.");
+    }
+    if (inventory.productionDataMutated !== false || inventory.historicalRowsMigrated !== false) {
+      errors.push("Inventory must be non-mutating and must not migrate historical rows.");
+    }
+    errors.push(...validateCountsObject(inventory.tables?.reportArtifact, "tables.reportArtifact"));
+    errors.push(...validateCountsObject(inventory.tables?.evidenceAttachment, "tables.evidenceAttachment"));
+    errors.push(...validateCountsObject(inventory.recordCounts?.reportArtifact, "recordCounts.reportArtifact"));
+    errors.push(...validateCountsObject(inventory.recordCounts?.evidenceAttachment, "recordCounts.evidenceAttachment"));
+    if (!inventory.unresolvedCounts || typeof inventory.unresolvedCounts !== "object") {
+      errors.push("unresolvedCounts must be present.");
+    }
+    if (!inventory.remediationCandidateCounts || typeof inventory.remediationCandidateCounts !== "object") {
+      errors.push("remediationCandidateCounts must be present.");
+    }
+  }
+
+  if (sensitiveFindings.length > 0) {
+    errors.push(`Sensitive content detected: ${sensitiveFindings.join(", ")}.`);
+  }
+
+  const accepted = errors.length === 0;
+  return {
+    accepted,
+    certifying: accepted,
+    status: accepted ? "accepted-reliable-inventory" : "failed",
+    errors,
+    sensitiveFindings,
+  };
+}
+
 function readInventorySummary(rootDir) {
   if (!existsSync(repoPath(rootDir, RAW_REPORT_INVENTORY_JSON_PATH))) {
     return {
@@ -172,6 +258,13 @@ function readInventorySummary(rootDir) {
       countsReliable: false,
       generatedAt: null,
       sensitiveFindings: [],
+      validation: {
+        accepted: false,
+        certifying: false,
+        status: "failed",
+        errors: ["Inventory evidence file is missing."],
+        sensitiveFindings: [],
+      },
       tables: {
         reportArtifact: unavailableCounts(),
         evidenceAttachment: unavailableCounts(),
@@ -181,7 +274,8 @@ function readInventorySummary(rootDir) {
 
   const inventory = readJsonIfPresent(rootDir, RAW_REPORT_INVENTORY_JSON_PATH);
   const sensitiveFindings = scanRawReportRemediationSensitiveContent(JSON.stringify(inventory ?? {}));
-  const countsReliable = inventory?.countsReliable === true && sensitiveFindings.length === 0;
+  const validation = validateStorageRawReportInventoryEvidence(inventory);
+  const countsReliable = validation.accepted;
   return {
     path: RAW_REPORT_INVENTORY_JSON_PATH,
     exists: true,
@@ -189,6 +283,7 @@ function readInventorySummary(rootDir) {
     countsReliable,
     generatedAt: inventory?.generatedAt ?? null,
     sensitiveFindings,
+    validation,
     tables: countsReliable
       ? {
           reportArtifact: tableCounts(inventory, "reportArtifact"),
@@ -304,6 +399,7 @@ export function buildStorageRawReportRemediationPlanReport({
       countsReliable: inventory.countsReliable,
       generatedAt: inventory.generatedAt,
       sensitiveFindings: inventory.sensitiveFindings,
+      validation: inventory.validation,
     },
     affectedTables,
     estimatedCounts: {
@@ -313,8 +409,10 @@ export function buildStorageRawReportRemediationPlanReport({
     remediationCategories: categories,
     remediationPlan: {
       dryRunOnly: true,
+      applySeparation: "This script never applies remediation; operator-run apply proof must be submitted separately.",
       mutationCommandAvailable: false,
       productionMutationAllowed: false,
+      inventoryReliableRequiredForAcceptance: true,
       steps: [
         "Confirm a current staging-safe sanitized inventory exists and counts are reliable.",
         "Take a fresh backup before any operator-approved remediation.",
@@ -350,6 +448,13 @@ export function buildStorageRawReportRemediationPlanReport({
     blockerCoverage: {
       blocker6GovernedWorkflowPrepared: inventoryReady,
       blocker6AcceptedClosed: false,
+    },
+    acceptancePolicy: {
+      reliableInventoryRequired: true,
+      dryRunPlanIsNotCompleteRemediation: true,
+      operatorApplyProofRequired: true,
+      productionProofRequiresAcceptedProductionEvidence: true,
+      stagingInventoryIsStagingProofOnly: true,
     },
     safety: {
       productionDataMutated: false,
@@ -412,6 +517,8 @@ export function renderStorageRawReportRemediationPlanMarkdown(report) {
     `- Status: ${report.inventoryEvidence.status}`,
     `- Counts reliable: ${report.inventoryEvidence.countsReliable ? "yes" : "no"}`,
     `- Sensitive findings: ${report.inventoryEvidence.sensitiveFindings.length}`,
+    `- Inventory accepted: ${report.inventoryEvidence.validation?.accepted ? "yes" : "no"}`,
+    `- Inventory validation errors: ${report.inventoryEvidence.validation?.errors?.length ?? 0}`,
     "",
     "## Estimated Counts",
     "",
@@ -485,17 +592,89 @@ function validatePostRemediationCounts(value) {
   };
 }
 
-export function validateRawReportRemediationAcceptanceEvidence(evidence) {
+function pathUnderProductionEvidenceDir(value, label) {
+  const errors = [];
+  const normalized = normalizeRelativePath(value);
+  if (isPlaceholderValue(normalized)) {
+    errors.push(`${label} is required and cannot be a placeholder.`);
+  } else if (!normalized.startsWith("docs/production-scale/evidence/")) {
+    errors.push(`${label} must be under docs/production-scale/evidence/.`);
+  }
+  return errors;
+}
+
+function validateRawReportRemediationPlanEvidence(plan, inventoryValidation) {
+  const errors = [];
+  const sensitiveFindings = scanRawReportRemediationSensitiveContent(JSON.stringify(plan ?? {}));
+  if (!plan || typeof plan !== "object" || Array.isArray(plan)) {
+    errors.push("Remediation plan evidence must be present.");
+  } else {
+    if (plan.evidenceType !== "SANITIZED_DRY_RUN_REMEDIATION_PLAN") {
+      errors.push("Remediation plan evidenceType must be SANITIZED_DRY_RUN_REMEDIATION_PLAN.");
+    }
+    if (plan.dryRunOnly !== true || plan.productionMutationRefused !== true) {
+      errors.push("Remediation plan must be dry-run only and production-mutation-refusing.");
+    }
+    if (plan.status !== "planned-awaiting-operator-approval") {
+      errors.push("Remediation plan must be based on reliable inventory before acceptance can close remediation.");
+    }
+    if (plan.inventoryEvidence?.countsReliable !== true || plan.inventoryEvidence?.validation?.accepted !== true) {
+      errors.push("Remediation plan must record accepted reliable inventory evidence.");
+    }
+    if (inventoryValidation?.accepted !== true) {
+      errors.push("Remediation plan cannot close without accepted reliable inventory evidence.");
+    }
+    if (plan.blockerCoverage?.blocker6GovernedWorkflowPrepared !== true) {
+      errors.push("Remediation plan must prepare blocker 6 governed workflow from reliable inventory.");
+    }
+    if (plan.rawValuesPrinted !== false || plan.rawBytesPrinted !== false || plan.signedUrlsPrinted !== false) {
+      errors.push("Remediation plan must not print raw values, raw bytes, or signed URLs.");
+    }
+    if (plan.safety?.rawSensitiveValuesExposed === true || plan.safety?.productionDataMutated === true) {
+      errors.push("Remediation plan must not expose raw sensitive values or mutate production.");
+    }
+  }
+  if (sensitiveFindings.length > 0) {
+    errors.push(`Sensitive content detected in remediation plan: ${sensitiveFindings.join(", ")}.`);
+  }
+  return {
+    accepted: errors.length === 0,
+    errors,
+    sensitiveFindings,
+  };
+}
+
+export function validateRawReportRemediationAcceptanceEvidence(
+  evidence,
+  {
+    inventoryEvidence = null,
+    remediationPlanEvidence = null,
+  } = {},
+) {
   const errors = [];
   const serialized = JSON.stringify(evidence ?? {});
   const sensitiveFindings = scanRawReportRemediationSensitiveContent(serialized);
   const postCounts = validatePostRemediationCounts(evidence?.postRemediationCounts);
+  const inventoryValidation = validateStorageRawReportInventoryEvidence(inventoryEvidence);
+  const remediationPlanValidation = validateRawReportRemediationPlanEvidence(remediationPlanEvidence, inventoryValidation);
 
   if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) {
     errors.push("Raw report remediation acceptance evidence must be a JSON object.");
   }
+  if (isPlaceholderValue(evidence?.evidenceId)) {
+    errors.push("evidenceId is required and cannot be a placeholder.");
+  }
   if (evidence?.evidenceType !== "HUMAN_OBSERVED_RAW_REPORT_REMEDIATION") {
     errors.push("evidenceType must be HUMAN_OBSERVED_RAW_REPORT_REMEDIATION.");
+  }
+  if (evidence?.environment !== "production") {
+    errors.push("environment must be production for blocker 6 production remediation proof.");
+  }
+  if (!["apply", "operator-applied", "completed-operator-apply"].includes(String(evidence?.remediationMode ?? ""))) {
+    errors.push("remediationMode must record an operator-applied remediation, not a dry-run.");
+  }
+  if (evidence?.dryRunOnly === true || evidence?.dryRunOnlyRemediation === true) {
+    errors.push("Dry-run-only remediation evidence cannot close production raw-report remediation.");
   }
   if (/\bsimulated\b/i.test(String(evidence?.evidenceType ?? "")) || evidence?.simulatedEvidence === true) {
     errors.push("SIMULATED evidence cannot be accepted as blocker 6 remediation proof.");
@@ -511,11 +690,21 @@ export function validateRawReportRemediationAcceptanceEvidence(evidence) {
   for (const [key, label] of requiredTextFields) {
     if (isPlaceholderValue(evidence?.[key])) errors.push(`${label} is required and cannot be a placeholder.`);
   }
+  errors.push(...pathUnderProductionEvidenceDir(evidence?.inventoryEvidencePath, "inventoryEvidencePath"));
+  errors.push(...pathUnderProductionEvidenceDir(evidence?.remediationPlanEvidencePath, "remediationPlanEvidencePath"));
+  if (evidence?.supportingEvidencePaths !== undefined && !Array.isArray(evidence.supportingEvidencePaths)) {
+    errors.push("supportingEvidencePaths must be an array when present.");
+  }
+  for (const [index, attachmentPath] of (Array.isArray(evidence?.supportingEvidencePaths) ? evidence.supportingEvidencePaths : []).entries()) {
+    errors.push(...pathUnderProductionEvidenceDir(attachmentPath, `supportingEvidencePaths[${index}]`));
+  }
 
   const requiredBooleans = [
     ["inventoryRun", true],
+    ["reliableInventoryAccepted", true],
     ["remediationPlanApproved", true],
     ["remediationPerformedByOperatorOrApprovedProcess", true],
+    ["remediationApplied", true],
     ["oldInlineCompatibilityTested", true],
     ["sanitizedEvidence", true],
     ["postRemediationCountsRecorded", true],
@@ -531,6 +720,8 @@ export function validateRawReportRemediationAcceptanceEvidence(evidence) {
   }
 
   errors.push(...postCounts.errors);
+  errors.push(...inventoryValidation.errors.map((error) => `Inventory evidence rejected: ${error}`));
+  errors.push(...remediationPlanValidation.errors.map((error) => `Remediation plan evidence rejected: ${error}`));
   if (sensitiveFindings.length > 0) {
     errors.push(`Sensitive content detected: ${sensitiveFindings.join(", ")}.`);
   }
@@ -541,6 +732,8 @@ export function validateRawReportRemediationAcceptanceEvidence(evidence) {
     status: accepted ? "accepted" : "failed",
     errors,
     sensitiveFindings,
+    inventoryValidation,
+    remediationPlanValidation,
     remainingPossibleInlineBase64Rows: postCounts.remainingPossibleInlineBase64Rows,
     blockerCoverage: {
       historicalRawReportBytes: accepted,
@@ -582,6 +775,22 @@ function resolveAcceptanceEvidencePath(rootDir, evidencePath = null) {
   };
 }
 
+function readLinkedJsonEvidence(rootDir, relativePath, label) {
+  const errors = pathUnderProductionEvidenceDir(relativePath, label);
+  if (errors.length > 0) {
+    return { parsed: null, error: errors[0] };
+  }
+  const normalized = normalizeRelativePath(relativePath);
+  if (!existsSync(repoPath(rootDir, normalized))) {
+    return { parsed: null, error: `${label} file is missing: ${normalized}.` };
+  }
+  try {
+    return { parsed: JSON.parse(readText(rootDir, normalized)), error: null };
+  } catch {
+    return { parsed: null, error: `${label} JSON could not be parsed.` };
+  }
+}
+
 export function buildRawReportRemediationAcceptanceReport({
   rootDir = process.cwd(),
   evidencePath = null,
@@ -599,6 +808,8 @@ export function buildRawReportRemediationAcceptanceReport({
       generatedAt,
       status,
       accepted: false,
+      productionProof: false,
+      stagingProof: false,
       evidencePath: resolved.path,
       defaultEvidencePaths: [
         RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
@@ -611,10 +822,18 @@ export function buildRawReportRemediationAcceptanceReport({
           ? [`Submitted raw report remediation evidence file is missing: ${resolved.path}.`]
           : ["No raw report remediation acceptance evidence has been submitted."],
         sensitiveFindings: [],
+        inventoryValidation: validateStorageRawReportInventoryEvidence(null),
+        remediationPlanValidation: validateRawReportRemediationPlanEvidence(null, validateStorageRawReportInventoryEvidence(null)),
         remainingPossibleInlineBase64Rows: null,
         blockerCoverage: {
           historicalRawReportBytes: false,
         },
+      },
+      linkedEvidence: {
+        inventoryEvidencePath: null,
+        remediationPlanEvidencePath: null,
+        reliableInventoryAccepted: false,
+        remediationPlanAccepted: false,
       },
       blockerCoverage: {
         historicalRawReportBytes: false,
@@ -641,29 +860,60 @@ export function buildRawReportRemediationAcceptanceReport({
     }
   }
 
+  let inventoryEvidence = null;
+  let remediationPlanEvidence = null;
+  const linkedEvidenceErrors = [];
+  if (!readError && parsed) {
+    const inventoryRead = readLinkedJsonEvidence(rootDir, parsed.inventoryEvidencePath, "inventoryEvidencePath");
+    const planRead = readLinkedJsonEvidence(rootDir, parsed.remediationPlanEvidencePath, "remediationPlanEvidencePath");
+    inventoryEvidence = inventoryRead.parsed;
+    remediationPlanEvidence = planRead.parsed;
+    if (inventoryRead.error) linkedEvidenceErrors.push(inventoryRead.error);
+    if (planRead.error) linkedEvidenceErrors.push(planRead.error);
+  }
+
   const validation = readError
     ? {
         accepted: false,
         status: "failed",
         errors: [readError],
         sensitiveFindings: [],
+        inventoryValidation: validateStorageRawReportInventoryEvidence(null),
+        remediationPlanValidation: validateRawReportRemediationPlanEvidence(null, validateStorageRawReportInventoryEvidence(null)),
         remainingPossibleInlineBase64Rows: null,
         blockerCoverage: {
           historicalRawReportBytes: false,
         },
       }
-    : validateRawReportRemediationAcceptanceEvidence(parsed);
+    : validateRawReportRemediationAcceptanceEvidence(parsed, {
+        inventoryEvidence,
+        remediationPlanEvidence,
+      });
+  validation.errors.push(...linkedEvidenceErrors);
+  if (linkedEvidenceErrors.length > 0) {
+    validation.accepted = false;
+    validation.status = "failed";
+    validation.blockerCoverage = { historicalRawReportBytes: false };
+  }
 
   return {
     reportName: "storage-raw-report-remediation-acceptance",
     generatedAt,
     status: validation.accepted ? "accepted" : "failed",
     accepted: validation.accepted,
+    productionProof: validation.accepted && parsed?.environment === "production",
+    stagingProof: parsed?.environment === "staging" && validation.accepted,
     evidencePath: resolved.path,
     defaultEvidencePaths: [
       RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_JSON_PATH,
       RAW_REPORT_REMEDIATION_ACCEPTANCE_EVIDENCE_MD_PATH,
     ],
+    linkedEvidence: {
+      inventoryEvidencePath: parsed?.inventoryEvidencePath ?? null,
+      remediationPlanEvidencePath: parsed?.remediationPlanEvidencePath ?? null,
+      reliableInventoryAccepted: validation.inventoryValidation?.accepted === true,
+      remediationPlanAccepted: validation.remediationPlanValidation?.accepted === true,
+    },
     validation,
     blockerCoverage: validation.blockerCoverage,
     safety: {
@@ -681,7 +931,15 @@ export function renderRawReportRemediationAcceptanceMarkdown(report) {
     `Generated at: ${report.generatedAt}`,
     `Status: ${report.status}`,
     `Accepted: ${report.accepted ? "yes" : "no"}`,
+    `Production proof: ${report.productionProof ? "yes" : "no"}`,
     `Evidence path: ${report.evidencePath ?? "not submitted"}`,
+    "",
+    "## Linked Evidence",
+    "",
+    `- Reliable inventory accepted: ${report.linkedEvidence?.reliableInventoryAccepted ? "yes" : "no"}`,
+    `- Remediation plan accepted: ${report.linkedEvidence?.remediationPlanAccepted ? "yes" : "no"}`,
+    `- Inventory path: \`${report.linkedEvidence?.inventoryEvidencePath ?? "not submitted"}\``,
+    `- Plan path: \`${report.linkedEvidence?.remediationPlanEvidencePath ?? "not submitted"}\``,
     "",
     "## Blocker Coverage",
     "",
