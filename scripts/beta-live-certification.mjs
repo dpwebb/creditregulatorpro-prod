@@ -40,6 +40,20 @@ export const BETA_LIVE_COMMANDS = [
   },
 ];
 
+export const BETA_LIVE_REQUIRED_TOP_LEVEL_FIELDS = [
+  "generatedAt",
+  "commit",
+  "safeForBetaLive",
+  "decision",
+  "humanInteractionRequired",
+  "productionMutationDuringCertification",
+  "coreUserPath",
+  "safetyGates",
+  "supportingEvidence",
+  "blockers",
+  "warnings",
+];
+
 const CORE_USER_PATH = {
   upload: ["applicationBuild", "goldenPath"],
   parse: ["applicationBuild", "goldenPath"],
@@ -56,13 +70,34 @@ const SAFETY_GATES = {
   packetEligibility: ["packetReadiness", "packetLifecycleApi"],
 };
 
+const REQUIRED_CORE_USER_PATH_KEYS = Object.freeze(Object.keys(CORE_USER_PATH));
+const REQUIRED_SAFETY_GATE_KEYS = Object.freeze([...Object.keys(SAFETY_GATES), "noProductionMutationInSimulation"]);
+
 const SUPPORTING_EVIDENCE = {
-  rawReportProof: "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
-  alertingProof: "docs/production-scale/evidence/latest-alerting-machine-proof.json",
-  rollbackSimulation: "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
-  certificationHarness: "docs/production-scale/evidence/latest-production-scale-certification.json",
-  legacyMachineProofs: "docs/production-scale/evidence/latest-machine-proof-summary.json",
-  legacyPromotionPack: "docs/production-scale/evidence/latest-production-promotion-pack.json",
+  rawReportProof: {
+    artifact: "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
+    requiredForFinalDecision: false,
+  },
+  alertingProof: {
+    artifact: "docs/production-scale/evidence/latest-alerting-machine-proof.json",
+    requiredForFinalDecision: false,
+  },
+  rollbackSimulation: {
+    artifact: "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
+    requiredForFinalDecision: false,
+  },
+  certificationHarness: {
+    artifact: "docs/production-scale/evidence/latest-production-scale-certification.json",
+    requiredForFinalDecision: false,
+  },
+  legacyMachineProofs: {
+    artifact: "docs/production-scale/evidence/latest-machine-proof-summary.json",
+    requiredForFinalDecision: false,
+  },
+  legacyPromotionPack: {
+    artifact: "docs/production-scale/evidence/latest-production-promotion-pack.json",
+    requiredForFinalDecision: false,
+  },
 };
 
 const COMMAND_TIMEOUT_MS = 10 * 60 * 1000;
@@ -92,32 +127,42 @@ function safeGit(args, rootDir = process.cwd(), fallback = "unknown") {
   }
 }
 
+function isStrictCommitHash(value) {
+  return /^[a-f0-9]{40}$/i.test(String(value ?? ""));
+}
+
 function commandDefinitionById(commandPlan = BETA_LIVE_COMMANDS) {
   return new Map(commandPlan.map((entry) => [entry.id, entry]));
 }
 
 function normalizeCommandOutcome(outcome, commandPlan = BETA_LIVE_COMMANDS) {
   const definitions = commandDefinitionById(commandPlan);
-  const definition = definitions.get(outcome.id) ?? {};
+  const safeOutcome = outcome && typeof outcome === "object" ? outcome : {};
+  const definition = definitions.get(safeOutcome.id) ?? {};
   return {
-    id: outcome.id,
-    label: outcome.label ?? definition.label ?? outcome.id,
-    command: outcome.command ?? definition.command ?? "unknown",
-    exitCode: Number.isInteger(outcome.exitCode) ? outcome.exitCode : 1,
-    result: outcome.result ?? (outcome.exitCode === 0 ? "pass" : "fail"),
-    startedAt: outcome.startedAt ?? null,
-    completedAt: outcome.completedAt ?? null,
-    durationMs: Number.isFinite(Number(outcome.durationMs)) ? Number(outcome.durationMs) : null,
-    stdin: outcome.stdin ?? "ignore",
-    stdoutCaptured: outcome.stdoutCaptured === true,
-    stderrCaptured: outcome.stderrCaptured === true,
+    id: safeOutcome.id ?? "unknown",
+    label: safeOutcome.label ?? definition.label ?? safeOutcome.id ?? "unknown",
+    command: safeOutcome.command ?? definition.command ?? "unknown",
+    exitCode: Number.isInteger(safeOutcome.exitCode) ? safeOutcome.exitCode : 1,
+    result: safeOutcome.result ?? (safeOutcome.exitCode === 0 ? "pass" : "fail"),
+    startedAt: safeOutcome.startedAt ?? null,
+    completedAt: safeOutcome.completedAt ?? null,
+    durationMs: Number.isFinite(Number(safeOutcome.durationMs)) ? Number(safeOutcome.durationMs) : null,
+    stdin: safeOutcome.stdin ?? "ignore",
+    stdoutCaptured: safeOutcome.stdoutCaptured === true,
+    stderrCaptured: safeOutcome.stderrCaptured === true,
     rawOutputStored: false,
     rawOutputPrinted: false,
+    productionMutationDuringCertification:
+      safeOutcome.productionMutationDuringCertification === true ||
+      safeOutcome.productionDataMutated === true ||
+      safeOutcome.productionMutationOccurred === true,
   };
 }
 
 function commandPassed(outcomesById, commandId) {
-  return outcomesById.get(commandId)?.exitCode === 0;
+  const outcome = outcomesById.get(commandId);
+  return outcome?.exitCode === 0 && outcome.result === "pass";
 }
 
 function commandEvidence(outcomesById, commandIds, extraEvidence = []) {
@@ -155,7 +200,9 @@ function boolFromEvidence(parsed) {
   return null;
 }
 
-function readSupportingEvidence(rootDir, artifact) {
+function readSupportingEvidence(rootDir, descriptor) {
+  const artifact = typeof descriptor === "string" ? descriptor : descriptor.artifact;
+  const requiredForFinalDecision = descriptor.requiredForFinalDecision === true;
   const normalized = normalizeRelativePath(artifact);
   const fullPath = repoPath(rootDir, normalized);
   if (!existsSync(fullPath)) {
@@ -164,6 +211,7 @@ function readSupportingEvidence(rootDir, artifact) {
       artifact: normalized,
       status: "missing",
       supportingOnly: true,
+      requiredForFinalDecision,
     };
   }
   try {
@@ -174,6 +222,7 @@ function readSupportingEvidence(rootDir, artifact) {
       status: parsed.status ?? (boolFromEvidence(parsed) === true ? "pass" : "not-certifying"),
       generatedAt: parsed.generatedAt ?? null,
       supportingOnly: true,
+      requiredForFinalDecision,
     };
   } catch {
     return {
@@ -181,6 +230,7 @@ function readSupportingEvidence(rootDir, artifact) {
       artifact: normalized,
       status: "unreadable-json",
       supportingOnly: true,
+      requiredForFinalDecision,
     };
   }
 }
@@ -214,6 +264,95 @@ function warningsForSupportingEvidence(supportingEvidence) {
     }));
 }
 
+function blockersForRequiredSupportingEvidence(supportingEvidence) {
+  return Object.entries(supportingEvidence)
+    .filter(([, value]) => value.requiredForFinalDecision === true && value.pass !== true)
+    .map(([key, value]) => ({
+      code: `supportingEvidence.${key}`,
+      severity: "fatal",
+      message: `${key} is required for the beta-live decision and is not passing.`,
+      artifact: value.artifact,
+      status: value.status,
+    }));
+}
+
+function blockersForRequiredShape({ generatedAt, commit, coreUserPath, safetyGates }) {
+  const blockers = [];
+  if (typeof generatedAt !== "string" || generatedAt.trim().length === 0) {
+    blockers.push({
+      code: "schema.generatedAt",
+      severity: "fatal",
+      message: "Beta-live certification requires a generatedAt timestamp.",
+    });
+  }
+  if (!isStrictCommitHash(commit)) {
+    blockers.push({
+      code: "schema.commit",
+      severity: "fatal",
+      message: "Beta-live certification requires a detected 40-character git commit hash.",
+    });
+  }
+  for (const key of REQUIRED_CORE_USER_PATH_KEYS) {
+    const check = coreUserPath[key];
+    if (!check || typeof check.pass !== "boolean" || !Array.isArray(check.evidence)) {
+      blockers.push({
+        code: `schema.coreUserPath.${key}`,
+        severity: "fatal",
+        message: `Required core user path check ${key} is missing or malformed.`,
+      });
+    }
+  }
+  for (const key of REQUIRED_SAFETY_GATE_KEYS) {
+    const check = safetyGates[key];
+    if (!check || typeof check.pass !== "boolean" || !Array.isArray(check.evidence)) {
+      blockers.push({
+        code: `schema.safetyGates.${key}`,
+        severity: "fatal",
+        message: `Required safety gate ${key} is missing or malformed.`,
+      });
+    }
+  }
+  return blockers;
+}
+
+export function validateBetaLiveCertificationReportSchema(report) {
+  const errors = [];
+  for (const field of BETA_LIVE_REQUIRED_TOP_LEVEL_FIELDS) {
+    if (report?.[field] === undefined || report?.[field] === null) {
+      errors.push(`Missing required top-level field: ${field}`);
+    }
+  }
+  if (typeof report?.safeForBetaLive !== "boolean") errors.push("safeForBetaLive must be boolean.");
+  if (!["SAFE_FOR_BETA_LIVE=true", "SAFE_FOR_BETA_LIVE=false"].includes(report?.decision)) {
+    errors.push("decision must be SAFE_FOR_BETA_LIVE=true or SAFE_FOR_BETA_LIVE=false.");
+  }
+  if (report?.decision !== `SAFE_FOR_BETA_LIVE=${report?.safeForBetaLive ? "true" : "false"}`) {
+    errors.push("decision must match safeForBetaLive.");
+  }
+  if (report?.humanInteractionRequired !== false && report?.safeForBetaLive === true) {
+    errors.push("safe certification cannot require human interaction.");
+  }
+  if (report?.productionMutationDuringCertification !== false && report?.safeForBetaLive === true) {
+    errors.push("safe certification cannot mutate production.");
+  }
+  for (const key of REQUIRED_CORE_USER_PATH_KEYS) {
+    if (typeof report?.coreUserPath?.[key]?.pass !== "boolean" || !Array.isArray(report?.coreUserPath?.[key]?.evidence)) {
+      errors.push(`coreUserPath.${key} must include pass and evidence.`);
+    }
+  }
+  for (const key of REQUIRED_SAFETY_GATE_KEYS) {
+    if (typeof report?.safetyGates?.[key]?.pass !== "boolean" || !Array.isArray(report?.safetyGates?.[key]?.evidence)) {
+      errors.push(`safetyGates.${key} must include pass and evidence.`);
+    }
+  }
+  if (!Array.isArray(report?.blockers)) errors.push("blockers must be an array.");
+  if (!Array.isArray(report?.warnings)) errors.push("warnings must be an array.");
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 export function buildBetaLiveCertificationReport({
   rootDir = process.cwd(),
   generatedAt = new Date().toISOString(),
@@ -234,7 +373,9 @@ export function buildBetaLiveCertificationReport({
   );
 
   const humanInteractionRequired = normalizedOutcomes.some((outcome) => outcome.stdin !== "ignore");
-  const productionMutationDuringCertification = false;
+  const productionMutationDuringCertification = normalizedOutcomes.some(
+    (outcome) => outcome.productionMutationDuringCertification === true,
+  );
   safetyGates.noProductionMutationInSimulation = {
     pass: productionEnvironment.productionLike !== true && productionMutationDuringCertification === false,
     evidence: [
@@ -254,6 +395,8 @@ export function buildBetaLiveCertificationReport({
   const blockers = [
     ...blockersForChecks("coreUserPath", coreUserPath),
     ...blockersForChecks("safetyGates", safetyGates),
+    ...blockersForRequiredShape({ generatedAt, commit, coreUserPath, safetyGates }),
+    ...blockersForRequiredSupportingEvidence(supportingEvidence),
   ];
   if (humanInteractionRequired) {
     blockers.push({
@@ -343,6 +486,10 @@ export function renderBetaLiveCertificationMarkdown(report) {
     "",
     "The core user path and safety gates are the only beta-live decision inputs. Legacy machine proofs, promotion packs, raw-report proofs, alerting proofs, rollback simulations, and production-scale certification reports are retained as supporting evidence only.",
     "",
+    "## Final Decision Confirmation",
+    "",
+    report.decision,
+    "",
   ];
   return `${lines.join("\n")}\n`;
 }
@@ -378,9 +525,10 @@ export function runCommandWithoutRawOutput(commandDef, {
       shell: true,
       env: {
         ...process.env,
-        CI: process.env.CI ?? "1",
-        CRP_BETA_LIVE_CERTIFICATION: "true",
         ...env,
+        CI: "1",
+        CRP_BETA_LIVE_CERTIFICATION: "true",
+        CRP_PRODUCTION_MUTATION_ALLOWED: "false",
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -436,7 +584,37 @@ export async function runBetaLiveCertification({
   if (!productionEnvironment.productionLike) {
     for (const commandDef of commandPlan) {
       process.stdout.write(`Running ${commandDef.command}\n`);
-      const outcome = await runCommand(commandDef, { rootDir, env });
+      let outcome;
+      try {
+        outcome = await runCommand(commandDef, { rootDir, env });
+      } catch {
+        outcome = {
+          id: commandDef.id,
+          label: commandDef.label,
+          command: commandDef.command,
+          exitCode: 1,
+          result: "error",
+          stdin: "ignore",
+          stdoutCaptured: false,
+          stderrCaptured: false,
+          rawOutputStored: false,
+          rawOutputPrinted: false,
+        };
+      }
+      if (!outcome || typeof outcome !== "object") {
+        outcome = {
+          id: commandDef.id,
+          label: commandDef.label,
+          command: commandDef.command,
+          exitCode: 1,
+          result: "invalid-outcome",
+          stdin: "ignore",
+          stdoutCaptured: false,
+          stderrCaptured: false,
+          rawOutputStored: false,
+          rawOutputPrinted: false,
+        };
+      }
       commandOutcomes.push(outcome);
       process.stdout.write(`${outcome.exitCode === 0 ? "PASS" : "FAIL"} ${commandDef.command}\n`);
     }

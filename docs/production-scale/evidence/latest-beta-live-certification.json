@@ -1,7 +1,7 @@
 {
   "reportName": "beta-live-certification",
-  "generatedAt": "2026-05-23T04:18:09.954Z",
-  "commit": "529d1f526357579110868bc7f48f1dd97e6030a4",
+  "generatedAt": "2026-05-23T04:33:00.916Z",
+  "commit": "c99a766eb394a251c46fe813754370482cdcdedb",
   "branch": "staging",
   "safeForBetaLive": true,
   "decision": "SAFE_FOR_BETA_LIVE=true",
@@ -229,42 +229,48 @@
       "artifact": "docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json",
       "status": "pass",
       "generatedAt": "2026-05-23T03:54:58.318Z",
-      "supportingOnly": true
+      "supportingOnly": true,
+      "requiredForFinalDecision": false
     },
     "alertingProof": {
       "pass": true,
       "artifact": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
       "status": "pass",
       "generatedAt": "2026-05-23T03:54:59.585Z",
-      "supportingOnly": true
+      "supportingOnly": true,
+      "requiredForFinalDecision": false
     },
     "rollbackSimulation": {
       "pass": true,
       "artifact": "docs/production-scale/evidence/latest-deploy-rollback-simulation.json",
       "status": "passed",
       "generatedAt": "2026-05-23T03:54:42.654Z",
-      "supportingOnly": true
+      "supportingOnly": true,
+      "requiredForFinalDecision": false
     },
     "certificationHarness": {
       "pass": true,
       "artifact": "docs/production-scale/evidence/latest-production-scale-certification.json",
       "status": "pass",
       "generatedAt": "2026-05-23T04:00:29.553Z",
-      "supportingOnly": true
+      "supportingOnly": true,
+      "requiredForFinalDecision": false
     },
     "legacyMachineProofs": {
       "pass": true,
       "artifact": "docs/production-scale/evidence/latest-machine-proof-summary.json",
       "status": "pass",
       "generatedAt": "2026-05-23T03:54:54.098Z",
-      "supportingOnly": true
+      "supportingOnly": true,
+      "requiredForFinalDecision": false
     },
     "legacyPromotionPack": {
       "pass": false,
       "artifact": "docs/production-scale/evidence/latest-production-promotion-pack.json",
       "status": "not-certifying",
       "generatedAt": "2026-05-23T04:00:47.363Z",
-      "supportingOnly": true
+      "supportingOnly": true,
+      "requiredForFinalDecision": false
     }
   },
   "blockers": [],
@@ -285,14 +291,15 @@
       "command": "pnpm run build",
       "exitCode": 0,
       "result": "pass",
-      "startedAt": "2026-05-23T04:18:09.955Z",
-      "completedAt": "2026-05-23T04:18:47.682Z",
-      "durationMs": 37727,
+      "startedAt": "2026-05-23T04:33:00.918Z",
+      "completedAt": "2026-05-23T04:33:18.587Z",
+      "durationMs": 17669,
       "stdin": "ignore",
       "stdoutCaptured": true,
       "stderrCaptured": false,
       "rawOutputStored": false,
-      "rawOutputPrinted": false
+      "rawOutputPrinted": false,
+      "productionMutationDuringCertification": false
     },
     {
       "id": "goldenPath",
@@ -300,14 +307,15 @@
       "command": "pnpm run test:golden-path",
       "exitCode": 0,
       "result": "pass",
-      "startedAt": "2026-05-23T04:18:47.682Z",
-      "completedAt": "2026-05-23T04:18:51.317Z",
-      "durationMs": 3635,
+      "startedAt": "2026-05-23T04:33:18.587Z",
+      "completedAt": "2026-05-23T04:33:21.809Z",
+      "durationMs": 3222,
       "stdin": "ignore",
       "stdoutCaptured": true,
       "stderrCaptured": false,
       "rawOutputStored": false,
-      "rawOutputPrinted": false
+      "rawOutputPrinted": false,
+      "productionMutationDuringCertification": false
     },
     {
       "id": "packetReadiness",
@@ -315,14 +323,15 @@
       "command": "pnpm exec vitest run --config vitest.config.ts tests/unit/packet-readiness.spec.ts tests/unit/violation-packet-confidence-gate.spec.ts tests/unit/dispute-packet-evidence-location.spec.ts",
       "exitCode": 0,
       "result": "pass",
-      "startedAt": "2026-05-23T04:18:51.317Z",
-      "completedAt": "2026-05-23T04:18:55.091Z",
-      "durationMs": 3774,
+      "startedAt": "2026-05-23T04:33:21.809Z",
+      "completedAt": "2026-05-23T04:33:25.964Z",
+      "durationMs": 4155,
       "stdin": "ignore",
       "stdoutCaptured": true,
       "stderrCaptured": false,
       "rawOutputStored": false,
-      "rawOutputPrinted": false
+      "rawOutputPrinted": false,
+      "productionMutationDuringCertification": false
     },
     {
       "id": "packetLifecycleApi",
@@ -330,14 +339,15 @@
       "command": "pnpm exec vitest run --config vitest.config.ts tests/api/packet-lifecycle-endpoint.spec.ts",
       "exitCode": 0,
       "result": "pass",
-      "startedAt": "2026-05-23T04:18:55.091Z",
-      "completedAt": "2026-05-23T04:19:03.959Z",
-      "durationMs": 8868,
+      "startedAt": "2026-05-23T04:33:25.964Z",
+      "completedAt": "2026-05-23T04:33:33.276Z",
+      "durationMs": 7312,
       "stdin": "ignore",
       "stdoutCaptured": true,
       "stderrCaptured": false,
       "rawOutputStored": false,
-      "rawOutputPrinted": false
+      "rawOutputPrinted": false,
+      "productionMutationDuringCertification": false
     },
     {
       "id": "evidencePrivacyApi",
@@ -345,14 +355,15 @@
       "command": "pnpm exec vitest run --config vitest.config.ts tests/api/evidence-privacy-endpoint.spec.ts",
       "exitCode": 0,
       "result": "pass",
-      "startedAt": "2026-05-23T04:19:03.959Z",
-      "completedAt": "2026-05-23T04:19:08.275Z",
-      "durationMs": 4316,
+      "startedAt": "2026-05-23T04:33:33.276Z",
+      "completedAt": "2026-05-23T04:33:37.342Z",
+      "durationMs": 4066,
       "stdin": "ignore",
       "stdoutCaptured": true,
       "stderrCaptured": false,
       "rawOutputStored": false,
-      "rawOutputPrinted": false
+      "rawOutputPrinted": false,
+      "productionMutationDuringCertification": false
     }
   ],
   "legacyProofsAreSupportingEvidenceOnly": true,

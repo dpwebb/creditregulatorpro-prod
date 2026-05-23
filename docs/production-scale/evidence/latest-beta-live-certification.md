@@ -1,7 +1,7 @@
 # Beta-Live Certification
 
-Generated: 2026-05-23T04:18:09.954Z
-Commit: `529d1f526357579110868bc7f48f1dd97e6030a4`
+Generated: 2026-05-23T04:33:00.916Z
+Commit: `c99a766eb394a251c46fe813754370482cdcdedb`
 Branch: `staging`
 
 ## Final Decision
@@ -49,4 +49,8 @@ SAFE_FOR_BETA_LIVE=true
 ## Control Plane Note
 
 The core user path and safety gates are the only beta-live decision inputs. Legacy machine proofs, promotion packs, raw-report proofs, alerting proofs, rollback simulations, and production-scale certification reports are retained as supporting evidence only.
+
+## Final Decision Confirmation
+
+SAFE_FOR_BETA_LIVE=true
 

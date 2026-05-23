@@ -10,7 +10,9 @@ CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
 Recommended readiness classification: **broader production**
-Production-ready claim: **false**
+Legacy promotion-pack production-at-scale claim (supporting evidence only): **false**
+
+> Supporting evidence only for beta-live. This pack is not the authoritative beta-live readiness decision; run `pnpm run beta-live:certify` and read `docs/production-scale/evidence/latest-beta-live-certification.json` for `SAFE_FOR_BETA_LIVE=true/false`.
 
 ## Required Statements
 
@@ -485,4 +487,3 @@ Production-ready claim: **false**
 
 - Audit commit reference: `6fb3b063622fdaf236b97bb6aac0f9a999b5bd88`
 - Audit commit reference stale: yes
-

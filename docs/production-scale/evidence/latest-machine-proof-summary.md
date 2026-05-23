@@ -6,6 +6,8 @@ Branch: `staging`
 Policy version: `production-machine-proof-policy-2026-05-22`
 allMachineProofsCertifying:true
 
+> Supporting evidence only for beta-live. This summary is not the authoritative beta-live readiness decision; run `pnpm run beta-live:certify` and read `docs/production-scale/evidence/latest-beta-live-certification.json` for `SAFE_FOR_BETA_LIVE=true/false`.
+
 ## Safety Summary
 
 - Non-interactive: yes

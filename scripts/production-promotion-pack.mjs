@@ -2945,7 +2945,11 @@ export function renderPromotionPackMarkdown(report) {
     `Audit file path: \`${report.auditFilePath}\``,
     `Audit date: ${report.auditDate ?? "not parseable"}`,
     `Recommended readiness classification: **${report.readinessClassification.value}**`,
-    `Production-ready claim: **${report.safety?.productionReadyClaim ? "true" : "false"}**`,
+    `Legacy promotion-pack production-at-scale claim (supporting evidence only): **${
+      report.safety?.productionReadyClaim ? "true" : "false"
+    }**`,
+    "",
+    "> Supporting evidence only for beta-live. This pack is not the authoritative beta-live readiness decision; run `pnpm run beta-live:certify` and read `docs/production-scale/evidence/latest-beta-live-certification.json` for `SAFE_FOR_BETA_LIVE=true/false`.",
     "",
     "## Required Statements",
     "",

@@ -723,6 +723,8 @@ export function renderProductionScaleCertificationMarkdown(report) {
     `Target environment: \`${report.targetEnvironment}\``,
     `CERTIFYING:${report.CERTIFYING ? 'true' : 'false'}`,
     '',
+    '> Supporting evidence only for beta-live. This report is not the authoritative beta-live readiness decision; run `pnpm run beta-live:certify` and read `docs/production-scale/evidence/latest-beta-live-certification.json` for `SAFE_FOR_BETA_LIVE=true/false`.',
+    '',
     '## Certification Rule',
     '',
     report.certificationRule,

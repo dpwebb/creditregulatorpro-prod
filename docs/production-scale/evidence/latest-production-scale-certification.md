@@ -6,6 +6,8 @@ Target SHA: `40fd438dd95a1afeee4b6d3a471b5769a44db513`
 Target environment: `production-scale-local-certification`
 CERTIFYING:true
 
+> Supporting evidence only for beta-live. This report is not the authoritative beta-live readiness decision; run `pnpm run beta-live:certify` and read `docs/production-scale/evidence/latest-beta-live-certification.json` for `SAFE_FOR_BETA_LIVE=true/false`.
+
 ## Certification Rule
 
 CERTIFYING:true only when every required automated gate passes, no gate is failed/stale/skipped/non-automated, and staging auth smokes remain explicitly labeled as staging proof rather than production runtime proof.
@@ -92,4 +94,3 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 ## Output
 
 Machine-readable evidence: `docs/production-scale/evidence/latest-production-scale-certification.json`
-

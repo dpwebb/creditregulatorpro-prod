@@ -68,7 +68,7 @@ There are three layers of truth:
 2. Safety gates: auth/ownership, parser certainty, evidence availability, packet eligibility, and no production mutation during certification.
 3. Single beta-live certification: `SAFE_FOR_BETA_LIVE=true/false`.
 
-Existing machine proofs, production-scale certification, promotion packs, raw-report proofs, alerting proofs, and rollback simulations remain useful supporting evidence. They are not independent beta-live decision-makers. The beta-live report may warn when a supporting artifact is missing or non-certifying, but the final beta-live result is controlled only by the core user path, the required safety gates, no human interaction, and no production mutation during the certification run.
+Existing machine proofs, production-scale certification, promotion packs, raw-report proofs, alerting proofs, rollback simulations, and preflight reports remain useful supporting evidence. They are not independent beta-live decision-makers. Their local `CERTIFYING`, `certifying`, pass/fail, readiness, or promotion fields are evidence inputs only and cannot approve beta-live. The final beta-live result is controlled only by the core user path, the required safety gates, no human interaction, no production mutation during the certification run, and no fatal blocker in `latest-beta-live-certification.json`.
 
 ## Production Promotion Pack
 
@@ -85,7 +85,7 @@ Outputs:
 
 The promotion pack consolidates the blocker registry, latest generated evidence files, required command references, skipped dashboard checks, simulated proof-only blockers, staging-only proof, human-required proof, waivers, and unresolved production/scale blockers.
 
-The promotion pack is supporting evidence for beta-live certification. It is not the authoritative beta-live decision surface. Use `pnpm run beta-live:certify` for the final beta-live result.
+The promotion pack is supporting evidence for beta-live certification. It is not the authoritative beta-live decision surface and cannot approve beta-live by itself. Use `pnpm run beta-live:certify` for the final beta-live result.
 
 Readiness classification is evidence-bound:
 
