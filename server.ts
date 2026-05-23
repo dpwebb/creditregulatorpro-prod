@@ -1051,6 +1051,34 @@ app.get('_api/admin/ai-assist/findings',async c => {
     return c.text("Error loading endpoint code " + e.message,  500)
   }
 })
+app.post('_api/admin/beta-testing-hub/prompt',async c => {
+  try {
+    const { handle } = await import("./endpoints/admin/beta-testing-hub/prompt_POST.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
+app.post('_api/admin/beta-testing-hub/log',async c => {
+  try {
+    const { handle } = await import("./endpoints/admin/beta-testing-hub/log_POST.js");
+    let request = c.req.raw;
+    const response = await handle(request);
+    if (!(response instanceof Response) && response.constructor.name !== "Response") {
+      return c.text("Invalid response format. handle should always return a Response object." + response.constructor.name, 500);
+    }
+    return response;
+  } catch (e) {
+    console.error(e);
+    return c.text("Error loading endpoint code " + e.message,  500)
+  }
+})
 app.post('_api/admin/retention',async c => {
   try {
     const { handle } = await import("./endpoints/admin/retention_POST.js");

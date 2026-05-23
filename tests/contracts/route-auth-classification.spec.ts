@@ -181,6 +181,8 @@ const ROUTE_AUTH_CLASSIFICATIONS = {
     "endpoints/admin/ai-assist/runs_GET.ts",
     "endpoints/admin/audit-logs_GET.ts",
     "endpoints/admin/backfill-compliance_POST.ts",
+    "endpoints/admin/beta-testing-hub/log_POST.ts",
+    "endpoints/admin/beta-testing-hub/prompt_POST.ts",
     "endpoints/admin/cleanup-stale-auth_POST.ts",
     "endpoints/admin/compliance-config_GET.ts",
     "endpoints/admin/compliance-config_POST.ts",
@@ -456,7 +458,7 @@ describe("route auth classification contract", () => {
     expect(unclassifiedHandlers).toEqual([]);
     expect(classifiedHandlers).toEqual(endpointHandlers());
     expect(classifiedHandlers).toEqual(serverRouteHandlers());
-    expect(classifiedHandlers).toHaveLength(286);
+    expect(classifiedHandlers).toHaveLength(288);
   });
 
   it("pins the public route inventory so changes require explicit contract updates", () => {

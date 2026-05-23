@@ -25,6 +25,7 @@ describe("admin sidebar route registry", () => {
       "/collector-obligations",
       "/enforcement-mechanisms",
       "/regulatory-updates",
+      "/admin-beta-testing-hub",
       "/admin-mock-lifecycle",
       "/admin-parser-testing",
       "/admin-parser-mappings",

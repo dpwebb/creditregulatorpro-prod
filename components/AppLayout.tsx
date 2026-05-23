@@ -84,6 +84,7 @@ const adminSidebarIcons: Record<AdminSidebarPath, LucideIcon> = {
   "/collector-obligations": Truck,
   "/enforcement-mechanisms": Gavel,
   "/regulatory-updates": AlertOctagon,
+  "/admin-beta-testing-hub": ClipboardCheck,
   "/admin-mock-lifecycle": ClipboardCheck,
   "/admin-parser-testing": FlaskConical,
   "/admin-parser-mappings": Settings2,

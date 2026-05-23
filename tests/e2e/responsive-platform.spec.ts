@@ -55,6 +55,7 @@ const authenticatedStaticRoutes = [
   "/enforcement-mechanisms",
   "/admin-compliance-config",
   "/admin-version-management",
+  "/admin-beta-testing-hub",
   "/identity-theft-protection",
   "/admin-mock-lifecycle",
   "/admin-ai-assist",

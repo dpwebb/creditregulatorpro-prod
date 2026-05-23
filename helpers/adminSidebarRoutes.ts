@@ -43,6 +43,7 @@ export const ADMIN_SIDEBAR_ROUTE_GROUPS = [
   {
     group: "Tools",
     items: [
+      { path: "/admin-beta-testing-hub", label: "Beta Testing Hub" },
       { path: "/admin-mock-lifecycle", label: "Lifecycle Testing" },
       { path: "/admin-parser-testing", label: "Parser Testing" },
       { path: "/admin-parser-mappings", label: "Parser Mappings" },
