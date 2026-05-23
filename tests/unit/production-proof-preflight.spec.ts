@@ -325,6 +325,93 @@ describe("production proof preflight", () => {
     });
   });
 
+  it("blocks unbounded production worker canary configuration", () => {
+    const rootDir = tempRoot();
+    const report = buildProductionProofPreflightReport({
+      rootDir,
+      env: readyEnv(rootDir, {
+        CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS: JSON.stringify({ maxJobs: 99, destructive: false }),
+      }),
+      generatedAt: GENERATED_AT,
+    });
+
+    const worker = family(report, "productionWorker");
+    expect(worker.readyForRealEvidence).toBe(false);
+    expect(worker.safetyChecks[0]).toMatchObject({
+      key: "worker-canary-non-destructive",
+      ok: false,
+      status: "unsafe",
+    });
+  });
+
+  it("blocks production worker proof when canary cleanup is missing", () => {
+    const rootDir = tempRoot();
+    const env = readyEnv(rootDir);
+    writeJson(rootDir, "proofs/worker.json", workerAttestation({
+      canaryJob: {
+        created: true,
+        processed: true,
+        onlyCanaryJobProcessed: true,
+        cleanupVerified: false,
+      },
+    }));
+
+    const report = buildProductionProofPreflightReport({
+      rootDir,
+      env,
+      generatedAt: GENERATED_AT,
+    });
+
+    const worker = family(report, "productionWorker");
+    expect(worker.readyForRealEvidence).toBe(false);
+    expect(worker.safetyChecks[0]).toMatchObject({
+      key: "worker-canary-non-destructive",
+      ok: false,
+      status: "unclear",
+    });
+  });
+
+  it("blocks production worker proof when rollback verification is missing", () => {
+    const rootDir = tempRoot();
+    const env = readyEnv(rootDir);
+    writeJson(rootDir, "proofs/worker.json", workerAttestation({
+      stopRollback: { verified: false, status: "fail" },
+    }));
+
+    const report = buildProductionProofPreflightReport({
+      rootDir,
+      env,
+      generatedAt: GENERATED_AT,
+    });
+
+    const worker = family(report, "productionWorker");
+    expect(worker.readyForRealEvidence).toBe(false);
+    expect(worker.safetyChecks[0]).toMatchObject({
+      key: "worker-canary-non-destructive",
+      ok: false,
+      status: "unclear",
+    });
+  });
+
+  it("accepts bounded non-destructive production worker canary proof semantics", () => {
+    const rootDir = tempRoot();
+    const report = buildProductionProofPreflightReport({
+      rootDir,
+      env: readyEnv(rootDir, {
+        CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS: "bounded-non-destructive-canary",
+      }),
+      generatedAt: GENERATED_AT,
+    });
+
+    const worker = family(report, "productionWorker");
+    expect(worker.readyForRealEvidence).toBe(true);
+    expect(worker.safetyChecks[0]).toMatchObject({
+      key: "worker-canary-non-destructive",
+      ok: true,
+      status: "safe",
+    });
+  });
+
   it("blocks external alerting unless it is explicitly approved", () => {
     const rootDir = tempRoot();
     const env = readyEnv(rootDir, {

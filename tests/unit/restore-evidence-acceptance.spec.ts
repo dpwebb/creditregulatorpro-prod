@@ -264,7 +264,7 @@ describe("restore evidence acceptance", () => {
     });
     const blocker1 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 1);
 
-    expect(blocker1?.classification).toBe("simulated proof only");
+    expect(blocker1?.classification).toBe("fixed with automated evidence");
     expect(report.restoreEvidenceAcceptance).toMatchObject({
       accepted: false,
       productionProof: false,

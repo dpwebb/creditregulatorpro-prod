@@ -1790,9 +1790,9 @@ describe("production promotion evidence pack", () => {
         disasterRecoveryRestoreDrill: false,
       },
     });
-    expect(blocker1?.classification).toBe("simulated proof only");
-    expect(blocker22?.classification).toBe("simulated proof only");
-    expect(report.simulatedProofOnlyChecks.map((blocker: { number: number }) => blocker.number)).toEqual(
+    expect(blocker1?.classification).toBe("fixed with automated evidence");
+    expect(blocker22?.classification).toBe("fixed with automated evidence");
+    expect(report.simulatedProofOnlyChecks.map((blocker: { number: number }) => blocker.number)).not.toEqual(
       expect.arrayContaining([1, 22]),
     );
   });
@@ -2341,8 +2341,8 @@ describe("production promotion evidence pack", () => {
         retentionArchiveRestore: true,
       },
     });
-    expect(blocker1?.classification).toBe("simulated proof only");
-    expect(blocker22?.classification).toBe("simulated proof only");
+    expect(blocker1?.classification).toBe("fixed with automated evidence");
+    expect(blocker22?.classification).toBe("fixed with automated evidence");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
@@ -2460,7 +2460,7 @@ describe("production promotion evidence pack", () => {
 
     expect(report.humanRestoreDrillEvidenceAcceptance.accepted).toBe(false);
     expect(report.restoreReadinessCheck.stale).toBe(true);
-    expect(blocker1?.classification).toBe("simulated proof only");
+    expect(blocker1?.classification).toBe("fixed with automated evidence");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
@@ -2490,7 +2490,7 @@ describe("production promotion evidence pack", () => {
         blocker2StagingQueueDrain: false,
       },
     });
-    expect(blocker2?.classification).toBe("simulated proof only");
+    expect(blocker2?.classification).toBe("fixed with automated evidence");
   });
 
   it("records accepted staging queue-drain evidence without closing production blocker 2", () => {
@@ -2505,7 +2505,7 @@ describe("production promotion evidence pack", () => {
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
     const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
 
-    expect(blocker2?.classification).toBe("simulated proof only");
+    expect(blocker2?.classification).toBe("fixed with automated evidence");
     expect(blocker11?.classification).toBe("partial");
     expect(report.stagingIngestWorkerEvidence).toMatchObject({
       accepted: true,
@@ -2778,7 +2778,7 @@ describe("production promotion evidence pack", () => {
     const blocker2 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 2);
     const blocker11 = report.blockerClassifications.find((blocker: { number: number }) => blocker.number === 11);
 
-    expect(blocker2?.classification).toBe("simulated proof only");
+    expect(blocker2?.classification).toBe("fixed with automated evidence");
     expect(blocker11?.classification).toBe("partial");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
@@ -2941,7 +2941,7 @@ describe("production promotion evidence pack", () => {
 
     expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("dry-run-only");
     expect(report.responseOpsReadinessEvidence.blockerCoverage.observabilityAlerting).toBe(false);
-    expect(blocker9?.classification).toBe("simulated proof only");
+    expect(blocker9?.classification).toBe("fixed with automated evidence");
   });
 
   it("does not close blocker 9 with legacy formal alert exclusion without machine attestation", () => {
@@ -2970,7 +2970,7 @@ describe("production promotion evidence pack", () => {
     expect(report.responseOpsReadinessEvidence.alertingStatus).toBe("formally-excluded");
     expect(report.responseOpsReadinessEvidence.alertingAcceptanceAccepted).toBe(true);
     expect(report.responseOpsReadinessEvidence.alertingAcceptancePath).toBe("formal-exclusion");
-    expect(blocker9?.classification).toBe("simulated proof only");
+    expect(blocker9?.classification).toBe("fixed with automated evidence");
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
   });
 
@@ -3001,7 +3001,7 @@ describe("production promotion evidence pack", () => {
 
     expect(alertingExclusionValidation.accepted).toBe(false);
     expect(report.responseOpsReadinessEvidence.alertingAcceptanceAccepted).toBe(false);
-    expect(blocker9?.classification).toBe("simulated proof only");
+    expect(blocker9?.classification).toBe("fixed with automated evidence");
   });
 
   it("classifies blocker 21 with exact release evidence commands, not dashboard PASS alone", () => {

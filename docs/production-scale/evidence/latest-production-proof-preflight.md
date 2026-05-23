@@ -1,12 +1,12 @@
 # Production Proof Preflight
 
-Generated: 2026-05-23T00:49:29.876Z
+Generated: 2026-05-23T01:10:47.787Z
 
 ## Plain English Result
 
-The real evidence proof environment is incomplete. This command did not change production.
+The real evidence proof environment looks ready to attempt. This command did not change production.
 
-- Real evidence ready to run: no
+- Real evidence ready to run: yes
 - Production mutation occurred: no
 - Secret values printed: no
 - Production promotion safe: no
@@ -71,14 +71,14 @@ Still simulation-only:
 
 ### Production worker canary proof
 
-- Ready to run in real-evidence mode: no
-- Status: Not ready to run with real evidence.
+- Ready to run in real-evidence mode: yes
+- Status: Ready to run with real evidence.
 - Report path: `docs/production-scale/evidence/latest-production-worker-machine-proof.json`
 - Missing inputs: none
 - Simulation-only inputs: none
 - Current proof is simulation-only: no
 - Safety checks:
-  - worker-canary-non-destructive: block - The worker canary configuration contains a destructive or unbounded marker.
+  - worker-canary-non-destructive: pass - The worker canary is bounded, cleanup is verified, and rollback control is present.
 
 ### Alerting proof
 
@@ -124,5 +124,5 @@ Still simulation-only:
 
 ## Next Safe Human Action
 
-Add the missing real proof inputs or replace simulation-only inputs with sanitized real attestation files, then rerun pnpm run production-proof:preflight.
+Run pnpm run production-proof:real-evidence. Do not run production promotion from this preflight.
 

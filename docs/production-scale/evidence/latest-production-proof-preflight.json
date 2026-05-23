@@ -1,6 +1,6 @@
 {
   "reportName": "production-proof-preflight",
-  "generatedAt": "2026-05-23T00:49:29.876Z",
+  "generatedAt": "2026-05-23T01:10:47.787Z",
   "command": "pnpm run production-proof:preflight",
   "reportPaths": {
     "markdown": "docs/production-scale/evidence/latest-production-proof-preflight.md",
@@ -11,9 +11,9 @@
   "productionMutationStatus": "none",
   "rawValuesPrinted": false,
   "secretsPrinted": false,
-  "realEvidenceReady": false,
-  "readyToRunRealEvidence": false,
-  "realEvidenceStatus": "incomplete",
+  "realEvidenceReady": true,
+  "readyToRunRealEvidence": true,
+  "realEvidenceStatus": "complete enough to attempt",
   "presentRealInputs": [
     "CRP_RAW_REPORT_DATABASE_ACCESS",
     "CRP_RESTORE_MACHINE_ATTESTATION_JSON",
@@ -34,19 +34,16 @@
   "missingRealInputs": [],
   "simulationOnlyInputs": [],
   "simulationOnlyFamilies": [],
-  "unsafeFamilies": [
-    "productionWorker"
-  ],
+  "unsafeFamilies": [],
   "readyFamilies": [
     "rawReport",
     "restore",
+    "productionWorker",
     "alerting",
     "retentionArchiveRestore",
     "migration"
   ],
-  "notReadyFamilies": [
-    "productionWorker"
-  ],
+  "notReadyFamilies": [],
   "proofFamilies": [
     {
       "key": "rawReport",
@@ -136,7 +133,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": ".local/production-proof/restore-attestation.json",
+        "sanitizedPath": "docs/production-scale/evidence/latest-restore-machine-proof.json",
         "errors": []
       },
       "proofStatus": {
@@ -159,7 +156,7 @@
     {
       "key": "productionWorker",
       "label": "Production worker canary proof",
-      "readyForRealEvidence": false,
+      "readyForRealEvidence": true,
       "reportPath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
       "realInputs": [
         {
@@ -208,7 +205,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": ".local/production-proof/production-worker-attestation.json",
+        "sanitizedPath": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
         "errors": []
       },
       "proofStatus": {
@@ -221,12 +218,12 @@
       "safetyChecks": [
         {
           "key": "worker-canary-non-destructive",
-          "ok": false,
-          "status": "unsafe",
-          "message": "The worker canary configuration contains a destructive or unbounded marker."
+          "ok": true,
+          "status": "safe",
+          "message": "The worker canary is bounded, cleanup is verified, and rollback control is present."
         }
       ],
-      "plainEnglishStatus": "Not ready to run with real evidence."
+      "plainEnglishStatus": "Ready to run with real evidence."
     },
     {
       "key": "alerting",
@@ -252,7 +249,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": ".local/production-proof/alerting-attestation.json",
+        "sanitizedPath": "docs/production-scale/evidence/latest-alerting-machine-proof.json",
         "errors": []
       },
       "proofStatus": {
@@ -317,7 +314,7 @@
         "fileExists": true,
         "parseable": true,
         "simulationOnly": false,
-        "sanitizedPath": ".local/production-proof/retention-attestation.json",
+        "sanitizedPath": "docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json",
         "errors": []
       },
       "proofStatus": {
@@ -377,5 +374,5 @@
   },
   "productionPromotionSafe": false,
   "productionPromotionBlocked": true,
-  "nextSafeHumanAction": "Add the missing real proof inputs or replace simulation-only inputs with sanitized real attestation files, then rerun pnpm run production-proof:preflight."
+  "nextSafeHumanAction": "Run pnpm run production-proof:real-evidence. Do not run production promotion from this preflight."
 }

@@ -41,8 +41,9 @@ const SIMULATION_VALUE_PATTERN =
   /(?:^|[^a-z])(?:simulated|simulation|machine-proof-simulation|simulated_machine_proof_fixture|mock-only|fake-only|test-only)(?:[^a-z]|$)/i;
 const UNSAFE_PRODUCTION_TARGET_PATTERN =
   /(?:creditregulatorpro-prod|production(?:[_\-.]|$)|prod(?:[_\-.]|$)|\/prod(?:\/|$)|main-production|primary-production)/i;
-const DESTRUCTIVE_WORKER_PATTERN =
-  /(?:destructive|all-jobs|unbounded|delete|truncate|drop|production-apply|live-drain-all)/i;
+const UNSAFE_WORKER_PHRASE_PATTERN =
+  /(?:all[-_\s]?jobs|all[-_\s]?production[-_\s]?jobs|production[-_\s]?apply|live[-_\s]?drain[-_\s]?all)/i;
+const UNSAFE_WORKER_TOKENS = new Set(["delete", "truncate", "drop", "unbounded"]);
 
 function repoRootFromScript() {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -71,6 +72,53 @@ function parseMaybeJson(value) {
   } catch {
     return null;
   }
+}
+
+function numericValue(value) {
+  if (Number.isFinite(value)) return Number(value);
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function textHasUnsafeWorkerMarker(value) {
+  const text = String(value ?? "").toLowerCase();
+  if (!text) return false;
+  if (UNSAFE_WORKER_PHRASE_PATTERN.test(text)) return true;
+  const tokens = text.split(/[^a-z0-9]+/u).filter(Boolean);
+  return tokens.some((token, index) => {
+    const previous = tokens[index - 1];
+    if (token === "destructive") return !["non", "not", "no"].includes(previous);
+    return UNSAFE_WORKER_TOKENS.has(token);
+  });
+}
+
+function objectHasUnsafeWorkerMarker(value) {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some(objectHasUnsafeWorkerMarker);
+
+  for (const [key, entry] of Object.entries(value)) {
+    const normalizedKey = key.toLowerCase();
+    if (["destructive", "unbounded", "alljobs", "all_jobs", "all-jobs"].includes(normalizedKey) && entry === true) {
+      return true;
+    }
+    if (normalizedKey === "maxjobs") {
+      const maxJobs = numericValue(entry);
+      if (maxJobs !== null && (!Number.isInteger(maxJobs) || maxJobs < 1 || maxJobs > 5)) return true;
+    }
+    if (typeof entry === "string" && textHasUnsafeWorkerMarker(entry)) return true;
+    if (entry && typeof entry === "object" && objectHasUnsafeWorkerMarker(entry)) return true;
+  }
+  return false;
+}
+
+function workerConfigHasUnsafeMarker(rawValue) {
+  if (!rawValue) return false;
+  const objectValue = parseMaybeJson(rawValue);
+  if (objectValue) return objectHasUnsafeWorkerMarker(objectValue);
+  return textHasUnsafeWorkerMarker(rawValue);
 }
 
 function looksSimulationOnly(value) {
@@ -224,19 +272,11 @@ function targetClearlyNotProduction({ env, inputName, targetObject }) {
 
 function workerCanaryIsNonDestructive({ env, report }) {
   const value = envValue(env, "CRP_PRODUCTION_WORKER_CANARY_JOB_ACCESS");
-  const objectValue = parseMaybeJson(value);
-  if (value && DESTRUCTIVE_WORKER_PATTERN.test(value)) {
+  if (workerConfigHasUnsafeMarker(value)) {
     return {
       ok: false,
       status: "unsafe",
       message: "The worker canary configuration contains a destructive or unbounded marker.",
-    };
-  }
-  if (objectValue && objectValue.destructive === true) {
-    return {
-      ok: false,
-      status: "unsafe",
-      message: "The worker canary configuration is marked destructive.",
     };
   }
 
@@ -249,9 +289,10 @@ function workerCanaryIsNonDestructive({ env, report }) {
   const onlyCanary = boundedRun.onlyCanaryJobProcessed === true || canaryJob.onlyCanaryJobProcessed === true;
   const cleanup = canaryJob.cleanupVerified === true || canaryJob.cleanedUp === true;
   const rollback = stopRollback.verified === true || stopRollback.status === "pass";
+  const productionWorkerTouched = stopRollback.productionWorkerTouched === true;
   const mutationAllowed = mutation === "synthetic-canary-cleaned-up" || mutation === "approved-bounded";
 
-  if (bounded && onlyCanary && cleanup && rollback && mutationAllowed) {
+  if (bounded && onlyCanary && cleanup && rollback && !productionWorkerTouched && mutationAllowed) {
     return {
       ok: true,
       status: "safe",
