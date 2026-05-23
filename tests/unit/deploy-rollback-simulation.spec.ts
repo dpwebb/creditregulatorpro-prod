@@ -132,7 +132,8 @@ describe("deploy rollback simulation", () => {
       expect(existsSync(jsonPath)).toBe(true);
       expect(existsSync(mdPath)).toBe(true);
       expect(written.status).toBe("passed");
-      expect(written.CERTIFYING).toBe(false);
+      expect(written.CERTIFYING).toBe(true);
+      expect(written.scenarios.find((scenario: { name: string }) => scenario.name === "target-health-fail-rollback-fail")?.CERTIFYING).toBe(false);
       expect(written.scenarios.some((scenario: { healthResult: string }) => scenario.healthResult === "passed")).toBe(true);
       expect(written.scenarios.some((scenario: { healthResult: string }) => scenario.healthResult === "failed")).toBe(true);
     } finally {

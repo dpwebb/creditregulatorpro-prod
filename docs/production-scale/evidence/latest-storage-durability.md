@@ -1,7 +1,7 @@
 # Storage Durability Contract Evidence
 
-Generated: 2026-05-23T01:19:56.947Z
-Current HEAD: d2fed22eb7e1c25d2304aee918336994aacd31cc
+Generated: 2026-05-23T01:50:23.495Z
+Current HEAD: c086dd1e846598870719cbd16be08bf2bb68050d
 Audit target: P0-2 Artifact storage is not certifiably durable across deploys or rollbacks.
 CERTIFYING:true
 

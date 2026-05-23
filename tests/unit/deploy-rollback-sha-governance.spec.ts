@@ -30,6 +30,7 @@ describe("rollback SHA governance workflow validation", () => {
     const report = reportWith();
 
     expect(report.status).toBe("passed");
+    expect(report.CERTIFYING).toBe(true);
     expect(report.summary.resolveTargetBeforeValidation).toBe(true);
     expect(report.summary.validationCheckoutEqualsTarget).toBe(true);
     expect(report.workflows).toHaveLength(2);

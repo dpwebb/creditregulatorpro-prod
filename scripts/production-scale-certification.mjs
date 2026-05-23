@@ -331,6 +331,7 @@ function getGitValue(args, cwd) {
 function resolveEvidenceHead(evidence) {
   return evidence.currentHead
     ?? evidence.currentCommitHash
+    ?? evidence.commitHash
     ?? evidence.commit
     ?? evidence.head
     ?? null;

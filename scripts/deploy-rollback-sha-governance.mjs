@@ -218,6 +218,7 @@ export function buildRollbackShaGovernanceReport({
   });
   const failed = workflows.flatMap((workflow) => workflow.failedChecks.map((item) => `${workflow.workflow}: ${item.name}`));
   const status = failed.length === 0 ? "passed" : "failed";
+  const certifying = status === "passed";
 
   return {
     reportName: "rollback-sha-governance",
@@ -229,8 +230,8 @@ export function buildRollbackShaGovernanceReport({
       "P2-2 Remote deployment mutates working tree and staging lacks post-checkout SHA verification.",
     ],
     evidenceType: "AUTOMATED_STATIC_WORKFLOW_CHECK",
-    certifying: false,
-    CERTIFYING: false,
+    certifying,
+    CERTIFYING: certifying,
     status,
     liveDeploymentRequired: false,
     liveExternalProviderCallsMade: 0,
@@ -274,7 +275,7 @@ export function renderRollbackShaGovernanceMarkdown(report) {
     `Generated: ${report.generatedAt}`,
     `Current HEAD: ${report.currentHead}`,
     `Status: ${report.status}`,
-    "CERTIFYING:false",
+    `CERTIFYING:${report.CERTIFYING ? "true" : "false"}`,
     "",
     "## Summary",
     "",

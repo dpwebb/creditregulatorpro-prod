@@ -1,9 +1,9 @@
 # Retention Archive Restore Machine Proof
 
-Generated at: 2026-05-23T01:24:43.451Z
+Generated at: 2026-05-23T01:56:00.868Z
 Evidence type: RETENTION_ARCHIVE_RESTORE_MACHINE_PROOF
 Environment: production
-Commit: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
+Commit: `c086dd1e846598870719cbd16be08bf2bb68050d`
 Generator: `scripts/retention-archive-restore-machine-proof.mjs`
 Command: `pnpm run retention:archive-restore-machine-proof`
 Blocker ID: retention-archive-restore
@@ -11,7 +11,7 @@ Branch: `staging`
 Policy version: production-machine-proof-policy-2026-05-22
 Status: pass
 CERTIFYING:true
-Expires at: 2026-05-24T01:24:43.451Z
+Expires at: 2026-05-24T01:56:00.868Z
 
 ## Safety
 

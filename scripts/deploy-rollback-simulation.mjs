@@ -262,6 +262,7 @@ export function buildDeployRollbackSimulationReport({
   if (workflowValidation.status !== "passed") {
     validationErrors.push(...workflowValidation.failedChecks.map((check) => `Workflow check failed: ${check.name}`));
   }
+  const certifying = validationErrors.length === 0;
 
   return {
     reportName: "deploy-rollback-simulation",
@@ -271,8 +272,8 @@ export function buildDeployRollbackSimulationReport({
     auditTarget: "P1-2 Deployment replaces containers without automatic rollback or blue-green safety.",
     evidenceType: "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",
     status: validationErrors.length === 0 ? "passed" : "failed",
-    certifying: false,
-    CERTIFYING: false,
+    certifying,
+    CERTIFYING: certifying,
     liveDeploymentRequired: false,
     liveExternalProviderCallsMade: 0,
     scenarios: scenarioResults,
@@ -307,7 +308,7 @@ export function renderDeployRollbackSimulationMarkdown(report) {
     `Generated: ${report.generatedAt}`,
     `Current HEAD: ${report.currentHead}`,
     `Status: ${report.status}`,
-    "CERTIFYING:false",
+    `CERTIFYING:${report.CERTIFYING ? "true" : "false"}`,
     "",
     "## Summary",
     "",

@@ -1,15 +1,15 @@
 {
   "reportName": "rollback-sha-governance",
-  "generatedAt": "2026-05-23T01:20:09.960Z",
-  "currentHead": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
+  "generatedAt": "2026-05-23T01:50:36.692Z",
+  "currentHead": "c086dd1e846598870719cbd16be08bf2bb68050d",
   "branch": "staging",
   "auditTargets": [
     "P1-1 Rollback SHA validation tests the workflow ref, not the rollback target.",
     "P2-2 Remote deployment mutates working tree and staging lacks post-checkout SHA verification."
   ],
   "evidenceType": "AUTOMATED_STATIC_WORKFLOW_CHECK",
-  "certifying": false,
-  "CERTIFYING": false,
+  "certifying": true,
+  "CERTIFYING": true,
   "status": "passed",
   "liveDeploymentRequired": false,
   "liveExternalProviderCallsMade": 0,

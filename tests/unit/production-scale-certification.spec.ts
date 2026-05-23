@@ -448,6 +448,33 @@ describe("production-scale certification report", () => {
       });
   });
 
+  it("accepts machine proof summary commitHash as the freshness head", async () => {
+    const root = tempRepoRoot();
+    const evidencePath = "docs/production-scale/evidence/latest-machine-proof-summary.json";
+    writeEvidence(root, evidencePath, {
+      reportName: "production-machine-proof-summary",
+      generatedAt: "2026-05-21T12:00:02.000Z",
+      currentHead: undefined,
+      currentCommitHash: undefined,
+      commitHash: HEAD,
+      status: "passed",
+      CERTIFYING: true,
+      allMachineProofsCertifying: true,
+      missingRuntimeInputs: [],
+      safetySummary: {
+        humanInteractionRequired: false,
+      },
+    });
+
+    const report = await buildMockReport({
+      repoRoot: root,
+      gates: [gate("machineProofSummary", "pnpm run production:machine-proofs", evidencePath)],
+    });
+
+    expect(report.CERTIFYING).toBe(true);
+    expect(report.staleGates).toEqual([]);
+  });
+
   it("marks CERTIFYING:true when every mocked gate and evidence check passes", async () => {
     const root = tempRepoRoot();
     const evidencePath = "docs/production-scale/evidence/mock-fresh-evidence.json";

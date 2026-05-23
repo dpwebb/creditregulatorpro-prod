@@ -1,10 +1,10 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-23T01:24:22.800Z
-Current HEAD: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
-Target SHA: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
+Generated: 2026-05-23T01:55:43.407Z
+Current HEAD: `c086dd1e846598870719cbd16be08bf2bb68050d`
+Target SHA: `c086dd1e846598870719cbd16be08bf2bb68050d`
 Target environment: `production-scale-local-certification`
-CERTIFYING:false
+CERTIFYING:true
 
 ## Certification Rule
 
@@ -28,21 +28,21 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 | Evidence ledger append-only tests | PASS | `pnpm run test:evidence-ledger` |
 | Storage durability simulation | PASS | `pnpm run storage:durability-contract` |
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
-| Rollback SHA workflow static check | STALE | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
-| Deploy rollback simulation | STALE | `pnpm run deploy:rollback-simulation --write-evidence --json` |
+| Rollback SHA workflow static check | PASS | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
+| Deploy rollback simulation | PASS | `pnpm run deploy:rollback-simulation --write-evidence --json` |
 | Disaster recovery restore machine proof | PASS | `pnpm run restore:machine-proof` |
 | Production ingest worker runtime machine proof | PASS | `pnpm run production-worker:machine-proof` |
 | Historical raw report byte remediation machine proof | PASS | `pnpm run storage:raw-report-machine-proof` |
 | Alerting and observability machine proof | PASS | `pnpm run alerts:machine-proof` |
 | Migration governance machine proof | PASS | `pnpm run migrations:machine-proof` |
 | Retention archive restore machine proof | PASS | `pnpm run retention:archive-restore-machine-proof` |
-| Combined production machine proof summary | STALE | `pnpm run production:machine-proofs` |
+| Combined production machine proof summary | PASS | `pnpm run production:machine-proofs` |
 | Application check | PASS | `pnpm run check` |
-| Evidence freshness check | FAILED | `internal evidence freshness check` |
+| Evidence freshness check | PASS | `internal evidence freshness check` |
 
 ## Failed Gates
 
-- evidenceFreshness
+- None
 
 ## Missing Machine Runtime Inputs
 
@@ -50,9 +50,7 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 
 ## Stale Gates
 
-- rollbackShaGovernance
-- deployRollbackSimulation
-- machineProofSummary
+- None
 
 ## Skipped Gates
 

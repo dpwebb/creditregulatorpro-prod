@@ -1520,6 +1520,81 @@ describe("production promotion evidence pack", () => {
     expect(gate.checks.storageDurability.headMatchesTarget).toBe(false);
   });
 
+  it("accepts required evidence generated earlier within the freshness window", () => {
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: "2026-05-21T12:00:00.000Z",
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence({
+        generatedAt: "2026-05-21T11:30:00.000Z",
+      }),
+    });
+
+    expect(gate.CERTIFYING).toBe(true);
+    expect(gate.staleChecks).toEqual([]);
+    expect(gate.checks.machineProofSummary.timestampCurrentForRun).toBe(true);
+  });
+
+  it("keeps expired required evidence stale even when it is certifying", () => {
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence({
+        overrides: {
+          storageDurability: certifyingEvidence({
+            generatedAt: "2026-05-19T12:00:00.000Z",
+          }),
+        },
+      }),
+    });
+
+    expect(gate.CERTIFYING).toBe(false);
+    expect(gate.staleChecks).toContain("storageDurability");
+    expect(gate.checks.storageDurability.timestampCurrentForRun).toBe(false);
+  });
+
+  it("does not treat a non-certifying promotion guard result as a failed machine proof summary", () => {
+    const summary = machineProofSummaryEvidence({
+      overrides: {
+        proofResults: machineProofSummaryEvidence().proofResults.map((proof: { key: string }) =>
+          proof.key === "productionPromotionPackGuard"
+            ? {
+                ...proof,
+                kind: "promotion-guard",
+                certifying: false,
+                CERTIFYING: false,
+                validation: { stale: false, errors: ["promotion pack not certifying yet"] },
+              }
+            : { ...proof, kind: "machine-proof" }),
+        openBlockers: [
+          {
+            blockerId: "L10-P1-001",
+            proofArea: "productionPromotionPackGuard",
+            label: "Production promotion pack guard",
+            reasons: ["promotion pack not certifying yet"],
+          },
+        ],
+      },
+    });
+    const gate = buildPromotionCertificationGate({
+      rootDir: process.cwd(),
+      generatedAt: PROMOTION_GATE_TIMESTAMP,
+      targetSha: PROMOTION_GATE_TARGET_SHA,
+      currentHead: PROMOTION_GATE_TARGET_SHA,
+      certificationEvidence: allPassingCertificationEvidence({
+        overrides: {
+          machineProofSummary: summary,
+        },
+      }),
+    });
+
+    expect(gate.CERTIFYING).toBe(true);
+    expect(gate.failedChecks).not.toContain("machineProofSummary");
+  });
+
   it("marks missing required evidence as non-certifying", () => {
     const gate = buildPromotionCertificationGate({
       rootDir: process.cwd(),
@@ -2141,6 +2216,40 @@ describe("production promotion evidence pack", () => {
     expect(report.readinessClassification.canPromoteProductionAtScale).toBe(true);
     expect(report.CERTIFYING).toBe(true);
     expect(validatePromotionPackReport(report)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("derives queue liveness and evidence ledger gates from current certifying aggregate evidence", () => {
+    const head = currentGitHead();
+    const certificationEvidence = Object.fromEntries(
+      Object.entries(allPassingCertificationEvidence({ targetSha: head }))
+        .filter(([key]) => !["queueLiveness", "evidenceLedger"].includes(key)),
+    );
+    const productionScaleCertification = productionScaleCertificationEvidence({
+      targetSha: head,
+      overrides: {
+        gateStatus: {
+          evidenceLedger: "passed",
+        },
+        exactCommandsRun: [
+          {
+            gateId: "evidenceLedger",
+            command: "pnpm run test:evidence-ledger",
+            status: "passed",
+          },
+        ],
+      },
+    });
+
+    const report = buildFullValidPromotionPack({
+      certificationEvidence,
+      productionScaleCertificationEvidence: productionScaleCertification,
+    });
+
+    expect(report.queueLivenessStatus.CERTIFYING).toBe(true);
+    expect(report.queueLivenessStatus.evidenceHead).toBe(head);
+    expect(report.evidenceLedgerResult.CERTIFYING).toBe(true);
+    expect(report.evidenceLedgerResult.evidenceHead).toBe(head);
+    expect(report.promotionCertification.failedChecks).not.toEqual(expect.arrayContaining(["queueLiveness", "evidenceLedger"]));
   });
 
   it("keeps promotion pack non-certifying when the machine proof summary is stale", () => {
