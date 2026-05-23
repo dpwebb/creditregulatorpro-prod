@@ -137,7 +137,7 @@ function renderPacketsPage(route: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.recommendationsByType = {
-    credit_bureau: [candidate(42)],
+    credit_bureau: [candidate(42), candidate(43, "Cedar Loan")],
     collection_agency: [],
   };
   mocks.responseDocuments = [];
@@ -164,12 +164,31 @@ describe("packet create dialog routing", () => {
     await waitFor(() => expect(screen.getByTestId("location-search").textContent).toBe(""));
   });
 
-  it("opens /packets?create=true&issueId with the matching packet-ready finding preselected", async () => {
+  it("opens /packets?create=true&issueId with only the originating packet-ready finding available", async () => {
+    mocks.createPacket.mockResolvedValueOnce({
+      packetId: 88,
+      packet: {} as any,
+      status: "generated",
+    });
+
     renderPacketsPage("/packets?create=true&issueId=42");
 
-    expect(await screen.findByText("Create Dispute Packet")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText(/Maple Bank Visa/i)).toBeChecked());
+    expect(await screen.findByText("Create Letter for Selected Problem")).toBeInTheDocument();
+    expect(screen.getByText("Selected Problem")).toBeInTheDocument();
+    expect(screen.getByText(/Maple Bank Visa/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Cedar Loan/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Maple Bank Visa/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/This finding is not packet-ready yet/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Generate PDF" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Generate PDF" }));
+
+    await waitFor(() => {
+      expect(mocks.createPacket).toHaveBeenCalledWith({
+        packetType: "credit_bureau",
+        selectedIssueIds: [42],
+        recipient: undefined,
+      });
+    });
     await waitFor(() => expect(screen.getByTestId("location-search").textContent).toBe(""));
   });
 
@@ -279,13 +298,14 @@ describe("packet create dialog routing", () => {
   it("does not preselect a missing or ineligible originating finding", async () => {
     renderPacketsPage("/packets?create=true&issueId=99");
 
-    expect(await screen.findByText("Create Dispute Packet")).toBeInTheDocument();
+    expect(await screen.findByText("Create Letter for Selected Problem")).toBeInTheDocument();
     expect(
       await screen.findByText(
         "This finding is not packet-ready yet. Review the readiness blockers before creating a packet.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Maple Bank Visa/i)).not.toBeChecked();
+    expect(screen.queryByText(/Maple Bank Visa/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Cedar Loan/i)).not.toBeInTheDocument();
   });
 
   it("does not render the response timeline when no response records exist", () => {

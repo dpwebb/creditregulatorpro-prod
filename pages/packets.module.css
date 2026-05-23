@@ -589,6 +589,13 @@
   border-color: color-mix(in srgb, var(--border), var(--primary) 35%);
 }
 
+.selectedProblemCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-3);
+  background: color-mix(in srgb, var(--card), var(--primary) 4%);
+}
+
 .candidateBody {
   display: flex;
   flex-direction: column;

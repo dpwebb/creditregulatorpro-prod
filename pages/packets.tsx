@@ -711,7 +711,10 @@ function CreatePacketDialog({
   const createPacket = useCreatePacket();
   const { showSuccess, showError } = useToast();
   const candidates = recommendations.data?.recommendations ?? [];
-  const selectedCandidates = candidates.filter((candidate) => selectedIssueIds.has(candidate.issueId));
+  const isOriginatingIssueMode = initialIssueId !== null;
+  const originatingCandidate = isOriginatingIssueMode
+    ? candidates.find((candidate) => candidate.issueId === initialIssueId) ?? null
+    : null;
   const initialIssueKey = initialIssueId ? `${packetType}:${initialIssueId}` : null;
 
   React.useEffect(() => {
@@ -752,6 +755,7 @@ function CreatePacketDialog({
   ]);
 
   const toggleSelection = (candidate: DisputePacketCandidate) => {
+    if (isOriginatingIssueMode) return;
     setPreview(null);
     setSelectedIssueIds((current) => {
       const next = new Set(current);
@@ -775,7 +779,9 @@ function CreatePacketDialog({
 
   const buildInput = () => ({
     packetType,
-    selectedIssueIds: Array.from(selectedIssueIds),
+    selectedIssueIds: isOriginatingIssueMode && originatingCandidate
+      ? [originatingCandidate.issueId]
+      : Array.from(selectedIssueIds),
     recipient: normalizedRecipient(),
   });
 
@@ -811,9 +817,11 @@ function CreatePacketDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={styles.createDialog}>
         <DialogHeader>
-          <DialogTitle>Create Dispute Packet</DialogTitle>
+          <DialogTitle>{isOriginatingIssueMode ? "Create Letter for Selected Problem" : "Create Dispute Packet"}</DialogTitle>
           <DialogDescription>
-            Select packet-ready report findings, preview the plain-language packet if needed, then generate the PDF.
+            {isOriginatingIssueMode
+              ? "Create one letter for this problem only, preview it if needed, then generate the PDF."
+              : "Select packet-ready report findings, preview the plain-language packet if needed, then generate the PDF."}
           </DialogDescription>
         </DialogHeader>
 
@@ -889,8 +897,12 @@ function CreatePacketDialog({
         <div className={styles.builderColumns}>
           <div className={styles.candidatePane}>
             <div className={styles.builderSectionHeader}>
-              <h3>Disputed Items</h3>
-              <span>{selectedIssueIds.size} selected</span>
+              <h3>{isOriginatingIssueMode ? "Selected Problem" : "Disputed Items"}</h3>
+              <span>
+                {isOriginatingIssueMode
+                  ? originatingCandidate ? "1 letter" : "Not ready"
+                  : `${selectedIssueIds.size} selected`}
+              </span>
             </div>
             {initialIssueReadinessMessage && (
               <div className={styles.originatingFindingNotice}>
@@ -899,6 +911,24 @@ function CreatePacketDialog({
             )}
             {recommendations.isFetching ? (
               <div className={styles.builderState}>Loading report issues...</div>
+            ) : isOriginatingIssueMode ? (
+              originatingCandidate ? (
+                <div className={styles.selectedProblemCard}>
+                  <span className={styles.candidateBody}>
+                    <span className={styles.candidateTitle}>
+                      {originatingCandidate.creditorCollectorName} - {originatingCandidate.maskedAccountNumber}
+                    </span>
+                    <span className={styles.candidateMeta}>
+                      {[originatingCandidate.bureauName, originatingCandidate.issueType, originatingCandidate.needsManualReview ? "Needs manual review" : "Evidence linked"]
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </span>
+                    {originatingCandidate.userEmail && (
+                      <span className={styles.candidateMeta}>{originatingCandidate.userEmail}</span>
+                    )}
+                  </span>
+                </div>
+              ) : null
             ) : candidates.length === 0 ? (
               <div className={styles.builderState}>No packet-ready findings found for this packet type. Review blocked findings before creating a packet.</div>
             ) : (
@@ -935,7 +965,9 @@ function CreatePacketDialog({
             </div>
             {!preview ? (
               <div className={styles.builderState}>
-                Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings.
+                {isOriginatingIssueMode
+                  ? "Preview this letter, or generate the PDF directly for the selected problem."
+                  : "Select one or more items to preview the packet, or generate the PDF directly from packet-ready findings."}
               </div>
             ) : (
               previewDisplay ? (
