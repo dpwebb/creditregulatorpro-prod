@@ -1,7 +1,7 @@
 {
   "reportName": "deploy-rollback-simulation",
-  "generatedAt": "2026-05-22T20:41:28.733Z",
-  "currentHead": "035b06c1271475e74d0bbd808daeb001898fe7b3",
+  "generatedAt": "2026-05-23T01:20:15.504Z",
+  "currentHead": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
   "branch": "staging",
   "auditTarget": "P1-2 Deployment replaces containers without automatic rollback or blue-green safety.",
   "evidenceType": "AUTOMATED_LOCAL_SIMULATION_AND_STATIC_WORKFLOW_CHECK",

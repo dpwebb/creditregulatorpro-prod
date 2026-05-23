@@ -1,7 +1,7 @@
 # Production Machine Proof Summary
 
-Generated: 2026-05-22T20:41:37.863Z
-Commit: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+Generated: 2026-05-23T01:24:37.238Z
+Commit: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
 Branch: `staging`
 Policy version: `production-machine-proof-policy-2026-05-22`
 allMachineProofsCertifying:true
@@ -37,5 +37,5 @@ allMachineProofsCertifying:true
 
 ## Production Mutation Summary
 
-- Any production mutation: no
-- Synthetic/canary cleanup succeeded: not applicable
+- Any production mutation: yes
+- Synthetic/canary cleanup succeeded: yes

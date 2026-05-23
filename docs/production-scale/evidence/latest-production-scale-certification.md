@@ -1,8 +1,8 @@
 # Production-Scale Certification Evidence
 
-Generated: 2026-05-22T20:46:52.240Z
-Current HEAD: `035b06c1271475e74d0bbd808daeb001898fe7b3`
-Target SHA: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+Generated: 2026-05-23T01:24:22.800Z
+Current HEAD: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
+Target SHA: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
 Target environment: `production-scale-local-certification`
 CERTIFYING:false
 
@@ -30,12 +30,12 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 | Ingest worker liveness simulation | PASS | `pnpm run ingest:worker:simulated-proof` |
 | Rollback SHA workflow static check | STALE | `pnpm run deploy:rollback-sha-governance --write-evidence --json` |
 | Deploy rollback simulation | STALE | `pnpm run deploy:rollback-simulation --write-evidence --json` |
-| Disaster recovery restore machine proof | STALE | `pnpm run restore:machine-proof` |
-| Production ingest worker runtime machine proof | STALE | `pnpm run production-worker:machine-proof` |
+| Disaster recovery restore machine proof | PASS | `pnpm run restore:machine-proof` |
+| Production ingest worker runtime machine proof | PASS | `pnpm run production-worker:machine-proof` |
 | Historical raw report byte remediation machine proof | PASS | `pnpm run storage:raw-report-machine-proof` |
-| Alerting and observability machine proof | STALE | `pnpm run alerts:machine-proof` |
+| Alerting and observability machine proof | PASS | `pnpm run alerts:machine-proof` |
 | Migration governance machine proof | PASS | `pnpm run migrations:machine-proof` |
-| Retention archive restore machine proof | STALE | `pnpm run retention:archive-restore-machine-proof` |
+| Retention archive restore machine proof | PASS | `pnpm run retention:archive-restore-machine-proof` |
 | Combined production machine proof summary | STALE | `pnpm run production:machine-proofs` |
 | Application check | PASS | `pnpm run check` |
 | Evidence freshness check | FAILED | `internal evidence freshness check` |
@@ -52,10 +52,6 @@ CERTIFYING:true only when every required automated gate passes, no gate is faile
 
 - rollbackShaGovernance
 - deployRollbackSimulation
-- restoreMachineProof
-- productionWorkerMachineProof
-- alertingMachineProof
-- retentionArchiveRestoreMachineProof
 - machineProofSummary
 
 ## Skipped Gates

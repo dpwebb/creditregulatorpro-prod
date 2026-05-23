@@ -3,11 +3,11 @@
   "evidenceType": "PRODUCTION_WORKER_RUNTIME_MACHINE_PROOF",
   "blockerId": "L10-P1-003",
   "environment": "production",
-  "generatedAt": "2026-05-23T01:09:49.531Z",
-  "commitHash": "3515f3959faf3853353d7c4847292484bde7e847",
-  "currentCommitHash": "3515f3959faf3853353d7c4847292484bde7e847",
-  "currentHead": "3515f3959faf3853353d7c4847292484bde7e847",
-  "commit": "3515f3959faf3853353d7c4847292484bde7e847",
+  "generatedAt": "2026-05-23T01:24:38.798Z",
+  "commitHash": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
+  "currentCommitHash": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
+  "currentHead": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
+  "commit": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
   "branch": "staging",
   "generatorScript": "scripts/production-worker-machine-proof.mjs",
   "command": "pnpm run production-worker:machine-proof",
@@ -28,7 +28,7 @@
   "certifying": true,
   "CERTIFYING": true,
   "freshnessWindowHours": 24,
-  "expiresAt": "2026-05-24T01:09:49.531Z",
+  "expiresAt": "2026-05-24T01:24:38.798Z",
   "checks": [
     {
       "name": "queue-depth-before-captured",
@@ -70,7 +70,7 @@
   "failures": [],
   "sanitizedArtifacts": [
     {
-      "path": "docs/production-scale/evidence/latest-production-worker-machine-proof.json",
+      "path": ".local/production-proof/production-worker-attestation.json",
       "type": "machine-attestation-input"
     },
     "docs/production-scale/evidence/latest-production-worker-machine-proof.json",

@@ -1,15 +1,15 @@
 # Production Promotion Evidence Pack
 
-Generated at: 2026-05-22T20:46:59.533Z
+Generated at: 2026-05-23T01:24:44.584Z
 Current branch: `staging`
-Current commit hash: `035b06c1271475e74d0bbd808daeb001898fe7b3`
-Current HEAD: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+Current commit hash: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
+Current HEAD: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
 Target environment: `production`
-Target SHA: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+Target SHA: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
 CERTIFYING:false
 Audit file path: `docs/production-at-scale-maximum-audit.md`
 Audit date: 2026-05-20
-Recommended readiness classification: **limited beta**
+Recommended readiness classification: **broader production**
 Production-ready claim: **false**
 
 ## Required Statements
@@ -32,38 +32,38 @@ Production-ready claim: **false**
 
 - CERTIFYING: false
 - Target environment: `production`
-- Target SHA: `035b06c1271475e74d0bbd808daeb001898fe7b3`
+- Target SHA: `d2fed22eb7e1c25d2304aee918336994aacd31cc`
 - Missing required checks: none
 - Stale checks: productionScaleCertification, machineProofSummary, storageDurability, evidenceLedger, rollbackSimulation, restoreMachineProof, productionWorkerMachineProof, rawReportMachineProof, alertingMachineProof, retentionArchiveRestoreMachineProof
 - Non-automated checks: none
 - Skipped checks: none
-- Failed checks: productionScaleCertification, machineProofSummary, queueLiveness, evidenceLedger, rollbackSimulation
+- Failed checks: productionScaleCertification, queueLiveness, evidenceLedger, rollbackSimulation
 - Missing machine runtime inputs: none
 
 ### Required Certification Checks
 
-- Production-scale certification: non-certifying; status=missing; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:46:52.240Z; command=`pnpm run production-scale:certify`
-- Combined machine proof summary: non-certifying; status=missing; head=missing; timestamp=2026-05-22T20:41:37.863Z; command=`pnpm run production:machine-proofs`
-- Queue liveness: non-certifying; status=prepared-awaiting-machine-production-evidence; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:46:59.533Z; command=`pnpm run production-worker:readiness-evidence`
-- Storage durability: non-certifying; status=missing; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:07.077Z; command=`pnpm run storage:durability-contract`
+- Production-scale certification: non-certifying; status=missing; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:22.800Z; command=`pnpm run production-scale:certify`
+- Combined machine proof summary: non-certifying; status=missing; head=missing; timestamp=2026-05-23T01:24:37.238Z; command=`pnpm run production:machine-proofs`
+- Queue liveness: non-certifying; status=prepared-awaiting-machine-production-evidence; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:44.584Z; command=`pnpm run production-worker:readiness-evidence`
+- Storage durability: non-certifying; status=missing; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:19:56.947Z; command=`pnpm run storage:durability-contract`
 - Evidence ledger: non-certifying; status=missing; head=5c1eaef164726a0cf7c3332ad969fb53462a3525; timestamp=2026-05-21T05:20:12.2044194Z; command=`pnpm run production-scale:evidence`
-- Migration governance: CERTIFYING; status=accepted-release-blocking; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:46:59.533Z; command=`pnpm run migrations:gate`
-- Rollback simulation: non-certifying; status=passed; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:28.733Z; command=`pnpm run deploy:rollback-simulation`
-- Disaster recovery restore machine proof: non-certifying; status=pass; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:38.527Z; command=`pnpm run restore:machine-proof`
-- Production worker runtime machine proof: non-certifying; status=pass; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:40.025Z; command=`pnpm run production-worker:machine-proof`
-- Raw report byte remediation machine proof: non-certifying; status=pass; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:41.558Z; command=`pnpm run storage:raw-report-machine-proof`
-- Alerting observability machine proof: non-certifying; status=pass; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:43.397Z; command=`pnpm run alerting:machine-proof`
-- Migration governance machine proof: CERTIFYING; status=pass; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:46:59.533Z; command=`pnpm run migrations:machine-proof`
-- Retention archive restore machine proof: non-certifying; status=pass; head=035b06c1271475e74d0bbd808daeb001898fe7b3; timestamp=2026-05-22T20:41:47.512Z; command=`pnpm run retention:archive-restore-machine-proof`
+- Migration governance: CERTIFYING; status=accepted-release-blocking; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:44.584Z; command=`pnpm run migrations:gate`
+- Rollback simulation: non-certifying; status=passed; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:20:15.504Z; command=`pnpm run deploy:rollback-simulation`
+- Disaster recovery restore machine proof: non-certifying; status=pass; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:37.800Z; command=`pnpm run restore:machine-proof`
+- Production worker runtime machine proof: non-certifying; status=pass; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:38.798Z; command=`pnpm run production-worker:machine-proof`
+- Raw report byte remediation machine proof: non-certifying; status=pass; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:39.891Z; command=`pnpm run storage:raw-report-machine-proof`
+- Alerting observability machine proof: non-certifying; status=pass; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:41.046Z; command=`pnpm run alerting:machine-proof`
+- Migration governance machine proof: CERTIFYING; status=pass; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:44.584Z; command=`pnpm run migrations:machine-proof`
+- Retention archive restore machine proof: non-certifying; status=pass; head=d2fed22eb7e1c25d2304aee918336994aacd31cc; timestamp=2026-05-23T01:24:43.451Z; command=`pnpm run retention:archive-restore-machine-proof`
 
 ### Machine-Attested Proof Gates
 
-- Disaster recovery restore machine proof: not accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-restore-machine-proof.json`
-- Production worker runtime machine proof: not accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-production-worker-machine-proof.json`
+- Disaster recovery restore machine proof: accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-restore-machine-proof.json`
+- Production worker runtime machine proof: accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-production-worker-machine-proof.json`
 - Raw report byte remediation machine proof: accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-storage-raw-report-machine-proof.json`
-- Alerting observability machine proof: not accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-alerting-machine-proof.json`
+- Alerting observability machine proof: accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-alerting-machine-proof.json`
 - Migration governance machine proof: accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-migration-machine-proof.json`
-- Retention archive restore machine proof: not accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json`
+- Retention archive restore machine proof: accepted; status=pass; certifying=true; missingRuntimeInputs=none; humanInteractionRequired=false; evidence=`docs/production-scale/evidence/latest-retention-archive-restore-machine-proof.json`
 
 ### Missing Machine Runtime Inputs
 
@@ -71,7 +71,7 @@ Production-ready claim: **false**
 
 ### Exact Commands Run By This Evidence Pack
 
-- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-22T20:46:59.533Z; completed=2026-05-22T20:46:59.533Z
+- `pnpm run production-scale:promotion-pack` - passed; started=2026-05-23T01:24:44.584Z; completed=2026-05-23T01:24:44.584Z
 
 ## Command Result Summary
 
@@ -277,9 +277,9 @@ Production-ready claim: **false**
 
 ## Runtime Size Policy Acceptance
 
-- Status: accepted-warning-only-waiver
-- Accepted: yes
-- Acceptance kind: warning-only-waiver
+- Status: failed
+- Accepted: no
+- Acceptance kind: not-accepted
 - Policy mode: warning-only
 - Policy path: `docs/production-scale/runtime-size-threshold-policy.json`
 - Evidence path: `docs/production-scale/evidence/latest-runtime-size.json`
@@ -289,7 +289,7 @@ Production-ready claim: **false**
 - WAIVED rows with reasons: 1/1
 - Formal waiver accepted: yes
 - Blocker 18 hard-gate coverage: not accepted
-- Blocker 18 warning-only waiver coverage: accepted
+- Blocker 18 warning-only waiver coverage: not accepted
 - Dependency versions changed: no
 - Build chunking changed: no
 - PDF/OCR behavior changed: no
@@ -333,10 +333,7 @@ Production-ready claim: **false**
 
 ## Simulated Proof-Only Checks
 
-- #1 Disaster recovery (Critical; simulated proof only) - Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.
-- #2 Production ingest runtime (Critical; simulated proof only) - Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.
-- #9 Observability/alerting (High; simulated proof only) - Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
-- #22 Retention archive/restore proof (Medium; simulated proof only) - Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.
+- None.
 
 ## Staging Proof-Only Checks
 
@@ -344,18 +341,15 @@ Production-ready claim: **false**
 
 ## Waivers
 
-- #18 Runtime-size gates (Medium; waived with explicit reason) - Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
+- None.
 
 ## Unresolved Production Blockers
 
-- #1 Disaster recovery (Critical; simulated proof only) - Provide CRP_RESTORE_MACHINE_ATTESTATION_JSON from a safe isolated restore target and rerun restore:machine-proof.
-- #2 Production ingest runtime (Critical; simulated proof only) - Provide CRP_PRODUCTION_WORKER_MACHINE_ATTESTATION_JSON from a bounded safe canary/runtime proof and rerun production-worker:machine-proof.
-- #9 Observability/alerting (High; simulated proof only) - Provide CRP_ALERTING_MACHINE_ATTESTATION_JSON for live delivery or an approved certifying exclusion and rerun alerts:machine-proof.
-- #22 Retention archive/restore proof (Medium; simulated proof only) - Provide CRP_RETENTION_ARCHIVE_RESTORE_MACHINE_ATTESTATION_JSON with CRP_RETENTION_ARCHIVE_RESTORE_ARCHIVE_ACCESS, CRP_RETENTION_ARCHIVE_RESTORE_ISOLATED_TARGET, and CRP_RETENTION_ARCHIVE_RESTORE_SAFE_CANDIDATE attested fields, then rerun retention:archive-restore-machine-proof.
+- None.
 
 ## Unresolved Scale Blockers
 
-- None.
+- #18 Runtime-size gates (Medium; partial) - Keep the warning-only waiver evidence current, and only enable a release-blocking gate through a later reviewed threshold-policy change.
 
 ## Generated Evidence File References
 

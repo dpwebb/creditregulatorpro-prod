@@ -1,7 +1,7 @@
 {
   "reportName": "rollback-sha-governance",
-  "generatedAt": "2026-05-22T20:41:21.007Z",
-  "currentHead": "035b06c1271475e74d0bbd808daeb001898fe7b3",
+  "generatedAt": "2026-05-23T01:20:09.960Z",
+  "currentHead": "d2fed22eb7e1c25d2304aee918336994aacd31cc",
   "branch": "staging",
   "auditTargets": [
     "P1-1 Rollback SHA validation tests the workflow ref, not the rollback target.",
